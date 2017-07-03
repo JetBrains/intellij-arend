@@ -23,7 +23,8 @@
     -->
 
     <extensions defaultExtensionNs="com.intellij">
-
+        <!-- File-type Factory -->
+        <fileTypeFactory implementation="org.vclang.VclangFileTypeFactory"/>
     </extensions>
 
     <actions>
