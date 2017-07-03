@@ -3,6 +3,6 @@ package org.vclang
 import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
 
-object VclangIcons {
+object VcIcons {
     val FILE: Icon = IconLoader.getIcon("/icons/jar-gray.png")
 }

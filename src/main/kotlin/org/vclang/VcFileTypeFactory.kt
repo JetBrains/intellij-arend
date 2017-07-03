@@ -2,8 +2,8 @@ package org.vclang
 
 import com.intellij.openapi.fileTypes.*
 
-class VclangFileTypeFactory : FileTypeFactory() {
+class VcFileTypeFactory : FileTypeFactory() {
     override fun createFileTypes(fileTypeConsumer: FileTypeConsumer) {
-        fileTypeConsumer.consume(VclangFileType, "vc")
+        fileTypeConsumer.consume(VcFileType, "vc")
     }
 }

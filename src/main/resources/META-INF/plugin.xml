@@ -5,7 +5,7 @@
     <vendor url="https://github.com/mchernyavsky/intellij-vclang"/>
 
     <description><![CDATA[
-      Vclang language support
+      vclang language support
     ]]></description>
 
     <change-notes><![CDATA[
@@ -24,7 +24,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- File-type Factory -->
-        <fileTypeFactory implementation="org.vclang.VclangFileTypeFactory"/>
+        <fileTypeFactory implementation="org.vclang.VcFileTypeFactory"/>
     </extensions>
 
     <actions>
