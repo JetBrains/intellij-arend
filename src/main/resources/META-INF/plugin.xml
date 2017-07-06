@@ -25,6 +25,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- File-type Factory -->
         <fileTypeFactory implementation="org.vclang.lang.VcFileTypeFactory"/>
+
+        <!-- Parser Definition -->
+        <lang.parserDefinition language="Vclang" implementationClass="org.vclang.lang.core.parser.VcParserDefinition"/>
     </extensions>
 
     <actions>
