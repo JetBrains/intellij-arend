@@ -28,6 +28,9 @@
 
         <!-- Parser Definition -->
         <lang.parserDefinition language="Vclang" implementationClass="org.vclang.lang.core.parser.VcParserDefinition"/>
+
+        <!-- Syntax Highlighter -->
+        <lang.syntaxHighlighterFactory language="Vclang" implementationClass="org.vclang.ide.highlight.VcSyntaxHighlighterFactory"/>
     </extensions>
 
     <actions>
