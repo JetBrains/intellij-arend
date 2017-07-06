@@ -1,35 +1,86 @@
-group 'org.vclang'
-
 buildscript {
-    ext.kotlin_version = '1.1.3'
-
     repositories {
         mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-        maven {
-            url 'http://dl.bintray.com/jetbrains/intellij-plugin-service'
-        }
+        jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url 'https://dl.bintray.com/jetbrains/intellij-plugin-service' }
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.github.hurricup:gradle-grammar-kit-plugin:354bb8c477"
         classpath "gradle.plugin.org.jetbrains:gradle-intellij-plugin:0.1.10"
     }
 }
 
-apply plugin: 'java'
-apply plugin: 'kotlin'
+plugins {
+    id 'org.jetbrains.intellij' version '0.2.5'
+    id 'org.jetbrains.kotlin.jvm' version '1.1.3'
+}
+
+import org.jetbrains.grammarkit.tasks.GenerateLexer
+import org.jetbrains.grammarkit.tasks.GenerateParser
+
+apply plugin: 'idea'
+idea {
+    module {
+        generatedSourceDirs += file('src/main/gen')
+    }
+}
+
 apply plugin: 'org.jetbrains.intellij'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+compileKotlin {
+    kotlinOptions {
+        languageVersion = '1.1'
+        apiVersion = '1.0'
+    }
+}
+
+tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
+sourceSets {
+    main {
+        java.srcDirs += 'src/main/gen'
+    }
+}
+
+apply plugin: 'org.jetbrains.grammarkit'
+grammarKit {
+    grammarKitRelease = '1.5.1'
+    grammarKitTargetRoot = 'src/main/gen'
+    purgeOldFiles = true
+}
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compileOnly('com.github.JetBrains:Grammar-Kit:34fd65b92af957c25d940b828d81ab3ba9b398b0') {
+        exclude group: 'org.jetbrains.plugins'
+        exclude module: 'idea'
+    }
+
+    testCompile 'junit:junit:4.+'
 }
+
+task generateVcLexer(type: GenerateLexer) {
+    source 'src/main/grammars/VcLexer.flex'
+    targetDir 'src/main/gen/org/vclang/lang/core/lexer'
+    targetClass '_VcLexer'
+}
+
+task generateVcParser(type: GenerateParser) {
+    source 'src/main/grammars/VcParser.bnf'
+    pathToParser '/org/vclang/lang/core/parser/VcParser.java'
+    pathToPsiRoot '/org/vclang/lang/core/psi'
+}
+
+compileKotlin.dependsOn generateVcLexer, generateVcParser
+compileTestKotlin.dependsOn generateVcLexer, generateVcParser
