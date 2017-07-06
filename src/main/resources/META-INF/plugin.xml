@@ -31,6 +31,9 @@
 
         <!-- Syntax Highlighter -->
         <lang.syntaxHighlighterFactory language="Vclang" implementationClass="org.vclang.ide.highlight.VcSyntaxHighlighterFactory"/>
+
+        <!-- Color Settings -->
+        <colorSettingsPage implementation="org.vclang.ide.colors.VcColorSettingsPage"/>
     </extensions>
 
     <actions>
