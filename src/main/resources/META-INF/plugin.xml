@@ -34,6 +34,9 @@
 
         <!-- Color Settings -->
         <colorSettingsPage implementation="org.vclang.ide.colors.VcColorSettingsPage"/>
+
+        <!-- Commenter -->
+        <lang.commenter language="Vclang" implementationClass="org.vclang.ide.commenter.VcCommenter"/>
     </extensions>
 
     <actions>
