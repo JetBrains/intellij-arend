@@ -1,4 +1,4 @@
-package org.vclang
+package org.vclang.lang
 
 import com.intellij.openapi.fileTypes.*
 

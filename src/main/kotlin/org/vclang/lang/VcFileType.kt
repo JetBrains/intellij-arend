@@ -1,6 +1,7 @@
-package org.vclang
+package org.vclang.lang
 
 import com.intellij.openapi.fileTypes.LanguageFileType
+import org.vclang.ide.icons.VcIcons
 
 import javax.swing.Icon
 

@@ -1,4 +1,4 @@
-package org.vclang
+package org.vclang.ide.icons
 
 import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
