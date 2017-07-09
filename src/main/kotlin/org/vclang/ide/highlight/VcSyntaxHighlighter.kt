@@ -20,11 +20,11 @@ class VcSyntaxHighlighter : SyntaxHighlighterBase() {
 
     companion object {
         fun map(tokenType: IElementType?): VcHighlightingColors? = when (tokenType) {
-            ID, UNDERSCORE -> VcHighlightingColors.IDENTIFIER
+            ID -> VcHighlightingColors.IDENTIFIER
             NUMBER -> VcHighlightingColors.NUMBER
             in VC_KEYWORDS -> VcHighlightingColors.KEYWORD
             SET, UNIVERSE, TRUNCATED_UNIVERSE -> VcHighlightingColors.UNIVERSE
-            HOLE -> VcHighlightingColors.HOLE
+            UNDERSCORE, HOLE -> VcHighlightingColors.IMPLICIT
 
             BIN_OP -> VcHighlightingColors.OPERATORS
             DOT -> VcHighlightingColors.DOT
