@@ -1,18 +1,18 @@
 {
     parserClass="org.vclang.lang.core.parser.VcParser"
-    parserUtilClass="org.vclang.lang.core.parser.VcParserUtil"
 
-    extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+    implements='org.vclang.lang.core.psi.ext.VcCompositeElement'
+    extends='org.vclang.lang.core.psi.ext.VcCompositeElementImpl'
+
+    elementTypeHolderClass="org.vclang.lang.core.psi.VcTypes"
+
+    elementTypeClass="org.vclang.lang.core.psi.VcCompositeElementType"
+    tokenTypeClass="org.vclang.lang.core.psi.VcTokenType"
 
     psiClassPrefix="Vc"
     psiImplClassSuffix="Impl"
     psiPackage="org.vclang.lang.core.psi"
     psiImplPackage="org.vclang.lang.core.psi.impl"
-    psiImplUtilClass="org.vclang.lang.core.psi.impl.VcPsiImplUtil"
-
-    elementTypeHolderClass="org.vclang.lang.core.psi.VcTypes"
-    elementTypeClass="org.vclang.lang.core.psi.VcElementType"
-    tokenTypeClass="org.vclang.lang.core.psi.VcTokenType"
 
     generateTokenAccessors=true
 
@@ -87,8 +87,9 @@ statement ::= command | definition
 topStatement ::= !<<eof>> statement {
     recoverWhile = statementRecover
 }
-private statementRecover ::= !(OPEN_KW  | EXPORT_KW | FUNCTION_KW | FIELD_KW   | IMPLEMENT_KW | TRUNCATED_KW |
-                               DATA_KW  | CLASS_KW  | VIEW_KW     | DEFAULT_KW | INSTANCE_KW)
+private statementRecover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW | FIELD_KW |
+                               IMPLEMENT_KW | TRUNCATED_KW | DATA_KW     | CLASS_KW |
+                               VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
 command ::= nsCmd (modulePath | identifier) fieldAcc* [HIDING_KW? <<parenSequence identifier>>] { pin = 1 }
 
@@ -98,15 +99,52 @@ definition ::= defFunction
     | defData
     | defClass
     | defClassView
-    | defInstance
+    | defInstance {
+    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.lang.core.psi.ext.VcDefinitionImplMixin"
+}
 
-defFunction ::= FUNCTION_KW precedence identifier tele* [COLON expr] functionBody where? { pin = 1 }
-defAbstract ::= FIELD_KW precedence identifier COLON expr { pin = 1 }
-defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr { pin = 1 }
-defData ::= TRUNCATED_KW? DATA_KW precedence identifier tele* [COLON expr] dataBody { pin = 2 }
-defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<sequence expr>>] [LBRACE statements RBRACE] where? { pin = 1 }
-defClassView ::= VIEW_KW ID ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE { pin = 1 }
-defInstance ::= DEFAULT_KW? INSTANCE_KW ID tele* FAT_ARROW expr { pin = 2 }
+defFunction ::= FUNCTION_KW precedence identifier tele* [COLON expr] functionBody where? {
+    pin = 1
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defAbstract ::= FIELD_KW precedence identifier COLON expr {
+    pin = 1
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr {
+    pin = 1
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defData ::= TRUNCATED_KW? DATA_KW precedence identifier tele* [COLON expr] dataBody {
+    pin = 2
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<sequence expr>>] [LBRACE statements RBRACE] where? {
+    pin = 1
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defClassView ::= VIEW_KW ID ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE {
+    pin = 1
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
+
+defInstance ::= DEFAULT_KW? INSTANCE_KW ID tele* FAT_ARROW expr {
+    pin = 2
+    implements="org.vclang.lang.core.psi.VcNamedElement"
+    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+}
 
 functionBody ::= withoutElim | withElim
 private withoutElim ::= FAT_ARROW expr
@@ -140,7 +178,10 @@ associativity ::= NON_ASSOC_KW
     | LEFT_ASSOC_KW
     | RIGHT_ASSOC_KW
 
-identifier ::= ID | LPAREN BIN_OP RPAREN
+identifier ::= ID | LPAREN BIN_OP RPAREN {
+    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.lang.core.psi.ext.VcIdentifierImplMixin"
+}
 
 expr ::= arrExpr
     | binOpExpr
@@ -203,7 +244,6 @@ modulePath ::= (COLONCOLON ID)+
 
 atom ::= literal
     | <<parenSequence expr>>
-    | NUMBER
     | modulePath
 
 atomFieldsAcc ::= atom fieldAcc* implementStatements?
@@ -217,6 +257,7 @@ argument ::= atomFieldsAcc
     | LBRACE expr RBRACE
 
 literal ::= identifier
+    | NUMBER
     | PROP_KW
     | UNDERSCORE
     | HOLE

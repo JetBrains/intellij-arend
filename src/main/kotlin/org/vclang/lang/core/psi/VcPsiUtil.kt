@@ -10,7 +10,7 @@ import com.intellij.psi.search.FileTypeIndex
 import org.vclang.lang.VcFileType
 
 fun Project.findDefinitions(name: String): List<VcDefinition> =
-        findDefinitions().filter { it.name == name }
+        findDefinitions().filter { it.referenceName == name }
 
 fun Project.findDefinitions(): List<VcDefinition> {
     val virtualFiles = FileBasedIndex.getInstance().getContainingFiles(
