@@ -24,8 +24,8 @@ hs_err_pid*
 # Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
 
-# Lib
-!lib/asciiPanel.jar
+# Vclang
+!lib/vclang.jar
 
 .gradle/
 .idea/
