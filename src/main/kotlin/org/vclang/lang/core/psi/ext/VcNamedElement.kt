@@ -1,18 +1,22 @@
-package org.vclang.lang.core.psi
+package org.vclang.lang.core.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
-import org.vclang.lang.core.psi.ext.VcCompositeElement
-import org.vclang.lang.core.psi.ext.VcCompositeElementImpl
+import org.vclang.lang.core.psi.VcIdentifier
+import org.vclang.lang.core.psi.VcTypes
 
 interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement
 
-abstract class VcNamedElementImpl(node: ASTNode)
-    : VcCompositeElementImpl(node), VcNamedElement {
+abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
+                                                  VcNamedElement {
 
-    override fun getNameIdentifier(): PsiElement? = findChildByType(VcTypes.IDENTIFIER) ?: findChildByType(VcTypes.ID)
+    override fun getNameIdentifier(): PsiElement? {
+        val identifier = findChildByType<VcIdentifier>(VcTypes.IDENTIFIER)
+        identifier?.let { return (it.binOp ?: it.id) }
+        return findChildByType(VcTypes.ID)
+    }
 
     override fun getName(): String? = nameIdentifier?.text
 
