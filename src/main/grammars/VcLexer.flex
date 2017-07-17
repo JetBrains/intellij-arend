@@ -51,7 +51,7 @@ BLOCK_COMMENT=\{-[^]*-\}
   "_"                       { return UNDERSCORE; }
   "`"                       { return GRAVE; }
   "{?}"                     { return HOLE; }
-  "|"                       { return OR; }
+  "|"                       { return PIPE; }
   "\\open"                  { return OPEN_KW; }
   "\\export"                { return EXPORT_KW; }
   "\\hiding"                { return HIDING_KW; }

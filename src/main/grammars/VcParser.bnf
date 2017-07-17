@@ -1,22 +1,22 @@
 {
-    parserClass="org.vclang.lang.core.parser.VcParser"
+    parserClass = "org.vclang.lang.core.parser.VcParser"
 
-    implements='org.vclang.lang.core.psi.ext.VcCompositeElement'
-    extends='org.vclang.lang.core.psi.ext.VcCompositeElementImpl'
+    implements = 'org.vclang.lang.core.psi.ext.VcCompositeElement'
+    extends = 'org.vclang.lang.core.psi.ext.VcCompositeElementImpl'
 
-    elementTypeHolderClass="org.vclang.lang.core.psi.VcTypes"
+    elementTypeHolderClass = "org.vclang.lang.core.psi.VcTypes"
 
-    elementTypeClass="org.vclang.lang.core.psi.VcCompositeElementType"
-    tokenTypeClass="org.vclang.lang.core.psi.VcTokenType"
+    elementTypeClass = "org.vclang.lang.core.psi.VcCompositeElementType"
+    tokenTypeClass = "org.vclang.lang.core.psi.VcTokenType"
 
-    psiClassPrefix="Vc"
-    psiImplClassSuffix="Impl"
-    psiPackage="org.vclang.lang.core.psi"
-    psiImplPackage="org.vclang.lang.core.psi.impl"
+    psiClassPrefix = "Vc"
+    psiImplClassSuffix = "Impl"
+    psiPackage = "org.vclang.lang.core.psi"
+    psiImplPackage = "org.vclang.lang.core.psi.impl"
 
-    generateTokenAccessors=true
+    generateTokenAccessors = true
 
-    tokens=[
+    tokens = [
         LBRACE             = '{'
         RBRACE             = '}'
         LPAREN             = '('
@@ -30,7 +30,7 @@
         UNDERSCORE         = '_'
         GRAVE              = '`'
         HOLE               = '{?}'
-        OR                 = '|'
+        PIPE               = '|'
 
         OPEN_KW            = '\open'
         EXPORT_KW          = '\export'
@@ -77,21 +77,31 @@
         BLOCK_COMMENT      = "regexp:\{-[^]*-\}"
     ]
 
-    extends("binOpExpr|arrExpr|piExpr|sigmaExpr|lamExpr|letExpr|caseExpr") = expr
+    extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
 }
 
-file ::= topStatement*
-statements ::= statement*
+sourceNode ::= statements
 
-statement ::= command | definition
-topStatement ::= !<<eof>> statement {
-    recoverWhile = statementRecover
-}
+statements ::= topStatement* { mixin = "org.vclang.lang.core.psi.ext.VcStatementsImplMixin" }
+
+private topStatement ::= !<<eof>> statement { recoverWhile = statementRecover }
+
 private statementRecover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW | FIELD_KW |
                                IMPLEMENT_KW | TRUNCATED_KW | DATA_KW     | CLASS_KW |
                                VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
-command ::= nsCmd (modulePath | identifier) fieldAcc* [HIDING_KW? <<parenSequence identifier>>] { pin = 1 }
+statement ::= statCmd | statDef
+
+statDef ::= definition
+
+statCmd ::= nsCmd nsCmdRoot (DOT fieldAcc)* [HIDING_KW? LPAREN <<comma_separated_sequence identifier>> RPAREN] {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcStatCmdImplMixin"
+}
+
+nsCmdRoot ::= modulePath | identifier {
+    mixin = "org.vclang.lang.core.psi.ext.VcNsCmdRootImplMixin"
+}
 
 definition ::= defFunction
     | defAbstract
@@ -100,164 +110,223 @@ definition ::= defFunction
     | defClass
     | defClassView
     | defInstance {
-    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
-    mixin = "org.vclang.lang.core.psi.ext.VcDefinitionImplMixin"
+    implements = [ "org.vclang.lang.core.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.Definition" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefinitionImplMixin"
 }
 
-defFunction ::= FUNCTION_KW precedence identifier tele* [COLON expr] functionBody where? {
+defFunction ::= FUNCTION_KW prec identifier tele* [COLON expr] functionBody where? {
     pin = 1
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.FunctionDefinition" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefFunctionImplMixin"
 }
 
-defAbstract ::= FIELD_KW precedence identifier COLON expr {
+defAbstract ::= FIELD_KW prec identifier COLON expr {
     pin = 1
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefAbstractImplMixin"
 }
 
 defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr {
     pin = 1
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefImplementImplMixin"
 }
 
-defData ::= TRUNCATED_KW? DATA_KW precedence identifier tele* [COLON expr] dataBody {
+defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     pin = 2
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.DataDefinition" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefDataImplMixin"
 }
 
-defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<sequence expr>>] [LBRACE statements RBRACE] where? {
+defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<comma_separated_sequence expr0>>] [LBRACE statement* RBRACE] where? {
     pin = 1
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassDefinition" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefClassImplMixin"
 }
 
 defClassView ::= VIEW_KW ID ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE {
     pin = 1
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassView" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefClassViewImplMixin"
 }
 
 defInstance ::= DEFAULT_KW? INSTANCE_KW ID tele* FAT_ARROW expr {
     pin = 2
-    implements="org.vclang.lang.core.psi.VcNamedElement"
-    mixin="org.vclang.lang.core.psi.VcNamedElementImpl"
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewInstance" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefInstanceImplMixin"
 }
 
 functionBody ::= withoutElim | withElim
-private withoutElim ::= FAT_ARROW expr
-private withElim ::= elim? clauses
+withoutElim ::= FAT_ARROW !ELIM_KW expr
+withElim ::= elim? clauses
 
 dataBody ::= dataClauses | dataConstructors
 private dataClauses ::= elim constructorClause*
-private dataConstructors ::= [FAT_ARROW COLON? constructor] (OR constructor)*
+private dataConstructors ::= [FAT_ARROW PIPE? constructor] (PIPE constructor)*
 
-constructorClause ::= OR <<sequence pattern>> FAT_ARROW (constructor | <<braceAlter constructor>>)
+private constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RPAREN)
 
-elim ::= WITH_KW | FAT_ARROW ELIM_KW expr? (COMMA expr)*
+elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence expr0>>
 
-classViewField ::= identifier [FAT_ARROW precedence identifier]
+classViewField ::= identifier [FAT_ARROW prec identifier] {
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewField" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcClassViewFieldImplMixin"
+}
 
-where ::= WHERE_KW (LBRACE statements RBRACE | statement) { pin = 1 }
+where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
 
 nsCmd ::= OPEN_KW | EXPORT_KW
 
-pattern ::= atomPattern | identifier (atomPattern | ID)*
+pattern ::= patternAtom | patternConstructor {
+    mixin = "org.vclang.lang.core.psi.ext.VcPatternImplMixin"
+}
+
+patternAtom ::= atomPattern
+
+patternConstructor ::= identifier atomPatternOrID*
+
+atomPatternOrID ::= atomPattern | ID
 
 atomPattern ::= LPAREN pattern? RPAREN
     | LBRACE pattern RBRACE
     | UNDERSCORE
 
-constructor ::= precedence identifier tele* [elim? clausesWithBraces]
+constructor ::= prec identifier tele* [elim? clausesWithBraces] {
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.Constructor" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapter.VcConstructorImplMixin"
+}
 
-precedence ::= [associativity NUMBER]
+prec ::= [associativity NUMBER]
 
 associativity ::= NON_ASSOC_KW
     | LEFT_ASSOC_KW
     | RIGHT_ASSOC_KW
 
 identifier ::= ID | LPAREN BIN_OP RPAREN {
-    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
+    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement"
+                   "org.vclang.lang.core.psi.ext.VcNamedElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcIdentifierImplMixin"
 }
 
+expr0 ::= binOpLeft* binOpArg
+
 expr ::= arrExpr
-    | binOpExpr
-    | piExpr
+    | caseExpr
     | sigmaExpr
+    | piExpr
     | lamExpr
     | letExpr
-    | caseExpr
+    | binOpExpr
 
 arrExpr ::= expr ARROW expr { rightAssociative = true }
-binOpExpr ::= binOpLeft* binOpArg
-piExpr ::= PI_KW tele+ ARROW expr { pin = 1 }
-sigmaExpr ::= SIGMA_KW tele+ { pin = 1 }
-lamExpr ::= LAM_KW tele+ FAT_ARROW expr { pin = 1 }
-letExpr ::= LET_KW <<alter letClause>> IN_KW expr { pin = 1 }
-caseExpr ::= CASE_KW <<sequence expr>> WITH_KW? clauses { pin = 1 }
 
-clauses ::= clausesWithBraces | (OR clause)*
-private clausesWithBraces ::= LBRACE clause? (OR clause)* RBRACE
+binOpExpr ::= binOpLeft* newExpr
+
+caseExpr ::= CASE_KW <<comma_separated_sequence expr0>> WITH_KW? clausesWithBraces { pin = 1 }
+
+piExpr ::= PI_KW tele+ ARROW expr {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcPiExprImplMixin"
+}
+
+sigmaExpr ::= SIGMA_KW tele+ {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcSigmaExprImplMixin"
+}
+
+lamExpr ::= LAM_KW tele+ FAT_ARROW expr {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcLamExprImplMixin"
+}
+
+letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcLetExprImplMixin"
+}
+
+clauses ::= clausesWithBraces | (PIPE clause)*
+private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE
 
 letClause ::= ID tele* typeAnnotation? FAT_ARROW expr
 
 typeAnnotation ::= COLON expr { pin = 1 }
 
-clause ::= <<sequence pattern>> [FAT_ARROW expr]
+clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr]
 
-levelExpr ::= levelAtom
-    | levelSuc
-    | levelMax
+levelExpr ::= atomLevelExpr
+    | sucLevelExpr
+    | maxLevelExpr
 
-levelAtom ::= LP_KW
+atomLevelExpr ::= LP_KW
     | LH_KW
     | NUMBER
     | LPAREN levelExpr RPAREN
 
-levelSuc ::= SUC_KW levelAtom { pin = 1 }
+sucLevelExpr ::= SUC_KW atomLevelExpr { pin = 1 }
 
-levelMax ::= MAX_KW levelAtom levelAtom { pin = 1 }
+maxLevelExpr ::= MAX_KW atomLevelExpr atomLevelExpr { pin = 1 }
 
-binOpArg ::= binOpUniverse
-    | binOpTruncatedUniverse
-    | binOpSet
-    | binOpArgument
+binOpArg ::= universeBinOp
+    | truncatedUniverseBinOp
+    | setUniverseBinOp
+    | argumentBinOp
 
-binOpUniverse ::= UNIVERSE levelAtom? levelAtom? { pin = 1 }
+universeBinOp ::= UNIVERSE [atomLevelExpr atomLevelExpr] { pin = 1 }
 
-binOpTruncatedUniverse ::= TRUNCATED_UNIVERSE levelAtom? { pin = 1 }
+truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? { pin = 1 }
 
-binOpSet ::= SET levelAtom? { pin = 1 }
+setUniverseBinOp ::= SET atomLevelExpr? { pin = 1 }
 
-binOpArgument ::= NEW_KW? atomFieldsAcc argument*
+argumentBinOp ::= atomFieldsAcc argument*
 
-binOpLeft ::= binOpArg infix
+binOpLeft ::= newExpr infix
 
-fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
+newExpr ::= NEW_KW? binOpArg implementStatements? {
+    pin = 1
+    mixin = "org.vclang.lang.core.psi.ext.VcNewExprImplMixin"
+}
 
-infix ::= BIN_OP | GRAVE ID GRAVE
+fieldAcc ::= NUMBER | identifier
 
-modulePath ::= (COLONCOLON ID)+
+infix ::= BIN_OP | GRAVE ID GRAVE {
+    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.lang.core.psi.ext.VcInfixImplMixin"
+}
+
+modulePath ::= (COLONCOLON pathPart)+ {
+    implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.lang.core.psi.ext.VcModulePathImplMixin"
+}
+pathPart ::= ID
 
 atom ::= literal
-    | <<parenSequence expr>>
-    | modulePath
+    | LPAREN <<comma_separated_sequence expr>> RPAREN
+    | NUMBER
+    | atomModuleCall
 
-atomFieldsAcc ::= atom fieldAcc* implementStatements?
+atomModuleCall ::= modulePath
 
-implementStatements ::= LBRACE implementStatement* RBRACE
+atomFieldsAcc ::= atom (DOT fieldAcc)*
 
-implementStatement ::= OR? identifier FAT_ARROW expr
+private implementStatements ::= LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE
+
+implementStatement ::= identifier FAT_ARROW expr
 
 argument ::= atomFieldsAcc
     | universeAtom
     | LBRACE expr RBRACE
 
 literal ::= identifier
-    | NUMBER
     | PROP_KW
     | UNDERSCORE
     | HOLE
@@ -271,9 +340,8 @@ tele ::= literal
     | LPAREN typedExpr RPAREN
     | LBRACE typedExpr RBRACE
 
-typedExpr ::= expr [COLON expr]
+typedExpr ::= (identifier | UNDERSCORE)+ COLON expr | expr  // expr [COLON expr]
 
-private meta sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
-private meta parenSequence ::= LPAREN <<p>> (COMMA <<p>>)* RPAREN { pin(".*") = 1 }
-private meta alter ::= OR? <<p>> (OR <<p>>)* { pin(".*") = 1 }
-private meta braceAlter ::= LBRACE OR? <<p>> (OR <<p>>)* RBRACE { pin(".*") = 1 }
+private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
+
+private meta pipe_separated_sequence ::= PIPE? <<p>> (PIPE <<p>>)* { pin(".*") = 1 }
