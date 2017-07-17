@@ -27,6 +27,9 @@ hs_err_pid*
 # Vclang
 !lib/vclang.jar
 
+# Intellij
+*.iml
+
 .gradle/
 .idea/
 build/

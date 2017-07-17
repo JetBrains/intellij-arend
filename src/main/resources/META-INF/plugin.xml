@@ -1,11 +1,11 @@
 <idea-plugin>
     <id>org.vclang.lang</id>
-    <name>intellij-vclang</name>
+    <name>Vclang</name>
     <version>0.0.1</version>
     <vendor url="https://github.com/mchernyavsky/intellij-vclang"/>
 
     <description><![CDATA[
-      vclang language support
+      Vclang language support
     ]]></description>
 
     <change-notes><![CDATA[

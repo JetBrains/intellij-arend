@@ -31,7 +31,7 @@ class VcSyntaxHighlighter : SyntaxHighlighterBase() {
             COMMA -> VcHighlightingColors.COMMA
             COLON, COLONCOLON -> VcHighlightingColors.COLON
             GRAVE -> VcHighlightingColors.GRAVE
-            OR -> VcHighlightingColors.COMMA
+            PIPE -> VcHighlightingColors.COMMA
             ARROW, FAT_ARROW -> VcHighlightingColors.ARROW
 
             LBRACE, RBRACE -> VcHighlightingColors.BRACES
