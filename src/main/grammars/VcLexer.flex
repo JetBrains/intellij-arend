@@ -22,17 +22,25 @@ import static org.vclang.lang.core.psi.VcTypes.*;
 %type IElementType
 %unicode
 
-EOL=\R
-WHITE_SPACE=\s+
+%{
+    private int commentStart;
+    private int commentDepth;
+%}
 
-ID=[:letter:][a-zA-Z_0-9]*'*(-[:letter:][a-zA-Z_0-9]*'*)*
-NUMBER=[0-9]+
-BIN_OP=[~!@#$%\^&*\\\-+=<>?/|.:]+
-SET=\\Set[0-9]*
-UNIVERSE=\\Type[0-9]*
-TRUNCATED_UNIVERSE=\\([0-9]+|oo)-Type[0-9]*
-LINE_COMMENT=--.*
-BLOCK_COMMENT=\{-[^]*-\}
+%state BLOCK_COMMENT_INNER
+
+EOL                 = \R
+WHITE_SPACE         = \s+
+
+ID                  = [:letter:][a-zA-Z_0-9]*'*(-[:letter:][a-zA-Z_0-9]*'*)*
+NUMBER              = [0-9]+
+BIN_OP              = [~!@#$%\^&*\\\-+=<>?/|.:]+
+SET                 = \\Set[0-9]*
+UNIVERSE            = \\Type[0-9]*
+TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
+LINE_COMMENT        = --(.*|{EOL})
+BLOCK_COMMENT_START = \{-
+BLOCK_COMMENT_END   = -\}
 
 %%
 <YYINITIAL> {
@@ -52,6 +60,7 @@ BLOCK_COMMENT=\{-[^]*-\}
   "`"                       { return GRAVE; }
   "{?}"                     { return HOLE; }
   "|"                       { return PIPE; }
+
   "\\open"                  { return OPEN_KW; }
   "\\export"                { return EXPORT_KW; }
   "\\hiding"                { return HIDING_KW; }
@@ -93,8 +102,37 @@ BLOCK_COMMENT=\{-[^]*-\}
   {UNIVERSE}                { return UNIVERSE; }
   {TRUNCATED_UNIVERSE}      { return TRUNCATED_UNIVERSE; }
   {LINE_COMMENT}            { return LINE_COMMENT; }
-  {BLOCK_COMMENT}           { return BLOCK_COMMENT; }
+  {BLOCK_COMMENT_START}     {
+                              yybegin(BLOCK_COMMENT_INNER);
+                              commentDepth = 0;
+                              commentStart = getTokenStart();
+                            }
+}
 
+<BLOCK_COMMENT_INNER> {
+    {BLOCK_COMMENT_START} {
+        commentDepth++;
+    }
+
+    {BLOCK_COMMENT_END} {
+        if (commentDepth > 0) {
+            commentDepth--;
+        } else {
+             int state = yystate();
+             yybegin(YYINITIAL);
+             zzStartRead = commentStart;
+             return BLOCK_COMMENT;
+        }
+    }
+
+    <<EOF>> {
+        int state = yystate();
+        yybegin(YYINITIAL);
+        zzStartRead = commentStart;
+        return BLOCK_COMMENT;
+    }
+
+    [^] {}
 }
 
 [^] { return BAD_CHARACTER; }

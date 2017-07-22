@@ -76,7 +76,7 @@
         UNIVERSE            = "regexp:\\Type\d*"
         TRUNCATED_UNIVERSE  = "regexp:\\(\d+|oo)-Type\d*"
         LINE_COMMENT        = "regexp:--[^\r\n]*"
-        BLOCK_COMMENT       = "regexp:\{-[^]*-\}"
+        BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
