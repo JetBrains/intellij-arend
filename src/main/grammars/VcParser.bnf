@@ -17,64 +17,66 @@
     generateTokenAccessors = true
 
     tokens = [
-        LBRACE             = '{'
-        RBRACE             = '}'
-        LPAREN             = '('
-        RPAREN             = ')'
-        COLON              = ':'
-        COLONCOLON         = '::'
-        ARROW              = '->'
-        FAT_ARROW          = '=>'
-        DOT                = '.'
-        COMMA              = ','
-        UNDERSCORE         = '_'
-        GRAVE              = '`'
-        HOLE               = '{?}'
-        PIPE               = '|'
+        LBRACE              = '{'
+        RBRACE              = '}'
+        LPAREN              = '('
+        RPAREN              = ')'
+        COLON               = ':'
+        COLONCOLON          = '::'
+        ARROW               = '->'
+        FAT_ARROW           = '=>'
+        DOT                 = '.'
+        COMMA               = ','
+        UNDERSCORE          = '_'
+        GRAVE               = '`'
+        HOLE                = '{?}'
+        PIPE                = '|'
+        BLOCK_COMMENT_START = '{-'
+        BLOCK_COMMENT_END   = '-}'
 
-        OPEN_KW            = '\open'
-        EXPORT_KW          = '\export'
-        HIDING_KW          = '\hiding'
-        FUNCTION_KW        = '\function'
-        NON_ASSOC_KW       = '\infix'
-        LEFT_ASSOC_KW      = '\infixl'
-        RIGHT_ASSOC_KW     = '\infixr'
-        PROP_KW            = '\Prop'
-        WHERE_KW           = '\where'
-        WITH_KW            = '\with'
-        ELIM_KW            = '\elim'
-        FIELD_KW           = '\field'
-        NEW_KW             = '\new'
-        PI_KW              = '\Pi'
-        SIGMA_KW           = '\Sigma'
-        LAM_KW             = '\lam'
-        LET_KW             = '\let'
-        IN_KW              = '\in'
-        CASE_KW            = '\case'
-        WITH_KW            = '\with'
-        IMPLEMENT_KW       = '\implement'
-        DATA_KW            = '\data'
-        CLASS_KW           = '\class'
-        EXTENDS_KW         = '\extends'
-        VIEW_KW            = '\view'
-        ON_KW              = '\on'
-        BY_KW              = '\by'
-        INSTANCE_KW        = '\instance'
-        TRUNCATED_KW       = '\truncated'
-        DEFAULT_KW         = '\default'
-        LP_KW              = '\lp'
-        LH_KW              = '\lh'
-        SUC_KW             = '\suc'
-        MAX_KW             = '\max'
+        OPEN_KW             = '\open'
+        EXPORT_KW           = '\export'
+        HIDING_KW           = '\hiding'
+        FUNCTION_KW         = '\function'
+        NON_ASSOC_KW        = '\infix'
+        LEFT_ASSOC_KW       = '\infixl'
+        RIGHT_ASSOC_KW      = '\infixr'
+        PROP_KW             = '\Prop'
+        WHERE_KW            = '\where'
+        WITH_KW             = '\with'
+        ELIM_KW             = '\elim'
+        FIELD_KW            = '\field'
+        NEW_KW              = '\new'
+        PI_KW               = '\Pi'
+        SIGMA_KW            = '\Sigma'
+        LAM_KW              = '\lam'
+        LET_KW              = '\let'
+        IN_KW               = '\in'
+        CASE_KW             = '\case'
+        WITH_KW             = '\with'
+        IMPLEMENT_KW        = '\implement'
+        DATA_KW             = '\data'
+        CLASS_KW            = '\class'
+        EXTENDS_KW          = '\extends'
+        VIEW_KW             = '\view'
+        ON_KW               = '\on'
+        BY_KW               = '\by'
+        INSTANCE_KW         = '\instance'
+        TRUNCATED_KW        = '\truncated'
+        DEFAULT_KW          = '\default'
+        LP_KW               = '\lp'
+        LH_KW               = '\lh'
+        SUC_KW              = '\suc'
+        MAX_KW              = '\max'
 
-        ID                 = "regexp:\p{Alpha}\w*'*(-\p{Alpha}\w*'*)*"
-        NUMBER             = "regexp:\d+"
-        BIN_OP             = "regexp:[~!@#$%\^&*\\\-+=<>?/|.:]+"
-        SET                = "regexp:\\Set\d*"
-        UNIVERSE           = "regexp:\\Type\d*"
-        TRUNCATED_UNIVERSE = "regexp:\\(\d+|oo)-Type\d*"
-        LINE_COMMENT       = "regexp:--.*"
-        BLOCK_COMMENT      = "regexp:\{-[^]*-\}"
+        ID                  = "regexp:\p{Alpha}\w*'*(-\p{Alpha}\w*'*)*"
+        NUMBER              = "regexp:\d+"
+        BIN_OP              = "regexp:[~!@#$%\^&*\\\-+=<>?/|.:]+"
+        SET                 = "regexp:\\Set\d*"
+        UNIVERSE            = "regexp:\\Type\d*"
+        TRUNCATED_UNIVERSE  = "regexp:\\(\d+|oo)-Type\d*"
+        LINE_COMMENT        = "regexp:--[^\r\n]*"
+        BLOCK_COMMENT       = "regexp:\{-[^]*-\}"
     ]
 
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
@@ -84,24 +86,26 @@ sourceNode ::= statements
 
 statements ::= topStatement* { mixin = "org.vclang.lang.core.psi.ext.VcStatementsImplMixin" }
 
-private topStatement ::= !<<eof>> statement { recoverWhile = statementRecover }
+private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
-private statementRecover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW | FIELD_KW |
-                               IMPLEMENT_KW | TRUNCATED_KW | DATA_KW     | CLASS_KW |
-                               VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
+private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW | FIELD_KW |
+                                IMPLEMENT_KW | TRUNCATED_KW | DATA_KW     | CLASS_KW |
+                                VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
 statement ::= statCmd | statDef
 
-statDef ::= definition
-
-statCmd ::= nsCmd nsCmdRoot (DOT fieldAcc)* [HIDING_KW? LPAREN <<comma_separated_sequence identifier>> RPAREN] {
+statCmd ::= nsCmd nsCmdRoot fieldAcc* [HIDING_KW? LPAREN <<comma_separated_sequence identifier>> RPAREN] {
     pin = 1
     mixin = "org.vclang.lang.core.psi.ext.VcStatCmdImplMixin"
 }
 
+nsCmd ::= OPEN_KW | EXPORT_KW
+
 nsCmdRoot ::= modulePath | identifier {
     mixin = "org.vclang.lang.core.psi.ext.VcNsCmdRootImplMixin"
 }
+
+statDef ::= definition
 
 definition ::= defFunction
     | defAbstract
@@ -169,10 +173,10 @@ withoutElim ::= FAT_ARROW !ELIM_KW expr
 withElim ::= elim? clauses
 
 dataBody ::= dataClauses | dataConstructors
-private dataClauses ::= elim constructorClause*
-private dataConstructors ::= [FAT_ARROW PIPE? constructor] (PIPE constructor)*
+dataClauses ::= elim constructorClause*
+dataConstructors ::= [FAT_ARROW PIPE? constructor] (PIPE constructor)*
 
-private constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RPAREN)
+constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RPAREN)
 
 elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence expr0>>
 
@@ -184,13 +188,9 @@ classViewField ::= identifier [FAT_ARROW prec identifier] {
 
 where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
 
-nsCmd ::= OPEN_KW | EXPORT_KW
-
-pattern ::= patternAtom | patternConstructor {
+pattern ::= atomPattern | patternConstructor {
     mixin = "org.vclang.lang.core.psi.ext.VcPatternImplMixin"
 }
-
-patternAtom ::= atomPattern
 
 patternConstructor ::= identifier atomPatternOrID*
 
@@ -277,15 +277,15 @@ sucLevelExpr ::= SUC_KW atomLevelExpr { pin = 1 }
 maxLevelExpr ::= MAX_KW atomLevelExpr atomLevelExpr { pin = 1 }
 
 binOpArg ::= universeBinOp
-    | truncatedUniverseBinOp
     | setUniverseBinOp
+    | truncatedUniverseBinOp
     | argumentBinOp
 
-universeBinOp ::= UNIVERSE [atomLevelExpr atomLevelExpr] { pin = 1 }
-
-truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? { pin = 1 }
+universeBinOp ::= UNIVERSE [atomLevelExpr atomLevelExpr?] { pin = 1 }
 
 setUniverseBinOp ::= SET atomLevelExpr? { pin = 1 }
+
+truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? { pin = 1 }
 
 argumentBinOp ::= atomFieldsAcc argument*
 
@@ -296,7 +296,7 @@ newExpr ::= NEW_KW? binOpArg implementStatements? {
     mixin = "org.vclang.lang.core.psi.ext.VcNewExprImplMixin"
 }
 
-fieldAcc ::= NUMBER | identifier
+fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
 
 infix ::= BIN_OP | GRAVE ID GRAVE {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
@@ -310,15 +310,17 @@ modulePath ::= (COLONCOLON pathPart)+ {
 pathPart ::= ID
 
 atom ::= literal
-    | LPAREN <<comma_separated_sequence expr>> RPAREN
+    | tuple
     | NUMBER
     | atomModuleCall
 
+tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
+
 atomModuleCall ::= modulePath
 
-atomFieldsAcc ::= atom (DOT fieldAcc)*
+atomFieldsAcc ::= atom fieldAcc*
 
-private implementStatements ::= LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE
+implementStatements ::= LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE
 
 implementStatement ::= identifier FAT_ARROW expr
 
@@ -340,7 +342,9 @@ tele ::= literal
     | LPAREN typedExpr RPAREN
     | LBRACE typedExpr RBRACE
 
-typedExpr ::= (identifier | UNDERSCORE)+ COLON expr | expr  // expr [COLON expr]
+typedExpr ::= unknownOrID+ COLON expr | expr  // expr [COLON expr]
+
+unknownOrID ::= identifier | UNDERSCORE
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 
