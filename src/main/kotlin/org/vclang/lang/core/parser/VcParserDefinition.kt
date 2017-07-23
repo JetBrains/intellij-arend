@@ -1,10 +1,15 @@
 package org.vclang.lang.core.parser
 
-import com.intellij.lang.*
+import com.intellij.lang.ASTNode
+import com.intellij.lang.ParserDefinition
+import com.intellij.lang.PsiParser
 import com.intellij.lexer.Lexer
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
-import com.intellij.psi.tree.*
+import com.intellij.psi.FileViewProvider
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.tree.IFileElementType
+import com.intellij.psi.tree.TokenSet
 import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.*
@@ -12,6 +17,7 @@ import org.vclang.lang.core.psi.VcFile
 import org.vclang.lang.core.psi.VcTypes
 
 class VcParserDefinition : ParserDefinition {
+
     override fun createLexer(project: Project): Lexer = VcLexerAdapter()
 
     override fun getWhitespaceTokens(): TokenSet = VC_WHITE_SPACES

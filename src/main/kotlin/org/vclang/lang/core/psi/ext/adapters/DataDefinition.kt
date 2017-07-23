@@ -1,4 +1,4 @@
-package org.vclang.lang.core.psi.ext.adapter
+package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
@@ -8,8 +8,8 @@ import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
 
-abstract class VcDefDataImplMixin(node: ASTNode) : VcNamedElementImpl(node),
-                                                   VcDefData {
+abstract class DataDefinitionAdapter(node: ASTNode) : VcNamedElementImpl(node),
+                                                      VcDefData {
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
 
@@ -19,7 +19,7 @@ abstract class VcDefDataImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 
     override fun getConstructorClauses(): List<Abstract.ConstructorClause> = TODO()
 
-    override fun isTruncated(): Boolean = TODO()
+    override fun isTruncated(): Boolean = truncatedKw != null
 
     override fun getUniverse(): Abstract.Expression = TODO()
 
@@ -29,5 +29,7 @@ abstract class VcDefDataImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 
     override fun isStatic(): Boolean = TODO()
 
-    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R = TODO()
+    override fun <P, R> accept(
+            visitor: AbstractDefinitionVisitor<in P, out R>, params: P
+    ): R = TODO()
 }

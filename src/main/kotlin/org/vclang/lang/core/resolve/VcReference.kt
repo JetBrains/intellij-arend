@@ -7,6 +7,7 @@ import org.vclang.lang.core.psi.ext.VcCompositeElement
 import org.vclang.lang.core.psi.ext.VcReferenceElement
 
 interface VcReference : PsiReference {
+
     override fun getElement(): VcCompositeElement
 
     override fun resolve(): VcCompositeElement?

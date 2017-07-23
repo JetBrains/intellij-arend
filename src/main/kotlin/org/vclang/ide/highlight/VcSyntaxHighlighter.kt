@@ -8,15 +8,16 @@ import com.intellij.psi.tree.IElementType
 import org.vclang.ide.colors.VcHighlightingColors
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 import org.vclang.lang.core.lexer.VcLexerAdapter
-import org.vclang.lang.core.psi.*
+import org.vclang.lang.core.psi.VC_KEYWORDS
 import org.vclang.lang.core.psi.VcTypes.*
 
-
 class VcSyntaxHighlighter : SyntaxHighlighterBase() {
+
     override fun getHighlightingLexer(): Lexer = VcLexerAdapter()
 
-    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> =
-            pack(map(tokenType)?.textAttributesKey)
+    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {
+        return pack(map(tokenType)?.textAttributesKey)
+    }
 
     companion object {
         fun map(tokenType: IElementType?): VcHighlightingColors? = when (tokenType) {

@@ -11,6 +11,7 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override val namespace: Namespace
         get() {
             val parent = parent as? VcCompositeElement
-            return parent?.let { NamespaceProvider.forExpression(this, it.scope) } ?: EmptyNamespace
+            val parentScope = parent?.let { NamespaceProvider.forExpression(this, it.scope) }
+            return parentScope ?: EmptyNamespace
         }
 }

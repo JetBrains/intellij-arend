@@ -1,6 +1,5 @@
 package org.vclang.ide.colors
 
-
 import com.intellij.openapi.editor.HighlighterColors
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 import com.intellij.openapi.editor.colors.TextAttributesKey

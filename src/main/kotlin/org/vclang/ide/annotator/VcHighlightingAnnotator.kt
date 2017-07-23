@@ -8,7 +8,6 @@ import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcIdentifier
 import org.vclang.lang.core.psi.VcTele
 
-
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         val color = when {

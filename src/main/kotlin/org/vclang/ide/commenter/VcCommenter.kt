@@ -3,6 +3,7 @@ package org.vclang.ide.commenter
 import com.intellij.lang.Commenter
 
 class VcCommenter : Commenter {
+
     override fun getLineCommentPrefix(): String? = "--"
 
     override fun getBlockCommentPrefix(): String? = "{-"

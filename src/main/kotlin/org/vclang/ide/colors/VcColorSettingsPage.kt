@@ -1,25 +1,24 @@
 package org.vclang.ide.colors
 
-
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
-import com.intellij.openapi.options.colors.*
-
-import javax.swing.*
 import com.intellij.openapi.options.colors.AttributesDescriptor
+import com.intellij.openapi.options.colors.ColorDescriptor
 import com.intellij.openapi.options.colors.ColorSettingsPage
 import org.vclang.ide.highlight.VcSyntaxHighlighter
 import org.vclang.ide.icons.VcIcons
-
+import javax.swing.Icon
 
 class VcColorSettingsPage : ColorSettingsPage {
+
     override fun getIcon(): Icon? = VcIcons.FILE
 
     override fun getHighlighter(): SyntaxHighlighter = VcSyntaxHighlighter()
 
     override fun getDemoText(): String = DEMO_TEXT
 
-    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>? = null
+    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>?
+            = null
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> = DESCRIPTORS
 
@@ -28,7 +27,10 @@ class VcColorSettingsPage : ColorSettingsPage {
     override fun getDisplayName(): String = "Vclang"
 
     companion object {
-        private val DESCRIPTORS = VcHighlightingColors.values().map { it.attributesDescriptor }.toTypedArray()
+        private val DESCRIPTORS = VcHighlightingColors.values()
+                .map { it.attributesDescriptor }
+                .toTypedArray()
+
         private val DEMO_TEXT = "\\open ::Data::Bool\n" +
                 "\n" +
                 "\\class Semigroup {\n" +

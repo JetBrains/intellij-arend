@@ -116,56 +116,56 @@ definition ::= defFunction
     | defInstance {
     implements = [ "org.vclang.lang.core.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Definition" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefinitionImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter"
 }
 
 defFunction ::= FUNCTION_KW prec identifier tele* [COLON expr] functionBody where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.FunctionDefinition" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefFunctionImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.FunctionDefinitionAdapter"
 }
 
 defAbstract ::= FIELD_KW prec identifier COLON expr {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefAbstractImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter"
 }
 
 defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefImplementImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ImplementationDefinition"
 }
 
 defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     pin = 2
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.DataDefinition" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefDataImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.DataDefinitionAdapter"
 }
 
 defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<comma_separated_sequence expr0>>] [LBRACE statement* RBRACE] where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassDefinition" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefClassImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassDefinitionAdapter"
 }
 
 defClassView ::= VIEW_KW ID ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassView" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefClassViewImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewAdapter"
 }
 
 defInstance ::= DEFAULT_KW? INSTANCE_KW ID tele* FAT_ARROW expr {
     pin = 2
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewInstance" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcDefInstanceImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewInstanceAdapter"
 }
 
 functionBody ::= withoutElim | withElim
@@ -183,7 +183,7 @@ elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence expr0>>
 classViewField ::= identifier [FAT_ARROW prec identifier] {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewField" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcClassViewFieldImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewFieldAdapter"
 }
 
 where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
@@ -203,7 +203,7 @@ atomPattern ::= LPAREN pattern? RPAREN
 constructor ::= prec identifier tele* [elim? clausesWithBraces] {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Constructor" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapter.VcConstructorImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ConstructorAdapter"
 }
 
 prec ::= [associativity NUMBER]

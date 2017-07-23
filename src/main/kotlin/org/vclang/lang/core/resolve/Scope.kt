@@ -12,16 +12,16 @@ interface Scope {
 
 class FilteredScope(
         private val scope: Scope,
-        private val predicateSet: Set<String>,
+        private val includeSet: Set<String>,
         private val include: Boolean
 ) : Scope {
     override val names: Set<String>
-        get() = if (include) (scope.names `intersect` predicateSet) else (scope.names - predicateSet)
+        get() = if (include) (scope.names `intersect` includeSet) else (scope.names - includeSet)
 
     override fun resolve(name: String): VcCompositeElement? = if (include) {
-        if (predicateSet.contains(name)) scope.resolve(name) else null
+        if (includeSet.contains(name)) scope.resolve(name) else null
     } else {
-        if (predicateSet.contains(name)) null else scope.resolve(name)
+        if (includeSet.contains(name)) null else scope.resolve(name)
     }
 }
 
@@ -29,8 +29,9 @@ class MergeScope(private val scope1: Scope, private val scope2: Scope) : Scope {
     override val names: Set<String>
         get() = scope1.names + scope2.names
 
-    override fun resolve(name: String): VcCompositeElement? =
-            choose(scope1.resolve(name), scope2.resolve(name))
+    override fun resolve(name: String): VcCompositeElement? {
+        return choose(scope1.resolve(name), scope2.resolve(name))
+    }
 
     private fun <T : VcCompositeElement> choose(ref1: T?, ref2: T?): T? {
         ref1 ?: return ref2
@@ -51,6 +52,7 @@ class OverridingScope(private val parent: Scope, private val child: Scope) : Sco
     override val names: Set<String>
         get() = parent.names + child.names
 
-    override fun resolve(name: String): VcCompositeElement? =
-            child.resolve(name) ?: parent.resolve(name)
+    override fun resolve(name: String): VcCompositeElement? {
+        return child.resolve(name) ?: parent.resolve(name)
+    }
 }

@@ -6,6 +6,7 @@ import org.vclang.ide.icons.VcIcons
 import javax.swing.Icon
 
 object VcFileType : LanguageFileType(VcLanguage) {
+
     override fun getName(): String = "Vclang file"
 
     override fun getDescription(): String = "Vclang Files"

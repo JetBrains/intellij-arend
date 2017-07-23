@@ -29,9 +29,7 @@ class SimpleNamespace : Namespace {
 
     fun put(name: String, def: VcCompositeElement) {
         items.put(name, def)?.let {
-            if (it !== def) {
-                throw Namespace.InvalidNamespaceException()
-            }
+            if (it !== def) throw Namespace.InvalidNamespaceException()
         }
     }
 

@@ -1,4 +1,4 @@
-package org.vclang.lang.core.psi.ext.adapter
+package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
@@ -6,8 +6,8 @@ import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.lang.core.psi.VcClassViewField
 import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 
-abstract class VcClassViewFieldImplMixin(node: ASTNode) : VcNamedElementImpl(node),
-                                                          VcClassViewField {
+abstract class ClassViewFieldAdapter(node: ASTNode) : VcNamedElementImpl(node),
+                                                      VcClassViewField {
 
     override fun getUnderlyingFieldName(): String = TODO()
 
@@ -21,5 +21,7 @@ abstract class VcClassViewFieldImplMixin(node: ASTNode) : VcNamedElementImpl(nod
 
     override fun isStatic(): Boolean = TODO()
 
-    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R = TODO()
+    override fun <P, R> accept(
+            visitor: AbstractDefinitionVisitor<in P, out R>, params: P
+    ): R = TODO()
 }

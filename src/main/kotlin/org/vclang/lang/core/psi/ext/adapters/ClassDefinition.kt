@@ -1,4 +1,4 @@
-package org.vclang.lang.core.psi.ext.adapter
+package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
@@ -8,8 +8,8 @@ import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
 
-abstract class VcDefClassImplMixin(node: ASTNode) : VcNamedElementImpl(node),
-                                                    VcDefClass {
+abstract class ClassDefinitionAdapter(node: ASTNode) : VcNamedElementImpl(node),
+                                                       VcDefClass {
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
 
@@ -31,5 +31,7 @@ abstract class VcDefClassImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 
     override fun isStatic(): Boolean = TODO()
 
-    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R = TODO()
+    override fun <P, R> accept(
+            visitor: AbstractDefinitionVisitor<in P, out R>, params: P
+    ): R = TODO()
 }

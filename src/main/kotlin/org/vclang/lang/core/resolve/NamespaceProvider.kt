@@ -22,7 +22,7 @@ object NamespaceProvider {
             def: VcDefData,
             ns: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        def.dataBody?.constructorList?.forEach { ns.put(it) }
+        def.dataBody?.dataConstructors?.constructorList?.forEach { ns.put(it) }
         forTelescope(def.teleList, ns)
         return ns
     }
@@ -99,7 +99,8 @@ object NamespaceProvider {
             ns: SimpleNamespace = SimpleNamespace()
     ): Namespace {
         expr.newKw ?: return ns
-        val className = expr.binOpArg?.argumentBinOp?.atomFieldsAcc?.atom?.literal?.identifier?.name ?: return ns
+        val className = expr.binOpArg?.argumentBinOp?.atomFieldsAcc?.atom?.literal?.identifier?.name
+        className ?: return ns
         val classDef = parentScope.resolve(className)
         (classDef?.namespace as? SimpleNamespace)?.let { ns.putAll(it) }
         return ns
@@ -147,7 +148,7 @@ object NamespaceProvider {
         teles
                 .map { it.typedExpr }
                 .filterNotNull()
-                .flatMap { it.identifierList }
+                .flatMap { it.unknownOrIDList.map { it.identifier }.filterNotNull() }
                 .forEach { ns.put(it) }
         return ns
     }

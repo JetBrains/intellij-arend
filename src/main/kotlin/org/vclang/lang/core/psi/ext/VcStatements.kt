@@ -10,9 +10,7 @@ import org.vclang.lang.core.resolve.Scope
 abstract class VcStatementsImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcStatements {
     override val namespace: Namespace
-        get() = NamespaceProvider.forDefinitions(
-                statementList.map { it.statDef }.filterNotNull()
-        )
+        get() = NamespaceProvider.forDefinitions(statementList.map { it.statDef }.filterNotNull())
 
     override val scope: Scope
         get() = statementList
