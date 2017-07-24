@@ -15,9 +15,8 @@ class VcSyntaxHighlighter : SyntaxHighlighterBase() {
 
     override fun getHighlightingLexer(): Lexer = VcLexerAdapter()
 
-    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {
-        return pack(map(tokenType)?.textAttributesKey)
-    }
+    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> =
+            pack(map(tokenType)?.textAttributesKey)
 
     companion object {
         fun map(tokenType: IElementType?): VcHighlightingColors? = when (tokenType) {

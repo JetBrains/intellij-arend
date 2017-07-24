@@ -13,10 +13,7 @@ import org.vclang.lang.core.resolve.*
 abstract class VcModulePathImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcModulePath {
     override val namespace: Namespace
-        get() {
-            val path = pathPartList.map { it.text }
-            return NamespaceProvider.forModulePath(path, project)
-        }
+        get() = NamespaceProvider.forModulePath(pathPartList.map { it.text }, project)
 
     override val referenceNameElement: PsiElement
         get() = this
