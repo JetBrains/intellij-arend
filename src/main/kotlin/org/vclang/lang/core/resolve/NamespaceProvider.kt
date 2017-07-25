@@ -2,8 +2,8 @@ package org.vclang.lang.core.resolve
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
 import org.vclang.lang.VcFileType
 import org.vclang.lang.core.psi.*
 

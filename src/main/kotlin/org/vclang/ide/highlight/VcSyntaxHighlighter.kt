@@ -6,10 +6,10 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import org.vclang.ide.colors.VcHighlightingColors
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.VC_KEYWORDS
 import org.vclang.lang.core.psi.VcTypes.*
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 
 class VcSyntaxHighlighter : SyntaxHighlighterBase() {
 

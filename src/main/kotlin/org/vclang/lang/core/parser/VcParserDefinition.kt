@@ -12,7 +12,8 @@ import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.lexer.VcLexerAdapter
-import org.vclang.lang.core.psi.*
+import org.vclang.lang.core.psi.VC_COMMENTS
+import org.vclang.lang.core.psi.VC_WHITE_SPACES
 import org.vclang.lang.core.psi.VcFile
 import org.vclang.lang.core.psi.VcTypes
 

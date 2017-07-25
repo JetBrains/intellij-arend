@@ -1,9 +1,9 @@
 package org.vclang.ide.colors
 
 import com.intellij.openapi.editor.HighlighterColors
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.options.colors.AttributesDescriptor
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 
 enum class VcHighlightingColors(humanName: String, default: TextAttributesKey) {
     IDENTIFIER("Identifier", Default.IDENTIFIER),

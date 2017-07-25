@@ -1,7 +1,7 @@
 package org.vclang.lang.core.resolve
 
-import org.vclang.lang.core.psi.ext.VcNamedElement
 import org.vclang.lang.core.psi.ext.VcCompositeElement
+import org.vclang.lang.core.psi.ext.VcNamedElement
 
 interface Namespace {
     val names: Set<String>

@@ -27,4 +27,5 @@ abstract class ClassViewInstanceAdapter(node: ASTNode) : VcNamedElementImpl(node
 
     override fun <P, R> accept(
             visitor: AbstractDefinitionVisitor<in P, out R>, params: P
-    ): R = TODO()}
+    ): R = TODO()
+}
