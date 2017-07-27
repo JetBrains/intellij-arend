@@ -3,25 +3,40 @@ package org.vclang.lang.core.psi.ext.adapters
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcClassViewField
-import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 
-abstract class ClassViewFieldAdapter(node: ASTNode) : VcNamedElementImpl(node),
+abstract class ClassViewFieldAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                       VcClassViewField {
+    private var underlyingFieldName: String? = null
+    private var ownView: ClassViewAdapter? = null
+    private var underlyingField: Abstract.ClassField? = null
 
-    override fun getUnderlyingFieldName(): String = TODO()
+    fun reconstruct(
+            position: Surrogate.Position?,
+            name: String?,
+            precedence: Abstract.Precedence?,
+            underlyingFieldName: String?,
+            ownView: ClassViewAdapter?
+    ): ClassViewFieldAdapter {
+        super.reconstruct(position, name, precedence)
+        this.underlyingFieldName = underlyingFieldName
+        this.ownView = ownView
+        return this
+    }
 
-    override fun getUnderlyingField(): Abstract.ClassField = TODO()
+    override fun getUnderlyingFieldName(): String =
+            underlyingFieldName ?: throw IllegalStateException()
 
-    override fun getOwnView(): Abstract.ClassView = TODO()
+    override fun getUnderlyingField(): Abstract.ClassField =
+            underlyingField ?: throw IllegalStateException()
 
-    override fun getPrecedence(): Abstract.Precedence = TODO()
+    fun setUnderlyingField(underlyingField: Abstract.ClassField?) {
+        this.underlyingField = underlyingField
+    }
 
-    override fun getParentDefinition(): Abstract.Definition = TODO()
+    override fun getOwnView(): ClassViewAdapter = ownView ?: throw IllegalStateException()
 
-    override fun isStatic(): Boolean = TODO()
-
-    override fun <P, R> accept(
-            visitor: AbstractDefinitionVisitor<in P, out R>, params: P
-    ): R = TODO()
+    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
+            visitor.visitClassViewField(this, params)
 }

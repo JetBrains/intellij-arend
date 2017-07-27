@@ -3,35 +3,78 @@ package org.vclang.lang.core.psi.ext.adapters
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefClass
-import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
 
-abstract class ClassDefinitionAdapter(node: ASTNode) : VcNamedElementImpl(node),
+abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                        VcDefClass {
+    private var polyParameters: List<Surrogate.TypeArgument>? = null
+    private var superClasses: List<Surrogate.SuperClass>? = null
+    private var fields: List<ClassFieldAdapter>? = null
+    private var implementations: List<ImplementationAdapter>? = null
+    private var globalStatements: List<Surrogate.Statement>? = null
+    private var instanceDefinitions: List<DefinitionAdapter>? = null
+
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
 
-    override fun getPolyParameters(): List<Abstract.TypeArgument> = TODO()
+    fun reconstruct(
+            position: Surrogate.Position?,
+            name: String?,
+            polyParameters: List<Surrogate.TypeArgument>?,
+            superClasses: List<Surrogate.SuperClass>?,
+            fields: List<ClassFieldAdapter>?,
+            implementations: List<ImplementationAdapter>?,
+            globalStatements: List<Surrogate.Statement>?,
+            instanceDefinitions: List<DefinitionAdapter>?
+    ): ClassDefinitionAdapter {
+        super.reconstruct(position, name, Abstract.Precedence.DEFAULT)
+        this.polyParameters = polyParameters
+        this.superClasses = superClasses
+        this.fields = fields
+        this.implementations = implementations
+        this.globalStatements = globalStatements
+        this.instanceDefinitions = instanceDefinitions
+        return this
+    }
 
-    override fun getSuperClasses(): Collection<Abstract.SuperClass> = TODO()
+    fun reconstruct(
+            position: Surrogate.Position?,
+            name: String?,
+            globalStatements: List<Surrogate.Statement>?
+    ): ClassDefinitionAdapter {
+        return reconstruct(
+                position,
+                name,
+                listOf(),
+                listOf(),
+                listOf(),
+                listOf(),
+                globalStatements,
+                listOf()
+        )
+    }
 
-    override fun getFields(): Collection<Abstract.ClassField> = TODO()
+    override fun getPolyParameters(): List<Surrogate.TypeArgument> =
+            polyParameters ?: throw IllegalStateException()
 
-    override fun getImplementations(): Collection<Abstract.Implementation> = TODO()
+    override fun getSuperClasses(): List<Surrogate.SuperClass> =
+            superClasses ?: throw IllegalStateException()
 
-    override fun getInstanceDefinitions(): Collection<Abstract.Definition> = TODO()
+    override fun getFields(): List<ClassFieldAdapter> =
+            fields ?: throw IllegalStateException()
 
-    override fun getGlobalDefinitions(): Collection<Abstract.Definition> = TODO()
+    override fun getImplementations(): List<ImplementationAdapter> =
+            implementations ?: throw IllegalStateException()
 
-    override fun getPrecedence(): Abstract.Precedence = TODO()
+    override fun getInstanceDefinitions(): List<DefinitionAdapter> =
+            instanceDefinitions ?: throw IllegalStateException()
 
-    override fun getParentDefinition(): Abstract.Definition = TODO()
+    override fun getGlobalStatements(): List<Surrogate.Statement> =
+            globalStatements ?: throw IllegalStateException()
 
-    override fun isStatic(): Boolean = TODO()
-
-    override fun <P, R> accept(
-            visitor: AbstractDefinitionVisitor<in P, out R>, params: P
-    ): R = TODO()
+    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
+            visitor.visitClass(this, params)
 }
