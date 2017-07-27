@@ -6,6 +6,7 @@ import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.vclang.lang.VcFileType
 import org.vclang.lang.core.psi.*
+import org.vclang.lang.core.psi.ext.VcNamedElement
 
 object NamespaceProvider {
 
@@ -54,25 +55,11 @@ object NamespaceProvider {
                 .map { it.definition }
                 .filterNotNull()
                 .forEach {
-                    it.defFunction?.let {
+//                    val childDef = PsiTreeUtil.findChildOfType(it, VcDefinition::class.java)
+                    if (it is VcNamedElement) {
                         ns.put(it)
-//                        forDefinition(it, ns)
-                    }
-                    it.defData?.let {
-                        ns.put(it)
-                        forDefinition(it, ns)
-                    }
-                    it.defClass?.let {
-                        ns.put(it)
-//                        forDefinition(it, ns)
-                    }
-                    it.defClassView?.let {
-                        ns.put(it)
-//                        forDefinition(it, ns)
-                    }
-                    it.defAbstract?.let {
-                        ns.put(it)
-//                        forDefinition(it, ns)
+                    } else {
+                        throw IllegalStateException()
                     }
                 }
         return ns
