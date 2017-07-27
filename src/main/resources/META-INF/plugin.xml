@@ -43,7 +43,13 @@
     </extensions>
 
     <actions>
-        
+        <!-- Typechecking -->
+        <action id="Typecheck" class="org.vclang.ide.actions.VcTypecheckAction"
+                text="Check _Types" description="Typecheck current file"
+                icon="/icons/saba_ping.png">
+            <add-to-group group-id="RunMenu" anchor="before" relative-to-action="RunnerActions"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
+        </action>
     </actions>
 
 </idea-plugin>
