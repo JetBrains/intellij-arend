@@ -79,6 +79,7 @@
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
+    extends("def(Function|Abstract|Implement|Data|Class|ClassView|Instance)") = definition
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
 }
 
@@ -122,6 +123,7 @@ definition ::= defFunction
 defFunction ::= FUNCTION_KW prec identifier tele* [COLON expr] functionBody where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "org.vclang.lang.core.Surrogate.StatementCollection"
                    "com.jetbrains.jetpad.vclang.term.Abstract.FunctionDefinition" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.FunctionDefinitionAdapter"
 }
@@ -137,7 +139,7 @@ defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapters.ImplementationDefinition"
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ImplementationAdapter"
 }
 
 defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
@@ -150,6 +152,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
 defClass ::= CLASS_KW ID tele* [EXTENDS_KW <<comma_separated_sequence expr0>>] [LBRACE statement* RBRACE] where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "org.vclang.lang.core.Surrogate.StatementCollection"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassDefinition" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassDefinitionAdapter"
 }
