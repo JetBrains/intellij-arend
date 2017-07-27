@@ -9,7 +9,7 @@ import org.vclang.lang.core.psi.VcDefInstance
 abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                          VcDefInstance {
     private var isDefault: Boolean? = null
-    private var arguments: List<Surrogate.Argument>? = null
+    private var parameters: List<Surrogate.Parameter>? = null
     private var classView: Surrogate.ReferenceExpression? = null
     private var classFieldImpls: List<Surrogate.ClassFieldImpl>? = null
     private var classifyingDefinition: Abstract.Definition? = null
@@ -19,13 +19,13 @@ abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node)
             isDefault: Boolean?,
             name: String?,
             precedence: Abstract.Precedence?,
-            arguments: List<Surrogate.Argument>?,
+            parameters: List<Surrogate.Parameter>?,
             classView: Surrogate.ReferenceExpression?,
             classFieldImpls: List<Surrogate.ClassFieldImpl>?
     ): ClassViewInstanceAdapter {
         super.reconstruct(position, name, precedence)
         this.isDefault = isDefault
-        this.arguments = arguments
+        this.parameters = parameters
         this.classView = classView
         this.classFieldImpls = classFieldImpls
         return this
@@ -33,8 +33,8 @@ abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node)
 
     override fun isDefault(): Boolean = isDefault ?: throw IllegalStateException()
 
-    override fun getArguments(): List<Surrogate.Argument> =
-            arguments ?: throw IllegalStateException()
+    override fun getParameters(): List<Surrogate.Parameter> =
+            parameters ?: throw IllegalStateException()
 
     override fun getClassView(): Surrogate.ReferenceExpression =
             classView ?: throw IllegalStateException()

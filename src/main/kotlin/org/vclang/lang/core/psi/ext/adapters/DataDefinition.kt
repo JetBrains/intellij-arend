@@ -10,11 +10,11 @@ import org.vclang.lang.core.resolve.NamespaceProvider
 
 abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                       VcDefData {
-    private var parameters: List<Surrogate.TypeArgument>? = null
+    private var parameters: List<Surrogate.TypeParameter>? = null
     private var eliminatedReferences: List<Surrogate.ReferenceExpression>? = null
     private var constructorClauses: MutableList<Surrogate.ConstructorClause>? = null
     private var isTruncated: Boolean? = null
-    private var universe: Surrogate.Expression? = null
+    private var universe: Surrogate.UniverseExpression? = null
 
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
@@ -23,10 +23,10 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
             position: Surrogate.Position?,
             name: String?,
             precedence: Abstract.Precedence?,
-            parameters: List<Surrogate.TypeArgument>?,
+            parameters: List<Surrogate.TypeParameter>?,
             eliminatedReferences: List<Surrogate.ReferenceExpression>?,
             isTruncated: Boolean?,
-            universe: Surrogate.Expression?,
+            universe: Surrogate.UniverseExpression?,
             constructorClauses: MutableList<Surrogate.ConstructorClause>?
     ): DataDefinitionAdapter {
         super.reconstruct(position, name, precedence)
@@ -38,7 +38,7 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
         return this
     }
 
-    override fun getParameters(): List<Surrogate.TypeArgument> =
+    override fun getParameters(): List<Surrogate.TypeParameter> =
             parameters ?: throw IllegalStateException()
 
     override fun getEliminatedReferences(): List<Surrogate.ReferenceExpression>? =
@@ -49,7 +49,7 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
 
     override fun isTruncated(): Boolean = isTruncated ?: throw IllegalStateException()
 
-    override fun getUniverse(): Surrogate.Expression? = universe
+    override fun getUniverse(): Surrogate.UniverseExpression? = universe
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitData(this, params)

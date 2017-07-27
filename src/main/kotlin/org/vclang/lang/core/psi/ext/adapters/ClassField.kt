@@ -13,10 +13,10 @@ abstract class ClassFieldAdapter(node: ASTNode) : Surrogate.SignatureDefinition(
             position: Surrogate.Position?,
             name: String?,
             precedence: Abstract.Precedence?,
-            arguments: List<Surrogate.Argument>?,
+            parameters: List<Surrogate.Parameter>?,
             resultType: Surrogate.Expression?
     ): ClassFieldAdapter {
-        super.reconstruct(position, name, precedence, arguments, resultType)
+        super.reconstruct(position, name, precedence, parameters, resultType)
         setIsStatic(false)
         return this
     }

@@ -1,7 +1,5 @@
 package org.vclang.lang.core.resolve
 
-import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand
 import com.jetbrains.jetpad.vclang.frontend.resolving.ResolveListener
 import com.jetbrains.jetpad.vclang.term.Abstract
@@ -11,7 +9,8 @@ import org.vclang.lang.core.psi.ext.adapters.ClassViewFieldAdapter
 import org.vclang.lang.core.psi.ext.adapters.ClassViewInstanceAdapter
 import org.vclang.lang.core.psi.ext.adapters.ImplementationAdapter
 
-class SurrogateResolveListener(private val errorReporter: ErrorReporter) : ResolveListener {
+class SurrogateResolveListener : ResolveListener {
+
     override fun nameResolved(
             referenceExpression: Abstract.ReferenceExpression,
             referable: Abstract.ReferableSourceNode
@@ -27,7 +26,9 @@ class SurrogateResolveListener(private val errorReporter: ErrorReporter) : Resol
     override fun openCmdResolved(
             openCmd: OpenCommand,
             definition: Abstract.Definition
-    ) { (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition }
+    ) {
+        (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition
+    }
 
     override fun implementResolved(
             implementDef: Abstract.Implementation,
@@ -37,22 +38,30 @@ class SurrogateResolveListener(private val errorReporter: ErrorReporter) : Resol
     override fun implementResolved(
             implementStmt: Abstract.ClassFieldImpl,
             definition: Abstract.ClassField
-    ) { (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition }
+    ) {
+        (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition
+    }
 
     override fun classViewResolved(
             classView: Abstract.ClassView,
             classifyingField: Abstract.ClassField
-    ) { (classView as ClassViewAdapter).setClassifyingField(classifyingField) }
+    ) {
+        (classView as ClassViewAdapter).setClassifyingField(classifyingField)
+    }
 
     override fun classViewFieldResolved(
             classViewField: Abstract.ClassViewField,
             definition: Abstract.ClassField
-    ) { (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition) }
+    ) {
+        (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition)
+    }
 
     override fun classViewInstanceResolved(
             instance: Abstract.ClassViewInstance,
             classifyingDefinition: Abstract.Definition
-    ) { (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition }
+    ) {
+        (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition
+    }
 
     override fun makeBinOp(
             binOpExpr: Abstract.BinOpSequenceExpression,
@@ -74,30 +83,25 @@ class SurrogateResolveListener(private val errorReporter: ErrorReporter) : Resol
     ) = (binOpExpr as Surrogate.BinOpSequenceExpression).replace(expression)
 
     override fun replaceWithConstructor(
-            patterns: List<Abstract.Pattern>,
+            container: Abstract.PatternContainer,
             index: Int,
             constructor: Abstract.Constructor
     ) {
-        val pattern = patterns[index] as Surrogate.Pattern
-        val constructorPattern = Surrogate.ConstructorPattern(
-                pattern.position,
-                pattern.isExplicit,
+        val surrogateContainer = container as Surrogate.PatternContainer
+        val old = surrogateContainer.patterns[index]
+        val newPattern = Surrogate.ConstructorPattern(
+                old.position,
+                old.isExplicit,
                 constructor,
                 emptyList()
         )
-        (patterns as MutableList<Surrogate.Pattern>)[index] = constructorPattern
+        surrogateContainer.patterns[index] = newPattern
     }
-
-    override fun replaceWithConstructor(
-            clause: Abstract.FunctionClause,
-            index: Int,
-            constructor: Abstract.Constructor
-    ) { (clause as Surrogate.FunctionClause).replaceWithConstructor(index, constructor) }
 
     override fun patternResolved(
             pattern: Abstract.ConstructorPattern,
             definition: Abstract.Constructor
-    ) { (pattern as Surrogate.ConstructorPattern).constructor = definition }
-
-    override fun report(error: GeneralError) =  errorReporter.report(error)
+    ) {
+        (pattern as Surrogate.ConstructorPattern).constructor = definition
+    }
 }

@@ -1,9 +1,13 @@
 package org.vclang.ide.typecheck
 
 import com.jetbrains.jetpad.vclang.core.definition.Definition
-import com.jetbrains.jetpad.vclang.error.*
+import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
+import com.jetbrains.jetpad.vclang.error.ErrorClassifier
+import com.jetbrains.jetpad.vclang.error.GeneralError
+import com.jetbrains.jetpad.vclang.error.ListErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.BaseModuleLoader
 import com.jetbrains.jetpad.vclang.frontend.ErrorFormatter
+import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.OneshotSourceInfoCollector
 import com.jetbrains.jetpad.vclang.frontend.storage.FileStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -22,7 +26,6 @@ import com.jetbrains.jetpad.vclang.typechecking.error.TypeCheckingError
 import com.jetbrains.jetpad.vclang.typechecking.error.local.TerminationCheckError
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.ide.module.source.VcPreludeStorage
-import org.vclang.lang.core.Surrogate
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
@@ -53,16 +56,17 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
     // Typechecking
     private val useCache = !recompile
     private val state = cacheManager.typecheckerState
+    val moduleResults = LinkedHashMap<SourceIdT, ModuleResult>()
 
     fun run(argFiles: Collection<String>) {
         // Typecheck sources
         argFiles.forEach { requestFileTypechecking(Paths.get(it)) }
-        val typeCheckResults = typeCheckSources(requestedSources)
+        typeCheckSources(requestedSources)
         flushErrors()
 
         // Output nice per-module typechecking results
         var numWithErrors = 0
-        for ((key, result) in typeCheckResults) {
+        for ((key, result) in moduleResults) {
             if (!requestedSources.contains(key)) {
                 val fixedResult = if (result == ModuleResult.OK) ModuleResult.UNKNOWN else result
                 reportTypeCheckResult(key, fixedResult)
@@ -72,7 +76,7 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
 
         // Explicitly requested sources go last
         for (source in requestedSources) {
-            val result = typeCheckResults[source]
+            val result = moduleResults[source]
             reportTypeCheckResult(source, result ?: ModuleResult.OK)
             if (result == ModuleResult.ERRORS) numWithErrors += 1
         }
@@ -96,6 +100,7 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
         val sourceId = moduleTracker.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = moduleTracker.load(sourceId)
         assert(errorReporter.errorList.isEmpty())
+        if (prelude == null) throw IllegalStateException()
 
         try {
             cacheManager.loadCache(sourceId, prelude)
@@ -107,7 +112,7 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
                 state,
                 staticNsProvider,
                 dynamicNsProvider,
-                Surrogate.NamespaceCommandStatement.GET,
+                HasOpens.GET,
                 DummyErrorReporter(),
                 Prelude.UpdatePreludeReporter(state),
                 object : DependencyListener {}
@@ -145,14 +150,15 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
         requestedSources.add(sourceId)
     }
 
-    private fun typeCheckSources(sources: Set<SourceIdT>): Map<SourceIdT, ModuleResult> {
-        val results = LinkedHashMap<SourceIdT, ModuleResult>()
+    private fun typeCheckSources(sources: Set<SourceIdT>) {
         val modulesToTypeCheck = LinkedHashSet<Abstract.ClassDefinition>()
         for (source in sources) {
             val definition: Abstract.ClassDefinition?
             val result = loadedSources[source]
             if (result == null) {
                 definition = moduleTracker.load(source)
+                if (definition == null) continue
+
                 if (useCache) {
                     try {
                         cacheManager.loadCache(source, definition)
@@ -170,19 +176,18 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
 
         println("--- Checking ---")
 
-        class ResultTracker : ErrorReporter,
+        class ResultTracker : ErrorClassifier(errorReporter),
                               DependencyListener,
                               TypecheckedReporter {
 
-            override fun report(error: GeneralError) {
-                val newResult: ModuleResult
-                when (error.level) {
-                    Error.Level.ERROR -> newResult = ModuleResult.ERRORS
-                    Error.Level.GOAL -> newResult = ModuleResult.GOALS
-                    else -> newResult = ModuleResult.OK
-                }
-                updateSourceResult(srcInfoProvider.sourceOf(sourceDefinitionOf(error)), newResult)
-                errorReporter.report(error)
+            override fun reportedError(error: GeneralError) {
+                val source = srcInfoProvider.sourceOf(sourceDefinitionOf(error))
+                updateSourceResult(source, ModuleResult.ERRORS)
+            }
+
+            override fun reportedGoal(error: GeneralError) {
+                val source = srcInfoProvider.sourceOf(sourceDefinitionOf(error))
+                updateSourceResult(source, ModuleResult.GOALS)
             }
 
             override fun alreadyTypechecked(definition: Abstract.Definition?) {
@@ -209,9 +214,9 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
             }
 
             private fun updateSourceResult(source: SourceIdT, result: ModuleResult) {
-                val prevResult = results[source]
+                val prevResult = moduleResults[source]
                 if (prevResult == null || result.ordinal > prevResult.ordinal) {
-                    results.put(source, result)
+                    moduleResults.put(source, result)
                 }
             }
         }
@@ -221,12 +226,10 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
                     state,
                     staticNsProvider,
                     dynamicNsProvider,
-                    Surrogate.NamespaceCommandStatement.GET,
+                    HasOpens.GET,
                     it, it, it
             ).typecheckModules(modulesToTypeCheck)
         }
-
-        return results
     }
 
     private fun reportTypeCheckResult(source: SourceIdT, result: ModuleResult) =
@@ -245,9 +248,7 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
         errorReporter.errorList.clear()
     }
 
-    private enum class ModuleResult {
-        UNKNOWN, OK, GOALS, NOT_LOADED, ERRORS
-    }
+    enum class ModuleResult { UNKNOWN, OK, GOALS, NOT_LOADED, ERRORS }
 
     inner class ModuleTracker(
             storage: Storage<SourceIdT>
@@ -268,15 +269,21 @@ abstract class VcBaseTypechekerFrontend<SourceIdT : SourceId>(
             println("[Loaded] ${displaySource(module, false)}")
         }
 
-        override fun loadingFailed(module: SourceIdT) =
-                println("[Failed] " + displaySource(module, false))
+        override fun loadingFailed(module: SourceIdT) {
+            moduleResults.put(module, ModuleResult.NOT_LOADED)
+            println("[Failed] " + displaySource(module, false))
+        }
 
-        override fun load(sourceId: SourceIdT): Abstract.ClassDefinition {
+        override fun load(sourceId: SourceIdT): Abstract.ClassDefinition? {
             assert(!loadedSources.containsKey(sourceId))
+            moduleResults[sourceId]?.let {
+                assert(it === ModuleResult.NOT_LOADED)
+                return null
+            }
             return super.load(sourceId)
         }
 
-        override fun load(modulePath: ModulePath): Abstract.ClassDefinition =
+        override fun load(modulePath: ModulePath): Abstract.ClassDefinition? =
                 load(locateModule(modulePath))
 
         override fun locateModule(modulePath: ModulePath): SourceIdT =

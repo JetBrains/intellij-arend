@@ -20,12 +20,12 @@ abstract class FunctionDefinitionAdapter(node: ASTNode) : Surrogate.SignatureDef
             position: Surrogate.Position?,
             name: String?,
             precedence: Abstract.Precedence?,
-            arguments: List<Surrogate.Argument>?,
+            parameters: List<Surrogate.Parameter>?,
             resultType: Surrogate.Expression?,
             body: Surrogate.FunctionBody?,
             statements: List<Surrogate.Statement>?
     ): FunctionDefinitionAdapter {
-        super.reconstruct(position, name, precedence, arguments, resultType)
+        super.reconstruct(position, name, precedence, parameters, resultType)
         this.body = body
         this.statements = statements
         return this

@@ -44,8 +44,8 @@ object AbstractTreeFactory {
                     result,
                     globalScope,
                     nameResolver,
-                    Surrogate.NamespaceCommandStatement.GET,
-                    SurrogateResolveListener(compositeErrorReporter)
+                    SurrogateResolveListener(),
+                    compositeErrorReporter
             )
         }
         if (countingErrorReporter.errorsNumber > 0) {

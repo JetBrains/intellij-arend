@@ -10,7 +10,7 @@ import org.vclang.lang.core.resolve.NamespaceProvider
 
 abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                        VcDefClass {
-    private var polyParameters: List<Surrogate.TypeArgument>? = null
+    private var polyParameters: List<Surrogate.TypeParameter>? = null
     private var superClasses: List<Surrogate.SuperClass>? = null
     private var fields: List<ClassFieldAdapter>? = null
     private var implementations: List<ImplementationAdapter>? = null
@@ -23,7 +23,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     fun reconstruct(
             position: Surrogate.Position?,
             name: String?,
-            polyParameters: List<Surrogate.TypeArgument>?,
+            polyParameters: List<Surrogate.TypeParameter>?,
             superClasses: List<Surrogate.SuperClass>?,
             fields: List<ClassFieldAdapter>?,
             implementations: List<ImplementationAdapter>?,
@@ -57,7 +57,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
         )
     }
 
-    override fun getPolyParameters(): List<Surrogate.TypeArgument> =
+    override fun getPolyParameters(): List<Surrogate.TypeParameter> =
             polyParameters ?: throw IllegalStateException()
 
     override fun getSuperClasses(): List<Surrogate.SuperClass> =

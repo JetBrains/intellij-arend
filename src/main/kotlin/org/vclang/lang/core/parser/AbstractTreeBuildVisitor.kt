@@ -193,9 +193,18 @@ class AbstractTreeBuildVisitor(
     }
 
     fun visitDefData(context: VcDefData): DataDefinitionAdapter {
-        val eliminatedReferences = context.dataBody?.dataClauses?.elim?.let { visitElim(it) }
-        val universe = context.expr?.let { visitExpr(it) }
+        val universe: Surrogate.UniverseExpression? = context.expr?.let {
+            val expr = visitExpr(it)
+            if (expr is Surrogate.UniverseExpression) {
+                expr
+            } else {
+                reportError(elementPosition(it),
+                            "Specified type of the data definition is not a universe")
+                null
+            }
+        }
 
+        val eliminatedReferences = context.dataBody?.dataClauses?.elim?.let { visitElim(it) }
         if (context !is DataDefinitionAdapter) throw IllegalStateException()
         val dataDefinition = context.reconstruct(
                 elementPosition(context),
@@ -385,8 +394,7 @@ class AbstractTreeBuildVisitor(
     fun visitPatternConstructor(context: VcPatternConstructor): Surrogate.Pattern {
         context.identifier.id?.let {
             if (context.atomPatternOrIDList.isEmpty()) {
-                val variable = Surrogate.LocalVariable(elementPosition(it), it.text)
-                return Surrogate.NamePattern(elementPosition(context), variable)
+                return Surrogate.NamePattern(elementPosition(context), it.text)
             }
         }
         return Surrogate.ConstructorPattern(
@@ -398,10 +406,8 @@ class AbstractTreeBuildVisitor(
 
     fun visitAtomPatternOrID(context: VcAtomPatternOrID): Surrogate.Pattern {
         context.atomPattern?.let { return visitAtomPattern(it) }
-        val position = elementPosition(context)
         val name = context.id?.text
-        val referent = Surrogate.LocalVariable(position, name)
-        return Surrogate.NamePattern(position, referent)
+        return Surrogate.NamePattern(elementPosition(context), name)
     }
 
     fun visitAtomPattern(context: VcAtomPattern): Surrogate.Pattern {
@@ -413,12 +419,10 @@ class AbstractTreeBuildVisitor(
             return pattern
         }
 
-        val position = elementPosition(context)
         return if (context.underscore != null) {
-            val referent = Surrogate.LocalVariable(position, "_")
-            Surrogate.NamePattern(position, referent)
+            Surrogate.NamePattern(elementPosition(context), "_")
         } else {
-            Surrogate.EmptyPattern(position)
+            Surrogate.EmptyPattern(elementPosition(context))
         }
     }
 
@@ -492,7 +496,7 @@ class AbstractTreeBuildVisitor(
     fun visitArr(context: VcArrExpr): Surrogate.PiExpression {
         val domain = visitExpr(context.exprList[0])
         val codomain = visitExpr(context.exprList[1])
-        val arguments = listOf(Surrogate.TypeArgument(domain.position, true, domain))
+        val arguments = listOf(Surrogate.TypeParameter(domain.position, true, domain))
         return Surrogate.PiExpression(elementPosition(context.arrow), arguments, codomain)
     }
 
@@ -812,7 +816,7 @@ class AbstractTreeBuildVisitor(
                 arg.universeAtom != null -> visitUniverseAtom(arg.universeAtom)
                 else -> throw IllegalStateException()
             }
-            val argumentExpr = Surrogate.ArgumentExpression(expr1, arg.expr == null, false)
+            val argumentExpr = Surrogate.Argument(expr1, arg.expr == null)
             appExpr = Surrogate.AppExpression(expr.position, appExpr, argumentExpr)
         }
         return appExpr
@@ -895,8 +899,8 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    private fun visitLamTele(tele: VcTele): List<Surrogate.Argument>? {
-        val arguments = ArrayList<Surrogate.Argument>(3)
+    private fun visitLamTele(tele: VcTele): List<Surrogate.Parameter>? {
+        val arguments = ArrayList<Surrogate.Parameter>(3)
         if (tele.typedExpr != null) {
             val explicit = tele.lparen != null
             val typedExpr = tele.typedExpr ?: return null
@@ -916,18 +920,14 @@ class AbstractTreeBuildVisitor(
             }
 
             if (typeExpr == null) {
-                if (explicit) {
-                    arguments.addAll(vars.requireNoNulls())
-                } else {
-                    vars.mapTo(arguments) {
-                        Surrogate.NameArgument(it?.position, false, it?.referable)
-                    }
+                vars.mapTo(arguments) {
+                    Surrogate.NameParameter(it?.position, explicit, it?.name)
                 }
             } else {
-                val arg = Surrogate.TelescopeArgument(
+                val arg = Surrogate.TelescopeParameter(
                         elementPosition(tele),
                         explicit,
-                        vars.map { it?.referable },
+                        vars,
                         typeExpr
                 )
                 arguments.add(arg)
@@ -938,11 +938,9 @@ class AbstractTreeBuildVisitor(
                 val literalContext = tele.literal
                 if (literalContext?.identifier?.id != null) {
                     val id = literalContext.identifier?.id
-                    val position = elementPosition(id)
-                    val variable = Surrogate.LocalVariable(position, id?.text)
-                    arguments.add(Surrogate.NameArgument(position, true, variable))
+                    arguments.add(Surrogate.NameParameter(elementPosition(id), true, id?.text))
                 } else if (literalContext?.underscore != null) {
-                    val arg = Surrogate.NameArgument(elementPosition(literalContext), true, null)
+                    val arg = Surrogate.NameParameter(elementPosition(literalContext), true, null)
                     arguments.add(arg)
                 } else {
                     ok = false
@@ -956,11 +954,11 @@ class AbstractTreeBuildVisitor(
         return arguments
     }
 
-    private fun visitLamTeles(tele: List<VcTele>): List<Surrogate.Argument> =
+    private fun visitLamTeles(tele: List<VcTele>): List<Surrogate.Parameter> =
             tele.map { visitLamTele(it) }.filterNotNull().flatten()
 
-    private fun visitTeles(teles: List<VcTele>): List<Surrogate.TypeArgument> {
-        val arguments = mutableListOf<Surrogate.TypeArgument>()
+    private fun visitTeles(teles: List<VcTele>): List<Surrogate.TypeParameter> {
+        val arguments = mutableListOf<Surrogate.TypeParameter>()
         for (tele in teles) {
             val explicit = tele.lbrace == null
             var typedExpr: VcTypedExpr?
@@ -969,11 +967,11 @@ class AbstractTreeBuildVisitor(
                     typedExpr = tele.typedExpr
                 } else if (tele.literal != null) {
                     val literal = tele.literal?.let { visitLiteral(it) }
-                    arguments.add(Surrogate.TypeArgument(true, literal))
+                    arguments.add(Surrogate.TypeParameter(true, literal))
                     continue
                 } else if (tele.universeAtom != null) {
                     val universeAtom = tele.universeAtom?.let { visitUniverseAtom(it) }
-                    arguments.add(Surrogate.TypeArgument(true, universeAtom))
+                    arguments.add(Surrogate.TypeParameter(true, universeAtom))
                     continue
                 } else {
                     throw IllegalStateException()
@@ -983,9 +981,8 @@ class AbstractTreeBuildVisitor(
             }
 
             if (typedExpr?.colon != null) {
-                val args = typedExpr.unknownOrIDList.map { getVar(it) }
-                val vars = args.map { it?.referable }
-                val arg = Surrogate.TelescopeArgument(
+                val vars = typedExpr.unknownOrIDList.map { getVar(it) }
+                val arg = Surrogate.TelescopeParameter(
                         elementPosition(tele),
                         explicit,
                         vars,
@@ -993,19 +990,19 @@ class AbstractTreeBuildVisitor(
                 )
                 arguments.add(arg)
             } else {
-                val arg = Surrogate.TypeArgument(explicit, visitExpr(typedExpr?.expr))
+                val arg = Surrogate.TypeParameter(explicit, visitExpr(typedExpr?.expr))
                 arguments.add(arg)
             }
         }
         return arguments
     }
 
-    private fun visitFunctionArguments(teleContext: List<VcTele>): List<Surrogate.Argument> {
-        val arguments = mutableListOf<Surrogate.Argument>()
+    private fun visitFunctionArguments(teleContext: List<VcTele>): List<Surrogate.Parameter> {
+        val arguments = mutableListOf<Surrogate.Parameter>()
         for (tele in teleContext) {
             val args = visitLamTele(tele)
             if (args != null && args.isNotEmpty()) {
-                if (args.first() is Surrogate.TelescopeArgument) {
+                if (args.first() is Surrogate.TelescopeParameter) {
                     arguments.add(args.first())
                 } else {
                     reportError(elementPosition(tele), "Expected a typed variable")
@@ -1020,27 +1017,23 @@ class AbstractTreeBuildVisitor(
     private fun elementPosition(token: PsiElement?): Surrogate.Position =
             Surrogate.Position(module, 0, 0)
 
-    private fun getVar(context: VcAtomFieldsAcc): Surrogate.NameArgument? =
+    private fun getVar(context: VcAtomFieldsAcc): Surrogate.LocalVariable? =
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null
 
-    private fun getVar(literal: VcLiteral?): Surrogate.NameArgument? {
+    private fun getVar(literal: VcLiteral?): Surrogate.LocalVariable? {
         return (literal?.identifier?.id ?: literal?.underscore)?.let {
-            val position = elementPosition(it)
-            val variable = Surrogate.LocalVariable(position, it.text)
-            Surrogate.NameArgument(position, true, variable)
+            Surrogate.LocalVariable(elementPosition(it), it.text)
         }
     }
 
-    private fun getVar(maybeVar: VcUnknownOrID): Surrogate.NameArgument? {
+    private fun getVar(maybeVar: VcUnknownOrID): Surrogate.LocalVariable? {
         (maybeVar.identifier?.id ?: maybeVar.underscore)?.let {
-            val position = elementPosition(it)
-            val variable = Surrogate.LocalVariable(position, it.text)
-            return Surrogate.NameArgument(position, true, variable)
+            return Surrogate.LocalVariable(elementPosition(it), it.text)
         }
         throw IllegalStateException()
     }
 
-    private fun getVarsNull(expr: VcExpr): List<Surrogate.NameArgument>? {
+    private fun getVarsNull(expr: VcExpr): List<Surrogate.LocalVariable>? {
         if (expr !is VcBinOpExpr
                 || expr.binOpLeftList.isNotEmpty()
                 || expr.newExpr.binOpArg?.argumentBinOp == null
@@ -1059,7 +1052,6 @@ class AbstractTreeBuildVisitor(
                 result.add(arg)
             } else if (argument.expr != null) {
                 val arguments = argument.expr?.let { getVarsNull(it) } ?: return null
-                arguments.forEach { it.explicit = false }
                 result.addAll(arguments)
             } else {
                 return null
@@ -1068,7 +1060,7 @@ class AbstractTreeBuildVisitor(
         return result
     }
 
-    private fun getVars(expr: VcExpr): List<Surrogate.NameArgument> {
+    private fun getVars(expr: VcExpr): List<Surrogate.LocalVariable> {
         val result = getVarsNull(expr)
         if (result != null) {
             return result

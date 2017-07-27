@@ -6,6 +6,7 @@ import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceLevel
 import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceVariable;
 import com.jetbrains.jetpad.vclang.frontend.AbstractCompareVisitor;
 import com.jetbrains.jetpad.vclang.frontend.Concrete;
+import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens;
 import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand;
 import com.jetbrains.jetpad.vclang.module.ModulePath;
 import com.jetbrains.jetpad.vclang.module.source.SourceId;
@@ -14,18 +15,17 @@ import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor;
 import com.jetbrains.jetpad.vclang.term.AbstractExpressionVisitor;
 import com.jetbrains.jetpad.vclang.term.AbstractLevelExpressionVisitor;
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor;
-import org.jetbrains.annotations.NotNull;
 import org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter;
 import org.vclang.lang.core.psi.ext.adapters.ConstructorAdapter;
 import org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter;
 import org.vclang.lang.core.psi.ext.adapters.ImplementationAdapter;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -33,7 +33,19 @@ public final class Surrogate {
     private Surrogate() {
     }
 
-    public interface StatementCollection extends Abstract.DefinitionCollection {
+    public interface PatternContainer extends Abstract.PatternContainer {
+        @Override
+        List<Pattern> getPatterns();
+
+        default void replaceWithConstructor(int index, Abstract.Constructor constructor) {
+            Pattern old = getPatterns().get(index);
+            Pattern newPattern = new ConstructorPattern(old.getPosition(), constructor, Collections.emptyList());
+            newPattern.setExplicit(old.isExplicit());
+            getPatterns().set(index, newPattern);
+        }
+    }
+
+    public interface StatementCollection extends Abstract.DefinitionCollection, HasOpens {
         List<? extends Statement> getGlobalStatements();
 
         @Nonnull
@@ -47,7 +59,21 @@ public final class Surrogate {
                 }
             }).collect(Collectors.toList());
         }
+
+        @Nonnull
+        @Override
+        default Iterable<OpenCommand> getOpens() {
+            return getGlobalStatements().stream().flatMap(s -> {
+                if (s instanceof NamespaceCommandStatement) {
+                    return Stream.of((NamespaceCommandStatement) s);
+                } else {
+                    return Stream.empty();
+                }
+            }).collect(Collectors.toList());
+        }
     }
+
+    // Parameters
 
     public static class Position {
         public final SourceId module;
@@ -66,8 +92,6 @@ public final class Surrogate {
         }
     }
 
-    // Arguments
-
     public static class SourceNode implements Abstract.SourceNode {
         private final Position myPosition;
 
@@ -80,10 +104,10 @@ public final class Surrogate {
         }
     }
 
-    public static class Argument extends SourceNode implements Abstract.Argument {
+    public static class Parameter extends SourceNode implements Abstract.Parameter {
         private boolean myExplicit;
 
-        public Argument(Position position, boolean explicit) {
+        public Parameter(Position position, boolean explicit) {
             super(position);
             myExplicit = explicit;
         }
@@ -98,29 +122,31 @@ public final class Surrogate {
         }
     }
 
-    public static class NameArgument extends Argument implements Abstract.NameArgument {
-        private final Abstract.ReferableSourceNode myReferable;
+    public static class NameParameter extends Parameter implements Abstract.NameParameter, Abstract.ReferableSourceNode {
+        private final String myName;
 
-        public NameArgument(Position position, boolean explicit, Abstract.ReferableSourceNode referableSourceNode) {
+        public NameParameter(Position position, boolean explicit, String name) {
             super(position, explicit);
-            myReferable = referableSourceNode;
+            myName = name;
         }
 
         @Override
-        public Abstract.ReferableSourceNode getReferable() {
-            return myReferable;
+        public String getName() {
+            return myName;
         }
     }
 
-    public static class TypeArgument extends Argument implements Abstract.TypeArgument {
+    // Expressions
+
+    public static class TypeParameter extends Parameter implements Abstract.TypeParameter {
         private final Expression myType;
 
-        public TypeArgument(Position position, boolean explicit, Expression type) {
+        public TypeParameter(Position position, boolean explicit, Expression type) {
             super(position, explicit);
             myType = type;
         }
 
-        public TypeArgument(boolean explicit, Expression type) {
+        public TypeParameter(boolean explicit, Expression type) {
             this(type.getPosition(), explicit, type);
         }
 
@@ -130,12 +156,10 @@ public final class Surrogate {
         }
     }
 
-    // Expressions
-
-    public static class TelescopeArgument extends TypeArgument implements Abstract.TelescopeArgument {
+    public static class TelescopeParameter extends TypeParameter implements Abstract.TelescopeParameter {
         private final List<? extends Abstract.ReferableSourceNode> myReferableList;
 
-        public TelescopeArgument(Position position, boolean explicit, List<? extends Abstract.ReferableSourceNode> referableList, Expression type) {
+        public TelescopeParameter(Position position, boolean explicit, List<? extends Abstract.ReferableSourceNode> referableList, Expression type) {
             super(position, explicit, type);
             myReferableList = referableList;
         }
@@ -170,15 +194,13 @@ public final class Surrogate {
         }
     }
 
-    public static class ArgumentExpression implements Abstract.ArgumentExpression {
+    public static class Argument implements Abstract.Argument {
         private final Expression myExpression;
         private final boolean myExplicit;
-        private final boolean myHidden;
 
-        public ArgumentExpression(Expression expression, boolean explicit, boolean hidden) {
+        public Argument(Expression expression, boolean explicit) {
             myExpression = expression;
             myExplicit = explicit;
-            myHidden = hidden;
         }
 
         @Override
@@ -190,18 +212,13 @@ public final class Surrogate {
         public boolean isExplicit() {
             return myExplicit;
         }
-
-        @Override
-        public boolean isHidden() {
-            return myHidden;
-        }
     }
 
     public static class AppExpression extends Expression implements Abstract.AppExpression {
         private final Expression myFunction;
-        private final ArgumentExpression myArgument;
+        private final Argument myArgument;
 
-        public AppExpression(Position position, Expression function, ArgumentExpression argument) {
+        public AppExpression(Position position, Expression function, Argument argument) {
             super(position);
             myFunction = function;
             myArgument = argument;
@@ -213,7 +230,7 @@ public final class Surrogate {
         }
 
         @Override
-        public ArgumentExpression getArgument() {
+        public Argument getArgument() {
             return myArgument;
         }
 
@@ -249,7 +266,7 @@ public final class Surrogate {
         }
 
         public Expression makeError(Abstract.SourceNode node) {
-            return new Surrogate.InferHoleExpression(((SourceNode) node).getPosition());
+            return new InferHoleExpression(((SourceNode) node).getPosition());
         }
 
         public void replace(Abstract.Expression expression) {
@@ -497,18 +514,18 @@ public final class Surrogate {
     }
 
     public static class LamExpression extends Expression implements Abstract.LamExpression {
-        private final List<Argument> myArguments;
+        private final List<Parameter> myParameters;
         private final Expression myBody;
 
-        public LamExpression(Position position, List<Argument> arguments, Expression body) {
+        public LamExpression(Position position, List<Parameter> parameters, Expression body) {
             super(position);
-            myArguments = arguments;
+            myParameters = parameters;
             myBody = body;
         }
 
         @Override
-        public List<Argument> getArguments() {
-            return myArguments;
+        public List<Parameter> getParameters() {
+            return myParameters;
         }
 
         @Override
@@ -522,18 +539,23 @@ public final class Surrogate {
         }
     }
 
-    public static class LetClause extends SourceNode implements Abstract.LetClause {
-        private final String myName;
-        private final List<Argument> myArguments;
+    public static class LetClause extends SourceNode implements Abstract.LetClause, Abstract.ReferableSourceNode {
+        private final List<Parameter> myParameters;
         private final Expression myResultType;
         private final Expression myTerm;
+        private final String myName;
 
-        public LetClause(Position position, String name, List<Argument> arguments, Expression resultType, Expression term) {
+        public LetClause(Position position, String name, List<Parameter> parameters, Expression resultType, Expression term) {
             super(position);
-            myName = name;
-            myArguments = arguments;
+            myParameters = parameters;
             myResultType = resultType;
             myTerm = term;
+            myName = name;
+        }
+
+        @Override
+        public String getName() {
+            return myName;
         }
 
         @Override
@@ -542,22 +564,13 @@ public final class Surrogate {
         }
 
         @Override
-        public List<Argument> getArguments() {
-            return myArguments;
+        public List<Parameter> getParameters() {
+            return myParameters;
         }
 
         @Override
         public Abstract.Expression getResultType() {
             return myResultType;
-        }
-
-        public String getName() {
-            return myName;
-        }
-
-        @Override
-        public String toString() {
-            return myName;
         }
     }
 
@@ -588,17 +601,17 @@ public final class Surrogate {
     }
 
     public static class PiExpression extends Expression implements Abstract.PiExpression {
-        private final List<TypeArgument> myArguments;
+        private final List<TypeParameter> myArguments;
         private final Expression myCodomain;
 
-        public PiExpression(Position position, List<TypeArgument> arguments, Expression codomain) {
+        public PiExpression(Position position, List<TypeParameter> arguments, Expression codomain) {
             super(position);
             myArguments = arguments;
             myCodomain = codomain;
         }
 
         @Override
-        public List<TypeArgument> getArguments() {
+        public List<TypeParameter> getParameters() {
             return myArguments;
         }
 
@@ -614,15 +627,15 @@ public final class Surrogate {
     }
 
     public static class SigmaExpression extends Expression implements Abstract.SigmaExpression {
-        private final List<TypeArgument> myArguments;
+        private final List<TypeParameter> myArguments;
 
-        public SigmaExpression(Position position, List<TypeArgument> arguments) {
+        public SigmaExpression(Position position, List<TypeParameter> arguments) {
             super(position);
             myArguments = arguments;
         }
 
         @Override
-        public List<TypeArgument> getArguments() {
+        public List<TypeParameter> getParameters() {
             return myArguments;
         }
 
@@ -729,7 +742,7 @@ public final class Surrogate {
         }
     }
 
-    public static class FunctionClause extends SourceNode implements Abstract.FunctionClause {
+    public static class FunctionClause extends SourceNode implements Abstract.FunctionClause, PatternContainer {
         private final List<Pattern> myPatterns;
         private final Expression myExpression;
 
@@ -747,13 +760,6 @@ public final class Surrogate {
         @Override
         public Expression getExpression() {
             return myExpression;
-        }
-
-        public void replaceWithConstructor(int index, Abstract.Constructor constructor) {
-            Pattern old = myPatterns.get(index);
-            Pattern newPattern = new ConstructorPattern(old.getPosition(), constructor, Collections.emptyList());
-            newPattern.setExplicit(old.isExplicit());
-            myPatterns.set(index, newPattern);
         }
     }
 
@@ -788,7 +794,7 @@ public final class Surrogate {
         private final InferenceLevelVariable myVariable;
 
         public InferVarLevelExpression(InferenceLevelVariable variable) {
-            super(new Surrogate.Position(() -> new ModulePath("dummy"), 0, 0));
+            super(new Position(() -> new ModulePath("$transient$"), 0, 0));
             myVariable = variable;
         }
 
@@ -874,8 +880,6 @@ public final class Surrogate {
         }
     }
 
-    // Definitions
-
     public static class MaxLevelExpression extends LevelExpression implements Abstract.MaxLevelExpression {
         private final LevelExpression myLeft;
         private final LevelExpression myRight;
@@ -902,6 +906,8 @@ public final class Surrogate {
         }
     }
 
+    // Definitions
+
     public static class LocalVariable extends SourceNode implements Abstract.ReferableSourceNode {
         private final String myName;
 
@@ -910,33 +916,29 @@ public final class Surrogate {
             myName = name;
         }
 
-        public String getName() {
-            return myName;
-        }
-
         @Override
-        public String toString() {
+        public String getName() {
             return myName;
         }
     }
 
     public static abstract class SignatureDefinition extends DefinitionAdapter {
-        private List<Argument> myArguments = null;
+        private List<Parameter> myParameters = null;
         private Expression myResultType = null;
 
-        public SignatureDefinition(@NotNull ASTNode node) {
+        public SignatureDefinition(@Nonnull ASTNode node) {
             super(node);
         }
 
-        public SignatureDefinition reconstruct(Position position, String name, Abstract.Precedence precedence, List<Argument> arguments, Expression resultType) {
+        public SignatureDefinition reconstruct(Position position, String name, Abstract.Precedence precedence, List<Parameter> parameters, Expression resultType) {
             super.reconstruct(position, name, precedence);
-            myArguments = arguments;
+            myParameters = parameters;
             myResultType = resultType;
             return this;
         }
 
-        public List<? extends Argument> getArguments() {
-            return myArguments;
+        public List<? extends Parameter> getParameters() {
+            return myParameters;
         }
 
         public Expression getResultType() {
@@ -999,7 +1001,7 @@ public final class Surrogate {
         }
     }
 
-    public static class ConstructorClause extends SourceNode implements Abstract.ConstructorClause {
+    public static class ConstructorClause extends SourceNode implements Abstract.ConstructorClause, PatternContainer {
         private final List<Pattern> myPatterns;
         private final List<ConstructorAdapter> myConstructors;
 
@@ -1020,15 +1022,15 @@ public final class Surrogate {
         }
     }
 
-    public static class ClassDefinition extends Concrete.Definition implements Abstract.ClassDefinition, Surrogate.StatementCollection {
-        private final List<Surrogate.TypeArgument> myPolyParameters;
-        private final List<Surrogate.SuperClass> mySuperClasses;
+    public static class ClassDefinition extends Concrete.Definition implements Abstract.ClassDefinition, StatementCollection {
+        private final List<TypeParameter> myPolyParameters;
+        private final List<SuperClass> mySuperClasses;
         private final List<ClassFieldAdapter> myFields;
         private final List<ImplementationAdapter> myImplementations;
-        private final List<Surrogate.Statement> myGlobalStatements;
+        private final List<Statement> myGlobalStatements;
         private final List<DefinitionAdapter> myInstanceDefinitions;
 
-        public ClassDefinition(Surrogate.Position position, String name, List<Surrogate.TypeArgument> polyParams, List<Surrogate.SuperClass> superClasses, List<ClassFieldAdapter> fields, List<ImplementationAdapter> implementations, List<Surrogate.Statement> globalStatements, List<DefinitionAdapter> instanceDefinitions) {
+        public ClassDefinition(Position position, String name, List<TypeParameter> polyParams, List<SuperClass> superClasses, List<ClassFieldAdapter> fields, List<ImplementationAdapter> implementations, List<Statement> globalStatements, List<DefinitionAdapter> instanceDefinitions) {
             super(new Concrete.Position(position.module, position.line, position.column), name, Abstract.Precedence.DEFAULT);
             myPolyParameters = polyParams;
             mySuperClasses = superClasses;
@@ -1038,7 +1040,7 @@ public final class Surrogate {
             myInstanceDefinitions = instanceDefinitions;
         }
 
-        public ClassDefinition(Surrogate.Position position, String name, List<Surrogate.Statement> globalStatements) {
+        public ClassDefinition(Position position, String name, List<Statement> globalStatements) {
             this(position, name, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), globalStatements, Collections.emptyList());
         }
 
@@ -1048,12 +1050,12 @@ public final class Surrogate {
         }
 
         @Override
-        public List<Surrogate.TypeArgument> getPolyParameters() {
+        public List<TypeParameter> getPolyParameters() {
             return myPolyParameters;
         }
 
         @Override
-        public List<Surrogate.SuperClass> getSuperClasses() {
+        public List<SuperClass> getSuperClasses() {
             return mySuperClasses;
         }
 
@@ -1073,7 +1075,7 @@ public final class Surrogate {
         }
 
         @Override
-        public List<? extends Surrogate.Statement> getGlobalStatements() {
+        public List<? extends Statement> getGlobalStatements() {
             return myGlobalStatements;
         }
     }
@@ -1100,19 +1102,6 @@ public final class Surrogate {
     }
 
     public static class NamespaceCommandStatement extends Statement implements OpenCommand {
-        public final static Function<Abstract.Definition, Iterable<OpenCommand>> GET = def -> {
-            if (def instanceof StatementCollection) {
-                return ((StatementCollection) def).getGlobalStatements().stream().flatMap(s -> {
-                    if (s instanceof NamespaceCommandStatement) {
-                        return Stream.of((NamespaceCommandStatement) s);
-                    } else {
-                        return Stream.empty();
-                    }
-                }).collect(Collectors.toList());
-            } else {
-                return Collections.emptySet();
-            }
-        };
         private final ModulePath myModulePath;
         private final List<String> myPath;
         private final boolean myHiding;
@@ -1129,12 +1118,14 @@ public final class Surrogate {
         }
 
         @Override
-        public ModulePath getModulePath() {
+        public @Nullable
+        ModulePath getModulePath() {
             return myModulePath;
         }
 
         @Override
-        public List<String> getPath() {
+        public @Nonnull
+        List<String> getPath() {
             return myPath;
         }
 
@@ -1153,11 +1144,13 @@ public final class Surrogate {
         }
 
         @Override
-        public List<String> getNames() {
+        public @Nullable
+        List<String> getNames() {
             return myNames;
         }
 
         public enum Kind {OPEN, EXPORT}
+
     }
 
     // Patterns
@@ -1180,35 +1173,27 @@ public final class Surrogate {
         }
     }
 
-    public static class NamePattern extends Pattern implements Abstract.NamePattern {
+    public static class NamePattern extends Pattern implements Abstract.NamePattern, Abstract.ReferableSourceNode {
         private final String myName;
-        private final Abstract.ReferableSourceNode myReferent;
 
-        public NamePattern(Position position, Abstract.ReferableSourceNode referent) {
+        public NamePattern(Position position, String name) {
             super(position);
-            myReferent = referent;
-            myName = referent.getName();
+            myName = name;
         }
 
-        public NamePattern(Position position, boolean isExplicit, Abstract.ReferableSourceNode referent) {
+        public NamePattern(Position position, boolean isExplicit, String name) {
             super(position);
             setExplicit(isExplicit);
-            myReferent = referent;
-            myName = referent.getName();
+            myName = name;
         }
 
         @Override
         public String getName() {
             return myName;
         }
-
-        @Override
-        public Abstract.ReferableSourceNode getReferent() {
-            return myReferent;
-        }
     }
 
-    public static class ConstructorPattern extends Pattern implements Abstract.ConstructorPattern {
+    public static class ConstructorPattern extends Pattern implements Abstract.ConstructorPattern, PatternContainer {
         private final String myConstructorName;
         private final List<Pattern> myArguments;
         private Abstract.Constructor myConstructor;
@@ -1256,7 +1241,7 @@ public final class Surrogate {
         }
 
         @Override
-        public List<Pattern> getArguments() {
+        public List<Pattern> getPatterns() {
             return myArguments;
         }
     }
