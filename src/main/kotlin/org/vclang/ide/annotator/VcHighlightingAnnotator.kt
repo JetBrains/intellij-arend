@@ -11,7 +11,7 @@ import org.vclang.lang.core.psi.VcTele
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         val color = when {
-            element is VcIdentifier && element.parent?.parent is VcDefinition ->
+            element is VcIdentifier && element.parent is VcDefinition ->
                 VcHighlightingColors.DECLARATION
             element is VcTele && element.lbrace != null ->
                 VcHighlightingColors.IMPLICIT
