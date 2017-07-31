@@ -26,6 +26,11 @@ idea {
 }
 
 apply plugin: 'org.jetbrains.intellij'
+intellij {
+    version ideaVersion
+    updateSinceUntilBuild = false
+    instrumentCode = false
+}
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
