@@ -43,12 +43,17 @@
     </extensions>
 
     <actions>
-        <!-- Typechecking -->
         <action id="Typecheck" class="org.vclang.ide.actions.VcTypecheckAction"
-                text="Check _Types" description="Typecheck current file"
-                icon="/icons/saba_ping.png">
+                text="Check _Types" description="Typecheck current file">
             <add-to-group group-id="RunMenu" anchor="before" relative-to-action="RunnerActions"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
+        </action>
+
+        <action id="Vclang.NewVclangFile"
+                class="org.vclang.ide.actions.VcCreateFileAction"
+                text="Vclang File"
+                description="Create new Vclang file">
+            <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
     </actions>
 
