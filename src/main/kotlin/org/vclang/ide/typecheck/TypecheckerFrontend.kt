@@ -1,27 +1,25 @@
 package org.vclang.ide.typecheck
 
 import com.intellij.execution.ui.ConsoleView
-import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
-import com.jetbrains.jetpad.vclang.error.ErrorClassifier
-import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.error.ListErrorReporter
-import com.jetbrains.jetpad.vclang.frontend.ErrorFormatter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
-import com.jetbrains.jetpad.vclang.module.caching.*
+import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
+import com.jetbrains.jetpad.vclang.module.caching.CacheManager
+import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
+import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
 import com.jetbrains.jetpad.vclang.naming.NameResolver
-import com.jetbrains.jetpad.vclang.term.*
+import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.term.DefinitionLocator
+import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
-import com.jetbrains.jetpad.vclang.typechecking.error.TypeCheckingError
-import com.jetbrains.jetpad.vclang.typechecking.error.local.TerminationCheckError
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.ide.module.source.VcFileStorage
@@ -43,11 +41,12 @@ typealias VcSourceIdT = CompositeSourceSupplier<
             VcPreludeStorage.SourceId
         >.SourceId
 
-class TypecheckerFrontend(project: Project, sourceRoot: Path) {
-    var console: ConsoleView? = null
-
-    private val errorReporter = ListErrorReporter()
-    private val errorFormatter = ErrorFormatter(SourceInfoProvider.TRIVIAL)
+class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
+    private val logger = MyConsoleLogger()
+    var console: ConsoleView?
+        get() = logger.console
+        set(value) { logger.console = value }
+    var hasErrors = false
 
     private val moduleNsProvider = VcModuleNamespaceProvider()
     private val staticNsProvider = VcStaticNamespaceProvider
@@ -60,19 +59,19 @@ class TypecheckerFrontend(project: Project, sourceRoot: Path) {
             ),
             ModuleResolver { modulePath ->
                 val sourceId = storage.locateModule(modulePath)
-                val definition = storage.loadSource(sourceId, errorReporter)?.definition
-                flushErrors()
+                val definition = loadSource(sourceId)
+                logger.hasErrors = false
                 definition?.let { moduleNsProvider.registerModule(modulePath, it) }
                 definition
             }
     )
-    private val projectStorage = VcFileStorage(project, sourceRoot, nameResolver)
+    private val projectStorage = VcFileStorage(project, sourceRootPath, nameResolver)
     private val preludeStorage = VcPreludeStorage(project, nameResolver)
     private val storage = CompositeStorage<VcFileStorage.SourceId, VcPreludeStorage.SourceId>(
             projectStorage,
             preludeStorage
     )
-    private val definitionLocator = VcDefinitionLocator(sourceRoot)
+    private val definitionLocator = VcDefinitionLocator(sourceRootPath)
     private val cacheManager = CacheManager(
             VcPersistenceProvider(),
             storage,
@@ -86,32 +85,58 @@ class TypecheckerFrontend(project: Project, sourceRoot: Path) {
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypechekerPsiTreeChangeListener())
     }
 
-    fun typecheck(modulePath: String, definitionName: String) {
-        moduleNsProvider.unregisterAllModules()
-        errorReporter.errorList.clear()
-        loadPrelude()
-
-        val requestedSource = sourceIdByPath(Paths.get(modulePath)) ?: return
-        val result = typeCheckSource(requestedSource)
-        flushErrors()
-        reportTypeCheckResult(requestedSource, result)
-        console?.print("--- Done ---", ConsoleViewContentType.SYSTEM_OUTPUT)
-
-        for (module in cacheManager.cachedModules) {
-            if (module.actualSourceId == preludeStorage.preludeSourceId) continue
-            try {
-                cacheManager.persistCache(module)
-            } catch (e: CachePersistenceException) {
-                e.printStackTrace()
+    fun typecheck(modulePath: Path, definitionName: String) {
+        try {
+            loadPrelude()
+            val sourceId = sourceIdByPath(modulePath) ?: return
+            val definition = loadSource(sourceId)
+            if (definition != null) {
+                try {
+                    cacheManager.loadCache(sourceId, definition)
+                } catch (ignored: CacheLoadingException) {
+                }
             }
+
+            logger.reportInfo("--- Checking ---")
+
+            if (definition == null) {
+                logger.reportError("definition wtf")
+                return
+            }
+
+            val service = Typechecking(
+                    typecheckerState,
+                    staticNsProvider,
+                    dynamicNsProvider,
+                    HasOpens.GET,
+                    logger,
+                    TypecheckedReporter.Dummy(),
+                    dependencyCollector
+            )
+
+            if (definitionName.isEmpty()) {
+                service.typecheckModules(listOf(definition))
+            }
+
+//            for (module in cacheManager.cachedModules) {
+//                if (module.actualSourceId == preludeStorage.preludeSourceId) continue
+//                try {
+//                    cacheManager.persistCache(module)
+//                } catch (e: CachePersistenceException) {
+//                    e.printStackTrace()
+//                }
+//            }
+        } finally {
+            hasErrors = logger.hasErrors
+            logger.hasErrors = false
+            moduleNsProvider.unregisterAllModules()
+            logger.reportInfo("--- Done ---")
         }
     }
 
     fun loadPrelude(): Abstract.ClassDefinition {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
-        val prelude = storage.loadSource(sourceId, errorReporter)?.definition
-        assert(errorReporter.errorList.isEmpty())
-        if (prelude !is VcFile) throw IllegalStateException()
+        val prelude = loadSource(sourceId) ?: throw IllegalStateException()
 
         moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
         val preludeNamespace = staticNsProvider.forDefinition(prelude)
@@ -136,6 +161,9 @@ class TypecheckerFrontend(project: Project, sourceRoot: Path) {
         return prelude
     }
 
+    private fun loadSource(sourceId: VcSourceIdT): VcFile? =
+            storage.loadSource(sourceId, logger)?.definition as? VcFile
+
     private fun sourceIdByPath(path: Path): VcSourceIdT? {
         val fileName = path.fileName.toString()
         if (!fileName.endsWith(VcFileType.defaultExtension)) {
@@ -146,118 +174,17 @@ class TypecheckerFrontend(project: Project, sourceRoot: Path) {
 
         val modulePath = VcFileStorage.modulePath(sourcePath)
         if (modulePath == null) {
-            System.err.println("[Not found] $path is an illegal module path")
+            logger.reportError("[Not found] $path is an illegal module path")
             return null
         }
 
         val sourceId = storage.locateModule(modulePath)
         if (!storage.isAvailable(sourceId)) {
-            System.err.println("[Not found] $path is not available")
+            logger.reportError("[Not found] $path is not available")
             return null
         }
 
         return sourceId
-    }
-
-    private fun typeCheckSource(source: VcSourceIdT): ModuleResult {
-        val definition = storage.loadSource(source, errorReporter)?.definition
-        if (definition != null) {
-            try {
-                cacheManager.loadCache(source, definition)
-            } catch (ignored: CacheLoadingException) {
-            }
-        }
-
-        console?.print("--- Checking ---", ConsoleViewContentType.SYSTEM_OUTPUT)
-
-        definition ?: return ModuleResult.ERRORS
-
-        class ResultTracker : ErrorClassifier(errorReporter),
-                              DependencyListener,
-                              TypecheckedReporter {
-
-            override fun reportedError(error: GeneralError) {
-                val sourceId = definitionLocator.sourceOf(sourceDefinitionOf(error))
-                sourceId?.let { updateSourceResult(it, ModuleResult.ERRORS) }
-            }
-
-            override fun reportedGoal(error: GeneralError) {
-                val sourceId = definitionLocator.sourceOf(sourceDefinitionOf(error))
-                sourceId?.let { updateSourceResult(it, ModuleResult.GOALS) }
-            }
-
-            override fun alreadyTypechecked(definition: Abstract.Definition) {
-                val status = typecheckerState.getTypechecked(definition).status()
-                if (status != Definition.TypeCheckingStatus.NO_ERRORS) {
-                    val result = if (status != Definition.TypeCheckingStatus.HAS_ERRORS) {
-                        ModuleResult.ERRORS
-                    } else {
-                        ModuleResult.UNKNOWN
-                    }
-                    val sourceId = definitionLocator.sourceOf(definition)
-                    sourceId?.let { updateSourceResult(it, result) }
-                }
-            }
-
-            override fun typecheckingFailed(definition: Abstract.Definition?) = flushErrors()
-
-            private fun sourceDefinitionOf(error: GeneralError): Abstract.Definition {
-                return when (error) {
-                    is TypeCheckingError -> error.definition
-                    is TerminationCheckError -> error.definition
-                    else -> throw IllegalStateException("Non-typechecking error " +
-                                                        "reported to typechecking reporter")
-                }
-            }
-
-            private fun updateSourceResult(source: VcSourceIdT, result: ModuleResult) {
-//                val prevResult = moduleResults[source]
-//                if (prevResult == null || result.ordinal > prevResult.ordinal) {
-//                    moduleResults.put(source, result)
-//                }
-            }
-        }
-
-        ResultTracker().let {
-            Typechecking(
-                    typecheckerState,
-                    staticNsProvider,
-                    dynamicNsProvider,
-                    HasOpens.GET,
-                    it,
-                    it,
-                    dependencyCollector
-            ).typecheckModules(listOf(definition))
-        }
-
-        return ModuleResult.OK
-    }
-
-    private fun displaySource(source: VcSourceIdT, modulePathOnly: Boolean): String {
-        val builder = StringBuilder()
-        builder.append(source.modulePath)
-        if (!modulePathOnly) {
-            if (source.source1 != null) {
-                builder.append(" (").append(source.source1).append(")")
-            }
-        }
-        return builder.toString()
-    }
-
-    private fun reportTypeCheckResult(source: VcSourceIdT, result: ModuleResult) =
-            println("[${result.glyph}] ${displaySource(source, true)}")
-
-    private fun flushErrors() {
-        errorReporter.errorList.forEach { println(errorFormatter.printError(it)) }
-        errorReporter.errorList.clear()
-    }
-
-    enum class ModuleResult(val glyph: Char) {
-        UNKNOWN('·'),
-        OK(' '),
-        GOALS('◯'),
-        NOT_LOADED('✗'),
-        ERRORS('✗')
     }
 
     internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
@@ -451,17 +378,17 @@ internal object DefinitionIdsCollector
     }
 
     override fun visitImplement(
-            def: Abstract.Implementation,
+            definition: Abstract.Implementation,
             params: MutableMap<String, Abstract.Definition>
     ): Void? = null
 
     override fun visitClassView(
-            def: Abstract.ClassView,
+            definition: Abstract.ClassView,
             params: MutableMap<String, Abstract.Definition>
     ): Void? = null
 
     override fun visitClassViewField(
-            def: Abstract.ClassViewField,
+            definition: Abstract.ClassViewField,
             params: MutableMap<String, Abstract.Definition>
     ): Void? = null
 

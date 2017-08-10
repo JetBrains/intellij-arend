@@ -28,6 +28,6 @@ class VcTypecheckAction : AnAction() {
         if (frontend == null) {
             frontend = TypecheckerFrontend(project, sourcePath)
         }
-        frontend?.typecheck(modulePath.toString(), moduleFile.name)
+        frontend?.typecheck(modulePath, moduleFile.name)
     }
 }
