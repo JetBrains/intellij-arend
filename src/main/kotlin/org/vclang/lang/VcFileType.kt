@@ -14,5 +14,5 @@ object VcFileType : LanguageFileType(VcLanguage) {
 
     override fun getDefaultExtension(): String = "vc"
 
-    override fun getIcon(): Icon? = VcIcons.FILE
+    override fun getIcon(): Icon? = VcIcons.VCLANG_FILE
 }

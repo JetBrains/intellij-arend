@@ -11,7 +11,7 @@ import javax.swing.Icon
 
 class VcColorSettingsPage : ColorSettingsPage {
 
-    override fun getIcon(): Icon? = VcIcons.FILE
+    override fun getIcon(): Icon? = VcIcons.VCLANG
 
     override fun getHighlighter(): SyntaxHighlighter = VcSyntaxHighlighter()
 
