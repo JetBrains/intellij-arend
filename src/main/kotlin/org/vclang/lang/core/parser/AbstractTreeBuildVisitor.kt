@@ -1022,7 +1022,7 @@ class AbstractTreeBuildVisitor(
     // Utils
 
     private fun elementPosition(token: PsiElement?): Surrogate.Position =
-            Surrogate.Position(module, 0, 0)
+            Surrogate.Position(module, token)
 
     private fun getVar(context: VcAtomFieldsAcc): Surrogate.LocalVariable? =
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null
@@ -1082,7 +1082,7 @@ class AbstractTreeBuildVisitor(
     val MISPLACES_DEFINITION = "This definition is not allowed here"
 
     private fun reportError(position: Surrogate.Position, message: String) {
-        val concretePosition = Concrete.Position(position.module, position.line, position.column)
+        val concretePosition = Concrete.Position(position.module, 0, 0)
         val error = ParserError(concretePosition, message)
         errorReporter.report(error)
     }

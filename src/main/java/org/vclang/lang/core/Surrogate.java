@@ -1,6 +1,7 @@
 package org.vclang.lang.core;
 
 import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
 import com.jetbrains.jetpad.vclang.core.context.binding.Binding;
 import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceLevelVariable;
 import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceVariable;
@@ -77,18 +78,16 @@ public final class Surrogate {
 
     public static class Position {
         public final SourceId module;
-        public final int line;
-        public final int column;
+        public final PsiElement element;
 
-        public Position(SourceId module, int line, int column) {
+        public Position(SourceId module, PsiElement element) {
             this.module = module;
-            this.line = line;
-            this.column = column + 1;
+            this.element = element;
         }
 
         @Override
         public String toString() {
-            return line + ":" + column;
+            return element.getText();
         }
     }
 
@@ -794,7 +793,7 @@ public final class Surrogate {
         private final InferenceLevelVariable myVariable;
 
         public InferVarLevelExpression(InferenceLevelVariable variable) {
-            super(new Position(() -> new ModulePath("$transient$"), 0, 0));
+            super(new Position(() -> new ModulePath("$transient$"), null));
             myVariable = variable;
         }
 
@@ -1031,7 +1030,7 @@ public final class Surrogate {
         private final List<DefinitionAdapter> myInstanceDefinitions;
 
         public ClassDefinition(Position position, String name, List<TypeParameter> polyParams, List<SuperClass> superClasses, List<ClassFieldAdapter> fields, List<ImplementationAdapter> implementations, List<Statement> globalStatements, List<DefinitionAdapter> instanceDefinitions) {
-            super(new Concrete.Position(position.module, position.line, position.column), name, Abstract.Precedence.DEFAULT);
+            super(new Concrete.Position(position.module, 0, 0), name, Abstract.Precedence.DEFAULT);
             myPolyParameters = polyParams;
             mySuperClasses = superClasses;
             myFields = fields;
