@@ -116,6 +116,8 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
 
             if (definitionName.isEmpty()) {
                 service.typecheckModules(listOf(definition))
+            } else {
+                service.typecheckDefinitions(listOf(definition.findDefinitionByFQName(definitionName)))
             }
 
 //            for (module in cacheManager.cachedModules) {
