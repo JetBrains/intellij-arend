@@ -1,6 +1,7 @@
 package org.vclang.ide.module.source
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiFileFactory
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -24,9 +25,17 @@ class VcPreludeStorage(
 ) : Storage<VcPreludeStorage.SourceId> {
     val preludeSourceId = SourceId()
 
+    init {
+        LocalFileSystem.getInstance().addRootToWatch(BASE_RESOURCE_PATH.toString(), false)
+    }
+
     override fun getCacheInputStream(sourceId: SourceId): InputStream? {
         if (sourceId !== preludeSourceId) return null
-        return CACHE_RESOURCE_PATH.toFile().inputStream()
+        return try {
+            CACHE_RESOURCE_PATH.toFile().inputStream()
+        } catch (e: IOException) {
+            null
+        }
     }
 
     override fun getCacheOutputStream(sourceId: SourceId): OutputStream? = null
@@ -60,7 +69,6 @@ class VcPreludeStorage(
     override fun getAvailableVersion(sourceId: SourceId): Long =
             if (sourceId === preludeSourceId) 0 else 1
 
-
     inner class SourceId: com.jetbrains.jetpad.vclang.module.source.SourceId {
 
         override fun getModulePath(): ModulePath = PRELUDE_MODULE_PATH
@@ -69,7 +77,7 @@ class VcPreludeStorage(
     }
 
     companion object {
-        private val BASE_RESOURCE_PATH: Path =
+        val BASE_RESOURCE_PATH: Path =
                 Paths.get(VcPreludeStorage::class.java.getResource("/lib").toURI())
 
         val SOURCE_RESOURCE_PATH: Path =
