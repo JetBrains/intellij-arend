@@ -12,12 +12,23 @@ val PsiElement.module: Module?
 
 val PsiElement.contentRoot: VirtualFile?
     get() {
-        val contentRoots = module?.let { ModuleRootManager.getInstance(it).contentRoots }
-        return contentRoots?.firstOrNull { it in contentRoots }
+        val module = module ?: return null
+        val contentRoots = module.let { ModuleRootManager.getInstance(it).contentRoots }
+        return containingDirectories.map { it.virtualFile }.firstOrNull { it in contentRoots }
+    }
+
+val PsiElement.sourceRoot: VirtualFile?
+    get() {
+        val module = module ?: return null
+        val sourceRoots = module.let { ModuleRootManager.getInstance(it).sourceRoots }
+        return containingDirectories.map { it.virtualFile }.firstOrNull { it in sourceRoots }
     }
 
 val PsiElement.ancestors
     get() = generateSequence(this) { it.parent }
+
+val PsiElement.containingDirectories
+    get() = generateSequence(containingFile.containingDirectory) { it.parentDirectory }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
         strict: Boolean = true,

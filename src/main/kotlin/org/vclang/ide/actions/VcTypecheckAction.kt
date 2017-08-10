@@ -3,11 +3,14 @@ package org.vclang.ide.actions
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import org.vclang.ide.typecheck.VcTypecheckerFrontend
+import org.vclang.ide.typecheck.TypecheckerFrontend
+import org.vclang.lang.core.getPsiFor
+import org.vclang.lang.core.psi.contentRoot
+import org.vclang.lang.core.psi.sourceRoot
 import java.nio.file.Paths
 
 class VcTypecheckAction : AnAction() {
-    var frontend: VcTypecheckerFrontend? = null
+    var frontend: TypecheckerFrontend? = null
 
     init {
         templatePresentation.text = "Typecheck file"
@@ -16,15 +19,15 @@ class VcTypecheckAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val virtualFile = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE)
-        val sourceDir = Paths.get("${project.basePath}/test")
-        val cacheDir = Paths.get("${project.basePath}/.cache/test")
-        val filePath = sourceDir.relativize(Paths.get(virtualFile.path))
+        val virtualModuleFile = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE)
+        val moduleFile = project.getPsiFor(virtualModuleFile) ?: return
+        val sourceRoot = moduleFile.sourceRoot ?: moduleFile.contentRoot ?: return
+        val sourcePath = Paths.get(sourceRoot.path)
+        val modulePath = sourcePath.relativize(Paths.get(virtualModuleFile.path))
 
         if (frontend == null) {
-            frontend = VcTypecheckerFrontend(project, sourceDir, cacheDir, false)
-            frontend?.loadPrelude()
+            frontend = TypecheckerFrontend(project, sourcePath)
         }
-        frontend?.run(listOf(filePath.toString()))
+        frontend?.typecheck(modulePath.toString(), moduleFile.name)
     }
 }
