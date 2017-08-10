@@ -10,7 +10,7 @@ import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 abstract class DefinitionAdapter(node: ASTNode) : ReferableSourceNodeAdapter(node),
                                                   VcDefinition {
     private var precedence: Abstract.Precedence? = null
-    private var parentDefinition: DefinitionAdapter? = null
+    private var parentDefinition: Abstract.Definition? = null
     private var isStatic: Boolean = true
 
     fun reconstruct(
@@ -25,9 +25,9 @@ abstract class DefinitionAdapter(node: ASTNode) : ReferableSourceNodeAdapter(nod
 
     override fun getPrecedence(): Abstract.Precedence? = precedence
 
-    override fun getParentDefinition(): DefinitionAdapter? = parentDefinition
+    override fun getParentDefinition(): Abstract.Definition? = parentDefinition
 
-    fun setParent(parentDefinition: DefinitionAdapter?) {
+    fun setParent(parentDefinition: Abstract.Definition?) {
         this.parentDefinition = parentDefinition
     }
 
