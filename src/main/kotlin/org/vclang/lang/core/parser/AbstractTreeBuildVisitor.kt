@@ -18,6 +18,13 @@ class AbstractTreeBuildVisitor(
         private val errorReporter: ErrorReporter
 ) {
 
+    fun visitModule(context: VcFile): VcFile {
+        val statementsContext = PsiTreeUtil.getChildOfType(context, VcStatements::class.java)
+        val globalStatements = statementsContext?.let { visitStatements(it) } ?: return context
+        globalStatements.let { context.globalStatements = it }
+        return context
+    }
+
     fun visitStatements(context: VcStatements): List<Surrogate.Statement> =
             visitStatementList(context.statementList)
 
