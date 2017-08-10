@@ -23,6 +23,11 @@
     -->
 
     <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Modules -->
+        <moduleType id="VCLANG_MODULE" implementationClass="org.vclang.ide.idea.VcModuleType"/>
+        <moduleBuilder builderClass="org.vclang.ide.idea.VcModuleBuilder"/>
+
         <!-- File-type Factory -->
         <fileTypeFactory implementation="org.vclang.lang.VcFileTypeFactory"/>
 
