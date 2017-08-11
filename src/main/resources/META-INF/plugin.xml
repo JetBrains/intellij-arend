@@ -46,6 +46,9 @@
 
         <!-- Commenter -->
         <lang.commenter language="Vclang" implementationClass="org.vclang.ide.commenter.VcCommenter"/>
+
+        <!-- Run Configurations -->
+        <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
     </extensions>
 
     <actions>
