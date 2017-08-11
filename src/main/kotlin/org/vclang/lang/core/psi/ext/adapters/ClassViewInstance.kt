@@ -7,7 +7,7 @@ import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefInstance
 
 abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                         VcDefInstance {
+        VcDefInstance {
     private var isDefault: Boolean? = null
     private var parameters: List<Surrogate.Parameter>? = null
     private var classView: Surrogate.ReferenceExpression? = null
@@ -39,7 +39,8 @@ abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node)
     override fun getClassView(): Surrogate.ReferenceExpression =
             classView ?: throw IllegalStateException()
 
-    override fun getClassifyingDefinition(): Abstract.Definition? = classifyingDefinition
+    override fun getClassifyingDefinition(): Abstract.Definition =
+            classifyingDefinition ?: throw IllegalStateException()
 
     fun setClassifyingDefinition(classifyingDefinition: Abstract.Definition?) {
         this.classifyingDefinition = classifyingDefinition

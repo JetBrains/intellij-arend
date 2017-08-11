@@ -7,7 +7,7 @@ import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcConstructor
 
 abstract class ConstructorAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                   VcConstructor {
+        VcConstructor {
     private var dataType: DataDefinitionAdapter? = null
     private var parameters: List<Surrogate.TypeParameter>? = null
     private var eliminatedReferences: List<Surrogate.ReferenceExpression>? = null
@@ -33,10 +33,11 @@ abstract class ConstructorAdapter(node: ASTNode) : DefinitionAdapter(node),
     override fun getParameters(): List<Surrogate.TypeParameter> =
             parameters ?: throw IllegalStateException()
 
-    override fun getEliminatedReferences(): List<Surrogate.ReferenceExpression>? =
-            eliminatedReferences
+    override fun getEliminatedReferences(): List<Surrogate.ReferenceExpression> =
+            eliminatedReferences ?: throw IllegalStateException()
 
-    override fun getClauses(): List<Surrogate.FunctionClause>? = clauses
+    override fun getClauses(): List<Surrogate.FunctionClause> =
+            clauses ?: throw IllegalStateException()
 
     override fun getDataType(): DataDefinitionAdapter = dataType ?: throw IllegalStateException()
 

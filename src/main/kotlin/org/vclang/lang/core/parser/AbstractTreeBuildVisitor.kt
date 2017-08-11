@@ -102,7 +102,6 @@ class AbstractTreeBuildVisitor(
                     elementPosition(context),
                     visitName(context.identifier),
                     visitPrecedence(context.prec),
-                    mutableListOf(),
                     visitExpr(context.expr)
             )
         }
@@ -140,7 +139,7 @@ class AbstractTreeBuildVisitor(
         implementations.forEach { it.setParent(classDefinition) }
         instanceDefinitions.forEach {
             it.setParent(classDefinition)
-            it.setIsStatic(false)
+            it.setNotStatic(false)
         }
         globalStatements
                 .filterIsInstance<Surrogate.DefineStatement>()
@@ -206,7 +205,7 @@ class AbstractTreeBuildVisitor(
                 expr
             } else {
                 reportError(elementPosition(it),
-                            "Specified type of the data definition is not a universe")
+                        "Specified type of the data definition is not a universe")
                 null
             }
         }
@@ -437,16 +436,16 @@ class AbstractTreeBuildVisitor(
             context: List<VcConstructor>,
             def: DataDefinitionAdapter
     ): List<ConstructorAdapter> = context.map {
-        val hasConditions = it.elim != null || it.clauseList.isNotEmpty()
         if (it !is ConstructorAdapter) throw IllegalStateException()
+        val hasConditions = it.elim != null || it.clauseList.isNotEmpty()
         it.reconstruct(
                 elementPosition(it),
                 visitName(it.identifier),
                 visitPrecedence(it.prec),
                 def,
                 visitTeles(it.teleList),
-                if (hasConditions) visitElim(it.elim) else null,
-                if (hasConditions) it.clauseList.map { visitClause(it) } else null
+                visitElim(it.elim),
+                if (hasConditions) it.clauseList.map { visitClause(it) } else emptyList()
         )
     }
 

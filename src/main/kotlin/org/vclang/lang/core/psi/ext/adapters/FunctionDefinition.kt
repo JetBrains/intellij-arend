@@ -8,8 +8,11 @@ import org.vclang.lang.core.psi.VcDefFunction
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
 
-abstract class FunctionDefinitionAdapter(node: ASTNode) : Surrogate.SignatureDefinition(node),
-                                                          VcDefFunction {
+abstract class FunctionDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
+        Surrogate.StatementCollection,
+        VcDefFunction {
+    private var parameters: List<Surrogate.Parameter>? = null
+    private var resultType: Surrogate.Expression? = null
     private var body: Surrogate.FunctionBody? = null
     private var statements: List<Surrogate.Statement>? = null
 
@@ -25,11 +28,19 @@ abstract class FunctionDefinitionAdapter(node: ASTNode) : Surrogate.SignatureDef
             body: Surrogate.FunctionBody?,
             statements: List<Surrogate.Statement>?
     ): FunctionDefinitionAdapter {
-        super.reconstruct(position, name, precedence, parameters, resultType)
+        super.reconstruct(position, name, precedence)
+        this.parameters = parameters
+        this.resultType = resultType
         this.body = body
         this.statements = statements
         return this
     }
+
+    override fun getParameters(): List<Surrogate.Parameter> =
+            parameters ?: throw IllegalStateException()
+
+    override fun getResultType(): Surrogate.Expression? =
+            resultType ?: throw IllegalStateException()
 
     override fun getBody(): Surrogate.FunctionBody = body ?: throw IllegalStateException()
 

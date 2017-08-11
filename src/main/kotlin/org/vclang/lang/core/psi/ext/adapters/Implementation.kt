@@ -7,7 +7,7 @@ import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefImplement
 
 abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                      VcDefImplement {
+        VcDefImplement {
     private var expression: Surrogate.Expression? = null
     private var implemented: Abstract.ClassField? = null
 
@@ -18,7 +18,7 @@ abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
     ): ImplementationAdapter {
         super.reconstruct(position, name, Abstract.Precedence.DEFAULT)
         this.expression = expression
-        setIsStatic(false)
+        setNotStatic()
         return this
     }
 
@@ -29,7 +29,8 @@ abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
         this.implemented = implemented
     }
 
-    override fun getImplementation(): Surrogate.Expression? = expression
+    override fun getImplementation(): Surrogate.Expression =
+            expression ?: throw IllegalStateException()
 
     override fun getParentDefinition(): ClassDefinitionAdapter =
             super.getParentDefinition() as ClassDefinitionAdapter
