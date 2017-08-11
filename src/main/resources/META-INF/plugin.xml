@@ -50,6 +50,7 @@
         <!-- Run Configurations -->
         <programRunner implementation="org.vclang.ide.typecheck.execution.runners.TypecheckRunner"/>
         <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
+        <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
     </extensions>
 
     <actions>
