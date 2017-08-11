@@ -51,6 +51,7 @@
         <programRunner implementation="org.vclang.ide.typecheck.execution.runners.TypecheckRunner"/>
         <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
         <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
+        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypecheckRunLineMarkerContributor"/>
     </extensions>
 
     <actions>
