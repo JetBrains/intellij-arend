@@ -16,8 +16,8 @@ import com.jetbrains.jetpad.vclang.naming.ModuleResolver
 import com.jetbrains.jetpad.vclang.naming.NameResolver
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import com.jetbrains.jetpad.vclang.term.DefinitionLocator
 import com.jetbrains.jetpad.vclang.term.Prelude
+import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
@@ -28,6 +28,7 @@ import org.vclang.lang.VcFileType
 import org.vclang.lang.core.parser.fullyQualifiedName
 import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcFile
+import org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter
 import org.vclang.lang.core.resolve.namespace.VcDynamicNamespaceProvider
 import org.vclang.lang.core.resolve.namespace.VcModuleNamespaceProvider
 import org.vclang.lang.core.resolve.namespace.VcStaticNamespaceProvider
@@ -42,7 +43,9 @@ typealias VcSourceIdT = CompositeSourceSupplier<
         >.SourceId
 
 class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
-    private val logger = TypecheckConsoleLogger()
+    private val sourceInfoProvider = VcSourceInfoProvider(sourceRootPath)
+
+    private val logger = TypecheckConsoleLogger(sourceInfoProvider)
     var console: ConsoleView?
         get() = logger.console
         set(value) { logger.console = value }
@@ -65,18 +68,19 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
                 definition
             }
     )
+
     private val projectStorage = VcFileStorage(project, sourceRootPath, nameResolver)
     private val preludeStorage = VcPreludeStorage(project, nameResolver)
     private val storage = CompositeStorage<VcFileStorage.SourceId, VcPreludeStorage.SourceId>(
             projectStorage,
             preludeStorage
     )
-    private val definitionLocator = VcDefinitionLocator(sourceRootPath)
+
     private val cacheManager = CacheManager(
             VcPersistenceProvider(),
             storage,
             VcSourceVersionTracker(),
-            definitionLocator
+            sourceInfoProvider
     )
     private val typecheckerState = cacheManager.typecheckerState
     private val dependencyCollector = DependencyCollector(typecheckerState)
@@ -275,7 +279,7 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             if (event.file is VcFile) {
                 val ancestors = generateSequence(event.parent) { it.parent }
                 val definition = ancestors.filterIsInstance<Abstract.Definition>().firstOrNull()
-                if (definition != null && definitionLocator.sourceOf(definition) != null) {
+                if (definition != null && sourceInfoProvider.sourceOf(definition) != null) {
                     dependencyCollector.update(definition)
                 }
             }
@@ -312,8 +316,23 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
                 version == getCurrentVersion(sourceId)
     }
 
-    private inner class VcDefinitionLocator(private val sourceDir: Path)
-        : DefinitionLocator<VcSourceIdT> {
+    private inner class VcSourceInfoProvider(private val sourceDir: Path)
+        : SourceInfoProvider<VcSourceIdT> {
+
+        override fun positionOf(sourceNode: Abstract.SourceNode?): String? = null
+
+        override fun moduleOf(sourceNode: Abstract.SourceNode?): String? {
+            return if (sourceNode is DefinitionAdapter) {
+                val moduleFile = sourceNode.containingFile.originalFile as VcFile
+                return moduleFile.modulePath.toString()
+            } else {
+                null
+            }
+        }
+
+        override fun nameFor(definition: Abstract.Definition): String =
+                definition.fullyQualifiedName
+
         override fun sourceOf(definition: Abstract.Definition): VcSourceIdT? {
             val classDefinition = if (definition is VcDefinition) {
                 definition.containingFile.originalFile as VcFile

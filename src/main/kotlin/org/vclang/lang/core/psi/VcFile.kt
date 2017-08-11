@@ -3,18 +3,32 @@ package org.vclang.lang.core.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
+import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.lang.VcFileType
 import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.parser.fullyQualifiedName
+import java.nio.file.Paths
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage),
                                                Abstract.ClassDefinition,
                                                Surrogate.StatementCollection {
-
     private var globalStatements = emptyList<Surrogate.Statement>()
+    val modulePath: ModulePath
+        get() {
+            val sourceRoot = sourceRoot ?: contentRoot
+            val sourcePath = sourceRoot?.let { Paths.get(it.path) }
+            val parentPath = Paths.get(virtualFile.parent.path)
+            val parentRelativePath = sourcePath?.relativize(parentPath)
+            val parentModulePath = parentRelativePath?.let { ModulePath(it.map { it.toString() }) }
+            return if (parentModulePath != null) {
+                ModulePath(parentModulePath, virtualFile.nameWithoutExtension)
+            } else {
+                ModulePath(virtualFile.nameWithoutExtension)
+            }
+        }
 
     override fun getFileType(): FileType = VcFileType
 
