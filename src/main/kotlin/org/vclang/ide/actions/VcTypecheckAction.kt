@@ -13,8 +13,8 @@ class VcTypecheckAction : AnAction() {
     var frontend: TypecheckerFrontend? = null
 
     init {
-        templatePresentation.text = "Typecheck file"
-        templatePresentation.description = "Typecheck file"
+        templatePresentation.text = "Type check file"
+        templatePresentation.description = "Type check file"
     }
 
     override fun actionPerformed(e: AnActionEvent) {

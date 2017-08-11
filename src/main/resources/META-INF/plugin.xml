@@ -50,7 +50,7 @@
 
     <actions>
         <action id="Typecheck" class="org.vclang.ide.actions.VcTypecheckAction"
-                text="Check _Types" description="Typecheck current file">
+                text="Check Types" description="Type check current file">
             <add-to-group group-id="RunMenu" anchor="before" relative-to-action="RunnerActions"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
         </action>

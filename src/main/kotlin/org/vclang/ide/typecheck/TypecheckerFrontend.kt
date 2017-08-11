@@ -89,18 +89,18 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
         try {
             loadPrelude()
             val sourceId = sourceIdByPath(modulePath) ?: return
-            val definition = loadSource(sourceId)
-            if (definition != null) {
+            val module = loadSource(sourceId)
+            if (module != null) {
                 try {
-                    cacheManager.loadCache(sourceId, definition)
+                    cacheManager.loadCache(sourceId, module)
                 } catch (ignored: CacheLoadingException) {
                 }
             }
 
             logger.reportInfo("--- Checking ---")
 
-            if (definition == null) {
-                logger.reportError("definition wtf")
+            if (module == null) {
+                logger.reportError("module wtf")
                 return
             }
 
@@ -114,11 +114,14 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
                     dependencyCollector
             )
 
-            if (definitionName.isEmpty()) {
-                service.typecheckModules(listOf(definition))
-            } else {
-                service.typecheckDefinitions(listOf(definition.findDefinitionByFQName(definitionName)))
-            }
+            service.typecheckModules(listOf(module))
+
+//            if (definitionName.isEmpty()) {
+//                service.typecheckModules(listOf(module))
+//            } else {
+//                val definition = module.findDefinitionByFQName(definitionName)
+//                service.typecheckDefinitions(listOf(definition))
+//            }
 
 //            for (module in cacheManager.cachedModules) {
 //                if (module.actualSourceId == preludeStorage.preludeSourceId) continue
