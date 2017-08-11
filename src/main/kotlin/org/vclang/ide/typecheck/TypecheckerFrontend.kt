@@ -42,7 +42,7 @@ typealias VcSourceIdT = CompositeSourceSupplier<
         >.SourceId
 
 class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
-    private val logger = MyConsoleLogger()
+    private val logger = TypecheckConsoleLogger()
     var console: ConsoleView?
         get() = logger.console
         set(value) { logger.console = value }
