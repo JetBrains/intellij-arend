@@ -114,14 +114,12 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
                     dependencyCollector
             )
 
-            service.typecheckModules(listOf(module))
-
-//            if (definitionName.isEmpty()) {
-//                service.typecheckModules(listOf(module))
-//            } else {
-//                val definition = module.findDefinitionByFQName(definitionName)
-//                service.typecheckDefinitions(listOf(definition))
-//            }
+            if (definitionName.isEmpty()) {
+                service.typecheckModules(listOf(module))
+            } else {
+                val definition = module.findDefinitionByFQName(definitionName)
+                service.typecheckDefinitions(listOf(definition))
+            }
 
 //            for (module in cacheManager.cachedModules) {
 //                if (module.actualSourceId == preludeStorage.preludeSourceId) continue
