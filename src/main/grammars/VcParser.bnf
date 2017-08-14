@@ -69,9 +69,9 @@
         MAX_KW              = '\max'
 
         INFIX               = "regexp:[~!@#$%\^&*\-+=<>?/|:;\[\]]+";
-        PREFIX              = "regexp:[a-zA-Z_][~!@#$%\^&*\-+=<>?/|:;\[\]a-zA-Z0-9_']*"
+        PREFIX              = "regexp:(([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z_])([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z0-9_'])*)"
         NUMBER              = "regexp:[0-9]+"
-        MODULE_NAME         = "regexp:::[a-zA-Z_][a-zA-Z0-9_']*"
+        MODULE_PATH         = "regexp:(::[a-zA-Z_][a-zA-Z0-9_']*)+"
 
         SET                 = "regexp:\\Set\d*"
         UNIVERSE            = "regexp:\\Type\d*"
@@ -297,11 +297,10 @@ newExpr ::= NEW_KW? binOpArg implementStatements? postfix* {
 
 fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
 
-modulePath ::= moduleName+ {
+modulePath ::= MODULE_PATH {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcModulePathImplMixin"
 }
-moduleName ::= MODULE_NAME
 
 atom ::= literal
     | tuple

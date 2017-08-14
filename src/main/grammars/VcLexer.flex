@@ -33,9 +33,9 @@ EOL                 = \R
 WHITE_SPACE         = \s+
 
 INFIX               = [~!@#$%\^&*\-+=<>?/|:;\[\]]+
-PREFIX              = [a-zA-Z_][~!@#$%\^&*\-+=<>?/|:;\[\]a-zA-Z0-9_']*
+PREFIX              = (([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z_])([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z0-9_'])*)
 NUMBER              = [0-9]+
-MODULE_NAME         = ::[a-zA-Z_][a-zA-Z0-9_']*
+MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
 
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
@@ -100,7 +100,7 @@ BLOCK_COMMENT_END   = -\}
   {INFIX}                   { return INFIX; }
   {PREFIX}                  { return PREFIX; }
   {NUMBER}                  { return NUMBER; }
-  {MODULE_NAME}             { return MODULE_NAME; }
+  {MODULE_PATH}             { return MODULE_PATH; }
   {SET}                     { return SET; }
   {UNIVERSE}                { return UNIVERSE; }
   {TRUNCATED_UNIVERSE}      { return TRUNCATED_UNIVERSE; }

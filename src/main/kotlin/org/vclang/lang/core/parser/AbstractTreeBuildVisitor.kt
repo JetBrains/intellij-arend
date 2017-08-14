@@ -717,7 +717,7 @@ class AbstractTreeBuildVisitor(
     }
 
     fun visitModulePath(context: VcModulePath): List<String> =
-            context.moduleNameList.map { it.text.substring(2) }
+            context.modulePath.text.split("::").filter { it.isNotEmpty() }
 
     fun visitAtom(expr: VcAtom): Surrogate.Expression {
         expr.atomModuleCall?.let { return visitAtomModuleCall(it) }
