@@ -13,7 +13,7 @@ abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
 
     fun reconstruct(
             position: Surrogate.Position,
-            name: String,
+            name: String?,
             expression: Surrogate.Expression
     ): ImplementationAdapter {
         super.reconstruct(position, name, Abstract.Precedence.DEFAULT)
