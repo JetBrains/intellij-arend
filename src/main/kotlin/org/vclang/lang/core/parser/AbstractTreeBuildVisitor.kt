@@ -453,6 +453,7 @@ class AbstractTreeBuildVisitor(
         return parseBinOpSequence(
                 context.binOpLeftList,
                 visitBinOpArg(context.binOpArg),
+                context.postfixList,
                 elementPosition(context)
         )
     }
@@ -488,7 +489,12 @@ class AbstractTreeBuildVisitor(
                 position,
                 visitBinOpArg(newExpr.binOpArg)
         )
-        return parseBinOpSequence(context.binOpLeftList, implementations, position)
+        return parseBinOpSequence(
+                context.binOpLeftList,
+                implementations,
+                context.newExpr.postfixList,
+                position
+        )
     }
 
     fun visitPi(context: VcPiExpr): Surrogate.PiExpression {
@@ -664,6 +670,7 @@ class AbstractTreeBuildVisitor(
     private fun parseBinOpSequence(
             context: List<VcBinOpLeft>,
             expression: Surrogate.Expression,
+            postfixContexts: List<VcPostfix>,
             position: Surrogate.Position
     ): Surrogate.Expression {
         var left: Surrogate.Expression? = null
@@ -684,12 +691,29 @@ class AbstractTreeBuildVisitor(
                 sequence.add(Abstract.BinOpSequenceElem(binOp, expr))
             }
 
+            leftContext.newExpr.postfixList
+                    .map { Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it)) }
+                    .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
+
             val name = visitInfix(leftContext.infix)
             binOp = Surrogate.ReferenceExpression(elementPosition(leftContext.infix), null, name)
         }
-        left ?: return expression
-        sequence.add(Abstract.BinOpSequenceElem(binOp, expression))
-        return Surrogate.BinOpSequenceExpression(position, left, sequence)
+
+        if (left == null) {
+            left = expression
+        } else {
+            sequence.add(Abstract.BinOpSequenceElem(binOp, expression))
+        }
+
+        postfixContexts
+                .map { Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it)) }
+                .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
+
+        return if (sequence.isNotEmpty()) {
+            Surrogate.BinOpSequenceExpression(position, left, sequence)
+        } else {
+            left
+        }
     }
 
     fun visitModulePath(context: VcModulePath): List<String> =
@@ -1038,6 +1062,8 @@ class AbstractTreeBuildVisitor(
     private fun visitPrefix(prefix: VcPrefix): String = (prefix.infix ?: prefix.prefix)!!.text
 
     private fun visitInfix(infix: VcInfix): String = (infix.infix ?: infix.prefix)!!.text
+
+    private fun visitPostfix(infix: VcPostfix): String = (infix.infix ?: infix.prefix)!!.text
 
     // Errors
 

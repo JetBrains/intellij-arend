@@ -217,7 +217,7 @@ associativity ::= NON_ASSOC_KW
     | LEFT_ASSOC_KW
     | RIGHT_ASSOC_KW
 
-expr0 ::= binOpLeft* binOpArg
+expr0 ::= binOpLeft* binOpArg postfix*
 
 expr ::= arrExpr
     | caseExpr
@@ -290,7 +290,7 @@ argumentBinOp ::= atomFieldsAcc argument*
 
 binOpLeft ::= newExpr infix
 
-newExpr ::= NEW_KW? binOpArg implementStatements? {
+newExpr ::= NEW_KW? binOpArg implementStatements? postfix* {
     pin = 1
     mixin = "org.vclang.lang.core.psi.ext.VcNewExprImplMixin"
 }
