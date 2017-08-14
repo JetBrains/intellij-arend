@@ -8,7 +8,8 @@ import org.vclang.ide.typecheck.execution.TypecheckCommand
 import org.vclang.ide.typecheck.execution.configurations.TypecheckConfiguration
 import org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType
 import org.vclang.lang.core.parser.fullyQualifiedName
-import org.vclang.lang.core.psi.VcDefFunction
+import org.vclang.lang.core.psi.VcDefinition
+import org.vclang.lang.core.psi.VcFile
 import org.vclang.lang.core.psi.parentOfType
 
 class TypecheckRunConfigurationProducer
@@ -18,15 +19,23 @@ class TypecheckRunConfigurationProducer
             configuration: TypecheckConfiguration,
             context: ConfigurationContext
     ): Boolean {
-        val location = context.location ?: return false
-        val definition = location.psiElement.parentOfType<VcDefFunction>(false) ?: return false
-        val vclangTypecheckCommand = TypecheckCommand(
+        val element = context.location?.psiElement
+        val definition = element?.parentOfType<VcDefinition>(false) ?: element?.parentOfType<VcFile>(false)
+        if (definition is VcDefinition) {
+            val vclangTypecheckCommand = TypecheckCommand(
                 definition.containingFile.virtualFile.path,
                 definition.fullyQualifiedName
-        )
-        return configuration.configurationModule.module == context.module
+            )
+            return configuration.configurationModule.module == context.module
                 && configuration.name == "Type check ${definition.fullyQualifiedName}"
                 && configuration.vclangTypecheckCommand == vclangTypecheckCommand
+        } else if (definition is VcFile) {
+            val vclangTypecheckCommand = TypecheckCommand(definition.virtualFile.path)
+            return configuration.configurationModule.module == context.module
+                && configuration.name == "Type check ::${definition.virtualFile.nameWithoutExtension}"
+                && configuration.vclangTypecheckCommand == vclangTypecheckCommand
+        }
+        return false
     }
 
     override fun setupConfigurationFromContext(
@@ -34,15 +43,23 @@ class TypecheckRunConfigurationProducer
             context: ConfigurationContext,
             sourceElement: Ref<PsiElement>
     ): Boolean {
-        val location = context.location ?: return false
-        val definition = location.psiElement.parentOfType<VcDefFunction>(false) ?: return false
-        sourceElement.set(definition)
-        configuration.configurationModule.module = context.module
-        configuration.name = "Type check ${definition.fullyQualifiedName}"
-        configuration.vclangTypecheckCommand = TypecheckCommand(
+        val element = context.location?.psiElement
+        val definition = element?.parentOfType<VcDefinition>(false) ?: element?.parentOfType<VcFile>(false)
+        if (definition is VcDefinition) {
+            sourceElement.set(definition)
+            configuration.name = "Type check ${definition.fullyQualifiedName}"
+            configuration.vclangTypecheckCommand = TypecheckCommand(
                 definition.containingFile.virtualFile.path,
                 definition.fullyQualifiedName
-        )
+            )
+        } else if (definition is VcFile) {
+            sourceElement.set(definition)
+            configuration.name = "Type check ::${definition.virtualFile.nameWithoutExtension}"
+            configuration.vclangTypecheckCommand = TypecheckCommand(definition.virtualFile.path)
+        } else {
+            return false
+        }
+        configuration.configurationModule.module = context.module
         return true
     }
 }
