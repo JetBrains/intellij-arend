@@ -58,7 +58,6 @@ BLOCK_COMMENT_END   = -\}
   ","                       { return COMMA; }
   "_"                       { return UNDERSCORE; }
   "`"                       { return GRAVE; }
-  "{?}"                     { return HOLE; }
   "|"                       { return PIPE; }
 
   "\\open"                  { return OPEN_KW; }

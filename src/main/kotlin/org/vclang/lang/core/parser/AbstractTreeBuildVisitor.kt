@@ -828,20 +828,27 @@ class AbstractTreeBuildVisitor(
         return appExpr
     }
 
-    fun visitLiteral(expr: VcLiteral): Surrogate.Expression {
-        expr.identifier?.let {
-            return Surrogate.ReferenceExpression(elementPosition(expr), null, visitName(it))
+    fun visitLiteral(literal: VcLiteral): Surrogate.Expression {
+        literal.identifier?.let {
+            return Surrogate.ReferenceExpression(elementPosition(literal), null, visitName(it))
         }
-        expr.propKw?.let {
-            val position = elementPosition(expr)
+        literal.propKw?.let {
+            val position = elementPosition(literal)
             return Surrogate.UniverseExpression(
                     position,
                     Surrogate.NumberLevelExpression(position, 0),
                     Surrogate.NumberLevelExpression(position, -1)
             )
         }
-        expr.underscore?.let { return Surrogate.InferHoleExpression(elementPosition(expr)) }
-        expr.hole?.let { return Surrogate.ErrorExpression(elementPosition(expr)) }
+        literal.underscore?.let { return Surrogate.InferHoleExpression(elementPosition(literal)) }
+        literal.goal?.let {
+            return Surrogate.GoalExpression(
+                    elementPosition(literal),
+                    it.id?.text,
+                    it.expr?.let { visitExpr(it) }
+            )
+        }
+
         throw IllegalStateException()
     }
 

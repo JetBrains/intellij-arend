@@ -29,7 +29,6 @@
         COMMA               = ','
         UNDERSCORE          = '_'
         GRAVE               = '`'
-        HOLE                = '{?}'
         PIPE                = '|'
         BLOCK_COMMENT_START = '{-'
         BLOCK_COMMENT_END   = '-}'
@@ -334,7 +333,9 @@ argument ::= atomFieldsAcc
 literal ::= identifier
     | PROP_KW
     | UNDERSCORE
-    | HOLE
+    | goal
+
+goal ::= LBRACE '?' ID? [LBRACE expr RBRACE] RBRACE
 
 universeAtom ::= SET
     | UNIVERSE
