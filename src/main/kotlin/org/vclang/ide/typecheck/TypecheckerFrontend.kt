@@ -2,7 +2,11 @@ package org.vclang.ide.typecheck
 
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.PsiTreeChangeAdapter
+import com.intellij.psi.PsiTreeChangeEvent
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
@@ -18,7 +22,6 @@ import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import com.jetbrains.jetpad.vclang.term.DefinitionLocator
 import com.jetbrains.jetpad.vclang.term.Prelude
-import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
@@ -46,6 +49,7 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     var console: ConsoleView?
         get() = logger.console
         set(value) { logger.console = value }
+    var eventsProcessor: TypecheckEventsProcessor? = null
     var hasErrors = false
 
     private val moduleNsProvider = VcModuleNamespaceProvider()
@@ -88,37 +92,30 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     fun typecheck(modulePath: Path, definitionName: String) {
         try {
             loadPrelude()
+
             val sourceId = sourceIdByPath(modulePath) ?: return
-            val module = loadSource(sourceId)
-            if (module != null) {
-                try {
-                    cacheManager.loadCache(sourceId, module)
-                } catch (ignored: CacheLoadingException) {
-                }
+            val module = loadSource(sourceId) ?: return
+            try {
+                cacheManager.loadCache(sourceId, module)
+            } catch (ignored: CacheLoadingException) {
             }
 
-            logger.reportInfo("--- Checking ---")
-
-            if (module == null) {
-                logger.reportError("module wtf")
-                return
-            }
-
-            val service = Typechecking(
-                    typecheckerState,
-                    staticNsProvider,
-                    dynamicNsProvider,
-                    HasOpens.GET,
-                    logger,
-                    TypecheckedReporter.Dummy(),
-                    dependencyCollector
+            val service = TypecheckingAdapter(
+                typecheckerState,
+                staticNsProvider,
+                dynamicNsProvider,
+                HasOpens.GET,
+                logger,
+                dependencyCollector,
+                eventsProcessor!!
             )
 
             if (definitionName.isEmpty()) {
-                service.typecheckModules(listOf(module))
+                service.typecheckModule(module)
             } else {
                 val definition = module.findDefinitionByFQName(definitionName)
-                service.typecheckDefinitions(listOf(definition))
+                definition ?: throw IllegalStateException()
+                service.typecheckDefinition(definition)
             }
 
 //            for (module in cacheManager.cachedModules) {
@@ -133,7 +130,6 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             hasErrors = logger.hasErrors
             logger.hasErrors = false
             moduleNsProvider.unregisterAllModules()
-            logger.reportInfo("--- Done ---")
         }
     }
 
@@ -239,8 +235,7 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             }
         }
 
-        override fun getIdFor(definition: Abstract.Definition): String =
-                definition.fullyQualifiedName
+        override fun getIdFor(definition: Abstract.Definition): String = definition.fullyQualifiedName
 
         override fun getFromId(sourceId: VcSourceIdT, id: String): Abstract.Definition? {
             val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
@@ -330,8 +325,7 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     }
 }
 
-internal object DefinitionIdsCollector
-    : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
+internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
 
     override fun visitFunction(
             definition: Abstract.FunctionDefinition,
