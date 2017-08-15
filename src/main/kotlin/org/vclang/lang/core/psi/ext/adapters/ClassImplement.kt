@@ -4,10 +4,10 @@ import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.lang.core.Surrogate
-import org.vclang.lang.core.psi.VcDefImplement
+import org.vclang.lang.core.psi.VcClassImplement
 
-abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
-        VcDefImplement {
+abstract class ClassImplementAdapter(node: ASTNode) : DefinitionAdapter(node),
+                                                      VcClassImplement {
     private var expression: Surrogate.Expression? = null
     private var implemented: Abstract.ClassField? = null
 
@@ -15,7 +15,7 @@ abstract class ImplementationAdapter(node: ASTNode) : DefinitionAdapter(node),
             position: Surrogate.Position,
             name: String?,
             expression: Surrogate.Expression
-    ): ImplementationAdapter {
+    ): ClassImplementAdapter {
         super.reconstruct(position, name, Abstract.Precedence.DEFAULT)
         this.expression = expression
         setNotStatic()

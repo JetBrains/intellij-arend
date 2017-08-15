@@ -71,30 +71,16 @@ class AbstractTreeBuildVisitor(
     // Definitions
 
     fun visitDefinition(context: VcDefinition): DefinitionAdapter = when (context) {
-        is VcDefAbstract -> visitDefAbstract(context)
         is VcDefClass -> visitDefClass(context)
         is VcDefClassView -> visitDefClassView(context)
         is VcDefData -> visitDefData(context)
         is VcDefFunction -> visitDefFunction(context)
-        is VcDefImplement -> visitDefImplement(context)
         is VcDefInstance -> visitDefInstance(context)
         else -> {
             val childDef = context.childOfType<VcDefinition>()
             childDef?.let { return visitDefinition(it) }
             throw IllegalStateException()
         }
-    }
-
-    fun visitDefAbstract(context: VcDefAbstract): ClassFieldAdapter {
-        if (context is ClassFieldAdapter) {
-            return context.reconstruct(
-                    elementPosition(context),
-                    context.identifier?.text,
-                    visitPrecedence(context.prec),
-                    visitExpr(context.expr)
-            )
-        }
-        throw IllegalStateException()
     }
 
     fun visitDefClass(context: VcDefClass): ClassDefinitionAdapter {
@@ -104,10 +90,10 @@ class AbstractTreeBuildVisitor(
             Surrogate.SuperClass(elementPosition(it), visitAtomFieldsAcc(it))
         }
         val fields = mutableListOf<ClassFieldAdapter>()
-        val implementations = mutableListOf<ImplementationAdapter>()
+        val implementations = mutableListOf<ClassImplementAdapter>()
         val globalStatements = visitWhere(context.where)
         val instanceDefinitions = visitInstanceStatements(
-                context.statementList,
+                context.classStatList,
                 fields,
                 implementations
         )
@@ -137,30 +123,66 @@ class AbstractTreeBuildVisitor(
         return classDefinition
     }
 
+    fun visitClassStat(context: VcClassStat): Abstract.SourceNode {
+        context.classField?.let { return visitClassField(it) }
+        context.classImplement?.let { return visitClassImplement(it) }
+        context.statement?.let { return visitStatement(it) }
+        throw IllegalStateException()
+    }
+
+    fun visitClassField(context: VcClassField): ClassFieldAdapter {
+        if (context is ClassFieldAdapter) {
+            return context.reconstruct(
+                    elementPosition(context),
+                    context.identifier.text,
+                    visitPrecedence(context.prec),
+                    visitExpr(context.expr)
+            )
+        }
+        throw IllegalStateException()
+    }
+
+    fun visitClassImplement(context: VcClassImplement): ClassImplementAdapter {
+        if (context !is ClassImplementAdapter) throw IllegalStateException()
+        return context.reconstruct(
+                elementPosition(context),
+                context.identifier.text,
+                visitExpr(context.expr)
+        )
+    }
+
     private fun visitInstanceStatements(
-            context: List<VcStatement>,
-            fields: MutableList<ClassFieldAdapter>,
-            implementations: MutableList<ImplementationAdapter>
+            context: List<VcClassStat>,
+            fields: MutableList<ClassFieldAdapter>?,
+            implementations: MutableList<ClassImplementAdapter>?
     ): List<DefinitionAdapter> {
         val definitions = mutableListOf<DefinitionAdapter>()
-        for (statementContext in context) {
+        for (classStatContext in context) {
             try {
-                val statement = visitStatement(statementContext)
-                if (statement is Surrogate.DefineStatement) {
-                    val definition = statement.definition
-                    when (definition) {
-                        is ClassFieldAdapter -> fields.add(definition)
-                        is ImplementationAdapter -> implementations.add(definition)
-                        is FunctionDefinitionAdapter,
-                        is DataDefinitionAdapter,
-                        is ClassDefinitionAdapter -> definitions.add(definition)
-                        else -> reportError(elementPosition(definition), MISPLACES_DEFINITION)
-                    }
+                val sourceNode = visitClassStat(classStatContext)
+                val definition = if (sourceNode is Surrogate.DefineStatement) {
+                    sourceNode.definition
+                } else if (sourceNode is DefinitionAdapter) {
+                    sourceNode
                 } else {
-                    reportError(statement.position, MISPLACES_DEFINITION)
+                    reportError(elementPosition(sourceNode as PsiElement), MISPLACES_DEFINITION)
+                    continue
+                }
+
+                when (definition) {
+                    is ClassFieldAdapter -> fields?.add(definition)
+                            ?: reportError(elementPosition(definition), MISPLACES_DEFINITION)
+                    is ClassImplementAdapter -> implementations?.add(definition)
+                            ?: reportError(elementPosition(definition), MISPLACES_DEFINITION)
+                    is FunctionDefinitionAdapter,
+                    is DataDefinitionAdapter,
+                    is ClassDefinitionAdapter -> definitions.add(definition)
+                    else -> reportError(elementPosition(definition), MISPLACES_DEFINITION)
                 }
             } catch (ignored: ParseException) {
+
             }
+
         }
         return definitions
     }
@@ -252,7 +274,7 @@ class AbstractTreeBuildVisitor(
         for (statement in statementsIterator) {
             if (statement is Surrogate.DefineStatement) {
                 val definition = statement.definition
-                if (definition is ClassFieldAdapter || definition is ImplementationAdapter) {
+                if (definition is ClassFieldAdapter || definition is ClassImplementAdapter) {
                     reportError(elementPosition(definition), MISPLACES_DEFINITION)
                     statementsIterator.remove()
                 } else {
@@ -262,15 +284,6 @@ class AbstractTreeBuildVisitor(
         }
 
         return functionDefinition
-    }
-
-    fun visitDefImplement(context: VcDefImplement): ImplementationAdapter {
-        if (context !is ImplementationAdapter) throw IllegalStateException()
-        return context.reconstruct(
-                elementPosition(context),
-                context.identifier?.text,
-                visitExpr(context.expr)
-        )
     }
 
     fun visitDefInstance(context: VcDefInstance): ClassViewInstanceAdapter {
@@ -688,7 +701,7 @@ class AbstractTreeBuildVisitor(
             if (left == null) {
                 left = expr
             } else {
-                sequence.add(Abstract.BinOpSequenceElem(binOp, expr))
+                sequence.add(Abstract.BinOpSequenceElem(binOp!!, expr))
             }
 
             leftContext.newExpr.postfixList
@@ -702,7 +715,7 @@ class AbstractTreeBuildVisitor(
         if (left == null) {
             left = expression
         } else {
-            sequence.add(Abstract.BinOpSequenceElem(binOp, expression))
+            sequence.add(Abstract.BinOpSequenceElem(binOp!!, expression))
         }
 
         postfixContexts
@@ -909,7 +922,7 @@ class AbstractTreeBuildVisitor(
         if (context.isExplicit || context.isImplicit) {
             val explicit = context.isExplicit
             val typedExpr = context.typedExpr!!
-            val varsExpr1 = typedExpr.unknownOrIDList
+            val varsExpr1 = typedExpr.identifierOrUnknownList
             val varsExpr2 = typedExpr.expr
 
             val typeExpr = if (typedExpr.hasType) visitExpr(typedExpr.expr) else null
@@ -954,7 +967,7 @@ class AbstractTreeBuildVisitor(
             context.map { visitLamTele(it) }.filterNotNull().flatten()
 
     private fun visitTeles(context: List<VcTele>): List<Surrogate.TypeParameter> {
-        val arguments = mutableListOf<Surrogate.TypeParameter>()
+        val parameters = mutableListOf<Surrogate.TypeParameter>()
         for (tele in context) {
             val explicit = !tele.isImplicit
             var typedExpr: VcTypedExpr?
@@ -963,11 +976,11 @@ class AbstractTreeBuildVisitor(
                     typedExpr = tele.typedExpr
                 } else if (tele.literal != null) {
                     val literal = tele.literal?.let { visitLiteral(it) }
-                    arguments.add(Surrogate.TypeParameter(true, literal))
+                    parameters.add(Surrogate.TypeParameter(true, literal))
                     continue
                 } else if (tele.universeAtom != null) {
                     val universeAtom = tele.universeAtom?.let { visitUniverseAtom(it) }
-                    arguments.add(Surrogate.TypeParameter(true, universeAtom))
+                    parameters.add(Surrogate.TypeParameter(true, universeAtom))
                     continue
                 } else {
                     throw IllegalStateException()
@@ -977,20 +990,20 @@ class AbstractTreeBuildVisitor(
             }
 
             if (typedExpr != null && typedExpr.hasType) {
-                val vars = typedExpr.unknownOrIDList.map { getVar(it) }
-                val arg = Surrogate.TelescopeParameter(
+                val vars = typedExpr.identifierOrUnknownList.map { getVar(it) }
+                val parameter = Surrogate.TelescopeParameter(
                         elementPosition(tele),
                         explicit,
                         vars,
                         visitExpr(typedExpr.expr)
                 )
-                arguments.add(arg)
+                parameters.add(parameter)
             } else {
-                val arg = Surrogate.TypeParameter(explicit, visitExpr(typedExpr?.expr))
-                arguments.add(arg)
+                val parameter = Surrogate.TypeParameter(explicit, visitExpr(typedExpr?.expr))
+                parameters.add(parameter)
             }
         }
-        return arguments
+        return parameters
     }
 
     private fun visitFunctionArguments(context: List<VcTele>): List<Surrogate.Parameter> {
@@ -1017,12 +1030,12 @@ class AbstractTreeBuildVisitor(
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null
 
     private fun getVar(context: VcLiteral?): Surrogate.LocalVariable? {
-        return (context?.prefix?.infix ?: context?.prefix?.prefix ?: context?.underscore)?.let {
-            Surrogate.LocalVariable(elementPosition(it), it.text)
-        }
+        context?.prefix?.let { return Surrogate.LocalVariable(elementPosition(it), it.text) }
+        context?.underscore?.let { Surrogate.LocalVariable(elementPosition(it), null) }
+        throw IllegalStateException()
     }
 
-    private fun getVar(context: VcUnknownOrID): Surrogate.LocalVariable? =
+    private fun getVar(context: VcIdentifierOrUnknown): Surrogate.LocalVariable? =
             Surrogate.LocalVariable(elementPosition(context), context.text)
 
     private fun getVarsNull(context: VcExpr): List<Surrogate.LocalVariable>? {

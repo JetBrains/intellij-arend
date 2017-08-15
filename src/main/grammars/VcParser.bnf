@@ -110,9 +110,24 @@ nsCmdRoot ::= modulePath | identifier {
 
 statDef ::= definition
 
+classStat ::= classField
+    | classImplement
+    | statement
+
+classField ::= PIPE prec identifier COLON expr {
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter"
+}
+
+classImplement ::= PIPE identifier FAT_ARROW expr {
+    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
+                   "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
+    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassImplementAdapter"
+}
+
+
 definition ::= defFunction
-    | defAbstract
-    | defImplement
     | defData
     | defClass
     | defClassView
@@ -130,20 +145,6 @@ defFunction ::= FUNCTION_KW prec identifier tele* [COLON expr] functionBody wher
     mixin = "org.vclang.lang.core.psi.ext.adapters.FunctionDefinitionAdapter"
 }
 
-defAbstract ::= FIELD_KW prec identifier COLON expr {
-    pin = 1
-    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter"
-}
-
-defImplement ::= IMPLEMENT_KW identifier FAT_ARROW expr {
-    pin = 1
-    implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
-    mixin = "org.vclang.lang.core.psi.ext.adapters.ImplementationAdapter"
-}
-
 defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     pin = 2
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
@@ -151,7 +152,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     mixin = "org.vclang.lang.core.psi.ext.adapters.DataDefinitionAdapter"
 }
 
-defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE statement* RBRACE] where? {
+defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE classStat* RBRACE] where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "org.vclang.lang.core.Surrogate.StatementCollection"
@@ -337,9 +338,9 @@ tele ::= literal
     | LPAREN typedExpr RPAREN
     | LBRACE typedExpr RBRACE
 
-typedExpr ::= unknownOrID+ COLON expr | expr  // expr [COLON expr]
+typedExpr ::= identifierOrUnknown+ COLON expr | expr  // expr [COLON expr]
 
-unknownOrID ::= identifier | UNDERSCORE
+identifierOrUnknown ::= identifier | UNDERSCORE
 
 identifier ::= PREFIX | INFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement"

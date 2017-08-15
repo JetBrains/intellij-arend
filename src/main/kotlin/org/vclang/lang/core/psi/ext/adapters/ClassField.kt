@@ -4,10 +4,10 @@ import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.lang.core.Surrogate
-import org.vclang.lang.core.psi.VcDefAbstract
+import org.vclang.lang.core.psi.VcClassField
 
 abstract class ClassFieldAdapter(node: ASTNode) : DefinitionAdapter(node),
-        VcDefAbstract {
+                                                  VcClassField {
     private var resultType: Surrogate.Expression? = null
 
     fun reconstruct(

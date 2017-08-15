@@ -13,7 +13,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     private var polyParameters: List<Surrogate.TypeParameter>? = null
     private var superClasses: List<Surrogate.SuperClass>? = null
     private var fields: List<ClassFieldAdapter>? = null
-    private var implementations: List<ImplementationAdapter>? = null
+    private var classImplements: List<ClassImplementAdapter>? = null
     private var globalStatements: List<Surrogate.Statement>? = null
     private var instanceDefinitions: List<DefinitionAdapter>? = null
 
@@ -26,7 +26,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
             polyParameters: List<Surrogate.TypeParameter>?,
             superClasses: List<Surrogate.SuperClass>?,
             fields: List<ClassFieldAdapter>?,
-            implementations: List<ImplementationAdapter>?,
+            classImplements: List<ClassImplementAdapter>?,
             globalStatements: List<Surrogate.Statement>?,
             instanceDefinitions: List<DefinitionAdapter>?
     ): ClassDefinitionAdapter {
@@ -34,7 +34,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
         this.polyParameters = polyParameters
         this.superClasses = superClasses
         this.fields = fields
-        this.implementations = implementations
+        this.classImplements = classImplements
         this.globalStatements = globalStatements
         this.instanceDefinitions = instanceDefinitions
         return this
@@ -66,8 +66,8 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     override fun getFields(): List<ClassFieldAdapter> =
             fields ?: throw IllegalStateException()
 
-    override fun getImplementations(): List<ImplementationAdapter> =
-            implementations ?: throw IllegalStateException()
+    override fun getImplementations(): List<ClassImplementAdapter> =
+            classImplements ?: throw IllegalStateException()
 
     override fun getInstanceDefinitions(): List<DefinitionAdapter> =
             instanceDefinitions ?: throw IllegalStateException()
