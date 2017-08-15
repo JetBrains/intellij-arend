@@ -12,11 +12,7 @@ interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, Navigatab
 abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
                                                   VcNamedElement {
 
-    override fun getNameIdentifier(): PsiElement? {
-        val identifier = findChildByType<VcIdentifier>(VcTypes.IDENTIFIER)
-        identifier?.let { return (it.binOp ?: it.id) }
-        return findChildByType(VcTypes.ID)
-    }
+    override fun getNameIdentifier(): VcIdentifier? = findChildByType(VcTypes.IDENTIFIER)
 
     override fun getName(): String? = nameIdentifier?.text
 

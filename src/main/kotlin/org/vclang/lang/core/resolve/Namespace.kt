@@ -7,8 +7,6 @@ interface Namespace {
     val names: Set<String>
 
     fun resolve(name: String): VcCompositeElement?
-
-    class InvalidNamespaceException : RuntimeException()
 }
 
 object EmptyNamespace : Namespace {
@@ -25,13 +23,9 @@ class SimpleNamespace : Namespace {
 
     override fun resolve(name: String): VcCompositeElement? = items[name]
 
-    fun put(def: VcNamedElement) = def.name?.let { put(it, def) }
+    fun put(definition: VcNamedElement?) = definition?.name?.let { put(it, definition) }
 
-    fun put(name: String, def: VcCompositeElement) {
-        items.put(name, def)?.let {
-            if (it !== def) throw Namespace.InvalidNamespaceException()
-        }
-    }
+    fun put(name: String, definition: VcCompositeElement) = items.put(name, definition)
 
     fun putAll(other: SimpleNamespace) = items.putAll(other.items)
 }

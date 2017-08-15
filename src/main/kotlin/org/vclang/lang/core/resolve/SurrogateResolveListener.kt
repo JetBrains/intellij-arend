@@ -4,10 +4,10 @@ import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand
 import com.jetbrains.jetpad.vclang.frontend.resolving.ResolveListener
 import com.jetbrains.jetpad.vclang.term.Abstract
 import org.vclang.lang.core.Surrogate
+import org.vclang.lang.core.psi.ext.adapters.ClassImplementAdapter
 import org.vclang.lang.core.psi.ext.adapters.ClassViewAdapter
 import org.vclang.lang.core.psi.ext.adapters.ClassViewFieldAdapter
 import org.vclang.lang.core.psi.ext.adapters.ClassViewInstanceAdapter
-import org.vclang.lang.core.psi.ext.adapters.ImplementationAdapter
 
 class SurrogateResolveListener : ResolveListener {
 
@@ -19,54 +19,42 @@ class SurrogateResolveListener : ResolveListener {
     override fun moduleResolved(
             moduleCallExpression: Abstract.ModuleCallExpression,
             module: Abstract.Definition
-    ) {
-        (moduleCallExpression as Surrogate.ModuleCallExpression).module = module
-    }
+    ) { (moduleCallExpression as Surrogate.ModuleCallExpression).module = module }
 
     override fun openCmdResolved(
             openCmd: OpenCommand,
             definition: Abstract.Definition
-    ) {
-        (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition
-    }
+    ) { (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition }
 
     override fun implementResolved(
             implementDef: Abstract.Implementation,
             definition: Abstract.ClassField
-    ) = (implementDef as ImplementationAdapter).setImplemented(definition)
+    ) = (implementDef as ClassImplementAdapter).setImplemented(definition)
 
     override fun implementResolved(
             implementStmt: Abstract.ClassFieldImpl,
             definition: Abstract.ClassField
-    ) {
-        (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition
-    }
+    ) { (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition }
 
     override fun classViewResolved(
             classView: Abstract.ClassView,
             classifyingField: Abstract.ClassField
-    ) {
-        (classView as ClassViewAdapter).setClassifyingField(classifyingField)
-    }
+    ) { (classView as ClassViewAdapter).setClassifyingField(classifyingField) }
 
     override fun classViewFieldResolved(
             classViewField: Abstract.ClassViewField,
             definition: Abstract.ClassField
-    ) {
-        (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition)
-    }
+    ) { (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition) }
 
     override fun classViewInstanceResolved(
             instance: Abstract.ClassViewInstance,
             classifyingDefinition: Abstract.Definition
-    ) {
-        (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition
-    }
+    ) { (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition }
 
     override fun makeBinOp(
             binOpExpr: Abstract.BinOpSequenceExpression,
             left: Abstract.Expression,
-            binOp: Abstract.Definition,
+            binOp: Abstract.ReferableSourceNode,
             variable: Abstract.ReferenceExpression,
             right: Abstract.Expression
     ): Abstract.BinOpExpression =
@@ -87,21 +75,19 @@ class SurrogateResolveListener : ResolveListener {
             index: Int,
             constructor: Abstract.Constructor
     ) {
-        val surrogateContainer = container as Surrogate.PatternContainer
-        val old = surrogateContainer.patterns[index]
+        val patternContainer = container as Surrogate.PatternContainer
+        val old = patternContainer.patterns!![index]
         val newPattern = Surrogate.ConstructorPattern(
                 old.position,
                 old.isExplicit,
                 constructor,
                 emptyList()
         )
-        surrogateContainer.patterns[index] = newPattern
+        patternContainer.patterns!![index] = newPattern
     }
 
     override fun patternResolved(
             pattern: Abstract.ConstructorPattern,
             definition: Abstract.Constructor
-    ) {
-        (pattern as Surrogate.ConstructorPattern).constructor = definition
-    }
+    ) { (pattern as Surrogate.ConstructorPattern).constructor = definition }
 }

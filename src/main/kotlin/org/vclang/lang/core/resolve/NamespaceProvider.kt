@@ -11,104 +11,104 @@ import org.vclang.lang.core.psi.ext.VcNamedElement
 object NamespaceProvider {
 
     fun forDefinition(
-            def: VcDefFunction,
-            ns: SimpleNamespace = SimpleNamespace()
+            definition: VcDefFunction,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        forTelescope(def.teleList, ns)
-        def.where?.let { forWhere(it, ns) }
-        return ns
+        forTelescope(definition.teleList, namespace)
+        definition.where?.let { forWhere(it, namespace) }
+        return namespace
     }
 
     fun forDefinition(
-            def: VcDefData,
-            ns: SimpleNamespace = SimpleNamespace()
+            definition: VcDefData,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        def.dataBody?.dataConstructors?.constructorList?.forEach { ns.put(it) }
-        forTelescope(def.teleList, ns)
-        return ns
+        definition.dataBody?.dataConstructors?.constructorList?.forEach { namespace.put(it) }
+        forTelescope(definition.teleList, namespace)
+        return namespace
     }
 
     fun forDefinition(
-            def: VcDefClass,
-            ns: SimpleNamespace = SimpleNamespace()
+            definition: VcDefClass,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        val definitions = def.statementList.map { it.statDef }.filterNotNull()
-        forDefinitions(definitions, ns)
-        forTelescope(def.teleList, ns)
-        def.where?.let { forWhere(it, ns) }
-        return ns
+        val definitions = definition.classStatList.map { it.statement?.statDef }.filterNotNull()
+        forDefinitions(definitions, namespace)
+        forTelescope(definition.teleList, namespace)
+        definition.where?.let { forWhere(it, namespace) }
+        return namespace
     }
 
     fun forDefinition(
-            def: VcDefClassView,
-            ns: SimpleNamespace = SimpleNamespace()
+            definition: VcDefClassView,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        def.classViewFieldList.forEach { ns.put(it) }
-        return ns
+        definition.classViewFieldList.forEach { namespace.put(it) }
+        return namespace
     }
 
     fun forDefinitions(
             definitions: List<VcStatDef>,
-            ns: SimpleNamespace = SimpleNamespace()
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
         definitions
                 .map { it.definition }
                 .filterNotNull()
-                .forEach {
-//                    val childDef = PsiTreeUtil.findChildOfType(it, VcDefinition::class.java)
-                    if (it is VcNamedElement) {
-                        ns.put(it)
-                    } else {
-                        throw IllegalStateException()
-                    }
-                }
-        return ns
+                .forEach { namespace.put(it as? VcNamedElement) }
+        return namespace
     }
 
     fun forExpression(
             expr: VcLamExpr,
-            ns: SimpleNamespace = SimpleNamespace()
-    ): Namespace = forTelescope(expr.teleList, ns)
+            namespace: SimpleNamespace = SimpleNamespace()
+    ): Namespace = forTelescope(expr.teleList, namespace)
 
     fun forExpression(
             expr: VcPiExpr,
-            ns: SimpleNamespace = SimpleNamespace()
-    ): Namespace = forTelescope(expr.teleList, ns)
+            namespace: SimpleNamespace = SimpleNamespace()
+    ): Namespace = forTelescope(expr.teleList, namespace)
 
     fun forExpression(
             expr: VcSigmaExpr,
-            ns: SimpleNamespace = SimpleNamespace()
-    ): Namespace = forTelescope(expr.teleList, ns)
+            namespace: SimpleNamespace = SimpleNamespace()
+    ): Namespace = forTelescope(expr.teleList, namespace)
 
     fun forExpression(
             expr: VcNewExpr,
             parentScope: Scope,
-            ns: SimpleNamespace = SimpleNamespace()
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        expr.newKw ?: return ns
-        val className = expr.binOpArg?.argumentBinOp?.atomFieldsAcc?.atom?.literal?.identifier?.name
-        className ?: return ns
+        expr.newKw ?: return namespace
+        val className = expr
+                .binOpArg
+                ?.argumentBinOp
+                ?.atomFieldsAcc
+                ?.atom
+                ?.literal
+                ?.prefixName
+                ?.let { it.prefix ?: it.infix }
+                ?.text ?: return namespace
         val classDef = parentScope.resolve(className)
-        (classDef?.namespace as? SimpleNamespace)?.let { ns.putAll(it) }
-        return ns
+        (classDef?.namespace as? SimpleNamespace)?.let { namespace.putAll(it) }
+        return namespace
     }
 
     fun forPattern(
-        pattern : VcPattern,
-        ns: SimpleNamespace = SimpleNamespace()
+            pattern : VcPattern,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-//        pattern.variableList.forEach { ns.put(it) }
+//        pattern.variableList.forEach { namespace.put(it) }
 //        pattern.atomPatternList
 //                .map { it.pattern }
 //                .filterNotNull()
-//                .forEach { forPattern(it, ns) }
-        return ns
+//                .forEach { forPattern(it, namespace) }
+        return namespace
     }
 
     fun forModulePath(
             pathParts : List<String>,
             project: Project,
-            ns: SimpleNamespace = SimpleNamespace()
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
         val virtualFiles = FilenameIndex.getVirtualFilesByName(
                 project,
@@ -118,30 +118,30 @@ object NamespaceProvider {
         virtualFiles.first()?.let {
             val file = PsiManager.getInstance(project).findFile(it)
             val statements = file?.firstChild as? VcStatements
-            statements?.namespace?.let { ns.putAll(it as SimpleNamespace) }
+            statements?.namespace?.let { namespace.putAll(it as SimpleNamespace) }
 
         }
-        return ns
+        return namespace
     }
 
     private fun forTelescope(
-        teles : Collection<VcTele>,
-        ns: SimpleNamespace = SimpleNamespace()
+            teles : Collection<VcTele>,
+            namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
         teles
-                .map { it.literal?.identifier }
+                .map { it.literal?.prefixName }
                 .filterNotNull()
-                .forEach { ns.put(it) }
+                .forEach { namespace.put(it.referenceName!!, it) }
         teles
                 .map { it.typedExpr }
                 .filterNotNull()
-                .flatMap { it.unknownOrIDList.map { it.identifier }.filterNotNull() }
-                .forEach { ns.put(it) }
-        return ns
+                .flatMap { it.identifierOrUnknownList.map { it.identifier }.filterNotNull() }
+                .forEach { namespace.put(it) }
+        return namespace
     }
 
-    private fun forWhere(where: VcWhere, ns: SimpleNamespace) {
+    private fun forWhere(where: VcWhere, namespace: SimpleNamespace) {
         val definitions = where.statementList.map { it.statDef }.filterNotNull()
-        forDefinitions(definitions, ns)
+        forDefinitions(definitions, namespace)
     }
 }

@@ -17,7 +17,7 @@ class VcNamespace() : Namespace {
     }
 
     fun addDefinition(definition: Abstract.Definition) {
-        addDefinition(definition.name, definition)
+        addDefinition(definition.name!!, definition)
     }
 
     fun addDefinition(name: String, definition: Abstract.Definition) {
