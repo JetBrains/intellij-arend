@@ -60,9 +60,6 @@ val VcNsCmd.isOpenCmd
 val VcNewExpr.withNewContext
     get() = newKw != null
 
-val VcDefData.isTruncated
-    get() = truncatedKw != null
-
 val VcDefInstance.isDefault
     get() = defaultKw != null
 

@@ -1159,7 +1159,7 @@ public final class Surrogate {
             return myDefinition;
         }
 
-        void setResolvedClass(Abstract.Definition resolvedClass) {
+        public void setResolvedClass(Abstract.Definition resolvedClass) {
             myDefinition = resolvedClass;
         }
 

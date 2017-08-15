@@ -2,11 +2,7 @@ package org.vclang.ide.typecheck
 
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiRecursiveElementVisitor
-import com.intellij.psi.PsiTreeChangeAdapter
-import com.intellij.psi.PsiTreeChangeEvent
+import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
@@ -105,19 +101,19 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             }
 
             val service = TypecheckingAdapter(
-                typecheckerState,
-                staticNsProvider,
-                dynamicNsProvider,
-                HasOpens.GET,
-                logger,
-                dependencyCollector,
-                eventsProcessor!!
+                    typecheckerState,
+                    staticNsProvider,
+                    dynamicNsProvider,
+                    HasOpens.GET,
+                    logger,
+                    dependencyCollector,
+                    eventsProcessor!!
             )
 
             if (definitionName.isEmpty()) {
                 service.typecheckModule(module)
             } else {
-                val definition = module.findDefinitionByFQName(definitionName)
+                val definition = module.findDefinitionByFullName(definitionName)
                 definition ?: throw IllegalStateException()
                 service.typecheckDefinition(definition)
             }

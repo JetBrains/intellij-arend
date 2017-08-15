@@ -13,7 +13,6 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     private var parameters: List<Surrogate.TypeParameter>? = null
     private var eliminatedReferences: List<Surrogate.ReferenceExpression>? = null
     private var constructorClauses: MutableList<Surrogate.ConstructorClause>? = null
-    private var isTruncated: Boolean? = null
     private var universe: Surrogate.UniverseExpression? = null
 
     override val namespace: Namespace
@@ -25,7 +24,6 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
             precedence: Abstract.Precedence?,
             parameters: List<Surrogate.TypeParameter>?,
             eliminatedReferences: List<Surrogate.ReferenceExpression>?,
-            isTruncated: Boolean?,
             universe: Surrogate.UniverseExpression?,
             constructorClauses: MutableList<Surrogate.ConstructorClause>?
     ): DataDefinitionAdapter {
@@ -33,7 +31,6 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
         this.parameters = parameters
         this.eliminatedReferences = eliminatedReferences
         this.constructorClauses = constructorClauses
-        this.isTruncated = isTruncated
         this.universe = universe
         return this
     }
@@ -47,7 +44,7 @@ abstract class DataDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     override fun getConstructorClauses(): MutableList<Surrogate.ConstructorClause> =
             constructorClauses ?: throw IllegalStateException()
 
-    override fun isTruncated(): Boolean = isTruncated ?: throw IllegalStateException()
+    override fun isTruncated(): Boolean = truncatedKw != null
 
     override fun getUniverse(): Surrogate.UniverseExpression? = universe
 

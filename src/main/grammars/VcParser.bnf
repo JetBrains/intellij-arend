@@ -104,7 +104,7 @@ statCmd ::= nsCmd nsCmdRoot fieldAcc* [HIDING_KW? LPAREN <<comma_separated_seque
 
 nsCmd ::= OPEN_KW | EXPORT_KW
 
-nsCmdRoot ::= modulePath | identifier {
+nsCmdRoot ::= moduleName | identifier {
     mixin = "org.vclang.lang.core.psi.ext.VcNsCmdRootImplMixin"
 }
 
@@ -198,9 +198,9 @@ pattern ::= atomPattern | patternConstructor {
     mixin = "org.vclang.lang.core.psi.ext.VcPatternImplMixin"
 }
 
-patternConstructor ::= prefix atomPatternOrID*
+patternConstructor ::= prefixName atomPatternOrPrefix*
 
-atomPatternOrID ::= atomPattern | prefix
+atomPatternOrPrefix ::= atomPattern | prefixName
 
 atomPattern ::= LPAREN pattern? RPAREN
     | LBRACE pattern RBRACE
@@ -218,7 +218,7 @@ associativity ::= NON_ASSOC_KW
     | LEFT_ASSOC_KW
     | RIGHT_ASSOC_KW
 
-expr0 ::= binOpLeft* binOpArg postfix*
+expr0 ::= binOpLeft* binOpArg postfixName*
 
 expr ::= arrExpr
     | caseExpr
@@ -289,16 +289,16 @@ truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? { pin = 1 }
 
 argumentBinOp ::= atomFieldsAcc argument*
 
-binOpLeft ::= newExpr infix
+binOpLeft ::= newExpr infixName
 
-newExpr ::= NEW_KW? binOpArg implementStatements? postfix* {
+newExpr ::= NEW_KW? binOpArg implementStatements? postfixName* {
     pin = 1
     mixin = "org.vclang.lang.core.psi.ext.VcNewExprImplMixin"
 }
 
 fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
 
-modulePath ::= MODULE_PATH {
+moduleName ::= MODULE_PATH {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcModulePathImplMixin"
 }
@@ -310,7 +310,7 @@ atom ::= literal
 
 tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
 
-atomModuleCall ::= modulePath
+atomModuleCall ::= moduleName
 
 atomFieldsAcc ::= atom fieldAcc*
 
@@ -322,7 +322,7 @@ argument ::= atomFieldsAcc
     | universeAtom
     | LBRACE expr RBRACE
 
-literal ::= prefix
+literal ::= prefixName
     | PROP_KW
     | UNDERSCORE
     | goal
@@ -348,17 +348,17 @@ identifier ::= PREFIX | INFIX {
     mixin = "org.vclang.lang.core.psi.ext.VcIdentifierImplMixin"
 }
 
-prefix ::= PREFIX | GRAVE INFIX {
+prefixName ::= PREFIX | GRAVE INFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcPrefixImplMixin"
 }
 
-infix ::= INFIX | GRAVE PREFIX {
+infixName ::= INFIX | GRAVE PREFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcInfixImplMixin"
 }
 
-postfix ::= INFIX GRAVE | PREFIX GRAVE {
+postfixName ::= INFIX GRAVE | PREFIX GRAVE {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcPostfixImplMixin"
 }

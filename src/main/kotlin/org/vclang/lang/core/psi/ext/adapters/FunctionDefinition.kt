@@ -39,8 +39,7 @@ abstract class FunctionDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node
     override fun getParameters(): List<Surrogate.Parameter> =
             parameters ?: throw IllegalStateException()
 
-    override fun getResultType(): Surrogate.Expression? =
-            resultType ?: throw IllegalStateException()
+    override fun getResultType(): Surrogate.Expression? = resultType
 
     override fun getBody(): Surrogate.FunctionBody = body ?: throw IllegalStateException()
 

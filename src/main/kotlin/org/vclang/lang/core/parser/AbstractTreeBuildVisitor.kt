@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.frontend.parser.ParseException
 import com.jetbrains.jetpad.vclang.frontend.parser.ParserError
 import com.jetbrains.jetpad.vclang.module.source.SourceId
 import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.*
 import org.vclang.lang.core.psi.ext.adapters.*
@@ -38,7 +39,7 @@ class AbstractTreeBuildVisitor(
 
     fun visitStatCmd(context: VcStatCmd): Surrogate.NamespaceCommandStatement {
         val kind = visitNsCmd(context.nsCmd)
-        val modulePath = context.nsCmdRoot?.modulePath?.let { visitModulePath(it) }
+        val modulePath = context.nsCmdRoot?.moduleName?.let { visitModulePath(it) }
         val path = mutableListOf<String>()
         context.nsCmdRoot?.identifier?.let { path.add(it.text) }
         for (fieldAcc in context.fieldAccList) {
@@ -57,10 +58,10 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitNsCmd(context: VcNsCmd): Surrogate.NamespaceCommandStatement.Kind = when {
-        context.isExportCmd -> Surrogate.NamespaceCommandStatement.Kind.EXPORT
-        context.isOpenCmd -> Surrogate.NamespaceCommandStatement.Kind.OPEN
-        else -> IllegalStateException()
+    fun visitNsCmd(context: VcNsCmd): LegacyAbstract.NamespaceCommandStatement.Kind = when {
+        context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
+        context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
+        else -> throw IllegalStateException()
     }
 
     fun visitStatDef(context: VcStatDef): Surrogate.DefineStatement {
@@ -228,7 +229,6 @@ class AbstractTreeBuildVisitor(
                 visitPrecedence(context.prec),
                 visitTeles(context.teleList),
                 eliminatedReferences,
-                context.isTruncated,
                 universe,
                 mutableListOf()
         )
@@ -399,20 +399,20 @@ class AbstractTreeBuildVisitor(
     }
 
     fun visitPatternConstructor(context: VcPatternConstructor): Surrogate.Pattern {
-        return if (context.atomPatternOrIDList.isEmpty()) {
-            Surrogate.NamePattern(elementPosition(context), visitPrefix(context.prefix))
+        return if (context.atomPatternOrPrefixList.isEmpty()) {
+            Surrogate.NamePattern(elementPosition(context), visitPrefix(context.prefixName))
         } else {
             Surrogate.ConstructorPattern(
                     elementPosition(context),
-                    visitPrefix(context.prefix),
-                    context.atomPatternOrIDList.map { visitAtomPatternOrID(it) }
+                    visitPrefix(context.prefixName),
+                    context.atomPatternOrPrefixList.map { visitAtomPatternOrID(it) }
             )
         }
     }
 
-    fun visitAtomPatternOrID(context: VcAtomPatternOrID): Surrogate.Pattern {
+    fun visitAtomPatternOrID(context: VcAtomPatternOrPrefix): Surrogate.Pattern {
         context.atomPattern?.let { return visitAtomPattern(it) }
-        val name = context.prefix?.let { visitPrefix(it) }
+        val name = context.prefixName?.let { visitPrefix(it) }
         return Surrogate.NamePattern(elementPosition(context), name)
     }
 
@@ -466,7 +466,7 @@ class AbstractTreeBuildVisitor(
         return parseBinOpSequence(
                 context.binOpLeftList,
                 visitBinOpArg(context.binOpArg),
-                context.postfixList,
+                context.postfixNameList,
                 elementPosition(context)
         )
     }
@@ -505,7 +505,7 @@ class AbstractTreeBuildVisitor(
         return parseBinOpSequence(
                 context.binOpLeftList,
                 implementations,
-                context.newExpr.postfixList,
+                context.newExpr.postfixNameList,
                 position
         )
     }
@@ -683,7 +683,7 @@ class AbstractTreeBuildVisitor(
     private fun parseBinOpSequence(
             context: List<VcBinOpLeft>,
             expression: Surrogate.Expression,
-            postfixContexts: List<VcPostfix>,
+            postfixContexts: List<VcPostfixName>,
             position: Surrogate.Position
     ): Surrogate.Expression {
         var left: Surrogate.Expression? = null
@@ -704,12 +704,12 @@ class AbstractTreeBuildVisitor(
                 sequence.add(Abstract.BinOpSequenceElem(binOp!!, expr))
             }
 
-            leftContext.newExpr.postfixList
+            leftContext.newExpr.postfixNameList
                     .map { Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it)) }
                     .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
 
-            val name = visitInfix(leftContext.infix)
-            binOp = Surrogate.ReferenceExpression(elementPosition(leftContext.infix), null, name)
+            val name = visitInfix(leftContext.infixName)
+            binOp = Surrogate.ReferenceExpression(elementPosition(leftContext.infixName), null, name)
         }
 
         if (left == null) {
@@ -729,7 +729,7 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitModulePath(context: VcModulePath): List<String> =
+    fun visitModulePath(context: VcModuleName): List<String> =
             context.modulePath.text.split("::").filter { it.isNotEmpty() }
 
     fun visitAtom(expr: VcAtom): Surrogate.Expression {
@@ -743,7 +743,7 @@ class AbstractTreeBuildVisitor(
     fun visitAtomModuleCall(context: VcAtomModuleCall): Surrogate.ModuleCallExpression {
         return Surrogate.ModuleCallExpression(
                 elementPosition(context),
-                visitModulePath(context.modulePath)
+                visitModulePath(context.moduleName)
         )
     }
 
@@ -834,7 +834,7 @@ class AbstractTreeBuildVisitor(
     }
 
     fun visitLiteral(context: VcLiteral): Surrogate.Expression {
-        context.prefix?.let {
+        context.prefixName?.let {
             return Surrogate.ReferenceExpression(elementPosition(context), null, visitPrefix(it))
         }
         context.propKw?.let {
@@ -943,8 +943,8 @@ class AbstractTreeBuildVisitor(
             var ok = context.literal != null
             if (ok) {
                 val literalContext = context.literal
-                if (literalContext?.prefix != null || literalContext?.underscore != null) {
-                    val name = literalContext.prefix?.let { visitPrefix(it) }
+                if (literalContext?.prefixName != null || literalContext?.underscore != null) {
+                    val name = literalContext.prefixName?.let { visitPrefix(it) }
                     val parameter = Surrogate.NameParameter(
                             elementPosition(literalContext),
                             true,
@@ -1030,7 +1030,7 @@ class AbstractTreeBuildVisitor(
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null
 
     private fun getVar(context: VcLiteral?): Surrogate.LocalVariable? {
-        context?.prefix?.let { return Surrogate.LocalVariable(elementPosition(it), it.text) }
+        context?.prefixName?.let { return Surrogate.LocalVariable(elementPosition(it), it.text) }
         context?.underscore?.let { Surrogate.LocalVariable(elementPosition(it), null) }
         throw IllegalStateException()
     }
@@ -1072,11 +1072,11 @@ class AbstractTreeBuildVisitor(
         throw ParseException()
     }
 
-    private fun visitPrefix(prefix: VcPrefix): String = (prefix.infix ?: prefix.prefix)!!.text
+    private fun visitPrefix(prefix: VcPrefixName): String = (prefix.infix ?: prefix.prefix)!!.text
 
-    private fun visitInfix(infix: VcInfix): String = (infix.infix ?: infix.prefix)!!.text
+    private fun visitInfix(infix: VcInfixName): String = (infix.infix ?: infix.prefix)!!.text
 
-    private fun visitPostfix(infix: VcPostfix): String = (infix.infix ?: infix.prefix)!!.text
+    private fun visitPostfix(infix: VcPostfixName): String = (infix.infix ?: infix.prefix)!!.text
 
     // Errors
 

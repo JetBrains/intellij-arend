@@ -1,10 +1,6 @@
 package org.vclang.ide.typecheck
 
-import com.intellij.execution.testframework.sm.runner.events.TestFailedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestFinishedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.*
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand
 import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
@@ -48,10 +44,10 @@ class TypecheckingAdapter(
     }
 
     fun typecheckModule(module: Abstract.ClassDefinition) {
-        eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
+        eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name!!, null))
         module.accept(TestStartVisitor(), null)
         typechecking.typecheckModules(listOf(module))
-        eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.name))
+        eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.name!!))
     }
 
     private inner class MyTypecheckedReporter : TypecheckedReporter {
@@ -65,7 +61,7 @@ class TypecheckingAdapter(
         override fun typecheckingFailed(definition: Abstract.Definition) {
             val testName = definition.fullyQualifiedName
             if (eventsProcessor.isStarted(testName)) {
-                eventsProcessor.onTestFailure(TestFailedEvent(testName, "Some error", null, true, null, null))
+                eventsProcessor.onTestFailure(TestFailedEvent(testName, "", null, true, null, null))
                 eventsProcessor.onTestFinished(TestFinishedEvent(testName, null))
             }
         }
