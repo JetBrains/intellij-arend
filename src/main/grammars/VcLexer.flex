@@ -32,12 +32,15 @@ import static org.vclang.lang.core.psi.VcTypes.*;
 EOL                 = \R
 WHITE_SPACE         = \s+
 
-ID                  = [:letter:][a-zA-Z_0-9]*'*(-[:letter:][a-zA-Z_0-9]*'*)*
+INFIX               = [~!@#$%\^&*\-+=<>?/|:;\[\]]+
+PREFIX              = (([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z_])([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z0-9_'])*)
 NUMBER              = [0-9]+
-BIN_OP              = [~!@#$%\^&*\\\-+=<>?/|.:]+
+MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
+
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
 TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
+
 LINE_COMMENT        = --(.*|{EOL})
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
@@ -58,7 +61,6 @@ BLOCK_COMMENT_END   = -\}
   ","                       { return COMMA; }
   "_"                       { return UNDERSCORE; }
   "`"                       { return GRAVE; }
-  "{?}"                     { return HOLE; }
   "|"                       { return PIPE; }
 
   "\\open"                  { return OPEN_KW; }
@@ -95,18 +97,15 @@ BLOCK_COMMENT_END   = -\}
   "\\suc"                   { return SUC_KW; }
   "\\max"                   { return MAX_KW; }
 
-  {ID}                      { return ID; }
+  {INFIX}                   { return INFIX; }
+  {PREFIX}                  { return PREFIX; }
   {NUMBER}                  { return NUMBER; }
-  {BIN_OP}                  { return BIN_OP; }
+  {MODULE_PATH}             { return MODULE_PATH; }
   {SET}                     { return SET; }
   {UNIVERSE}                { return UNIVERSE; }
   {TRUNCATED_UNIVERSE}      { return TRUNCATED_UNIVERSE; }
   {LINE_COMMENT}            { return LINE_COMMENT; }
-  {BLOCK_COMMENT_START}     {
-                              yybegin(BLOCK_COMMENT_INNER);
-                              commentDepth = 0;
-                              commentStart = getTokenStart();
-                            }
+
 }
 
 <BLOCK_COMMENT_INNER> {

@@ -25,7 +25,7 @@ hs_err_pid*
 !gradle/wrapper/gradle-wrapper.jar
 
 # Vclang
-!lib/vclang.jar
+!lib/vclang-*.jar
 
 # Intellij
 *.iml

@@ -9,18 +9,19 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.frontend.ErrorFormatter
+import com.jetbrains.jetpad.vclang.error.doc.DocStringBuilder
 import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
 import org.vclang.lang.core.Surrogate
 
-class TypecheckConsoleLogger : ErrorReporter {
-    private val errorFormatter = ErrorFormatter(SourceInfoProvider.TRIVIAL)
+class TypecheckConsoleLogger(
+        private val sourceInfoProvider: SourceInfoProvider<VcSourceIdT>
+) : ErrorReporter {
     var console: ConsoleView? = null
     var hasErrors = false
 
     override fun report(error: GeneralError) {
         hasErrors = true
-        val message = errorFormatter.printError(error)
+        val message = DocStringBuilder.build(error.getDoc(sourceInfoProvider))
         console?.print(message + '\n', levelToContentType(error.level))
         val sourceNode = error.cause as? Surrogate.SourceNode
         val info = sourceNode?.position?.element?.let { PsiHyperlinkInfo(it) }

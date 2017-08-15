@@ -24,9 +24,6 @@ val PsiElement.sourceRoot: VirtualFile?
         return containingDirectories.map { it.virtualFile }.firstOrNull { it in sourceRoots }
     }
 
-val PsiElement.ancestors
-    get() = generateSequence(this) { it.parent }
-
 val PsiElement.containingDirectories
     get() = generateSequence(containingFile.containingDirectory) { it.parentDirectory }
 
@@ -50,3 +47,51 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
 
 inline fun <reified T : PsiElement> PsiElement.descendantsOfType(): Collection<T> =
         PsiTreeUtil.findChildrenOfType(this, T::class.java)
+
+val VcStatCmd.isHiding
+    get() = hidingKw != null
+
+val VcNsCmd.isExportCmd
+    get() = exportKw != null
+
+val VcNsCmd.isOpenCmd
+    get() = openKw != null
+
+val VcNewExpr.withNewContext
+    get() = newKw != null
+
+val VcDefData.isTruncated
+    get() = truncatedKw != null
+
+val VcDefInstance.isDefault
+    get() = defaultKw != null
+
+val VcAtomPattern.isExplicit
+    get() = lparen != null && pattern != null && rparen != null
+
+val VcAtomPattern.isImplicit
+    get() = lbrace != null && pattern != null && rbrace != null
+
+val VcAtomPattern.isEmpty
+    get() = lparen != null && pattern == null && rparen != null
+
+val VcAtomPattern.isAny
+    get() = underscore != null
+
+val VcAssociativity.isLeftAssoc
+    get() = leftAssocKw != null
+
+val VcAssociativity.isRightAssoc
+    get() = rightAssocKw != null
+
+val VcAssociativity.isNonAssoc
+    get() = nonAssocKw != null
+
+val VcTele.isExplicit
+    get() = lparen != null && typedExpr != null && rparen != null
+
+val VcTele.isImplicit
+    get() = lbrace != null && typedExpr != null && rbrace != null
+
+val VcTypedExpr.hasType
+    get() = colon != null
