@@ -68,15 +68,6 @@
         SUC_KW              = '\suc'
         MAX_KW              = '\max'
 
-        INFIX               = "regexp:[~!@#$%\^&*\-+=<>?/|:;\[\]]+";
-        PREFIX              = "regexp:(([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z_])([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z0-9_'])*)"
-        NUMBER              = "regexp:[0-9]+"
-        MODULE_PATH         = "regexp:(::[a-zA-Z_][a-zA-Z0-9_']*)+"
-
-        SET                 = "regexp:\\Set\d*"
-        UNIVERSE            = "regexp:\\Type\d*"
-        TRUNCATED_UNIVERSE  = "regexp:\\(\d+|oo)-Type\d*"
-
         LINE_COMMENT        = "regexp:--[^\r\n]*"
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
@@ -348,17 +339,17 @@ identifier ::= PREFIX | INFIX {
     mixin = "org.vclang.lang.core.psi.ext.VcIdentifierImplMixin"
 }
 
-prefixName ::= PREFIX | GRAVE INFIX {
+prefixName ::= PREFIX | PREFIX_INFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcPrefixImplMixin"
 }
 
-infixName ::= INFIX | GRAVE PREFIX {
+infixName ::= INFIX | INFIX_PREFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcInfixImplMixin"
 }
 
-postfixName ::= INFIX GRAVE | PREFIX GRAVE {
+postfixName ::= POSTFIX_INFIX | POSTFIX_PREFIX {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.lang.core.psi.ext.VcPostfixImplMixin"
 }

@@ -1072,11 +1072,23 @@ class AbstractTreeBuildVisitor(
         throw ParseException()
     }
 
-    private fun visitPrefix(prefix: VcPrefixName): String = (prefix.infix ?: prefix.prefix)!!.text
+    private fun visitPrefix(prefix: VcPrefixName): String {
+        prefix.prefix?.let { return it.text }
+        prefix.prefixInfix?.let { return it.text.drop(1) }
+        throw IllegalStateException()
+    }
 
-    private fun visitInfix(infix: VcInfixName): String = (infix.infix ?: infix.prefix)!!.text
+    private fun visitInfix(infix: VcInfixName): String {
+        infix.infix?.let { return it.text }
+        infix.infixPrefix?.let { return it.text.drop(1) }
+        throw IllegalStateException()
+    }
 
-    private fun visitPostfix(infix: VcPostfixName): String = (infix.infix ?: infix.prefix)!!.text
+    private fun visitPostfix(postfix: VcPostfixName): String {
+        postfix.postfixInfix?.let { return it.text.dropLast(1) }
+        postfix.postfixPrefix?.let { return it.text.dropLast(1) }
+        throw IllegalStateException()
+    }
 
     // Errors
 

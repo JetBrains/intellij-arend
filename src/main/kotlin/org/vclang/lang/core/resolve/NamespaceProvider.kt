@@ -86,8 +86,7 @@ object NamespaceProvider {
                 ?.atom
                 ?.literal
                 ?.prefixName
-                ?.let { it.prefix ?: it.infix }
-                ?.text ?: return namespace
+                ?.referenceName ?: return namespace
         val classDef = parentScope.resolve(className)
         (classDef?.namespace as? SimpleNamespace)?.let { namespace.putAll(it) }
         return namespace

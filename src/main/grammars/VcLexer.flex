@@ -32,10 +32,16 @@ import static org.vclang.lang.core.psi.VcTypes.*;
 EOL                 = \R
 WHITE_SPACE         = \s+
 
-MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
-INFIX               = [~!@#$%\^&*\-+=<>?/|:;\[\]]+
-PREFIX              = ([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z_])([~!@#$%\^&*\-+=<>?/|:;\[\]]|[a-zA-Z0-9_'])*
 NUMBER              = [0-9]+
+MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
+
+INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|:;\[\]]
+INFIX               = {INFIX_CHAR}+
+PREFIX              = ({INFIX_CHAR}|[a-zA-Z_])({INFIX_CHAR}|[a-zA-Z0-9_'])*
+PREFIX_INFIX        = `{INFIX}
+INFIX_PREFIX        = `{PREFIX}
+POSTFIX_INFIX       = {INFIX}`
+POSTFIX_PREFIX      = {PREFIX}`
 
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
@@ -98,9 +104,14 @@ BLOCK_COMMENT_END   = -\}
   "\\max"                   { return MAX_KW; }
 
   {MODULE_PATH}             { return MODULE_PATH; }
+  {NUMBER}                  { return NUMBER; }
+
   {INFIX}                   { return INFIX; }
   {PREFIX}                  { return PREFIX; }
-  {NUMBER}                  { return NUMBER; }
+  {PREFIX_INFIX}            { return PREFIX_INFIX; }
+  {INFIX_PREFIX}            { return INFIX_PREFIX; }
+  {POSTFIX_INFIX}           { return POSTFIX_INFIX; }
+  {POSTFIX_PREFIX}          { return POSTFIX_PREFIX; }
 
   {SET}                     { return SET; }
   {UNIVERSE}                { return UNIVERSE; }

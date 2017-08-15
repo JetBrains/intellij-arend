@@ -39,7 +39,11 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() = (infix ?: prefix)!!.text
+        get() {
+            prefix?.let { return it.text }
+            prefixInfix?.let { return it.text.drop(1) }
+            throw IllegalStateException()
+        }
 
     override fun getName(): String = referenceName
 
@@ -57,7 +61,11 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() = (infix ?: prefix)!!.text
+        get() {
+            infix?.let { return it.text }
+            infixPrefix?.let { return it.text.drop(1) }
+            throw IllegalStateException()
+        }
 
     override fun getName(): String = referenceName
 
@@ -75,7 +83,11 @@ abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() = (infix ?: prefix)!!.text
+        get() {
+            postfixInfix?.let { return it.text.dropLast(1) }
+            postfixPrefix?.let { return it.text.dropLast(1) }
+            throw IllegalStateException()
+        }
 
     override fun getName(): String = referenceName
 
