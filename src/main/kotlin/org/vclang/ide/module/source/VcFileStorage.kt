@@ -91,7 +91,7 @@ class VcFileStorage(
         override fun toString(): String = sourceFile(baseFile(sourceRoot, modulePath)).toString()
     }
 
-    private inner class VcFileSourceSupplier: SourceSupplier<SourceId> {
+    private inner class VcFileSourceSupplier : SourceSupplier<SourceId> {
 
         override fun locateModule(modulePath: ModulePath): SourceId? {
             val path = modulePathToSourcePath(modulePath)

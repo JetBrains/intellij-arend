@@ -7,9 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
 import org.vclang.ide.icons.VcIcons
 
-class VcCreateFileAction :
-        CreateFileFromTemplateAction(VcCreateFileAction.CAPTION, "", VcIcons.VCLANG_FILE),
-        DumbAware {
+class VcCreateFileAction : CreateFileFromTemplateAction(CAPTION, "", VcIcons.VCLANG_FILE),
+                           DumbAware {
 
     override fun getActionName(
             directory: PsiDirectory?,

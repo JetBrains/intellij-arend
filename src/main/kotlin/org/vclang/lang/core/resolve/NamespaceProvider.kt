@@ -93,7 +93,7 @@ object NamespaceProvider {
     }
 
     fun forPattern(
-            pattern : VcPattern,
+            pattern: VcPattern,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
 //        pattern.variableList.forEach { namespace.put(it) }
@@ -105,7 +105,7 @@ object NamespaceProvider {
     }
 
     fun forModulePath(
-            pathParts : List<String>,
+            pathParts: List<String>,
             project: Project,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
@@ -124,7 +124,7 @@ object NamespaceProvider {
     }
 
     private fun forTelescope(
-            teles : Collection<VcTele>,
+            teles: Collection<VcTele>,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
         teles

@@ -37,8 +37,8 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 typealias VcSourceIdT = CompositeSourceSupplier<
-            VcFileStorage.SourceId,
-            VcPreludeStorage.SourceId
+        VcFileStorage.SourceId,
+        VcPreludeStorage.SourceId
         >.SourceId
 
 class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
@@ -47,7 +47,9 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     private val logger = TypecheckConsoleLogger(sourceInfoProvider)
     var console: ConsoleView?
         get() = logger.console
-        set(value) { logger.console = value }
+        set(value) {
+            logger.console = value
+        }
     var eventsProcessor: TypecheckEventsProcessor? = null
     var hasErrors = false
 

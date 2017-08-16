@@ -100,7 +100,7 @@ class VcSketchyModuleNamespaceProvider(
     private class WithPreludeModuleNamespace(
             var module: ModuleNamespace? = null,
             var prelude: ModuleNamespace? = null
-    ): ModuleNamespace {
+    ) : ModuleNamespace {
 
         override fun getRegisteredClass(): Abstract.ClassDefinition? = module?.registeredClass
 

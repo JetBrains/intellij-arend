@@ -29,7 +29,7 @@ class AbstractTreeBuildVisitor(
             visitStatementList(context.statementList)
 
     private fun visitStatementList(context: List<VcStatement>): MutableList<Surrogate.Statement> =
-            context.map { visitStatement(it) }.filterNotNull().toMutableList()
+            context.map { visitStatement(it) }.toMutableList()
 
     fun visitStatement(context: VcStatement): Surrogate.Statement {
         context.statCmd?.let { return visitStatCmd(it) }
@@ -926,7 +926,7 @@ class AbstractTreeBuildVisitor(
             val varsExpr2 = typedExpr.expr
 
             val typeExpr = if (typedExpr.hasType) visitExpr(typedExpr.expr) else null
-            val vars = if (typedExpr.hasType) varsExpr1.map { getVar(it) } else  getVars(varsExpr2)
+            val vars = if (typedExpr.hasType) varsExpr1.map { getVar(it) } else getVars(varsExpr2)
 
             if (typeExpr == null) {
                 vars.mapTo(parameters) { Surrogate.NameParameter(it?.position, explicit, it?.name) }
@@ -1023,8 +1023,7 @@ class AbstractTreeBuildVisitor(
 
     // Utils
 
-    private fun elementPosition(element: PsiElement?): Surrogate.Position =
-            Surrogate.Position(module, element)
+    private fun elementPosition(element: PsiElement?): Surrogate.Position = Surrogate.Position(module, element)
 
     private fun getVar(context: VcAtomFieldsAcc): Surrogate.LocalVariable? =
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null

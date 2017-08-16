@@ -22,8 +22,8 @@ abstract class ClassFieldAdapter(node: ASTNode) : DefinitionAdapter(node),
         return this
     }
 
-    override fun getParentDefinition(): ClassDefinitionAdapter =
-            super.getParentDefinition() as ClassDefinitionAdapter
+    override fun getParentDefinition(): ClassDefinitionAdapter? =
+            super.getParentDefinition() as? ClassDefinitionAdapter
 
     override fun getResultType(): Surrogate.Expression = resultType ?: throw IllegalStateException()
 

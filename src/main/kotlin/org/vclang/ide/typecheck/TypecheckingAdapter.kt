@@ -15,22 +15,22 @@ import org.vclang.lang.core.parser.fullyQualifiedName
 import java.util.function.Function
 
 class TypecheckingAdapter(
-    state: TypecheckerState,
-    staticNsProvider: StaticNamespaceProvider,
-    dynamicNsProvider: DynamicNamespaceProvider,
-    opens: Function<Abstract.Definition, Iterable<OpenCommand>>,
-    errorReporter: ErrorReporter,
-    dependencyListener: DependencyListener,
-    private val eventsProcessor: TypecheckEventsProcessor
+        state: TypecheckerState,
+        staticNsProvider: StaticNamespaceProvider,
+        dynamicNsProvider: DynamicNamespaceProvider,
+        opens: Function<Abstract.Definition, Iterable<OpenCommand>>,
+        errorReporter: ErrorReporter,
+        dependencyListener: DependencyListener,
+        private val eventsProcessor: TypecheckEventsProcessor
 ) {
     private val typechecking = Typechecking(
-        state,
-        staticNsProvider,
-        dynamicNsProvider,
-        opens,
-        errorReporter,
-        MyTypecheckedReporter(),
-        dependencyListener
+            state,
+            staticNsProvider,
+            dynamicNsProvider,
+            opens,
+            errorReporter,
+            MyTypecheckedReporter(),
+            dependencyListener
     )
 
     init {

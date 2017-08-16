@@ -31,6 +31,7 @@ class VcColorSettingsPage : ColorSettingsPage {
                 .map { it.attributesDescriptor }
                 .toTypedArray()
 
+        // TODO: update demo text
         private val DEMO_TEXT = "\\open ::Data::Bool\n" +
                 "\n" +
                 "\\class Semigroup {\n" +

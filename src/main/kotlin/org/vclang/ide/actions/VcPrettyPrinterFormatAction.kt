@@ -35,16 +35,23 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
         val groupId = StringUtil.notNullize(e.presentation.text, NOTIFICATION_TITLE)
         try {
             ApplicationManager.getApplication().saveAll()
-            val visitor = AbstractTreeBuildVisitor(SourceId { psiFile.modulePath }, DummyErrorReporter())
+            val visitor = AbstractTreeBuildVisitor(
+                    SourceId { psiFile.modulePath },
+                    DummyErrorReporter()
+            )
             visitor.visitModule(psiFile)
             val formattedText = prettyPrint(psiFile)
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return
             CommandProcessor.getInstance().executeCommand(
-                project,
-                { ApplicationManager.getApplication().runWriteAction { document.setText(formattedText) } },
-                NOTIFICATION_TITLE,
-                "",
-                document
+                    project,
+                    {
+                        ApplicationManager.getApplication().runWriteAction {
+                            document.setText(formattedText)
+                        }
+                    },
+                    NOTIFICATION_TITLE,
+                    "",
+                    document
             )
 
             val message = "${psiFile.name} formatted with PrettyPrinter"
@@ -58,7 +65,6 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
             Notifications.Bus.notify(notification, project)
             LOG.error(exception)
         }
-
     }
 
     private companion object {

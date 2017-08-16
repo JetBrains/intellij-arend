@@ -16,10 +16,14 @@ class TypecheckProcessHandler(
 ) : ProcessHandler() {
     var console: ConsoleView?
         get() = typechecker.console
-        set(value) { typechecker.console = value }
+        set(value) {
+            typechecker.console = value
+        }
     var eventsProcessor: TypecheckEventsProcessor?
         get() = typechecker.eventsProcessor
-        set(value) { typechecker.eventsProcessor = value }
+        set(value) {
+            typechecker.eventsProcessor = value
+        }
 
     override fun startNotify() {
         super.startNotify()

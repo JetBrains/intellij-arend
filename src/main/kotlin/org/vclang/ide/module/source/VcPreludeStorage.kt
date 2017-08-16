@@ -69,7 +69,7 @@ class VcPreludeStorage(
     override fun getAvailableVersion(sourceId: SourceId): Long =
             if (sourceId === preludeSourceId) 0 else 1
 
-    inner class SourceId: com.jetbrains.jetpad.vclang.module.source.SourceId {
+    inner class SourceId : com.jetbrains.jetpad.vclang.module.source.SourceId {
 
         override fun getModulePath(): ModulePath = PRELUDE_MODULE_PATH
 

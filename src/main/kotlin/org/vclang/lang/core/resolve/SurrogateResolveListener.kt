@@ -19,12 +19,16 @@ class SurrogateResolveListener : ResolveListener {
     override fun moduleResolved(
             moduleCallExpression: Abstract.ModuleCallExpression,
             module: Abstract.Definition
-    ) { (moduleCallExpression as Surrogate.ModuleCallExpression).module = module }
+    ) {
+        (moduleCallExpression as Surrogate.ModuleCallExpression).module = module
+    }
 
     override fun openCmdResolved(
             openCmd: OpenCommand,
             definition: Abstract.Definition
-    ) { (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition }
+    ) {
+        (openCmd as Surrogate.NamespaceCommandStatement).resolvedClass = definition
+    }
 
     override fun implementResolved(
             implementDef: Abstract.Implementation,
@@ -34,22 +38,30 @@ class SurrogateResolveListener : ResolveListener {
     override fun implementResolved(
             implementStmt: Abstract.ClassFieldImpl,
             definition: Abstract.ClassField
-    ) { (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition }
+    ) {
+        (implementStmt as Surrogate.ClassFieldImpl).implementedField = definition
+    }
 
     override fun classViewResolved(
             classView: Abstract.ClassView,
             classifyingField: Abstract.ClassField
-    ) { (classView as ClassViewAdapter).setClassifyingField(classifyingField) }
+    ) {
+        (classView as ClassViewAdapter).setClassifyingField(classifyingField)
+    }
 
     override fun classViewFieldResolved(
             classViewField: Abstract.ClassViewField,
             definition: Abstract.ClassField
-    ) { (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition) }
+    ) {
+        (classViewField as ClassViewFieldAdapter).setUnderlyingField(definition)
+    }
 
     override fun classViewInstanceResolved(
             instance: Abstract.ClassViewInstance,
             classifyingDefinition: Abstract.Definition
-    ) { (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition }
+    ) {
+        (instance as ClassViewInstanceAdapter).classifyingDefinition = classifyingDefinition
+    }
 
     override fun makeBinOp(
             binOpExpr: Abstract.BinOpSequenceExpression,
@@ -89,5 +101,7 @@ class SurrogateResolveListener : ResolveListener {
     override fun patternResolved(
             pattern: Abstract.ConstructorPattern,
             definition: Abstract.Constructor
-    ) { (pattern as Surrogate.ConstructorPattern).constructor = definition }
+    ) {
+        (pattern as Surrogate.ConstructorPattern).constructor = definition
+    }
 }

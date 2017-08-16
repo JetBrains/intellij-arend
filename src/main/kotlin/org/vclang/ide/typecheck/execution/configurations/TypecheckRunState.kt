@@ -71,10 +71,10 @@ class TypecheckRunState(
     fun initConsoleView(consoleView: SMTRunnerConsoleView, testFrameworkName: String) {
         consoleView.addAttachToProcessListener { processHandler ->
             attachEventsProcessors(
-                consoleView.properties,
-                consoleView.resultsViewer,
-                processHandler,
-                testFrameworkName
+                    consoleView.properties,
+                    consoleView.resultsViewer,
+                    processHandler,
+                    testFrameworkName
             )
         }
         consoleView.setHelpId("reference.runToolWindow.testResultsTab")
@@ -82,15 +82,15 @@ class TypecheckRunState(
     }
 
     private fun attachEventsProcessors(
-        consoleProperties: TestConsoleProperties,
-        resultsViewer: SMTestRunnerResultsForm,
-        processHandler: ProcessHandler,
-        testFrameworkName: String
+            consoleProperties: TestConsoleProperties,
+            resultsViewer: SMTestRunnerResultsForm,
+            processHandler: ProcessHandler,
+            testFrameworkName: String
     ) {
         val eventsProcessor = TypecheckEventsProcessor(
-            consoleProperties.project,
-            resultsViewer.testsRootNode,
-            testFrameworkName
+                consoleProperties.project,
+                resultsViewer.testsRootNode,
+                testFrameworkName
         )
         eventsProcessor.addEventsListener(resultsViewer)
         if (processHandler !is TypecheckProcessHandler) throw IllegalStateException()
