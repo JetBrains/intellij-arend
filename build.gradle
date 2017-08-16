@@ -69,7 +69,7 @@ dependencies {
         exclude group: 'org.jetbrains.plugins'
         exclude module: 'idea'
     }
-    compile files('lib/vclang-81e2f5e.jar')
+    compile files('lib/vclang-7368a53.jar')
     testCompile 'junit:junit:4.+'
 }
 
