@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.error.doc.DocStringBuilder
+import com.jetbrains.jetpad.vclang.error.doc.*
 import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
 import org.vclang.lang.core.Surrogate
 
@@ -20,14 +20,8 @@ class TypecheckConsoleLogger(
     var hasErrors = false
 
     override fun report(error: GeneralError) {
-        hasErrors = true
-        val message = DocStringBuilder.build(error.getDoc(sourceInfoProvider))
-        console?.print(message + '\n', levelToContentType(error.level))
-        val sourceNode = error.cause as? Surrogate.SourceNode
-        val info = sourceNode?.position?.element?.let { PsiHyperlinkInfo(it) }
-        if (info != null) {
-            console?.printHyperlink("Link\n", info)
-        }
+        hasErrors = hasErrors || error.level == Error.Level.ERROR
+        DocConsolePrinter(error).print()
     }
 
     fun reportInfo(message: String) {
@@ -47,6 +41,45 @@ class TypecheckConsoleLogger(
         Error.Level.GOAL -> ConsoleViewContentType.USER_INPUT
         Error.Level.WARNING -> ConsoleViewContentType.LOG_WARNING_OUTPUT
         Error.Level.INFO -> ConsoleViewContentType.NORMAL_OUTPUT
+    }
+
+    private inner class DocConsolePrinter(private val error: GeneralError) : LineDocVisitor() {
+        private val contentType = levelToContentType(error.level)
+
+        fun print() {
+            error.getDoc(sourceInfoProvider).accept(this, true)
+        }
+
+        override fun visitHList(listDoc: HListDoc, newLine: Boolean): Void? {
+            listDoc.docs.forEach { it.accept(this, false) }
+            if (newLine) console?.print("\n", contentType)
+            return null
+        }
+
+        override fun visitText(doc: TextDoc, newLine: Boolean): Void? {
+            if (doc.text == "[ERROR]") {
+                val sourceNode = error.cause as? Surrogate.SourceNode
+                val info = sourceNode?.position?.element?.let { PsiHyperlinkInfo(it) }
+                console?.printHyperlink(doc.text, info)
+            } else {
+                console?.print(doc.text, contentType)
+            }
+            if (newLine) console?.print("\n", contentType)
+            return null
+        }
+
+        override fun visitTermLine(doc: TermLineDoc, newLine: Boolean): Void? {
+            console?.print(doc.text, contentType)
+            if (newLine) console?.print("\n", contentType)
+            return null
+        }
+
+        override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
+            val info = (doc.reference as? PsiElement)?.let { PsiHyperlinkInfo(it) }
+            console?.printHyperlink(doc.reference.name!!, info)
+            if (newLine) console?.print("\n", contentType)
+            return null
+        }
     }
 
     private class PsiHyperlinkInfo(private val sourceElement: PsiElement) : HyperlinkInfo {
