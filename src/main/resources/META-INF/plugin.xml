@@ -55,6 +55,11 @@
     </extensions>
 
     <actions>
+        <action id="VcFormatVclang.PrettyPrinterFormat" class="org.vclang.ide.actions.VcPrettyPrinterFormatAction"
+                text="Reformat code with PrettyPrinter" description="Format current file with PrettyPrinter">
+            <add-to-group group-id="CodeFormatGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
+        </action>
 
         <action id="PreludeCache" class="org.vclang.ide.actions.VcPreludeCacheAction"
                 text="Generate Prelude Cache" description="Generate prelude cache">
