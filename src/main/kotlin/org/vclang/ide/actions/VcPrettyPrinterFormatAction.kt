@@ -76,7 +76,6 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
             val visitor = ToTextVisitor(builder, 0)
             for (statement in module.globalStatements) {
                 statement.accept(visitor, null)
-                builder.append("\n\n")
             }
             return builder.toString()
         }

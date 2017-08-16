@@ -68,7 +68,7 @@ class SurrogateResolveListener : ResolveListener {
             left: Abstract.Expression,
             binOp: Abstract.ReferableSourceNode,
             variable: Abstract.ReferenceExpression,
-            right: Abstract.Expression
+            right: Abstract.Expression?
     ): Abstract.BinOpExpression =
             (binOpExpr as Surrogate.BinOpSequenceExpression).makeBinOp(left, binOp, variable, right)
 
