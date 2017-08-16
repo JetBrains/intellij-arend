@@ -170,7 +170,7 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
         if (!fileName.endsWith(VcFileType.defaultExtension)) {
             return null
         }
-        val name = fileName.substring(0, fileName.lastIndexOf('.'))
+        val name = fileName.removeSuffix('.' + VcFileType.defaultExtension)
         val sourcePath = path.resolveSibling(name)
 
         val modulePath = VcFileStorage.modulePath(sourcePath)

@@ -20,14 +20,12 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
         get() {
             val sourceRoot = sourceRoot ?: contentRoot
             val sourcePath = sourceRoot?.let { Paths.get(it.path) }
-            val parentPath = Paths.get(virtualFile.parent.path)
-            val parentRelativePath = sourcePath?.relativize(parentPath)
-            val parentModulePath = parentRelativePath?.let { ModulePath(it.map { it.toString() }) }
-            return if (parentModulePath != null) {
-                ModulePath(parentModulePath, virtualFile.nameWithoutExtension)
-            } else {
-                ModulePath(virtualFile.nameWithoutExtension)
-            }
+            val modulePath = Paths.get(
+                    virtualFile.path.removeSuffix(VcFileType.defaultExtension)
+            )
+            val relativeModulePath = sourcePath?.relativize(modulePath)
+            relativeModulePath ?: throw IllegalStateException()
+            return ModulePath(relativeModulePath.map { it.toString() })
         }
 
     override fun getFileType(): FileType = VcFileType
