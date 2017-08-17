@@ -55,6 +55,9 @@
 
         <!-- Structure View -->
         <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
+
+        <!-- Matchers -->
+        <lang.braceMatcher language="Vclang" implementationClass="org.vclang.ide.typing.VcBraceMatcher"/>
     </extensions>
 
     <actions>
