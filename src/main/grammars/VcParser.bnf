@@ -72,7 +72,7 @@
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
-    extends("def(Function|Abstract|Implement|Data|Class|ClassView|Instance)") = definition
+    extends("def(Function|Data|Class|ClassView|Instance)|class(Field|Implement|ViewField)|constructor") = definition
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
 }
 

@@ -10,9 +10,14 @@ import org.vclang.lang.VcFileType
 import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.psi.ext.VcCompositeElement
+import org.vclang.lang.core.resolve.EmptyNamespace
+import org.vclang.lang.core.resolve.EmptyScope
+import org.vclang.lang.core.resolve.VcReference
 import java.nio.file.Paths
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage),
+                                               VcCompositeElement,
                                                Abstract.ClassDefinition,
                                                Surrogate.StatementCollection {
     private var globalStatements = emptyList<Surrogate.Statement>()
@@ -20,13 +25,17 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
         get() {
             val sourceRoot = sourceRoot ?: contentRoot
             val sourcePath = sourceRoot?.let { Paths.get(it.path) }
-            val modulePath = Paths.get(
-                    virtualFile.path.removeSuffix(VcFileType.defaultExtension)
-            )
+            val modulePath = Paths.get(virtualFile.path.removeSuffix('.' + VcFileType.defaultExtension))
             val relativeModulePath = sourcePath?.relativize(modulePath)
             relativeModulePath ?: throw IllegalStateException()
             return ModulePath(relativeModulePath.map { it.toString() })
         }
+
+    override val namespace = EmptyNamespace
+
+    override val scope = EmptyScope
+
+    override fun getReference(): VcReference? = null
 
     override fun getFileType(): FileType = VcFileType
 

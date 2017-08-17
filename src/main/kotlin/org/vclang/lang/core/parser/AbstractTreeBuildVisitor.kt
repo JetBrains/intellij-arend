@@ -125,8 +125,10 @@ class AbstractTreeBuildVisitor(
     }
 
     fun visitClassStat(context: VcClassStat): Abstract.SourceNode {
-        context.classField?.let { return visitClassField(it) }
-        context.classImplement?.let { return visitClassImplement(it) }
+        context.definition?.let {
+            if (it is VcClassField) return visitClassField(it)
+            if (it is VcClassImplement) return visitClassImplement(it)
+        }
         context.statement?.let { return visitStatement(it) }
         throw IllegalStateException()
     }
