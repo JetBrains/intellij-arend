@@ -3,15 +3,19 @@ package org.vclang.lang.core.psi.ext.adapters
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcConstructor
+import javax.swing.Icon
 
 abstract class ConstructorAdapter(node: ASTNode) : DefinitionAdapter(node),
-        VcConstructor {
+                                                   VcConstructor {
     private var dataType: DataDefinitionAdapter? = null
     private var parameters: List<Surrogate.TypeParameter>? = null
     private var eliminatedReferences: List<Surrogate.ReferenceExpression>? = null
     private var clauses: List<Surrogate.FunctionClause>? = null
+
+    override fun getIcon(flags: Int): Icon = VcIcons.CONSTRUCTOR
 
     fun reconstruct(
             position: Surrogate.Position?,

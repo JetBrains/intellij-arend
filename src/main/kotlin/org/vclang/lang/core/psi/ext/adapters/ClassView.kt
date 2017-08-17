@@ -3,10 +3,12 @@ package org.vclang.lang.core.psi.ext.adapters
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefClassView
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
+import javax.swing.Icon
 
 abstract class ClassViewAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                  VcDefClassView {
@@ -17,6 +19,8 @@ abstract class ClassViewAdapter(node: ASTNode) : DefinitionAdapter(node),
 
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
+
+    override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW
 
     fun reconstruct(
             position: Surrogate.Position?,

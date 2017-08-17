@@ -8,8 +8,8 @@ import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.ext.VcNamedElementImpl
 
 abstract class DefinitionAdapter(node: ASTNode) : SourceNodeAdapter(node),
-        Abstract.ReferableSourceNode,
-        VcDefinition {
+                                                  Abstract.ReferableSourceNode,
+                                                  VcDefinition {
     private var precedence: Abstract.Precedence? = null
     private var parentDefinition: Abstract.Definition? = null
     private var isStatic: Boolean = true

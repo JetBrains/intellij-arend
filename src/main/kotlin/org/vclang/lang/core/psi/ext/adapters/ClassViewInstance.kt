@@ -3,8 +3,10 @@ package org.vclang.lang.core.psi.ext.adapters
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefInstance
+import javax.swing.Icon
 
 abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node),
                                                          VcDefInstance {
@@ -13,6 +15,8 @@ abstract class ClassViewInstanceAdapter(node: ASTNode) : DefinitionAdapter(node)
     private var classView: Surrogate.ReferenceExpression? = null
     private var classFieldImpls: List<Surrogate.ClassFieldImpl>? = null
     private var classifyingDefinition: Abstract.Definition? = null
+
+    override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW_INSTANCE
 
     fun reconstruct(
             position: Surrogate.Position?,
