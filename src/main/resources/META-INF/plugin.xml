@@ -58,6 +58,10 @@
 
         <!-- Matchers -->
         <lang.braceMatcher language="Vclang" implementationClass="org.vclang.ide.typing.VcBraceMatcher"/>
+
+        <!-- Folding -->
+        <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.ide.folding.VcFoldingBuilder"/>
+
     </extensions>
 
     <actions>

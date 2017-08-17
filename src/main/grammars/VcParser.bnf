@@ -173,7 +173,7 @@ dataBody ::= dataClauses | dataConstructors
 dataClauses ::= elim constructorClause*
 dataConstructors ::= [FAT_ARROW PIPE? constructor] (PIPE constructor)*
 
-constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RPAREN)
+constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE)
 
 elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence atomFieldsAcc>>
 
