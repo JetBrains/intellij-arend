@@ -52,6 +52,9 @@
         <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
         <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
         <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypecheckRunLineMarkerContributor"/>
+
+        <!-- Structure View -->
+        <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
     </extensions>
 
     <actions>
