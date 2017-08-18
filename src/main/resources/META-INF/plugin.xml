@@ -24,47 +24,64 @@
 
     <extensions defaultExtensionNs="com.intellij">
 
-        <!-- Modules -->
+        <!-- Module -->
+
         <moduleType id="VCLANG_MODULE" implementationClass="org.vclang.ide.idea.VcModuleType"/>
         <moduleBuilder builderClass="org.vclang.ide.idea.VcModuleBuilder"/>
         <projectStructureDetector implementation="org.vclang.ide.idea.VcProjectStructureDetector"/>
 
+        <!-- Vclang -->
+
         <!-- File-type Factory -->
+
         <fileTypeFactory implementation="org.vclang.lang.VcFileTypeFactory"/>
 
-        <!-- Parser Definition -->
+        <!-- Parser -->
+
         <lang.parserDefinition language="Vclang" implementationClass="org.vclang.lang.core.parser.VcParserDefinition"/>
 
         <!-- Syntax Highlighter -->
+
         <lang.syntaxHighlighterFactory language="Vclang" implementationClass="org.vclang.ide.highlight.VcSyntaxHighlighterFactory"/>
 
-        <!-- Color Settings -->
-        <colorSettingsPage implementation="org.vclang.ide.colors.VcColorSettingsPage"/>
-
-        <!-- Annotator -->
-        <annotator language="Vclang" implementationClass="org.vclang.ide.annotator.VcHighlightingAnnotator"/>
-
         <!-- Commenter -->
+
         <lang.commenter language="Vclang" implementationClass="org.vclang.ide.commenter.VcCommenter"/>
 
+        <!-- Matchers -->
+
+        <lang.braceMatcher language="Vclang" implementationClass="org.vclang.ide.typing.VcBraceMatcher"/>
+
+        <!-- Structure View -->
+
+        <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
+
+        <!-- Annotator -->
+
+        <annotator language="Vclang" implementationClass="org.vclang.ide.annotator.VcHighlightingAnnotator"/>
+
+        <!-- Line Marker Providers -->
+
+        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypecheckRunLineMarkerContributor"/>
+
+        <!-- Color Settings -->
+
+        <colorSettingsPage implementation="org.vclang.ide.colors.VcColorSettingsPage"/>
+
+        <!-- Folding -->
+
+        <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.ide.folding.VcFoldingBuilder"/>
+
         <!-- Run Configurations -->
+
         <programRunner implementation="org.vclang.ide.typecheck.execution.runners.TypecheckRunner"/>
         <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
         <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
-        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypecheckRunLineMarkerContributor"/>
-
-        <!-- Structure View -->
-        <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
-
-        <!-- Matchers -->
-        <lang.braceMatcher language="Vclang" implementationClass="org.vclang.ide.typing.VcBraceMatcher"/>
-
-        <!-- Folding -->
-        <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.ide.folding.VcFoldingBuilder"/>
 
     </extensions>
 
     <actions>
+        
         <action id="VcFormatVclang.PrettyPrinterFormat" class="org.vclang.ide.actions.VcPrettyPrinterFormatAction"
                 text="Reformat code with PrettyPrinter" description="Format current file with PrettyPrinter">
             <add-to-group group-id="CodeFormatGroup" anchor="last"/>
@@ -83,6 +100,7 @@
                 description="Create new Vclang file">
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
+
     </actions>
 
 </idea-plugin>
