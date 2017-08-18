@@ -56,6 +56,19 @@
 
         <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
 
+        <!-- Usages Provider -->
+
+        <lang.findUsagesProvider language="Vclang" implementationClass="org.vclang.ide.search.VcFindUsagesProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefClassGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefClassViewGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefDataGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefFunctionGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcClassFieldGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcClassImplementGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcClassViewFieldGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefInstanceGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcConstructorGroupingRuleProvider"/>
+
         <!-- Hints -->
 
         <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefClass" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
