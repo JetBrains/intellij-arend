@@ -6,17 +6,20 @@ import com.intellij.icons.AllIcons
 import com.intellij.psi.PsiElement
 import com.intellij.util.Function
 import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.isTypecheckable
 import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcIdentifier
 
 class TypecheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
         val parent = element.parent
-        if (element !is VcIdentifier || parent !is VcDefinition) return null
-        return Info(
-                AllIcons.RunConfigurations.TestState.Run,
-                Function<PsiElement, String> { "Type check ${parent.fullyQualifiedName}" },
-                *ExecutorAction.getActions(1)
-        )
+        if (element is VcIdentifier && parent is VcDefinition && parent.isTypecheckable) {
+            return Info(
+                    AllIcons.RunConfigurations.TestState.Run,
+                    Function<PsiElement, String> { "Type check ${parent.fullyQualifiedName}" },
+                    *ExecutorAction.getActions(1)
+            )
+        }
+        return null
     }
 }
