@@ -56,6 +56,13 @@
 
         <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
 
+        <!-- Hints -->
+
+        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefClass" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefData" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefInstance" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefFunction" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
+
         <!-- Annotator -->
 
         <annotator language="Vclang" implementationClass="org.vclang.ide.annotator.VcHighlightingAnnotator"/>
