@@ -98,6 +98,12 @@
         <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
         <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
 
+        <!-- Indices -->
+
+        <stubIndex implementation="org.vclang.lang.core.stubs.index.VcNamedElementIndex"/>
+        <stubIndex implementation="org.vclang.lang.core.stubs.index.VcDefinitionIndex"/>
+        <stubIndex implementation="org.vclang.lang.core.stubs.index.VcGotoClassIndex"/>
+
     </extensions>
 
     <actions>
