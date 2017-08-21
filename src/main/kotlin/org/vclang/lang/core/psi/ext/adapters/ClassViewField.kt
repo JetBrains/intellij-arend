@@ -1,18 +1,24 @@
 package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcClassViewField
+import org.vclang.lang.core.stubs.VcClassViewFieldStub
 import javax.swing.Icon
 
-abstract class ClassViewFieldAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                      VcClassViewField {
+abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>,
+                                       VcClassViewField {
     private var underlyingFieldName: String? = null
     private var ownView: ClassViewAdapter? = null
     private var underlyingField: Abstract.ClassField? = null
+
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcClassViewFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW_FIELD
 

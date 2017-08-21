@@ -1,17 +1,23 @@
 package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcClassImplement
+import org.vclang.lang.core.stubs.VcClassImplementStub
 import javax.swing.Icon
 
-abstract class ClassImplementAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                      VcClassImplement {
+abstract class ClassImplementAdapter : DefinitionAdapter<VcClassImplementStub>,
+                                       VcClassImplement {
     private var expression: Surrogate.Expression? = null
     private var implemented: Abstract.ClassField? = null
+
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcClassImplementStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.IMPLEMENTATION
 

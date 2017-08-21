@@ -1,6 +1,7 @@
 package org.vclang.lang.core.psi.ext.adapters
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.ide.icons.VcIcons
@@ -8,19 +9,24 @@ import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.VcDefClass
 import org.vclang.lang.core.resolve.Namespace
 import org.vclang.lang.core.resolve.NamespaceProvider
+import org.vclang.lang.core.stubs.VcDefClassStub
 import javax.swing.Icon
 
-abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
-                                                       VcDefClass {
+abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>,
+                                        VcDefClass {
     private var polyParameters: List<Surrogate.TypeParameter>? = null
     private var superClasses: List<Surrogate.SuperClass>? = null
     private var fields: List<ClassFieldAdapter>? = null
     private var classImplements: List<ClassImplementAdapter>? = null
     private var globalStatements: List<Surrogate.Statement>? = null
-    private var instanceDefinitions: List<DefinitionAdapter>? = null
+    private var instanceDefinitions: List<DefinitionAdapter<*>>? = null
 
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
+
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_DEFINITION
 
@@ -32,7 +38,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
             fields: List<ClassFieldAdapter>?,
             classImplements: List<ClassImplementAdapter>?,
             globalStatements: List<Surrogate.Statement>?,
-            instanceDefinitions: List<DefinitionAdapter>?
+            instanceDefinitions: List<DefinitionAdapter<*>>?
     ): ClassDefinitionAdapter {
         super.reconstruct(position, name, Abstract.Precedence.DEFAULT)
         this.polyParameters = polyParameters
@@ -73,7 +79,7 @@ abstract class ClassDefinitionAdapter(node: ASTNode) : DefinitionAdapter(node),
     override fun getImplementations(): List<ClassImplementAdapter> =
             classImplements ?: throw IllegalStateException()
 
-    override fun getInstanceDefinitions(): List<DefinitionAdapter> =
+    override fun getInstanceDefinitions(): List<DefinitionAdapter<*>> =
             instanceDefinitions ?: throw IllegalStateException()
 
     override fun getGlobalStatements(): List<Surrogate.Statement> =

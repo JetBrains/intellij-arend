@@ -31,6 +31,7 @@ import org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter
 import org.vclang.lang.core.resolve.namespace.VcDynamicNamespaceProvider
 import org.vclang.lang.core.resolve.namespace.VcModuleNamespaceProvider
 import org.vclang.lang.core.resolve.namespace.VcStaticNamespaceProvider
+import org.vclang.lang.core.stubs.VcDefinitionStub
 import java.net.URI
 import java.net.URISyntaxException
 import java.nio.file.Path
@@ -313,12 +314,10 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
         override fun positionOf(sourceNode: Abstract.SourceNode?): String? = null
 
         override fun moduleOf(sourceNode: Abstract.SourceNode?): String? {
-            return if (sourceNode is DefinitionAdapter) {
-                val moduleFile = sourceNode.containingFile.originalFile as VcFile
-                return moduleFile.modulePath.toString()
-            } else {
-                null
-            }
+            @Suppress("UNCHECKED_CAST")
+            val definitionAdapter = sourceNode as? DefinitionAdapter<VcDefinitionStub<VcDefinition>>
+            val moduleFile = definitionAdapter?.containingFile?.originalFile as? VcFile
+            return moduleFile?.modulePath?.toString()
         }
 
         override fun nameFor(definition: Abstract.Definition): String =

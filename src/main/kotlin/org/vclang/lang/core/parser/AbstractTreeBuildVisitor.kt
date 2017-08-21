@@ -71,7 +71,7 @@ class AbstractTreeBuildVisitor(
 
     // Definitions
 
-    fun visitDefinition(context: VcDefinition): DefinitionAdapter = when (context) {
+    fun visitDefinition(context: VcDefinition): DefinitionAdapter<*> = when (context) {
         is VcDefClass -> visitDefClass(context)
         is VcDefClassView -> visitDefClassView(context)
         is VcDefData -> visitDefData(context)
@@ -158,14 +158,14 @@ class AbstractTreeBuildVisitor(
             context: List<VcClassStat>,
             fields: MutableList<ClassFieldAdapter>?,
             implementations: MutableList<ClassImplementAdapter>?
-    ): List<DefinitionAdapter> {
-        val definitions = mutableListOf<DefinitionAdapter>()
+    ): List<DefinitionAdapter<*>> {
+        val definitions = mutableListOf<DefinitionAdapter<*>>()
         for (classStatContext in context) {
             try {
                 val sourceNode = visitClassStat(classStatContext)
                 val definition = if (sourceNode is Surrogate.DefineStatement) {
                     sourceNode.definition
-                } else if (sourceNode is DefinitionAdapter) {
+                } else if (sourceNode is DefinitionAdapter<*>) {
                     sourceNode
                 } else {
                     reportError(elementPosition(sourceNode as PsiElement), MISPLACES_DEFINITION)
@@ -1026,7 +1026,7 @@ class AbstractTreeBuildVisitor(
     // Utils
 
     private fun elementPosition(element: PsiElement?): Surrogate.Position {
-        val definition = element?.parentOfType<DefinitionAdapter>() ?: element?.containingFile
+        val definition = element?.parentOfType<DefinitionAdapter<*>>() ?: element?.containingFile
         return Surrogate.Position(module, definition)
     }
 

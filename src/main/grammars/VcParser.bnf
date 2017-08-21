@@ -109,14 +109,17 @@ classField ::= PIPE prec identifier COLON expr {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcClassFieldStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 classImplement ::= PIPE identifier FAT_ARROW expr {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassImplementAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcClassImplementStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
-
 
 definition ::= defFunction
     | defData
@@ -134,6 +137,8 @@ defFunction ::= FUNCTION_KW prec identifier tele* [COLON expr] functionBody wher
                    "org.vclang.lang.core.Surrogate.StatementCollection"
                    "com.jetbrains.jetpad.vclang.term.Abstract.FunctionDefinition" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.FunctionDefinitionAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcDefFunctionStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
@@ -141,6 +146,8 @@ defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.DataDefinition" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.DataDefinitionAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcDefDataStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE classStat* RBRACE] where? {
@@ -149,6 +156,8 @@ defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence at
                    "org.vclang.lang.core.Surrogate.StatementCollection"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassDefinition" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassDefinitionAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcDefClassStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 defClassView ::= VIEW_KW identifier ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE {
@@ -156,6 +165,8 @@ defClassView ::= VIEW_KW identifier ON_KW expr BY_KW identifier LBRACE classView
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassView" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcDefClassViewStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 defInstance ::= DEFAULT_KW? INSTANCE_KW identifier tele* FAT_ARROW expr {
@@ -163,6 +174,8 @@ defInstance ::= DEFAULT_KW? INSTANCE_KW identifier tele* FAT_ARROW expr {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewInstance" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewInstanceAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcDefInstanceStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 functionBody ::= withoutElim | withElim
@@ -181,6 +194,8 @@ classViewField ::= identifier [FAT_ARROW prec identifier] {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewField" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ClassViewFieldAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcClassViewFieldStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
@@ -201,6 +216,8 @@ constructor ::= prec identifier tele* [elim? clausesWithBraces] {
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "com.jetbrains.jetpad.vclang.term.Abstract.Constructor" ]
     mixin = "org.vclang.lang.core.psi.ext.adapters.ConstructorAdapter"
+    stubClass = "org.vclang.lang.core.stubs.VcConstructorStub"
+    elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
 prec ::= [associativity NUMBER]
