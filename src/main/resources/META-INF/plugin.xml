@@ -69,6 +69,11 @@
         <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider implementation="org.vclang.ide.search.VcConstructorGroupingRuleProvider"/>
 
+        <!-- Navigation -->
+
+        <gotoClassContributor implementation="org.vclang.ide.navigation.goto.VcClassNavigationContributor"/>
+        <gotoSymbolContributor implementation="org.vclang.ide.navigation.goto.VcSymbolNavigationContributor"/>
+
         <!-- Hints -->
 
         <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefClass" implementationClass="org.vclang.ide.hints.VcDeclarationRangeHandler"/>
