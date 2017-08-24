@@ -52,6 +52,10 @@
 
         <lang.braceMatcher language="Vclang" implementationClass="org.vclang.ide.typing.VcBraceMatcher"/>
 
+        <!-- Doc-Provider -->
+
+        <lang.documentationProvider language="Vclang" implementationClass="org.vclang.ide.docs.VcDocumentationProvider"/>
+
         <!-- Structure View -->
 
         <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.ide.structureView.VcPsiStructureViewFactory"/>
