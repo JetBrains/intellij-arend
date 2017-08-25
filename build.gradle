@@ -5,7 +5,7 @@ buildscript {
         maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath "com.github.hurricup:gradle-grammar-kit-plugin:354bb8c477"
+        classpath "com.github.hurricup:gradle-grammar-kit-plugin:2017.1.1"
         classpath "gradle.plugin.org.jetbrains:gradle-intellij-plugin:0.1.10"
     }
 }
@@ -21,7 +21,7 @@ import org.jetbrains.grammarkit.tasks.GenerateParser
 apply plugin: 'idea'
 idea {
     module {
-        generatedSourceDirs += file('src/main/gen')
+        generatedSourceDirs += file('src/gen')
     }
 }
 
@@ -37,26 +37,52 @@ apply plugin: 'kotlin'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
+def vclangVersion = "1a0835e"
 
 compileKotlin {
     kotlinOptions {
         languageVersion = '1.1'
-        apiVersion = '1.0'
+        apiVersion = '1.1'
     }
 }
 
 tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
 sourceSets {
     main {
-        java.srcDirs += 'src/main/gen'
+        java.srcDirs += 'src/gen'
     }
 }
 
 apply plugin: 'org.jetbrains.grammarkit'
 grammarKit {
-    grammarKitRelease = '1.5.1'
-    grammarKitTargetRoot = 'src/main/gen'
-    purgeOldFiles = true
+    grammarKitRelease = '1.5.2'
+}
+
+test {
+    classpath = classpath.filter { it.name != "vclang-${vclangVersion}.jar" }
+
+    testLogging {
+        events 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+
+    beforeSuite { suite ->
+        if (suite.className != null) {
+            println()
+            println(suite.className)
+        }
+    }
+    afterTest { desc, result ->
+        def c = '.'
+        if (result.resultType == TestResult.ResultType.FAILURE) {
+            c = 'X'
+        } else if (result.resultType == TestResult.ResultType.SKIPPED) {
+            c = 'S'
+        }
+        print(c)
+        System.out.flush()
+    }
+    afterSuite { println() }
 }
 
 repositories {
@@ -69,20 +95,24 @@ dependencies {
         exclude group: 'org.jetbrains.plugins'
         exclude module: 'idea'
     }
-    compile files('lib/vclang-1a0835e.jar')
+    compile files("lib/vclang-${vclangVersion}.jar")
+    testCompile files("lib/vclang-without-dependencies-${vclangVersion}.jar")
     testCompile 'junit:junit:4.+'
 }
 
 task generateVcLexer(type: GenerateLexer) {
     source 'src/main/grammars/VcLexer.flex'
-    targetDir 'src/main/gen/org/vclang/lang/core/lexer'
+    targetDir 'src/gen/org/vclang/lang/core/lexer'
     targetClass '_VcLexer'
+    purgeOldFiles = true
 }
 
 task generateVcParser(type: GenerateParser) {
     source 'src/main/grammars/VcParser.bnf'
+    targetRoot = 'src/gen'
     pathToParser '/org/vclang/lang/core/parser/VcParser.java'
     pathToPsiRoot '/org/vclang/lang/core/psi'
+    purgeOldFiles = true
 }
 
 compileKotlin.dependsOn generateVcLexer, generateVcParser
