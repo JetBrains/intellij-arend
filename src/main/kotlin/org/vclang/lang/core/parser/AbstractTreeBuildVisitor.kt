@@ -86,7 +86,7 @@ class AbstractTreeBuildVisitor(
 
     fun visitDefClass(context: VcDefClass): ClassDefinitionAdapter {
         val name = context.identifier?.text
-        val polyParams = visitTeles(context.teleList)
+        val polyParams = context.classTeles?.teleList?.let { visitTeles(it) }
         val superClasses = context.atomFieldsAccList.map {
             Surrogate.SuperClass(elementPosition(it), visitAtomFieldsAcc(it))
         }
@@ -94,7 +94,7 @@ class AbstractTreeBuildVisitor(
         val implementations = mutableListOf<ClassImplementAdapter>()
         val globalStatements = visitWhere(context.where)
         val instanceDefinitions = visitInstanceStatements(
-                context.classStatList,
+                context.classStats,
                 fields,
                 implementations
         )
@@ -155,12 +155,13 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitInstanceStatements(
-            context: List<VcClassStat>,
+            context: VcClassStats?,
             fields: MutableList<ClassFieldAdapter>?,
             implementations: MutableList<ClassImplementAdapter>?
     ): List<DefinitionAdapter<*>> {
         val definitions = mutableListOf<DefinitionAdapter<*>>()
-        for (classStatContext in context) {
+        context ?: return definitions
+        for (classStatContext in context.classStatList) {
             try {
                 val sourceNode = visitClassStat(classStatContext)
                 val definition = if (sourceNode is Surrogate.DefineStatement) {
@@ -966,7 +967,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitLamTeles(context: List<VcTele>): List<Surrogate.Parameter> =
-            context.map { visitLamTele(it) }.filterNotNull().flatten()
+            context.mapNotNull { visitLamTele(it) }.flatten()
 
     private fun visitTeles(context: List<VcTele>): List<Surrogate.TypeParameter> {
         val parameters = mutableListOf<Surrogate.TypeParameter>()

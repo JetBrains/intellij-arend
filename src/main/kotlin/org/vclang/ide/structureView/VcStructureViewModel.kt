@@ -68,7 +68,8 @@ private val VcFile.childDefinitions: List<VcDefinition>
 
 private val VcDefClass.childDefinitions: List<VcDefinition>
     get() {
-        val classDefinitions = classStatList.mapNotNull { it.childDefinition }
+        val classStats = classStats?.classStatList
+        val classDefinitions = classStats?.mapNotNull { it.childDefinition } ?: emptyList()
         val whereDefinitions = where?.childDefinitions ?: emptyList()
         return classDefinitions + whereDefinitions
     }

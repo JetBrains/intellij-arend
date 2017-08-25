@@ -32,12 +32,16 @@ import static org.vclang.lang.core.psi.VcTypes.*;
 EOL                 = \R
 WHITE_SPACE         = \s+
 
+LINE_COMMENT        = --(.*|{EOL})
+BLOCK_COMMENT_START = \{-
+BLOCK_COMMENT_END   = -\}
+
 NUMBER              = [0-9]+
 MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
 
 INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|:;\[\]]
-INFIX               = {INFIX_CHAR}+
 PREFIX              = ({INFIX_CHAR}|[a-zA-Z_])({INFIX_CHAR}|[a-zA-Z0-9_'])*
+INFIX               = {INFIX_CHAR}+
 PREFIX_INFIX        = `{INFIX}
 INFIX_PREFIX        = `{PREFIX}
 POSTFIX_INFIX       = {INFIX}`
@@ -46,10 +50,6 @@ POSTFIX_PREFIX      = {PREFIX}`
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
 TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
-
-LINE_COMMENT        = --(.*|{EOL})
-BLOCK_COMMENT_START = \{-
-BLOCK_COMMENT_END   = -\}
 
 %%
 <YYINITIAL> {
@@ -80,7 +80,6 @@ BLOCK_COMMENT_END   = -\}
   "\\where"                 { return WHERE_KW; }
   "\\with"                  { return WITH_KW; }
   "\\elim"                  { return ELIM_KW; }
-  "\\field"                 { return FIELD_KW; }
   "\\new"                   { return NEW_KW; }
   "\\Pi"                    { return PI_KW; }
   "\\Sigma"                 { return SIGMA_KW; }
@@ -88,7 +87,6 @@ BLOCK_COMMENT_END   = -\}
   "\\let"                   { return LET_KW; }
   "\\in"                    { return IN_KW; }
   "\\case"                  { return CASE_KW; }
-  "\\implement"             { return IMPLEMENT_KW; }
   "\\data"                  { return DATA_KW; }
   "\\class"                 { return CLASS_KW; }
   "\\extends"               { return EXTENDS_KW; }

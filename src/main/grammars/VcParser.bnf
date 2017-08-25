@@ -44,7 +44,6 @@
         WHERE_KW            = '\where'
         WITH_KW             = '\with'
         ELIM_KW             = '\elim'
-        FIELD_KW            = '\field'
         NEW_KW              = '\new'
         PI_KW               = '\Pi'
         SIGMA_KW            = '\Sigma'
@@ -52,8 +51,6 @@
         LET_KW              = '\let'
         IN_KW               = '\in'
         CASE_KW             = '\case'
-        WITH_KW             = '\with'
-        IMPLEMENT_KW        = '\implement'
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
         EXTENDS_KW          = '\extends'
@@ -82,8 +79,8 @@ statements ::= topStatement* { mixin = "org.vclang.lang.core.psi.ext.VcStatement
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
-private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW | FIELD_KW |
-                                IMPLEMENT_KW | TRUNCATED_KW | DATA_KW     | CLASS_KW |
+private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW |
+                                TRUNCATED_KW | DATA_KW      | CLASS_KW    |
                                 VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
 statement ::= statCmd | statDef
@@ -150,7 +147,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec identifier tele* [COLON expr] dataBody {
     elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE classStat* RBRACE] where? {
+defClass ::= CLASS_KW identifier classTeles [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] classStats where? {
     pin = 1
     implements = [ "org.vclang.lang.core.psi.ext.VcNamedElement"
                    "org.vclang.lang.core.Surrogate.StatementCollection"
@@ -159,6 +156,10 @@ defClass ::= CLASS_KW identifier tele* [EXTENDS_KW <<comma_separated_sequence at
     stubClass = "org.vclang.lang.core.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.lang.core.stubs.StubImplementationsKt.factory"
 }
+
+classTeles ::= tele*
+
+classStats ::= [LBRACE classStat* RBRACE]
 
 defClassView ::= VIEW_KW identifier ON_KW expr BY_KW identifier LBRACE classViewField* RBRACE {
     pin = 1
