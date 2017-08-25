@@ -8,7 +8,7 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.vclang.ide.presentation.getPresentation
-import org.vclang.lang.core.psi.VcIdentifier
+import org.vclang.lang.core.psi.VcPsiFactory
 import org.vclang.lang.core.psi.VcTypes
 import org.vclang.lang.core.stubs.VcNamedStub
 
@@ -17,11 +17,14 @@ interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, Navigatab
 abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
                                                   VcNamedElement {
 
-    override fun getNameIdentifier(): VcIdentifier? = findChildByType(VcTypes.IDENTIFIER)
+    override fun getNameIdentifier(): VcCompositeElement? = findChildByType(VcTypes.IDENTIFIER)
 
     override fun getName(): String? = nameIdentifier?.text
 
-    override fun setName(name: String): PsiElement? = TODO()
+    override fun setName(name: String): PsiElement? {
+        nameIdentifier?.replace(VcPsiFactory(project).createIdentifier(name))
+        return this
+    }
 
     override fun getNavigationElement(): PsiElement = nameIdentifier ?: this
 
@@ -36,14 +39,17 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getNameIdentifier(): PsiElement? = findChildByType(VcTypes.IDENTIFIER)
+    override fun getNameIdentifier(): VcCompositeElement? = findChildByType(VcTypes.IDENTIFIER)
 
     override fun getName(): String? {
         val stub = stub
         return if (stub != null) stub.name else nameIdentifier?.text
     }
 
-    override fun setName(name: String): PsiElement? = TODO()
+    override fun setName(name: String): PsiElement? {
+        nameIdentifier?.replace(VcPsiFactory(project).createIdentifier(name))
+        return this
+    }
 
     override fun getTextOffset(): Int = nameIdentifier?.textOffset ?: super.getTextOffset()
 
