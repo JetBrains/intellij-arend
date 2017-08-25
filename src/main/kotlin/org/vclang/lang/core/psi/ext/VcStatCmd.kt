@@ -2,6 +2,7 @@ package org.vclang.lang.core.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.vclang.lang.core.psi.VcStatCmd
+import org.vclang.lang.core.psi.isHiding
 import org.vclang.lang.core.resolve.EmptyScope
 import org.vclang.lang.core.resolve.FilteredScope
 import org.vclang.lang.core.resolve.NamespaceScope
@@ -14,7 +15,7 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
             FilteredScope(
                     NamespaceScope(it.namespace),
                     identifierList.map { it.text }.toSet(),
-                    hidingKw != null
+                    isHiding
             )
         } ?: EmptyScope
 }

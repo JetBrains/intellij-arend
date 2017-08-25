@@ -12,7 +12,8 @@ import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.parser.fullyQualifiedName
 import org.vclang.lang.core.psi.ext.VcCompositeElement
 import org.vclang.lang.core.resolve.EmptyNamespace
-import org.vclang.lang.core.resolve.EmptyScope
+import org.vclang.lang.core.resolve.NamespaceScope
+import org.vclang.lang.core.resolve.PreludeNamespace
 import org.vclang.lang.core.resolve.VcReference
 import org.vclang.lang.core.stubs.VcFileStub
 import java.nio.file.Paths
@@ -34,7 +35,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override val namespace = EmptyNamespace
 
-    override val scope = EmptyScope
+    override val scope = NamespaceScope(PreludeNamespace)
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 

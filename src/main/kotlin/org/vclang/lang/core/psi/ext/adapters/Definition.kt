@@ -49,10 +49,6 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
         this.isStatic = false
     }
 
-    override fun getName(): String? = currentName ?: super.getName()
-
-    override fun toString(): String = currentName ?: super.toString()
-
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             throw NotImplementedError()
 }

@@ -10,12 +10,11 @@ import org.vclang.lang.core.resolve.Scope
 abstract class VcStatementsImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcStatements {
     override val namespace: Namespace
-        get() = NamespaceProvider.forDefinitions(statementList.map { it.statDef }.filterNotNull())
+        get() = NamespaceProvider.forDefinitions(statementList.mapNotNull { it.statDef })
 
     override val scope: Scope
         get() = statementList
-                .map { it.statCmd }
-                .filterNotNull()
+                .mapNotNull { it.statCmd }
                 .map { it.scope }
                 .fold(super.scope) { scope1, scope2 -> MergeScope(scope1, scope2) }
 }

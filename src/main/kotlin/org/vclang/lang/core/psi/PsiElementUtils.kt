@@ -7,6 +7,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 
+val PsiElement.ancestors: Sequence<PsiElement>
+    get() = generateSequence(this) { it.parent }
+
 val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 

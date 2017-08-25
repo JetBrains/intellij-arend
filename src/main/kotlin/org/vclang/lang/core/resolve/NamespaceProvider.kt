@@ -32,10 +32,12 @@ object NamespaceProvider {
             definition: VcDefClass,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        val definitions = definition.classStatList.map { it.statement?.statDef }.filterNotNull()
-        forDefinitions(definitions, namespace)
-        forTelescope(definition.teleList, namespace)
-        definition.where?.let { forWhere(it, namespace) }
+        val definitions = definition.classStats?.classStatList?.mapNotNull { it.statement?.statDef }
+        if (definitions != null) {
+            forDefinitions(definitions, namespace)
+            definition.classTeles?.teleList?.let { forTelescope(it, namespace) }
+            definition.where?.let { forWhere(it, namespace) }
+        }
         return namespace
     }
 
@@ -53,8 +55,13 @@ object NamespaceProvider {
     ): Namespace {
         definitions
                 .map { it.definition }
-                .filterNotNull()
-                .forEach { namespace.put(it as? VcNamedElement) }
+                .forEach {
+                    if (it is VcDefData) {
+                        val constructors = it.dataBody?.dataConstructors?.constructorList
+                        constructors?.forEach { namespace.put(it) }
+                    }
+                    namespace.put(it as? VcNamedElement)
+                }
         return namespace
     }
 

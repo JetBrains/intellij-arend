@@ -11,21 +11,23 @@ import org.vclang.lang.core.resolve.VcReferenceBase
 
 abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
                                                       VcIdentifier {
-    override val referenceNameElement: PsiElement
+    override val referenceNameElement: VcCompositeElement
         get() = this
 
     override val referenceName: String
         get() = text
 
-    override fun getNameIdentifier(): VcIdentifier = this
+    override fun getNameIdentifier(): VcCompositeElement = referenceNameElement
 
-    override fun getName(): String = text
+    override fun getName(): String = referenceName
 
     override fun getNavigationElement(): PsiElement = this
 
     override fun getTextOffset(): Int = node.startOffset
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcIdentifier>(this) {
+    override fun getReference(): VcReference = object : VcReferenceBase<VcIdentifier>(
+            this@VcIdentifierImplMixin
+    ) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
@@ -35,7 +37,7 @@ abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 
 abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                   VcPrefixName {
-    override val referenceNameElement: PsiElement
+    override val referenceNameElement: VcCompositeElement
         get() = this
 
     override val referenceName: String
@@ -47,17 +49,19 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcPrefixName>(this) {
+    override fun getReference(): VcReference = object : VcReferenceBase<VcPrefixName>(
+            this@VcPrefixImplMixin
+    ) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
-        override fun getVariants(): Array<Any> = arrayOf()
+        override fun getVariants(): Array<Any> = scope.symbols.toTypedArray()
     }
 }
 
 abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                  VcInfixName {
-    override val referenceNameElement: PsiElement
+    override val referenceNameElement: VcCompositeElement
         get() = this
 
     override val referenceName: String
@@ -69,17 +73,19 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcInfixName>(this) {
+    override fun getReference(): VcReference = object : VcReferenceBase<VcInfixName>(
+            this@VcInfixImplMixin
+    ) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
-        override fun getVariants(): Array<Any> = arrayOf()
+        override fun getVariants(): Array<Any> = scope.symbols.toTypedArray()
     }
 }
 
 abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                    VcPostfixName {
-    override val referenceNameElement: PsiElement
+    override val referenceNameElement: VcCompositeElement
         get() = this
 
     override val referenceName: String
@@ -91,10 +97,12 @@ abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcPostfixName>(this) {
+    override fun getReference(): VcReference = object : VcReferenceBase<VcPostfixName>(
+            this@VcPostfixImplMixin
+    ) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
-        override fun getVariants(): Array<Any> = arrayOf()
+        override fun getVariants(): Array<Any> = scope.symbols.toTypedArray()
     }
 }
