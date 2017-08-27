@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import org.vclang.ide.colors.VcHighlightingColors
 import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcIdentifier
+import org.vclang.lang.core.psi.VcInfixName
 import org.vclang.lang.core.psi.VcTele
 
 class VcHighlightingAnnotator : Annotator {
@@ -13,6 +14,7 @@ class VcHighlightingAnnotator : Annotator {
         val color = when {
             element is VcIdentifier && element.parent is VcDefinition ->
                 VcHighlightingColors.DECLARATION
+            element is VcInfixName -> VcHighlightingColors.OPERATORS
             element is VcTele && element.lbrace != null ->
                 VcHighlightingColors.IMPLICIT
             else -> return
