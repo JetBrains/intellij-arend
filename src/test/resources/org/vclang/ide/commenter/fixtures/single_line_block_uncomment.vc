@@ -1,0 +1,3 @@
+\data {-<caret>-}Nat
+    |zero
+    | suc Nat

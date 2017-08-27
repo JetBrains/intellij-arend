@@ -1,0 +1,3 @@
+\data Nat
+--    | zero
+    | s<caret>uc Nat

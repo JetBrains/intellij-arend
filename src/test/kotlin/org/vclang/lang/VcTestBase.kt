@@ -29,6 +29,12 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
         super.runTest()
     }
 
+    protected val fileName: String
+        get() = "$testName.vc"
+
+    private val testName: String
+        get() = camelOrWordsToSnake(getTestName(true))
+
     protected open class VclangProjectDescriptorBase : LightProjectDescriptor() {
         open val skipTestReason: String? = null
 
@@ -65,4 +71,14 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
     }
 
     protected fun replaceCaretMarker(text: String) = text.replace("{-caret-}", "<caret>")
+
+    companion object {
+        @JvmStatic
+        fun camelOrWordsToSnake(name: String): String {
+            if (' ' in name) return name.replace(" ", "_")
+            return name
+                .split("(?=[A-Z])".toRegex())
+                .joinToString("_", transform = String::toLowerCase)
+        }
+    }
 }
