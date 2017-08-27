@@ -57,9 +57,14 @@ class TypecheckRunState(
     }
 
     override fun createConsole(executor: Executor): ConsoleView? {
-        val runConfiguration = environment.runnerAndConfigurationSettings?.configuration ?: return null
+        val runConfiguration = environment.runnerAndConfigurationSettings?.configuration
+            ?: return null
         val testFrameworkName = "VclangTypecheckRunner"
-        val consoleProperties = SMTRunnerConsoleProperties(runConfiguration, testFrameworkName, executor)
+        val consoleProperties = SMTRunnerConsoleProperties(
+            runConfiguration,
+            testFrameworkName,
+            executor
+        )
 
         val splitterPropertyName = "$testFrameworkName.Splitter.Proportion"
         val consoleView = SMTRunnerConsoleView(consoleProperties, splitterPropertyName)
@@ -68,7 +73,7 @@ class TypecheckRunState(
         return consoleView
     }
 
-    fun initConsoleView(consoleView: SMTRunnerConsoleView, testFrameworkName: String) {
+    private fun initConsoleView(consoleView: SMTRunnerConsoleView, testFrameworkName: String) {
         consoleView.addAttachToProcessListener { processHandler ->
             attachEventsProcessors(
                     consoleView.properties,

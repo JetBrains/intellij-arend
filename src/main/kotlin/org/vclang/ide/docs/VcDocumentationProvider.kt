@@ -36,5 +36,4 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         is VcDefFunction -> "function"
         else -> null
     }
-
 }

@@ -17,7 +17,8 @@ abstract class ClassImplementAdapter : DefinitionAdapter<VcClassImplementStub>,
 
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: VcClassImplementStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+    constructor(stub: VcClassImplementStub, nodeType: IStubElementType<*, *>)
+        : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.IMPLEMENTATION
 

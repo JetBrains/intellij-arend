@@ -10,9 +10,9 @@ import static org.vclang.lang.core.psi.VcTypes.*;
 %%
 
 %{
-  public _VcLexer() {
-    this((java.io.Reader)null);
-  }
+    public _VcLexer() {
+        this((java.io.Reader)null);
+    }
 %}
 
 %public
@@ -53,73 +53,73 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
 
 %%
 <YYINITIAL> {
-  {WHITE_SPACE}             { return WHITE_SPACE; }
+    {WHITE_SPACE}           { return WHITE_SPACE; }
 
-  "{"                       { return LBRACE; }
-  "}"                       { return RBRACE; }
-  "("                       { return LPAREN; }
-  ")"                       { return RPAREN; }
-  ":"                       { return COLON; }
-  "::"                      { return COLONCOLON; }
-  "->"                      { return ARROW; }
-  "=>"                      { return FAT_ARROW; }
-  "."                       { return DOT; }
-  ","                       { return COMMA; }
-  "_"                       { return UNDERSCORE; }
-  "`"                       { return GRAVE; }
-  "|"                       { return PIPE; }
+    "{"                     { return LBRACE; }
+    "}"                     { return RBRACE; }
+    "("                     { return LPAREN; }
+    ")"                     { return RPAREN; }
+    ":"                     { return COLON; }
+    "::"                    { return COLONCOLON; }
+    "->"                    { return ARROW; }
+    "=>"                    { return FAT_ARROW; }
+    "."                     { return DOT; }
+    ","                     { return COMMA; }
+    "_"                     { return UNDERSCORE; }
+    "`"                     { return GRAVE; }
+    "|"                     { return PIPE; }
 
-  "\\open"                  { return OPEN_KW; }
-  "\\export"                { return EXPORT_KW; }
-  "\\hiding"                { return HIDING_KW; }
-  "\\function"              { return FUNCTION_KW; }
-  "\\infix"                 { return NON_ASSOC_KW; }
-  "\\infixl"                { return LEFT_ASSOC_KW; }
-  "\\infixr"                { return RIGHT_ASSOC_KW; }
-  "\\Prop"                  { return PROP_KW; }
-  "\\where"                 { return WHERE_KW; }
-  "\\with"                  { return WITH_KW; }
-  "\\elim"                  { return ELIM_KW; }
-  "\\new"                   { return NEW_KW; }
-  "\\Pi"                    { return PI_KW; }
-  "\\Sigma"                 { return SIGMA_KW; }
-  "\\lam"                   { return LAM_KW; }
-  "\\let"                   { return LET_KW; }
-  "\\in"                    { return IN_KW; }
-  "\\case"                  { return CASE_KW; }
-  "\\data"                  { return DATA_KW; }
-  "\\class"                 { return CLASS_KW; }
-  "\\extends"               { return EXTENDS_KW; }
-  "\\view"                  { return VIEW_KW; }
-  "\\on"                    { return ON_KW; }
-  "\\by"                    { return BY_KW; }
-  "\\instance"              { return INSTANCE_KW; }
-  "\\truncated"             { return TRUNCATED_KW; }
-  "\\default"               { return DEFAULT_KW; }
-  "\\lp"                    { return LP_KW; }
-  "\\lh"                    { return LH_KW; }
-  "\\suc"                   { return SUC_KW; }
-  "\\max"                   { return MAX_KW; }
+    "\\open"                { return OPEN_KW; }
+    "\\export"              { return EXPORT_KW; }
+    "\\hiding"              { return HIDING_KW; }
+    "\\function"            { return FUNCTION_KW; }
+    "\\infix"               { return NON_ASSOC_KW; }
+    "\\infixl"              { return LEFT_ASSOC_KW; }
+    "\\infixr"              { return RIGHT_ASSOC_KW; }
+    "\\Prop"                { return PROP_KW; }
+    "\\where"               { return WHERE_KW; }
+    "\\with"                { return WITH_KW; }
+    "\\elim"                { return ELIM_KW; }
+    "\\new"                 { return NEW_KW; }
+    "\\Pi"                  { return PI_KW; }
+    "\\Sigma"               { return SIGMA_KW; }
+    "\\lam"                 { return LAM_KW; }
+    "\\let"                 { return LET_KW; }
+    "\\in"                  { return IN_KW; }
+    "\\case"                { return CASE_KW; }
+    "\\data"                { return DATA_KW; }
+    "\\class"               { return CLASS_KW; }
+    "\\extends"             { return EXTENDS_KW; }
+    "\\view"                { return VIEW_KW; }
+    "\\on"                  { return ON_KW; }
+    "\\by"                  { return BY_KW; }
+    "\\instance"            { return INSTANCE_KW; }
+    "\\truncated"           { return TRUNCATED_KW; }
+    "\\default"             { return DEFAULT_KW; }
+    "\\lp"                  { return LP_KW; }
+    "\\lh"                  { return LH_KW; }
+    "\\suc"                 { return SUC_KW; }
+    "\\max"                 { return MAX_KW; }
 
-  {MODULE_PATH}             { return MODULE_PATH; }
-  {NUMBER}                  { return NUMBER; }
+    {MODULE_PATH}           { return MODULE_PATH; }
+    {NUMBER}                { return NUMBER; }
 
-  {INFIX}                   { return INFIX; }
-  {PREFIX}                  { return PREFIX; }
-  {PREFIX_INFIX}            { return PREFIX_INFIX; }
-  {INFIX_PREFIX}            { return INFIX_PREFIX; }
-  {POSTFIX_INFIX}           { return POSTFIX_INFIX; }
-  {POSTFIX_PREFIX}          { return POSTFIX_PREFIX; }
+    {INFIX}                 { return INFIX; }
+    {PREFIX}                { return PREFIX; }
+    {PREFIX_INFIX}          { return PREFIX_INFIX; }
+    {INFIX_PREFIX}          { return INFIX_PREFIX; }
+    {POSTFIX_INFIX}         { return POSTFIX_INFIX; }
+    {POSTFIX_PREFIX}        { return POSTFIX_PREFIX; }
 
-  {SET}                     { return SET; }
-  {UNIVERSE}                { return UNIVERSE; }
-  {TRUNCATED_UNIVERSE}      { return TRUNCATED_UNIVERSE; }
+    {SET}                   { return SET; }
+    {UNIVERSE}              { return UNIVERSE; }
+    {TRUNCATED_UNIVERSE}    { return TRUNCATED_UNIVERSE; }
 
-  {LINE_COMMENT}            { return LINE_COMMENT; }
-  {BLOCK_COMMENT_START}     {
-                              yybegin(BLOCK_COMMENT_INNER);
-                              commentDepth = 0;
-                              commentStart = getTokenStart();
+    {LINE_COMMENT}          { return LINE_COMMENT; }
+    {BLOCK_COMMENT_START}   {
+                                yybegin(BLOCK_COMMENT_INNER);
+                                commentDepth = 0;
+                                commentStart = getTokenStart();
                             }
 }
 

@@ -35,21 +35,9 @@ inline fun <reified T : PsiElement> PsiElement.parentOfType(
         minStartOffset: Int = -1
 ): T? = PsiTreeUtil.getParentOfType(this, T::class.java, strict, minStartOffset)
 
-inline fun <reified T : PsiElement> PsiElement.parentOfType(
-        strict: Boolean = true,
-        stopAt: Class<out PsiElement>
-): T? = PsiTreeUtil.getParentOfType(this, T::class.java, strict, stopAt)
-
-inline fun <reified T : PsiElement> PsiElement.contextOfType(
-        strict: Boolean = true
-): T? = PsiTreeUtil.getContextOfType(this, T::class.java, strict)
-
 inline fun <reified T : PsiElement> PsiElement.childOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
-
-inline fun <reified T : PsiElement> PsiElement.descendantsOfType(): Collection<T> =
-        PsiTreeUtil.findChildrenOfType(this, T::class.java)
 
 val VcStatCmd.isHiding
     get() = hidingKw != null
@@ -62,9 +50,6 @@ val VcNsCmd.isOpenCmd
 
 val VcNewExpr.withNewContext
     get() = newKw != null
-
-val VcDefInstance.isDefault
-    get() = defaultKw != null
 
 val VcAtomPattern.isExplicit
     get() = lparen != null && pattern != null && rparen != null

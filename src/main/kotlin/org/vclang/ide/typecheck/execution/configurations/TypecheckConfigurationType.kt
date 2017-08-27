@@ -33,5 +33,6 @@ class TypecheckConfigurationType : ConfigurationTypeBase(
         })
     }
 
-    val factory: ConfigurationFactory get() = configurationFactories.single()
+    val factory: ConfigurationFactory
+        get() = configurationFactories.single()
 }

@@ -48,19 +48,21 @@ class TypecheckRunConfigurationProducer
         val element = context.location?.psiElement
         val definition = element?.parentOfType<VcDefinition>(false)
                 ?: element?.parentOfType<VcFile>(false)
-        if (definition is VcDefinition) {
-            sourceElement.set(definition)
-            configuration.name = "Type check ${definition.fullyQualifiedName}"
-            configuration.vclangTypecheckCommand = TypecheckCommand(
+        when (definition) {
+            is VcDefinition -> {
+                sourceElement.set(definition)
+                configuration.name = "Type check ${definition.fullyQualifiedName}"
+                configuration.vclangTypecheckCommand = TypecheckCommand(
                     definition.containingFile.virtualFile.path,
                     definition.fullyQualifiedName
-            )
-        } else if (definition is VcFile) {
-            sourceElement.set(definition)
-            configuration.name = "Type check ${definition.modulePath}"
-            configuration.vclangTypecheckCommand = TypecheckCommand(definition.virtualFile.path)
-        } else {
-            return false
+                )
+            }
+            is VcFile -> {
+                sourceElement.set(definition)
+                configuration.name = "Type check ${definition.modulePath}"
+                configuration.vclangTypecheckCommand = TypecheckCommand(definition.virtualFile.path)
+            }
+            else -> return false
         }
         configuration.configurationModule.module = context.module
         return true

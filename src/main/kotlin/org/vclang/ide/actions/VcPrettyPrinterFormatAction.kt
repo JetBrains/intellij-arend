@@ -53,13 +53,23 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
             )
 
             val message = "${psiFile.name} formatted with PrettyPrinter"
-            val notification = Notification(groupId, NOTIFICATION_TITLE, message, NotificationType.INFORMATION)
+            val notification = Notification(
+                groupId,
+                NOTIFICATION_TITLE,
+                message,
+                NotificationType.INFORMATION
+            )
             Notifications.Bus.notify(notification, project)
         } catch (exception: Exception) {
             val message = "${psiFile.name} formatting with PrettyPrinter failed"
             val writer = StringWriter()
             exception.printStackTrace(PrintWriter(writer))
-            val notification = Notification(groupId, message, writer.toString(), NotificationType.ERROR)
+            val notification = Notification(
+                groupId,
+                message,
+                writer.toString(),
+                NotificationType.ERROR
+            )
             Notifications.Bus.notify(notification, project)
             LOG.error(exception)
         }

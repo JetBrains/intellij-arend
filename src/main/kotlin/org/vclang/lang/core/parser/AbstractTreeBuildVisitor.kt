@@ -25,19 +25,19 @@ class AbstractTreeBuildVisitor(
         return context
     }
 
-    fun visitStatements(context: VcStatements): List<Surrogate.Statement> =
+    private fun visitStatements(context: VcStatements): List<Surrogate.Statement> =
             visitStatementList(context.statementList)
 
     private fun visitStatementList(context: List<VcStatement>): MutableList<Surrogate.Statement> =
             context.map { visitStatement(it) }.toMutableList()
 
-    fun visitStatement(context: VcStatement): Surrogate.Statement {
+    private fun visitStatement(context: VcStatement): Surrogate.Statement {
         context.statCmd?.let { return visitStatCmd(it) }
         context.statDef?.let { return visitStatDef(it) }
         throw IllegalStateException()
     }
 
-    fun visitStatCmd(context: VcStatCmd): Surrogate.NamespaceCommandStatement {
+    private fun visitStatCmd(context: VcStatCmd): Surrogate.NamespaceCommandStatement {
         val kind = visitNsCmd(context.nsCmd)
         val modulePath = context.nsCmdRoot?.moduleName?.let { visitModulePath(it) }
         val path = mutableListOf<String>()
@@ -58,20 +58,21 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitNsCmd(context: VcNsCmd): LegacyAbstract.NamespaceCommandStatement.Kind = when {
-        context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
-        context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
-        else -> throw IllegalStateException()
-    }
+    private fun visitNsCmd(context: VcNsCmd): LegacyAbstract.NamespaceCommandStatement.Kind =
+        when {
+            context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
+            context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
+            else -> throw IllegalStateException()
+        }
 
-    fun visitStatDef(context: VcStatDef): Surrogate.DefineStatement {
+    private fun visitStatDef(context: VcStatDef): Surrogate.DefineStatement {
         val definition = visitDefinition(context.definition)
         return Surrogate.DefineStatement(elementPosition(definition), definition)
     }
 
     // Definitions
 
-    fun visitDefinition(context: VcDefinition): DefinitionAdapter<*> = when (context) {
+    private fun visitDefinition(context: VcDefinition): DefinitionAdapter<*> = when (context) {
         is VcDefClass -> visitDefClass(context)
         is VcDefClassView -> visitDefClassView(context)
         is VcDefData -> visitDefData(context)
@@ -84,7 +85,7 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitDefClass(context: VcDefClass): ClassDefinitionAdapter {
+    private fun visitDefClass(context: VcDefClass): ClassDefinitionAdapter {
         val name = context.identifier?.text
         val polyParams = context.classTeles?.teleList?.let { visitTeles(it) }
         val superClasses = context.atomFieldsAccList.map {
@@ -124,7 +125,7 @@ class AbstractTreeBuildVisitor(
         return classDefinition
     }
 
-    fun visitClassStat(context: VcClassStat): Abstract.SourceNode {
+    private fun visitClassStat(context: VcClassStat): Abstract.SourceNode {
         context.definition?.let {
             if (it is VcClassField) return visitClassField(it)
             if (it is VcClassImplement) return visitClassImplement(it)
@@ -133,7 +134,7 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitClassField(context: VcClassField): ClassFieldAdapter {
+    private fun visitClassField(context: VcClassField): ClassFieldAdapter {
         if (context is ClassFieldAdapter) {
             return context.reconstruct(
                     elementPosition(context),
@@ -145,7 +146,7 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitClassImplement(context: VcClassImplement): ClassImplementAdapter {
+    private fun visitClassImplement(context: VcClassImplement): ClassImplementAdapter {
         if (context !is ClassImplementAdapter) throw IllegalStateException()
         return context.reconstruct(
                 elementPosition(context),
@@ -191,7 +192,7 @@ class AbstractTreeBuildVisitor(
         return definitions
     }
 
-    fun visitDefClassView(context: VcDefClassView): ClassViewAdapter {
+    private fun visitDefClassView(context: VcDefClassView): ClassViewAdapter {
         if (context !is ClassViewAdapter) throw IllegalStateException()
         val name = context.identifierList[0]?.text
         val underlyingClass = visitExpr(context.expr)
@@ -212,7 +213,7 @@ class AbstractTreeBuildVisitor(
         return classView
     }
 
-    fun visitDefData(context: VcDefData): DataDefinitionAdapter {
+    private fun visitDefData(context: VcDefData): DataDefinitionAdapter {
         val universe: Surrogate.UniverseExpression? = context.expr?.let {
             val expr = visitExpr(it)
             if (expr is Surrogate.UniverseExpression) {
@@ -240,7 +241,7 @@ class AbstractTreeBuildVisitor(
         return dataDefinition
     }
 
-    fun visitDefFunction(context: VcDefFunction): FunctionDefinitionAdapter {
+    private fun visitDefFunction(context: VcDefFunction): FunctionDefinitionAdapter {
         val resultType = context.expr?.let { visitExpr(context.expr) }
         val body: Surrogate.FunctionBody = context.functionBody.let {
             val elimContext = it?.withElim
@@ -289,7 +290,7 @@ class AbstractTreeBuildVisitor(
         return functionDefinition
     }
 
-    fun visitDefInstance(context: VcDefInstance): ClassViewInstanceAdapter {
+    private fun visitDefInstance(context: VcDefInstance): ClassViewInstanceAdapter {
         val term = visitExpr(context.expr)
         if (term is Surrogate.NewExpression) {
             val type = term.expression
@@ -299,7 +300,6 @@ class AbstractTreeBuildVisitor(
                     if (context !is ClassViewInstanceAdapter) throw IllegalStateException()
                     return context.reconstruct(
                             elementPosition(context),
-                            context.isDefault,
                             name,
                             Abstract.Precedence.DEFAULT,
                             visitFunctionArguments(context.teleList),
@@ -314,13 +314,13 @@ class AbstractTreeBuildVisitor(
         throw ParseException()
     }
 
-    fun visitDataBody(context: VcDataBody?, def: DataDefinitionAdapter) {
+    private fun visitDataBody(context: VcDataBody?, def: DataDefinitionAdapter) {
         context?.dataClauses?.let { return visitDataClauses(it, def) }
         context?.dataConstructors?.let { return visitDataConstructors(it, def) }
         throw IllegalStateException()
     }
 
-    fun visitDataClauses(context: VcDataClauses, def: DataDefinitionAdapter) {
+    private fun visitDataClauses(context: VcDataClauses, def: DataDefinitionAdapter) {
         for (clauseCtx in context.constructorClauseList) {
             try {
                 def.constructorClauses.add(
@@ -335,7 +335,7 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitDataConstructors(context: VcDataConstructors, def: DataDefinitionAdapter) {
+    private fun visitDataConstructors(context: VcDataConstructors, def: DataDefinitionAdapter) {
         def.constructorClauses.add(
                 Surrogate.ConstructorClause(
                         elementPosition(context),
@@ -345,7 +345,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitElim(context: VcElim?): List<Surrogate.ReferenceExpression>? {
+    private fun visitElim(context: VcElim?): List<Surrogate.ReferenceExpression>? {
         return if (context != null && context.atomFieldsAccList.isNotEmpty()) {
             checkElimExpressions(context.atomFieldsAccList.map { visitAtomFieldsAcc(it) })
         } else {
@@ -365,7 +365,7 @@ class AbstractTreeBuildVisitor(
         return expressions.filterIsInstance<Surrogate.ReferenceExpression>()
     }
 
-    fun visitClassViewField(
+    private fun visitClassViewField(
             context: VcClassViewField,
             ownView: ClassViewAdapter
     ): ClassViewFieldAdapter {
@@ -385,7 +385,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitWhere(context: VcWhere?): MutableList<Surrogate.Statement> {
+    private fun visitWhere(context: VcWhere?): MutableList<Surrogate.Statement> {
         return if (context != null && context.statementList.isNotEmpty()) {
             visitStatementList(context.statementList)
         } else {
@@ -395,13 +395,13 @@ class AbstractTreeBuildVisitor(
 
     // Patterns
 
-    fun visitPattern(context: VcPattern): Surrogate.Pattern {
+    private fun visitPattern(context: VcPattern): Surrogate.Pattern {
         context.atomPattern?.let { return visitAtomPattern(it) }
         context.patternConstructor?.let { return visitPatternConstructor(it) }
         throw IllegalStateException()
     }
 
-    fun visitPatternConstructor(context: VcPatternConstructor): Surrogate.Pattern {
+    private fun visitPatternConstructor(context: VcPatternConstructor): Surrogate.Pattern {
         return if (context.atomPatternOrPrefixList.isEmpty()) {
             Surrogate.NamePattern(elementPosition(context), visitPrefix(context.prefixName))
         } else {
@@ -413,13 +413,13 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitAtomPatternOrID(context: VcAtomPatternOrPrefix): Surrogate.Pattern {
+    private fun visitAtomPatternOrID(context: VcAtomPatternOrPrefix): Surrogate.Pattern {
         context.atomPattern?.let { return visitAtomPattern(it) }
         val name = context.prefixName?.let { visitPrefix(it) }
         return Surrogate.NamePattern(elementPosition(context), name)
     }
 
-    fun visitAtomPattern(context: VcAtomPattern): Surrogate.Pattern = when {
+    private fun visitAtomPattern(context: VcAtomPattern): Surrogate.Pattern = when {
         context.isExplicit || context.isImplicit -> {
             val pattern = visitPattern(context.pattern!!)
             pattern.isExplicit = context.isExplicit
@@ -447,7 +447,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitPrecedence(context: VcPrec?): Abstract.Precedence {
+    private fun visitPrecedence(context: VcPrec?): Abstract.Precedence {
         val associativity = context?.associativity ?: return Abstract.Precedence.DEFAULT
         val priority = Integer.parseInt(context.number?.text).let {
             if (it < 1 || it > 9) {
@@ -458,14 +458,15 @@ class AbstractTreeBuildVisitor(
         return Abstract.Precedence(visitAssociativity(associativity), priority.toByte())
     }
 
-    fun visitAssociativity(context: VcAssociativity): Abstract.Precedence.Associativity = when {
-        context.isLeftAssoc -> Abstract.Precedence.Associativity.LEFT_ASSOC
-        context.isRightAssoc -> Abstract.Precedence.Associativity.RIGHT_ASSOC
-        context.isNonAssoc -> Abstract.Precedence.Associativity.NON_ASSOC
-        else -> throw IllegalStateException()
-    }
+    private fun visitAssociativity(context: VcAssociativity): Abstract.Precedence.Associativity =
+        when {
+            context.isLeftAssoc -> Abstract.Precedence.Associativity.LEFT_ASSOC
+            context.isRightAssoc -> Abstract.Precedence.Associativity.RIGHT_ASSOC
+            context.isNonAssoc -> Abstract.Precedence.Associativity.NON_ASSOC
+            else -> throw IllegalStateException()
+        }
 
-    fun visitExpr0(context: VcExpr0): Surrogate.Expression {
+    private fun visitExpr0(context: VcExpr0): Surrogate.Expression {
         return parseBinOpSequence(
                 context.binOpLeftList,
                 visitBinOpArg(context.binOpArg),
@@ -474,7 +475,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitExpr(context: VcExpr?): Surrogate.Expression = when (context) {
+    private fun visitExpr(context: VcExpr?): Surrogate.Expression = when (context) {
         is VcArrExpr -> visitArr(context)
         is VcPiExpr -> visitPi(context)
         is VcSigmaExpr -> visitSigma(context)
@@ -489,14 +490,14 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitArr(context: VcArrExpr): Surrogate.PiExpression {
+    private fun visitArr(context: VcArrExpr): Surrogate.PiExpression {
         val domain = visitExpr(context.exprList[0])
         val codomain = visitExpr(context.exprList[1])
         val arguments = listOf(Surrogate.TypeParameter(domain.position, true, domain))
         return Surrogate.PiExpression(elementPosition(context.arrow), arguments, codomain)
     }
 
-    fun visitBinOp(context: VcBinOpExpr): Surrogate.Expression {
+    private fun visitBinOp(context: VcBinOpExpr): Surrogate.Expression {
         val newExpr = context.newExpr
         val position = elementPosition(context)
         val implementations = parseImplementations(
@@ -513,7 +514,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitPi(context: VcPiExpr): Surrogate.PiExpression {
+    private fun visitPi(context: VcPiExpr): Surrogate.PiExpression {
         return Surrogate.PiExpression(
                 elementPosition(context),
                 visitTeles(context.teleList),
@@ -521,7 +522,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitSigma(context: VcSigmaExpr): Surrogate.SigmaExpression {
+    private fun visitSigma(context: VcSigmaExpr): Surrogate.SigmaExpression {
         val args = visitTeles(context.teleList)
         args.forEach {
             if (!it.explicit) {
@@ -531,7 +532,7 @@ class AbstractTreeBuildVisitor(
         return Surrogate.SigmaExpression(elementPosition(context), args)
     }
 
-    fun visitLam(context: VcLamExpr): Surrogate.Expression {
+    private fun visitLam(context: VcLamExpr): Surrogate.Expression {
         return Surrogate.LamExpression(
                 elementPosition(context),
                 visitLamTeles(context.teleList),
@@ -539,21 +540,21 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitLet(context: VcLetExpr): Surrogate.LetExpression {
+    private fun visitLet(context: VcLetExpr): Surrogate.LetExpression {
         val clauses = context.letClauseList.map { visitLetClause(it) }
         return Surrogate.LetExpression(elementPosition(context), clauses, visitExpr(context.expr))
     }
 
-    fun visitCase(context: VcCaseExpr): Surrogate.Expression {
+    private fun visitCase(context: VcCaseExpr): Surrogate.Expression {
         val elimExprs = context.expr0List.map { visitExpr0(it) }
         val clauses = context.clauseList.map { visitClause(it) }
         return Surrogate.CaseExpression(elementPosition(context), elimExprs, clauses)
     }
 
-    fun visitClauses(context: VcClauses): List<Surrogate.FunctionClause> =
+    private fun visitClauses(context: VcClauses): List<Surrogate.FunctionClause> =
             context.clauseList.map { visitClause(it) }
 
-    fun visitLetClause(context: VcLetClause): Surrogate.LetClause {
+    private fun visitLetClause(context: VcLetClause): Surrogate.LetClause {
         val name = context.identifier.text
         val arguments = visitLamTeles(context.teleList)
         val resultType = context.typeAnnotation?.let { visitExpr(it.expr) }
@@ -566,20 +567,20 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitClause(context: VcClause): Surrogate.FunctionClause {
+    private fun visitClause(context: VcClause): Surrogate.FunctionClause {
         val patterns = context.patternList.map { visitPattern(it) }
         val expression = context.expr?.let { visitExpr(it) }
         return Surrogate.FunctionClause(elementPosition(context), patterns, expression)
     }
 
-    fun visitLevelExpr(context: VcLevelExpr): Surrogate.LevelExpression? {
+    private fun visitLevelExpr(context: VcLevelExpr): Surrogate.LevelExpression? {
         context.atomLevelExpr?.let { return visitAtomLevelExpr(it) }
         context.maxLevelExpr?.let { return visitMaxLevelExpr(it) }
         context.sucLevelExpr?.let { return visitSucLevelExpr(it) }
         throw IllegalStateException()
     }
 
-    fun visitAtomLevelExpr(context: VcAtomLevelExpr?): Surrogate.LevelExpression? {
+    private fun visitAtomLevelExpr(context: VcAtomLevelExpr?): Surrogate.LevelExpression? {
         context?.lpKw?.let { return Surrogate.PLevelExpression(elementPosition(context)) }
         context?.lhKw?.let { return Surrogate.HLevelExpression(elementPosition(context)) }
         context?.number?.let {
@@ -590,14 +591,14 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitSucLevelExpr(context: VcSucLevelExpr): Surrogate.SucLevelExpression {
+    private fun visitSucLevelExpr(context: VcSucLevelExpr): Surrogate.SucLevelExpression {
         return Surrogate.SucLevelExpression(
                 elementPosition(context),
                 visitAtomLevelExpr(context.atomLevelExpr)
         )
     }
 
-    fun visitMaxLevelExpr(context: VcMaxLevelExpr): Surrogate.MaxLevelExpression {
+    private fun visitMaxLevelExpr(context: VcMaxLevelExpr): Surrogate.MaxLevelExpression {
         return Surrogate.MaxLevelExpression(
                 elementPosition(context),
                 visitAtomLevelExpr(context.atomLevelExprList[0]),
@@ -605,7 +606,7 @@ class AbstractTreeBuildVisitor(
         )
     }
 
-    fun visitBinOpArg(context: VcBinOpArg?): Surrogate.Expression {
+    private fun visitBinOpArg(context: VcBinOpArg?): Surrogate.Expression {
         context?.argumentBinOp?.let { return visitBinOpArgument(it) }
         context?.universeBinOp?.let { return visitUniverse(it) }
         context?.setUniverseBinOp?.let { return visitSetUniverse(it) }
@@ -613,10 +614,10 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitBinOpArgument(context: VcArgumentBinOp): Surrogate.Expression =
+    private fun visitBinOpArgument(context: VcArgumentBinOp): Surrogate.Expression =
             visitArguments(visitAtomFieldsAcc(context.atomFieldsAcc), context.argumentList)
 
-    fun visitUniverse(context: VcUniverseBinOp): Surrogate.UniverseExpression {
+    private fun visitUniverse(context: VcUniverseBinOp): Surrogate.UniverseExpression {
         val text = context.universe.text.substring("\\Type".length)
 
         var lp: Surrogate.LevelExpression? = null
@@ -650,7 +651,7 @@ class AbstractTreeBuildVisitor(
         return Surrogate.UniverseExpression(elementPosition(context), lp, lh)
     }
 
-    fun visitSetUniverse(context: VcSetUniverseBinOp): Surrogate.UniverseExpression {
+    private fun visitSetUniverse(context: VcSetUniverseBinOp): Surrogate.UniverseExpression {
         val text = context.set.text.substring("\\Set".length)
         val pLevel: Surrogate.LevelExpression? = if (text.isEmpty()) {
             context.atomLevelExpr?.let { visitAtomLevelExpr(it) }
@@ -666,7 +667,9 @@ class AbstractTreeBuildVisitor(
         return Surrogate.UniverseExpression(position, pLevel, numberLevel)
     }
 
-    fun visitTruncatedUniverse(context: VcTruncatedUniverseBinOp): Surrogate.UniverseExpression {
+    private fun visitTruncatedUniverse(
+        context: VcTruncatedUniverseBinOp
+    ): Surrogate.UniverseExpression {
         val text = context.truncatedUniverse.text.let {
             it.substring(it.indexOf('-') + "-Type".length)
         }
@@ -708,11 +711,19 @@ class AbstractTreeBuildVisitor(
             }
 
             leftContext.newExpr.postfixNameList
-                    .map { Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it)) }
+                    .map { Surrogate.ReferenceExpression(
+                        elementPosition(it),
+                        null,
+                        visitPostfix(it)
+                    ) }
                     .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
 
             val name = visitInfix(leftContext.infixName)
-            binOp = Surrogate.ReferenceExpression(elementPosition(leftContext.infixName), null, name)
+            binOp = Surrogate.ReferenceExpression(
+                elementPosition(leftContext.infixName),
+                null,
+                name
+            )
         }
 
         if (left == null) {
@@ -732,10 +743,10 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitModulePath(context: VcModuleName): List<String> =
+    private fun visitModulePath(context: VcModuleName): List<String> =
             context.modulePath.text.split("::").filter { it.isNotEmpty() }
 
-    fun visitAtom(expr: VcAtom): Surrogate.Expression {
+    private fun visitAtom(expr: VcAtom): Surrogate.Expression {
         expr.atomModuleCall?.let { return visitAtomModuleCall(it) }
         expr.literal?.let { return visitLiteral(it) }
         expr.tuple?.let { return visitTuple(it) }
@@ -743,14 +754,14 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitAtomModuleCall(context: VcAtomModuleCall): Surrogate.ModuleCallExpression {
+    private fun visitAtomModuleCall(context: VcAtomModuleCall): Surrogate.ModuleCallExpression {
         return Surrogate.ModuleCallExpression(
                 elementPosition(context),
                 visitModulePath(context.moduleName)
         )
     }
 
-    fun visitTuple(context: VcTuple): Surrogate.Expression {
+    private fun visitTuple(context: VcTuple): Surrogate.Expression {
         return if (context.exprList.size == 1) {
             visitExpr(context.exprList.first())
         } else {
@@ -759,30 +770,30 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    fun visitAtomNumber(context: PsiElement): Surrogate.NumericLiteral {
+    private fun visitAtomNumber(context: PsiElement): Surrogate.NumericLiteral {
         val number = Integer.parseInt(context.text)
         return Surrogate.NumericLiteral(elementPosition(context), number)
     }
 
-    fun visitAtomFieldsAcc(context: VcAtomFieldsAcc?): Surrogate.Expression {
+    private fun visitAtomFieldsAcc(context: VcAtomFieldsAcc?): Surrogate.Expression {
         context ?: throw IllegalStateException()
         var expr = visitAtom(context.atom)
         for (acc in context.fieldAccList) {
-            expr = if (acc.identifier != null) {
-                Surrogate.ReferenceExpression(
-                        elementPosition(acc),
-                        expr,
-                        acc.identifier?.text
+            expr = when {
+                acc.identifier != null -> Surrogate.ReferenceExpression(
+                    elementPosition(acc),
+                    expr,
+                    acc.identifier?.text
                 )
-            } else if (acc.number != null) {
-                val field = Integer.parseInt(acc.number?.text) - 1
-                Surrogate.ProjExpression(
+                acc.number != null -> {
+                    val field = Integer.parseInt(acc.number?.text) - 1
+                    Surrogate.ProjExpression(
                         elementPosition(acc),
                         expr,
                         field
-                )
-            } else {
-                throw IllegalStateException()
+                    )
+                }
+                else -> throw IllegalStateException()
             }
         }
         return expr
@@ -836,7 +847,7 @@ class AbstractTreeBuildVisitor(
         return appExpr
     }
 
-    fun visitLiteral(context: VcLiteral): Surrogate.Expression {
+    private fun visitLiteral(context: VcLiteral): Surrogate.Expression {
         context.prefixName?.let {
             return Surrogate.ReferenceExpression(elementPosition(context), null, visitPrefix(it))
         }
@@ -860,7 +871,7 @@ class AbstractTreeBuildVisitor(
         throw IllegalStateException()
     }
 
-    fun visitUniTruncatedUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
+    private fun visitUniTruncatedUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
         val truncatedUniverse = context.truncatedUniverse ?: throw IllegalStateException()
         val text = truncatedUniverse.text.let { it.substring(it.indexOf('-') + "-Type".length) }
         val pLevel = if (text.isNotEmpty()) {
@@ -885,14 +896,14 @@ class AbstractTreeBuildVisitor(
         return Surrogate.NumberLevelExpression(elementPosition(context), number)
     }
 
-    fun visitUniverseAtom(context: VcUniverseAtom?): Surrogate.UniverseExpression {
+    private fun visitUniverseAtom(context: VcUniverseAtom?): Surrogate.UniverseExpression {
         context?.set?.let { return visitUniSetUniverse(context) }
         context?.truncatedUniverse?.let { return visitUniTruncatedUniverse(context) }
         context?.universe?.let { return visitUniUniverse(context) }
         throw IllegalStateException()
     }
 
-    fun visitUniUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
+    private fun visitUniUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
         val universe = context.universe ?: throw IllegalStateException()
         val text = universe.text.substring("\\Type".length)
         val lp = if (text.isNotEmpty()) {
@@ -904,7 +915,7 @@ class AbstractTreeBuildVisitor(
         return Surrogate.UniverseExpression(elementPosition(context), lp, null)
     }
 
-    fun visitUniSetUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
+    private fun visitUniSetUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
         val text = context.set?.text?.substring("\\Set".length) ?: throw IllegalStateException()
         val pLevel = if (text.isNotEmpty()) {
             val number = Integer.parseInt(text)
@@ -1057,14 +1068,16 @@ class AbstractTreeBuildVisitor(
         val firstArg = argumentBinOp.atomFieldsAcc.let { getVar(it) } ?: return null
         val result = mutableListOf(firstArg)
         for (argument in argumentBinOp.argumentList) {
-            if (argument.atomFieldsAcc != null) {
-                val arg = argument.atomFieldsAcc?.let { getVar(it) } ?: return null
-                result.add(arg)
-            } else if (argument.expr != null) {
-                val arguments = argument.expr?.let { getVarsNull(it) } ?: return null
-                result.addAll(arguments)
-            } else {
-                return null
+            when {
+                argument.atomFieldsAcc != null -> {
+                    val arg = argument.atomFieldsAcc?.let { getVar(it) } ?: return null
+                    result.add(arg)
+                }
+                argument.expr != null -> {
+                    val arguments = argument.expr?.let { getVarsNull(it) } ?: return null
+                    result.addAll(arguments)
+                }
+                else -> return null
             }
         }
         return result
@@ -1097,7 +1110,7 @@ class AbstractTreeBuildVisitor(
 
     // Errors
 
-    val MISPLACES_DEFINITION = "This definition is not allowed here"
+    private val MISPLACES_DEFINITION = "This definition is not allowed here"
 
     private fun reportError(position: Surrogate.Position, message: String) {
         val concretePosition = Concrete.Position(position.module, 0, 0)

@@ -12,7 +12,6 @@ import javax.swing.Icon
 
 abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
                                           VcDefInstance {
-    private var isDefault: Boolean? = null
     private var parameters: List<Surrogate.Parameter>? = null
     private var classView: Surrogate.ReferenceExpression? = null
     private var classFieldImpls: List<Surrogate.ClassFieldImpl>? = null
@@ -26,7 +25,6 @@ abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
 
     fun reconstruct(
             position: Surrogate.Position?,
-            isDefault: Boolean?,
             name: String?,
             precedence: Abstract.Precedence?,
             parameters: List<Surrogate.Parameter>?,
@@ -34,14 +32,13 @@ abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
             classFieldImpls: List<Surrogate.ClassFieldImpl>?
     ): ClassViewInstanceAdapter {
         super.reconstruct(position, name, precedence)
-        this.isDefault = isDefault
         this.parameters = parameters
         this.classView = classView
         this.classFieldImpls = classFieldImpls
         return this
     }
 
-    override fun isDefault(): Boolean = isDefault ?: throw IllegalStateException()
+    override fun isDefault(): Boolean = defaultKw !=null
 
     override fun getParameters(): List<Surrogate.Parameter> =
             parameters ?: throw IllegalStateException()

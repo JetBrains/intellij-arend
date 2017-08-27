@@ -10,7 +10,7 @@ import org.vclang.lang.core.psi.impl.*
 
 class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
 
-    override fun getType() = Type
+    override fun getType(): Type = Type
 
     object Type : IStubFileElementType<VcFileStub>(VcLanguage) {
 

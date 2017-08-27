@@ -15,6 +15,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object PreludeCacheGenerator {
+
     internal class PreludeBuildCacheSupplier(private val targetPath: Path)
         : CacheStorageSupplier<VcPreludeStorage.SourceId> {
 

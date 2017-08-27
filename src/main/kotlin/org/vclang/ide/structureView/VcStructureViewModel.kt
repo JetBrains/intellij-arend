@@ -21,9 +21,10 @@ class VcStructureViewModel(editor: Editor?, file: VcFile)
         withSuitableClasses(VcNamedElement::class.java)
     }
 
-    override fun isAlwaysShowsPlus(element: StructureViewTreeElement) = element.value is VcFile
+    override fun isAlwaysShowsPlus(element: StructureViewTreeElement): Boolean =
+        element.value is VcFile
 
-    override fun isAlwaysLeaf(element: StructureViewTreeElement) = when (element.value) {
+    override fun isAlwaysLeaf(element: StructureViewTreeElement): Boolean = when (element.value) {
         is VcFile,
         is VcDefClass,
         is VcDefClassView,
@@ -36,13 +37,12 @@ class VcStructureViewModel(editor: Editor?, file: VcFile)
         is VcConstructor -> true
         else -> throw IllegalStateException()
     }
-
 }
 
 private class VcStructureViewElement(val psi: VcCompositeElement)
     : StructureViewTreeElement, Navigatable by (psi as NavigatablePsiElement) {
 
-    override fun getValue() = psi
+    override fun getValue(): Any = psi
 
     override fun getPresentation(): ItemPresentation = getPresentationForStructure(psi)
 

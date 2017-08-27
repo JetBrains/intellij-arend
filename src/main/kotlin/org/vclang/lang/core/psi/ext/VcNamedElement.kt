@@ -41,10 +41,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getNameIdentifier(): VcCompositeElement? = findChildByType(VcTypes.IDENTIFIER)
 
-    override fun getName(): String? {
-        val stub = stub
-        return if (stub != null) stub.name else nameIdentifier?.text
-    }
+    override fun getName(): String? = stub?.name ?: nameIdentifier?.text
 
     override fun setName(name: String): PsiElement? {
         nameIdentifier?.replace(VcPsiFactory(project).createIdentifier(name))

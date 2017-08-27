@@ -38,7 +38,8 @@ class VcModuleWizardStep(
                         .filter { projectRoot.findChild(it) == null }
                         .forEach { projectRoot.createChildDirectory(null, it) }
 
-                fun makeVfsUrl(dirName: String) = FileUtil.join(projectRoot.url, dirName)
+                fun makeVfsUrl(dirName: String): String = FileUtil.join(projectRoot.url, dirName)
+
                 VcConstants.ProjectLayout.sources.forEach {
                     contentEntry.addSourceFolder(makeVfsUrl(it), false)
                 }

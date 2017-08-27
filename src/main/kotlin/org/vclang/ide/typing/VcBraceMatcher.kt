@@ -12,7 +12,7 @@ import org.vclang.lang.core.psi.VcTypes.*
 
 class VcBraceMatcher : PairedBraceMatcher {
 
-    override fun getPairs() = PAIRS
+    override fun getPairs(): Array<BracePair> = PAIRS
 
     override fun isPairedBracesAllowedBeforeType(
             lbraceType: IElementType,

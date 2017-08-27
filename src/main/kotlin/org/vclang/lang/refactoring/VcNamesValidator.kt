@@ -20,7 +20,7 @@ class VcNamesValidator : NamesValidator {
 
     fun isInfixName(name: String): Boolean = getLexerType(name) == INFIX && !containsComment(name)
 
-    private fun containsComment(name: String) = name.contains("--")
+    private fun containsComment(name: String): Boolean = name.contains("--")
 
     private fun getLexerType(text: String): IElementType? {
         val lexer = VcLexerAdapter()

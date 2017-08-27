@@ -9,8 +9,6 @@ interface Scope {
     val symbols: Set<LookupElement>
 
     fun resolve(name: String): VcCompositeElement?
-
-    class InvalidScopeException : RuntimeException()
 }
 
 class FilteredScope(
