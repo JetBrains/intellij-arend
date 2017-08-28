@@ -3,17 +3,18 @@ package org.vclang.lang.core.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FilenameIndex
-import com.intellij.psi.search.GlobalSearchScope
 import org.vclang.lang.VcFileType
-import org.vclang.lang.core.psi.VcFile
-import org.vclang.lang.core.psi.VcModuleName
-import org.vclang.lang.core.psi.VcNsCmdRoot
+import org.vclang.lang.core.getPsiFor
+import org.vclang.lang.core.psi.*
 import org.vclang.lang.core.resolve.*
 
-abstract class VcModulePathImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
+abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcModuleName {
     override val namespace: Namespace
-        get() = NamespaceProvider.forModulePath(parseModulePath(modulePath.text), project)
+        get() {
+            val module = reference.resolve()
+            return module?.namespace ?: EmptyNamespace
+        }
 
     override val referenceNameElement: VcCompositeElement
         get() = this
@@ -24,21 +25,21 @@ abstract class VcModulePathImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
     override fun getName(): String = referenceName
 
     override fun getReference(): VcReference = object : VcReferenceBase<VcModuleName>(
-            this@VcModulePathImplMixin
+            this@VcModuleNameImplMixin
     ) {
 
         override fun resolve(): VcCompositeElement? {
             val path = parseModulePath(modulePath.text)
-            val file = FilenameIndex.getVirtualFilesByName(
-                    project,
-                    "${path.last()}.${VcFileType.defaultExtension}",
-                    GlobalSearchScope.allScope(project)
-            ).first()
-            return PsiManager.getInstance(project).findFile(file)?.firstChild as? VcCompositeElement
+            var virtualFile = sourceRoot ?: contentRoot
+            for (dir in path.dropLast(1)) {
+                virtualFile = virtualFile?.findChild(dir)
+            }
+            virtualFile = virtualFile?.findChild("${path.last()}.${VcFileType.defaultExtension}")
+            return project.getPsiFor(virtualFile) as? VcCompositeElement
         }
 
         override fun getVariants(): Array<Any> {
-            val project = this@VcModulePathImplMixin.project
+            val project = this@VcModuleNameImplMixin.project
             val virtualFiles = FilenameIndex.getAllFilesByExt(project, VcFileType.defaultExtension)
             val psiFiles = virtualFiles.map { PsiManager.getInstance(project).findFile(it) }
             val modules = psiFiles.filterIsInstance<VcFile>()
@@ -53,7 +54,5 @@ abstract class VcModulePathImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
 abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                      VcNsCmdRoot {
     override val namespace: Namespace
-        get() = identifier?.let { NamespaceProvider.forModulePath(listOf(it.text), project) }
-                ?: moduleName?.namespace
-                ?: EmptyNamespace
+        get() = moduleName?.namespace ?: EmptyNamespace
 }

@@ -111,25 +111,6 @@ object NamespaceProvider {
         return namespace
     }
 
-    fun forModulePath(
-            pathParts: List<String>,
-            project: Project,
-            namespace: SimpleNamespace = SimpleNamespace()
-    ): Namespace {
-        val virtualFiles = FilenameIndex.getVirtualFilesByName(
-                project,
-                "${pathParts.last()}.${VcFileType.defaultExtension}",
-                GlobalSearchScope.allScope(project)
-        )
-        virtualFiles.first()?.let {
-            val file = PsiManager.getInstance(project).findFile(it)
-            val statements = file?.firstChild as? VcStatements
-            statements?.namespace?.let { namespace.putAll(it as SimpleNamespace) }
-
-        }
-        return namespace
-    }
-
     private fun forTelescope(
             teles: Collection<VcTele>,
             namespace: SimpleNamespace = SimpleNamespace()
