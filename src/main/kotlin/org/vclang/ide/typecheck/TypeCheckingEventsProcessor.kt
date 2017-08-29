@@ -4,7 +4,7 @@ import com.intellij.execution.testframework.sm.runner.GeneralToSMTRunnerEventsCo
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.project.Project
 
-class TypecheckEventsProcessor(
+class TypeCheckingEventsProcessor(
         project: Project,
         testsRootNode: SMTestProxy.SMRootTestProxy,
         testFrameworkName: String

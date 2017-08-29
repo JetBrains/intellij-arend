@@ -9,16 +9,16 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import org.vclang.ide.icons.VcIcons
 
-class TypecheckConfigurationType : ConfigurationTypeBase(
-        "TypecheckRunConfiguration",
-        "Vclang Typecheck",
-        "Vclang typechecking run configuration",
+class TypeCheckConfigurationType : ConfigurationTypeBase(
+        "TypeCheckRunConfiguration",
+        "Vclang TypeCheck",
+        "Vclang type checking run configuration",
         VcIcons.VCLANG
 ) {
     init {
         addFactory(object : ConfigurationFactory(this) {
             override fun createTemplateConfiguration(project: Project): RunConfiguration =
-                    TypecheckConfiguration(project, "Vclang", this)
+                    TypeCheckConfiguration(project, "Vclang", this)
 
             override fun configureBeforeRunTaskDefaults(
                     providerID: Key<out BeforeRunTask<BeforeRunTask<*>>>,
@@ -32,7 +32,4 @@ class TypecheckConfigurationType : ConfigurationTypeBase(
             override fun isConfigurationSingletonByDefault(): Boolean = true
         })
     }
-
-    val factory: ConfigurationFactory
-        get() = configurationFactories.single()
 }

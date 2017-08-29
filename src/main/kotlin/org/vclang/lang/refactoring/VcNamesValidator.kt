@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.tree.IElementType
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.VC_KEYWORDS
-import org.vclang.lang.core.psi.VcTypes.*
+import org.vclang.lang.core.psi.VcElementTypes.*
 
 class VcNamesValidator : NamesValidator {
 

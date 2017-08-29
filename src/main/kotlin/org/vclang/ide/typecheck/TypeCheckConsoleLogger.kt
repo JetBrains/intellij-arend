@@ -13,7 +13,7 @@ import com.jetbrains.jetpad.vclang.error.doc.*
 import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
 import org.vclang.lang.core.Surrogate
 
-class TypecheckConsoleLogger(
+class TypeCheckConsoleLogger(
         private val sourceInfoProvider: SourceInfoProvider<VcSourceIdT>
 ) : ErrorReporter {
     var console: ConsoleView? = null

@@ -8,7 +8,7 @@ import com.intellij.psi.tree.IElementType
 import org.vclang.ide.colors.VcHighlightingColors
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.VC_KEYWORDS
-import org.vclang.lang.core.psi.VcTypes.*
+import org.vclang.lang.core.psi.VcElementTypes.*
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 
 class VcSyntaxHighlighter : SyntaxHighlighterBase() {

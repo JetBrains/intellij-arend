@@ -1,6 +1,6 @@
 package org.vclang.ide.typecheck.execution
 
-data class TypecheckCommand(
+data class TypeCheckCommand(
         val modulePath: String = "",
-        val definitionName: String = ""
+        val definitionFullName: String = ""
 )

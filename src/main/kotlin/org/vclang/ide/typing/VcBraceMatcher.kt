@@ -8,7 +8,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.lang.core.psi.VC_COMMENTS
 import org.vclang.lang.core.psi.VC_WHITE_SPACES
-import org.vclang.lang.core.psi.VcTypes.*
+import org.vclang.lang.core.psi.VcElementTypes.*
 
 class VcBraceMatcher : PairedBraceMatcher {
 

@@ -17,31 +17,19 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerUIActionsHandl
 import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.vfs.LocalFileSystem
-import org.vclang.ide.typecheck.TypecheckEventsProcessor
-import org.vclang.ide.typecheck.TypecheckerFrontend
-import org.vclang.ide.typecheck.execution.TypecheckCommand
-import org.vclang.ide.typecheck.execution.process.TypecheckProcessHandler
-import org.vclang.lang.core.getPsiFor
-import org.vclang.lang.core.psi.contentRoot
-import org.vclang.lang.core.psi.sourceRoot
-import java.nio.file.Paths
+import org.vclang.ide.typecheck.TypeCheckingEventsProcessor
+import org.vclang.ide.typecheck.TypeCheckingService
+import org.vclang.ide.typecheck.execution.TypeCheckCommand
+import org.vclang.ide.typecheck.execution.process.TypeCheckProcessHandler
 
-class TypecheckRunState(
+class TypeCheckRunState(
         environment: ExecutionEnvironment,
-        private val command: TypecheckCommand
+        private val command: TypeCheckCommand
 ) : CommandLineState(environment) {
 
-    override fun startProcess(): TypecheckProcessHandler {
-        val project = environment.project
-        val moduleFile = LocalFileSystem.getInstance().findFileByPath(command.modulePath)
-        val modulePsi = project.getPsiFor(moduleFile)
-        val sourceRootFile = modulePsi?.sourceRoot
-                ?: modulePsi?.contentRoot
-                ?: throw IllegalStateException()
-        val sourceRoot = Paths.get(sourceRootFile.path)
-        val frontend = TypecheckerFrontend(project, sourceRoot)
-        return TypecheckProcessHandler(frontend, command)
+    override fun startProcess(): TypeCheckProcessHandler {
+        val service = TypeCheckingService.getInstance(environment.project)
+        return TypeCheckProcessHandler(environment.project, service, command)
     }
 
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
@@ -59,7 +47,7 @@ class TypecheckRunState(
     override fun createConsole(executor: Executor): ConsoleView? {
         val runConfiguration = environment.runnerAndConfigurationSettings?.configuration
             ?: return null
-        val testFrameworkName = "VclangTypecheckRunner"
+        val testFrameworkName = "VclangTypeCheckRunner"
         val consoleProperties = SMTRunnerConsoleProperties(
             runConfiguration,
             testFrameworkName,
@@ -92,13 +80,13 @@ class TypecheckRunState(
             processHandler: ProcessHandler,
             testFrameworkName: String
     ) {
-        val eventsProcessor = TypecheckEventsProcessor(
+        val eventsProcessor = TypeCheckingEventsProcessor(
                 consoleProperties.project,
                 resultsViewer.testsRootNode,
                 testFrameworkName
         )
         eventsProcessor.addEventsListener(resultsViewer)
-        if (processHandler !is TypecheckProcessHandler) throw IllegalStateException()
+        if (processHandler !is TypeCheckProcessHandler) throw IllegalStateException()
         processHandler.eventsProcessor = eventsProcessor
 
         val uiActionsHandler = SMTRunnerUIActionsHandler(consoleProperties)

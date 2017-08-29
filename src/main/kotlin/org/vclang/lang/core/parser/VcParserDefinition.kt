@@ -13,8 +13,8 @@ import com.intellij.psi.tree.TokenSet
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.VC_COMMENTS
 import org.vclang.lang.core.psi.VC_WHITE_SPACES
+import org.vclang.lang.core.psi.VcElementTypes
 import org.vclang.lang.core.psi.VcFile
-import org.vclang.lang.core.psi.VcTypes
 import org.vclang.lang.core.stubs.VcFileStub
 
 class VcParserDefinition : ParserDefinition {
@@ -38,5 +38,6 @@ class VcParserDefinition : ParserDefinition {
             right: ASTNode
     ): ParserDefinition.SpaceRequirements = ParserDefinition.SpaceRequirements.MAY
 
-    override fun createElement(node: ASTNode): PsiElement = VcTypes.Factory.createElement(node)
+    override fun createElement(node: ASTNode): PsiElement =
+            VcElementTypes.Factory.createElement(node)
 }

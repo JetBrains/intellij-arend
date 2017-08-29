@@ -9,7 +9,7 @@ val Abstract.Definition.fullyQualifiedName: String
 val Abstract.Definition.ancestors: Sequence<Abstract.Definition>
     get() = generateSequence(this) { it.parentDefinition }
 
-val VcDefinition.isTypecheckable
+val VcDefinition.isTypeCheckable
     get() = this is VcDefClass
             || this is VcDefData
             || this is VcDefInstance

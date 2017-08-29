@@ -8,8 +8,8 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.vclang.ide.presentation.getPresentation
+import org.vclang.lang.core.psi.VcElementTypes
 import org.vclang.lang.core.psi.VcPsiFactory
-import org.vclang.lang.core.psi.VcTypes
 import org.vclang.lang.core.stubs.VcNamedStub
 
 interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement
@@ -17,7 +17,8 @@ interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, Navigatab
 abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
                                                   VcNamedElement {
 
-    override fun getNameIdentifier(): VcCompositeElement? = findChildByType(VcTypes.IDENTIFIER)
+    override fun getNameIdentifier(): VcCompositeElement? =
+            findChildByType(VcElementTypes.IDENTIFIER)
 
     override fun getName(): String? = nameIdentifier?.text
 
@@ -39,7 +40,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getNameIdentifier(): VcCompositeElement? = findChildByType(VcTypes.IDENTIFIER)
+    override fun getNameIdentifier(): VcCompositeElement? =
+            findChildByType(VcElementTypes.IDENTIFIER)
 
     override fun getName(): String? = stub?.name ?: nameIdentifier?.text
 

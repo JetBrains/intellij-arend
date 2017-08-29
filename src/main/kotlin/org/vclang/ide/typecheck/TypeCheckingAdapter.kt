@@ -10,26 +10,26 @@ import com.jetbrains.jetpad.vclang.term.BaseAbstractVisitor
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
-import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
+import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import org.vclang.lang.core.parser.fullyQualifiedName
 import java.util.function.Function
 
-class TypecheckingAdapter(
+class TypeCheckingAdapter(
         state: TypecheckerState,
         staticNsProvider: StaticNamespaceProvider,
         dynamicNsProvider: DynamicNamespaceProvider,
         opens: Function<Abstract.Definition, Iterable<OpenCommand>>,
         errorReporter: ErrorReporter,
-        dependencyListener: DependencyListener,
-        private val eventsProcessor: TypecheckEventsProcessor
+        private val dependencyListener: DependencyCollector,
+        private val eventsProcessor: TypeCheckingEventsProcessor
 ) {
-    private val typechecking = Typechecking(
+    private val typeChecking = Typechecking(
             state,
             staticNsProvider,
             dynamicNsProvider,
             opens,
             errorReporter,
-            MyTypecheckedReporter(),
+            MyTypeCheckedReporter(),
             dependencyListener
     )
 
@@ -37,20 +37,30 @@ class TypecheckingAdapter(
         eventsProcessor.onTestsReporterAttached()
     }
 
-    fun typecheckDefinition(definition: Abstract.Definition) {
+    fun typeCheckDefinition(definition: Abstract.Definition) {
         eventsProcessor.onTestStarted(TestStartedEvent(definition.fullyQualifiedName, null))
-        definition.accept(TestStartVisitor(), null)
-        typechecking.typecheckDefinitions(listOf(definition))
+        val definitions = mutableSetOf<Abstract.Definition>()
+        definition.accept(TestCollectVisitor(), definitions)
+        definitions.forEach {
+            dependencyListener.update(it)
+            eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
+        }
+        typeChecking.typecheckDefinitions(listOf(definition))
     }
 
-    fun typecheckModule(module: Abstract.ClassDefinition) {
+    fun typeCheckModule(module: Abstract.ClassDefinition) {
         eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name!!, null))
-        module.accept(TestStartVisitor(), null)
-        typechecking.typecheckModules(listOf(module))
+        val definitions = mutableSetOf<Abstract.Definition>()
+        module.accept(TestCollectVisitor(), definitions)
+        definitions.forEach {
+            dependencyListener.update(it)
+            eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
+        }
+        typeChecking.typecheckModules(listOf(module))
         eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.name!!))
     }
 
-    private inner class MyTypecheckedReporter : TypecheckedReporter {
+    private inner class MyTypeCheckedReporter : TypecheckedReporter {
         override fun typecheckingSucceeded(definition: Abstract.Definition) {
             val testName = definition.fullyQualifiedName
             if (eventsProcessor.isStarted(testName)) {
@@ -67,22 +77,23 @@ class TypecheckingAdapter(
         }
     }
 
-    private inner class TestStartVisitor : BaseAbstractVisitor<Void, Void>() {
+    private inner class TestCollectVisitor
+        : BaseAbstractVisitor<MutableSet<Abstract.Definition>, Void>() {
 
-        override fun visitFunction(definition: Abstract.FunctionDefinition, params: Void?): Void? {
-            definition.globalDefinitions.forEach {
-                eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
-            }
+        override fun visitFunction(
+            definition: Abstract.FunctionDefinition,
+            params: MutableSet<Abstract.Definition>
+        ): Void? {
+            params.addAll(definition.globalDefinitions)
             return null
         }
 
-        override fun visitClass(definition: Abstract.ClassDefinition, params: Void?): Void? {
-            definition.globalDefinitions.forEach {
-                eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
-            }
-            definition.instanceDefinitions.forEach {
-                eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
-            }
+        override fun visitClass(
+            definition: Abstract.ClassDefinition,
+            params: MutableSet<Abstract.Definition>
+        ): Void? {
+            params.addAll(definition.globalDefinitions)
+            params.addAll(definition.instanceDefinitions)
             return null
         }
     }

@@ -11,8 +11,8 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.vclang.lang.core.psi.*
-import org.vclang.lang.core.psi.VcTypes.LBRACE
-import org.vclang.lang.core.psi.VcTypes.RBRACE
+import org.vclang.lang.core.psi.VcElementTypes.LBRACE
+import org.vclang.lang.core.psi.VcElementTypes.RBRACE
 
 class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
@@ -65,7 +65,7 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
         override fun visitWhere(o: VcWhere) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitComment(comment: PsiComment) {
-            if (comment.tokenType == VcTypes.BLOCK_COMMENT) fold(comment)
+            if (comment.tokenType == VcElementTypes.BLOCK_COMMENT) fold(comment)
         }
 
         private fun fold(element: PsiElement) {

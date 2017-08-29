@@ -8,28 +8,28 @@ import com.intellij.ui.components.Label
 import com.intellij.ui.layout.LayoutBuilder
 import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
-import org.vclang.ide.typecheck.execution.TypecheckCommand
-import org.vclang.ide.typecheck.execution.configurations.TypecheckConfiguration
+import org.vclang.ide.typecheck.execution.TypeCheckCommand
+import org.vclang.ide.typecheck.execution.configurations.TypeCheckConfiguration
 import org.vclang.lang.VcFileType
 import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.JTextField
 
-class TypecheckRunConfigurationEditor(
+class TypeCheckRunConfigurationEditor(
         private val project: Project
-) : SettingsEditor<TypecheckConfiguration>() {
+) : SettingsEditor<TypeCheckConfiguration>() {
     private val modulePathComponent = TextFieldWithBrowseButton()
-    private val definitionNameComponent = JTextField()
+    private val definitionNameComponent = JTextField()  // TODO: replace text field with some structure browser
 
-    override fun resetEditorFrom(configuration: TypecheckConfiguration) {
-        configuration.vclangTypecheckCommand.let {
+    override fun resetEditorFrom(configuration: TypeCheckConfiguration) {
+        configuration.vclangTypeCheckCommand.let {
             modulePathComponent.text = it.modulePath
-            definitionNameComponent.text = it.definitionName
+            definitionNameComponent.text = it.definitionFullName
         }
     }
 
-    override fun applyEditorTo(configuration: TypecheckConfiguration) {
-        configuration.vclangTypecheckCommand = TypecheckCommand(
+    override fun applyEditorTo(configuration: TypeCheckConfiguration) {
+        configuration.vclangTypeCheckCommand = TypeCheckCommand(
                 modulePathComponent.text,
                 definitionNameComponent.text
         )

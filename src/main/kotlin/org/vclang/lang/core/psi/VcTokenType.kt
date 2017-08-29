@@ -4,7 +4,7 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.lang.VcLanguage
-import org.vclang.lang.core.psi.VcTypes.*
+import org.vclang.lang.core.psi.VcElementTypes.*
 
 class VcTokenType(debugName: String) : IElementType(debugName, VcLanguage)
 
@@ -17,6 +17,6 @@ val VC_KEYWORDS = TokenSet.create(
         DEFAULT_KW, LP_KW, LH_KW, SUC_KW, MAX_KW
 )
 
-val VC_COMMENTS = TokenSet.create(VcTypes.LINE_COMMENT, VcTypes.BLOCK_COMMENT)
+val VC_COMMENTS = TokenSet.create(VcElementTypes.LINE_COMMENT, VcElementTypes.BLOCK_COMMENT)
 
 val VC_WHITE_SPACES = TokenSet.create(TokenType.WHITE_SPACE)

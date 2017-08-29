@@ -9,10 +9,9 @@ import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespace
 import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespaceProvider
 import com.jetbrains.jetpad.vclang.term.Abstract
 import org.vclang.lang.core.psi.VcFile
-import java.util.*
 
 class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
-    private val registered = HashMap<Abstract.ClassDefinition, ModuleNamespace>()
+    private val registered = mutableMapOf<Abstract.ClassDefinition, ModuleNamespace>()
     private var root = VcModuleNamespace()
 
     override fun forModule(definition: Abstract.ClassDefinition): ModuleNamespace? =

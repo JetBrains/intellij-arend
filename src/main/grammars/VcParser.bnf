@@ -4,7 +4,7 @@
     implements = 'org.vclang.lang.core.psi.ext.VcCompositeElement'
     extends = 'org.vclang.lang.core.psi.ext.VcCompositeElementImpl'
 
-    elementTypeHolderClass = "org.vclang.lang.core.psi.VcTypes"
+    elementTypeHolderClass = "org.vclang.lang.core.psi.VcElementTypes"
 
     elementTypeClass = "org.vclang.lang.core.psi.VcCompositeElementType"
     tokenTypeClass = "org.vclang.lang.core.psi.VcTokenType"
@@ -309,7 +309,7 @@ fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
 
 moduleName ::= MODULE_PATH {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
-    mixin = "org.vclang.lang.core.psi.ext.VcModulePathImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.VcModuleNameImplMixin"
 }
 
 atom ::= literal
