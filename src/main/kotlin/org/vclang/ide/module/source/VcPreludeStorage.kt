@@ -67,7 +67,7 @@ class VcPreludeStorage(
     }
 
     override fun getAvailableVersion(sourceId: SourceId): Long =
-            if (sourceId === preludeSourceId) 0 else 1
+            if (sourceId !== preludeSourceId) 0 else 1
 
     inner class SourceId : com.jetbrains.jetpad.vclang.module.source.SourceId {
 
