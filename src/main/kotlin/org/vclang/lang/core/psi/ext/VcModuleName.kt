@@ -6,7 +6,10 @@ import com.intellij.psi.search.FilenameIndex
 import org.vclang.lang.VcFileType
 import org.vclang.lang.core.getPsiFor
 import org.vclang.lang.core.psi.*
-import org.vclang.lang.core.resolve.*
+import org.vclang.lang.core.resolve.EmptyNamespace
+import org.vclang.lang.core.resolve.Namespace
+import org.vclang.lang.core.resolve.VcReference
+import org.vclang.lang.core.resolve.VcReferenceBase
 
 abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcModuleName {
@@ -43,7 +46,7 @@ abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
             val virtualFiles = FilenameIndex.getAllFilesByExt(project, VcFileType.defaultExtension)
             val psiFiles = virtualFiles.map { PsiManager.getInstance(project).findFile(it) }
             val modules = psiFiles.filterIsInstance<VcFile>()
-            return modules.map { it.modulePath }.map { it.toString() }.toTypedArray()
+            return modules.map { it.relativeModulePath }.map { it.toString() }.toTypedArray()
         }
     }
 

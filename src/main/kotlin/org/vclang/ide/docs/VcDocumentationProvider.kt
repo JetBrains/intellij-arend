@@ -14,7 +14,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
                 element.getNameIdentifier()?.text?.let { append(it) }
                 element.getContainingFile().originalFile.let {
                     append(" <i>defined in</i> ")
-                    append((it as? VcFile)?.modulePath ?: it.name)
+                    append((it as? VcFile)?.relativeModulePath ?: it.name)
                 }
             }
         } else {

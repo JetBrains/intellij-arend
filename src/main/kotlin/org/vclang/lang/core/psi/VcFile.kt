@@ -9,7 +9,7 @@ import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
 import org.vclang.lang.VcFileType
 import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.Surrogate
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.ext.VcCompositeElement
 import org.vclang.lang.core.resolve.EmptyNamespace
 import org.vclang.lang.core.resolve.NamespaceScope
@@ -23,15 +23,14 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                                                Abstract.ClassDefinition,
                                                Surrogate.StatementCollection {
     private var globalStatements = emptyList<Surrogate.Statement>()
-    val modulePath: ModulePath
+    val relativeModulePath: ModulePath
         get() {
-            val sourceRoot = sourceRoot ?: contentRoot
-            val sourcePath = sourceRoot?.let { Paths.get(it.path) }
+            val sourceRoot = sourceRoot ?: contentRoot ?: error("Failed to find source root")
+            val sourcePath = Paths.get(sourceRoot.path)
             val modulePath = Paths.get(
                 virtualFile.path.removeSuffix('.' + VcFileType.defaultExtension)
             )
-            val relativeModulePath = sourcePath?.relativize(modulePath)
-            relativeModulePath ?: throw IllegalStateException()
+            val relativeModulePath = sourcePath.relativize(modulePath)
             return ModulePath(relativeModulePath.map { it.toString() })
         }
 
@@ -79,7 +78,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.FunctionDefinition,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             definition.globalDefinitions.forEach { it.accept(this, params)?.let { return it } }
             return null
         }
@@ -88,7 +87,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.ClassField,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             return null
         }
 
@@ -96,7 +95,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.DataDefinition,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             definition.constructorClauses
                     .flatMap { it.constructors }
                     .forEach { it.accept(this, params)?.let { return it } }
@@ -107,7 +106,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.Constructor,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             return null
         }
 
@@ -115,7 +114,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.ClassDefinition,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             definition.globalDefinitions.forEach { it.accept(this, params)?.let { return it } }
             definition.instanceDefinitions.forEach { it.accept(this, params)?.let { return it } }
             definition.fields.forEach { it.accept(this, params)?.let { return it } }
@@ -141,7 +140,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                 definition: Abstract.ClassViewInstance,
                 params: String
         ): Abstract.Definition? {
-            if (definition.fullyQualifiedName == params) return definition
+            if (definition.fullName == params) return definition
             return null
         }
     }

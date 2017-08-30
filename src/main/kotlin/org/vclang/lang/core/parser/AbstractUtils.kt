@@ -3,7 +3,7 @@ package org.vclang.lang.core.parser
 import com.jetbrains.jetpad.vclang.term.Abstract
 import org.vclang.lang.core.psi.*
 
-val Abstract.Definition.fullyQualifiedName: String
+val Abstract.Definition.fullName: String
     get() = ancestors.toList().reversed().map { it.name }.joinToString(".")
 
 val Abstract.Definition.ancestors: Sequence<Abstract.Definition>

@@ -10,7 +10,7 @@ import org.vclang.lang.core.psi.ext.VcNamedElement
 fun getPresentation(psi: VcCompositeElement): ItemPresentation {
     val location = run {
         val module = psi.containingFile as? VcFile
-        "(in ${module?.modulePath ?: psi.containingFile.name})"
+        "(in ${module?.relativeModulePath ?: psi.containingFile.name})"
     }
 
     val name = presentableName(psi)
@@ -21,7 +21,7 @@ fun getPresentationForStructure(psi: VcCompositeElement): ItemPresentation =
         PresentationData(presentableName(psi), null, psi.getIcon(0), null)
 
 private fun presentableName(psi: PsiElement): String? = when (psi) {
-    is VcFile -> psi.modulePath.toString()
+    is VcFile -> psi.relativeModulePath.toString()
     is VcNamedElement -> psi.name
     else -> null
 }

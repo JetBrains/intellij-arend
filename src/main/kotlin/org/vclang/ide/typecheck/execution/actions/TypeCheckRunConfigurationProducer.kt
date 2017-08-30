@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import org.vclang.ide.typecheck.execution.TypeCheckCommand
 import org.vclang.ide.typecheck.execution.configurations.TypeCheckConfiguration
 import org.vclang.ide.typecheck.execution.configurations.TypeCheckConfigurationType
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcFile
 import org.vclang.lang.core.psi.parentOfType
@@ -25,14 +25,14 @@ class TypeCheckRunConfigurationProducer
         if (definition is VcDefinition) {
             val vclangTypeCheckCommand = TypeCheckCommand(
                     definition.containingFile.virtualFile.path,
-                    definition.fullyQualifiedName
+                    definition.fullName
             )
             return configuration.configurationModule.module == context.module
-                    && configuration.name == "Type check ${definition.fullyQualifiedName}"
+                    && configuration.name == "Type check ${definition.fullName}"
                     && configuration.vclangTypeCheckCommand == vclangTypeCheckCommand
         } else if (definition is VcFile) {
             val vclangTypeCheckCommand = TypeCheckCommand(definition.virtualFile.path)
-            val name = "Type check ${definition.modulePath}"
+            val name = "Type check ${definition.relativeModulePath}"
             return configuration.configurationModule.module == context.module
                     && configuration.name == name
                     && configuration.vclangTypeCheckCommand == vclangTypeCheckCommand
@@ -51,15 +51,15 @@ class TypeCheckRunConfigurationProducer
         when (definition) {
             is VcDefinition -> {
                 sourceElement.set(definition)
-                configuration.name = "Type check ${definition.fullyQualifiedName}"
+                configuration.name = "Type check ${definition.fullName}"
                 configuration.vclangTypeCheckCommand = TypeCheckCommand(
                     definition.containingFile.virtualFile.path,
-                    definition.fullyQualifiedName
+                    definition.fullName
                 )
             }
             is VcFile -> {
                 sourceElement.set(definition)
-                configuration.name = "Type check ${definition.modulePath}"
+                configuration.name = "Type check ${definition.relativeModulePath}"
                 configuration.vclangTypeCheckCommand = TypeCheckCommand(definition.virtualFile.path)
             }
             else -> return false

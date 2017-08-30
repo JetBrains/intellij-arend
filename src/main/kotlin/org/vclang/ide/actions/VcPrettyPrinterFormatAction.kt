@@ -81,7 +81,7 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
 
         private fun rebuild(module: VcFile) {
             val visitor = AbstractTreeBuildVisitor(
-                    SourceId { module.modulePath },
+                    SourceId { module.relativeModulePath },
                     DummyErrorReporter()
             )
             visitor.visitModule(module)

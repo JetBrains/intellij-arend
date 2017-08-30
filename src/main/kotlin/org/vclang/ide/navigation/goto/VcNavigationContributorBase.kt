@@ -7,7 +7,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.stubs.StubIndexKey
 import com.jetbrains.jetpad.vclang.term.Abstract
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.ext.VcNamedElement
 
 abstract class VcNavigationContributorBase<T> protected constructor(
@@ -42,7 +42,7 @@ abstract class VcNavigationContributorBase<T> protected constructor(
     }
 
     override fun getQualifiedName(item: NavigationItem?): String? =
-            (item as? Abstract.Definition)?.fullyQualifiedName
+            (item as? Abstract.Definition)?.fullName
 
     override fun getQualifiedNameSeparator(): String = "."
 }

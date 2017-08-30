@@ -11,7 +11,7 @@ import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import java.util.function.Function
 
 class TypeCheckingAdapter(
@@ -38,12 +38,12 @@ class TypeCheckingAdapter(
     }
 
     fun typeCheckDefinition(definition: Abstract.Definition) {
-        eventsProcessor.onTestStarted(TestStartedEvent(definition.fullyQualifiedName, null))
+        eventsProcessor.onTestStarted(TestStartedEvent(definition.fullName, null))
         val definitions = mutableSetOf<Abstract.Definition>()
         definition.accept(TestCollectVisitor(), definitions)
         definitions.forEach {
             dependencyListener.update(it)
-            eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
+            eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null))
         }
         typeChecking.typecheckDefinitions(listOf(definition))
     }
@@ -54,7 +54,7 @@ class TypeCheckingAdapter(
         module.accept(TestCollectVisitor(), definitions)
         definitions.forEach {
             dependencyListener.update(it)
-            eventsProcessor.onTestStarted(TestStartedEvent(it.fullyQualifiedName, null))
+            eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null))
         }
         typeChecking.typecheckModules(listOf(module))
         eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.name!!))
@@ -62,14 +62,14 @@ class TypeCheckingAdapter(
 
     private inner class MyTypeCheckedReporter : TypecheckedReporter {
         override fun typecheckingSucceeded(definition: Abstract.Definition) {
-            val testName = definition.fullyQualifiedName
+            val testName = definition.fullName
             if (eventsProcessor.isStarted(testName)) {
                 eventsProcessor.onTestFinished(TestFinishedEvent(testName, null))
             }
         }
 
         override fun typecheckingFailed(definition: Abstract.Definition) {
-            val testName = definition.fullyQualifiedName
+            val testName = definition.fullName
             if (eventsProcessor.isStarted(testName)) {
                 eventsProcessor.onTestFailure(TestFailedEvent(testName, "", null, true, null, null))
                 eventsProcessor.onTestFinished(TestFinishedEvent(testName, null))

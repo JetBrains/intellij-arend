@@ -5,7 +5,7 @@ import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.term.Abstract
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.*
 import org.vclang.lang.core.psi.ext.VcNamedElement
 
@@ -30,13 +30,13 @@ class VcFindUsagesProvider : FindUsagesProvider {
     }
 
     override fun getDescriptiveName(element: PsiElement): String = when (element) {
-        is Abstract.Definition -> element.fullyQualifiedName
+        is Abstract.Definition -> element.fullName
         is VcNamedElement -> element.name ?: "<unnamed>"
         else -> ""
     }
 
     override fun getNodeText(element: PsiElement, useFullName: Boolean): String = when (element) {
-        is Abstract.Definition -> if (useFullName) element.fullyQualifiedName else element.name!!
+        is Abstract.Definition -> if (useFullName) element.fullName else element.name!!
         is VcNamedElement -> element.name!!
         else -> ""
     }
