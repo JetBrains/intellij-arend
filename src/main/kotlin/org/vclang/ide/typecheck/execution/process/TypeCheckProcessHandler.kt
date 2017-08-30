@@ -4,16 +4,13 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.project.Project
 import org.vclang.ide.typecheck.TypeCheckingEventsProcessor
 import org.vclang.ide.typecheck.TypeCheckingService
 import org.vclang.ide.typecheck.execution.TypeCheckCommand
-import org.vclang.ide.typecheck.relativeToSource
 import java.io.OutputStream
 import java.nio.file.Paths
 
 class TypeCheckProcessHandler(
-        private val project: Project,
         private val typeChecker: TypeCheckingService,
         private val command: TypeCheckCommand
 ) : ProcessHandler() {
@@ -31,16 +28,12 @@ class TypeCheckProcessHandler(
     override fun startNotify() {
         super.startNotify()
         ApplicationManager.getApplication().runReadAction {
-            val modulePath = Paths.get(command.modulePath).relativeToSource(project)
-            var exitCode = 0
             try {
-                typeChecker.typeCheck(modulePath, command.definitionFullName)
-                exitCode = if (typeChecker.hasErrors) 1 else 0
+                typeChecker.typeCheck(Paths.get(command.modulePath), command.definitionFullName)
             } catch (e: Exception) {
                 e.message?.let { console?.print(it, ConsoleViewContentType.ERROR_OUTPUT) }
-                exitCode = 1
             } finally {
-                notifyProcessTerminated(exitCode)
+                notifyProcessTerminated(0)
             }
         }
     }

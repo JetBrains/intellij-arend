@@ -1,15 +1,15 @@
 package org.vclang.ide.typecheck
 
 import com.intellij.execution.ui.ConsoleView
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
-import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.CacheManager
-import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
-import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
+import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.module.caching.*
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
@@ -24,9 +24,10 @@ import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.ide.module.source.VcFileStorage
 import org.vclang.ide.module.source.VcPreludeStorage
 import org.vclang.lang.VcFileType
-import org.vclang.lang.core.parser.fullyQualifiedName
+import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.VcDefinition
 import org.vclang.lang.core.psi.VcFile
+import org.vclang.lang.core.psi.ancestors
 import org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter
 import org.vclang.lang.core.resolve.namespace.VcDynamicNamespaceProvider
 import org.vclang.lang.core.resolve.namespace.VcModuleNamespaceProvider
@@ -42,17 +43,27 @@ typealias VcSourceIdT = CompositeSourceSupplier<
         VcPreludeStorage.SourceId
         >.SourceId
 
-class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
-    private val sourceInfoProvider = VcSourceInfoProvider(sourceRootPath)
-
-    private val logger = TypecheckConsoleLogger(sourceInfoProvider)
+interface TypeCheckingService {
     var console: ConsoleView?
+    var eventsProcessor: TypeCheckingEventsProcessor?
+
+    fun typeCheck(modulePath: Path, definitionFullName: String)
+
+    companion object {
+        fun getInstance(project: Project): TypeCheckingService {
+            val service = ServiceManager.getService(project, TypeCheckingService::class.java)
+            return checkNotNull(service) { "Failed to get TypeCheckingService for $project" }
+        }
+    }
+}
+
+class TypeCheckingServiceImpl(private val project: Project): TypeCheckingService {
+    override var console: ConsoleView?
         get() = logger.console
         set(value) {
             logger.console = value
         }
-    var eventsProcessor: TypecheckEventsProcessor? = null
-    var hasErrors = false
+    override var eventsProcessor: TypeCheckingEventsProcessor? = null
 
     private val moduleNsProvider = VcModuleNamespaceProvider()
     private val staticNsProvider = VcStaticNamespaceProvider
@@ -65,46 +76,51 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             ),
             ModuleResolver { modulePath ->
                 val sourceId = storage.locateModule(modulePath)
-                val definition = loadSource(sourceId)
-                logger.hasErrors = false
-                definition?.let { moduleNsProvider.registerModule(modulePath, it) }
-                definition
+                val module = loadSource(sourceId)
+                module?.let { moduleNsProvider.registerModule(modulePath, it) }
+                module
             }
     )
 
-    private val projectStorage = VcFileStorage(project, sourceRootPath, nameResolver)
+    private val projectStorage = VcFileStorage(project, nameResolver)
     private val preludeStorage = VcPreludeStorage(project, nameResolver)
     private val storage = CompositeStorage<VcFileStorage.SourceId, VcPreludeStorage.SourceId>(
             projectStorage,
             preludeStorage
     )
 
+    private val sourceInfoProvider = VcSourceInfoProvider()
+    private val logger = TypeCheckConsoleLogger(sourceInfoProvider)
+
+    private val persistenceProvider = VcPersistenceProvider()
     private val cacheManager = CacheManager(
-            VcPersistenceProvider(),
-            storage,
-            VcSourceVersionTracker(),
-            sourceInfoProvider
+        persistenceProvider,
+        storage,
+        VcSourceVersionTracker(),
+        sourceInfoProvider
     )
-    private val typecheckerState = cacheManager.typecheckerState
-    private val dependencyCollector = DependencyCollector(typecheckerState)
+    private val typeCheckerState = cacheManager.typecheckerState
+    private val dependencyCollector = DependencyCollector(typeCheckerState)
 
     init {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(TypechekerPsiTreeChangeListener())
+        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+        loadPrelude()
     }
 
-    fun typecheck(modulePath: Path, definitionName: String) {
+    override fun typeCheck(modulePath: Path, definitionFullName: String) {
         try {
-            loadPrelude()
+            ApplicationManager.getApplication().saveAll()
 
             val sourceId = sourceIdByPath(modulePath) ?: return
             val module = loadSource(sourceId) ?: return
+
             try {
                 cacheManager.loadCache(sourceId, module)
             } catch (ignored: CacheLoadingException) {
             }
 
-            val service = TypecheckingAdapter(
-                    typecheckerState,
+            val typeChecking = TypeCheckingAdapter(
+                    typeCheckerState,
                     staticNsProvider,
                     dynamicNsProvider,
                     HasOpens.GET,
@@ -113,50 +129,51 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
                     eventsProcessor!!
             )
 
-            if (definitionName.isEmpty()) {
-                service.typecheckModule(module)
+            if (definitionFullName.isEmpty()) {
+                typeChecking.typeCheckModule(module)
             } else {
-                val definition = module.findDefinitionByFullName(definitionName)
-                definition ?: throw IllegalStateException()
-                service.typecheckDefinition(definition)
+                val definition = module.findDefinitionByFullName(definitionFullName)
+                checkNotNull(definition) { "Definition $definitionFullName not found" }.let {
+                    typeChecking.typeCheckDefinition(it)
+                }
             }
 
-//            for (module in cacheManager.cachedModules) {
-//                if (module.actualSourceId == preludeStorage.preludeSourceId) continue
-//                try {
-//                    cacheManager.persistCache(module)
-//                } catch (e: CachePersistenceException) {
-//                    e.printStackTrace()
-//                }
-//            }
+            cacheManager.cachedModules
+                    .filter { it.actualSourceId !== preludeStorage.preludeSourceId }
+                    .forEach {
+                        try {
+                            cacheManager.persistCache(it)
+                        } catch (e: CachePersistenceException) {
+                            e.printStackTrace()
+                        }
+                    }
         } finally {
-            hasErrors = logger.hasErrors
-            logger.hasErrors = false
             moduleNsProvider.unregisterAllModules()
+            persistenceProvider.clear()
         }
     }
 
-    fun loadPrelude(): Abstract.ClassDefinition {
+    private fun loadPrelude(): Abstract.ClassDefinition {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
-        val prelude = loadSource(sourceId) ?: throw IllegalStateException()
-
+        val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
+
         val preludeNamespace = staticNsProvider.forDefinition(prelude)
         projectStorage.setPreludeNamespace(preludeNamespace)
 
         try {
             cacheManager.loadCache(sourceId, prelude)
         } catch (e: CacheLoadingException) {
-            throw IllegalStateException("Prelude cache is not available")
+            throw IllegalStateException("Prelude cache is not available", e)
         }
 
         Typechecking(
-                typecheckerState,
+                typeCheckerState,
                 staticNsProvider,
                 dynamicNsProvider,
                 HasOpens.GET,
                 DummyErrorReporter(),
-                Prelude.UpdatePreludeReporter(typecheckerState),
+                Prelude.UpdatePreludeReporter(typeCheckerState),
                 object : DependencyListener {}
         ).typecheckModules(listOf(prelude))
 
@@ -167,12 +184,15 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
             storage.loadSource(sourceId, logger)?.definition as? VcFile
 
     private fun sourceIdByPath(path: Path): VcSourceIdT? {
-        val fileName = path.fileName.toString()
-        if (!fileName.endsWith(VcFileType.defaultExtension)) {
-            return null
+        val base = Paths.get(project.basePath)
+        val name = run {
+            val fileName = path.fileName.toString()
+            if (!fileName.endsWith('.' + VcFileType.defaultExtension)) {
+                return null
+            }
+            fileName.removeSuffix('.' + VcFileType.defaultExtension)
         }
-        val name = fileName.removeSuffix('.' + VcFileType.defaultExtension)
-        val sourcePath = path.resolveSibling(name)
+        val sourcePath = base.relativize(path.resolveSibling(name))
 
         val modulePath = VcFileStorage.modulePath(sourcePath)
         if (modulePath == null) {
@@ -190,65 +210,66 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     }
 
     internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
+        private val cache = mutableMapOf<ModulePath, MutableMap<String, Abstract.Definition>>()
+
         override fun getUri(sourceId: VcSourceIdT): URI {
-            try {
-                return if (sourceId.source1 != null) {
-                    URI(
-                            "file",
-                            "",
-                            Paths.get("/").resolve(sourceId.source1.relativeFilePath).toUri().path,
-                            null,
-                            null
-                    )
-                } else if (sourceId.source2 != null) {
-                    URI(
-                            "prelude",
-                            "",
-                            "/",
-                            "",
-                            null
-                    )
-                } else {
-                    throw IllegalStateException()
-                }
-            } catch (e: URISyntaxException) {
-                throw IllegalStateException()
+            return when {
+                sourceId.source1 != null -> URI(
+                        "file",
+                        "",
+                        Paths.get("/", *sourceId.source1.modulePath.toArray()).toString(),
+                        null,
+                        null
+                )
+                sourceId.source2 != null -> URI(
+                        "prelude",
+                        "",
+                        "/",
+                        "",
+                        null
+                )
+                else -> error("Invalid sourceId")
             }
         }
 
         override fun getModuleId(sourceUri: URI): VcSourceIdT? {
-            if (sourceUri.scheme == "file") {
-                if (sourceUri.authority != null) return null
-                try {
-                    val path = Paths.get(URI("file", null, sourceUri.path, null))
-                    val modulePath = VcFileStorage.modulePath(path.root.relativize(path))
-                    modulePath ?: return null
-                    val fileSourceId = projectStorage.locateModule(modulePath)
-                    return fileSourceId?.let { storage.idFromFirst(it) }
-                } catch (e: URISyntaxException) {
-                    return null
-                } catch (e: NumberFormatException) {
-                    return null
+            if (sourceUri.authority != null) return null
+            when (sourceUri.scheme) {
+                "file" -> {
+                    try {
+                        val path = Paths.get(URI("file", null, sourceUri.path, null))
+                        val modulePath = VcFileStorage.modulePath(path.root.relativize(path))
+                        val fileSourceId = modulePath?.let { projectStorage.locateModule(it) }
+                        return fileSourceId?.let { storage.idFromFirst(it) }
+                    } catch (e: URISyntaxException) {
+                    } catch (e: NumberFormatException) {
+                    }
                 }
-            } else if (sourceUri.scheme == "prelude") {
-                if (sourceUri.authority != null || sourceUri.path != "/") return null
-                return storage.idFromSecond(preludeStorage.preludeSourceId)
-            } else {
-                return null
+                "prelude" -> {
+                    if (sourceUri.path == "/") {
+                        return storage.idFromSecond(preludeStorage.preludeSourceId)
+                    }
+                }
             }
+            return null
         }
 
-        override fun getIdFor(definition: Abstract.Definition): String = definition.fullyQualifiedName
+        override fun getIdFor(definition: Abstract.Definition): String = definition.fullName
 
         override fun getFromId(sourceId: VcSourceIdT, id: String): Abstract.Definition? {
             val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
-            val definitions = mutableMapOf<String, Abstract.Definition>()
-            DefinitionIdsCollector.visitClass(moduleNamespace.registeredClass, definitions)
+            val definitions = cache.getOrPut(sourceId.modulePath) {
+                val definitions = mutableMapOf<String, Abstract.Definition>()
+                DefinitionIdsCollector.visitClass(moduleNamespace.registeredClass, definitions)
+                definitions
+            }
             return definitions[id]
         }
+
+        fun clear() = cache.clear()
     }
 
-    private inner class TypechekerPsiTreeChangeListener : PsiTreeChangeAdapter() {
+    private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
 
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event)
@@ -269,11 +290,9 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
 
         private fun processParent(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
-                val ancestors = generateSequence(event.parent) { it.parent }
+                val ancestors = event.parent.ancestors
                 val definition = ancestors.filterIsInstance<Abstract.Definition>().firstOrNull()
-                if (definition != null && sourceInfoProvider.sourceOf(definition) != null) {
-                    dependencyCollector.update(definition)
-                }
+                definition?.let { dependencyCollector.update(definition) }
             }
         }
 
@@ -293,47 +312,34 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
 
     private inner class VcSourceVersionTracker : SourceVersionTracker<VcSourceIdT> {
 
-        override fun getCurrentVersion(sourceId: VcSourceIdT): Long {
-            return if (sourceId.source1 != null) {
-                val virtualFile = projectStorage.sourceFileForSourceId(sourceId.source1)
-                virtualFile?.timeStamp ?: 0
-            } else if (sourceId.source2 == preludeStorage.preludeSourceId) {
-                1
-            } else {
-                0
-            }
-        }
+        override fun getCurrentVersion(sourceId: VcSourceIdT): Long =
+                storage.getAvailableVersion(sourceId)
 
         override fun ensureLoaded(sourceId: VcSourceIdT, version: Long): Boolean =
-                version == getCurrentVersion(sourceId)
+                getCurrentVersion(sourceId) == version
     }
 
-    private inner class VcSourceInfoProvider(private val sourceDir: Path)
-        : SourceInfoProvider<VcSourceIdT> {
+    private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
 
         override fun positionOf(sourceNode: Abstract.SourceNode?): String? = null
 
         override fun moduleOf(sourceNode: Abstract.SourceNode?): String? {
             @Suppress("UNCHECKED_CAST")
-            val definitionAdapter = sourceNode as? DefinitionAdapter<VcDefinitionStub<VcDefinition>>
-            val moduleFile = definitionAdapter?.containingFile?.originalFile as? VcFile
-            return moduleFile?.modulePath?.toString()
+            val definition = sourceNode as? DefinitionAdapter<VcDefinitionStub<VcDefinition>>
+            val module = definition?.containingFile?.originalFile as? VcFile
+            return module?.relativeModulePath?.toString()
         }
 
-        override fun nameFor(definition: Abstract.Definition): String =
-                definition.fullyQualifiedName
+        override fun nameFor(definition: Abstract.Definition): String = definition.fullName
 
         override fun sourceOf(definition: Abstract.Definition): VcSourceIdT? {
-            val classDefinition = if (definition is VcDefinition) {
-                definition.containingFile.originalFile as VcFile
-            } else {
-                definition as VcFile
+            val module = when (definition) {
+                is VcDefinition -> definition.containingFile.originalFile as VcFile
+                is VcFile -> definition
+                else -> error("Invalid definition")
             }
-
-            val virtualFile = classDefinition.virtualFile
-            return if (virtualFile.nameWithoutExtension != "Prelude") {
-                val filePath = sourceDir.relativize(Paths.get(virtualFile.path))
-                sourceIdByPath(filePath)
+            return if (module.virtualFile.nameWithoutExtension != "Prelude") {
+                storage.idFromFirst(projectStorage.locateModule(module))
             } else {
                 storage.idFromSecond(preludeStorage.preludeSourceId)
             }
@@ -341,13 +347,14 @@ class TypecheckerFrontend(project: Project, val sourceRootPath: Path) {
     }
 }
 
-internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
+internal object DefinitionIdsCollector
+    : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
 
     override fun visitFunction(
             definition: Abstract.FunctionDefinition,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         definition.globalDefinitions.forEach { it.accept(this, params) }
         return null
     }
@@ -356,7 +363,7 @@ internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<St
             definition: Abstract.ClassField,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         return null
     }
 
@@ -364,7 +371,7 @@ internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<St
             definition: Abstract.DataDefinition,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         definition.constructorClauses
                 .flatMap { it.constructors }
                 .forEach { it.accept(this, params) }
@@ -375,7 +382,7 @@ internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<St
             definition: Abstract.Constructor,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         return null
     }
 
@@ -383,7 +390,7 @@ internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<St
             definition: Abstract.ClassDefinition,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         definition.globalDefinitions.forEach { it.accept(this, params) }
         definition.instanceDefinitions.forEach { it.accept(this, params) }
         definition.fields.forEach { it.accept(this, params) }
@@ -409,7 +416,7 @@ internal object DefinitionIdsCollector : AbstractDefinitionVisitor<MutableMap<St
             definition: Abstract.ClassViewInstance,
             params: MutableMap<String, Abstract.Definition>
     ): Void? {
-        params.put(definition.fullyQualifiedName, definition)
+        params.put(definition.fullName, definition)
         return null
     }
 }

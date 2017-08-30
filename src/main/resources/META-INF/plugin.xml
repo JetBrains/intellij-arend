@@ -103,9 +103,9 @@
 
         <!-- Run Configurations -->
 
-        <programRunner implementation="org.vclang.ide.typecheck.execution.runners.TypecheckRunner"/>
-        <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypecheckConfigurationType"/>
-        <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypecheckRunConfigurationProducer"/>
+        <programRunner implementation="org.vclang.ide.typecheck.execution.runners.TypeCheckRunner"/>
+        <configurationType implementation="org.vclang.ide.typecheck.execution.configurations.TypeCheckConfigurationType"/>
+        <runConfigurationProducer implementation="org.vclang.ide.typecheck.execution.actions.TypeCheckRunConfigurationProducer"/>
 
         <!-- Indices -->
 
@@ -116,6 +116,11 @@
         <!-- Refactoring -->
 
         <lang.namesValidator language="Vclang" implementationClass="org.vclang.lang.refactoring.VcNamesValidator"/>
+
+        <!-- Services -->
+
+        <projectService serviceInterface="org.vclang.ide.typecheck.TypeCheckingService"
+                        serviceImplementation="org.vclang.ide.typecheck.TypeCheckingServiceImpl"/>
 
     </extensions>
 
