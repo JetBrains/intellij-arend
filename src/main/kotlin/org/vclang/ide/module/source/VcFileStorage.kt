@@ -3,7 +3,6 @@ package org.vclang.ide.module.source
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheStorageSupplier
@@ -15,7 +14,9 @@ import com.jetbrains.jetpad.vclang.naming.scope.primitive.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.primitive.NamespaceScope
 import com.jetbrains.jetpad.vclang.naming.scope.primitive.Scope
 import org.vclang.lang.VcFileType
+import org.vclang.lang.core.getPsiFor
 import org.vclang.lang.core.parser.AbstractTreeFactory
+import org.vclang.lang.core.psi.VcFile
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -26,19 +27,18 @@ import java.util.*
 
 class VcFileStorage(
         private val project: Project,
-        private val sourceRoot: Path,
         private val nameResolver: NameResolver
 ) : Storage<VcFileStorage.SourceId> {
-    private val cacheRoot: Path
+    private val sourceRoot = Paths.get(project.basePath)
+    private val cacheRoot = run {
+        val basePath = Paths.get(project.basePath)
+        val relativeModulePath = basePath.relativize(sourceRoot)
+        basePath.resolve(".cache").resolve(relativeModulePath)
+    }
+
     private val sourceSupplier = VcFileSourceSupplier()
     private val cacheStorageSupplier = VcFileCacheStorageSupplier()
     private var globalScope: Scope = EmptyScope()
-
-    init {
-        val basePath = Paths.get(project.basePath)
-        val relativeModulePath = basePath.relativize(sourceRoot)
-        cacheRoot = basePath.resolve(".cache").resolve(relativeModulePath)
-    }
 
     override fun getCacheInputStream(sourceId: SourceId): InputStream? =
             cacheStorageSupplier.getCacheInputStream(sourceId)
@@ -48,6 +48,8 @@ class VcFileStorage(
 
     override fun locateModule(modulePath: ModulePath): SourceId? =
             sourceSupplier.locateModule(modulePath)
+
+    fun locateModule(module: VcFile): SourceId? = sourceSupplier.locateModule(module)
 
     override fun isAvailable(sourceId: SourceId): Boolean = sourceSupplier.isAvailable(sourceId)
 
@@ -63,21 +65,16 @@ class VcFileStorage(
         globalScope = NamespaceScope(namespace)
     }
 
-    fun sourceFileForSourceId(sourceId: SourceId): VirtualFile? {
-        val virtualFile = sourceSupplier.sourceFileForSourceId(sourceId)
-//        val fileDocumentManager = FileDocumentManager.getInstance()
-//        val document = virtualFile?.let { fileDocumentManager.getDocument(it) }
-//        document?.let { fileDocumentManager.saveDocument(it) }
-        return virtualFile
-    }
-
     inner class SourceId(
-            private val modulePath: ModulePath
+            val module: VcFile
     ) : com.jetbrains.jetpad.vclang.module.source.SourceId {
         val storage = this@VcFileStorage
-        val relativeFilePath: Path = Paths.get("", *modulePath.toArray())
 
-        override fun getModulePath(): ModulePath = modulePath
+        override fun getModulePath(): ModulePath {
+            val path = Paths.get(module.virtualFile.path)
+            val name = module.virtualFile.nameWithoutExtension
+            return modulePath(sourceRoot.relativize(path).resolveSibling(name))!!
+        }
 
         override fun equals(other: Any?): Boolean {
             return this === other
@@ -86,56 +83,47 @@ class VcFileStorage(
                     && storage == other.storage
         }
 
-        override fun hashCode(): Int = Objects.hash(storage, modulePath)
+        override fun hashCode(): Int = Objects.hash(modulePath, storage)
 
-        override fun toString(): String = sourceFile(baseFile(sourceRoot, modulePath)).toString()
+        override fun toString(): String = module.virtualFile.path
     }
 
     private inner class VcFileSourceSupplier : SourceSupplier<SourceId> {
 
         override fun locateModule(modulePath: ModulePath): SourceId? {
             val path = modulePathToSourcePath(modulePath)
-            return if (Files.exists(path)) SourceId(modulePath) else null
+            val file = LocalFileSystem.getInstance().findFileByPath(path.toString())
+            val module = project.getPsiFor(file) as? VcFile
+            return module?.let { SourceId(it) }
         }
 
-        override fun isAvailable(sourceId: SourceId): Boolean {
-            if (sourceId.storage !== this@VcFileStorage) return false
-            val path = modulePathToSourcePath(sourceId.modulePath)
-            return Files.exists(path)
-        }
+        fun locateModule(module: VcFile): SourceId? = SourceId(module)
+
+        override fun isAvailable(sourceId: SourceId): Boolean =
+                sourceId.storage === this@VcFileStorage && sourceId.module.virtualFile.exists()
 
         override fun loadSource(
                 sourceId: SourceId,
                 errorReporter: ErrorReporter
         ): SourceSupplier.LoadResult? {
             if (!isAvailable(sourceId)) return null
-            val virtualFile = sourceFileForSourceId(sourceId) ?: return null
-            val timeStamp = virtualFile.timeStamp
-            val psiFile = PsiManager.getInstance(project).findFile(virtualFile) ?: return null
+            val timeStamp = getAvailableVersion(sourceId)
             val result = AbstractTreeFactory.createFromPsiFile(
                     sourceId,
-                    psiFile,
+                    sourceId.module,
                     errorReporter,
                     nameResolver,
                     globalScope
             )
-            if (virtualFile.timeStamp != timeStamp) return null
+            if (getAvailableVersion(sourceId) != timeStamp) return null
             return SourceSupplier.LoadResult.make(result, timeStamp)
         }
 
-        fun sourceFileForSourceId(sourceId: SourceId): VirtualFile? {
-            val path = sourcePathForSourceId(sourceId)
-            return LocalFileSystem.getInstance().findFileByPath(path.toString())
-        }
-
         override fun getAvailableVersion(sourceId: SourceId): Long =
-                sourceFileForSourceId(sourceId)?.timeStamp ?: 0
+                sourceId.module.virtualFile.timeStamp
 
         private fun modulePathToSourcePath(modulePath: ModulePath): Path =
                 sourceFile(baseFile(sourceRoot, modulePath))
-
-        fun sourcePathForSourceId(sourceId: SourceId): Path =
-                modulePathToSourcePath(sourceId.modulePath)
     }
 
     private inner class VcFileCacheStorageSupplier : CacheStorageSupplier<SourceId> {
@@ -176,7 +164,7 @@ class VcFileStorage(
     companion object {
 
         fun modulePath(path: Path): ModulePath? {
-            assert(!path.isAbsolute)
+            require(!path.isAbsolute) { "$path is not absolute" }
             val names = path.map { it.toString() }
             val pathRegex = "[a-zA-Z_][a-zA-Z0-9_']*".toRegex()
             return if (names.all { it.matches(pathRegex) }) ModulePath(names) else null
