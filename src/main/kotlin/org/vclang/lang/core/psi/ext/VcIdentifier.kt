@@ -44,7 +44,7 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() {
             prefix?.let { return it.text }
             prefixInfix?.let { return it.text.drop(1) }
-            throw IllegalStateException()
+            error("Invalid node")
         }
 
     override fun getName(): String = referenceName
@@ -68,7 +68,7 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() {
             infix?.let { return it.text }
             infixPrefix?.let { return it.text.drop(1) }
-            throw IllegalStateException()
+            error("Invalid node")
         }
 
     override fun getName(): String = referenceName
@@ -92,7 +92,7 @@ abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() {
             postfixInfix?.let { return it.text.dropLast(1) }
             postfixPrefix?.let { return it.text.dropLast(1) }
-            throw IllegalStateException()
+            error("Invalid node")
         }
 
     override fun getName(): String = referenceName

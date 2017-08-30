@@ -17,24 +17,11 @@ class TypeCheckConsoleLogger(
         private val sourceInfoProvider: SourceInfoProvider<VcSourceIdT>
 ) : ErrorReporter {
     var console: ConsoleView? = null
-    var hasErrors = false
 
-    override fun report(error: GeneralError) {
-        hasErrors = hasErrors || error.level == Error.Level.ERROR
-        DocConsolePrinter(error).print()
-    }
+    override fun report(error: GeneralError) = DocConsolePrinter(error).print()
 
-    fun reportInfo(message: String) {
-        console?.print(message + '\n', ConsoleViewContentType.NORMAL_OUTPUT)
-    }
-
-    fun reportWarning(message: String) {
-        console?.print(message + '\n', ConsoleViewContentType.LOG_WARNING_OUTPUT)
-    }
-
-    fun reportError(message: String) {
+    fun reportError(message: String) =
         console?.print(message + '\n', ConsoleViewContentType.ERROR_OUTPUT)
-    }
 
     private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
         Error.Level.ERROR -> ConsoleViewContentType.ERROR_OUTPUT
@@ -52,7 +39,7 @@ class TypeCheckConsoleLogger(
 
         override fun visitHList(listDoc: HListDoc, newLine: Boolean): Void? {
             listDoc.docs.forEach { it.accept(this, false) }
-            if (newLine) console?.print("\n", contentType)
+            if (newLine) printNewLine()
             return null
         }
 
@@ -64,22 +51,24 @@ class TypeCheckConsoleLogger(
             } else {
                 console?.print(doc.text, contentType)
             }
-            if (newLine) console?.print("\n", contentType)
+            if (newLine) printNewLine()
             return null
         }
 
         override fun visitTermLine(doc: TermLineDoc, newLine: Boolean): Void? {
             console?.print(doc.text, contentType)
-            if (newLine) console?.print("\n", contentType)
+            if (newLine) printNewLine()
             return null
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
             val info = (doc.reference as? PsiElement)?.let { PsiHyperlinkInfo(it) }
             console?.printHyperlink(doc.reference.name!!, info)
-            if (newLine) console?.print("\n", contentType)
+            if (newLine) printNewLine()
             return null
         }
+
+        private fun printNewLine() = console?.print("\n", contentType)
     }
 
     private class PsiHyperlinkInfo(private val sourceElement: PsiElement) : HyperlinkInfo {

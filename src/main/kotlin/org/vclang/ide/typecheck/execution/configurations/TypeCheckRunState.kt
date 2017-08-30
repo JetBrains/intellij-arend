@@ -29,7 +29,7 @@ class TypeCheckRunState(
 
     override fun startProcess(): TypeCheckProcessHandler {
         val service = TypeCheckingService.getInstance(environment.project)
-        return TypeCheckProcessHandler(environment.project, service, command)
+        return TypeCheckProcessHandler(service, command)
     }
 
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
@@ -80,13 +80,14 @@ class TypeCheckRunState(
             processHandler: ProcessHandler,
             testFrameworkName: String
     ) {
+        if (processHandler !is TypeCheckProcessHandler) error("Invalid process handler")
+
         val eventsProcessor = TypeCheckingEventsProcessor(
                 consoleProperties.project,
                 resultsViewer.testsRootNode,
                 testFrameworkName
         )
         eventsProcessor.addEventsListener(resultsViewer)
-        if (processHandler !is TypeCheckProcessHandler) throw IllegalStateException()
         processHandler.eventsProcessor = eventsProcessor
 
         val uiActionsHandler = SMTRunnerUIActionsHandler(consoleProperties)

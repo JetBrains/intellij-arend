@@ -42,9 +42,7 @@ class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
             modulePath: ModulePath,
             module: Abstract.ClassDefinition
     ): VcModuleNamespace {
-        if (registered[module] != null) {
-            throw IllegalStateException()
-        }
+        check(registered[module] == null) { "Module namespace already registered" }
         val namespace = ensureModuleNamespace(root(), modulePath)
         registered.put(module, namespace)
         return namespace

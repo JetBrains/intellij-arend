@@ -20,12 +20,12 @@ class VcModuleNamespace : ModuleNamespace {
     override fun getRegisteredClass(): Abstract.ClassDefinition? = registeredClass
 
     internal fun registerClass(module: Abstract.ClassDefinition) {
-        if (registeredClass != null) throw IllegalStateException()
+        check(registeredClass == null) { "Class already registered" }
         registeredClass = module
     }
 
     internal fun unregisterClass() {
-        if (registeredClass == null) throw IllegalStateException()
+        checkNotNull(registeredClass) { "Cannot unregister unregistered class" }
         registeredClass = null
     }
 

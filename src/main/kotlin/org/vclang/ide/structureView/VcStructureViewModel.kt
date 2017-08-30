@@ -35,7 +35,7 @@ class VcStructureViewModel(editor: Editor?, file: VcFile)
         is VcClassViewField,
         is VcDefInstance,
         is VcConstructor -> true
-        else -> throw IllegalStateException()
+        else -> error("Unexpected tree element")
     }
 }
 

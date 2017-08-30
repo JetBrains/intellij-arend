@@ -25,7 +25,7 @@ class VcPreludeCacheAction : AnAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
+        val project = checkNotNull(e.project) { "Invalid action event" }
 
         val errorReporter = ListErrorReporter()
 
@@ -47,7 +47,10 @@ class VcPreludeCacheAction : AnAction() {
         )
 
         val prelude = storage.loadSource(storage.preludeSourceId, errorReporter)?.definition
-        if (errorReporter.errorList.isNotEmpty()) throw IllegalStateException()
+        check(errorReporter.errorList.isEmpty()) {
+            "Some errors occurred while loading prelude:\n" +
+                    errorReporter.errorList.joinToString("\n") { it.getMessage() }
+        }
 
         Typechecking(
                 cacheManager.typecheckerState,

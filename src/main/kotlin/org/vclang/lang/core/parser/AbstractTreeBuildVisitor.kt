@@ -8,9 +8,11 @@ import com.jetbrains.jetpad.vclang.frontend.parser.ParserError
 import com.jetbrains.jetpad.vclang.module.source.SourceId
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract
+import org.vclang.lang.VcFileType
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.psi.*
 import org.vclang.lang.core.psi.ext.adapters.*
+import java.nio.file.Paths
 
 class AbstractTreeBuildVisitor(
         private val module: SourceId,
@@ -34,12 +36,12 @@ class AbstractTreeBuildVisitor(
     private fun visitStatement(context: VcStatement): Surrogate.Statement {
         context.statCmd?.let { return visitStatCmd(it) }
         context.statDef?.let { return visitStatDef(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitStatCmd(context: VcStatCmd): Surrogate.NamespaceCommandStatement {
         val kind = visitNsCmd(context.nsCmd)
-        val modulePath = context.nsCmdRoot?.moduleName?.let { visitModulePath(it) }
+        val modulePath = context.nsCmdRoot?.moduleName?.let { visitModuleName(it) }
         val path = mutableListOf<String>()
         context.nsCmdRoot?.identifier?.let { path.add(it.text) }
         for (fieldAcc in context.fieldAccList) {
@@ -62,7 +64,7 @@ class AbstractTreeBuildVisitor(
         when {
             context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
             context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
-            else -> throw IllegalStateException()
+            else -> error("Invalid context")
         }
 
     private fun visitStatDef(context: VcStatDef): Surrogate.DefineStatement {
@@ -81,7 +83,7 @@ class AbstractTreeBuildVisitor(
         else -> {
             val childDef = context.childOfType<VcDefinition>()
             childDef?.let { return visitDefinition(it) }
-            throw IllegalStateException()
+            error("Invalid context")
         }
     }
 
@@ -100,7 +102,7 @@ class AbstractTreeBuildVisitor(
                 implementations
         )
 
-        if (context !is ClassDefinitionAdapter) throw IllegalStateException()
+        if (context !is ClassDefinitionAdapter) error("Invalid context")
         val classDefinition = context.reconstruct(
                 elementPosition(context),
                 name,
@@ -131,7 +133,7 @@ class AbstractTreeBuildVisitor(
             if (it is VcClassImplement) return visitClassImplement(it)
         }
         context.statement?.let { return visitStatement(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitClassField(context: VcClassField): ClassFieldAdapter {
@@ -143,11 +145,11 @@ class AbstractTreeBuildVisitor(
                     visitExpr(context.expr)
             )
         }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitClassImplement(context: VcClassImplement): ClassImplementAdapter {
-        if (context !is ClassImplementAdapter) throw IllegalStateException()
+        if (context !is ClassImplementAdapter) error("Invalid context")
         return context.reconstruct(
                 elementPosition(context),
                 context.identifier.text,
@@ -193,7 +195,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitDefClassView(context: VcDefClassView): ClassViewAdapter {
-        if (context !is ClassViewAdapter) throw IllegalStateException()
+        if (context !is ClassViewAdapter) error("Invalid context")
         val name = context.identifierList[0]?.text
         val underlyingClass = visitExpr(context.expr)
         if (underlyingClass !is Surrogate.ReferenceExpression) {
@@ -226,7 +228,7 @@ class AbstractTreeBuildVisitor(
         }
 
         val eliminatedReferences = context.dataBody?.dataClauses?.elim?.let { visitElim(it) }
-        if (context !is DataDefinitionAdapter) throw IllegalStateException()
+        if (context !is DataDefinitionAdapter) error("Invalid context")
         val dataDefinition = context.reconstruct(
                 elementPosition(context),
                 context.identifier?.text,
@@ -259,11 +261,11 @@ class AbstractTreeBuildVisitor(
                         visitExpr(withoutElimContext.expr)
                 )
             }
-            throw IllegalStateException()
+            error("Invalid context")
         }
         val statements = visitWhere(context.where)
 
-        if (context !is FunctionDefinitionAdapter) throw IllegalStateException()
+        if (context !is FunctionDefinitionAdapter) error("Invalid context")
         val functionDefinition = context.reconstruct(
                 elementPosition(context),
                 context.identifier?.text,
@@ -297,7 +299,7 @@ class AbstractTreeBuildVisitor(
             if (type is Surrogate.ClassExtExpression) {
                 if (type.baseClassExpression is Surrogate.ReferenceExpression) {
                     val name = context.identifier?.text
-                    if (context !is ClassViewInstanceAdapter) throw IllegalStateException()
+                    if (context !is ClassViewInstanceAdapter) error("Invalid context")
                     return context.reconstruct(
                             elementPosition(context),
                             name,
@@ -317,7 +319,7 @@ class AbstractTreeBuildVisitor(
     private fun visitDataBody(context: VcDataBody?, def: DataDefinitionAdapter) {
         context?.dataClauses?.let { return visitDataClauses(it, def) }
         context?.dataConstructors?.let { return visitDataConstructors(it, def) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitDataClauses(context: VcDataClauses, def: DataDefinitionAdapter) {
@@ -375,7 +377,7 @@ class AbstractTreeBuildVisitor(
         } else {
             underlyingField
         }
-        if (context !is ClassViewFieldAdapter) throw IllegalStateException()
+        if (context !is ClassViewFieldAdapter) error("Invalid context")
         return context.reconstruct(
                 elementPosition(context.identifierList[0]),
                 name,
@@ -398,7 +400,7 @@ class AbstractTreeBuildVisitor(
     private fun visitPattern(context: VcPattern): Surrogate.Pattern {
         context.atomPattern?.let { return visitAtomPattern(it) }
         context.patternConstructor?.let { return visitPatternConstructor(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitPatternConstructor(context: VcPatternConstructor): Surrogate.Pattern {
@@ -427,14 +429,14 @@ class AbstractTreeBuildVisitor(
         }
         context.isAny -> Surrogate.NamePattern(elementPosition(context), "_")
         context.isEmpty -> Surrogate.EmptyPattern(elementPosition(context))
-        else -> throw IllegalStateException()
+        else -> error("Invalid context")
     }
 
     private fun visitConstructors(
             context: List<VcConstructor>,
             definition: DataDefinitionAdapter
     ): List<ConstructorAdapter> = context.map {
-        if (it !is ConstructorAdapter) throw IllegalStateException()
+        if (it !is ConstructorAdapter) error("Invalid context")
         val hasConditions = it.elim != null || it.clauseList.isNotEmpty()
         it.reconstruct(
                 elementPosition(it),
@@ -463,7 +465,7 @@ class AbstractTreeBuildVisitor(
             context.isLeftAssoc -> Abstract.Precedence.Associativity.LEFT_ASSOC
             context.isRightAssoc -> Abstract.Precedence.Associativity.RIGHT_ASSOC
             context.isNonAssoc -> Abstract.Precedence.Associativity.NON_ASSOC
-            else -> throw IllegalStateException()
+            else -> error("Invalid context")
         }
 
     private fun visitExpr0(context: VcExpr0): Surrogate.Expression {
@@ -486,7 +488,7 @@ class AbstractTreeBuildVisitor(
         else -> {
             val childExpr = context?.childOfType<VcExpr>()
             childExpr?.let { return visitExpr(it) }
-            throw IllegalStateException()
+            error("Invalid context")
         }
     }
 
@@ -577,7 +579,7 @@ class AbstractTreeBuildVisitor(
         context.atomLevelExpr?.let { return visitAtomLevelExpr(it) }
         context.maxLevelExpr?.let { return visitMaxLevelExpr(it) }
         context.sucLevelExpr?.let { return visitSucLevelExpr(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitAtomLevelExpr(context: VcAtomLevelExpr?): Surrogate.LevelExpression? {
@@ -588,7 +590,7 @@ class AbstractTreeBuildVisitor(
             return Surrogate.NumberLevelExpression(elementPosition(it), number)
         }
         context?.levelExpr?.let { return visitLevelExpr(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitSucLevelExpr(context: VcSucLevelExpr): Surrogate.SucLevelExpression {
@@ -611,7 +613,7 @@ class AbstractTreeBuildVisitor(
         context?.universeBinOp?.let { return visitUniverse(it) }
         context?.setUniverseBinOp?.let { return visitSetUniverse(it) }
         context?.truncatedUniverseBinOp?.let { return visitTruncatedUniverse(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitBinOpArgument(context: VcArgumentBinOp): Surrogate.Expression =
@@ -743,21 +745,27 @@ class AbstractTreeBuildVisitor(
         }
     }
 
-    private fun visitModulePath(context: VcModuleName): List<String> =
-            context.modulePath.text.split("::").filter { it.isNotEmpty() }
+    private fun visitModuleName(context: VcModuleName): List<String> {
+        val module = context.reference?.resolve() as? VcFile
+        val modulePath = Paths.get(
+            module?.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
+        )
+        val base = Paths.get(context.project.basePath)
+        return base.relativize(modulePath).toList().map { it.toString() }
+    }
 
     private fun visitAtom(expr: VcAtom): Surrogate.Expression {
         expr.atomModuleCall?.let { return visitAtomModuleCall(it) }
         expr.literal?.let { return visitLiteral(it) }
         expr.tuple?.let { return visitTuple(it) }
         expr.number?.let { return visitAtomNumber(it) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitAtomModuleCall(context: VcAtomModuleCall): Surrogate.ModuleCallExpression {
         return Surrogate.ModuleCallExpression(
                 elementPosition(context),
-                visitModulePath(context.moduleName)
+                visitModuleName(context.moduleName)
         )
     }
 
@@ -776,7 +784,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitAtomFieldsAcc(context: VcAtomFieldsAcc?): Surrogate.Expression {
-        context ?: throw IllegalStateException()
+        context ?: error("Invalid context")
         var expr = visitAtom(context.atom)
         for (acc in context.fieldAccList) {
             expr = when {
@@ -793,7 +801,7 @@ class AbstractTreeBuildVisitor(
                         field
                     )
                 }
-                else -> throw IllegalStateException()
+                else -> error("Invalid context")
             }
         }
         return expr
@@ -839,7 +847,7 @@ class AbstractTreeBuildVisitor(
                 arg.atomFieldsAcc != null -> visitAtomFieldsAcc(arg.atomFieldsAcc)
                 arg.expr != null -> visitExpr(arg.expr)
                 arg.universeAtom != null -> visitUniverseAtom(arg.universeAtom)
-                else -> throw IllegalStateException()
+                else -> error("Invalid context")
             }
             val argumentExpr = Surrogate.Argument(expr1, arg.expr == null)
             appExpr = Surrogate.AppExpression(expr.position, appExpr, argumentExpr)
@@ -867,12 +875,11 @@ class AbstractTreeBuildVisitor(
                     it.expr?.let { visitExpr(it) }
             )
         }
-
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitUniTruncatedUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
-        val truncatedUniverse = context.truncatedUniverse ?: throw IllegalStateException()
+        val truncatedUniverse = context.truncatedUniverse ?: error("Invalid context")
         val text = truncatedUniverse.text.let { it.substring(it.indexOf('-') + "-Type".length) }
         val pLevel = if (text.isNotEmpty()) {
             val number = Integer.parseInt(text)
@@ -900,11 +907,11 @@ class AbstractTreeBuildVisitor(
         context?.set?.let { return visitUniSetUniverse(context) }
         context?.truncatedUniverse?.let { return visitUniTruncatedUniverse(context) }
         context?.universe?.let { return visitUniUniverse(context) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitUniUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
-        val universe = context.universe ?: throw IllegalStateException()
+        val universe = context.universe ?: error("Invalid context")
         val text = universe.text.substring("\\Type".length)
         val lp = if (text.isNotEmpty()) {
             val number = Integer.parseInt(text)
@@ -916,7 +923,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitUniSetUniverse(context: VcUniverseAtom): Surrogate.UniverseExpression {
-        val text = context.set?.text?.substring("\\Set".length) ?: throw IllegalStateException()
+        val text = context.set?.text?.substring("\\Set".length) ?: error("Invalid context")
         val pLevel = if (text.isNotEmpty()) {
             val number = Integer.parseInt(text)
             Surrogate.NumberLevelExpression(elementPosition(context.set), number)
@@ -997,7 +1004,7 @@ class AbstractTreeBuildVisitor(
                     parameters.add(Surrogate.TypeParameter(true, universeAtom))
                     continue
                 } else {
-                    throw IllegalStateException()
+                    error("Invalid context")
                 }
             } else {
                 typedExpr = tele.typedExpr
@@ -1048,7 +1055,7 @@ class AbstractTreeBuildVisitor(
     private fun getVar(context: VcLiteral?): Surrogate.LocalVariable? {
         context?.prefixName?.let { return Surrogate.LocalVariable(elementPosition(it), it.text) }
         context?.underscore?.let { return Surrogate.LocalVariable(elementPosition(it), null) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun getVar(context: VcIdentifierOrUnknown): Surrogate.LocalVariable? =
@@ -1093,19 +1100,19 @@ class AbstractTreeBuildVisitor(
     private fun visitPrefix(prefix: VcPrefixName): String {
         prefix.prefix?.let { return it.text }
         prefix.prefixInfix?.let { return it.text.drop(1) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitInfix(infix: VcInfixName): String {
         infix.infix?.let { return it.text }
         infix.infixPrefix?.let { return it.text.drop(1) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     private fun visitPostfix(postfix: VcPostfixName): String {
         postfix.postfixInfix?.let { return it.text.dropLast(1) }
         postfix.postfixPrefix?.let { return it.text.dropLast(1) }
-        throw IllegalStateException()
+        error("Invalid context")
     }
 
     // Errors
