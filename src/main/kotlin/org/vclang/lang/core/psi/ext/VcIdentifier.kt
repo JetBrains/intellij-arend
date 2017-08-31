@@ -11,11 +11,10 @@ import org.vclang.lang.core.resolve.VcReferenceBase
 
 abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
                                                       VcIdentifier {
-    override val referenceNameElement: VcCompositeElement
+    override val referenceNameElement: VcIdentifierImplMixin
         get() = this
 
-    override val referenceName: String
-        get() = text
+    override val referenceName: String = text
 
     override fun getNameIdentifier(): VcCompositeElement = referenceNameElement
 

@@ -22,8 +22,7 @@ abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
     override val referenceNameElement: VcCompositeElement
         get() = this
 
-    override val referenceName: String
-        get() = text
+    override val referenceName: String = text
 
     override fun getName(): String = referenceName
 

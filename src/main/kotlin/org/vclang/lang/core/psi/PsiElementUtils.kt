@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 
@@ -16,18 +17,18 @@ val PsiElement.module: Module?
 val PsiElement.contentRoot: VirtualFile?
     get() {
         val module = module ?: return null
-        val contentRoots = module.let { ModuleRootManager.getInstance(it).contentRoots }
+        val contentRoots = ModuleRootManager.getInstance(module).contentRoots
         return containingDirectories.map { it.virtualFile }.firstOrNull { it in contentRoots }
     }
 
 val PsiElement.sourceRoot: VirtualFile?
     get() {
         val module = module ?: return null
-        val sourceRoots = module.let { ModuleRootManager.getInstance(it).sourceRoots }
+        val sourceRoots = ModuleRootManager.getInstance(module).sourceRoots
         return containingDirectories.map { it.virtualFile }.firstOrNull { it in sourceRoots }
     }
 
-val PsiElement.containingDirectories
+val PsiElement.containingDirectories: Sequence<PsiDirectory>
     get() = generateSequence(containingFile.containingDirectory) { it.parentDirectory }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
@@ -39,44 +40,44 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
-val VcStatCmd.isHiding
+val VcStatCmd.isHiding: Boolean
     get() = hidingKw != null
 
-val VcNsCmd.isExportCmd
+val VcNsCmd.isExportCmd: Boolean
     get() = exportKw != null
 
-val VcNsCmd.isOpenCmd
+val VcNsCmd.isOpenCmd: Boolean
     get() = openKw != null
 
-val VcNewExpr.withNewContext
+val VcNewExpr.withNewContext: Boolean
     get() = newKw != null
 
-val VcAtomPattern.isExplicit
+val VcAtomPattern.isExplicit: Boolean
     get() = lparen != null && pattern != null && rparen != null
 
-val VcAtomPattern.isImplicit
+val VcAtomPattern.isImplicit: Boolean
     get() = lbrace != null && pattern != null && rbrace != null
 
-val VcAtomPattern.isEmpty
+val VcAtomPattern.isEmpty: Boolean
     get() = lparen != null && pattern == null && rparen != null
 
-val VcAtomPattern.isAny
+val VcAtomPattern.isAny: Boolean
     get() = underscore != null
 
-val VcAssociativity.isLeftAssoc
+val VcAssociativity.isLeftAssoc: Boolean
     get() = leftAssocKw != null
 
-val VcAssociativity.isRightAssoc
+val VcAssociativity.isRightAssoc: Boolean
     get() = rightAssocKw != null
 
-val VcAssociativity.isNonAssoc
+val VcAssociativity.isNonAssoc: Boolean
     get() = nonAssocKw != null
 
-val VcTele.isExplicit
+val VcTele.isExplicit: Boolean
     get() = lparen != null && typedExpr != null && rparen != null
 
-val VcTele.isImplicit
+val VcTele.isImplicit: Boolean
     get() = lbrace != null && typedExpr != null && rbrace != null
 
-val VcTypedExpr.hasType
+val VcTypedExpr.hasType: Boolean
     get() = colon != null

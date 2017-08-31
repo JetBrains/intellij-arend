@@ -17,8 +17,7 @@ interface VcCompositeElement : PsiElement {
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node),
                                                        VcCompositeElement {
-    override val namespace: Namespace
-        get() = EmptyNamespace
+    override val namespace: Namespace = EmptyNamespace
 
     override val scope: Scope
         get() {
@@ -35,8 +34,7 @@ abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node
 
 abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
                                                               VcCompositeElement {
-    override val namespace: Namespace
-        get() = EmptyNamespace
+    override val namespace: Namespace = EmptyNamespace
 
     override val scope: Scope
         get() {

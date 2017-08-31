@@ -8,7 +8,7 @@ import org.vclang.lang.core.psi.VcElementTypes.*
 
 class VcTokenType(debugName: String) : IElementType(debugName, VcLanguage)
 
-val VC_KEYWORDS = TokenSet.create(
+val VC_KEYWORDS: TokenSet = TokenSet.create(
         OPEN_KW, EXPORT_KW, HIDING_KW, FUNCTION_KW, NON_ASSOC_KW,
         LEFT_ASSOC_KW, RIGHT_ASSOC_KW, PROP_KW, WHERE_KW, WITH_KW,
         ELIM_KW, NEW_KW, PI_KW, SIGMA_KW, LAM_KW, LET_KW,
@@ -17,6 +17,6 @@ val VC_KEYWORDS = TokenSet.create(
         DEFAULT_KW, LP_KW, LH_KW, SUC_KW, MAX_KW
 )
 
-val VC_COMMENTS = TokenSet.create(VcElementTypes.LINE_COMMENT, VcElementTypes.BLOCK_COMMENT)
+val VC_COMMENTS: TokenSet = TokenSet.create(VcElementTypes.LINE_COMMENT, VcElementTypes.BLOCK_COMMENT)
 
-val VC_WHITE_SPACES = TokenSet.create(TokenType.WHITE_SPACE)
+val VC_WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)

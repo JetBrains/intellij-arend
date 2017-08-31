@@ -8,14 +8,6 @@ import com.jetbrains.jetpad.vclang.term.Abstract
 class VcNamespace() : Namespace {
     private val names = mutableMapOf<String, Abstract.Definition>()
 
-    constructor(other: VcNamespace) : this() {
-        names.putAll(other.names)
-    }
-
-    constructor(definition: Abstract.Definition) : this() {
-        addDefinition(definition)
-    }
-
     fun addDefinition(definition: Abstract.Definition) {
         addDefinition(definition.name!!, definition)
     }

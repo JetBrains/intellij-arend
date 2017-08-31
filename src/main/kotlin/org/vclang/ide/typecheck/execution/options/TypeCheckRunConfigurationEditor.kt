@@ -22,9 +22,9 @@ class TypeCheckRunConfigurationEditor(
     private val definitionNameComponent = JTextField()  // TODO: replace text field with some structure browser
 
     override fun resetEditorFrom(configuration: TypeCheckConfiguration) {
-        configuration.vclangTypeCheckCommand.let {
-            modulePathComponent.text = it.modulePath
-            definitionNameComponent.text = it.definitionFullName
+        with(configuration.vclangTypeCheckCommand) {
+            modulePathComponent.text = modulePath
+            definitionNameComponent.text = definitionFullName
         }
     }
 

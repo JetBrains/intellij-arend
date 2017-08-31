@@ -1044,10 +1044,8 @@ class AbstractTreeBuildVisitor(
 
     // Utils
 
-    private fun elementPosition(element: PsiElement?): Surrogate.Position {
-        val definition = element?.parentOfType<DefinitionAdapter<*>>() ?: element?.containingFile
-        return Surrogate.Position(module, definition)
-    }
+    private fun elementPosition(element: PsiElement?): Surrogate.Position =
+            Surrogate.Position(module, element)
 
     private fun getVar(context: VcAtomFieldsAcc): Surrogate.LocalVariable? =
             if (context.fieldAccList.isEmpty()) getVar(context.atom.literal) else null

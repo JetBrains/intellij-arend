@@ -23,7 +23,7 @@ class VcPreludeStorage(
         private val project: Project,
         private val nameResolver: NameResolver
 ) : Storage<VcPreludeStorage.SourceId> {
-    val preludeSourceId = SourceId()
+    val preludeSourceId: SourceId = SourceId()
 
     init {
         LocalFileSystem.getInstance().addRootToWatch(BASE_RESOURCE_PATH.toString(), false)
@@ -86,6 +86,6 @@ class VcPreludeStorage(
         val CACHE_RESOURCE_PATH: Path =
                 BASE_RESOURCE_PATH.resolve(Paths.get("Prelude.${VcFileType.defaultCacheExtension}"))
 
-        val PRELUDE_MODULE_PATH = ModulePath("Prelude")
+        val PRELUDE_MODULE_PATH: ModulePath = ModulePath("Prelude")
     }
 }

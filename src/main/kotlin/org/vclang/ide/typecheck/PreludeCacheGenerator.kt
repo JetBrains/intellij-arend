@@ -35,6 +35,7 @@ object PreludeCacheGenerator {
     }
 
     internal class PreludePersistenceProvider : PersistenceProvider<VcPreludeStorage.SourceId> {
+
         override fun getUri(sourceId: VcPreludeStorage.SourceId): URI =
                 throw UnsupportedOperationException()
 

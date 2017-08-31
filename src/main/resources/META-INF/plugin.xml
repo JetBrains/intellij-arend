@@ -91,7 +91,7 @@
 
         <!-- Line Marker Providers -->
 
-        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypecheckRunLineMarkerContributor"/>
+        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.ide.typecheck.execution.lineMarker.TypeCheckRunLineMarkerContributor"/>
 
         <!-- Color Settings -->
 

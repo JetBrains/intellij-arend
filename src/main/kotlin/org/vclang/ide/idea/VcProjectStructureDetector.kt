@@ -12,6 +12,7 @@ import java.io.File
 import javax.swing.Icon
 
 class VcProjectStructureDetector : ProjectStructureDetector() {
+
     override fun detectRoots(
             dir: File,
             children: Array<out File>,
