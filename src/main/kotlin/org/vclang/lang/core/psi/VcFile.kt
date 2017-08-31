@@ -20,6 +20,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                                                Abstract.ClassDefinition,
                                                Surrogate.StatementCollection {
     private var globalStatements = emptyList<Surrogate.Statement>()
+
     val relativeModulePath: ModulePath
         get() {
             val sourceRoot = sourceRoot ?: contentRoot ?: error("Failed to find source root")
@@ -31,9 +32,30 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return ModulePath(relativeModulePath.map { it.toString() })
         }
 
-    override val namespace: Namespace = EmptyNamespace
 
-    override val scope: Scope = NamespaceScope(PreludeNamespace)
+    override val namespace: Namespace
+        get() {
+            val statements = children.filterIsInstance<VcStatement>()
+            return NamespaceProvider.forDefinitions(statements.mapNotNull { it.statDef })
+        }
+
+    override val scope: Scope
+        get() {
+            val namespaceScope = MergeScope(PreludeScope, NamespaceScope(namespace))
+            val statements = children.filterIsInstance<VcStatement>()
+            return statements
+                    .mapNotNull { it.statCmd }
+                    .mapNotNull { cmd ->
+                        cmd.nsCmdRoot?.let {
+                            FilteredScope(
+                                    NamespaceScope(it.namespace),
+                                    cmd.identifierList.map { it.text }.toSet(),
+                                    cmd.isHiding
+                            )
+                        }
+                    }
+                    .fold(namespaceScope) { scope1, scope2 -> MergeScope(scope1, scope2) }
+        }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
@@ -141,5 +163,4 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return null
         }
     }
-
 }

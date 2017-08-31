@@ -3,7 +3,6 @@ package org.vclang.lang.core.psi
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
 import org.vclang.lang.VcFileType
-import org.vclang.lang.core.psi.ext.VcCompositeElement
 import org.vclang.lang.refactoring.VcNamesValidator
 
 class VcPsiFactory(private val project: Project) {
@@ -45,8 +44,7 @@ class VcPsiFactory(private val project: Project) {
             append(teles.joinToString(" ", " "))
             expr?.let { append(" : $expr") }
         }.trimEnd()
-        return createFromText<VcStatements>(code)?.childOfType()
-                ?: error("Failed to create function: `$code`")
+        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -58,8 +56,7 @@ class VcPsiFactory(private val project: Project) {
             createFunction("dummy", listOf(literal)).teleList.firstOrNull()?.childOfType()
                     ?: error("Failed to create literal: `$literal`")
 
-    private inline fun <reified T : VcCompositeElement> createFromText(code: String): T? =
+    private fun createFromText(code: String): VcFile? =
             PsiFileFactory.getInstance(project)
-                    .createFileFromText("DUMMY.rs", VcFileType, code)
-                    .childOfType()
+                    .createFileFromText("DUMMY.rs", VcFileType, code) as? VcFile
 }

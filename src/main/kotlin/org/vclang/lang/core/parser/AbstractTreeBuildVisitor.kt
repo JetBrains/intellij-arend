@@ -20,17 +20,13 @@ class AbstractTreeBuildVisitor(
 ) {
 
     fun visitModule(context: VcFile): VcFile {
-        val statementsContext = context.childOfType<VcStatements>()
-        val globalStatements = statementsContext?.let { visitStatements(it) }
-        globalStatements ?: return context
+        val statementsContext = context.children.filterIsInstance<VcStatement>()
+        val globalStatements = visitStatements(statementsContext)
         globalStatements.let { context.globalStatements = it }
         return context
     }
 
-    private fun visitStatements(context: VcStatements): List<Surrogate.Statement> =
-            visitStatementList(context.statementList)
-
-    private fun visitStatementList(context: List<VcStatement>): MutableList<Surrogate.Statement> =
+    private fun visitStatements(context: List<VcStatement>): MutableList<Surrogate.Statement> =
             context.map { visitStatement(it) }.toMutableList()
 
     private fun visitStatement(context: VcStatement): Surrogate.Statement {
@@ -389,7 +385,7 @@ class AbstractTreeBuildVisitor(
 
     private fun visitWhere(context: VcWhere?): MutableList<Surrogate.Statement> {
         return if (context != null && context.statementList.isNotEmpty()) {
-            visitStatementList(context.statementList)
+            visitStatements(context.statementList)
         } else {
             mutableListOf()
         }

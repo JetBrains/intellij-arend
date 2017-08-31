@@ -1,8 +1,6 @@
 package org.vclang.lang.core.resolve
 
 import com.intellij.codeInsight.lookup.LookupElement
-import com.intellij.codeInsight.lookup.LookupElementBuilder
-import org.vclang.ide.icons.VcIcons
 import org.vclang.lang.core.psi.ext.VcCompositeElement
 
 interface Scope {
@@ -58,28 +56,4 @@ class OverridingScope(private val parent: Scope, private val child: Scope) : Sco
             child.resolve(name) ?: parent.resolve(name)
 }
 
-object PreludeNamespace : Namespace {
-    override val symbols: Set<LookupElement>
-        get() = setOf(
-                LookupElementBuilder.create("Nat").withIcon(VcIcons.DATA_DEFINITION),
-                LookupElementBuilder.create("zero").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("suc").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("I").withIcon(VcIcons.DATA_DEFINITION),
-                LookupElementBuilder.create("left").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("right").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("Path").withIcon(VcIcons.DATA_DEFINITION),
-                LookupElementBuilder.create("path").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("=").withIcon(VcIcons.FUNCTION_DEFINITION),
-                LookupElementBuilder.create("@").withIcon(VcIcons.FUNCTION_DEFINITION),
-                LookupElementBuilder.create("coe").withIcon(VcIcons.FUNCTION_DEFINITION),
-                LookupElementBuilder.create("iso").withIcon(VcIcons.FUNCTION_DEFINITION),
-                LookupElementBuilder.create("TrP").withIcon(VcIcons.DATA_DEFINITION),
-                LookupElementBuilder.create("inP").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("truncP").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("TrS").withIcon(VcIcons.DATA_DEFINITION),
-                LookupElementBuilder.create("inS").withIcon(VcIcons.CONSTRUCTOR),
-                LookupElementBuilder.create("truncS").withIcon(VcIcons.CONSTRUCTOR)
-        )
-
-    override fun resolve(name: String): VcCompositeElement? = null
-}
+object PreludeScope : Scope, Namespace by PreludeNamespace

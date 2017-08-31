@@ -73,9 +73,7 @@
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
 }
 
-sourceNode ::= statements
-
-statements ::= topStatement* { mixin = "org.vclang.lang.core.psi.ext.VcStatementsImplMixin" }
+sourceNode ::= topStatement*
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 

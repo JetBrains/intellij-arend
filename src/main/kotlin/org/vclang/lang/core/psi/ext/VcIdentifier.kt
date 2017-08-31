@@ -6,8 +6,7 @@ import org.vclang.lang.core.psi.VcIdentifier
 import org.vclang.lang.core.psi.VcInfixName
 import org.vclang.lang.core.psi.VcPostfixName
 import org.vclang.lang.core.psi.VcPrefixName
-import org.vclang.lang.core.resolve.VcReference
-import org.vclang.lang.core.resolve.VcReferenceBase
+import org.vclang.lang.core.resolve.*
 
 abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
                                                       VcIdentifier {
@@ -36,6 +35,12 @@ abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 
 abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                   VcPrefixName {
+    override val namespace: Namespace
+            get() = reference.resolve()?.namespace ?: EmptyNamespace
+
+    override val scope: Scope
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope
+
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -48,9 +53,9 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcPrefixName>(
-            this@VcPrefixImplMixin
-    ) {
+    override fun getReference(): VcReference = VcPrefixReference()
+
+    private inner class VcPrefixReference : VcReferenceBase<VcPrefixName>(this@VcPrefixImplMixin) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
@@ -60,6 +65,12 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
 abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                  VcInfixName {
+    override val namespace: Namespace
+        get() = reference.resolve()?.namespace ?: EmptyNamespace
+
+    override val scope: Scope
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope
+
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -72,9 +83,9 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcInfixName>(
-            this@VcInfixImplMixin
-    ) {
+    override fun getReference(): VcReference = VcInfixReference()
+
+    private inner class VcInfixReference : VcReferenceBase<VcInfixName>(this@VcInfixImplMixin) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
@@ -84,6 +95,12 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
 abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                    VcPostfixName {
+    override val namespace: Namespace
+        get() = reference.resolve()?.namespace ?: EmptyNamespace
+
+    override val scope: Scope
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope
+
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -96,9 +113,10 @@ abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcPostfixName>(
-            this@VcPostfixImplMixin
-    ) {
+    override fun getReference(): VcReference = VcPostfixReference()
+
+    private inner class VcPostfixReference
+        : VcReferenceBase<VcPostfixName>(this@VcPostfixImplMixin) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 

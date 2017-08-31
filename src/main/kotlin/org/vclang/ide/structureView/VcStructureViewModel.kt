@@ -61,10 +61,9 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
 }
 
 private val VcFile.childDefinitions: List<VcDefinition>
-    get() = childOfType<VcStatements>()
-            ?.statementList
-            ?.mapNotNull { it.childDefinition }
-            ?: emptyList()
+    get() = children
+            .filterIsInstance<VcStatement>()
+            .mapNotNull { it.childDefinition }
 
 private val VcDefClass.childDefinitions: List<VcDefinition>
     get() {

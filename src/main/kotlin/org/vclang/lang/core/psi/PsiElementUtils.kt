@@ -29,7 +29,7 @@ val PsiElement.sourceRoot: VirtualFile?
     }
 
 val PsiElement.containingDirectories: Sequence<PsiDirectory>
-    get() = generateSequence(containingFile.containingDirectory) { it.parentDirectory }
+    get() = generateSequence(containingFile.originalFile.containingDirectory) { it.parentDirectory }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
         strict: Boolean = true,

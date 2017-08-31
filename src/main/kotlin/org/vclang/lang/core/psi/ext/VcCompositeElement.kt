@@ -22,11 +22,9 @@ abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node
     override val scope: Scope
         get() {
             val parentScope = (parent as? VcCompositeElement)?.scope
-            return if (parentScope != null) {
-                OverridingScope(parentScope, NamespaceScope(namespace))
-            } else {
-                NamespaceScope(namespace)
-            }
+            val namespaceScope = NamespaceScope(namespace)
+            parentScope?.let { return OverridingScope(it, namespaceScope) }
+            return namespaceScope
         }
 
     override fun getReference(): VcReference? = null
@@ -39,11 +37,9 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     override val scope: Scope
         get() {
             val parentScope = (parent as? VcCompositeElement)?.scope
-            return if (parentScope != null) {
-                OverridingScope(parentScope, NamespaceScope(namespace))
-            } else {
-                NamespaceScope(namespace)
-            }
+            val namespaceScope = NamespaceScope(namespace)
+            parentScope?.let { return OverridingScope(it, namespaceScope) }
+            return namespaceScope
         }
 
     constructor(node: ASTNode) : super(node)

@@ -3,6 +3,7 @@ package org.vclang.lang.core.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScopesCore
 import org.vclang.lang.VcFileType
 import org.vclang.lang.core.getPsiFor
 import org.vclang.lang.core.psi.*
@@ -13,11 +14,6 @@ import org.vclang.lang.core.resolve.VcReferenceBase
 
 abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                       VcModuleName {
-    override val namespace: Namespace
-        get() {
-            val module = reference.resolve()
-            return module?.namespace ?: EmptyNamespace
-        }
 
     override val referenceNameElement: VcCompositeElement
         get() = this
@@ -26,9 +22,10 @@ abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = object : VcReferenceBase<VcModuleName>(
-            this@VcModuleNameImplMixin
-    ) {
+    override fun getReference(): VcReference = VcModuleNameReference()
+
+    private inner class VcModuleNameReference
+        : VcReferenceBase<VcModuleName>(this@VcModuleNameImplMixin) {
 
         override fun resolve(): VcCompositeElement? {
             val path = parseModulePath(modulePath.text)
@@ -41,11 +38,20 @@ abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
         }
 
         override fun getVariants(): Array<Any> {
-            val project = this@VcModuleNameImplMixin.project
-            val virtualFiles = FilenameIndex.getAllFilesByExt(project, VcFileType.defaultExtension)
-            val psiFiles = virtualFiles.map { PsiManager.getInstance(project).findFile(it) }
-            val modules = psiFiles.filterIsInstance<VcFile>()
-            return modules.map { it.relativeModulePath }.map { it.toString() }.toTypedArray()
+            val root = sourceRoot ?: contentRoot ?: return emptyArray()
+            val searchScope = GlobalSearchScopesCore.directoryScope(project, root, true)
+            val files = FilenameIndex.getAllFilesByExt(
+                    project,
+                    VcFileType.defaultExtension,
+                    searchScope
+            )
+            val modules = files
+                    .map { PsiManager.getInstance(project).findFile(it) }
+                    .filterIsInstance<VcFile>()
+            return modules
+                    .map { it.relativeModulePath }
+                    .map { it.toString() }
+                    .toTypedArray()
         }
     }
 
@@ -56,5 +62,9 @@ abstract class VcModuleNameImplMixin(node: ASTNode) : VcCompositeElementImpl(nod
 abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                      VcNsCmdRoot {
     override val namespace: Namespace
-        get() = moduleName?.namespace ?: EmptyNamespace
+        get() {
+            val name = moduleName ?: identifier
+            name?.reference?.resolve()?.let { return it.namespace }
+            return EmptyNamespace
+        }
 }
