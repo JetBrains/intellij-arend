@@ -1,16 +1,21 @@
 package org.vclang.lang
 
 import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
 import org.intellij.lang.annotations.Language
 import org.vclang.FileTree
 import org.vclang.TestProject
+import org.vclang.fileTreeFromText
 import org.vclang.lang.core.psi.parentOfType
 import org.vclang.replaceCaretMarker
 
@@ -41,6 +46,29 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
     private val testName: String
         get() = camelOrWordsToSnake(getTestName(true))
 
+    protected fun checkByDirectory(action: () -> Unit) {
+        val (before, after) = ("$testName/before" to "$testName/after")
+
+        val targetPath = ""
+        val beforeDir = myFixture.copyDirectoryToProject(before, targetPath)
+
+        action()
+
+        val afterDir = getVirtualFileByName("$testDataPath/$after")
+        PlatformTestUtil.assertDirectoriesEqual(afterDir, beforeDir)
+    }
+
+    protected fun checkByDirectory(
+            @Language("Vclang") before: String,
+            @Language("Vclang") after: String,
+            action: () -> Unit
+    ) {
+        fileTreeFromText(before).create()
+        action()
+        FileDocumentManager.getInstance().saveAllDocuments()
+        fileTreeFromText(after).assertEquals(myFixture.findFileInTempDir("."))
+    }
+
     protected fun checkByText(
             @Language("Vclang") before: String,
             @Language("Vclang") after: String,
@@ -50,6 +78,9 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
         action()
         myFixture.checkResult(replaceCaretMarker(after))
     }
+
+    private fun getVirtualFileByName(path: String): VirtualFile? =
+            LocalFileSystem.getInstance().findFileByPath(path)
 
     protected open class VclangProjectDescriptorBase : LightProjectDescriptor() {
         open val skipTestReason: String? = null

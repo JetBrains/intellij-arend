@@ -4,11 +4,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileSystemItem
-import com.intellij.psi.PsiManager
+import com.intellij.psi.*
 import org.intellij.lang.annotations.Language
 import org.vclang.lang.core.psi.parentOfType
 
@@ -77,6 +73,33 @@ class FileTree(private val rootDirectory: Entry.Directory) {
         }
 
         return TestProject(project, directory, filesWithCaret)
+    }
+
+    fun assertEquals(baseDir: VirtualFile) {
+        fun go(expected: Entry.Directory, actual: VirtualFile) {
+            val actualChildren = actual.children.associateBy { it.name }
+            check(expected.children.keys == actualChildren.keys) {
+                "Mismatch in directory ${actual.path}\n" +
+                        "Expected: ${expected.children.keys}\n" +
+                        "Actual: ${actualChildren.keys}"
+            }
+
+            for ((name, entry) in expected.children) {
+                val a = actualChildren[name]!!
+                when (entry) {
+                    is Entry.File -> {
+                        check(!a.isDirectory)
+                        val actualText = String(a.contentsToByteArray(), Charsets.UTF_8)
+                        check(entry.text == actualText) {
+                            "Expected:\n${entry.text}\nGot:\n$actualText"
+                        }
+                    }
+                    is Entry.Directory -> go(entry, a)
+                }
+            }
+        }
+
+        go(rootDirectory, baseDir)
     }
 
     companion object {

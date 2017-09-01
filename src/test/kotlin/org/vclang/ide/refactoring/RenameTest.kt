@@ -149,6 +149,46 @@ class RenameTest : VcTestBase() {
             """
     )
 
+    fun `test rename file`() = checkByDirectory(
+            """
+                --! Main.vc
+                \open ::Foo
+
+                --! Foo.vc
+                -- empty
+            """,
+            """
+                --! Main.vc
+                \open ::Bar
+
+                --! Bar.vc
+                -- empty
+            """
+    ) {
+        val file = myFixture.configureFromTempProjectFile("Foo.vc")
+        myFixture.renameElement(file, "Bar.vc")
+    }
+
+    fun `test rename file without extension`() = checkByDirectory(
+            """
+                --! Main.vc
+                \open ::Foo
+
+                --! Foo.vc
+                -- empty
+            """,
+            """
+                --! Main.vc
+                \open ::Bar
+
+                --! Bar.vc
+                -- empty
+            """
+    ) {
+        val file = myFixture.configureFromTempProjectFile("Foo.vc")
+        myFixture.renameElement(file, "Bar")
+    }
+
     private fun doTest(
             newName: String,
             @Language("Vclang") before: String,
