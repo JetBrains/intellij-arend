@@ -36,7 +36,10 @@ abstract class VcIdentifierImplMixin(node: ASTNode) : VcNamedElementImpl(node),
 abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                   VcPrefixName {
     override val namespace: Namespace
-            get() = reference.resolve()?.namespace ?: EmptyNamespace
+            get() {
+                val resolved = reference.resolve() as? VcCompositeElement
+                return resolved?.namespace ?: EmptyNamespace
+            }
 
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope
@@ -66,7 +69,10 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                  VcInfixName {
     override val namespace: Namespace
-        get() = reference.resolve()?.namespace ?: EmptyNamespace
+        get() {
+            val resolved = reference.resolve() as? VcCompositeElement
+            return resolved?.namespace ?: EmptyNamespace
+        }
 
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope
@@ -96,7 +102,10 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                    VcPostfixName {
     override val namespace: Namespace
-        get() = reference.resolve()?.namespace ?: EmptyNamespace
+        get() {
+            val resolved = reference.resolve() as? VcCompositeElement
+            return resolved?.namespace ?: EmptyNamespace
+        }
 
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope

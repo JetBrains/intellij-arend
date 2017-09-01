@@ -37,9 +37,8 @@ BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
 NUMBER              = [0-9]+
-MODULE_PATH         = (::[a-zA-Z_][a-zA-Z0-9_']*)+
 
-INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|:;\[\]]
+INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|;\[\]]
 PREFIX              = ({INFIX_CHAR}|[a-zA-Z_])({INFIX_CHAR}|[a-zA-Z0-9_'])*
 INFIX               = {INFIX_CHAR}+
 PREFIX_INFIX        = `{INFIX}
@@ -101,7 +100,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\suc"                 { return SUC_KW; }
     "\\max"                 { return MAX_KW; }
 
-    {MODULE_PATH}           { return MODULE_PATH; }
     {NUMBER}                { return NUMBER; }
 
     {INFIX}                 { return INFIX; }

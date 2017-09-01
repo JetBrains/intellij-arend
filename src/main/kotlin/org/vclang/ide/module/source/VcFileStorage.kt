@@ -14,7 +14,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.primitive.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.primitive.NamespaceScope
 import com.jetbrains.jetpad.vclang.naming.scope.primitive.Scope
 import org.vclang.lang.VcFileType
-import org.vclang.lang.core.getPsiFor
+import org.vclang.lang.core.getPsiFileFor
 import org.vclang.lang.core.parser.AbstractTreeFactory
 import org.vclang.lang.core.psi.VcFile
 import java.io.IOException
@@ -93,7 +93,7 @@ class VcFileStorage(
         override fun locateModule(modulePath: ModulePath): SourceId? {
             val path = modulePathToSourcePath(modulePath)
             val file = LocalFileSystem.getInstance().findFileByPath(path.toString())
-            val module = project.getPsiFor(file) as? VcFile
+            val module = project.getPsiFileFor(file) as? VcFile
             return module?.let { SourceId(it) }
         }
 

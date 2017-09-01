@@ -305,9 +305,11 @@ newExpr ::= NEW_KW? binOpArg implementStatements? postfixName* {
 
 fieldAcc ::= DOT (NUMBER | identifier) { pin = 1 }
 
-moduleName ::= MODULE_PATH {
+moduleName ::= (COLONCOLON moduleNamePart)+
+
+moduleNamePart ::= identifier {
     implements = [ "org.vclang.lang.core.psi.ext.VcReferenceElement" ]
-    mixin = "org.vclang.lang.core.psi.ext.VcModuleNameImplMixin"
+    mixin = "org.vclang.lang.core.psi.ext.VcModuleNamePartImplMixin"
 }
 
 atom ::= literal

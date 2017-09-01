@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import org.vclang.lang.VcFileType
@@ -19,5 +20,8 @@ val Project.modulesWithVclangProject: Collection<Module>
                 .any { it.extension == VcFileType.defaultExtension }
     }
 
-fun Project.getPsiFor(file: VirtualFile?): PsiFile? =
+fun Project.getPsiFileFor(file: VirtualFile?): PsiFile? =
         file?.let { PsiManager.getInstance(this).findFile(it) }
+
+fun Project.getPsiDirectoryFor(file: VirtualFile?): PsiDirectory? =
+        file?.let { PsiManager.getInstance(this).findDirectory(it) }

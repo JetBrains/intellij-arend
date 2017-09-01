@@ -68,6 +68,6 @@ open class VcWordScanner : VersionedWordsScanner() {
         }
 
         private fun isIdentifierPart(c: Char): Boolean =
-            c in '!'..'~' && c !in listOf('"', '(', ')', ',', '.', '`', '{', '}')
+            c in '!'..'~' && c !in setOf(':', '"', '(', ')', ',', '.', '`', '{', '}')
     }
 }

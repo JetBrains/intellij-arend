@@ -113,10 +113,6 @@
         <stubIndex implementation="org.vclang.lang.core.stubs.index.VcDefinitionIndex"/>
         <stubIndex implementation="org.vclang.lang.core.stubs.index.VcGotoClassIndex"/>
 
-        <!-- Refactoring -->
-
-        <lang.namesValidator language="Vclang" implementationClass="org.vclang.lang.refactoring.VcNamesValidator"/>
-
         <!-- Services -->
 
         <projectService serviceInterface="org.vclang.ide.typecheck.TypeCheckingService"

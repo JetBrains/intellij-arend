@@ -3,6 +3,7 @@ package org.vclang.lang.core.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
+import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
@@ -56,6 +57,15 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                     }
                     .fold(namespaceScope) { scope1, scope2 -> MergeScope(scope1, scope2) }
         }
+
+    override fun setName(name: String): PsiElement {
+        val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
+            name
+        } else {
+            "$name.vc"
+        }
+        return super.setName(nameWithExtension)
+    }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
