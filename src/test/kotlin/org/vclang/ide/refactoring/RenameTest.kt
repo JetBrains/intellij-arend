@@ -189,6 +189,26 @@ class RenameTest : VcTestBase() {
         myFixture.renameElement(file, "Bar")
     }
 
+    fun `test rename directory`() = checkByDirectory(
+        """
+                --! Main.vc
+                \open ::DirA::Foo
+
+                --! DirA/Foo.vc
+                -- empty
+            """,
+        """
+                --! Main.vc
+                \open ::DirB::Foo
+
+                --! DirB/Foo.vc
+                -- empty
+            """
+    ) {
+        val file = myFixture.configureFromTempProjectFile("DirA/Foo.vc")
+        myFixture.renameElement(file.containingDirectory, "DirB")
+    }
+
     private fun doTest(
             newName: String,
             @Language("Vclang") before: String,
