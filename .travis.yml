@@ -1,0 +1,23 @@
+language: java
+
+sudo: false
+
+jdk: oraclejdk8
+
+branches:
+  only:
+    - master
+    - dev
+
+install: true
+
+script: ./gradlew check -Pkotlin.incremental=false -Dkotlin.daemon.jvm.options=-Xmx1024m
+
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
