@@ -1,4 +1,4 @@
-# Vclang plugin for IntelliJ Platform
+# Vclang plugin for IntelliJ IDEA
 
 [![Build Status][travis-build-status-svg]][travis-build-status] 
 
