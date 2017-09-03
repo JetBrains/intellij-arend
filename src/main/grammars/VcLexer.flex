@@ -38,9 +38,12 @@ BLOCK_COMMENT_END   = -\}
 
 NUMBER              = [0-9]+
 
-INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|;\[\]]
-PREFIX              = ({INFIX_CHAR}|[a-zA-Z_])({INFIX_CHAR}|[a-zA-Z0-9_'])*
-INFIX               = {INFIX_CHAR}+
+INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];]
+PREFIX_CHAR         = [a-zA-Z0-9_']
+PREFIX_START_CHAR   = [a-zA-Z_]
+
+PREFIX              = :|(:({INFIX_CHAR}|{PREFIX_CHAR})|({INFIX_CHAR}|{PREFIX_START_CHAR}))(:?({INFIX_CHAR}|{PREFIX_CHAR}))*
+INFIX               = :|(:{INFIX_CHAR}|{INFIX_CHAR})(:?{INFIX_CHAR})*:?
 PREFIX_INFIX        = `{INFIX}
 INFIX_PREFIX        = `{PREFIX}
 POSTFIX_INFIX       = {INFIX}`
