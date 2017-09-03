@@ -5,7 +5,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import org.vclang.lang.VcFileType
-import org.vclang.lang.core.psi.*
+import org.vclang.lang.core.psi.VcDefIdentifier
+import org.vclang.lang.core.psi.VcInfixName
+import org.vclang.lang.core.psi.VcPostfixName
+import org.vclang.lang.core.psi.VcPrefixName
+import org.vclang.lang.core.psi.VcPsiFactory
+import org.vclang.lang.core.psi.VcRefIdentifier
 import org.vclang.lang.core.psi.ext.VcCompositeElement
 import org.vclang.lang.core.psi.ext.VcReferenceElement
 import org.vclang.lang.refactoring.VcNamesValidator
@@ -32,7 +37,8 @@ abstract class VcReferenceBase<T : VcReferenceElement>(element: T)
             if (!VcNamesValidator().isIdentifier(name, oldNameIdentifier.project)) return
             val factory = VcPsiFactory(oldNameIdentifier.project)
             val newNameIdentifier = when (oldNameIdentifier) {
-                is VcIdentifier -> factory.createIdentifier(name)
+                is VcDefIdentifier -> factory.createDefIdentifier(name)
+                is VcRefIdentifier -> factory.createRefIdentifier(name)
                 is VcPrefixName -> factory.createPrefixName(name)
                 is VcInfixName -> factory.createInfixName(name)
                 is VcPostfixName -> factory.createPostfixName(name)

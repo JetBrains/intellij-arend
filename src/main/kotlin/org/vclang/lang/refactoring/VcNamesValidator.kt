@@ -5,7 +5,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.tree.IElementType
 import org.vclang.lang.core.lexer.VcLexerAdapter
 import org.vclang.lang.core.psi.VC_KEYWORDS
-import org.vclang.lang.core.psi.VcElementTypes.*
+import org.vclang.lang.core.psi.VcElementTypes.INFIX
+import org.vclang.lang.core.psi.VcElementTypes.PREFIX
 
 class VcNamesValidator : NamesValidator {
 
@@ -14,7 +15,7 @@ class VcNamesValidator : NamesValidator {
     }
 
     override fun isIdentifier(name: String, project: Project?): Boolean =
-            getLexerType(name) in listOf(IDENTIFIER, PREFIX, INFIX) && !containsComment(name)
+        (isPrefixName(name) || isInfixName(name)) && !containsComment(name)
 
     fun isPrefixName(name: String): Boolean = getLexerType(name) == PREFIX
 

@@ -13,25 +13,28 @@ import org.vclang.lang.core.psi.VcNsCmdRoot
 import org.vclang.lang.core.psi.contentRoot
 import org.vclang.lang.core.psi.sourceRoot
 import org.vclang.lang.core.resolve.EmptyNamespace
+import org.vclang.lang.core.resolve.EmptyScope
 import org.vclang.lang.core.resolve.Namespace
+import org.vclang.lang.core.resolve.Scope
 import org.vclang.lang.core.resolve.VcReference
 import org.vclang.lang.core.resolve.VcReferenceBase
 import org.vclang.lang.core.rightSiblings
 
 abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                           VcModuleNamePart {
+    override val scope: Scope = EmptyScope
 
     override val referenceNameElement: VcCompositeElement
-        get() = identifier
+        get() = refIdentifier
 
     override val referenceName: String
-        get() = text
+        get() = referenceNameElement.text
 
     override fun getName(): String = referenceName
 
-    override fun getReference(): VcReference = VcModuleNameReference()
+    override fun getReference(): VcReference = VcModuleNamePartReference()
 
-    private inner class VcModuleNameReference
+    private inner class VcModuleNamePartReference
         : VcReferenceBase<VcModuleNamePart>(this@VcModuleNamePartImplMixin) {
 
         override fun resolve(): PsiElement? {
@@ -68,7 +71,7 @@ abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node
                                                      VcNsCmdRoot {
     override val namespace: Namespace
         get() {
-            val name = moduleName?.moduleNamePartList?.lastOrNull() ?: identifier
+            val name = moduleName?.moduleNamePartList?.lastOrNull() ?: refIdentifier
             val resolved = name?.reference?.resolve() as? VcCompositeElement
             resolved?.let { return it.namespace }
             return EmptyNamespace

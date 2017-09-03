@@ -34,6 +34,7 @@ class VcModuleWizardStep(
             if (contentEntry != null) {
                 val projectRoot = contentEntry.file ?: return
 
+                // TODO: createChildDirectory???
                 (VcConstants.ProjectLayout.sources + VcConstants.ProjectLayout.tests)
                         .filter { projectRoot.findChild(it) == null }
                         .forEach { projectRoot.createChildDirectory(null, it) }

@@ -12,7 +12,13 @@ import org.vclang.lang.VcLanguage
 import org.vclang.lang.core.Surrogate
 import org.vclang.lang.core.parser.fullName
 import org.vclang.lang.core.psi.ext.VcCompositeElement
-import org.vclang.lang.core.resolve.*
+import org.vclang.lang.core.resolve.MergeScope
+import org.vclang.lang.core.resolve.Namespace
+import org.vclang.lang.core.resolve.NamespaceProvider
+import org.vclang.lang.core.resolve.NamespaceScope
+import org.vclang.lang.core.resolve.PreludeScope
+import org.vclang.lang.core.resolve.Scope
+import org.vclang.lang.core.resolve.VcReference
 import org.vclang.lang.core.stubs.VcFileStub
 import java.nio.file.Paths
 
@@ -46,15 +52,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             val statements = children.filterIsInstance<VcStatement>()
             return statements
                     .mapNotNull { it.statCmd }
-                    .mapNotNull { cmd ->
-                        cmd.nsCmdRoot?.let {
-                            FilteredScope(
-                                    NamespaceScope(it.namespace),
-                                    cmd.identifierList.map { it.text }.toSet(),
-                                    cmd.isHiding
-                            )
-                        }
-                    }
+                    .map { it.scope }
                     .fold(namespaceScope) { scope1, scope2 -> MergeScope(scope1, scope2) }
         }
 
@@ -62,7 +60,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
         val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
             name
         } else {
-            "$name.vc"
+            "$name.${VcFileType.defaultExtension}"
         }
         return super.setName(nameWithExtension)
     }

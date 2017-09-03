@@ -14,19 +14,19 @@ class VcDeclarationRangeHandler : DeclarationRangeHandler<PsiElement> {
         return when (container) {
             is VcDefClass -> {
                 val lastTele = container.classTeles?.teleList?.lastOrNull()
-                TextRange(start, (lastTele ?: container.identifier)!!.textRange.endOffset)
+                TextRange(start, (lastTele ?: container.defIdentifier)!!.textRange.endOffset)
             }
             is VcDefData -> {
                 val lastTele = container.teleList.lastOrNull()
-                TextRange(start, (lastTele ?: container.identifier)!!.textRange.endOffset)
+                TextRange(start, (lastTele ?: container.defIdentifier)!!.textRange.endOffset)
             }
             is VcDefInstance -> {
                 val lastTele = container.teleList.lastOrNull()
-                TextRange(start, (lastTele ?: container.identifier)!!.textRange.endOffset)
+                TextRange(start, (lastTele ?: container.defIdentifier)!!.textRange.endOffset)
             }
             is VcDefFunction -> {
                 val lastTele = container.teleList.lastOrNull()
-                TextRange(start, (lastTele ?: container.identifier)!!.textRange.endOffset)
+                TextRange(start, (lastTele ?: container.defIdentifier)!!.textRange.endOffset)
             }
             else -> container.textRange
         }

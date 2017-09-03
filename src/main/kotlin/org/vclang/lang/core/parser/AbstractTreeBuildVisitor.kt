@@ -10,8 +10,94 @@ import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract
 import org.vclang.lang.VcFileType
 import org.vclang.lang.core.Surrogate
-import org.vclang.lang.core.psi.*
-import org.vclang.lang.core.psi.ext.adapters.*
+import org.vclang.lang.core.psi.VcArgument
+import org.vclang.lang.core.psi.VcArgumentBinOp
+import org.vclang.lang.core.psi.VcArrExpr
+import org.vclang.lang.core.psi.VcAssociativity
+import org.vclang.lang.core.psi.VcAtom
+import org.vclang.lang.core.psi.VcAtomFieldsAcc
+import org.vclang.lang.core.psi.VcAtomLevelExpr
+import org.vclang.lang.core.psi.VcAtomModuleCall
+import org.vclang.lang.core.psi.VcAtomPattern
+import org.vclang.lang.core.psi.VcAtomPatternOrPrefix
+import org.vclang.lang.core.psi.VcBinOpArg
+import org.vclang.lang.core.psi.VcBinOpExpr
+import org.vclang.lang.core.psi.VcBinOpLeft
+import org.vclang.lang.core.psi.VcCaseExpr
+import org.vclang.lang.core.psi.VcClassField
+import org.vclang.lang.core.psi.VcClassImplement
+import org.vclang.lang.core.psi.VcClassStat
+import org.vclang.lang.core.psi.VcClassStats
+import org.vclang.lang.core.psi.VcClassViewField
+import org.vclang.lang.core.psi.VcClause
+import org.vclang.lang.core.psi.VcClauses
+import org.vclang.lang.core.psi.VcConstructor
+import org.vclang.lang.core.psi.VcDataBody
+import org.vclang.lang.core.psi.VcDataClauses
+import org.vclang.lang.core.psi.VcDataConstructors
+import org.vclang.lang.core.psi.VcDefClass
+import org.vclang.lang.core.psi.VcDefClassView
+import org.vclang.lang.core.psi.VcDefData
+import org.vclang.lang.core.psi.VcDefFunction
+import org.vclang.lang.core.psi.VcDefInstance
+import org.vclang.lang.core.psi.VcDefinition
+import org.vclang.lang.core.psi.VcElim
+import org.vclang.lang.core.psi.VcExpr
+import org.vclang.lang.core.psi.VcExpr0
+import org.vclang.lang.core.psi.VcFile
+import org.vclang.lang.core.psi.VcIdentifierOrUnknown
+import org.vclang.lang.core.psi.VcImplementStatements
+import org.vclang.lang.core.psi.VcInfixName
+import org.vclang.lang.core.psi.VcLamExpr
+import org.vclang.lang.core.psi.VcLetClause
+import org.vclang.lang.core.psi.VcLetExpr
+import org.vclang.lang.core.psi.VcLevelExpr
+import org.vclang.lang.core.psi.VcLiteral
+import org.vclang.lang.core.psi.VcMaxLevelExpr
+import org.vclang.lang.core.psi.VcModuleName
+import org.vclang.lang.core.psi.VcNsCmd
+import org.vclang.lang.core.psi.VcPattern
+import org.vclang.lang.core.psi.VcPatternConstructor
+import org.vclang.lang.core.psi.VcPiExpr
+import org.vclang.lang.core.psi.VcPostfixName
+import org.vclang.lang.core.psi.VcPrec
+import org.vclang.lang.core.psi.VcPrefixName
+import org.vclang.lang.core.psi.VcSetUniverseBinOp
+import org.vclang.lang.core.psi.VcSigmaExpr
+import org.vclang.lang.core.psi.VcStatCmd
+import org.vclang.lang.core.psi.VcStatDef
+import org.vclang.lang.core.psi.VcStatement
+import org.vclang.lang.core.psi.VcSucLevelExpr
+import org.vclang.lang.core.psi.VcTele
+import org.vclang.lang.core.psi.VcTruncatedUniverseBinOp
+import org.vclang.lang.core.psi.VcTuple
+import org.vclang.lang.core.psi.VcTypedExpr
+import org.vclang.lang.core.psi.VcUniverseAtom
+import org.vclang.lang.core.psi.VcUniverseBinOp
+import org.vclang.lang.core.psi.VcWhere
+import org.vclang.lang.core.psi.childOfType
+import org.vclang.lang.core.psi.ext.adapters.ClassDefinitionAdapter
+import org.vclang.lang.core.psi.ext.adapters.ClassFieldAdapter
+import org.vclang.lang.core.psi.ext.adapters.ClassImplementAdapter
+import org.vclang.lang.core.psi.ext.adapters.ClassViewAdapter
+import org.vclang.lang.core.psi.ext.adapters.ClassViewFieldAdapter
+import org.vclang.lang.core.psi.ext.adapters.ClassViewInstanceAdapter
+import org.vclang.lang.core.psi.ext.adapters.ConstructorAdapter
+import org.vclang.lang.core.psi.ext.adapters.DataDefinitionAdapter
+import org.vclang.lang.core.psi.ext.adapters.DefinitionAdapter
+import org.vclang.lang.core.psi.ext.adapters.FunctionDefinitionAdapter
+import org.vclang.lang.core.psi.hasType
+import org.vclang.lang.core.psi.isAny
+import org.vclang.lang.core.psi.isEmpty
+import org.vclang.lang.core.psi.isExplicit
+import org.vclang.lang.core.psi.isExportCmd
+import org.vclang.lang.core.psi.isHiding
+import org.vclang.lang.core.psi.isImplicit
+import org.vclang.lang.core.psi.isLeftAssoc
+import org.vclang.lang.core.psi.isNonAssoc
+import org.vclang.lang.core.psi.isOpenCmd
+import org.vclang.lang.core.psi.isRightAssoc
+import org.vclang.lang.core.psi.withNewContext
 import java.nio.file.Paths
 
 class AbstractTreeBuildVisitor(
@@ -39,12 +125,12 @@ class AbstractTreeBuildVisitor(
         val kind = visitNsCmd(context.nsCmd)
         val modulePath = context.nsCmdRoot?.moduleName?.let { visitModuleName(it) }
         val path = mutableListOf<String>()
-        context.nsCmdRoot?.identifier?.let { path.add(it.text) }
+        context.nsCmdRoot?.refIdentifier?.referenceName?.let { path.add(it) }
         for (fieldAcc in context.fieldAccList) {
-            fieldAcc.identifier?.let { path.add(it.text) }
+            fieldAcc.refIdentifier?.let { path.add(it.text) }
                     ?: reportError(elementPosition(fieldAcc), "Expected a name")
         }
-        val identifiers = context.identifierList
+        val identifiers = context.refIdentifierList
         val names = if (identifiers.isNotEmpty()) identifiers.map { it.text } else null
         return Surrogate.NamespaceCommandStatement(
                 elementPosition(context),
@@ -84,7 +170,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitDefClass(context: VcDefClass): ClassDefinitionAdapter {
-        val name = context.identifier?.text
+        val name = context.defIdentifier?.text
         val polyParams = context.classTeles?.teleList?.let { visitTeles(it) }
         val superClasses = context.atomFieldsAccList.map {
             Surrogate.SuperClass(elementPosition(it), visitAtomFieldsAcc(it))
@@ -136,7 +222,7 @@ class AbstractTreeBuildVisitor(
         if (context is ClassFieldAdapter) {
             return context.reconstruct(
                     elementPosition(context),
-                    context.identifier.text,
+                    context.name,
                     visitPrecedence(context.prec),
                     visitExpr(context.expr)
             )
@@ -148,7 +234,7 @@ class AbstractTreeBuildVisitor(
         if (context !is ClassImplementAdapter) error("Invalid context")
         return context.reconstruct(
                 elementPosition(context),
-                context.identifier.text,
+                context.name,
                 visitExpr(context.expr)
         )
     }
@@ -192,13 +278,13 @@ class AbstractTreeBuildVisitor(
 
     private fun visitDefClassView(context: VcDefClassView): ClassViewAdapter {
         if (context !is ClassViewAdapter) error("Invalid context")
-        val name = context.identifierList[0]?.text
+        val name = context.name
         val underlyingClass = visitExpr(context.expr)
         if (underlyingClass !is Surrogate.ReferenceExpression) {
             reportError(underlyingClass.position, "Expected a class")
             throw ParseException()
         }
-        val classifyingFieldName = context.identifierList[1]?.text
+        val classifyingFieldName = context.refIdentifier?.referenceName
         val fields = mutableListOf<ClassViewFieldAdapter>()
         val classView = context.reconstruct(
                 elementPosition(context),
@@ -227,7 +313,7 @@ class AbstractTreeBuildVisitor(
         if (context !is DataDefinitionAdapter) error("Invalid context")
         val dataDefinition = context.reconstruct(
                 elementPosition(context),
-                context.identifier?.text,
+                context.name,
                 visitPrecedence(context.prec),
                 visitTeles(context.teleList),
                 eliminatedReferences,
@@ -264,7 +350,7 @@ class AbstractTreeBuildVisitor(
         if (context !is FunctionDefinitionAdapter) error("Invalid context")
         val functionDefinition = context.reconstruct(
                 elementPosition(context),
-                context.identifier?.text,
+                context.name,
                 visitPrecedence(context.prec),
                 visitFunctionArguments(context.teleList),
                 resultType,
@@ -294,7 +380,7 @@ class AbstractTreeBuildVisitor(
             val type = term.expression
             if (type is Surrogate.ClassExtExpression) {
                 if (type.baseClassExpression is Surrogate.ReferenceExpression) {
-                    val name = context.identifier?.text
+                    val name = context.name
                     if (context !is ClassViewInstanceAdapter) error("Invalid context")
                     return context.reconstruct(
                             elementPosition(context),
@@ -367,15 +453,11 @@ class AbstractTreeBuildVisitor(
             context: VcClassViewField,
             ownView: ClassViewAdapter
     ): ClassViewFieldAdapter {
-        val underlyingField = context.identifierList[0].text
-        val name = if (context.identifierList.size > 1) {
-            context.identifierList[1].text
-        } else {
-            underlyingField
-        }
+        val underlyingField = context.name
+        val name = context.refIdentifier?.referenceName ?: underlyingField
         if (context !is ClassViewFieldAdapter) error("Invalid context")
         return context.reconstruct(
-                elementPosition(context.identifierList[0]),
+                elementPosition(context.defIdentifier),
                 name,
                 visitPrecedence(context.prec),
                 underlyingField,
@@ -436,7 +518,7 @@ class AbstractTreeBuildVisitor(
         val hasConditions = it.elim != null || it.clauseList.isNotEmpty()
         it.reconstruct(
                 elementPosition(it),
-                it.identifier.text,
+                it.name,
                 visitPrecedence(it.prec),
                 definition,
                 visitTeles(it.teleList),
@@ -553,7 +635,7 @@ class AbstractTreeBuildVisitor(
             context.clauseList.map { visitClause(it) }
 
     private fun visitLetClause(context: VcLetClause): Surrogate.LetClause {
-        val name = context.identifier.text
+        val name = context.name
         val arguments = visitLamTeles(context.teleList)
         val resultType = context.typeAnnotation?.let { visitExpr(it.expr) }
         return Surrogate.LetClause(
@@ -742,7 +824,8 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitModuleName(context: VcModuleName): List<String> {
-        val module = context.reference?.resolve() as? VcFile
+        val lastModuleNamePart = context.moduleNamePartList.lastOrNull()
+        val module = lastModuleNamePart?.reference?.resolve() as? VcFile
         val modulePath = Paths.get(
             module?.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
         )
@@ -784,10 +867,10 @@ class AbstractTreeBuildVisitor(
         var expr = visitAtom(context.atom)
         for (acc in context.fieldAccList) {
             expr = when {
-                acc.identifier != null -> Surrogate.ReferenceExpression(
+                acc.refIdentifier != null -> Surrogate.ReferenceExpression(
                     elementPosition(acc),
                     expr,
-                    acc.identifier?.text
+                    acc.refIdentifier?.referenceName
                 )
                 acc.number != null -> {
                     val field = Integer.parseInt(acc.number?.text) - 1
@@ -814,8 +897,8 @@ class AbstractTreeBuildVisitor(
         if (context != null) {
             val implementStatements = context.implementStatementList.map {
                 Surrogate.ClassFieldImpl(
-                        elementPosition(it.identifier),
-                        it.identifier.text,
+                        elementPosition(it.refIdentifier),
+                        it.refIdentifier.referenceName,
                         visitExpr(it.expr)
                 )
             }
@@ -867,7 +950,7 @@ class AbstractTreeBuildVisitor(
         context.goal?.let {
             return Surrogate.GoalExpression(
                     elementPosition(context),
-                    it.identifier?.text,
+                    it.name,
                     it.expr?.let { visitExpr(it) }
             )
         }
@@ -1093,19 +1176,19 @@ class AbstractTreeBuildVisitor(
 
     private fun visitPrefix(prefix: VcPrefixName): String {
         prefix.prefix?.let { return it.text }
-        prefix.prefixInfix?.let { return it.text.drop(1) }
+        prefix.prefixInfix?.let { return it.text.removePrefix("`") }
         error("Invalid context")
     }
 
     private fun visitInfix(infix: VcInfixName): String {
         infix.infix?.let { return it.text }
-        infix.infixPrefix?.let { return it.text.drop(1) }
+        infix.infixPrefix?.let { return it.text.removePrefix("`") }
         error("Invalid context")
     }
 
     private fun visitPostfix(postfix: VcPostfixName): String {
-        postfix.postfixInfix?.let { return it.text.dropLast(1) }
-        postfix.postfixPrefix?.let { return it.text.dropLast(1) }
+        postfix.postfixInfix?.let { return it.text.removeSuffix("`") }
+        postfix.postfixPrefix?.let { return it.text.removeSuffix("`") }
         error("Invalid context")
     }
 
