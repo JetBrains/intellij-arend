@@ -113,6 +113,10 @@
         <stubIndex implementation="org.vclang.lang.core.stubs.index.VcDefinitionIndex"/>
         <stubIndex implementation="org.vclang.lang.core.stubs.index.VcGotoClassIndex"/>
 
+        <!-- Lookup char filter -->
+
+        <lookup.charFilter implementation="org.vclang.lang.core.completion.CompletionCharFilter"/>
+
         <!-- Services -->
 
         <projectService serviceInterface="org.vclang.ide.typecheck.TypeCheckingService"

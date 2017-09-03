@@ -32,6 +32,9 @@ open class VcWordScanner : VersionedWordsScanner() {
 
     companion object {
 
+        fun isVclangIdentifierPart(c: Char): Boolean =
+            c in '!'..'~' && c !in setOf('"', '(', ')', ',', '.', '`', '{', '}')
+
         protected fun stripWords(
             processor: Processor<WordOccurrence>,
             tokenText: CharSequence,
@@ -45,7 +48,7 @@ open class VcWordScanner : VersionedWordsScanner() {
                 while (true) {
                     if (index == to) break@ScanWordsLoop
                     val ch = tokenText[index]
-                    if (isIdentifierPart(ch) || Character.isJavaIdentifierStart(ch)) {
+                    if (isVclangIdentifierPart(ch) || Character.isJavaIdentifierStart(ch)) {
                         break
                     }
                     index++
@@ -56,8 +59,7 @@ open class VcWordScanner : VersionedWordsScanner() {
                     index++
                     if (index == to) break
                     val c = tokenText[index]
-                    if (isIdentifierPart(c)) continue
-                    if (!Character.isJavaIdentifierPart(c)) break
+                    if (!isVclangIdentifierPart(c)) break
                 }
                 val wordEnd = index
                 occurrence.init(tokenText, wordStart, wordEnd, kind)
@@ -66,8 +68,5 @@ open class VcWordScanner : VersionedWordsScanner() {
             }
             return true
         }
-
-        private fun isIdentifierPart(c: Char): Boolean =
-            c in '!'..'~' && c !in setOf(':', '"', '(', ')', ',', '.', '`', '{', '}')
     }
 }
