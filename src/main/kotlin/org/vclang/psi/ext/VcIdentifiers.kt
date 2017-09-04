@@ -1,17 +1,8 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.vclang.psi.VcDefIdentifier
-import org.vclang.psi.VcInfixName
-import org.vclang.psi.VcPostfixName
-import org.vclang.psi.VcPrefixName
-import org.vclang.psi.VcRefIdentifier
-import org.vclang.resolve.EmptyNamespace
-import org.vclang.resolve.EmptyScope
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.Scope
-import org.vclang.resolve.VcReference
-import org.vclang.resolve.VcReferenceBase
+import org.vclang.psi.*
+import org.vclang.resolve.*
 
 abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                          VcDefIdentifier {
@@ -46,9 +37,8 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
 
     override fun getReference(): VcReference = VcRefIdentifierReference()
 
-    private inner class VcRefIdentifierReference : VcReferenceBase<VcRefIdentifier>(
-        this@VcRefIdentifierImplMixin
-    ) {
+    private inner class VcRefIdentifierReference
+        : VcReferenceBase<VcRefIdentifier>(this@VcRefIdentifierImplMixin) {
 
         override fun resolve(): VcCompositeElement? = scope.resolve(name)
 
@@ -59,10 +49,10 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
 abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                   VcPrefixName {
     override val namespace: Namespace
-            get() {
-                val resolved = reference.resolve() as? VcCompositeElement
-                return resolved?.namespace ?: EmptyNamespace
-            }
+        get() {
+            val resolved = reference.resolve() as? VcCompositeElement
+            return resolved?.namespace ?: EmptyNamespace
+        }
 
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope

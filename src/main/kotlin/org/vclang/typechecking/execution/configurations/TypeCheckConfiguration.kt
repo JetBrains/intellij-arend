@@ -1,11 +1,7 @@
 package org.vclang.typechecking.execution.configurations
 
 import com.intellij.execution.Executor
-import com.intellij.execution.configurations.ConfigurationFactory
-import com.intellij.execution.configurations.ModuleBasedConfiguration
-import com.intellij.execution.configurations.RunConfiguration
-import com.intellij.execution.configurations.RunConfigurationWithSuppressedDefaultDebugAction
-import com.intellij.execution.configurations.RunProfileState
+import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.options.SettingsEditor
@@ -24,7 +20,7 @@ class TypeCheckConfiguration(
         factory: ConfigurationFactory
 ) : ModuleBasedConfiguration<TypeCheckRunConfigurationModule>(
         name,
-    TypeCheckRunConfigurationModule(project),
+        TypeCheckRunConfigurationModule(project),
         factory
     ),
     RunConfigurationWithSuppressedDefaultDebugAction {
@@ -48,10 +44,10 @@ class TypeCheckConfiguration(
     override fun getValidModules(): Collection<Module> = project.modulesWithVclangProject
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> =
-        TypeCheckRunConfigurationEditor(project)
+            TypeCheckRunConfigurationEditor(project)
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
-        TypeCheckRunState(environment, vclangTypeCheckCommand)
+            TypeCheckRunState(environment, vclangTypeCheckCommand)
 
     override fun writeExternal(element: Element) {
         super.writeExternal(element)

@@ -32,13 +32,7 @@ abstract class VcNavigationContributorBase<T> protected constructor(
         } else {
             GlobalSearchScope.projectScope(project)
         }
-        return StubIndex.getElements(
-                indexKey,
-                name,
-                project,
-                scope,
-                clazz
-        ).toTypedArray()
+        return StubIndex.getElements(indexKey, name, project, scope, clazz).toTypedArray()
     }
 
     override fun getQualifiedName(item: NavigationItem?): String? =

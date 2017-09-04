@@ -33,10 +33,10 @@ class SimpleNamespace : Namespace {
     override fun resolve(name: String): VcCompositeElement? = items[name]
 
     fun put(definition: VcNamedElement?): VcCompositeElement? =
-        definition?.name?.let { items.put(it, definition) }
+            definition?.name?.let { items.put(it, definition) }
 
     fun put(name: String, definition: VcCompositeElement): VcCompositeElement? =
-        items.put(name, definition)
+            items.put(name, definition)
 
     fun putAll(other: SimpleNamespace) = items.putAll(other.items)
 }

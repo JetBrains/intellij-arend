@@ -19,7 +19,7 @@ abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>,
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassViewFieldStub, nodeType: IStubElementType<*, *>)
-        : super(stub, nodeType)
+            : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW_FIELD
 

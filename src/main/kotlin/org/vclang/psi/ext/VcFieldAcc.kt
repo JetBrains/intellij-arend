@@ -34,11 +34,11 @@ abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node)
             is VcFieldAcc -> prev
             is VcAtom -> {
                 prev.atomModuleCall?.moduleName?.moduleNamePartList?.lastOrNull()
-                    ?: prev.literal?.prefixName
+                        ?: prev.literal?.prefixName
             }
             is VcNsCmdRoot -> {
                 prev.moduleName?.moduleNamePartList?.lastOrNull()
-                    ?: prev.refIdentifier
+                        ?: prev.refIdentifier
             }
             else -> null
         }

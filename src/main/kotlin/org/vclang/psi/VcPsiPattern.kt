@@ -1,10 +1,6 @@
 package org.vclang.psi
 
-import com.intellij.patterns.ElementPattern
-import com.intellij.patterns.ObjectPattern
-import com.intellij.patterns.PatternCondition
-import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.PsiElementPattern
+import com.intellij.patterns.*
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
@@ -39,7 +35,7 @@ object VcPsiPattern {
         }
     }
 
-    private class OnExpressionBeginning: PatternCondition<PsiElement>("on expression beginning") {
+    private class OnExpressionBeginning : PatternCondition<PsiElement>("on expression beginning") {
         override fun accepts(t: PsiElement, context: ProcessingContext?): Boolean {
             val ancestor = t.ancestors.firstOrNull { it.parent is VcExpr || it.parent is VcNewExpr }
                     ?: return false
@@ -68,7 +64,10 @@ fun <T : PsiElement, Self : PsiElementPattern<T, Self>> PsiElementPattern<T, Sel
         visible: Boolean = false
 ): Self = with("withPrevItem") {
     val skip: (PsiElement) -> Boolean = {
-        it is PsiComment || it is PsiErrorElement || it is PsiWhiteSpace || visible && it.text.isEmpty()
+        it is PsiComment
+                || it is PsiErrorElement
+                || it is PsiWhiteSpace
+                || visible && it.text.isEmpty()
     }
     val leaf = it.leftLeaves.dropWhile(skip).firstOrNull() ?: return@with false
     pattern.accepts(leaf)

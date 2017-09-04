@@ -5,7 +5,7 @@ import com.jetbrains.jetpad.vclang.naming.error.DuplicateDefinitionError
 import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
 import com.jetbrains.jetpad.vclang.term.Abstract
 
-class VcNamespace() : Namespace {
+class VcNamespace : Namespace {
     private val names = mutableMapOf<String, Abstract.Definition>()
 
     fun addDefinition(definition: Abstract.Definition) {

@@ -123,7 +123,7 @@ class VcFileStorage(
                 sourceId.module.virtualFile.timeStamp
 
         private fun modulePathToSourcePath(modulePath: ModulePath): Path =
-            sourceFile(baseFile(sourceRoot, modulePath))
+                sourceFile(baseFile(sourceRoot, modulePath))
     }
 
     private inner class VcFileCacheStorageSupplier : CacheStorageSupplier<SourceId> {
@@ -150,7 +150,7 @@ class VcFileStorage(
         }
 
         private fun modulePathToSourcePath(modulePath: ModulePath): Path =
-            cacheFile(baseFile(cacheRoot, modulePath))
+                cacheFile(baseFile(cacheRoot, modulePath))
 
         private fun cacheFileForSourceId(sourceId: SourceId): VirtualFile? {
             val path = cachePathForSourceId(sourceId)

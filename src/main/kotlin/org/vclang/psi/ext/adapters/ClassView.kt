@@ -24,7 +24,8 @@ abstract class ClassViewAdapter : DefinitionAdapter<VcDefClassViewStub>,
 
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: VcDefClassViewStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+    constructor(stub: VcDefClassViewStub, nodeType: IStubElementType<*, *>)
+            : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW
 

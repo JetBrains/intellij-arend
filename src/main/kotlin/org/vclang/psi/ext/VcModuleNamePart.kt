@@ -7,18 +7,8 @@ import com.intellij.psi.PsiElement
 import org.vclang.VcFileType
 import org.vclang.getPsiDirectoryFor
 import org.vclang.getPsiFileFor
-import org.vclang.psi.VcModuleNamePart
-import org.vclang.psi.VcNsCmdRoot
-import org.vclang.psi.contentRoot
-import org.vclang.psi.leftSiblings
-import org.vclang.psi.rightSiblings
-import org.vclang.psi.sourceRoot
-import org.vclang.resolve.EmptyNamespace
-import org.vclang.resolve.EmptyScope
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.Scope
-import org.vclang.resolve.VcReference
-import org.vclang.resolve.VcReferenceBase
+import org.vclang.psi.*
+import org.vclang.resolve.*
 
 abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                           VcModuleNamePart {
@@ -51,7 +41,7 @@ abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl
         }
 
         override fun getVariants(): Array<Any> {
-            val root = findRoot()?: return emptyArray()
+            val root = findRoot() ?: return emptyArray()
             return root.children.map { it.nameWithoutExtension }.toTypedArray()
         }
 

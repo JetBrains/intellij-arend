@@ -17,8 +17,9 @@ class TypeCheckConfigurationType : ConfigurationTypeBase(
 ) {
     init {
         addFactory(object : ConfigurationFactory(this) {
+
             override fun createTemplateConfiguration(project: Project): RunConfiguration =
-                TypeCheckConfiguration(project, "Vclang", this)
+                    TypeCheckConfiguration(project, "Vclang", this)
 
             override fun configureBeforeRunTaskDefaults(
                     providerID: Key<out BeforeRunTask<BeforeRunTask<*>>>,

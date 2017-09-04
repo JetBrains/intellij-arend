@@ -10,94 +10,8 @@ import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract
 import org.vclang.Surrogate
 import org.vclang.VcFileType
-import org.vclang.psi.VcArgument
-import org.vclang.psi.VcArgumentBinOp
-import org.vclang.psi.VcArrExpr
-import org.vclang.psi.VcAssociativity
-import org.vclang.psi.VcAtom
-import org.vclang.psi.VcAtomFieldsAcc
-import org.vclang.psi.VcAtomLevelExpr
-import org.vclang.psi.VcAtomModuleCall
-import org.vclang.psi.VcAtomPattern
-import org.vclang.psi.VcAtomPatternOrPrefix
-import org.vclang.psi.VcBinOpArg
-import org.vclang.psi.VcBinOpExpr
-import org.vclang.psi.VcBinOpLeft
-import org.vclang.psi.VcCaseExpr
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcClassImplement
-import org.vclang.psi.VcClassStat
-import org.vclang.psi.VcClassStats
-import org.vclang.psi.VcClassViewField
-import org.vclang.psi.VcClause
-import org.vclang.psi.VcClauses
-import org.vclang.psi.VcConstructor
-import org.vclang.psi.VcDataBody
-import org.vclang.psi.VcDataClauses
-import org.vclang.psi.VcDataConstructors
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcDefClassView
-import org.vclang.psi.VcDefData
-import org.vclang.psi.VcDefFunction
-import org.vclang.psi.VcDefInstance
-import org.vclang.psi.VcDefinition
-import org.vclang.psi.VcElim
-import org.vclang.psi.VcExpr
-import org.vclang.psi.VcExpr0
-import org.vclang.psi.VcFile
-import org.vclang.psi.VcIdentifierOrUnknown
-import org.vclang.psi.VcImplementStatements
-import org.vclang.psi.VcInfixName
-import org.vclang.psi.VcLamExpr
-import org.vclang.psi.VcLetClause
-import org.vclang.psi.VcLetExpr
-import org.vclang.psi.VcLevelExpr
-import org.vclang.psi.VcLiteral
-import org.vclang.psi.VcMaxLevelExpr
-import org.vclang.psi.VcModuleName
-import org.vclang.psi.VcNsCmd
-import org.vclang.psi.VcPattern
-import org.vclang.psi.VcPatternConstructor
-import org.vclang.psi.VcPiExpr
-import org.vclang.psi.VcPostfixName
-import org.vclang.psi.VcPrec
-import org.vclang.psi.VcPrefixName
-import org.vclang.psi.VcSetUniverseBinOp
-import org.vclang.psi.VcSigmaExpr
-import org.vclang.psi.VcStatCmd
-import org.vclang.psi.VcStatDef
-import org.vclang.psi.VcStatement
-import org.vclang.psi.VcSucLevelExpr
-import org.vclang.psi.VcTele
-import org.vclang.psi.VcTruncatedUniverseBinOp
-import org.vclang.psi.VcTuple
-import org.vclang.psi.VcTypedExpr
-import org.vclang.psi.VcUniverseAtom
-import org.vclang.psi.VcUniverseBinOp
-import org.vclang.psi.VcWhere
-import org.vclang.psi.childOfType
-import org.vclang.psi.ext.adapters.ClassDefinitionAdapter
-import org.vclang.psi.ext.adapters.ClassFieldAdapter
-import org.vclang.psi.ext.adapters.ClassImplementAdapter
-import org.vclang.psi.ext.adapters.ClassViewAdapter
-import org.vclang.psi.ext.adapters.ClassViewFieldAdapter
-import org.vclang.psi.ext.adapters.ClassViewInstanceAdapter
-import org.vclang.psi.ext.adapters.ConstructorAdapter
-import org.vclang.psi.ext.adapters.DataDefinitionAdapter
-import org.vclang.psi.ext.adapters.DefinitionAdapter
-import org.vclang.psi.ext.adapters.FunctionDefinitionAdapter
-import org.vclang.psi.hasType
-import org.vclang.psi.isAny
-import org.vclang.psi.isEmpty
-import org.vclang.psi.isExplicit
-import org.vclang.psi.isExportCmd
-import org.vclang.psi.isHiding
-import org.vclang.psi.isImplicit
-import org.vclang.psi.isLeftAssoc
-import org.vclang.psi.isNonAssoc
-import org.vclang.psi.isOpenCmd
-import org.vclang.psi.isRightAssoc
-import org.vclang.psi.withNewContext
+import org.vclang.psi.*
+import org.vclang.psi.ext.adapters.*
 import java.nio.file.Paths
 
 class AbstractTreeBuildVisitor(
@@ -143,11 +57,11 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitNsCmd(context: VcNsCmd): LegacyAbstract.NamespaceCommandStatement.Kind =
-        when {
-            context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
-            context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
-            else -> error("Invalid context")
-        }
+            when {
+                context.isExportCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.EXPORT
+                context.isOpenCmd -> LegacyAbstract.NamespaceCommandStatement.Kind.OPEN
+                else -> error("Invalid context")
+            }
 
     private fun visitStatDef(context: VcStatDef): Surrogate.DefineStatement {
         val definition = visitDefinition(context.definition)
@@ -539,12 +453,12 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitAssociativity(context: VcAssociativity): Abstract.Precedence.Associativity =
-        when {
-            context.isLeftAssoc -> Abstract.Precedence.Associativity.LEFT_ASSOC
-            context.isRightAssoc -> Abstract.Precedence.Associativity.RIGHT_ASSOC
-            context.isNonAssoc -> Abstract.Precedence.Associativity.NON_ASSOC
-            else -> error("Invalid context")
-        }
+            when {
+                context.isLeftAssoc -> Abstract.Precedence.Associativity.LEFT_ASSOC
+                context.isRightAssoc -> Abstract.Precedence.Associativity.RIGHT_ASSOC
+                context.isNonAssoc -> Abstract.Precedence.Associativity.NON_ASSOC
+                else -> error("Invalid context")
+            }
 
     private fun visitExpr0(context: VcExpr0): Surrogate.Expression {
         return parseBinOpSequence(
@@ -748,7 +662,7 @@ class AbstractTreeBuildVisitor(
     }
 
     private fun visitTruncatedUniverse(
-        context: VcTruncatedUniverseBinOp
+            context: VcTruncatedUniverseBinOp
     ): Surrogate.UniverseExpression {
         val text = context.truncatedUniverse.text.let {
             it.substring(it.indexOf('-') + "-Type".length)
@@ -791,18 +705,16 @@ class AbstractTreeBuildVisitor(
             }
 
             leftContext.newExpr.postfixNameList
-                    .map { Surrogate.ReferenceExpression(
-                        elementPosition(it),
-                        null,
-                        visitPostfix(it)
-                    ) }
+                    .map {
+                        Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it))
+                    }
                     .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
 
             val name = visitInfix(leftContext.infixName)
             binOp = Surrogate.ReferenceExpression(
-                elementPosition(leftContext.infixName),
-                null,
-                name
+                    elementPosition(leftContext.infixName),
+                    null,
+                    name
             )
         }
 
@@ -813,7 +725,13 @@ class AbstractTreeBuildVisitor(
         }
 
         postfixContexts
-                .map { Surrogate.ReferenceExpression(elementPosition(it), null, visitPostfix(it)) }
+                .map {
+                    Surrogate.ReferenceExpression(
+                            elementPosition(it),
+                            null,
+                            visitPostfix(it)
+                    )
+                }
                 .mapTo(sequence) { Abstract.BinOpSequenceElem(it, null) }
 
         return if (sequence.isNotEmpty()) {
@@ -827,7 +745,7 @@ class AbstractTreeBuildVisitor(
         val lastModuleNamePart = context.moduleNamePartList.lastOrNull()
         val module = lastModuleNamePart?.reference?.resolve() as? VcFile
         val modulePath = Paths.get(
-            module?.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
+                module?.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
         )
         val base = Paths.get(context.project.basePath)
         return base.relativize(modulePath).toList().map { it.toString() }
@@ -868,16 +786,16 @@ class AbstractTreeBuildVisitor(
         for (acc in context.fieldAccList) {
             expr = when {
                 acc.refIdentifier != null -> Surrogate.ReferenceExpression(
-                    elementPosition(acc),
-                    expr,
-                    acc.refIdentifier?.referenceName
+                        elementPosition(acc),
+                        expr,
+                        acc.refIdentifier?.referenceName
                 )
                 acc.number != null -> {
                     val field = Integer.parseInt(acc.number?.text) - 1
                     Surrogate.ProjExpression(
-                        elementPosition(acc),
-                        expr,
-                        field
+                            elementPosition(acc),
+                            expr,
+                            field
                     )
                 }
                 else -> error("Invalid context")
@@ -1029,7 +947,9 @@ class AbstractTreeBuildVisitor(
             val vars = if (typedExpr.hasType) varsExpr1.map { getVar(it) } else getVars(varsExpr2)
 
             if (typeExpr == null) {
-                vars.mapTo(parameters) { Surrogate.NameParameter(it?.position, explicit, it?.name) }
+                vars.mapTo(parameters) {
+                    Surrogate.NameParameter(it?.position, explicit, it?.name)
+                }
             } else {
                 val parameter = Surrogate.TelescopeParameter(
                         elementPosition(context),

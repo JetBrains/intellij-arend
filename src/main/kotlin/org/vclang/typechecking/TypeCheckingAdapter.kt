@@ -1,10 +1,6 @@
 package org.vclang.typechecking
 
-import com.intellij.execution.testframework.sm.runner.events.TestFailedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestFinishedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.*
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand
 import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
@@ -66,6 +62,7 @@ class TypeCheckingAdapter(
     }
 
     private inner class MyTypeCheckedReporter : TypecheckedReporter {
+
         override fun typecheckingSucceeded(definition: Abstract.Definition) {
             val testName = definition.fullName
             if (eventsProcessor.isStarted(testName)) {
@@ -76,7 +73,9 @@ class TypeCheckingAdapter(
         override fun typecheckingFailed(definition: Abstract.Definition) {
             val testName = definition.fullName
             if (eventsProcessor.isStarted(testName)) {
-                eventsProcessor.onTestFailure(TestFailedEvent(testName, "", null, true, null, null))
+                eventsProcessor.onTestFailure(
+                        TestFailedEvent(testName, "", null, true, null, null)
+                )
                 eventsProcessor.onTestFinished(TestFinishedEvent(testName, null))
             }
         }
@@ -86,16 +85,16 @@ class TypeCheckingAdapter(
         : BaseAbstractVisitor<MutableSet<Abstract.Definition>, Void>() {
 
         override fun visitFunction(
-            definition: Abstract.FunctionDefinition,
-            params: MutableSet<Abstract.Definition>
+                definition: Abstract.FunctionDefinition,
+                params: MutableSet<Abstract.Definition>
         ): Void? {
             params.addAll(definition.globalDefinitions)
             return null
         }
 
         override fun visitClass(
-            definition: Abstract.ClassDefinition,
-            params: MutableSet<Abstract.Definition>
+                definition: Abstract.ClassDefinition,
+                params: MutableSet<Abstract.Definition>
         ): Void? {
             params.addAll(definition.globalDefinitions)
             params.addAll(definition.instanceDefinitions)

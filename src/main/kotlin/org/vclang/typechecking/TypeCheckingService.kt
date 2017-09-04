@@ -4,20 +4,12 @@ import com.intellij.execution.ui.ConsoleView
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiRecursiveElementVisitor
-import com.intellij.psi.PsiTreeChangeAdapter
-import com.intellij.psi.PsiTreeChangeEvent
+import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.CacheManager
-import com.jetbrains.jetpad.vclang.module.caching.CachePersistenceException
-import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
-import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
+import com.jetbrains.jetpad.vclang.module.caching.*
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
@@ -66,7 +58,7 @@ interface TypeCheckingService {
     }
 }
 
-class TypeCheckingServiceImpl(private val project: Project): TypeCheckingService {
+class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
     override var console: ConsoleView?
         get() = logger.console
         set(value) {
@@ -103,10 +95,10 @@ class TypeCheckingServiceImpl(private val project: Project): TypeCheckingService
 
     private val persistenceProvider = VcPersistenceProvider()
     private val cacheManager = CacheManager(
-        persistenceProvider,
-        storage,
-        VcSourceVersionTracker(),
-        sourceInfoProvider
+            persistenceProvider,
+            storage,
+            VcSourceVersionTracker(),
+            sourceInfoProvider
     )
     private val typeCheckerState = cacheManager.typecheckerState
     private val dependencyCollector = DependencyCollector(typeCheckerState)
@@ -129,13 +121,13 @@ class TypeCheckingServiceImpl(private val project: Project): TypeCheckingService
             }
 
             val typeChecking = TypeCheckingAdapter(
-                typeCheckerState,
-                staticNsProvider,
-                dynamicNsProvider,
-                HasOpens.GET,
-                logger,
-                dependencyCollector,
-                eventsProcessor!!
+                    typeCheckerState,
+                    staticNsProvider,
+                    dynamicNsProvider,
+                    HasOpens.GET,
+                    logger,
+                    dependencyCollector,
+                    eventsProcessor!!
             )
 
             if (definitionFullName.isEmpty()) {

@@ -6,14 +6,7 @@ import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.term.Abstract
 import org.vclang.parser.fullName
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcClassImplement
-import org.vclang.psi.VcConstructor
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcDefClassView
-import org.vclang.psi.VcDefData
-import org.vclang.psi.VcDefFunction
-import org.vclang.psi.VcDefInstance
+import org.vclang.psi.*
 import org.vclang.psi.ext.VcNamedElement
 
 class VcFindUsagesProvider : FindUsagesProvider {

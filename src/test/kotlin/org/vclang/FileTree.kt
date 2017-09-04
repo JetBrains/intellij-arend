@@ -4,16 +4,12 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileSystemItem
-import com.intellij.psi.PsiManager
+import com.intellij.psi.*
 import org.intellij.lang.annotations.Language
 import org.vclang.psi.parentOfType
 
 fun fileTree(builder: FileTreeBuilder.() -> Unit): FileTree =
-    FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory())
+        FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory())
 
 fun fileTreeFromText(@Language("Vclang") text: String): FileTree {
     val fileSeparator = """^\s* --! (\S+)\s*$""".toRegex(RegexOption.MULTILINE)
@@ -28,7 +24,7 @@ fun fileTreeFromText(@Language("Vclang") text: String): FileTree {
             dir.children[name] = Entry.File(contents)
         } else {
             val childDir = dir.children.getOrPut(name, { Entry.Directory(mutableMapOf()) })
-                as Entry.Directory
+                    as Entry.Directory
             fill(childDir, path.drop(1), contents)
         }
     }
@@ -114,9 +110,9 @@ class FileTree(private val rootDirectory: Entry.Directory) {
 }
 
 class TestProject(
-    private val project: Project,
-    val root: VirtualFile,
-    val filesWithCaret: List<String>
+        private val project: Project,
+        val root: VirtualFile,
+        val filesWithCaret: List<String>
 ) {
 
     val fileWithCaret: String get() = filesWithCaret.singleOrNull()!!
@@ -124,26 +120,26 @@ class TestProject(
     inline fun <reified T : PsiElement> findElementInFile(path: String): T {
         val element = doFindElementInFile(path)
         return element.parentOfType()
-            ?: error("No parent of type ${T::class.java} for ${element.text}")
+                ?: error("No parent of type ${T::class.java} for ${element.text}")
     }
 
     fun doFindElementInFile(path: String): PsiElement {
         val vFile = root.findFileByRelativePath(path)
-            ?: error("No `$path` file in test project")
+                ?: error("No `$path` file in test project")
         val file = PsiManager.getInstance(project).findFile(vFile)!!
         return findElementInFile(file, "^")
     }
 
     fun psiFile(path: String): PsiFileSystemItem {
         val vFile = root.findFileByRelativePath(path)
-            ?: error("Can't find `$path`")
+                ?: error("Can't find `$path`")
         val psiManager = PsiManager.getInstance(project)
         return if (vFile.isDirectory) psiManager.findDirectory(vFile)!! else psiManager.findFile(vFile)!!
     }
 }
 
 private class FileTreeBuilderImpl(
-    val directory: MutableMap<String, Entry> = mutableMapOf()
+        val directory: MutableMap<String, Entry> = mutableMapOf()
 ) : FileTreeBuilder {
 
     override fun dir(name: String, builder: FileTreeBuilder.() -> Unit) {
@@ -174,7 +170,7 @@ private fun findElementInFile(file: PsiFile, marker: String): PsiElement {
     val elementOffset = doc.getLineStartOffset(markerLine - 1) + makerColumn
 
     return file.findElementAt(elementOffset) ?:
-        error { "No element found, offset = $elementOffset" }
+            error { "No element found, offset = $elementOffset" }
 }
 
 fun replaceCaretMarker(text: String): String = text.replace("{-caret-}", "<caret>")

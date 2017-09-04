@@ -46,12 +46,12 @@ class TypeCheckRunState(
 
     override fun createConsole(executor: Executor): ConsoleView? {
         val runConfiguration = environment.runnerAndConfigurationSettings?.configuration
-            ?: return null
+                ?: return null
         val testFrameworkName = "VclangTypeCheckRunner"
         val consoleProperties = SMTRunnerConsoleProperties(
-            runConfiguration,
-            testFrameworkName,
-            executor
+                runConfiguration,
+                testFrameworkName,
+                executor
         )
 
         val splitterPropertyName = "$testFrameworkName.Splitter.Proportion"
@@ -83,9 +83,9 @@ class TypeCheckRunState(
         if (processHandler !is TypeCheckProcessHandler) error("Invalid process handler")
 
         val eventsProcessor = TypeCheckingEventsProcessor(
-            consoleProperties.project,
-            resultsViewer.testsRootNode,
-            testFrameworkName
+                consoleProperties.project,
+                resultsViewer.testsRootNode,
+                testFrameworkName
         )
         eventsProcessor.addEventsListener(resultsViewer)
         processHandler.eventsProcessor = eventsProcessor
@@ -94,6 +94,7 @@ class TypeCheckRunState(
         resultsViewer.addEventsListener(uiActionsHandler)
 
         processHandler.addProcessListener(object : ProcessAdapter() {
+
             override fun processTerminated(event: ProcessEvent?) {
                 eventsProcessor.onFinishTesting()
                 Disposer.dispose(eventsProcessor)

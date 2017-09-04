@@ -10,12 +10,11 @@ import org.vclang.psi.VcElementTypes.PREFIX
 
 class VcNamesValidator : NamesValidator {
 
-    override fun isKeyword(name: String, project: Project?): Boolean {
-        return getLexerType(name) in VC_KEYWORDS
-    }
+    override fun isKeyword(name: String, project: Project?): Boolean =
+            getLexerType(name) in VC_KEYWORDS
 
     override fun isIdentifier(name: String, project: Project?): Boolean =
-        (isPrefixName(name) || isInfixName(name)) && !containsComment(name)
+            (isPrefixName(name) || isInfixName(name)) && !containsComment(name)
 
     fun isPrefixName(name: String): Boolean = getLexerType(name) == PREFIX
 

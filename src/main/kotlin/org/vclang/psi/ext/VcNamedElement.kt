@@ -15,8 +15,8 @@ import org.vclang.psi.stubs.VcNamedStub
 
 interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement
 
-abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
-    VcNamedElement {
+abstract class VcNamedElementImpl(node: ASTNode) : VcCompositeElementImpl(node),
+                                                   VcNamedElement {
 
     override fun getNameIdentifier(): VcCompositeElement? = childOfType()
 
@@ -35,7 +35,7 @@ abstract class VcNamedElementImpl(node: ASTNode): VcCompositeElementImpl(node),
 }
 
 abstract class VcStubbedNamedElementImpl<StubT> : VcStubbedElementImpl<StubT>,
-    VcNamedElement
+                                                  VcNamedElement
 where StubT : VcNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)

@@ -35,7 +35,8 @@ abstract class ClassFieldAdapter : DefinitionAdapter<VcClassFieldStub>,
     override fun getParentDefinition(): ClassDefinitionAdapter? =
             super.getParentDefinition() as? ClassDefinitionAdapter
 
-    override fun getResultType(): Surrogate.Expression = resultType ?: throw IllegalStateException()
+    override fun getResultType(): Surrogate.Expression =
+            resultType ?: throw IllegalStateException()
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitClassField(this, params)

@@ -28,7 +28,8 @@
 
         <moduleType id="VCLANG_MODULE" implementationClass="org.vclang.module.VcModuleType"/>
         <moduleBuilder builderClass="org.vclang.module.util.VcModuleBuilder"/>
-        <projectStructureDetector implementation="org.vclang.module.util.VcProjectStructureDetector"/>
+        <projectStructureDetector
+                implementation="org.vclang.module.util.VcProjectStructureDetector"/>
 
         <!-- Vclang -->
 
@@ -38,11 +39,13 @@
 
         <!-- Parser -->
 
-        <lang.parserDefinition language="Vclang" implementationClass="org.vclang.parser.VcParserDefinition"/>
+        <lang.parserDefinition language="Vclang"
+                               implementationClass="org.vclang.parser.VcParserDefinition"/>
 
         <!-- Syntax Highlighter -->
 
-        <lang.syntaxHighlighterFactory language="Vclang" implementationClass="org.vclang.highlight.VcSyntaxHighlighterFactory"/>
+        <lang.syntaxHighlighterFactory language="Vclang"
+                                       implementationClass="org.vclang.highlight.VcSyntaxHighlighterFactory"/>
 
         <!-- Commenter -->
 
@@ -52,31 +55,44 @@
 
         <lang.braceMatcher language="Vclang" implementationClass="org.vclang.VcBraceMatcher"/>
 
-        <!-- Doc-Provider -->
+        <!-- Documentation -->
 
-        <lang.documentationProvider language="Vclang" implementationClass="org.vclang.VcDocumentationProvider"/>
+        <lang.documentationProvider language="Vclang"
+                                    implementationClass="org.vclang.VcDocumentationProvider"/>
 
         <!-- Structure View -->
 
-        <lang.psiStructureViewFactory language="Vclang" implementationClass="org.vclang.structure.VcPsiStructureViewFactory"/>
+        <lang.psiStructureViewFactory language="Vclang"
+                                      implementationClass="org.vclang.structure.VcPsiStructureViewFactory"/>
 
         <!-- Usages Provider -->
 
-        <lang.findUsagesProvider language="Vclang" implementationClass="org.vclang.search.VcFindUsagesProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcDefClassGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcDefClassViewGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcDefDataGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcDefFunctionGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcClassImplementGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcClassViewFieldGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider implementation="org.vclang.search.VcConstructorGroupingRuleProvider"/>
+        <lang.findUsagesProvider language="Vclang"
+                                 implementationClass="org.vclang.search.VcFindUsagesProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcDefClassGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcDefClassViewGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcDefDataGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcDefFunctionGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcClassImplementGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcClassViewFieldGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
+        <fileStructureGroupRuleProvider
+                implementation="org.vclang.search.VcConstructorGroupingRuleProvider"/>
 
         <!-- Navigation -->
 
         <gotoClassContributor implementation="org.vclang.navigation.VcClassNavigationContributor"/>
-        <gotoSymbolContributor implementation="org.vclang.navigation.VcSymbolNavigationContributor"/>
+        <gotoSymbolContributor
+                implementation="org.vclang.navigation.VcSymbolNavigationContributor"/>
 
         <!-- Hints -->
 
@@ -89,13 +105,15 @@
         <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefFunction"
                                  implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
 
-        <!-- Annotator -->
+        <!-- Annotation -->
 
-        <annotator language="Vclang" implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
+        <annotator language="Vclang"
+                   implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
 
         <!-- Line Marker Providers -->
 
-        <runLineMarkerContributor language="Vclang" implementationClass="org.vclang.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
+        <runLineMarkerContributor language="Vclang"
+                                  implementationClass="org.vclang.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
         <!-- Color Settings -->
 
@@ -108,8 +126,10 @@
         <!-- Run Configurations -->
 
         <programRunner implementation="org.vclang.typechecking.execution.TypeCheckRunner"/>
-        <configurationType implementation="org.vclang.typechecking.execution.configurations.TypeCheckConfigurationType"/>
-        <runConfigurationProducer implementation="org.vclang.typechecking.execution.TypeCheckRunConfigurationProducer"/>
+        <configurationType
+                implementation="org.vclang.typechecking.execution.configurations.TypeCheckConfigurationType"/>
+        <runConfigurationProducer
+                implementation="org.vclang.typechecking.execution.TypeCheckRunConfigurationProducer"/>
 
         <!-- Indices -->
 
@@ -117,7 +137,7 @@
         <stubIndex implementation="org.vclang.psi.stubs.index.VcDefinitionIndex"/>
         <stubIndex implementation="org.vclang.psi.stubs.index.VcGotoClassIndex"/>
 
-        <!-- Lookup char filter -->
+        <!-- Lookup Filters -->
 
         <lookup.charFilter implementation="org.vclang.codeInsight.CompletionCharFilter"/>
 
@@ -129,9 +149,11 @@
     </extensions>
 
     <actions>
-        
-        <action id="VcFormatVclang.PrettyPrinterFormat" class="org.vclang.actions.VcPrettyPrinterFormatAction"
-                text="Reformat code with PrettyPrinter" description="Format current file with PrettyPrinter">
+
+        <action id="VcFormatVclang.PrettyPrinterFormat"
+                class="org.vclang.actions.VcPrettyPrinterFormatAction"
+                text="Reformat code with PrettyPrinter"
+                description="Format current file with PrettyPrinter">
             <add-to-group group-id="CodeFormatGroup" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
         </action>

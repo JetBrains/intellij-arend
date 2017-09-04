@@ -38,7 +38,7 @@ abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
         return this
     }
 
-    override fun isDefault(): Boolean = defaultKw !=null
+    override fun isDefault(): Boolean = defaultKw != null
 
     override fun getParameters(): List<Surrogate.Parameter> =
             parameters ?: throw IllegalStateException()

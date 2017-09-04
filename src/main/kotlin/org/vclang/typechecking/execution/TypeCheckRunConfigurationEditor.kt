@@ -18,7 +18,9 @@ class TypeCheckRunConfigurationEditor(
         private val project: Project
 ) : SettingsEditor<TypeCheckConfiguration>() {
     private val modulePathComponent = TextFieldWithBrowseButton()
-    private val definitionNameComponent = JTextField()  // TODO: replace text field with some structure browser
+
+    // TODO: replace text field with some structure browser
+    private val definitionNameComponent = JTextField()
 
     override fun resetEditorFrom(configuration: TypeCheckConfiguration) {
         with(configuration.vclangTypeCheckCommand) {
@@ -29,8 +31,8 @@ class TypeCheckRunConfigurationEditor(
 
     override fun applyEditorTo(configuration: TypeCheckConfiguration) {
         configuration.vclangTypeCheckCommand = TypeCheckCommand(
-            modulePathComponent.text,
-            definitionNameComponent.text
+                modulePathComponent.text,
+                definitionNameComponent.text
         )
     }
 

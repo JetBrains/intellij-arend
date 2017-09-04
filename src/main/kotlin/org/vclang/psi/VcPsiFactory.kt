@@ -11,8 +11,8 @@ class VcPsiFactory(private val project: Project) {
             createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
 
     fun createRefIdentifier(name: String): VcRefIdentifier =
-        createStatCmd(name).nsCmdRoot?.refIdentifier
-            ?: error("Failed to create ref identifier: `$name`")
+            createStatCmd(name).nsCmdRoot?.refIdentifier
+                    ?: error("Failed to create ref identifier: `$name`")
 
     fun createPrefixName(name: String): VcPrefixName {
         val needsPrefix = !VcNamesValidator().isPrefixName(name)
@@ -61,8 +61,8 @@ class VcPsiFactory(private val project: Project) {
                     ?: error("Failed to create literal: `$literal`")
 
     private fun createStatCmd(nsCmdRoot: String): VcStatCmd =
-        createFromText("\\open $nsCmdRoot")?.childOfType()
-            ?: error("Failed to create stat cmd: `$nsCmdRoot`")
+            createFromText("\\open $nsCmdRoot")?.childOfType()
+                    ?: error("Failed to create stat cmd: `$nsCmdRoot`")
 
     private fun createFromText(code: String): VcFile? =
             PsiFileFactory.getInstance(project)

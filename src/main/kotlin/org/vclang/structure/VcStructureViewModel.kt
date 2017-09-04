@@ -9,35 +9,20 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
 import org.vclang.navigation.getPresentationForStructure
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcClassImplement
-import org.vclang.psi.VcClassStat
-import org.vclang.psi.VcClassViewField
-import org.vclang.psi.VcConstructor
-import org.vclang.psi.VcDataBody
-import org.vclang.psi.VcDataClauses
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcDefClassView
-import org.vclang.psi.VcDefData
-import org.vclang.psi.VcDefFunction
-import org.vclang.psi.VcDefInstance
-import org.vclang.psi.VcDefinition
-import org.vclang.psi.VcFile
-import org.vclang.psi.VcStatement
-import org.vclang.psi.VcWhere
+import org.vclang.psi.*
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcNamedElement
 
 class VcStructureViewModel(editor: Editor?, file: VcFile)
     : StructureViewModelBase(file, editor, VcStructureViewElement(file)),
-      StructureViewModel.ElementInfoProvider {
+        StructureViewModel.ElementInfoProvider {
 
     init {
         withSuitableClasses(VcNamedElement::class.java)
     }
 
     override fun isAlwaysShowsPlus(element: StructureViewTreeElement): Boolean =
-        element.value is VcFile
+            element.value is VcFile
 
     override fun isAlwaysLeaf(element: StructureViewTreeElement): Boolean = when (element.value) {
         is VcFile,

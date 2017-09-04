@@ -16,21 +16,21 @@ abstract class VcCompletionTestBase : VcTestBase() {
         executeSoloCompletion()
 
         val normName = target
-            .substringAfterLast("::")
-            .substringAfterLast(".")
+                .substringAfterLast("::")
+                .substringAfterLast(".")
         val shift = if (target.endsWith("::")) 3 else 2
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset - shift)!!
         val skipTextCheck = normName.isEmpty() || normName.contains(' ')
         check((skipTextCheck || element.text == normName)
-            && (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
+                && (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
             "Wrong completion, expected `$target`, but got\n${myFixture.file.text}"
         }
     }
 
     protected fun doSingleCompletion(
-        @Language("Vclang") before: String,
-        @Language("Vclang") after: String
+            @Language("Vclang") before: String,
+            @Language("Vclang") after: String
     ) {
         check(hasCaretMarker(before) && hasCaretMarker(after)) {
             "Please add `{-caret-}` marker"
@@ -39,8 +39,8 @@ abstract class VcCompletionTestBase : VcTestBase() {
     }
 
     protected fun doSingleCompletionMultiflie(
-        @Language("Vclang") before: String,
-        @Language("Vclang") after: String
+            @Language("Vclang") before: String,
+            @Language("Vclang") after: String
     ) {
         fileTreeFromText(before).createAndOpenFileWithCaretMarker()
         executeSoloCompletion()
@@ -83,7 +83,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
         if (variants != null) {
             fun LookupElement.debug(): String = "$lookupString ($psiElement)"
             error("Expected a single completion, but got ${variants.size}\n"
-                + variants.joinToString("\n") { it.debug() })
+                    + variants.joinToString("\n") { it.debug() })
         }
     }
 
@@ -95,7 +95,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
     }
 
     private fun PsiElement.fitsLinearly(target: String): Boolean =
-        checkLinearly(target, Direction.LEFT) || checkLinearly(target, Direction.RIGHT)
+            checkLinearly(target, Direction.LEFT) || checkLinearly(target, Direction.RIGHT)
 
     private fun PsiElement.checkLinearly(target: String, direction: Direction): Boolean {
         var el = this

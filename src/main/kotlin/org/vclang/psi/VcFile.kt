@@ -13,13 +13,7 @@ import org.vclang.VcLanguage
 import org.vclang.parser.fullName
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
-import org.vclang.resolve.MergeScope
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.NamespaceProvider
-import org.vclang.resolve.NamespaceScope
-import org.vclang.resolve.PreludeScope
-import org.vclang.resolve.Scope
-import org.vclang.resolve.VcReference
+import org.vclang.resolve.*
 import java.nio.file.Paths
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage),
@@ -33,7 +27,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             val sourceRoot = sourceRoot ?: contentRoot ?: error("Failed to find source root")
             val sourcePath = Paths.get(sourceRoot.path)
             val modulePath = Paths.get(
-                virtualFile.path.removeSuffix('.' + VcFileType.defaultExtension)
+                    virtualFile.path.removeSuffix('.' + VcFileType.defaultExtension)
             )
             val relativeModulePath = sourcePath.relativize(modulePath)
             return ModulePath(relativeModulePath.map { it.toString() })

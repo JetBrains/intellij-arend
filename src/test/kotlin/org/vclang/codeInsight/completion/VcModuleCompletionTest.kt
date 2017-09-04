@@ -28,14 +28,14 @@ class VcModuleCompletionTest : VcCompletionTestBase() {
     )
 
     fun `test module name completion subdirectory`() = doSingleCompletionMultiflie(
-        """
+            """
                 --! Main.vc
                 \open ::Directory::My{-caret-}
 
                 --! Directory/MyModule.vc
                 -- empty
             """,
-        """
+            """
                 \open ::Directory::MyModule{-caret-}
             """
     )

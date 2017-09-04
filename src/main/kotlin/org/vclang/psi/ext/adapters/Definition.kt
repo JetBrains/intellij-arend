@@ -35,7 +35,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
         return this
     }
 
-    override fun getPrecedence(): Abstract.Precedence = precedence ?: throw IllegalStateException()
+    override fun getPrecedence(): Abstract.Precedence =
+            precedence ?: throw IllegalStateException()
 
     override fun getParentDefinition(): Abstract.Definition? = parentDefinition
 
@@ -54,7 +55,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 }
 
 abstract class SourceNodeAdapter<StubT> : VcStubbedNamedElementImpl<StubT>,
-                                          Abstract.SourceNode
+        Abstract.SourceNode
 where StubT : VcNamedStub, StubT : StubElement<*> {
     private var position: Surrogate.Position? = null
 

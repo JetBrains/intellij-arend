@@ -9,22 +9,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import org.vclang.psi.VcArgument
-import org.vclang.psi.VcAtomPattern
-import org.vclang.psi.VcCaseExpr
-import org.vclang.psi.VcClassStats
-import org.vclang.psi.VcClauses
-import org.vclang.psi.VcConstructor
-import org.vclang.psi.VcConstructorClause
-import org.vclang.psi.VcDefClassView
-import org.vclang.psi.VcElementTypes
+import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.LBRACE
 import org.vclang.psi.VcElementTypes.RBRACE
-import org.vclang.psi.VcFile
-import org.vclang.psi.VcImplementStatements
-import org.vclang.psi.VcTele
-import org.vclang.psi.VcVisitor
-import org.vclang.psi.VcWhere
 
 class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
@@ -64,7 +51,7 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
         override fun visitConstructor(o: VcConstructor) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitConstructorClause(o: VcConstructorClause) =
-            foldBetween(o, o.lbrace, o.rbrace)
+                foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitClassStats(o: VcClassStats) = foldBetween(o, o.lbrace, o.rbrace)
 

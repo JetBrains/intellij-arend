@@ -49,9 +49,7 @@ class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
                 rootNamespace: VcModuleNamespace,
                 modulePath: ModulePath
         ): VcModuleNamespace {
-            if (modulePath.toList().isEmpty()) {
-                return rootNamespace
-            }
+            if (modulePath.toList().isEmpty()) return rootNamespace
             val parentNamespace = ensureModuleNamespace(rootNamespace, modulePath.parent)
             return parentNamespace.ensureSubmoduleNamespace(modulePath.name)
         }

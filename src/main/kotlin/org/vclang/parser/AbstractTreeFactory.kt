@@ -34,7 +34,7 @@ object AbstractTreeFactory {
                     module,
                     globalScope,
                     nameResolver,
-                SurrogateResolveListener(),
+                    SurrogateResolveListener(),
                     compositeErrorReporter
             )
         }

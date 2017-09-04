@@ -13,6 +13,6 @@ class VcGotoClassIndex : StringStubIndexExtension<VcNamedElement>() {
 
     companion object {
         val KEY: StubIndexKey<String, VcNamedElement> =
-                StubIndexKey.createIndexKey("org.vclang.lang.VcGotoClassIndex")
+                StubIndexKey.createIndexKey(VcGotoClassIndex::class.java.canonicalName)
     }
 }

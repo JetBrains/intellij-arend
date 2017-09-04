@@ -5,12 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import org.vclang.VcFileType
-import org.vclang.psi.VcDefIdentifier
-import org.vclang.psi.VcInfixName
-import org.vclang.psi.VcPostfixName
-import org.vclang.psi.VcPrefixName
-import org.vclang.psi.VcPsiFactory
-import org.vclang.psi.VcRefIdentifier
+import org.vclang.psi.*
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
@@ -24,7 +19,7 @@ interface VcReference : PsiReference {
 
 abstract class VcReferenceBase<T : VcReferenceElement>(element: T)
     : PsiReferenceBase<T>(element, TextRange(0, element.textLength)),
-    VcReference {
+      VcReference {
 
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }

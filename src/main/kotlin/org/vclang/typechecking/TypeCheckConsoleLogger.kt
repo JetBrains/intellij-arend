@@ -9,11 +9,7 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.error.doc.HListDoc
-import com.jetbrains.jetpad.vclang.error.doc.LineDocVisitor
-import com.jetbrains.jetpad.vclang.error.doc.ReferenceDoc
-import com.jetbrains.jetpad.vclang.error.doc.TermLineDoc
-import com.jetbrains.jetpad.vclang.error.doc.TextDoc
+import com.jetbrains.jetpad.vclang.error.doc.*
 import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
 import org.vclang.Surrogate
 
@@ -25,7 +21,7 @@ class TypeCheckConsoleLogger(
     override fun report(error: GeneralError) = DocConsolePrinter(error).print()
 
     fun reportError(message: String) =
-        console?.print(message + '\n', ConsoleViewContentType.ERROR_OUTPUT)
+            console?.print(message + '\n', ConsoleViewContentType.ERROR_OUTPUT)
 
     private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
         Error.Level.ERROR -> ConsoleViewContentType.ERROR_OUTPUT
@@ -48,7 +44,7 @@ class TypeCheckConsoleLogger(
         }
 
         override fun visitText(doc: TextDoc, newLine: Boolean): Void? {
-            if (doc.text == "[ERROR]") {
+            if (doc.text.startsWith('[') && doc.text.endsWith(']')) {
                 val sourceNode = error.cause as? Surrogate.SourceNode
                 val info = sourceNode?.position?.element?.let { PsiHyperlinkInfo(it) }
                 console?.printHyperlink(doc.text, info)

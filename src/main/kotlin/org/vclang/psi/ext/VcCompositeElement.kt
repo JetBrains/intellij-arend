@@ -6,12 +6,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.vclang.resolve.EmptyNamespace
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.NamespaceScope
-import org.vclang.resolve.OverridingScope
-import org.vclang.resolve.Scope
-import org.vclang.resolve.VcReference
+import org.vclang.resolve.*
 
 interface VcCompositeElement : PsiElement {
     val namespace: Namespace
@@ -21,7 +16,7 @@ interface VcCompositeElement : PsiElement {
 }
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node),
-    VcCompositeElement {
+                                                       VcCompositeElement {
     override val namespace: Namespace = EmptyNamespace
 
     override val scope: Scope
@@ -36,7 +31,7 @@ abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node
 }
 
 abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
-    VcCompositeElement {
+                                                              VcCompositeElement {
     override val namespace: Namespace = EmptyNamespace
 
     override val scope: Scope

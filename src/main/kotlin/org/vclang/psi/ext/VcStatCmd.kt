@@ -13,9 +13,9 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override val scope: Scope
         get() = nsCmdRoot?.let {
             FilteredScope(
-                NamespaceScope(it.namespace),
-                refIdentifierList.mapNotNull { it.referenceName }.toSet(),
-                isHiding
+                    NamespaceScope(it.namespace),
+                    refIdentifierList.mapNotNull { it.referenceName }.toSet(),
+                    isHiding
             )
         } ?: EmptyScope
 }

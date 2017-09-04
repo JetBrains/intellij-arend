@@ -45,7 +45,7 @@ class VcProjectStructureDetector : ProjectStructureDetector() {
 
         val moduleDescriptor = ModuleDescriptor(
                 root.directory,
-            VcModuleType.INSTANCE,
+                VcModuleType.INSTANCE,
                 emptyList<DetectedSourceRoot>()
         )
         projectDescriptor.modules = listOf(moduleDescriptor)

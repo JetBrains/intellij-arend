@@ -7,11 +7,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.psi.VC_COMMENTS
 import org.vclang.psi.VC_WHITE_SPACES
-import org.vclang.psi.VcElementTypes.COMMA
-import org.vclang.psi.VcElementTypes.LBRACE
-import org.vclang.psi.VcElementTypes.LPAREN
-import org.vclang.psi.VcElementTypes.RBRACE
-import org.vclang.psi.VcElementTypes.RPAREN
+import org.vclang.psi.VcElementTypes.*
 
 class VcBraceMatcher : PairedBraceMatcher {
 
@@ -32,8 +28,8 @@ class VcBraceMatcher : PairedBraceMatcher {
         )
 
         private val InsertPairBraceBefore = TokenSet.orSet(
-            VC_COMMENTS,
-            VC_WHITE_SPACES,
+                VC_COMMENTS,
+                VC_WHITE_SPACES,
                 TokenSet.create(COMMA, RPAREN, LBRACE, RBRACE)
         )
     }

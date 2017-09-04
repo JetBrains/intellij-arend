@@ -13,7 +13,7 @@ class VcPsiStructureViewFactory : PsiStructureViewFactory {
         if (psiFile !is VcFile) return null
         return object : TreeBasedStructureViewBuilder() {
             override fun createStructureViewModel(editor: Editor?): StructureViewModel =
-                VcStructureViewModel(editor, psiFile)
+                    VcStructureViewModel(editor, psiFile)
         }
     }
 }

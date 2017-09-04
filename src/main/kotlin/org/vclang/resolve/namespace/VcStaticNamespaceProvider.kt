@@ -13,14 +13,8 @@ object VcStaticNamespaceProvider : StaticNamespaceProvider {
         return namespace
     }
 
-    fun forClass(definition: Abstract.ClassDefinition): VcNamespace {
-        val namespace = VcNamespace()
-        forClass(definition, namespace)
-        return namespace
-    }
-
     private fun forFunction(definition: Abstract.FunctionDefinition, namespace: VcNamespace) =
-        forDefinitions(definition.globalDefinitions, namespace)
+            forDefinitions(definition.globalDefinitions, namespace)
 
     private fun forData(definition: Abstract.DataDefinition, namespace: VcNamespace) =
             definition.constructorClauses
@@ -28,7 +22,7 @@ object VcStaticNamespaceProvider : StaticNamespaceProvider {
                     .forEach { namespace.addDefinition(it) }
 
     private fun forClass(definition: Abstract.ClassDefinition, namespace: VcNamespace) =
-        forDefinitions(definition.globalDefinitions, namespace)
+            forDefinitions(definition.globalDefinitions, namespace)
 
     private fun forClassView(definition: Abstract.ClassView, namespace: VcNamespace) =
             definition.fields.forEach { namespace.addDefinition(it) }

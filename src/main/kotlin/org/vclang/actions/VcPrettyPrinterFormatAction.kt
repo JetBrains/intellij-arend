@@ -13,6 +13,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiDocumentManager
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
+import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.source.SourceId
 import com.jetbrains.jetpad.vclang.term.legacy.ToTextVisitor
 import org.vclang.parser.AbstractTreeBuildVisitor
@@ -54,10 +55,10 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
 
             val message = "${psiFile.name} formatted with PrettyPrinter"
             val notification = Notification(
-                groupId,
-                NOTIFICATION_TITLE,
-                message,
-                NotificationType.INFORMATION
+                    groupId,
+                    NOTIFICATION_TITLE,
+                    message,
+                    NotificationType.INFORMATION
             )
             Notifications.Bus.notify(notification, project)
         } catch (exception: Exception) {
@@ -65,10 +66,10 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
             val writer = StringWriter()
             exception.printStackTrace(PrintWriter(writer))
             val notification = Notification(
-                groupId,
-                message,
-                writer.toString(),
-                NotificationType.ERROR
+                    groupId,
+                    message,
+                    writer.toString(),
+                    NotificationType.ERROR
             )
             Notifications.Bus.notify(notification, project)
             LOG.error(exception)
@@ -81,8 +82,8 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
 
         private fun rebuild(module: VcFile) {
             val visitor = AbstractTreeBuildVisitor(
-                SourceId { module.relativeModulePath },
-                DummyErrorReporter()
+                    SourceId { ModulePath("dummy") },
+                    DummyErrorReporter()
             )
             visitor.visitModule(module)
         }

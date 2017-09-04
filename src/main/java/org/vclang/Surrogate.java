@@ -1,12 +1,7 @@
 package org.vclang;
 
-import com.intellij.lang.Language;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.source.tree.CompositePsiElement;
 import com.jetbrains.jetpad.vclang.core.context.binding.Binding;
-import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceLevelVariable;
-import com.jetbrains.jetpad.vclang.core.context.binding.inference.InferenceVariable;
 import com.jetbrains.jetpad.vclang.frontend.AbstractCompareVisitor;
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens;
 import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand;
@@ -19,7 +14,6 @@ import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract;
 import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstractStatementVisitor;
 import com.jetbrains.jetpad.vclang.term.legacy.ToTextVisitor;
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor;
-import org.jetbrains.annotations.NotNull;
 import org.vclang.psi.ext.adapters.ConstructorAdapter;
 import org.vclang.psi.ext.adapters.DefinitionAdapter;
 
@@ -30,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.intellij.lang.parser.GeneratedParserUtilBase.DUMMY_BLOCK;
 
 public final class Surrogate {
     private Surrogate() {
@@ -110,10 +102,6 @@ public final class Surrogate {
         @Override
         public boolean getExplicit() {
             return myExplicit;
-        }
-
-        public void setExplicit(boolean explicit) {
-            myExplicit = explicit;
         }
     }
 
@@ -338,13 +326,6 @@ public final class Surrogate {
             myReferent = null;
         }
 
-        public ReferenceExpression(Position position, Abstract.ReferableSourceNode referable) {
-            super(position);
-            myExpression = null;
-            myName = referable.getName();
-            myReferent = referable;
-        }
-
         @Nullable
         @Override
         public Expression getExpression() {
@@ -368,25 +349,6 @@ public final class Surrogate {
         @Override
         public <P, R> R accept(AbstractExpressionVisitor<? super P, ? extends R> visitor, P params) {
             return visitor.visitReference(this, params);
-        }
-    }
-
-    public static class InferenceReferenceExpression extends Expression implements Abstract.InferenceReferenceExpression {
-        private final InferenceVariable myVariable;
-
-        public InferenceReferenceExpression(Position position, InferenceVariable variable) {
-            super(position);
-            myVariable = variable;
-        }
-
-        @Nonnull
-        public InferenceVariable getVariable() {
-            return myVariable;
-        }
-
-        @Override
-        public <P, R> R accept(AbstractExpressionVisitor<? super P, ? extends R> visitor, P params) {
-            return visitor.visitInferenceReference(this, params);
         }
     }
 
@@ -833,56 +795,6 @@ public final class Surrogate {
         }
     }
 
-    public static class InferVarLevelExpression extends LevelExpression implements Abstract.InferVarLevelExpression {
-        private static final SourceId SOURCE_ID = new SourceId() {
-            @Override
-            public ModulePath getModulePath() {
-                return ModulePath.moduleName(toString());
-            }
-
-            @Override
-            public String toString() {
-                return "$transient$";
-            }
-        };
-        private static final Surrogate.Position POSITION = new Surrogate.Position(SOURCE_ID, new DummyBlock());
-        private final InferenceLevelVariable myVariable;
-
-        public InferVarLevelExpression(InferenceLevelVariable variable) {
-            super(POSITION);
-            myVariable = variable;
-        }
-
-        @Nonnull
-        @Override
-        public InferenceLevelVariable getVariable() {
-            return myVariable;
-        }
-
-        @Override
-        public <P, R> R accept(AbstractLevelExpressionVisitor<? super P, ? extends R> visitor, P params) {
-            return visitor.visitVar(this, params);
-        }
-
-        private static class DummyBlock extends CompositePsiElement {
-            DummyBlock() {
-                super(DUMMY_BLOCK);
-            }
-
-            @NotNull
-            @Override
-            public PsiReference[] getReferences() {
-                return PsiReference.EMPTY_ARRAY;
-            }
-
-            @NotNull
-            @Override
-            public Language getLanguage() {
-                return getParent().getLanguage();
-            }
-        }
-    }
-
     public static class PLevelExpression extends LevelExpression implements Abstract.PLevelExpression {
         public PLevelExpression(Position position) {
             super(position);
@@ -1208,12 +1120,6 @@ public final class Surrogate {
             myName = name;
         }
 
-        public NamePattern(Position position, boolean isExplicit, @Nullable String name) {
-            super(position);
-            setExplicit(isExplicit);
-            myName = name;
-        }
-
         @Nullable
         @Override
         public String getName() {
@@ -1229,20 +1135,6 @@ public final class Surrogate {
         public ConstructorPattern(Position position, String constructorName, List<Pattern> arguments) {
             super(position);
             myConstructorName = constructorName;
-            myArguments = arguments;
-        }
-
-        public ConstructorPattern(Position position, boolean isExplicit, String constructorName, List<Pattern> arguments) {
-            super(position);
-            setExplicit(isExplicit);
-            myConstructorName = constructorName;
-            myArguments = arguments;
-        }
-
-        public ConstructorPattern(Position position, Abstract.Constructor constructor, List<Pattern> arguments) {
-            super(position);
-            myConstructor = constructor;
-            myConstructorName = constructor.getName();
             myArguments = arguments;
         }
 
@@ -1279,11 +1171,6 @@ public final class Surrogate {
     public static class EmptyPattern extends Pattern implements Abstract.EmptyPattern {
         public EmptyPattern(Position position) {
             super(position);
-        }
-
-        public EmptyPattern(Position position, boolean isExplicit) {
-            super(position);
-            setExplicit(isExplicit);
         }
     }
 }

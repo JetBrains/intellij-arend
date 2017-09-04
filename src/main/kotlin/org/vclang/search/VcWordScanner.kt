@@ -19,12 +19,12 @@ open class VcWordScanner : VersionedWordsScanner() {
                 WordOccurrence.Kind.CODE
             }
             if (!stripWords(
-                processor,
-                fileText,
-                lexer.tokenStart,
-                lexer.tokenEnd,
-                kind,
-                occurrence
+                    processor,
+                    fileText,
+                    lexer.tokenStart,
+                    lexer.tokenEnd,
+                    kind,
+                    occurrence
             )) return
             lexer.advance()
         }
@@ -33,15 +33,15 @@ open class VcWordScanner : VersionedWordsScanner() {
     companion object {
 
         fun isVclangIdentifierPart(c: Char): Boolean =
-            c in '!'..'~' && c !in setOf('"', '(', ')', ',', '.', '`', '{', '}')
+                c in '!'..'~' && c !in setOf('"', '(', ')', ',', '.', '`', '{', '}')
 
         protected fun stripWords(
-            processor: Processor<WordOccurrence>,
-            tokenText: CharSequence,
-            from: Int,
-            to: Int,
-            kind: WordOccurrence.Kind,
-            occurrence: WordOccurrence
+                processor: Processor<WordOccurrence>,
+                tokenText: CharSequence,
+                from: Int,
+                to: Int,
+                kind: WordOccurrence.Kind,
+                occurrence: WordOccurrence
         ): Boolean {
             var index = from
             ScanWordsLoop@ while (true) {
