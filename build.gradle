@@ -103,7 +103,7 @@ dependencies {
 
 task generateVcLexer(type: GenerateLexer) {
     source 'src/main/grammars/VcLexer.flex'
-    targetDir 'src/gen/org/vclang/lang/core/lexer'
+    targetDir 'src/gen/org/vclang/lang/lexer'
     targetClass '_VcLexer'
     purgeOldFiles = true
 }
@@ -111,8 +111,8 @@ task generateVcLexer(type: GenerateLexer) {
 task generateVcParser(type: GenerateParser) {
     source 'src/main/grammars/VcParser.bnf'
     targetRoot = 'src/gen'
-    pathToParser '/org/vclang/lang/core/parser/VcParser.java'
-    pathToPsiRoot '/org/vclang/lang/core/psi'
+    pathToParser '/org/vclang/lang/parser/VcParser.java'
+    pathToPsiRoot '/org/vclang/psi'
     purgeOldFiles = true
 }
 

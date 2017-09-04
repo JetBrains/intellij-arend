@@ -1,11 +1,11 @@
-package org.vclang.lang.core.lexer;
+package org.vclang.lang.lexer;
 
 import com.intellij.lexer.FlexLexer;
 import com.intellij.psi.tree.IElementType;
 
 import static com.intellij.psi.TokenType.BAD_CHARACTER;
 import static com.intellij.psi.TokenType.WHITE_SPACE;
-import static org.vclang.lang.core.psi.VcElementTypes.*;
+import static org.vclang.psi.VcElementTypes.*;
 
 %%
 
