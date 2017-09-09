@@ -15,7 +15,7 @@ import org.vclang.resolve.SurrogateResolveListener
 
 object AbstractTreeFactory {
 
-    fun createFromPsiFile(
+    fun rebuildModule(
             sourceId: SourceId,
             file: PsiFile,
             errorReporter: ErrorReporter,

@@ -10,8 +10,94 @@ import com.jetbrains.jetpad.vclang.term.Abstract
 import com.jetbrains.jetpad.vclang.term.legacy.LegacyAbstract
 import org.vclang.Surrogate
 import org.vclang.VcFileType
-import org.vclang.psi.*
-import org.vclang.psi.ext.adapters.*
+import org.vclang.psi.VcArgument
+import org.vclang.psi.VcArgumentBinOp
+import org.vclang.psi.VcArrExpr
+import org.vclang.psi.VcAssociativity
+import org.vclang.psi.VcAtom
+import org.vclang.psi.VcAtomFieldsAcc
+import org.vclang.psi.VcAtomLevelExpr
+import org.vclang.psi.VcAtomModuleCall
+import org.vclang.psi.VcAtomPattern
+import org.vclang.psi.VcAtomPatternOrPrefix
+import org.vclang.psi.VcBinOpArg
+import org.vclang.psi.VcBinOpExpr
+import org.vclang.psi.VcBinOpLeft
+import org.vclang.psi.VcCaseExpr
+import org.vclang.psi.VcClassField
+import org.vclang.psi.VcClassImplement
+import org.vclang.psi.VcClassStat
+import org.vclang.psi.VcClassStats
+import org.vclang.psi.VcClassViewField
+import org.vclang.psi.VcClause
+import org.vclang.psi.VcClauses
+import org.vclang.psi.VcConstructor
+import org.vclang.psi.VcDataBody
+import org.vclang.psi.VcDataClauses
+import org.vclang.psi.VcDataConstructors
+import org.vclang.psi.VcDefClass
+import org.vclang.psi.VcDefClassView
+import org.vclang.psi.VcDefData
+import org.vclang.psi.VcDefFunction
+import org.vclang.psi.VcDefInstance
+import org.vclang.psi.VcDefinition
+import org.vclang.psi.VcElim
+import org.vclang.psi.VcExpr
+import org.vclang.psi.VcExpr0
+import org.vclang.psi.VcFile
+import org.vclang.psi.VcIdentifierOrUnknown
+import org.vclang.psi.VcImplementStatements
+import org.vclang.psi.VcInfixName
+import org.vclang.psi.VcLamExpr
+import org.vclang.psi.VcLetClause
+import org.vclang.psi.VcLetExpr
+import org.vclang.psi.VcLevelExpr
+import org.vclang.psi.VcLiteral
+import org.vclang.psi.VcMaxLevelExpr
+import org.vclang.psi.VcModuleName
+import org.vclang.psi.VcNsCmd
+import org.vclang.psi.VcPattern
+import org.vclang.psi.VcPatternConstructor
+import org.vclang.psi.VcPiExpr
+import org.vclang.psi.VcPostfixName
+import org.vclang.psi.VcPrec
+import org.vclang.psi.VcPrefixName
+import org.vclang.psi.VcSetUniverseBinOp
+import org.vclang.psi.VcSigmaExpr
+import org.vclang.psi.VcStatCmd
+import org.vclang.psi.VcStatDef
+import org.vclang.psi.VcStatement
+import org.vclang.psi.VcSucLevelExpr
+import org.vclang.psi.VcTele
+import org.vclang.psi.VcTruncatedUniverseBinOp
+import org.vclang.psi.VcTuple
+import org.vclang.psi.VcTypedExpr
+import org.vclang.psi.VcUniverseAtom
+import org.vclang.psi.VcUniverseBinOp
+import org.vclang.psi.VcWhere
+import org.vclang.psi.childOfType
+import org.vclang.psi.ext.adapters.ClassDefinitionAdapter
+import org.vclang.psi.ext.adapters.ClassFieldAdapter
+import org.vclang.psi.ext.adapters.ClassImplementAdapter
+import org.vclang.psi.ext.adapters.ClassViewAdapter
+import org.vclang.psi.ext.adapters.ClassViewFieldAdapter
+import org.vclang.psi.ext.adapters.ClassViewInstanceAdapter
+import org.vclang.psi.ext.adapters.ConstructorAdapter
+import org.vclang.psi.ext.adapters.DataDefinitionAdapter
+import org.vclang.psi.ext.adapters.DefinitionAdapter
+import org.vclang.psi.ext.adapters.FunctionDefinitionAdapter
+import org.vclang.psi.hasType
+import org.vclang.psi.isAny
+import org.vclang.psi.isEmpty
+import org.vclang.psi.isExplicit
+import org.vclang.psi.isExportCmd
+import org.vclang.psi.isHiding
+import org.vclang.psi.isImplicit
+import org.vclang.psi.isLeftAssoc
+import org.vclang.psi.isNonAssoc
+import org.vclang.psi.isOpenCmd
+import org.vclang.psi.isRightAssoc
+import org.vclang.psi.withNewContext
 import java.nio.file.Paths
 
 class AbstractTreeBuildVisitor(
@@ -744,8 +830,13 @@ class AbstractTreeBuildVisitor(
     private fun visitModuleName(context: VcModuleName): List<String> {
         val lastModuleNamePart = context.moduleNamePartList.lastOrNull()
         val module = lastModuleNamePart?.reference?.resolve() as? VcFile
+        if (module == null) {
+            reportError(elementPosition(context), "Failed to resolve module name: $context")
+            return emptyList()
+        }
+
         val modulePath = Paths.get(
-                module?.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
+                module.virtualFile?.path?.removeSuffix('.' + VcFileType.defaultExtension)
         )
         val base = Paths.get(context.project.basePath)
         return base.relativize(modulePath).toList().map { it.toString() }

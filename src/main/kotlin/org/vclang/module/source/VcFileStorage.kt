@@ -108,7 +108,7 @@ class VcFileStorage(
         ): SourceSupplier.LoadResult? {
             if (!isAvailable(sourceId)) return null
             val timeStamp = getAvailableVersion(sourceId)
-            val result = AbstractTreeFactory.createFromPsiFile(
+            val module = AbstractTreeFactory.rebuildModule(
                     sourceId,
                     sourceId.module,
                     errorReporter,
@@ -116,7 +116,7 @@ class VcFileStorage(
                     globalScope
             )
             if (getAvailableVersion(sourceId) != timeStamp) return null
-            return SourceSupplier.LoadResult.make(result, timeStamp)
+            return SourceSupplier.LoadResult.make(module, timeStamp)
         }
 
         override fun getAvailableVersion(sourceId: SourceId): Long =

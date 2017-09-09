@@ -54,13 +54,13 @@ class VcPreludeStorage(
             val text = String(Files.readAllBytes(SOURCE_RESOURCE_PATH), StandardCharsets.UTF_8)
             val psiFile = PsiFileFactory.getInstance(project)
                     .createFileFromText("Prelude.vc", VcLanguage, text)
-            val result = AbstractTreeFactory.createFromPsiFile(
+            val module = AbstractTreeFactory.rebuildModule(
                     preludeSourceId,
                     psiFile,
                     errorReporter,
                     nameResolver
             )
-            return SourceSupplier.LoadResult.make(result, 1)
+            return SourceSupplier.LoadResult.make(module, 1)
         } catch (e: IOException) {
             throw IllegalStateException(e)
         }

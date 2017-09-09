@@ -1,15 +1,24 @@
 package org.vclang.typechecking
 
-import com.intellij.execution.ui.ConsoleView
+import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.PsiTreeChangeAdapter
+import com.intellij.psi.PsiTreeChangeEvent
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
 import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.module.caching.*
+import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
+import com.jetbrains.jetpad.vclang.module.caching.CacheManager
+import com.jetbrains.jetpad.vclang.module.caching.CachePersistenceException
+import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
+import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
@@ -27,6 +36,7 @@ import org.vclang.module.source.VcPreludeStorage
 import org.vclang.parser.fullName
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
+import org.vclang.psi.VcStatement
 import org.vclang.psi.ancestors
 import org.vclang.psi.ext.adapters.DefinitionAdapter
 import org.vclang.psi.stubs.VcDefinitionStub
@@ -45,7 +55,6 @@ typealias VcSourceIdT = CompositeSourceSupplier<
         >.SourceId
 
 interface TypeCheckingService {
-    var console: ConsoleView?
     var eventsProcessor: TypeCheckingEventsProcessor?
 
     fun typeCheck(modulePath: Path, definitionFullName: String)
@@ -59,12 +68,11 @@ interface TypeCheckingService {
 }
 
 class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
-    override var console: ConsoleView?
-        get() = logger.console
+    override var eventsProcessor: TypeCheckingEventsProcessor?
+        get() = logger.eventsProcessor
         set(value) {
-            logger.console = value
+            logger.eventsProcessor = value
         }
-    override var eventsProcessor: TypeCheckingEventsProcessor? = null
 
     private val moduleNsProvider = VcModuleNamespaceProvider()
     private val staticNsProvider = VcStaticNamespaceProvider
@@ -77,7 +85,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             ),
             ModuleResolver { modulePath ->
                 val sourceId = storage.locateModule(modulePath)
-                val module = loadSource(sourceId)
+                val module = sourceId?.let { loadSource(it) }
                 module?.let { moduleNsProvider.registerModule(modulePath, it) }
                 module
             }
@@ -113,6 +121,18 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             ApplicationManager.getApplication().saveAll()
 
             val sourceId = sourceIdByPath(modulePath) ?: return
+
+            if (definitionFullName.isEmpty()) {
+                val module = sourceId.source1.module
+                eventsProcessor?.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
+                module.children
+                    .filterIsInstance<VcStatement>()
+                    .mapNotNull { it.statDef?.definition }
+                    .forEach { eventsProcessor?.onTestStarted(TestStartedEvent(it.fullName, null)) }
+            } else {
+                eventsProcessor?.onTestStarted(TestStartedEvent(definitionFullName, null))
+            }
+
             val module = loadSource(sourceId) ?: return
 
             try {
@@ -197,13 +217,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
         val modulePath = VcFileStorage.modulePath(sourcePath)
         if (modulePath == null) {
-            logger.reportError("[Not found] $path is an illegal module path")
+//            logger.report("[Not found] $path is an illegal module path") // TODO: handle error
             return null
         }
 
         val sourceId = storage.locateModule(modulePath)
         if (!storage.isAvailable(sourceId)) {
-            logger.reportError("[Not found] $path is not available")
+//            logger.report("[Not found] $path is not available") // TODO: handle error
             return null
         }
 

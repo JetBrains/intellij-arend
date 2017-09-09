@@ -34,13 +34,13 @@ class TypeCheckRunState(
 
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
         val processHandler = startProcess()
-        processHandler.console = createConsole(executor)
-        processHandler.console?.attachToProcess(processHandler)
+        val console = createConsole(executor)
+        console?.attachToProcess(processHandler)
         ProcessTerminatedListener.attach(processHandler)
         return DefaultExecutionResult(
-                processHandler.console,
+                console,
                 processHandler,
-                *createActions(processHandler.console, processHandler, executor)
+                *createActions(console, processHandler, executor)
         )
     }
 

@@ -1,22 +1,16 @@
 package org.vclang.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
-import com.intellij.execution.ui.ConsoleView
-import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
 import org.vclang.typechecking.TypeCheckingService
 import java.io.OutputStream
 import java.nio.file.Paths
 
+
 class TypeCheckProcessHandler(
         private val typeChecker: TypeCheckingService,
         private val command: TypeCheckCommand
 ) : ProcessHandler() {
-    var console: ConsoleView?
-        get() = typeChecker.console
-        set(value) {
-            typeChecker.console = value
-        }
     var eventsProcessor: TypeCheckingEventsProcessor?
         get() = typeChecker.eventsProcessor
         set(value) {
@@ -29,7 +23,7 @@ class TypeCheckProcessHandler(
             try {
                 typeChecker.typeCheck(Paths.get(command.modulePath), command.definitionFullName)
             } catch (e: Exception) {
-                e.message?.let { console?.print(it, ConsoleViewContentType.ERROR_OUTPUT) }
+                e.printStackTrace()
             } finally {
                 notifyProcessTerminated(0)
             }
