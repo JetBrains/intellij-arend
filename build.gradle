@@ -37,7 +37,6 @@ apply plugin: 'kotlin'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-def vclangVersion = "1a0835e"
 
 compileKotlin {
     kotlinOptions {
@@ -59,8 +58,6 @@ grammarKit {
 }
 
 test {
-    classpath = classpath.filter { it.name != "vclang-${vclangVersion}.jar" }
-
     testLogging {
         events 'skipped', 'failed'
         exceptionFormat = 'full'
@@ -95,8 +92,7 @@ dependencies {
         exclude group: 'org.jetbrains.plugins'
         exclude module: 'idea'
     }
-    compile files("lib/vclang-${vclangVersion}.jar")
-    testCompile files("lib/vclang-without-dependencies-${vclangVersion}.jar")
+    compile project(':vclang')
     testCompile 'junit:junit:4.+'
     testCompile 'org.assertj:assertj-core:3.2.0'
 }
