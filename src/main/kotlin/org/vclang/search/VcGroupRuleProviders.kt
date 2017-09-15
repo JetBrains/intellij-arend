@@ -10,7 +10,7 @@ import com.intellij.usages.rules.PsiElementUsage
 import com.intellij.usages.rules.SingleParentUsageGroupingRule
 import com.intellij.usages.rules.UsageGroupingRule
 import org.vclang.psi.*
-import org.vclang.psi.ext.VcNamedElement
+import org.vclang.psi.ext.PsiReferable
 
 class VcDefClassGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
@@ -37,11 +37,6 @@ class VcClassFieldGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<VcClassField>()
 }
 
-class VcClassImplementGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<VcClassImplement>()
-}
-
 class VcClassViewFieldGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
             createGroupingRule<VcClassViewField>()
@@ -57,12 +52,12 @@ class VcConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<VcConstructor>()
 }
 
-private inline fun <reified T : VcNamedElement> createGroupingRule(): UsageGroupingRule {
+private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {
     return object : SingleParentUsageGroupingRule() {
         override fun getParentGroupFor(usage: Usage, targets: Array<out UsageTarget>): UsageGroup? {
             if (usage !is PsiElementUsage) return null
             val parent = usage.element.parentOfType<T>()
-            return parent?.let { PsiNamedElementUsageGroupBase<VcNamedElement>(it) }
+            return parent?.let { PsiNamedElementUsageGroupBase<PsiReferable>(it) }
         }
     }
 }

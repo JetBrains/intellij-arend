@@ -10,15 +10,16 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
 import org.vclang.navigation.getPresentationForStructure
 import org.vclang.psi.*
+import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.VcCompositeElement
-import org.vclang.psi.ext.VcNamedElement
+import org.vclang.psi.ext.PsiReferable
 
 class VcStructureViewModel(editor: Editor?, file: VcFile)
     : StructureViewModelBase(file, editor, VcStructureViewElement(file)),
         StructureViewModel.ElementInfoProvider {
 
     init {
-        withSuitableClasses(VcNamedElement::class.java)
+        withSuitableClasses(PsiReferable::class.java)
     }
 
     override fun isAlwaysShowsPlus(element: StructureViewTreeElement): Boolean =
@@ -51,48 +52,21 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
 
     private val childElements: List<VcCompositeElement>
         get() = when (psi) {
-            is VcFile -> psi.childDefinitions
+            is VcFile -> psi.children.filterIsInstance<VcStatement>().mapNotNull { it.definition }
             is VcDefClass -> psi.childDefinitions
-            is VcDefClassView -> psi.childDefinitions
-            is VcDefData -> psi.childDefinitions
-            is VcDefFunction -> psi.childDefinitions
+            is VcDefClassView -> psi.classViewFieldList
+            is VcDefData -> psi.dataBody?.dataClauses?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.dataConstructors?.constructorList ?: emptyList()
+            is VcDefFunction -> psi.where?.childDefinitions ?: emptyList()
             else -> emptyList()
         }
 }
 
-private val VcFile.childDefinitions: List<VcDefinition>
-    get() = children
-            .filterIsInstance<VcStatement>()
-            .mapNotNull { it.childDefinition }
-
-private val VcDefClass.childDefinitions: List<VcDefinition>
+private val VcDefClass.childDefinitions: List<PsiGlobalReferable>
     get() {
-        val classStats = classStats?.classStatList
-        val classDefinitions = classStats?.mapNotNull { it.childDefinition } ?: emptyList()
+        val classDefinitions = classStats?.classStatList?.mapNotNull { it.classField ?: it.definition as PsiGlobalReferable } ?: emptyList()
         val whereDefinitions = where?.childDefinitions ?: emptyList()
         return classDefinitions + whereDefinitions
     }
 
-private val VcDefClassView.childDefinitions: List<VcDefinition>
-    get() = classViewFieldList
-
-private val VcDefData.childDefinitions: List<VcDefinition>
-    get() = dataBody?.childDefinitions ?: emptyList()
-
-private val VcDefFunction.childDefinitions: List<VcDefinition>
-    get() = where?.childDefinitions ?: emptyList()
-
-private val VcClassStat.childDefinition: VcDefinition?
-    get() = definition ?: statement?.childDefinition
-
-private val VcStatement.childDefinition: VcDefinition?
-    get() = statDef?.definition
-
 private val VcWhere.childDefinitions: List<VcDefinition>
-    get() = statementList.mapNotNull { it.childDefinition }
-
-private val VcDataBody.childDefinitions: List<VcDefinition>
-    get() = dataClauses?.childDefinitions ?: dataConstructors?.constructorList ?: emptyList()
-
-private val VcDataClauses.childDefinitions: List<VcDefinition>
-    get() = constructorClauseList.flatMap { it.constructorList }
+    get() = statementList.mapNotNull { it.definition }

@@ -80,8 +80,6 @@
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassImplementGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcClassViewFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
@@ -139,7 +137,7 @@
 
         <!-- Lookup Filters -->
 
-        <lookup.charFilter implementation="org.vclang.codeInsight.CompletionCharFilter"/>
+        <lookup.charFilter implementation="org.vclang.codeInsight.VclangCharFilter"/>
 
         <!-- Services -->
 

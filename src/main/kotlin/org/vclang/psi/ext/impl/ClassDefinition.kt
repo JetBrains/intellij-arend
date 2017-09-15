@@ -1,19 +1,21 @@
-package org.vclang.psi.ext.adapters
+package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import org.vclang.Surrogate
-import org.vclang.VcIcons
+import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefClass
 import org.vclang.psi.stubs.VcDefClassStub
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.NamespaceProvider
-import javax.swing.Icon
 
-abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>,
-                                        VcDefClass {
+abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass {
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun computeConcrete(): Concrete.ClassDefinition {
+        TODO("not implemented")
+    }
+
+/* TODO[abstract]
     private var polyParameters: List<Surrogate.TypeParameter>? = null
     private var superClasses: List<Surrogate.SuperClass>? = null
     private var fields: List<ClassFieldAdapter>? = null
@@ -23,10 +25,6 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>,
 
     override val namespace: Namespace
         get() = NamespaceProvider.forDefinition(this)
-
-    constructor(node: ASTNode) : super(node)
-
-    constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_DEFINITION
 
@@ -87,4 +85,5 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>,
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitClass(this, params)
+    */
 }

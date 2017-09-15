@@ -1,5 +1,6 @@
-package org.vclang.resolve
+package org.vclang.resolving
 
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
@@ -7,6 +8,7 @@ import com.intellij.psi.PsiReferenceBase
 import org.vclang.VcFileType
 import org.vclang.psi.*
 import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
 
@@ -17,7 +19,7 @@ interface VcReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-abstract class VcReferenceBase<T : VcReferenceElement>(element: T)
+open class VcReferenceImpl<T : VcReferenceElement>(element: T)
     : PsiReferenceBase<T>(element, TextRange(0, element.textLength)),
       VcReference {
 
@@ -25,6 +27,16 @@ abstract class VcReferenceBase<T : VcReferenceElement>(element: T)
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
     }
+
+    override fun getVariants(): Array<Any> = element.scope.elements.map {
+        if (it is PsiReferable)
+            LookupElementBuilder.createWithIcon(it)
+        else
+            LookupElementBuilder.create(it, it.textRepresentation())
+    }.toTypedArray()
+
+    override fun resolve(): PsiElement? =
+        element.referenceName?.let { element.scope.resolveName(it) as? VcCompositeElement }
 
     companion object {
         private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {

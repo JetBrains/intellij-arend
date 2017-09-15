@@ -1,25 +1,25 @@
-package org.vclang.psi.ext.adapters
+package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import org.vclang.Surrogate
-import org.vclang.VcIcons
+import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.stubs.VcDefInstanceStub
-import javax.swing.Icon
 
-abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
-                                          VcDefInstance {
+abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInstance {
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun computeConcrete(): Concrete.Instance {
+        TODO("not implemented")
+    }
+
+/* TODO[abstract]
     private var parameters: List<Surrogate.Parameter>? = null
     private var classView: Surrogate.ReferenceExpression? = null
     private var classFieldImpls: List<Surrogate.ClassFieldImpl>? = null
     private var classifyingDefinition: Abstract.Definition? = null
-
-    constructor(node: ASTNode) : super(node)
-
-    constructor(stub: VcDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW_INSTANCE
 
@@ -58,4 +58,5 @@ abstract class ClassViewInstanceAdapter : DefinitionAdapter<VcDefInstanceStub>,
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitClassViewInstance(this, params)
+    */
 }

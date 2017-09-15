@@ -5,22 +5,25 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.navigation.getPresentation
 import org.vclang.psi.VcDefIdentifier
 import org.vclang.psi.VcPsiFactory
 import org.vclang.psi.childOfType
 import org.vclang.psi.stubs.VcNamedStub
 
-interface VcNamedElement : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement
+interface PsiReferable : VcCompositeElement, PsiNamedElement, NavigatablePsiElement, Referable
 
-abstract class VcNamedElementImpl(node: ASTNode) : VcCompositeElementImpl(node),
-                                                   VcNamedElement {
+abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), PsiNameIdentifierOwner, PsiReferable {
 
     override fun getNameIdentifier(): VcCompositeElement? = childOfType()
 
     override fun getName(): String? = nameIdentifier?.text
+
+    override fun textRepresentation(): String = name ?: "_"
 
     override fun setName(name: String): PsiElement? {
         nameIdentifier?.replace(VcPsiFactory(project).createDefIdentifier(name))
@@ -34,8 +37,7 @@ abstract class VcNamedElementImpl(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getPresentation(): ItemPresentation = getPresentation(this)
 }
 
-abstract class VcStubbedNamedElementImpl<StubT> : VcStubbedElementImpl<StubT>,
-                                                  VcNamedElement
+abstract class PsiStubbedReferableImpl<StubT> : VcStubbedElementImpl<StubT>, PsiNameIdentifierOwner, PsiReferable
 where StubT : VcNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)
@@ -45,6 +47,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override fun getNameIdentifier(): VcDefIdentifier? = childOfType()
 
     override fun getName(): String? = nameIdentifier?.text
+
+    override fun textRepresentation(): String = name ?: "_"
 
     override fun setName(name: String): PsiElement? {
         nameIdentifier?.replace(VcPsiFactory(project).createDefIdentifier(name))

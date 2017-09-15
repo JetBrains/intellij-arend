@@ -1,22 +1,17 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.psi.VcAtom
 import org.vclang.psi.VcFieldAcc
 import org.vclang.psi.VcNsCmdRoot
 import org.vclang.psi.leftSiblings
-import org.vclang.resolve.EmptyNamespace
-import org.vclang.resolve.Namespace
-import org.vclang.resolve.NamespaceScope
-import org.vclang.resolve.Scope
 
 abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                     VcFieldAcc {
-    override val namespace: Namespace
-        get() = findRoot()?.namespace ?: EmptyNamespace
-
     override val scope: Scope
-        get() = NamespaceScope(namespace)
+        get() = findRoot()?.scope ?: EmptyScope.INSTANCE
 
     override val referenceNameElement: VcCompositeElement?
         get() = refIdentifier

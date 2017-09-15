@@ -5,7 +5,7 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
 import org.vclang.psi.VcFile
 import org.vclang.psi.ext.VcCompositeElement
-import org.vclang.psi.ext.VcNamedElement
+import org.vclang.psi.ext.PsiReferable
 
 fun getPresentation(psi: VcCompositeElement): ItemPresentation {
     val location = run {
@@ -22,6 +22,6 @@ fun getPresentationForStructure(psi: VcCompositeElement): ItemPresentation =
 
 private fun presentableName(psi: PsiElement): String? = when (psi) {
     is VcFile -> psi.relativeModulePath.toString()
-    is VcNamedElement -> psi.name
+    is PsiReferable -> psi.name
     else -> null
 }

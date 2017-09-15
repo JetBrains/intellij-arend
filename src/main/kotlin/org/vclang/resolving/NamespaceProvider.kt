@@ -1,10 +1,14 @@
-package org.vclang.resolve
+package org.vclang.resolving
 
+import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
+import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
+import com.jetbrains.jetpad.vclang.naming.namespace.SimpleNamespace
 import org.vclang.psi.*
-import org.vclang.psi.ext.VcNamedElement
+import org.vclang.psi.ext.PsiReferable
 
+// TODO[abstract]
 object NamespaceProvider {
-
+    /*
     fun forDefinition(
             definition: VcDefFunction,
             namespace: SimpleNamespace = SimpleNamespace()
@@ -22,7 +26,7 @@ object NamespaceProvider {
                 .dataBody
                 ?.dataConstructors
                 ?.constructorList
-                ?.forEach { namespace.put(it) }
+                ?.forEach { namespace.addDefinition(it, DummyErrorReporter.INSTANCE) }
         forTelescope(definition.teleList, namespace)
         return namespace
     }
@@ -34,11 +38,10 @@ object NamespaceProvider {
         val classStats = definition.classStats?.classStatList
 
         classStats
-                ?.map { it.definition }
                 ?.filterIsInstance<VcClassField>()
                 ?.forEach { forDefinition(it, namespace) }
 
-        val definitions = classStats?.mapNotNull { it.statement?.statDef }
+        val definitions = classStats?.mapNotNull { it.definition }
         if (definitions != null) {
             forDefinitions(definitions, namespace)
             definition.classTeles?.teleList?.let { forTelescope(it, namespace) }
@@ -47,12 +50,13 @@ object NamespaceProvider {
 
         return namespace
     }
+    */
 
     fun forDefinition(
             definition: VcDefClassView,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        definition.classViewFieldList.forEach { namespace.put(it) }
+        definition.classViewFieldList.forEach { namespace.addDefinition(it, DummyErrorReporter.INSTANCE) }
         return namespace
     }
 
@@ -60,26 +64,26 @@ object NamespaceProvider {
             definition: VcClassField,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        namespace.put(definition)
+        namespace.addDefinition(definition, DummyErrorReporter.INSTANCE)
         return namespace
     }
 
     fun forDefinitions(
-            definitions: List<VcStatDef>,
+            definitions: List<VcDefinition>,
             namespace: SimpleNamespace = SimpleNamespace()
     ): Namespace {
-        definitions
-                .map { it.definition }
-                .forEach {
-                    if (it is VcDefData) {
-                        val constructors = it.dataBody?.dataConstructors?.constructorList
-                        constructors?.forEach { namespace.put(it) }
-                    }
-                    namespace.put(it as? VcNamedElement)
-                }
+        definitions.forEach {
+            if (it is VcDefData) {
+                it.dataBody?.dataConstructors?.constructorList?.forEach { namespace.addDefinition(it, DummyErrorReporter.INSTANCE) }
+            }
+            if (it is PsiReferable) {
+                namespace.addDefinition(it, DummyErrorReporter.INSTANCE)
+            }
+        }
         return namespace
     }
 
+    /*
     fun forExpression(
             expr: VcLamExpr,
             namespace: SimpleNamespace = SimpleNamespace()
@@ -114,6 +118,7 @@ object NamespaceProvider {
         (classDef?.namespace as? SimpleNamespace)?.let { namespace.putAll(it) }
         return namespace
     }
+    */
 
     fun forPattern(
             pattern: VcPattern,
@@ -127,6 +132,7 @@ object NamespaceProvider {
         return namespace
     }
 
+    /*
     private fun forTelescope(
             teles: Collection<VcTele>,
             namespace: SimpleNamespace = SimpleNamespace()
@@ -140,9 +146,10 @@ object NamespaceProvider {
                 .forEach { namespace.put(it.referenceName!!, it) }
         return namespace
     }
+    */
 
     private fun forWhere(where: VcWhere, namespace: SimpleNamespace) {
-        val definitions = where.statementList.mapNotNull { it.statDef }
+        val definitions = where.statementList.mapNotNull { it as? VcDefinition }
         forDefinitions(definitions, namespace)
     }
 }

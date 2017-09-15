@@ -5,15 +5,13 @@ import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.psi.PsiElement
 import com.intellij.util.Function
-import org.vclang.parser.fullName
-import org.vclang.parser.isTypeCheckable
 import org.vclang.psi.VcDefIdentifier
 import org.vclang.psi.VcDefinition
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
         val parent = element.parent
-        if (element is VcDefIdentifier && parent is VcDefinition && parent.isTypeCheckable) {
+        if (element is VcDefIdentifier && parent is VcDefinition) {
             return Info(
                     AllIcons.RunConfigurations.TestState.Run,
                     Function<PsiElement, String> { "Type check ${parent.fullName}" },

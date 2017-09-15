@@ -4,7 +4,6 @@ import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
-import org.vclang.parser.fullName
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.parentOfType

@@ -3,10 +3,10 @@ package org.vclang.typechecking
 import com.jetbrains.jetpad.vclang.module.caching.CacheStorageSupplier
 import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
-import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.DefinitionLocator
 import org.vclang.module.source.VcPreludeStorage
-import org.vclang.parser.fullName
+import org.vclang.psi.ext.PsiGlobalReferable
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
@@ -30,7 +30,7 @@ object PreludeCacheGenerator {
 
     internal class PreludeDefLocator(private val preludeSourceId: VcPreludeStorage.SourceId)
         : DefinitionLocator<VcPreludeStorage.SourceId> {
-        override fun sourceOf(definition: Abstract.Definition): VcPreludeStorage.SourceId =
+        override fun sourceOf(definition: GlobalReferable): VcPreludeStorage.SourceId =
                 preludeSourceId
     }
 
@@ -42,12 +42,15 @@ object PreludeCacheGenerator {
         override fun getModuleId(sourceUrl: URI): VcPreludeStorage.SourceId =
                 throw UnsupportedOperationException()
 
-        override fun getIdFor(definition: Abstract.Definition): String = definition.fullName
+        override fun getIdFor(definition: GlobalReferable): String {
+            if (definition !is PsiGlobalReferable) throw IllegalStateException()
+            return definition.fullName
+        }
 
         override fun getFromId(
                 sourceId: VcPreludeStorage.SourceId,
                 id: String
-        ): Abstract.Definition = throw UnsupportedOperationException()
+        ): GlobalReferable = throw UnsupportedOperationException()
     }
 
     internal class PreludeVersionTracker : SourceVersionTracker<VcPreludeStorage.SourceId> {

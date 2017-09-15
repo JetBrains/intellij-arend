@@ -90,8 +90,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
     private fun PsiElement.fitsHierarchically(target: String): Boolean = when {
         text == target -> true
         text.length > target.length -> false
-        parent != null -> parent.fitsHierarchically(target)
-        else -> false
+        else -> parent?.fitsHierarchically(target) ?: false
     }
 
     private fun PsiElement.fitsLinearly(target: String): Boolean =

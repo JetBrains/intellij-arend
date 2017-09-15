@@ -5,6 +5,7 @@ import org.vclang.psi.VcLetExpr
 
 abstract class VcLetExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                    VcLetExpr {
+//    TODO[abstract]
 //    override val namespace: Namespace
 //        get() = NamespaceProvider.forExpression(this)
 }

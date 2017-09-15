@@ -5,22 +5,54 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import org.vclang.Surrogate
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.scope.MergeScope
+import com.jetbrains.jetpad.vclang.naming.scope.NamespaceScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.term.Group
+import com.jetbrains.jetpad.vclang.term.NamespaceCommand
+import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
-import org.vclang.parser.fullName
+import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
-import org.vclang.resolve.*
+import org.vclang.resolving.*
 import java.nio.file.Paths
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage),
-                                               VcCompositeElement,
-                                               Abstract.ClassDefinition,
-                                               Surrogate.StatementCollection {
-    private var globalStatements = emptyList<Surrogate.Statement>()
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, Group {
+    override fun setName(name: String): PsiElement {
+        val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
+            name
+        } else {
+            "$name.${VcFileType.defaultExtension}"
+        }
+        return super.setName(nameWithExtension)
+    }
+
+    override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
+
+    override fun getReference(): VcReference? = null
+
+    override fun getFileType(): FileType = VcFileType
+
+    override fun textRepresentation(): String = name
+
+    override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getReferable(): PsiGlobalReferable = this
+
+    // TODO[abstract]
+    override fun getSubgroups(): Collection<Group> = emptyList()
+
+    // TODO[abstract]
+    override fun getNamespaceCommands(): Collection<NamespaceCommand> = emptyList()
+
+    override fun getConstructors(): Collection<GlobalReferable> = emptyList()
+
+    override fun getDynamicSubgroups(): Collection<Group> = emptyList()
+
+    override fun getFields(): Collection<GlobalReferable> = emptyList()
 
     val relativeModulePath: ModulePath
         get() {
@@ -33,6 +65,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return ModulePath(relativeModulePath.map { it.toString() })
         }
 
+    /* TODO[abstract]
+    private var globalStatements = emptyList<Surrogate.Statement>()
 
     override val namespace: Namespace
         get() {
@@ -50,45 +84,11 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
                     .fold(namespaceScope) { scope1, scope2 -> MergeScope(scope1, scope2) }
         }
 
-    override fun setName(name: String): PsiElement {
-        val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
-            name
-        } else {
-            "$name.${VcFileType.defaultExtension}"
-        }
-        return super.setName(nameWithExtension)
-    }
-
-    override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
-
-    override fun getReference(): VcReference? = null
-
-    override fun getFileType(): FileType = VcFileType
-
-    override fun getPolyParameters(): List<Abstract.TypeParameter> = emptyList()
-
-    override fun getSuperClasses(): List<Abstract.SuperClass> = emptyList()
-
-    override fun getFields(): List<Abstract.ClassField> = emptyList()
-
-    override fun getImplementations(): List<Abstract.Implementation> = emptyList()
-
-    override fun getInstanceDefinitions(): List<Abstract.Definition> = emptyList()
-
     override fun getGlobalStatements(): List<Surrogate.Statement> = globalStatements
 
     fun setGlobalStatements(globalStatements: List<Surrogate.Statement>) {
         this.globalStatements = globalStatements
     }
-
-    override fun getPrecedence(): Abstract.Precedence = Abstract.Precedence.DEFAULT
-
-    override fun getParentDefinition(): Abstract.Definition? = null
-
-    override fun isStatic(): Boolean = true
-
-    override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
-            visitor.visitClass(this, params)
 
     fun findDefinitionByFullName(fullName: String): Abstract.Definition? =
             accept(FindDefinitionVisitor, fullName)
@@ -165,4 +165,5 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return null
         }
     }
+    */
 }

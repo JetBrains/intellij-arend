@@ -6,42 +6,26 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.vclang.resolve.*
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import org.vclang.resolving.*
 
 interface VcCompositeElement : PsiElement {
-    val namespace: Namespace
     val scope: Scope
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE // TODO[abstract]
 
     override fun getReference(): VcReference?
 }
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node),
                                                        VcCompositeElement {
-    override val namespace: Namespace = EmptyNamespace
-
-    override val scope: Scope
-        get() {
-            val parentScope = (parent as? VcCompositeElement)?.scope
-            val namespaceScope = NamespaceScope(namespace)
-            parentScope?.let { return OverridingScope(it, namespaceScope) }
-            return namespaceScope
-        }
-
     override fun getReference(): VcReference? = null
 }
 
 abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
                                                               VcCompositeElement {
-    override val namespace: Namespace = EmptyNamespace
-
-    override val scope: Scope
-        get() {
-            val parentScope = (parent as? VcCompositeElement)?.scope
-            val namespaceScope = NamespaceScope(namespace)
-            parentScope?.let { return OverridingScope(it, namespaceScope) }
-            return namespaceScope
-        }
-
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

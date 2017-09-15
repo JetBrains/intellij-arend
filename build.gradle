@@ -98,6 +98,8 @@ dependencies {
 }
 
 task generateVcLexer(type: GenerateLexer) {
+    description 'Generates lexer'
+    group 'Source'
     source 'src/main/grammars/VcLexer.flex'
     targetDir 'src/gen/org/vclang/lang/lexer'
     targetClass '_VcLexer'
@@ -105,6 +107,8 @@ task generateVcLexer(type: GenerateLexer) {
 }
 
 task generateVcParser(type: GenerateParser) {
+    description 'Generates parser'
+    group 'Source'
     source 'src/main/grammars/VcParser.bnf'
     targetRoot = 'src/gen'
     pathToParser '/org/vclang/lang/parser/VcParser.java'

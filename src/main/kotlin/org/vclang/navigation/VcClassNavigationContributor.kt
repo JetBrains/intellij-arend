@@ -1,9 +1,9 @@
 package org.vclang.navigation
 
-import org.vclang.psi.ext.VcNamedElement
+import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.stubs.index.VcGotoClassIndex
 
-class VcClassNavigationContributor : VcNavigationContributorBase<VcNamedElement>(
+class VcClassNavigationContributor : VcNavigationContributorBase<PsiReferable>(
         VcGotoClassIndex.KEY,
-        VcNamedElement::class.java
+        PsiReferable::class.java
 )

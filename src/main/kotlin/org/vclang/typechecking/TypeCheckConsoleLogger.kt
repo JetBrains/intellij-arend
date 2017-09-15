@@ -18,48 +18,31 @@ import com.jetbrains.jetpad.vclang.error.doc.LineDocVisitor
 import com.jetbrains.jetpad.vclang.error.doc.ReferenceDoc
 import com.jetbrains.jetpad.vclang.error.doc.TermLineDoc
 import com.jetbrains.jetpad.vclang.error.doc.TextDoc
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
-import org.vclang.Surrogate
-import org.vclang.parser.fullName
-import org.vclang.psi.ext.adapters.DefinitionAdapter
+import com.jetbrains.jetpad.vclang.term.provider.PrettyPrinterInfoProvider
+import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.parentOfType
 import org.vclang.typechecking.execution.DefinitionProxy
 import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
 
 class TypeCheckConsoleLogger(
-        private val sourceInfoProvider: SourceInfoProvider<VcSourceIdT>
+        private val sourceInfoProvider: PrettyPrinterInfoProvider
 ) : ErrorReporter {
     var eventsProcessor: TypeCheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
-        val position = getPositionByCause(error.cause)
-        val definition = position?.element?.let { getDefinition(it) } ?: return
+        val element = error.cause as? PsiElement
+        val definition = element?.parentOfType<PsiGlobalReferable>(false) ?: element?.containingFile as? PsiGlobalReferable ?: return
         val proxy = eventsProcessor?.getProxyByFullName(definition.fullName) ?: return
         DocConsolePrinter(proxy, error).print()
     }
 
     companion object {
-
         private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
             Error.Level.ERROR -> ERROR_OUTPUT
             Error.Level.GOAL -> USER_INPUT
             Error.Level.WARNING -> LOG_WARNING_OUTPUT
             Error.Level.INFO -> NORMAL_OUTPUT
         }
-
-        private fun getDefinition(element: PsiElement): Abstract.Definition? {
-            val psiElement = element.parentOfType<DefinitionAdapter<*>>(false)
-                ?: element.containingFile
-            return psiElement as? Abstract.Definition
-        }
-
-        private fun getPositionByCause(cause: Abstract.SourceNode?): Surrogate.Position? =
-            when (cause) {
-                is Surrogate.SourceNode -> cause.position
-                is DefinitionAdapter<*> -> cause.getPosition()
-                else -> null
-            }
     }
 
     private inner class DocConsolePrinter(
@@ -83,8 +66,8 @@ class TypeCheckConsoleLogger(
 
         override fun visitText(doc: TextDoc, newLine: Boolean): Void? {
             if (doc.text.startsWith('[') && doc.text.endsWith(']')) {
-                val position = getPositionByCause(error.cause)
-                val info = position?.element?.let { PsiHyperlinkInfo(it) }
+                val element = error.cause as? PsiElement
+                val info = element?.let { PsiHyperlinkInfo(it) }
                 printHyperlink(doc.text, info)
             } else {
                 printText(doc.text)
@@ -101,7 +84,7 @@ class TypeCheckConsoleLogger(
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
             val info = (doc.reference as? PsiElement)?.let { PsiHyperlinkInfo(it) }
-            printHyperlink(doc.reference.name!!, info)
+            printHyperlink(doc.reference.textRepresentation(), info)
             if (newLine) printNewLine()
             return null
         }

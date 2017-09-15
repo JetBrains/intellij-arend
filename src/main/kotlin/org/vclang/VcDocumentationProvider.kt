@@ -2,16 +2,19 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNameIdentifierOwner
 import org.vclang.psi.*
-import org.vclang.psi.ext.adapters.DefinitionAdapter
+import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.impl.DefinitionAdapter
 
 class VcDocumentationProvider : AbstractDocumentationProvider() {
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?): String? {
-        return if (element is DefinitionAdapter<*>) {
+        return if (element is PsiGlobalReferable) {
             buildString {
                 getType(element)?.let { append("<b>$it</b> ") }
-                element.getNameIdentifier()?.text?.let { append(it) }
+                append(element.textRepresentation())
                 element.getContainingFile().originalFile.let {
                     append(" <i>defined in</i> ")
                     append((it as? VcFile)?.relativeModulePath ?: it.name)

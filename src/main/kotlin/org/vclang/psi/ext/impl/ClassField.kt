@@ -1,22 +1,22 @@
-package org.vclang.psi.ext.adapters
+package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import org.vclang.Surrogate
-import org.vclang.VcIcons
+import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcClassField
 import org.vclang.psi.stubs.VcClassFieldStub
-import javax.swing.Icon
 
-abstract class ClassFieldAdapter : DefinitionAdapter<VcClassFieldStub>,
-                                   VcClassField {
-    private var resultType: Surrogate.Expression? = null
-
+abstract class ClassFieldAdapter : DefinitionAdapter<VcClassFieldStub>, VcClassField {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun computeConcrete(): Concrete.ClassField {
+        TODO("not implemented")
+    }
+
+/* TODO[abstract]
+    private var resultType: Surrogate.Expression? = null
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 
@@ -40,4 +40,5 @@ abstract class ClassFieldAdapter : DefinitionAdapter<VcClassFieldStub>,
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitClassField(this, params)
+    */
 }

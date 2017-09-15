@@ -6,6 +6,7 @@ import com.intellij.psi.stubs.*
 import com.intellij.psi.tree.IStubFileElementType
 import org.vclang.VcLanguage
 import org.vclang.psi.*
+import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.impl.*
 
 class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
@@ -46,17 +47,17 @@ fun factory(name: String): VcStubElementType<*, *> = when (name) {
     else -> error("Unknown element $name")
 }
 
-abstract class VcDefinitionStub<DefT : VcDefinition>(
+abstract class VcStub<T : VcCompositeElement>(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         override val name: String?
-) : StubBase<DefT>(parent, elementType), VcNamedStub
+) : StubBase<T>(parent, elementType), VcNamedStub
 
 class VcDefClassStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcDefClass>(parent, elementType, name) {
+) : VcStub<VcDefClass>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcDefClassStub, VcDefClass>("DEF_CLASS") {
 
@@ -69,7 +70,7 @@ class VcDefClassStub(
         override fun createPsi(stub: VcDefClassStub): VcDefClass = VcDefClassImpl(stub, this)
 
         override fun createStub(psi: VcDefClass, parentStub: StubElement<*>?): VcDefClassStub =
-                VcDefClassStub(parentStub, this, psi.name)
+                VcDefClassStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcDefClassStub, sink: IndexSink) = sink.indexClass(stub)
     }
@@ -79,7 +80,7 @@ class VcClassFieldStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcClassField>(parent, elementType, name) {
+) : VcStub<VcClassField>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcClassFieldStub, VcClassField>("CLASS_FIELD") {
 
@@ -92,7 +93,7 @@ class VcClassFieldStub(
         override fun createPsi(stub: VcClassFieldStub): VcClassField = VcClassFieldImpl(stub, this)
 
         override fun createStub(psi: VcClassField, parentStub: StubElement<*>?): VcClassFieldStub =
-                VcClassFieldStub(parentStub, this, psi.name)
+                VcClassFieldStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcClassFieldStub, sink: IndexSink) = sink.indexClassField(stub)
     }
@@ -102,7 +103,7 @@ class VcClassImplementStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcClassImplement>(parent, elementType, name) {
+) : VcStub<VcClassImplement>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcClassImplementStub, VcClassImplement>("CLASS_IMPLEMENT") {
 
@@ -118,7 +119,7 @@ class VcClassImplementStub(
         override fun createStub(
                 psi: VcClassImplement,
                 parentStub: StubElement<*>?
-        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.name)
+        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.refIdentifier.referenceName)
 
         override fun indexStub(stub: VcClassImplementStub, sink: IndexSink) =
                 sink.indexClassImplement(stub)
@@ -129,7 +130,7 @@ class VcDefClassViewStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcDefClassView>(parent, elementType, name) {
+) : VcStub<VcDefClassView>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcDefClassViewStub, VcDefClassView>("DEF_CLASS_VIEW") {
 
@@ -145,7 +146,7 @@ class VcDefClassViewStub(
         override fun createStub(
                 psi: VcDefClassView,
                 parentStub: StubElement<*>?
-        ): VcDefClassViewStub = VcDefClassViewStub(parentStub, this, psi.name)
+        ): VcDefClassViewStub = VcDefClassViewStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcDefClassViewStub, sink: IndexSink) =
                 sink.indexClassView(stub)
@@ -156,7 +157,7 @@ class VcClassViewFieldStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcClassViewField>(parent, elementType, name) {
+) : VcStub<VcClassViewField>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcClassViewFieldStub, VcClassViewField>("CLASS_VIEW_FIELD") {
 
@@ -172,7 +173,7 @@ class VcClassViewFieldStub(
         override fun createStub(
                 psi: VcClassViewField,
                 parentStub: StubElement<*>?
-        ): VcClassViewFieldStub = VcClassViewFieldStub(parentStub, this, psi.name)
+        ): VcClassViewFieldStub = VcClassViewFieldStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcClassViewFieldStub, sink: IndexSink) =
                 sink.indexClassViewField(stub)
@@ -183,7 +184,7 @@ class VcDefInstanceStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcDefInstance>(parent, elementType, name) {
+) : VcStub<VcDefInstance>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcDefInstanceStub, VcDefInstance>("DEF_INSTANCE") {
 
@@ -199,7 +200,7 @@ class VcDefInstanceStub(
         override fun createStub(
                 psi: VcDefInstance,
                 parentStub: StubElement<*>?
-        ): VcDefInstanceStub = VcDefInstanceStub(parentStub, this, psi.name)
+        ): VcDefInstanceStub = VcDefInstanceStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcDefInstanceStub, sink: IndexSink) =
                 sink.indexClassViewImplement(stub)
@@ -210,7 +211,7 @@ class VcConstructorStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcConstructor>(parent, elementType, name) {
+) : VcStub<VcConstructor>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcConstructorStub, VcConstructor>("CONSTRUCTOR") {
 
@@ -226,7 +227,7 @@ class VcConstructorStub(
         override fun createStub(
                 psi: VcConstructor,
                 parentStub: StubElement<*>?
-        ): VcConstructorStub = VcConstructorStub(parentStub, this, psi.name)
+        ): VcConstructorStub = VcConstructorStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcConstructorStub, sink: IndexSink) =
                 sink.indexConstructor(stub)
@@ -238,7 +239,7 @@ class VcDefDataStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcDefData>(parent, elementType, name) {
+) : VcStub<VcDefData>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcDefDataStub, VcDefData>("DEF_DATA") {
 
@@ -263,7 +264,7 @@ class VcDefFunctionStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
         name: String?
-) : VcDefinitionStub<VcDefFunction>(parent, elementType, name) {
+) : VcStub<VcDefFunction>(parent, elementType, name) {
 
     object Type : VcStubElementType<VcDefFunctionStub, VcDefFunction>("DEF_FUNCTION") {
 

@@ -66,5 +66,5 @@ class VcPsiFactory(private val project: Project) {
 
     private fun createFromText(code: String): VcFile? =
             PsiFileFactory.getInstance(project)
-                    .createFileFromText("DUMMY.rs", VcFileType, code) as? VcFile
+                    .createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
 }

@@ -10,9 +10,9 @@ import com.jetbrains.jetpad.vclang.module.source.SourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.Storage
 import com.jetbrains.jetpad.vclang.naming.NameResolver
 import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
-import com.jetbrains.jetpad.vclang.naming.scope.primitive.EmptyScope
-import com.jetbrains.jetpad.vclang.naming.scope.primitive.NamespaceScope
-import com.jetbrains.jetpad.vclang.naming.scope.primitive.Scope
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.NamespaceScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.VcFileType
 import org.vclang.getPsiFileFor
 import org.vclang.parser.AbstractTreeFactory
@@ -38,7 +38,7 @@ class VcFileStorage(
 
     private val sourceSupplier = VcFileSourceSupplier()
     private val cacheStorageSupplier = VcFileCacheStorageSupplier()
-    private var globalScope: Scope = EmptyScope()
+    private var globalScope: Scope = EmptyScope.INSTANCE
 
     override fun getCacheInputStream(sourceId: SourceId): InputStream? =
             cacheStorageSupplier.getCacheInputStream(sourceId)

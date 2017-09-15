@@ -1,25 +1,26 @@
-package org.vclang.resolve.namespace
+package org.vclang.resolving.namespace
 
 import com.jetbrains.jetpad.vclang.frontend.namespace.ModuleRegistry
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespace
 import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespaceProvider
-import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.term.Group
 
 class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
-    private val registered = mutableMapOf<Abstract.ClassDefinition, ModuleNamespace>()
+    private val registered = mutableMapOf<GlobalReferable, ModuleNamespace>()
     private var root = VcModuleNamespace()
 
-    override fun forModule(definition: Abstract.ClassDefinition): ModuleNamespace? =
+    override fun forReferable(definition: GlobalReferable): ModuleNamespace? =
             registered[definition]
 
     override fun root(): VcModuleNamespace = root
 
     override fun registerModule(
             modulePath: ModulePath,
-            module: Abstract.ClassDefinition
+            module: Group
     ): ModuleNamespace {
-        val namespace = registerModuleNamespace(modulePath, module)
+        val namespace = registerModuleNamespace(modulePath, module.referable)
         namespace.registerClass(module)
         return namespace
     }
@@ -36,7 +37,7 @@ class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
 
     private fun registerModuleNamespace(
             modulePath: ModulePath,
-            module: Abstract.ClassDefinition
+            module: GlobalReferable
     ): VcModuleNamespace {
         check(registered[module] == null) { "Module namespace already registered" }
         val namespace = ensureModuleNamespace(root(), modulePath)

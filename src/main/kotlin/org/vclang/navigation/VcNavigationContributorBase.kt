@@ -6,14 +6,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.stubs.StubIndexKey
-import com.jetbrains.jetpad.vclang.term.Abstract
-import org.vclang.parser.fullName
-import org.vclang.psi.ext.VcNamedElement
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiReferable
 
 abstract class VcNavigationContributorBase<T> protected constructor(
         private val indexKey: StubIndexKey<String, T>,
         private val clazz: Class<T>
-) : GotoClassContributor where T : NavigationItem, T : VcNamedElement {
+) : GotoClassContributor where T : NavigationItem, T : PsiReferable {
 
     override fun getNames(project: Project?, includeNonProjectItems: Boolean): Array<String> {
         project ?: return emptyArray()
@@ -36,7 +36,11 @@ abstract class VcNavigationContributorBase<T> protected constructor(
     }
 
     override fun getQualifiedName(item: NavigationItem?): String? =
-            (item as? Abstract.Definition)?.fullName
+            when (item) {
+                is Referable -> item.textRepresentation()
+                is PsiGlobalReferable -> item.fullName
+                else -> null
+            }
 
     override fun getQualifiedNameSeparator(): String = "."
 }

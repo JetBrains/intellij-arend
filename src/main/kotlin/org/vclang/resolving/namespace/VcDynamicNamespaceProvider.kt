@@ -1,10 +1,17 @@
-package org.vclang.resolve.namespace
+package org.vclang.resolving.namespace
 
 import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
-import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.naming.namespace.EmptyNamespace
+import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 
+// TODO[abstract]
 object VcDynamicNamespaceProvider : DynamicNamespaceProvider {
+    override fun forReferable(referable: GlobalReferable?): Namespace {
+        return EmptyNamespace.INSTANCE
+    }
 
+    /*
     override fun forClass(classDefinition: Abstract.ClassDefinition): VcNamespace {
         val namespace = forDefinitions(classDefinition.instanceDefinitions)
         classDefinition.fields.forEach { namespace.addDefinition(it) }
@@ -30,4 +37,5 @@ object VcDynamicNamespaceProvider : DynamicNamespaceProvider {
                 .forEach { namespace.addAll(forData(it)) }
         return namespace
     }
+    */
 }

@@ -1,18 +1,22 @@
-package org.vclang.resolve.namespace
+package org.vclang.resolving.namespace
 
+import com.jetbrains.jetpad.vclang.naming.namespace.EmptyNamespace
 import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
 import com.jetbrains.jetpad.vclang.naming.namespace.StaticNamespaceProvider
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.BaseAbstractVisitor
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 
+// TODO[abstract]
 object VcStaticNamespaceProvider : StaticNamespaceProvider {
-
-    override fun forDefinition(definition: Abstract.Definition): Namespace {
+    override fun forReferable(definition: GlobalReferable): Namespace {
+        return EmptyNamespace.INSTANCE
+        /*
         val namespace = VcNamespace()
         definition.accept(DefinitionGetNamespaceVisitor, namespace)
         return namespace
+        */
     }
 
+    /*
     private fun forFunction(definition: Abstract.FunctionDefinition, namespace: VcNamespace) =
             forDefinitions(definition.globalDefinitions, namespace)
 
@@ -64,4 +68,5 @@ object VcStaticNamespaceProvider : StaticNamespaceProvider {
             return null
         }
     }
+    */
 }

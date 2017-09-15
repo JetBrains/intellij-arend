@@ -69,11 +69,11 @@
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
-    extends("def(Function|Data|Class|ClassView|Instance)|class(Field|Implement|ViewField)|constructor") = definition
+    extends("def(Function|Data|Class|ClassView|Instance)") = definition
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
 }
 
-sourceNode ::= topStatement*
+statements ::= topStatement*
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
@@ -81,7 +81,7 @@ private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW |
                                 TRUNCATED_KW | DATA_KW      | CLASS_KW    |
                                 VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
-statement ::= statCmd | statDef
+statement ::= statCmd | definition
 
 statCmd ::= nsCmd nsCmdRoot fieldAcc* [HIDING_KW? LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
@@ -94,24 +94,20 @@ nsCmdRoot ::= moduleName | refIdentifier {
     mixin = "org.vclang.psi.ext.VcNsCmdRootImplMixin"
 }
 
-statDef ::= definition
-
 classStat ::= classField
     | classImplement
-    | statement
+    | definition
 
 classField ::= PIPE prec defIdentifier COLON expr {
-    implements = [ "org.vclang.psi.ext.VcNamedElement"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassField" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassFieldAdapter"
+    implements = "org.vclang.psi.ext.PsiConcreteReferable"
+    mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
 classImplement ::= PIPE refIdentifier FAT_ARROW expr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.Implementation" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassImplementAdapter"
+    implements = "org.vclang.psi.ext.VcCompositeElement"
+    mixin = "org.vclang.psi.ext.impl.ClassImplementationAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassImplementStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
@@ -121,33 +117,27 @@ definition ::= defFunction
     | defClass
     | defClassView
     | defInstance {
-    implements = [ "org.vclang.psi.ext.VcNamedElement"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.Definition" ]
-    mixin = "org.vclang.psi.ext.adapters.DefinitionAdapter"
+    implements = "org.vclang.psi.ext.PsiConcreteReferable"
+    mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 
 defFunction ::= FUNCTION_KW prec defIdentifier tele* [COLON expr] functionBody where? {
     pin = 1
-    implements = [ "org.vclang.Surrogate.StatementCollection"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.FunctionDefinition" ]
-    mixin = "org.vclang.psi.ext.adapters.FunctionDefinitionAdapter"
+    mixin = "org.vclang.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefFunctionStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
 defData ::= TRUNCATED_KW? DATA_KW prec defIdentifier tele* [COLON expr] dataBody {
     pin = 2
-    implements = [ "com.jetbrains.jetpad.vclang.term.Abstract.DataDefinition" ]
-    mixin = "org.vclang.psi.ext.adapters.DataDefinitionAdapter"
+    mixin = "org.vclang.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefDataStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
 defClass ::= CLASS_KW defIdentifier classTeles [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] classStats where? {
     pin = 1
-    implements = [ "org.vclang.Surrogate.StatementCollection"
-                   "com.jetbrains.jetpad.vclang.term.Abstract.ClassDefinition" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassDefinitionAdapter"
+    mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
@@ -158,16 +148,14 @@ classStats ::= [LBRACE classStat* RBRACE]
 
 defClassView ::= VIEW_KW defIdentifier ON_KW expr BY_KW refIdentifier LBRACE classViewField* RBRACE {
     pin = 1
-    implements = [ "com.jetbrains.jetpad.vclang.term.Abstract.ClassView" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassViewAdapter"
+    mixin = "org.vclang.psi.ext.impl.ClassViewAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassViewStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
 defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier tele* FAT_ARROW expr {
     pin = 2
-    implements = [ "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewInstance" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassViewInstanceAdapter"
+    mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
@@ -185,8 +173,8 @@ constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (const
 elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence atomFieldsAcc>>
 
 classViewField ::= defIdentifier [FAT_ARROW prec refIdentifier] {
-    implements = [ "com.jetbrains.jetpad.vclang.term.Abstract.ClassViewField" ]
-    mixin = "org.vclang.psi.ext.adapters.ClassViewFieldAdapter"
+    implements = "org.vclang.psi.ext.PsiConcreteReferable"
+    mixin = "org.vclang.psi.ext.impl.ClassViewFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassViewFieldStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
@@ -206,8 +194,8 @@ atomPattern ::= LPAREN pattern? RPAREN
     | UNDERSCORE
 
 constructor ::= prec defIdentifier tele* [elim? clausesWithBraces] {
-    implements = [ "com.jetbrains.jetpad.vclang.term.Abstract.Constructor" ]
-    mixin = "org.vclang.psi.ext.adapters.ConstructorAdapter"
+    implements = "org.vclang.psi.ext.PsiConcreteReferable"
+    mixin = "org.vclang.psi.ext.impl.ConstructorAdapter"
     stubClass = "org.vclang.psi.stubs.VcConstructorStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
@@ -258,8 +246,8 @@ clauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE
 
 letClause ::= defIdentifier tele* typeAnnotation? FAT_ARROW expr {
-    implements = [ "org.vclang.psi.ext.VcNamedElement" ]
-    mixin = "org.vclang.psi.ext.VcNamedElementImpl"
+    implements = "org.vclang.psi.ext.PsiReferable"
+    mixin = "org.vclang.psi.ext.PsiReferableImpl"
 }
 
 typeAnnotation ::= COLON expr { pin = 1 }
@@ -338,8 +326,8 @@ literal ::= prefixName
 
 goal ::= LBRACE '?' defIdentifier? [LBRACE expr RBRACE] RBRACE {
     pin = 2
-    implements = [ "org.vclang.psi.ext.VcNamedElement" ]
-    mixin = "org.vclang.psi.ext.VcNamedElementImpl"
+    implements = "org.vclang.psi.ext.PsiReferable"
+    mixin = "org.vclang.psi.ext.PsiReferableImpl"
 }
 
 universeAtom ::= SET
@@ -356,7 +344,7 @@ typedExpr ::= identifierOrUnknown+ COLON expr | expr  // expr [COLON expr]
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 defIdentifier ::= PREFIX | INFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
 }
 
@@ -366,7 +354,7 @@ refIdentifier ::= PREFIX | INFIX {
 }
 
 prefixName ::= PREFIX | PREFIX_INFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcPrefixImplMixin"
 }
 

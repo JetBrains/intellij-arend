@@ -1,10 +1,9 @@
-package org.vclang.resolve.namespace
+package org.vclang.resolving.namespace
 
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.naming.error.DuplicateDefinitionError
 import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
-import com.jetbrains.jetpad.vclang.term.Abstract
 
+/*  TODO[abstract]
 class VcNamespace : Namespace {
     private val names = mutableMapOf<String, Abstract.Definition>()
 
@@ -29,7 +28,8 @@ class VcNamespace : Namespace {
         }
     }
 
-    override fun getNames(): Set<String> = names.keys
+    override fun getElements(): Set<String> = names.keys
 
     override fun resolveName(name: String): Abstract.Definition? = names[name]
 }
+*/

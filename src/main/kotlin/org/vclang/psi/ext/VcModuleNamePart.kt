@@ -4,15 +4,18 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
+import com.jetbrains.jetpad.vclang.naming.namespace.EmptyNamespace
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.VcFileType
 import org.vclang.getPsiDirectoryFor
 import org.vclang.getPsiFileFor
 import org.vclang.psi.*
-import org.vclang.resolve.*
+import org.vclang.resolving.*
 
 abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                           VcModuleNamePart {
-    override val scope: Scope = EmptyScope
+    override val scope: Scope = EmptyScope.INSTANCE
 
     override val referenceNameElement: VcCompositeElement
         get() = refIdentifier
@@ -25,7 +28,7 @@ abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl
     override fun getReference(): VcReference = VcModuleNamePartReference()
 
     private inner class VcModuleNamePartReference
-        : VcReferenceBase<VcModuleNamePart>(this@VcModuleNamePartImplMixin) {
+        : VcReferenceImpl<VcModuleNamePart>(this@VcModuleNamePartImplMixin) {
 
         override fun resolve(): PsiElement? {
             val isDirectory = rightSiblings.any { it is VcModuleNamePart }
@@ -59,6 +62,7 @@ abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl
 
 abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                                                      VcNsCmdRoot {
+    /* TODO[abstract]
     override val namespace: Namespace
         get() {
             val name = moduleName?.moduleNamePartList?.lastOrNull() ?: refIdentifier
@@ -66,4 +70,5 @@ abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node
             resolved?.let { return it.namespace }
             return EmptyNamespace
         }
+    */
 }

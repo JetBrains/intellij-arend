@@ -1,25 +1,24 @@
-package org.vclang.psi.ext.adapters
+package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
-import org.vclang.Surrogate
-import org.vclang.VcIcons
+import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcClassViewField
 import org.vclang.psi.stubs.VcClassViewFieldStub
-import javax.swing.Icon
 
-abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>,
-                                       VcClassViewField {
+abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>, VcClassViewField {
+    constructor(node: ASTNode) : super(node)
+
+    constructor(stub: VcClassViewFieldStub, nodeType: IStubElementType<*, *>): super(stub, nodeType)
+
+    override fun computeConcrete(): Concrete.ClassViewField {
+        TODO("not implemented")
+    }
+
+/* TODO[abstract]
     private var underlyingFieldName: String? = null
     private var ownView: ClassViewAdapter? = null
     private var underlyingField: Abstract.ClassField? = null
-
-    constructor(node: ASTNode) : super(node)
-
-    constructor(stub: VcClassViewFieldStub, nodeType: IStubElementType<*, *>)
-            : super(stub, nodeType)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_VIEW_FIELD
 
@@ -50,4 +49,5 @@ abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>,
 
     override fun <P, R> accept(visitor: AbstractDefinitionVisitor<in P, out R>, params: P): R =
             visitor.visitClassViewField(this, params)
+    */
 }

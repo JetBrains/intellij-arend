@@ -1,20 +1,21 @@
-package org.vclang.resolve.namespace
+package org.vclang.resolving.namespace
 
 import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespace
-import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.term.Group
 
 class VcModuleNamespace : ModuleNamespace {
     private val submoduleNamespaces = mutableMapOf<String, VcModuleNamespace>()
-    private var registeredClass: Abstract.ClassDefinition? = null
+    private var registeredClass: Group? = null
 
     override fun getNames(): Set<String> = submoduleNamespaces.keys
 
     override fun getSubmoduleNamespace(submodule: String): VcModuleNamespace? =
             submoduleNamespaces[submodule]
 
-    override fun getRegisteredClass(): Abstract.ClassDefinition? = registeredClass
+    override fun getRegisteredClass(): GlobalReferable? = registeredClass?.referable
 
-    internal fun registerClass(module: Abstract.ClassDefinition) {
+    internal fun registerClass(module: Group) {
         check(registeredClass == null) { "Class already registered" }
         registeredClass = module
     }

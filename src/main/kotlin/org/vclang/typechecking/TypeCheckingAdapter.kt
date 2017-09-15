@@ -4,23 +4,23 @@ import com.intellij.execution.testframework.sm.runner.events.TestFailedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.frontend.resolving.OpenCommand
 import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
 import com.jetbrains.jetpad.vclang.naming.namespace.StaticNamespaceProvider
-import com.jetbrains.jetpad.vclang.term.Abstract
+import com.jetbrains.jetpad.vclang.term.Concrete
+import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
-import org.vclang.parser.fullName
+import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
+import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
-import java.util.function.Function
 
 class TypeCheckingAdapter(
         state: TypecheckerState,
         staticNsProvider: StaticNamespaceProvider,
         dynamicNsProvider: DynamicNamespaceProvider,
-        opens: Function<Abstract.Definition, Iterable<OpenCommand>>,
+        concreteProvider: ConcreteProvider,
         errorReporter: ErrorReporter,
         private val dependencyListener: DependencyCollector,
         private val eventsProcessor: TypeCheckingEventsProcessor
@@ -29,7 +29,7 @@ class TypeCheckingAdapter(
             state,
             staticNsProvider,
             dynamicNsProvider,
-            opens,
+            concreteProvider,
             errorReporter,
             MyTypeCheckedReporter(),
             dependencyListener
@@ -39,24 +39,25 @@ class TypeCheckingAdapter(
         eventsProcessor.onTestsReporterAttached()
     }
 
-    fun typeCheckDefinition(definition: Abstract.Definition) =
+    fun typeCheckDefinition(definition: Concrete.Definition) =
         typeChecking.typecheckDefinitions(listOf(definition))
 
-    fun typeCheckModule(module: Abstract.ClassDefinition) {
-        module.globalDefinitions.forEach { dependencyListener.update(it) }
+    fun typeCheckModule(module: Group) {
+        module.subgroups.forEach { dependencyListener.update(it.referable) }
         typeChecking.typecheckModules(listOf(module))
-        eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.name!!))
+        eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
     }
 
     private inner class MyTypeCheckedReporter : TypecheckedReporter {
 
-        override fun typecheckingSucceeded(definition: Abstract.Definition) {
-            val definitionName = definition.fullName
-            eventsProcessor.onTestFinished(TestFinishedEvent(definitionName, null))
+        override fun typecheckingSucceeded(definition: Concrete.Definition) {
+            val ref = definition.referable as? PsiGlobalReferable ?: return
+            eventsProcessor.onTestFinished(TestFinishedEvent(ref.fullName, null))
         }
 
-        override fun typecheckingFailed(definition: Abstract.Definition) {
-            val definitionName = definition.fullName
+        override fun typecheckingFailed(definition: Concrete.Definition) {
+            val ref = definition.referable as? PsiGlobalReferable ?: return
+            val definitionName = ref.fullName
             val definitionProxy = eventsProcessor.getProxyByFullName(definitionName)
             val hasErrors = definitionProxy?.hasErrors() ?: false
             eventsProcessor.onTestFailure(TestFailedEvent(

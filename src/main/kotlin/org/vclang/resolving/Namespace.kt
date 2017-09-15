@@ -1,48 +1,16 @@
-package org.vclang.resolve
+package org.vclang.resolving
 
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import org.vclang.VcIcons
+import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcCompositeElement
-import org.vclang.psi.ext.VcNamedElement
 
-interface Namespace {
-    val symbols: Set<LookupElement>
-
-    fun resolve(name: String): VcCompositeElement?
-}
-
-object EmptyNamespace : Namespace {
-    override val symbols: Set<LookupElement> = emptySet()
-
-    override fun resolve(name: String): VcCompositeElement? = null
-}
-
-class SimpleNamespace : Namespace {
-    private val items: MutableMap<String, VcCompositeElement> = mutableMapOf()
-
-    override val symbols: Set<LookupElement>
-        get() = items.values.map {
-            if (it is VcNamedElement) {
-                LookupElementBuilder.createWithIcon(it)
-            } else {
-                LookupElementBuilder.create(it)
-            }
-        }.toSet()
-
-    override fun resolve(name: String): VcCompositeElement? = items[name]
-
-    fun put(definition: VcNamedElement?): VcCompositeElement? =
-            definition?.name?.let { items.put(it, definition) }
-
-    fun put(name: String, definition: VcCompositeElement): VcCompositeElement? =
-            items.put(name, definition)
-
-    fun putAll(other: SimpleNamespace) = items.putAll(other.items)
-}
-
+/* TODO[abstract]
 object PreludeNamespace : Namespace {
-    override val symbols: Set<LookupElement>
+    override fun getElements(): Set<GlobalReferable>
         get() = setOf(
                 LookupElementBuilder.create("Nat").withIcon(VcIcons.DATA_DEFINITION),
                 LookupElementBuilder.create("zero").withIcon(VcIcons.CONSTRUCTOR),
@@ -64,5 +32,6 @@ object PreludeNamespace : Namespace {
                 LookupElementBuilder.create("truncS").withIcon(VcIcons.CONSTRUCTOR)
         )
 
-    override fun resolve(name: String): VcCompositeElement? = null
+    override fun resolve(name: String): PsiReferable? = null
 }
+*/

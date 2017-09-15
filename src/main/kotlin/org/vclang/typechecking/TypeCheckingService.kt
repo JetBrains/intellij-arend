@@ -11,8 +11,6 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
-import com.jetbrains.jetpad.vclang.frontend.resolving.HasOpens
-import com.jetbrains.jetpad.vclang.frontend.resolving.NamespaceProviders
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
 import com.jetbrains.jetpad.vclang.module.caching.CacheManager
@@ -23,26 +21,27 @@ import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
 import com.jetbrains.jetpad.vclang.naming.NameResolver
-import com.jetbrains.jetpad.vclang.term.Abstract
-import com.jetbrains.jetpad.vclang.term.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.resolving.NamespaceProviders
+import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
-import com.jetbrains.jetpad.vclang.term.SourceInfoProvider
+import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.VcFileType
 import org.vclang.module.source.VcFileStorage
 import org.vclang.module.source.VcPreludeStorage
-import org.vclang.parser.fullName
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.VcStatement
 import org.vclang.psi.ancestors
-import org.vclang.psi.ext.adapters.DefinitionAdapter
-import org.vclang.psi.stubs.VcDefinitionStub
-import org.vclang.resolve.namespace.VcDynamicNamespaceProvider
-import org.vclang.resolve.namespace.VcModuleNamespaceProvider
-import org.vclang.resolve.namespace.VcStaticNamespaceProvider
+import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.namespace.VcDynamicNamespaceProvider
+import org.vclang.resolving.namespace.VcModuleNamespaceProvider
+import org.vclang.resolving.namespace.VcStaticNamespaceProvider
 import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
@@ -100,6 +99,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private val sourceInfoProvider = VcSourceInfoProvider()
     private val logger = TypeCheckConsoleLogger(sourceInfoProvider)
+    private val concreteProvider = PsiConcreteProvider(nameResolver, logger) // TODO[abstract]: We should create new provider for each typechecking task
 
     private val persistenceProvider = VcPersistenceProvider()
     private val cacheManager = CacheManager(
@@ -127,7 +127,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 eventsProcessor?.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
                 module.children
                     .filterIsInstance<VcStatement>()
-                    .mapNotNull { it.statDef?.definition }
+                    .mapNotNull { it.definition }
                     .forEach { eventsProcessor?.onTestStarted(TestStartedEvent(it.fullName, null)) }
             } else {
                 eventsProcessor?.onTestStarted(TestStartedEvent(definitionFullName, null))
@@ -144,7 +144,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     typeCheckerState,
                     staticNsProvider,
                     dynamicNsProvider,
-                    HasOpens.GET,
+                    concreteProvider,
                     logger,
                     dependencyCollector,
                     eventsProcessor!!
@@ -153,10 +153,12 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             if (definitionFullName.isEmpty()) {
                 typeChecking.typeCheckModule(module)
             } else {
+                /* TODO[abstract]
                 val definition = module.findDefinitionByFullName(definitionFullName)
                 checkNotNull(definition) { "Definition $definitionFullName not found" }.let {
                     typeChecking.typeCheckDefinition(it)
                 }
+                */
             }
 
             cacheManager.cachedModules
@@ -174,12 +176,12 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 
-    private fun loadPrelude(): Abstract.ClassDefinition {
+    private fun loadPrelude(): Group {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
 
-        val preludeNamespace = staticNsProvider.forDefinition(prelude)
+        val preludeNamespace = staticNsProvider.forReferable(prelude)
         projectStorage.setPreludeNamespace(preludeNamespace)
 
         try {
@@ -192,8 +194,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 typeCheckerState,
                 staticNsProvider,
                 dynamicNsProvider,
-                HasOpens.GET,
-                DummyErrorReporter(),
+                concreteProvider,
+                DummyErrorReporter.INSTANCE,
                 Prelude.UpdatePreludeReporter(typeCheckerState),
                 object : DependencyListener {}
         ).typecheckModules(listOf(prelude))
@@ -202,7 +204,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private fun loadSource(sourceId: VcSourceIdT): VcFile? =
-            storage.loadSource(sourceId, logger)?.definition as? VcFile
+            storage.loadSource(sourceId, logger)?.group as? VcFile
 
     private fun sourceIdByPath(path: Path): VcSourceIdT? {
         val base = Paths.get(project.basePath)
@@ -231,7 +233,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
-        private val cache = mutableMapOf<ModulePath, MutableMap<String, Abstract.Definition>>()
+        private val cache = mutableMapOf<ModulePath, MutableMap<String, GlobalReferable>>()
 
         override fun getUri(sourceId: VcSourceIdT): URI {
             return when {
@@ -275,13 +277,16 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             return null
         }
 
-        override fun getIdFor(definition: Abstract.Definition): String = definition.fullName
+        override fun getIdFor(definition: GlobalReferable): String {
+            if (definition !is PsiGlobalReferable) throw IllegalStateException()
+            return definition.fullName
+        }
 
-        override fun getFromId(sourceId: VcSourceIdT, id: String): Abstract.Definition? {
+        override fun getFromId(sourceId: VcSourceIdT, id: String): GlobalReferable? {
             val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
             val definitions = cache.getOrPut(sourceId.modulePath) {
-                val definitions = mutableMapOf<String, Abstract.Definition>()
-                DefinitionIdsCollector.visitClass(moduleNamespace.registeredClass, definitions)
+                val definitions = mutableMapOf<String, GlobalReferable>()
+                // DefinitionIdsCollector.visitClass(moduleNamespace.registeredClass, definitions) // TODO[abstract]
                 definitions
             }
             return definitions[id]
@@ -312,7 +317,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         private fun processParent(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
                 val ancestors = event.parent.ancestors
-                val definition = ancestors.filterIsInstance<Abstract.Definition>().firstOrNull()
+                val definition = ancestors.filterIsInstance<PsiGlobalReferable>().firstOrNull()
                 definition?.let { dependencyCollector.update(definition) }
             }
         }
@@ -322,7 +327,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 event.child.accept(object : PsiRecursiveElementVisitor() {
                     override fun visitElement(element: PsiElement?) {
                         super.visitElement(element)
-                        if (element is Abstract.Definition) {
+                        if (element is GlobalReferable) {
                             dependencyCollector.update(element)
                         }
                     }
@@ -341,19 +346,14 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
+        override fun nameFor(referable: Referable): String = referable.textRepresentation()
 
-        override fun positionOf(sourceNode: Abstract.SourceNode?): String? = null
-
-        override fun moduleOf(sourceNode: Abstract.SourceNode?): String? {
-            @Suppress("UNCHECKED_CAST")
-            val definition = sourceNode as? DefinitionAdapter<VcDefinitionStub<VcDefinition>>
-            val module = definition?.containingFile?.originalFile as? VcFile
-            return module?.relativeModulePath?.toString()
+        override fun fullNameFor(definition: GlobalReferable): String {
+            if (definition !is PsiGlobalReferable) throw IllegalStateException()
+            return definition.fullName
         }
 
-        override fun nameFor(definition: Abstract.Definition): String = definition.fullName
-
-        override fun sourceOf(definition: Abstract.Definition): VcSourceIdT? {
+        override fun sourceOf(definition: GlobalReferable): VcSourceIdT? {
             val module = when (definition) {
                 is VcDefinition -> definition.containingFile.originalFile as VcFile
                 is VcFile -> definition
@@ -368,6 +368,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 }
 
+/* TODO[abstract]
 internal object DefinitionIdsCollector
     : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
 
@@ -441,3 +442,4 @@ internal object DefinitionIdsCollector
         return null
     }
 }
+*/
