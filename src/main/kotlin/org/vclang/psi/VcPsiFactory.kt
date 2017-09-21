@@ -11,7 +11,7 @@ class VcPsiFactory(private val project: Project) {
             createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
 
     fun createRefIdentifier(name: String): VcRefIdentifier =
-            createStatCmd(name).nsCmdRoot?.refIdentifier
+            createStatCmd(name).nsCmdRoot.refIdentifier
                     ?: error("Failed to create ref identifier: `$name`")
 
     fun createPrefixName(name: String): VcPrefixName {

@@ -3,16 +3,23 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Concrete
+import org.vclang.psi.VcConstructor
 import org.vclang.psi.VcDefData
 import org.vclang.psi.stubs.VcDefDataStub
 
-abstract class DataDefinitionAdapter : ReferableAdapter<VcDefDataStub>, VcDefData {
+abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefData {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefDataStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun computeConcrete(): Concrete.DataDefinition {
         TODO("not implemented")
+    }
+
+    override fun getConstructors(): List<VcConstructor> {
+        val body = dataBody ?: return emptyList()
+        return (body.dataClauses?.constructorClauseList?.flatMap { it.constructorList } ?: emptyList()) +
+               (body.dataConstructors?.constructorList ?: emptyList())
     }
 
 /* TODO[abstract]

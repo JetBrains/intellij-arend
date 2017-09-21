@@ -83,8 +83,10 @@ private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW |
 
 statement ::= statCmd | definition
 
-statCmd ::= nsCmd nsCmdRoot fieldAcc* [HIDING_KW? LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
-    pin = 1
+statCmd ::= nsCmd nsCmdRoot (DOT refIdentifier)* [HIDING_KW? LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
+    pin = 2
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.NamespaceCommand" ]
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 
@@ -117,8 +119,9 @@ definition ::= defFunction
     | defClass
     | defClassView
     | defInstance {
-    implements = "org.vclang.psi.ext.PsiConcreteReferable"
-    mixin = "org.vclang.psi.ext.impl.ReferableAdapter"
+    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+                   "com.jetbrains.jetpad.vclang.term.Group" ]
+    mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 
 defFunction ::= FUNCTION_KW prec defIdentifier tele* [COLON expr] functionBody where? {
@@ -289,7 +292,7 @@ newExpr ::= NEW_KW? binOpArg implementStatements? postfixName* {
 
 fieldAcc ::= DOT (NUMBER | refIdentifier) {
     pin = 1
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcFieldAccImplMixin"
 }
 
@@ -349,7 +352,7 @@ defIdentifier ::= PREFIX | INFIX {
 }
 
 refIdentifier ::= PREFIX | INFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcRefIdentifierImplMixin"
 }
 
@@ -359,12 +362,12 @@ prefixName ::= PREFIX | PREFIX_INFIX {
 }
 
 infixName ::= INFIX | INFIX_PREFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcInfixImplMixin"
 }
 
 postfixName ::= POSTFIX_INFIX | POSTFIX_PREFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
+    implements = "org.vclang.psi.ext.VcReferenceElement"
     mixin = "org.vclang.psi.ext.VcPostfixImplMixin"
 }
 

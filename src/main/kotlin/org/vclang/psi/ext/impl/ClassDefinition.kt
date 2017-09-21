@@ -3,10 +3,12 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Concrete
+import org.vclang.psi.VcClassField
 import org.vclang.psi.VcDefClass
+import org.vclang.psi.VcDefinition
 import org.vclang.psi.stubs.VcDefClassStub
 
-abstract class ClassDefinitionAdapter : ReferableAdapter<VcDefClassStub>, VcDefClass {
+abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -14,6 +16,12 @@ abstract class ClassDefinitionAdapter : ReferableAdapter<VcDefClassStub>, VcDefC
     override fun computeConcrete(): Concrete.ClassDefinition {
         TODO("not implemented")
     }
+
+    override fun getDynamicSubgroups(): List<VcDefinition> =
+        classStats?.classStatList?.mapNotNull { it.definition } ?: emptyList()
+
+    override fun getFields(): List<VcClassField> =
+        classStats?.classStatList?.mapNotNull { it.classField } ?: emptyList()
 
 /* TODO[abstract]
     private var polyParameters: List<Surrogate.TypeParameter>? = null

@@ -7,9 +7,9 @@ import javax.swing.Icon
 object VcFileType : LanguageFileType(VcLanguage) {
     val defaultCacheExtension = "vcc"
 
-    override fun getName(): String = "Vclang file"
+    override fun getName(): String = "Vclang"
 
-    override fun getDescription(): String = "Vclang Files"
+    override fun getDescription(): String = "Vclang files"
 
     override fun getDefaultExtension(): String = "vc"
 

@@ -42,11 +42,9 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getReferable(): PsiGlobalReferable = this
 
-    // TODO[abstract]
-    override fun getSubgroups(): Collection<Group> = emptyList()
+    override fun getSubgroups(): List<VcDefinition> = children.mapNotNull { (it as? VcStatement)?.definition }
 
-    // TODO[abstract]
-    override fun getNamespaceCommands(): Collection<NamespaceCommand> = emptyList()
+    override fun getNamespaceCommands(): List<VcStatCmd> = children.mapNotNull { (it as? VcStatement)?.statCmd }
 
     override fun getConstructors(): Collection<GlobalReferable> = emptyList()
 

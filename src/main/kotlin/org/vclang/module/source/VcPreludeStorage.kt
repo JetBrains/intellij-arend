@@ -11,6 +11,7 @@ import com.jetbrains.jetpad.vclang.naming.NameResolver
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
 import org.vclang.parser.AbstractTreeFactory
+import org.vclang.psi.VcFile
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -54,13 +55,7 @@ class VcPreludeStorage(
             val text = String(Files.readAllBytes(SOURCE_RESOURCE_PATH), StandardCharsets.UTF_8)
             val psiFile = PsiFileFactory.getInstance(project)
                     .createFileFromText("Prelude.vc", VcLanguage, text)
-            val module = AbstractTreeFactory.rebuildModule(
-                    preludeSourceId,
-                    psiFile,
-                    errorReporter,
-                    nameResolver
-            )
-            return SourceSupplier.LoadResult.make(module, 1)
+            return SourceSupplier.LoadResult.make(psiFile as? VcFile, 1)
         } catch (e: IOException) {
             throw IllegalStateException(e)
         }

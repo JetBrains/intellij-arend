@@ -233,8 +233,24 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         return sourceId
     }
 
+    companion object {
+        private fun collectId(ref: GlobalReferable, map: MutableMap<String, GlobalReferable>) {
+            if (ref is PsiGlobalReferable) {
+                map[ref.fullName] = ref
+            }
+        }
+
+        private fun collectIds(group: Group, map: MutableMap<String, GlobalReferable>) {
+            collectId(group.referable, map)
+            group.subgroups.map { collectIds(it, map) }
+            group.constructors.map { collectId(it, map) }
+            group.dynamicSubgroups.map { collectIds(it, map) }
+            group.fields.map { collectId(it, map) }
+        }
+    }
+
     internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
-        private val cache = mutableMapOf<ModulePath, MutableMap<String, GlobalReferable>>()
+        private val cache = mutableMapOf<ModulePath, Map<String, GlobalReferable>>()
 
         override fun getUri(sourceId: VcSourceIdT): URI {
             return when {
@@ -286,9 +302,14 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         override fun getFromId(sourceId: VcSourceIdT, id: String): GlobalReferable? {
             val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
             val definitions = cache.getOrPut(sourceId.modulePath) {
-                val definitions = mutableMapOf<String, GlobalReferable>()
-                // DefinitionIdsCollector.visitClass(moduleNamespace.registeredClass, definitions) // TODO[abstract]
-                definitions
+                val regClass = moduleNamespace.registeredClass
+                if (regClass is Group) {
+                    val definitions = mutableMapOf<String, GlobalReferable>()
+                    collectIds(regClass, definitions)
+                    definitions
+                } else {
+                    mapOf<String, GlobalReferable>()
+                }
             }
             return definitions[id]
         }
@@ -368,79 +389,3 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 }
-
-/* TODO[abstract]
-internal object DefinitionIdsCollector
-    : AbstractDefinitionVisitor<MutableMap<String, Abstract.Definition>, Void> {
-
-    override fun visitFunction(
-            definition: Abstract.FunctionDefinition,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        definition.globalDefinitions.forEach { it.accept(this, params) }
-        return null
-    }
-
-    override fun visitClassField(
-            definition: Abstract.ClassField,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        return null
-    }
-
-    override fun visitData(
-            definition: Abstract.DataDefinition,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        definition.constructorClauses
-                .flatMap { it.constructors }
-                .forEach { it.accept(this, params) }
-        return null
-    }
-
-    override fun visitConstructor(
-            definition: Abstract.Constructor,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        return null
-    }
-
-    override fun visitClass(
-            definition: Abstract.ClassDefinition,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        definition.globalDefinitions.forEach { it.accept(this, params) }
-        definition.instanceDefinitions.forEach { it.accept(this, params) }
-        definition.fields.forEach { it.accept(this, params) }
-        return null
-    }
-
-    override fun visitImplement(
-            definition: Abstract.Implementation,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? = null
-
-    override fun visitClassView(
-            definition: Abstract.ClassView,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? = null
-
-    override fun visitClassViewField(
-            definition: Abstract.ClassViewField,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? = null
-
-    override fun visitClassViewInstance(
-            definition: Abstract.ClassViewInstance,
-            params: MutableMap<String, Abstract.Definition>
-    ): Void? {
-        params.put(definition.fullName, definition)
-        return null
-    }
-}
-*/
