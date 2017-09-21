@@ -2,11 +2,8 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiNameIdentifierOwner
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.psi.ext.PsiReferable
-import org.vclang.psi.ext.impl.DefinitionAdapter
 
 class VcDocumentationProvider : AbstractDocumentationProvider() {
 

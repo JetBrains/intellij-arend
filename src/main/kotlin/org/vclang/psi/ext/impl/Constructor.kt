@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcConstructor
 import org.vclang.psi.stubs.VcConstructorStub
 
-abstract class ConstructorAdapter : DefinitionAdapter<VcConstructorStub>, VcConstructor {
+abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConstructor {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

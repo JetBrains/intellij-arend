@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefFunction
 import org.vclang.psi.stubs.VcDefFunctionStub
 
-abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>, VcDefFunction {
+abstract class FunctionDefinitionAdapter : ReferableAdapter<VcDefFunctionStub>, VcDefFunction {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

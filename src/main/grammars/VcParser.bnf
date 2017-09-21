@@ -118,7 +118,7 @@ definition ::= defFunction
     | defClassView
     | defInstance {
     implements = "org.vclang.psi.ext.PsiConcreteReferable"
-    mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
+    mixin = "org.vclang.psi.ext.impl.ReferableAdapter"
 }
 
 defFunction ::= FUNCTION_KW prec defIdentifier tele* [COLON expr] functionBody where? {

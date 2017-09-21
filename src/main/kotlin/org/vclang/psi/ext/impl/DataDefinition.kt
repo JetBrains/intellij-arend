@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefData
 import org.vclang.psi.stubs.VcDefDataStub
 
-abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefData {
+abstract class DataDefinitionAdapter : ReferableAdapter<VcDefDataStub>, VcDefData {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefDataStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

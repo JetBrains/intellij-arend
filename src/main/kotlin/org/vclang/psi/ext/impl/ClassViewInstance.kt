@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.stubs.VcDefInstanceStub
 
-abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInstance {
+abstract class InstanceAdapter : ReferableAdapter<VcDefInstanceStub>, VcDefInstance {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcClassViewField
 import org.vclang.psi.stubs.VcClassViewFieldStub
 
-abstract class ClassViewFieldAdapter : DefinitionAdapter<VcClassViewFieldStub>, VcClassViewField {
+abstract class ClassViewFieldAdapter : ReferableAdapter<VcClassViewFieldStub>, VcClassViewField {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassViewFieldStub, nodeType: IStubElementType<*, *>): super(stub, nodeType)

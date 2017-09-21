@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.Concrete
 import org.vclang.psi.VcDefClassView
 import org.vclang.psi.stubs.VcDefClassViewStub
 
-abstract class ClassViewAdapter : DefinitionAdapter<VcDefClassViewStub>, VcDefClassView {
+abstract class ClassViewAdapter : ReferableAdapter<VcDefClassViewStub>, VcDefClassView {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefClassViewStub, nodeType: IStubElementType<*, *>): super(stub, nodeType)

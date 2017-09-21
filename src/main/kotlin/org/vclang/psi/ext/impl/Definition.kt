@@ -4,11 +4,11 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.term.Precedence
-import org.vclang.psi.VcDefinition
+import org.vclang.psi.ext.PsiConcreteReferable
 import org.vclang.psi.ext.PsiStubbedReferableImpl
 import org.vclang.psi.stubs.VcNamedStub
 
-abstract class DefinitionAdapter<StubT> : PsiStubbedReferableImpl<StubT>, VcDefinition
+abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiConcreteReferable
 where StubT : VcNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
