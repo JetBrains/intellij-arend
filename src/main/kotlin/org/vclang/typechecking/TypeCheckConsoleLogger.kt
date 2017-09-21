@@ -20,6 +20,7 @@ import com.jetbrains.jetpad.vclang.error.doc.TermLineDoc
 import com.jetbrains.jetpad.vclang.error.doc.TextDoc
 import com.jetbrains.jetpad.vclang.term.provider.PrettyPrinterInfoProvider
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.fullName
 import org.vclang.psi.parentOfType
 import org.vclang.typechecking.execution.DefinitionProxy
 import org.vclang.typechecking.execution.TypeCheckingEventsProcessor

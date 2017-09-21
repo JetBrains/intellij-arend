@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.fullName
 
 class VcFindUsagesProvider : FindUsagesProvider {
 

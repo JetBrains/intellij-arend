@@ -6,6 +6,7 @@ import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
+import org.vclang.psi.ext.fullName
 import org.vclang.psi.parentOfType
 import org.vclang.typechecking.execution.configurations.TypeCheckConfiguration
 import org.vclang.typechecking.execution.configurations.TypeCheckConfigurationType

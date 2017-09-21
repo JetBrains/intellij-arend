@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.StubIndexKey
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.fullName
 
 abstract class VcNavigationContributorBase<T> protected constructor(
         private val indexKey: StubIndexKey<String, T>,

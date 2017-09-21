@@ -14,6 +14,7 @@ import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.fullName
 import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
 
 class TypeCheckingAdapter(

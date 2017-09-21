@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.DefinitionLocator
 import org.vclang.module.source.VcPreludeStorage
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.fullName
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI

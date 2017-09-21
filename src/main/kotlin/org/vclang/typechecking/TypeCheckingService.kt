@@ -38,6 +38,7 @@ import org.vclang.psi.VcFile
 import org.vclang.psi.VcStatement
 import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.fullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.namespace.VcDynamicNamespaceProvider
 import org.vclang.resolving.namespace.VcModuleNamespaceProvider
