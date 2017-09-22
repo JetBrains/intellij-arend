@@ -109,7 +109,7 @@ classField ::= PIPE prec defIdentifier COLON expr {
 
 classImplement ::= PIPE refIdentifier FAT_ARROW expr {
     implements = "org.vclang.psi.ext.VcCompositeElement"
-    mixin = "org.vclang.psi.ext.impl.ClassImplementationAdapter"
+    mixin = "org.vclang.psi.ext.impl.ClassFieldImplAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassImplementStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }

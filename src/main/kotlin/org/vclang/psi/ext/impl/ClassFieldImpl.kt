@@ -5,7 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.vclang.psi.ext.PsiStubbedReferableImpl
 import org.vclang.psi.stubs.VcClassImplementStub
 
-abstract class ClassImplementationAdapter : PsiStubbedReferableImpl<VcClassImplementStub> {
+abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassImplementStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

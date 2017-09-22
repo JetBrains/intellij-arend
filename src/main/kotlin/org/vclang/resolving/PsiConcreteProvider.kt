@@ -16,8 +16,8 @@ class PsiConcreteProvider(nameResolver: NameResolver, errorReporter: ErrorReport
         if (referable !is PsiConcreteReferable) {
             return null
         }
-        val def = referable.computeConcrete()
-        def.relatedDefinition.accept(visitor, referable.scope)
+        val def = referable.computeConcrete(visitor.errorReporter)
+        def?.relatedDefinition?.accept(visitor, referable.scope)
         return def
     }
 }

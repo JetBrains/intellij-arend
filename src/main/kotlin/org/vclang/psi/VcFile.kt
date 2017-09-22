@@ -6,11 +6,9 @@ import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
-import com.jetbrains.jetpad.vclang.naming.scope.MergeScope
-import com.jetbrains.jetpad.vclang.naming.scope.NamespaceScope
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.Group
-import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
@@ -31,6 +29,9 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
+
+    override val scope: Scope
+        get() = EmptyScope.INSTANCE
 
     override fun getReference(): VcReference? = null
 
