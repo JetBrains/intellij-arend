@@ -52,12 +52,12 @@ class TypeCheckingAdapter(
     private inner class MyTypeCheckedReporter : TypecheckedReporter {
 
         override fun typecheckingSucceeded(definition: Concrete.Definition) {
-            val ref = definition.referable as? PsiGlobalReferable ?: return
+            val ref = definition.data as? PsiGlobalReferable ?: return
             eventsProcessor.onTestFinished(TestFinishedEvent(ref.fullName, null))
         }
 
         override fun typecheckingFailed(definition: Concrete.Definition) {
-            val ref = definition.referable as? PsiGlobalReferable ?: return
+            val ref = definition.data as? PsiGlobalReferable ?: return
             val definitionName = ref.fullName
             val definitionProxy = eventsProcessor.getProxyByFullName(definitionName)
             val hasErrors = definitionProxy?.hasErrors() ?: false
