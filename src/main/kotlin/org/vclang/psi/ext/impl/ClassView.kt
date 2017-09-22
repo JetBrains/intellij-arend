@@ -2,7 +2,7 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.frontend.term.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.psi.VcDefClassView
 import org.vclang.psi.stubs.VcDefClassViewStub
 

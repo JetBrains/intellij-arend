@@ -6,7 +6,7 @@ import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEv
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
 import com.jetbrains.jetpad.vclang.naming.namespace.StaticNamespaceProvider
-import com.jetbrains.jetpad.vclang.term.Concrete
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckedReporter
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState

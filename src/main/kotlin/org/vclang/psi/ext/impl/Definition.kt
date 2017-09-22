@@ -4,10 +4,10 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.frontend.term.Abstract
-import com.jetbrains.jetpad.vclang.frontend.term.ConcreteBuilder
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
-import com.jetbrains.jetpad.vclang.term.Concrete
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.Group
 import org.vclang.psi.VcConstructor
 import org.vclang.psi.VcDefinition

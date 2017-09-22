@@ -4,7 +4,7 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.NameResolver
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
-import com.jetbrains.jetpad.vclang.term.Concrete
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.ext.PsiConcreteReferable
 

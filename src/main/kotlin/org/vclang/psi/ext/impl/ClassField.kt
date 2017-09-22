@@ -3,7 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.term.Concrete
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
 import org.vclang.psi.VcClassField
 import org.vclang.psi.stubs.VcClassFieldStub
