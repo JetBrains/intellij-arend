@@ -59,6 +59,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
 
     "{"                     { return LBRACE; }
     "}"                     { return RBRACE; }
+    "{?"                    { return LGOAL; }
     "("                     { return LPAREN; }
     ")"                     { return RPAREN; }
     ":"                     { return COLON; }

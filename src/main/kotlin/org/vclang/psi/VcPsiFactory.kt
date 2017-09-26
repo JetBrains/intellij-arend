@@ -11,7 +11,7 @@ class VcPsiFactory(private val project: Project) {
             createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
 
     fun createRefIdentifier(name: String): VcRefIdentifier =
-            createStatCmd(name).nsCmdRoot.refIdentifier
+            createStatCmd(name).nsCmdRoot?.refIdentifier
                     ?: error("Failed to create ref identifier: `$name`")
 
     fun createPrefixName(name: String): VcPrefixName {
@@ -23,7 +23,7 @@ class VcPsiFactory(private val project: Project) {
     fun createInfixName(name: String): VcInfixName {
         val needsPrefix = !VcNamesValidator().isInfixName(name)
         return createExpression<VcBinOpExpr>("dummy ${if (needsPrefix) "`$name" else name} dummy")
-                .binOpLeftList
+                .binOpRightList
                 .firstOrNull()
                 ?.infixName
                 ?: error("Failed to create infix name: `$name`")
@@ -31,9 +31,9 @@ class VcPsiFactory(private val project: Project) {
 
     fun createPostfixName(name: String): VcPostfixName {
         return createExpression<VcBinOpExpr>("dummy $name`")
-                .newExpr
-                .postfixNameList
+                .binOpRightList
                 .firstOrNull()
+                ?.postfixName
                 ?: error("Failed to create postfix name: `$name`")
     }
 

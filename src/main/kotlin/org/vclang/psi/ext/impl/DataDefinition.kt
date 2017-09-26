@@ -25,7 +25,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
         TODO("not implemented")
     }
 
-    override fun getEliminatedReferences(): List<Abstract.Expression> {
+    override fun getEliminatedExpressions(): List<Abstract.Expression> {
         TODO("not implemented")
     }
 

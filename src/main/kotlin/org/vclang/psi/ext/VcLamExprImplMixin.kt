@@ -1,12 +1,14 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
 import org.vclang.psi.VcLamExpr
-import org.vclang.resolving.NamespaceProvider
 
-abstract class VcLamExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                   VcLamExpr {
-    /* TODO[abstract]
+abstract class VcLamExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcLamExpr {
+    override fun <P : Any, R : Any> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+        visitor.visitLam(this, teleList, expr, params)
+
+/* TODO[abstract]
     override val scope: Scope
         get() {
             val parentScope = (parent as? VcCompositeElement)?.scope

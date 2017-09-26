@@ -12,6 +12,7 @@ import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
 
+// TODO[abstract]: Check resolving
 interface VcReference : PsiReference {
 
     override fun getElement(): VcCompositeElement

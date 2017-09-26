@@ -22,6 +22,8 @@ apply plugin: 'idea'
 idea {
     module {
         generatedSourceDirs += file('src/gen')
+        outputDir = file("$buildDir/classes/main")
+        testOutputDir = file("$buildDir/classes/test")
     }
 }
 

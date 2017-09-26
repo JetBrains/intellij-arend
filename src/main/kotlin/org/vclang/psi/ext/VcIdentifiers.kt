@@ -6,9 +6,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.psi.*
 import org.vclang.resolving.*
 
-abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                         VcDefIdentifier {
-
+abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcDefIdentifier {
     override val referenceNameElement: VcDefIdentifierImplMixin
         get() = this
 
@@ -16,10 +14,11 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
         get() = referenceNameElement.text
 
     override fun getName(): String = referenceName
+
+    override fun textRepresentation(): String = referenceName
 }
 
-abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                         VcRefIdentifier {
+abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
@@ -34,8 +33,7 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
     override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this)
 }
 
-abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                  VcPrefixName {
+abstract class VcPrefixImplMixin(node: ASTNode) : PsiReferableImpl(node), VcPrefixName {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
@@ -43,19 +41,14 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() {
-            prefix?.let { return it.text }
-            prefixInfix?.let { return it.text.removePrefix("`") }
-            error("Invalid node")
-        }
+        get() = prefixInfix?.text?.removePrefix("`") ?: text
 
     override fun getName(): String = referenceName
 
     override fun getReference(): VcReference = VcReferenceImpl<VcPrefixName>(this)
 }
 
-abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                 VcInfixName {
+abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcInfixName {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
@@ -63,19 +56,14 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() {
-            infix?.let { return it.text }
-            infixPrefix?.let { return it.text.removePrefix("`") }
-            error("Invalid node")
-        }
+        get() = infixPrefix?.text?.removePrefix("`") ?: text
 
     override fun getName(): String = referenceName
 
     override fun getReference(): VcReference = VcReferenceImpl<VcInfixName>(this)
 }
 
-abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                   VcPostfixName {
+abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPostfixName {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
@@ -83,11 +71,7 @@ abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         get() = this
 
     override val referenceName: String
-        get() {
-            postfixInfix?.let { return it.text.removeSuffix("`") }
-            postfixPrefix?.let { return it.text.removeSuffix("`") }
-            error("Invalid node")
-        }
+        get() = postfixInfix?.text?.removeSuffix("`") ?: postfixPrefix?.text?.removeSuffix("`") ?: text
 
     override fun getName(): String = referenceName
 

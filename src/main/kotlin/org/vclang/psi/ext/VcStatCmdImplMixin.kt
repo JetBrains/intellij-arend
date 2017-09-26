@@ -13,12 +13,21 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getKind(): NamespaceCommand.Kind =
             if (nsCmd.exportKw != null) NamespaceCommand.Kind.EXPORT else NamespaceCommand.Kind.OPEN
 
-    override fun getGroupReference(): Referable {
-        val moduleName = nsCmdRoot.moduleName
+    override fun getGroupReference(): Referable? {
+        val root = nsCmdRoot ?: return null
         val path = refIdentifierList.map { it.text }
-        return if (moduleName != null)
-            ModuleUnresolvedReference(nsCmdRoot, ModulePath(moduleName.moduleNamePartList.map { it.refIdentifier.text }), path) else
-            LongUnresolvedReference.make(nsCmdRoot, nsCmdRoot.refIdentifier!!.text, path)
+
+        val moduleName = root.moduleName
+        if (moduleName != null) {
+            return ModuleUnresolvedReference(root, ModulePath(moduleName.moduleNamePartList.map { it.refIdentifier.text }), path)
+        }
+
+        val refId = root.refIdentifier
+        if (refId != null) {
+            return LongUnresolvedReference.make(root, refId.text, path)
+        }
+
+        return null
     }
 
     override fun isHiding(): Boolean = hidingKw != null
