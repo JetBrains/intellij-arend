@@ -12,7 +12,7 @@ abstract class VcFunctionBodyImplMixin(node: ASTNode) : VcCompositeElementImpl(n
 
     override fun getTerm(): Abstract.Expression? = expr
 
-    override fun getEliminatedExpressions(): List<VcExpr> = elim?.exprList ?: emptyList()
+    override fun getEliminatedExpressions(): List<VcExpr> = elim?.atomFieldsAccList ?: emptyList()
 
     override fun getClauses(): List<VcClause> = functionClauses?.clauseList ?: emptyList()
 }

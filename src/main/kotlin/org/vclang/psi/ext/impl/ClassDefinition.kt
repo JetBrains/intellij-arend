@@ -21,7 +21,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getParameters(): List<VcTele> = teleList
 
-    override fun getSuperClasses(): List<VcExpr> = exprList
+    override fun getSuperClasses(): List<VcExpr> = atomFieldsAccList
 
     override fun getClassFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
 

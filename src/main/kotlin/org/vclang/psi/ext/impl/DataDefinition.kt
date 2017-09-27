@@ -22,7 +22,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
 
     override fun getParameters(): List<VcTele> = teleList
 
-    override fun getEliminatedExpressions(): List<Abstract.Expression>? = dataBody?.elim?.exprList
+    override fun getEliminatedExpressions(): List<Abstract.Expression>? = dataBody?.elim?.atomFieldsAccList
 
     override fun isTruncated(): Boolean = truncatedKw != null
 

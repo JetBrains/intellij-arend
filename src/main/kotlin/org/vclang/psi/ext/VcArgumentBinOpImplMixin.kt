@@ -7,5 +7,5 @@ import org.vclang.psi.VcArgumentBinOp
 
 abstract class VcArgumentBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentBinOp {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
-        visitor.visitApp(this, expr, argumentList, params)
+        visitor.visitApp(this, atomFieldsAcc, argumentList, params)
 }

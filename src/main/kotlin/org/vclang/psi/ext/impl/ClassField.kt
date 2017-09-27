@@ -28,7 +28,7 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
 
     override fun getReferable(): GlobalReferable = this
 
-    override fun getResultType(): VcExpr = expr
+    override fun getResultType(): VcExpr? = expr
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 }

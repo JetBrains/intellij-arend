@@ -71,7 +71,7 @@
     ]
 
     extends("def(Function|Data|Class|ClassView|Instance)") = definition
-    extends("(arr|binOp|pi|sigma|lam|let|case|new)Expr|atomFieldsAcc|universeAtom|atom|literal") = expr
+    extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)BinOp") = binOpArg
     extends("(atom|suc|max)LevelExpr") = levelExpr
 }
@@ -104,6 +104,7 @@ classStat ::= classField
     | definition
 
 classField ::= PIPE prec? defIdentifier COLON expr {
+    pin = 4
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
@@ -112,6 +113,7 @@ classField ::= PIPE prec? defIdentifier COLON expr {
 }
 
 classImplement ::= PIPE refIdentifier FAT_ARROW expr {
+    pin = 3
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldImplAdapter"
@@ -196,7 +198,7 @@ pattern ::= atomPattern | patternConstructor {
     mixin = "org.vclang.psi.ext.VcPatternImplMixin"
 }
 
-patternConstructor ::= prefixName atomPatternOrPrefix*
+patternConstructor ::= prefixName atomPatternOrPrefix* { pin = 1 }
 
 atomPatternOrPrefix ::= atomPattern | prefixName {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
@@ -209,6 +211,7 @@ atomPattern ::= LPAREN pattern? RPAREN
     | UNDERSCORE
 
 constructor ::= prec? defIdentifier tele* [elim? clausesWithBraces] {
+    pin = 2
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor" ]
     mixin = "org.vclang.psi.ext.impl.ConstructorAdapter"
@@ -267,9 +270,10 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 }
 
 functionClauses ::= clausesWithBraces | (PIPE clause)*
-private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE
+private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE { pin = 1 }
 
 letClause ::= defIdentifier tele* typeAnnotation? FAT_ARROW expr {
+    pin = 1
     implements = [ "org.vclang.psi.ext.PsiReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LetClause" ]
     mixin = "org.vclang.psi.ext.VcLetClauseImplMixin"
@@ -345,6 +349,7 @@ binOpRight ::= infixName newExpr | postfixName {
 
 newExpr ::= NEW_KW? binOpArg implementStatements? {
     pin = 1
+    implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
 
@@ -366,6 +371,7 @@ atom ::= literal
     | tuple
     | NUMBER
     | atomModuleCall {
+    implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
 }
 
@@ -374,13 +380,14 @@ tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
 atomModuleCall ::= moduleName
 
 atomFieldsAcc ::= atom fieldAcc* {
+    implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
 }
 
 implementStatements ::= LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE
 
 implementStatement ::= refIdentifier FAT_ARROW expr {
-    pin = 2
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.VcImplementStatementImplMixin"
@@ -398,6 +405,7 @@ literal ::= prefixName
     | PROP_KW
     | UNDERSCORE
     | goal {
+    implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcLiteralImplMixin"
 }
 
@@ -410,6 +418,7 @@ goal ::= LGOAL defIdentifier? [LBRACE expr RBRACE] RBRACE {
 universeAtom ::= SET
     | UNIVERSE
     | TRUNCATED_UNIVERSE {
+    implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcUniverseAtomImplMixin"
 }
 
