@@ -74,11 +74,9 @@ object NamespaceProvider {
     ): Namespace {
         definitions.forEach {
             if (it is VcDefData) {
-                it.dataBody?.dataConstructors?.constructorList?.forEach { namespace.addDefinition(it, DummyErrorReporter.INSTANCE) }
+                it.dataBody?.constructorList?.forEach { namespace.addDefinition(it, DummyErrorReporter.INSTANCE) }
             }
-            if (it is PsiReferable) {
-                namespace.addDefinition(it, DummyErrorReporter.INSTANCE)
-            }
+            namespace.addDefinition(it, DummyErrorReporter.INSTANCE)
         }
         return namespace
     }

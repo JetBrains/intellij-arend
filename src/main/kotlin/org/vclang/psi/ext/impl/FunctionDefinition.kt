@@ -2,10 +2,14 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.VcDefFunction
+import org.vclang.psi.VcExpr
+import org.vclang.psi.VcFunctionBody
+import org.vclang.psi.VcTele
 import org.vclang.psi.stubs.VcDefFunctionStub
 import javax.swing.Icon
 
@@ -14,17 +18,13 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     constructor(stub: VcDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getParameters(): List<Abstract.Parameter> {
-        TODO("not implemented")
-    }
+    override fun getParameters(): List<VcTele> = teleList
 
-    override fun getResultType(): Abstract.Expression? {
-        TODO("not implemented")
-    }
+    override fun getResultType(): VcExpr? = expr
 
-    override fun getBody(): Abstract.FunctionBody {
-        TODO("not implemented")
-    }
+    override fun getBody(): VcFunctionBody? = functionBody
+
+    override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 

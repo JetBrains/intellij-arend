@@ -9,10 +9,7 @@ import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.Group
-import org.vclang.psi.VcConstructor
-import org.vclang.psi.VcDefinition
-import org.vclang.psi.VcStatCmd
-import org.vclang.psi.VcWhere
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcNamedStub
 
 abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, Group, Abstract.Definition

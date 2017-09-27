@@ -13,7 +13,7 @@ class VcDeclarationRangeHandler : DeclarationRangeHandler<PsiElement> {
         val start = container.textRange.startOffset
         return when (container) {
             is VcDefClass -> {
-                val lastTele = container.classTeles?.teleList?.lastOrNull()
+                val lastTele = container.teleList.lastOrNull()
                 TextRange(start, (lastTele ?: container.defIdentifier)!!.textRange.endOffset)
             }
             is VcDefData -> {

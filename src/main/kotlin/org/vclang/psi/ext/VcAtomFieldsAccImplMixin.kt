@@ -2,10 +2,10 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
-import org.vclang.psi.VcArgumentBinOp
+import org.vclang.psi.VcAtomFieldsAcc
 
 
-abstract class VcArgumentBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentBinOp {
+abstract class VcAtomFieldsAccImplMixin(node: ASTNode) : VcExprImplMixin(node), VcAtomFieldsAcc {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
-        visitor.visitApp(this, expr, argumentList, params)
+        visitor.visitFieldAccs(this, expr, fieldAccList, params)
 }

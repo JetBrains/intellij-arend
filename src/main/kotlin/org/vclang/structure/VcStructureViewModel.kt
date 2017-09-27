@@ -55,7 +55,7 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
             is VcFile -> psi.children.filterIsInstance<VcStatement>().mapNotNull { it.definition }
             is VcDefClass -> psi.childDefinitions
             is VcDefClassView -> psi.classViewFieldList
-            is VcDefData -> psi.dataBody?.dataClauses?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.dataConstructors?.constructorList ?: emptyList()
+            is VcDefData -> psi.dataBody?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.constructorList ?: emptyList()
             is VcDefFunction -> psi.where?.childDefinitions ?: emptyList()
             else -> emptyList()
         }
@@ -63,7 +63,7 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
 
 private val VcDefClass.childDefinitions: List<PsiGlobalReferable>
     get() {
-        val classDefinitions = classStats?.classStatList?.mapNotNull { it.classField ?: it.definition as PsiGlobalReferable } ?: emptyList()
+        val classDefinitions = classStatList.mapNotNull { it.classField ?: it.definition as PsiGlobalReferable }
         val whereDefinitions = where?.childDefinitions ?: emptyList()
         return classDefinitions + whereDefinitions
     }

@@ -2,12 +2,11 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcDefinition
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -16,27 +15,19 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getDynamicSubgroups(): List<VcDefinition> =
-        classStats?.classStatList?.mapNotNull { it.definition } ?: emptyList()
+    override fun getDynamicSubgroups(): List<VcDefinition> = classStatList.mapNotNull { it.definition }
 
-    override fun getFields(): List<VcClassField> =
-        classStats?.classStatList?.mapNotNull { it.classField } ?: emptyList()
+    override fun getFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
 
-    override fun getParameters(): List<Abstract.Parameter> {
-        TODO("not implemented")
-    }
+    override fun getParameters(): List<VcTele> = teleList
 
-    override fun getSuperClasses(): List<Abstract.Expression> {
-        TODO("not implemented")
-    }
+    override fun getSuperClasses(): List<VcExpr> = exprList
 
-    override fun getClassFields(): List<Abstract.ClassField> {
-        TODO("not implemented")
-    }
+    override fun getClassFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
 
-    override fun getClassFieldImpls(): List<Abstract.ClassFieldImpl> {
-        TODO("not implemented")
-    }
+    override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
+
+    override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 

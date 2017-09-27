@@ -1,15 +1,14 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import org.vclang.psi.VcAtom
-import org.vclang.psi.VcFieldAcc
-import org.vclang.psi.VcNsCmdRoot
-import org.vclang.psi.leftSiblings
+import org.vclang.psi.*
 
-abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                    VcFieldAcc {
+abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcFieldAcc {
+    // TODO[abstract]: Check this
     override val scope: Scope
         get() = findRoot()?.scope ?: EmptyScope.INSTANCE
 
@@ -23,20 +22,20 @@ abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node)
 
     private fun findRoot(): VcCompositeElement? {
         val prev = leftSiblings.firstOrNull {
-            it is VcFieldAcc || it is VcAtom || it is VcNsCmdRoot
+            it is VcFieldAcc || it is VcAtom || it is VcLiteral || it is VcNsCmdRoot
         }
         val name = when (prev) {
-            is VcFieldAcc -> prev
-            is VcAtom -> {
-                prev.atomModuleCall?.moduleName?.moduleNamePartList?.lastOrNull()
-                        ?: prev.literal?.prefixName
-            }
-            is VcNsCmdRoot -> {
-                prev.moduleName?.moduleNamePartList?.lastOrNull()
-                        ?: prev.refIdentifier
-            }
-            else -> null
+            is VcLiteral -> prev.prefixName
+            is VcAtom -> prev.atomModuleCall?.moduleName?.moduleNamePartList?.lastOrNull()
+            is VcNsCmdRoot -> prev.moduleName?.moduleNamePartList?.lastOrNull() ?: prev.refIdentifier
+            else -> prev
         }
         return name?.reference?.resolve() as? VcCompositeElement
     }
+
+    override fun getData(): VcFieldAccImplMixin = this
+
+    override fun getFieldReference(): Referable? = refIdentifier?.referenceName?.let { NamedUnresolvedReference(this, it) }
+
+    override fun getProjIndex(): Int = number?.text?.toIntOrNull() ?: 0
 }

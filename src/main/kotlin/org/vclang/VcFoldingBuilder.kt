@@ -46,14 +46,14 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
         override fun visitCaseExpr(o: VcCaseExpr) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitClauses(o: VcClauses) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitFunctionClauses(o: VcFunctionClauses) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitConstructor(o: VcConstructor) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitConstructorClause(o: VcConstructorClause) =
                 foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitClassStats(o: VcClassStats) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitDefClass(o: VcDefClass) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitDefClassView(o: VcDefClassView) = foldBetween(o, o.lbrace, o.rbrace)
 
