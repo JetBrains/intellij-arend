@@ -6,6 +6,6 @@ import org.vclang.psi.VcCaseExpr
 
 
 abstract class VcCaseExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcCaseExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitCase(this, exprList, clauseList, params)
 }

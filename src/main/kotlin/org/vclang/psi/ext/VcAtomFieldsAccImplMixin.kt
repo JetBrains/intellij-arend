@@ -6,6 +6,6 @@ import org.vclang.psi.VcAtomFieldsAcc
 
 
 abstract class VcAtomFieldsAccImplMixin(node: ASTNode) : VcExprImplMixin(node), VcAtomFieldsAcc {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitFieldAccs(this, atom, fieldAccList, params)
 }

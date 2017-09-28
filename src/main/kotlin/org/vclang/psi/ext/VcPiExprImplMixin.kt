@@ -6,7 +6,7 @@ import org.vclang.psi.VcPiExpr
 import org.vclang.resolving.NamespaceProvider
 
 abstract class VcPiExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcPiExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitPi(this, teleList, expr, params)
 
     /* TODO[abstract]

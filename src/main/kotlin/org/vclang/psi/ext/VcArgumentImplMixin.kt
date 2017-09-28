@@ -8,5 +8,5 @@ import org.vclang.psi.VcExpr
 abstract class VcArgumentImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcArgument {
     override fun isExplicit(): Boolean = lbrace == null
 
-    override fun getExpression(): VcExpr = atomFieldsAcc ?: expr ?: universeAtom ?: error("Incorrect expression")
+    override fun getExpression(): VcExpr = atomFieldsAcc ?: expr ?: universeAtom ?: error("Incorrect expression: argument")
 }

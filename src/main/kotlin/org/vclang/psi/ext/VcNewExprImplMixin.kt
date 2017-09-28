@@ -6,7 +6,7 @@ import org.vclang.psi.VcNewExpr
 import org.vclang.resolving.NamespaceProvider
 
 abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitClassExt(this, newKw != null, binOpArg, implementStatements?.implementStatementList, params)
 
     /* TODO[abstract]

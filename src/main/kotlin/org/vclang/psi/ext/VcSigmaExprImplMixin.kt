@@ -6,7 +6,7 @@ import org.vclang.psi.VcSigmaExpr
 import org.vclang.resolving.NamespaceProvider
 
 abstract class VcSigmaExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSigmaExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitSigma(this, teleList, params)
 
     /* TODO[abstract]

@@ -6,7 +6,7 @@ import org.vclang.psi.VcBinOpExpr
 
 
 abstract class VcBinOpExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcBinOpExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R {
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val binOpSeq = binOpRightList
         if (binOpSeq.isEmpty()) {
             return newExpr.accept(visitor, params)

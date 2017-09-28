@@ -10,13 +10,13 @@ import org.vclang.psi.VcUniverseAtom
 import org.vclang.psi.VcUniverseBinOp
 
 
-private fun <P : Any?, R : Any?> acceptSet(data: Any, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+private fun <P : Any?, R : Any?> acceptSet(data: Any, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
     visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, params)
 
-private fun <P : Any?, R : Any?> acceptUniverse(data: Any, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+private fun <P : Any?, R : Any?> acceptUniverse(data: Any, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
     visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, params)
 
-private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P): R {
+private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val uniText = truncatedElem.text
     val index = uniText.indexOf('-')
     val hLevelNum = when {
@@ -30,27 +30,27 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiEl
 
 
 abstract class VcSetUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSetUniverseBinOp {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptSet(this, set, atomLevelExpr, visitor, params)
 }
 
 abstract class VcTruncatedUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcTruncatedUniverseBinOp {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R =
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptTruncated(this, truncatedUniverse, atomLevelExpr, visitor, params)
 }
 
 abstract class VcUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseBinOp {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R {
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val levelExprs = atomLevelExprList
         return acceptUniverse(this, universe, levelExprs.getOrNull(0), levelExprs.getOrNull(1), visitor, params)
     }
 }
 
 abstract class VcUniverseAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAtom {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P): R {
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         set?.let { return acceptSet(this, it, null, visitor, params) }
         universe?.let { return acceptUniverse(this, it, null, null, visitor, params) }
         truncatedUniverse?.let { return acceptTruncated(this, it, null, visitor, params) }
-        error("Incorrect expression")
+        error("Incorrect expression: universe")
     }
 }
