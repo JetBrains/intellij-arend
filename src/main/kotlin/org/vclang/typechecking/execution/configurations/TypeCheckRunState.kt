@@ -20,7 +20,7 @@ import com.intellij.openapi.util.Disposer
 import org.vclang.typechecking.TypeCheckingService
 import org.vclang.typechecking.execution.TypeCheckCommand
 import org.vclang.typechecking.execution.TypeCheckProcessHandler
-import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
+import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 class TypeCheckRunState(
         environment: ExecutionEnvironment,
@@ -82,7 +82,7 @@ class TypeCheckRunState(
     ) {
         if (processHandler !is TypeCheckProcessHandler) error("Invalid process handler")
 
-        val eventsProcessor = TypeCheckingEventsProcessor(
+        val eventsProcessor = TypecheckingEventsProcessor(
                 consoleProperties.project,
                 resultsViewer.testsRootNode,
                 testFrameworkName

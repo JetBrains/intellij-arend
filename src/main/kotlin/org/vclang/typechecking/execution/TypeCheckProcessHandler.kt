@@ -11,7 +11,7 @@ class TypeCheckProcessHandler(
         private val typeChecker: TypeCheckingService,
         private val command: TypeCheckCommand
 ) : ProcessHandler() {
-    var eventsProcessor: TypeCheckingEventsProcessor?
+    var eventsProcessor: TypecheckingEventsProcessor?
         get() = typeChecker.eventsProcessor
         set(value) {
             typeChecker.eventsProcessor = value

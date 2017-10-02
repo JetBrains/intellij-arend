@@ -15,7 +15,6 @@ import com.jetbrains.jetpad.vclang.naming.scope.NamespaceScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.VcFileType
 import org.vclang.getPsiFileFor
-import org.vclang.parser.AbstractTreeFactory
 import org.vclang.psi.VcFile
 import java.io.IOException
 import java.io.InputStream
@@ -53,10 +52,8 @@ class VcFileStorage(
 
     override fun isAvailable(sourceId: SourceId): Boolean = sourceSupplier.isAvailable(sourceId)
 
-    override fun loadSource(
-            sourceId: SourceId,
-            errorReporter: ErrorReporter
-    ): SourceSupplier.LoadResult? = sourceSupplier.loadSource(sourceId, errorReporter)
+    override fun loadSource(sourceId: SourceId, errorReporter: ErrorReporter): SourceSupplier.LoadResult? =
+        sourceSupplier.loadSource(sourceId, errorReporter)
 
     override fun getAvailableVersion(sourceId: SourceId): Long =
             sourceSupplier.getAvailableVersion(sourceId)
@@ -102,22 +99,8 @@ class VcFileStorage(
         override fun isAvailable(sourceId: SourceId): Boolean =
                 sourceId.storage === this@VcFileStorage && sourceId.module.virtualFile.exists()
 
-        override fun loadSource(
-                sourceId: SourceId,
-                errorReporter: ErrorReporter
-        ): SourceSupplier.LoadResult? {
-            if (!isAvailable(sourceId)) return null
-            val timeStamp = getAvailableVersion(sourceId)
-            val module = AbstractTreeFactory.rebuildModule(
-                    sourceId,
-                    sourceId.module,
-                    errorReporter,
-                    nameResolver,
-                    globalScope
-            )
-            if (getAvailableVersion(sourceId) != timeStamp) return null
-            return SourceSupplier.LoadResult.make(module, timeStamp)
-        }
+        override fun loadSource(sourceId: SourceId, errorReporter: ErrorReporter): SourceSupplier.LoadResult? =
+            if (isAvailable(sourceId)) SourceSupplier.LoadResult.make(sourceId.module, getAvailableVersion(sourceId)) else null
 
         override fun getAvailableVersion(sourceId: SourceId): Long =
                 sourceId.module.virtualFile.timeStamp

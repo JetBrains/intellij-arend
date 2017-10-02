@@ -2,6 +2,7 @@ package org.vclang.resolving
 
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.NameResolver
+import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
@@ -14,6 +15,7 @@ class PsiConcreteProvider(nameResolver: NameResolver, errorReporter: ErrorReport
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
         if (referable !is PsiConcreteReferable) {
+            visitor.errorReporter.report(ReferenceError("Unknown type of reference", referable))
             return null
         }
         val def = referable.computeConcrete(visitor.errorReporter)

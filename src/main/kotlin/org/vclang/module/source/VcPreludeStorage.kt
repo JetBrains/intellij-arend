@@ -10,7 +10,6 @@ import com.jetbrains.jetpad.vclang.module.source.Storage
 import com.jetbrains.jetpad.vclang.naming.NameResolver
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
-import org.vclang.parser.AbstractTreeFactory
 import org.vclang.psi.VcFile
 import java.io.IOException
 import java.io.InputStream

@@ -64,6 +64,10 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return ModulePath(relativeModulePath.map { it.toString() })
         }
 
+    override fun moduleTextRepresentation(): String = name
+
+    override fun positionTextRepresentation(): String? = null
+
     /* TODO[abstract]
     private var globalStatements = emptyList<Surrogate.Statement>()
 
@@ -88,9 +92,6 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     fun setGlobalStatements(globalStatements: List<Surrogate.Statement>) {
         this.globalStatements = globalStatements
     }
-
-    fun findDefinitionByFullName(fullName: String): Abstract.Definition? =
-            accept(FindDefinitionVisitor, fullName)
 
     private object FindDefinitionVisitor : AbstractDefinitionVisitor<String, Abstract.Definition?> {
 

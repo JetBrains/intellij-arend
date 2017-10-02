@@ -15,7 +15,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.source.SourceId
-import org.vclang.parser.AbstractTreeBuildVisitor
 import org.vclang.psi.VcFile
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -36,7 +35,6 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
         try {
             ApplicationManager.getApplication().saveAll()
 
-            rebuild(psiFile)
             val formattedText = prettyPrint(psiFile)
 
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return
@@ -78,14 +76,6 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
     private companion object {
         private val NOTIFICATION_TITLE = "Reformat code with PrettyPrinter"
         private val LOG = Logger.getInstance(VcPrettyPrinterFormatAction::class.java)
-
-        private fun rebuild(module: VcFile) {
-            val visitor = AbstractTreeBuildVisitor(
-                    SourceId { ModulePath("dummy") },
-                    DummyErrorReporter.INSTANCE
-            )
-            // visitor.visitModule(module) // TODO[abstract]
-        }
 
         private fun prettyPrint(module: VcFile): String {
             return "Pretty printing is not implemented yet"

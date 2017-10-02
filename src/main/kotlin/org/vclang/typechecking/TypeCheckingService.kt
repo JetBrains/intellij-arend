@@ -1,6 +1,7 @@
 package org.vclang.typechecking
 
 import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
@@ -26,24 +27,23 @@ import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.resolving.NamespaceProviders
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
+import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.VcFileType
 import org.vclang.module.source.VcFileStorage
 import org.vclang.module.source.VcPreludeStorage
-import org.vclang.psi.VcDefinition
-import org.vclang.psi.VcFile
-import org.vclang.psi.VcStatement
-import org.vclang.psi.ancestors
+import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.namespace.VcDynamicNamespaceProvider
 import org.vclang.resolving.namespace.VcModuleNamespaceProvider
 import org.vclang.resolving.namespace.VcStaticNamespaceProvider
-import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
+import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
 import java.nio.file.Path
@@ -55,7 +55,7 @@ typealias VcSourceIdT = CompositeSourceSupplier<
         >.SourceId
 
 interface TypeCheckingService {
-    var eventsProcessor: TypeCheckingEventsProcessor?
+    var eventsProcessor: TypecheckingEventsProcessor?
 
     fun typeCheck(modulePath: Path, definitionFullName: String)
 
@@ -68,7 +68,7 @@ interface TypeCheckingService {
 }
 
 class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
-    override var eventsProcessor: TypeCheckingEventsProcessor?
+    override var eventsProcessor: TypecheckingEventsProcessor? // TODO[abstract]: Why nullable?
         get() = logger.eventsProcessor
         set(value) {
             logger.eventsProcessor = value
@@ -100,7 +100,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private val sourceInfoProvider = VcSourceInfoProvider()
     private val logger = TypeCheckConsoleLogger(sourceInfoProvider)
-    private val concreteProvider = PsiConcreteProvider(nameResolver, logger) // TODO[abstract]: We should create new provider for each typechecking task
 
     private val persistenceProvider = VcPersistenceProvider()
     private val cacheManager = CacheManager(
@@ -141,25 +140,27 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             } catch (ignored: CacheLoadingException) {
             }
 
-            val typeChecking = TypeCheckingAdapter(
+            val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(nameResolver, logger))
+            val testResultReporter = TestResultReporter(eventsProcessor!!)
+            val typeChecking = Typechecking(
                     typeCheckerState,
                     staticNsProvider,
                     dynamicNsProvider,
                     concreteProvider,
                     logger,
-                    dependencyCollector,
-                    eventsProcessor!!
+                    testResultReporter,
+                    dependencyCollector
             )
 
             if (definitionFullName.isEmpty()) {
-                typeChecking.typeCheckModule(module)
+                typeChecking.typecheckModules(listOf(module))
+                eventsProcessor!!.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
             } else {
-                /* TODO[abstract]
-                val definition = module.findDefinitionByFullName(definitionFullName)
-                checkNotNull(definition) { "Definition $definitionFullName not found" }.let {
-                    typeChecking.typeCheckDefinition(it)
-                }
-                */
+                val group = module.findGroupByFullName(definitionFullName.split('.'))
+                val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
+                val definition = concreteProvider.getConcrete(ref)
+                if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                    else if (definition != null) error(definitionFullName + " is not a definition")
             }
 
             cacheManager.cachedModules
@@ -191,11 +192,12 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             throw IllegalStateException("Prelude cache is not available", e)
         }
 
+        // TODO[abstract]: We do not need to typecheck prelude
         Typechecking(
                 typeCheckerState,
                 staticNsProvider,
                 dynamicNsProvider,
-                concreteProvider,
+                PsiConcreteProvider(nameResolver, logger),
                 DummyErrorReporter.INSTANCE,
                 Prelude.UpdatePreludeReporter(typeCheckerState),
                 object : DependencyListener {}
@@ -308,7 +310,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     collectIds(regClass, definitions)
                     definitions
                 } else {
-                    mapOf<String, GlobalReferable>()
+                    mapOf()
                 }
             }
             return definitions[id]

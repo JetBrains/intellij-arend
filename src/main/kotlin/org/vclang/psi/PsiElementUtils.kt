@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.jetpad.vclang.term.Group
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { it.parent }
@@ -39,3 +40,6 @@ inline fun <reified T : PsiElement> PsiElement.parentOfType(
 inline fun <reified T : PsiElement> PsiElement.childOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
+
+fun Group.findGroupByFullName(fullName: List<String>): Group? =
+    if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] } ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))

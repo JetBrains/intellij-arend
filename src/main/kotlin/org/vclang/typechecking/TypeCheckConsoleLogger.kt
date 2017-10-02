@@ -13,6 +13,7 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
+import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.HListDoc
 import com.jetbrains.jetpad.vclang.error.doc.LineDocVisitor
 import com.jetbrains.jetpad.vclang.error.doc.ReferenceDoc
@@ -23,18 +24,19 @@ import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.psi.parentOfType
 import org.vclang.typechecking.execution.DefinitionProxy
-import org.vclang.typechecking.execution.TypeCheckingEventsProcessor
+import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 class TypeCheckConsoleLogger(
         private val sourceInfoProvider: PrettyPrinterInfoProvider
 ) : ErrorReporter {
-    var eventsProcessor: TypeCheckingEventsProcessor? = null
+    var eventsProcessor: TypecheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
         val element = error.cause as? PsiElement
-        val definition = element?.parentOfType<PsiGlobalReferable>(false) ?: element?.containingFile as? PsiGlobalReferable ?: return
+        val definition = element?.parentOfType(false) ?: element?.containingFile as? PsiGlobalReferable ?: return
         val proxy = eventsProcessor?.getProxyByFullName(definition.fullName) ?: return
         DocConsolePrinter(proxy, error).print()
+        proxy.addText(CompositePrintable.NEW_LINE, levelToContentType(error.level))
     }
 
     companion object {
@@ -66,13 +68,7 @@ class TypeCheckConsoleLogger(
         }
 
         override fun visitText(doc: TextDoc, newLine: Boolean): Void? {
-            if (doc.text.startsWith('[') && doc.text.endsWith(']')) {
-                val element = error.cause as? PsiElement
-                val info = element?.let { PsiHyperlinkInfo(it) }
-                printHyperlink(doc.text, info)
-            } else {
-                printText(doc.text)
-            }
+            printText(doc.text)
             if (newLine) printNewLine()
             return null
         }
@@ -84,7 +80,8 @@ class TypeCheckConsoleLogger(
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val info = (doc.reference as? PsiElement)?.let { PsiHyperlinkInfo(it) }
+            val ref = (doc.reference as? SourceInfoReference)?.sourceInfo ?: doc.reference
+            val info = (ref as? PsiElement)?.let { PsiHyperlinkInfo(it) }
             printHyperlink(doc.reference.textRepresentation(), info)
             if (newLine) printNewLine()
             return null

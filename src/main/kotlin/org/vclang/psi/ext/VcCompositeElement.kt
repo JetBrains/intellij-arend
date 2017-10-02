@@ -3,24 +3,36 @@ package org.vclang.psi.ext
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import org.vclang.psi.VcFile
 import org.vclang.resolving.*
 
-interface VcCompositeElement : PsiElement {
+interface VcCompositeElement : PsiElement, SourceInfo {
     val scope: Scope
     override fun getReference(): VcReference?
 }
 
-abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node),
-                                                       VcCompositeElement {
+abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE // TODO[abstract]
 
     override fun getReference(): VcReference? = null
+
+    override fun moduleTextRepresentation(): String? = (containingFile as? VcFile)?.name
+
+    override fun positionTextRepresentation(): String? {
+        val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
+        val offset = textOffset
+        val line = document.getLineNumber(offset)
+        val column = offset - document.getLineStartOffset(line)
+        return (line + 1).toString() + ":" + (column + 1).toString()
+    }
 }
 
 abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
@@ -35,4 +47,8 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     override fun getReference(): VcReference? = null
 
     override fun toString(): String = "${javaClass.simpleName}($elementType)"
+
+    override fun moduleTextRepresentation(): String? = null
+
+    override fun positionTextRepresentation(): String? = null
 }

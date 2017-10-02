@@ -18,7 +18,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import java.util.LinkedHashSet
 
-class TypeCheckingEventsProcessor(
+class TypecheckingEventsProcessor(
     project: Project,
     private val typeCheckingRootNode: SMTestProxy.SMRootTestProxy,
     typeCheckingFrameworkName: String
