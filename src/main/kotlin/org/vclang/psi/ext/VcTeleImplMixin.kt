@@ -1,6 +1,7 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcDefIdentifier
 import org.vclang.psi.VcTele
@@ -11,7 +12,12 @@ abstract class VcTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcT
 
     override fun isExplicit(): Boolean = lbrace == null
 
-    override fun getReferableList(): List<VcDefIdentifier?> = typedExpr?.identifierOrUnknownList?.map { it.defIdentifier } ?: emptyList()
+    override fun getReferableList(): List<Referable?> {
+        typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.let { return it }
+        literal?.prefixName?.let { return listOf(it) }
+        literal?.underscore?.let { return listOf(null) }
+        return emptyList()
+    }
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr
 }

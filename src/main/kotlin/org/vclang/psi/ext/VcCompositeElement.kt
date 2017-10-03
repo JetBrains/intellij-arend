@@ -18,25 +18,28 @@ interface VcCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): VcReference?
 }
 
+private fun VcCompositeElement.moduleTextRepresentationImpl(): String? = (containingFile as? VcFile)?.name
+
+private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
+    val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
+    val offset = textOffset
+    val line = document.getLineNumber(offset)
+    val column = offset - document.getLineStartOffset(line)
+    return (line + 1).toString() + ":" + (column + 1).toString()
+}
+
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope: Scope
         get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE // TODO[abstract]
 
     override fun getReference(): VcReference? = null
 
-    override fun moduleTextRepresentation(): String? = (containingFile as? VcFile)?.name
+    override fun moduleTextRepresentation(): String? = moduleTextRepresentationImpl()
 
-    override fun positionTextRepresentation(): String? {
-        val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
-        val offset = textOffset
-        val line = document.getLineNumber(offset)
-        val column = offset - document.getLineStartOffset(line)
-        return (line + 1).toString() + ":" + (column + 1).toString()
-    }
+    override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
 }
 
-abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
-                                                              VcCompositeElement {
+abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, VcCompositeElement {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -48,7 +51,7 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
 
     override fun toString(): String = "${javaClass.simpleName}($elementType)"
 
-    override fun moduleTextRepresentation(): String? = null
+    override fun moduleTextRepresentation(): String? = moduleTextRepresentationImpl()
 
-    override fun positionTextRepresentation(): String? = null
+    override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
 }

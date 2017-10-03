@@ -68,7 +68,7 @@ interface TypeCheckingService {
 }
 
 class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
-    override var eventsProcessor: TypecheckingEventsProcessor? // TODO[abstract]: Why nullable?
+    override var eventsProcessor: TypecheckingEventsProcessor?
         get() = logger.eventsProcessor
         set(value) {
             logger.eventsProcessor = value
@@ -122,15 +122,16 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
             val sourceId = sourceIdByPath(modulePath) ?: return
 
+            val eventsProcessor = eventsProcessor!!
             if (definitionFullName.isEmpty()) {
                 val module = sourceId.source1.module
-                eventsProcessor?.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
+                eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
                 module.children
                     .filterIsInstance<VcStatement>()
                     .mapNotNull { it.definition }
-                    .forEach { eventsProcessor?.onTestStarted(TestStartedEvent(it.fullName, null)) }
+                    .forEach { eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null)) }
             } else {
-                eventsProcessor?.onTestStarted(TestStartedEvent(definitionFullName, null))
+                eventsProcessor.onTestStarted(TestStartedEvent(definitionFullName, null))
             }
 
             val module = loadSource(sourceId) ?: return
@@ -141,7 +142,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
 
             val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(nameResolver, logger))
-            val testResultReporter = TestResultReporter(eventsProcessor!!)
+            val testResultReporter = TestResultReporter(eventsProcessor)
             val typeChecking = Typechecking(
                     typeCheckerState,
                     staticNsProvider,
@@ -154,7 +155,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
             if (definitionFullName.isEmpty()) {
                 typeChecking.typecheckModules(listOf(module))
-                eventsProcessor!!.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
+                eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
             } else {
                 val group = module.findGroupByFullName(definitionFullName.split('.'))
                 val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
@@ -378,11 +379,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         override fun sourceOf(definition: GlobalReferable): VcSourceIdT? {
-            val module = when (definition) {
-                is VcDefinition -> definition.containingFile.originalFile as VcFile
-                is VcFile -> definition
-                else -> error("Invalid definition")
-            }
+            val module = (definition as? PsiElement)?.containingFile?.originalFile as? VcFile ?: error("Invalid definition")
             return if (module.virtualFile.nameWithoutExtension != "Prelude") {
                 storage.idFromFirst(projectStorage.locateModule(module))
             } else {

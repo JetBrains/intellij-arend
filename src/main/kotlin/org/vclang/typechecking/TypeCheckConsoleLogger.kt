@@ -80,9 +80,12 @@ class TypeCheckConsoleLogger(
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = (doc.reference as? SourceInfoReference)?.sourceInfo ?: doc.reference
-            val info = (ref as? PsiElement)?.let { PsiHyperlinkInfo(it) }
-            printHyperlink(doc.reference.textRepresentation(), info)
+            val ref = ((doc.reference as? SourceInfoReference)?.sourceInfo ?: doc.reference) as? PsiElement
+            if (ref == null) {
+                printText(doc.reference.textRepresentation())
+            } else {
+                printHyperlink(doc.reference.textRepresentation(), PsiHyperlinkInfo(ref))
+            }
             if (newLine) printNewLine()
             return null
         }
