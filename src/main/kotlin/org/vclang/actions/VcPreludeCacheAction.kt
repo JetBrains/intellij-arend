@@ -61,7 +61,7 @@ class VcPreludeCacheAction : AnAction() {
                 dynamicNsProvider,
                 concreteProvider,
                 errorReporter,
-                Prelude.UpdatePreludeReporter(cacheManager.typecheckerState),
+                Prelude.UpdatePreludeReporter(),
                 object : DependencyListener {}
         ).typecheckModules(setOf(prelude))
         cacheManager.persistCache(storage.preludeSourceId)

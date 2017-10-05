@@ -200,7 +200,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 dynamicNsProvider,
                 PsiConcreteProvider(nameResolver, logger),
                 DummyErrorReporter.INSTANCE,
-                Prelude.UpdatePreludeReporter(typeCheckerState),
+                Prelude.UpdatePreludeReporter(),
                 object : DependencyListener {}
         ).typecheckModules(listOf(prelude))
 
