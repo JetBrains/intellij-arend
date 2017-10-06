@@ -32,11 +32,10 @@ class TypeCheckConsoleLogger(
     var eventsProcessor: TypecheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
-        val element = error.cause as? PsiElement
-        val definition = element?.parentOfType(false) ?: element?.containingFile as? PsiGlobalReferable ?: return
-        val proxy = eventsProcessor?.getProxyByFullName(definition.fullName) ?: return
-        DocConsolePrinter(proxy, error).print()
-        proxy.addText(CompositePrintable.NEW_LINE, levelToContentType(error.level))
+        for (definition in error.affectedDefinitions) {
+            val proxy = (definition as? PsiGlobalReferable)?.let { eventsProcessor?.getProxyByFullName(it.fullName) } ?: continue
+            DocConsolePrinter(proxy, error).print()
+        }
     }
 
     companion object {
@@ -53,9 +52,12 @@ class TypeCheckConsoleLogger(
         private val error: GeneralError
     ) : LineDocVisitor() {
         private val contentType = levelToContentType(error.level)
+        private val stringBuilder = StringBuilder()
 
         fun print() {
             error.getDoc(sourceInfoProvider).accept(this, true)
+            printNewLine()
+            flushText()
             if (contentType in setOf(ERROR_OUTPUT, LOG_WARNING_OUTPUT)) {
                 proxy.addError("", null, true)
             }
@@ -90,11 +92,19 @@ class TypeCheckConsoleLogger(
             return null
         }
 
+        private fun flushText() {
+            if (stringBuilder.isNotEmpty()) {
+                proxy.addText(stringBuilder.toString(), contentType)
+                stringBuilder.setLength(0)
+            }
+        }
+
         private fun printText(text: String) {
-            proxy.addText(text, contentType)
+            stringBuilder.append(text)
         }
 
         private fun printHyperlink(text: String, info: HyperlinkInfo?) {
+            flushText()
             proxy.addHyperlink(text, info)
         }
 
