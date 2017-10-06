@@ -12,7 +12,7 @@ abstract class VcImplementStatementImplMixin(node: ASTNode) : VcCompositeElement
 
     override fun getImplementedField(): Referable {
         val ref = refIdentifier
-        return NamedUnresolvedReference(ref, ref.referenceName ?: ref.text)
+        return NamedUnresolvedReference(ref, ref.text)
     }
 
     override fun getImplementation(): Abstract.Expression? = expr

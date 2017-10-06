@@ -12,18 +12,13 @@ import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
 
-// TODO[abstract]: Check resolving
 interface VcReference : PsiReference {
-
     override fun getElement(): VcCompositeElement
 
     override fun resolve(): PsiElement?
 }
 
-open class VcReferenceImpl<T : VcReferenceElement>(element: T)
-    : PsiReferenceBase<T>(element, TextRange(0, element.textLength)),
-      VcReference {
-
+open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element

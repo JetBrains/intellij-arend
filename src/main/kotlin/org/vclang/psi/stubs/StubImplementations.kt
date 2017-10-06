@@ -119,7 +119,7 @@ class VcClassImplementStub(
         override fun createStub(
                 psi: VcClassImplement,
                 parentStub: StubElement<*>?
-        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.refIdentifier.referenceName)
+        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.refIdentifier.text)
 
         override fun indexStub(stub: VcClassImplementStub, sink: IndexSink) =
                 sink.indexClassImplement(stub)

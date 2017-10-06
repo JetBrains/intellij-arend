@@ -8,30 +8,13 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.psi.*
 
 abstract class VcFieldAccImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcFieldAcc {
-    // TODO[abstract]: Check this
-    override val scope: Scope
-        get() = findRoot()?.scope ?: EmptyScope.INSTANCE
-
     override val referenceNameElement: VcCompositeElement?
         get() = refIdentifier
 
     override val referenceName: String?
-        get() = referenceNameElement?.text
+        get() = refIdentifier?.text
 
     override fun getName(): String? = referenceName
-
-    private fun findRoot(): VcCompositeElement? {
-        val prev = leftSiblings.firstOrNull {
-            it is VcFieldAcc || it is VcAtom || it is VcLiteral || it is VcNsCmdRoot
-        }
-        val name = when (prev) {
-            is VcLiteral -> prev.prefixName
-            is VcAtom -> prev.atomModuleCall?.moduleName?.moduleNamePartList?.lastOrNull()
-            is VcNsCmdRoot -> prev.moduleName?.moduleNamePartList?.lastOrNull() ?: prev.refIdentifier
-            else -> prev
-        }
-        return name?.reference?.resolve() as? VcCompositeElement
-    }
 
     override fun getData(): VcFieldAccImplMixin = this
 

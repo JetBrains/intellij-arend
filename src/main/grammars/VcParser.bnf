@@ -127,7 +127,7 @@ definition ::= defFunction
     | defClassView
     | defInstance {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.Group" ]
+                   "com.jetbrains.jetpad.vclang.term.ChildGroup" ]
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 

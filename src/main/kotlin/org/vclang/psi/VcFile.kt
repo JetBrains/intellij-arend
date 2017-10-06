@@ -8,6 +8,7 @@ import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.VcFileType
@@ -18,7 +19,7 @@ import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.*
 import java.nio.file.Paths
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, Group {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, ChildGroup {
     override fun setName(name: String): PsiElement {
         val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
             name
@@ -40,6 +41,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun textRepresentation(): String = name
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getGroupParent(): ChildGroup? = null
 
     override fun getReferable(): PsiGlobalReferable = this
 

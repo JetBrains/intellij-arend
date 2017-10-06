@@ -30,7 +30,7 @@ private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE // TODO[abstract]
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
     override fun getReference(): VcReference? = null
 
@@ -45,7 +45,7 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE // TODO[abstract]
+        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
     override fun getReference(): VcReference? = null
 

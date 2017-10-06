@@ -12,7 +12,7 @@ abstract class VcAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcAtom {
         literal?.let { return it.accept(visitor, params) }
         number?.text?.let { return visitor.visitNumericLiteral(this, BigInteger(it), params) }
         tuple?.let { return visitor.visitTuple(this, it.exprList, params) }
-        atomModuleCall?.let { return visitor.visitModuleCall(this, ModulePath(it.moduleName.moduleNamePartList.map { it.refIdentifier.referenceName ?: it.text }), params) }
+        atomModuleCall?.let { return visitor.visitModuleCall(this, ModulePath(it.moduleName.moduleNamePartList.map { it.refIdentifier.text }), params) }
         error("Incorrect expression: atom")
     }
 }

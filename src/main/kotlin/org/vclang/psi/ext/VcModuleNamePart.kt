@@ -13,15 +13,12 @@ import org.vclang.getPsiFileFor
 import org.vclang.psi.*
 import org.vclang.resolving.*
 
-abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                          VcModuleNamePart {
-    override val scope: Scope = EmptyScope.INSTANCE
-
+abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcModuleNamePart {
     override val referenceNameElement: VcCompositeElement
         get() = refIdentifier
 
     override val referenceName: String
-        get() = referenceNameElement.text
+        get() = refIdentifier.text
 
     override fun getName(): String = referenceName
 

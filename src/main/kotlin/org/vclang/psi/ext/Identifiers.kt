@@ -11,7 +11,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
         get() = this
 
     override val referenceName: String
-        get() = referenceNameElement.text
+        get() = text
 
     override fun getName(): String = referenceName
 
@@ -19,14 +19,11 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
 }
 
 abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {
-    override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
-
     override val referenceNameElement: VcRefIdentifierImplMixin
         get() = this
 
     override val referenceName: String
-        get() = referenceNameElement.text
+        get() = text
 
     override fun getName(): String = referenceName
 
@@ -34,9 +31,6 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
 }
 
 abstract class VcPrefixImplMixin(node: ASTNode) : PsiReferableImpl(node), VcPrefixName {
-    override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
-
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -49,9 +43,6 @@ abstract class VcPrefixImplMixin(node: ASTNode) : PsiReferableImpl(node), VcPref
 }
 
 abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcInfixName {
-    override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
-
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -64,9 +55,6 @@ abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), V
 }
 
 abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPostfixName {
-    override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
-
     override val referenceNameElement: VcCompositeElement
         get() = this
 
