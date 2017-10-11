@@ -89,7 +89,7 @@ statement ::= statCmd | definition
 statCmd ::= nsCmd nsCmdRoot (DOT refIdentifier)* [HIDING_KW? LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.NamespaceCommand" ]
+                   "com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand" ]
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 

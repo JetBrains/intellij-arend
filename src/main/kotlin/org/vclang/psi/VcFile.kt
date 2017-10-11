@@ -42,7 +42,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
-    override fun getGroupParent(): ChildGroup? = null
+    override fun getParentGroup(): ChildGroup? = null
 
     override fun getReferable(): PsiGlobalReferable = this
 

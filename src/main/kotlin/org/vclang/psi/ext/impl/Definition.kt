@@ -23,7 +23,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ReferableDefinition? = ConcreteBuilder.convert(this, errorReporter)
 
-    override fun getGroupParent(): ChildGroup? = ancestors.filterIsInstance<ChildGroup>().first()
+    override fun getParentGroup(): ChildGroup? = ancestors.filterIsInstance<ChildGroup>().first()
 
     override fun getReferable(): GlobalReferable = this
 

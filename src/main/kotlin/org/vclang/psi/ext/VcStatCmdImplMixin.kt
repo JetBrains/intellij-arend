@@ -6,8 +6,10 @@ import com.jetbrains.jetpad.vclang.naming.reference.LongUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import org.vclang.psi.VcStatCmd
+import org.vclang.psi.ancestors
 
 abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd {
     override fun getKind(): NamespaceCommand.Kind =
@@ -34,7 +36,9 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getSubgroupReferences(): List<Referable> = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
 
-    /* TODO[abstract]
+    override fun getParentGroup(): ChildGroup? = ancestors.filterIsInstance<ChildGroup>().first()
+
+/* TODO[abstract]
     override val scope: Scope
         get() = nsCmdRoot?.let {
             FilteredScope(
