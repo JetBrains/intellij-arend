@@ -448,7 +448,7 @@ refIdentifier ::= PREFIX | INFIX {
 
 prefixName ::= PREFIX | PREFIX_INFIX {
     implements = [ "org.vclang.psi.ext.VcReferenceElement"
-                   "org.vclang.psi.ext.PsiReferable" ]
+                   "com.jetbrains.jetpad.vclang.naming.reference.Referable" ]
     mixin = "org.vclang.psi.ext.VcPrefixImplMixin"
 }
 

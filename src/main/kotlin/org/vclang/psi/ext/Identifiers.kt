@@ -30,7 +30,7 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
     override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this)
 }
 
-abstract class VcPrefixImplMixin(node: ASTNode) : PsiReferableImpl(node), VcPrefixName {
+abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPrefixName {
     override val referenceNameElement: VcCompositeElement
         get() = this
 
@@ -38,6 +38,8 @@ abstract class VcPrefixImplMixin(node: ASTNode) : PsiReferableImpl(node), VcPref
         get() = prefixInfix?.text?.removePrefix("`") ?: text
 
     override fun getName(): String = referenceName
+
+    override fun textRepresentation(): String = referenceName
 
     override fun getReference(): VcReference = VcReferenceImpl<VcPrefixName>(this)
 }

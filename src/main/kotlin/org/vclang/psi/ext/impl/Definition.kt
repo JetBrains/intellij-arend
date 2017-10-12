@@ -7,6 +7,8 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.Group
@@ -18,6 +20,9 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override val scope: Scope
+        get() = LexicalScope(super.scope, this)
 
     open fun getWhere(): VcWhere? = null
 

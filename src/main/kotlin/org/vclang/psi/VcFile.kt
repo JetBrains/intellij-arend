@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.Group
@@ -32,7 +33,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
     override val scope: Scope
-        get() = EmptyScope.INSTANCE
+        get() = LexicalScope(EmptyScope.INSTANCE, this)
 
     override fun getReference(): VcReference? = null
 
@@ -70,103 +71,4 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun moduleTextRepresentation(): String = name
 
     override fun positionTextRepresentation(): String? = null
-
-    /* TODO[abstract]
-    private var globalStatements = emptyList<Surrogate.Statement>()
-
-    override val namespace: Namespace
-        get() {
-            val statements = children.filterIsInstance<VcStatement>()
-            return NamespaceProvider.forDefinitions(statements.mapNotNull { it.statDef })
-        }
-
-    override val scope: Scope
-        get() {
-            val namespaceScope = MergeScope(PreludeScope, NamespaceScope(namespace))
-            val statements = children.filterIsInstance<VcStatement>()
-            return statements
-                    .mapNotNull { it.statCmd }
-                    .map { it.scope }
-                    .fold(namespaceScope) { scope1, scope2 -> MergeScope(scope1, scope2) }
-        }
-
-    override fun getGlobalStatements(): List<Surrogate.Statement> = globalStatements
-
-    fun setGlobalStatements(globalStatements: List<Surrogate.Statement>) {
-        this.globalStatements = globalStatements
-    }
-
-    private object FindDefinitionVisitor : AbstractDefinitionVisitor<String, Abstract.Definition?> {
-
-        override fun visitFunction(
-                definition: Abstract.FunctionDefinition,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            definition.globalDefinitions.forEach { it.accept(this, params)?.let { return it } }
-            return null
-        }
-
-        override fun visitClassField(
-                definition: Abstract.ClassField,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            return null
-        }
-
-        override fun visitData(
-                definition: Abstract.DataDefinition,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            definition.constructorClauses
-                    .flatMap { it.constructors }
-                    .forEach { it.accept(this, params)?.let { return it } }
-            return null
-        }
-
-        override fun visitConstructor(
-                definition: Abstract.Constructor,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            return null
-        }
-
-        override fun visitClass(
-                definition: Abstract.ClassDefinition,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            definition.globalDefinitions.forEach { it.accept(this, params)?.let { return it } }
-            definition.instanceDefinitions.forEach { it.accept(this, params)?.let { return it } }
-            definition.fields.forEach { it.accept(this, params)?.let { return it } }
-            return null
-        }
-
-        override fun visitImplement(
-                definition: Abstract.Implementation,
-                params: String
-        ): Abstract.Definition? = null
-
-        override fun visitClassView(
-                definition: Abstract.ClassView,
-                params: String
-        ): Abstract.Definition? = null
-
-        override fun visitClassViewField(
-                definition: Abstract.ClassViewField,
-                params: String
-        ): Abstract.Definition? = null
-
-        override fun visitClassViewInstance(
-                definition: Abstract.ClassViewInstance,
-                params: String
-        ): Abstract.Definition? {
-            if (definition.fullName == params) return definition
-            return null
-        }
-    }
-    */
 }
