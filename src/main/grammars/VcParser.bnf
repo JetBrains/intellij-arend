@@ -95,9 +95,7 @@ statCmd ::= nsCmd nsCmdRoot (DOT refIdentifier)* [HIDING_KW? LPAREN <<comma_sepa
 
 nsCmd ::= OPEN_KW | EXPORT_KW
 
-nsCmdRoot ::= moduleName | refIdentifier {
-    mixin = "org.vclang.psi.ext.VcNsCmdRootImplMixin"
-}
+nsCmdRoot ::= moduleName | refIdentifier
 
 classStat ::= classField
     | classImplement
@@ -436,8 +434,7 @@ typedExpr ::= identifierOrUnknown+ COLON expr | expr  // expr [COLON expr]
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 defIdentifier ::= PREFIX | INFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement"
-                   "com.jetbrains.jetpad.vclang.naming.reference.Referable" ]
+    implements = "org.vclang.psi.ext.PsiReferable"
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
 }
 

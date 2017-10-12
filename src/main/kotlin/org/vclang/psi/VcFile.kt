@@ -35,6 +35,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override val scope: Scope
         get() = LexicalScope(EmptyScope.INSTANCE, this)
 
+    override fun getNameIdentifier(): PsiElement? = null
+
     override fun getReference(): VcReference? = null
 
     override fun getFileType(): FileType = VcFileType

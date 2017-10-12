@@ -1,21 +1,13 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
-import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.psi.*
 import org.vclang.resolving.*
 
-abstract class VcDefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcDefIdentifier {
-    override val referenceNameElement: VcDefIdentifierImplMixin
-        get() = this
+abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), VcDefIdentifier {
+    override fun getName(): String = text
 
-    override val referenceName: String
-        get() = text
-
-    override fun getName(): String = referenceName
-
-    override fun textRepresentation(): String = referenceName
+    override fun textRepresentation(): String = text
 }
 
 abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {

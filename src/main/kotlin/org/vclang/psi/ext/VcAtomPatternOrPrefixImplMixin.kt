@@ -15,5 +15,5 @@ abstract class VcAtomPatternOrPrefixImplMixin(node: ASTNode) : VcCompositeElemen
 
     override fun getHeadReference(): Referable? = prefixName ?: atomPattern?.pattern?.headReference
 
-    override fun getArguments(): Collection<Abstract.Pattern> = atomPattern?.pattern?.arguments ?: emptyList()
+    override fun getArguments(): List<Abstract.Pattern> = atomPattern?.pattern?.arguments ?: emptyList()
 }

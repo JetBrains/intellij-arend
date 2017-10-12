@@ -56,16 +56,3 @@ abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl
         }
     }
 }
-
-abstract class VcNsCmdRootImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
-                                                     VcNsCmdRoot {
-    /* TODO[abstract]
-    override val namespace: Namespace
-        get() {
-            val name = moduleName?.moduleNamePartList?.lastOrNull() ?: refIdentifier
-            val resolved = name?.reference?.resolve() as? VcCompositeElement
-            resolved?.let { return it.namespace }
-            return EmptyNamespace
-        }
-    */
-}

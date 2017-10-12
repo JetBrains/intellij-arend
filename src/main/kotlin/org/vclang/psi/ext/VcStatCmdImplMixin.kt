@@ -37,15 +37,4 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getSubgroupReferences(): List<Referable> = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
 
     override fun getParentGroup(): ChildGroup? = ancestors.filterIsInstance<ChildGroup>().first()
-
-/* TODO[abstract]
-    override val scope: Scope
-        get() = nsCmdRoot?.let {
-            FilteredScope(
-                    NamespaceScope(it.namespace),
-                    refIdentifierList.mapNotNull { it.referenceName }.toSet(),
-                    isHiding
-            )
-        } ?: EmptyScope
-    */
 }

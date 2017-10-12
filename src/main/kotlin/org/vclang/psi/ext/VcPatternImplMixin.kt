@@ -20,7 +20,7 @@ abstract class VcPatternImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         return if (conPattern.atomPatternOrPrefixList.isEmpty()) conName else NamedUnresolvedReference(conName, conName.text)
     }
 
-    override fun getArguments(): Collection<Abstract.Pattern> = patternConstructor?.atomPatternOrPrefixList ?: atomPattern?.pattern?.arguments ?: emptyList()
+    override fun getArguments(): List<Abstract.Pattern> = patternConstructor?.atomPatternOrPrefixList ?: atomPattern?.pattern?.arguments ?: emptyList()
 }
 
 fun isEmpty(atom: VcAtomPattern?): Boolean = when {

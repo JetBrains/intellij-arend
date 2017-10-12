@@ -5,7 +5,6 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
-import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
@@ -15,7 +14,7 @@ import org.vclang.psi.VcPsiFactory
 import org.vclang.psi.childOfType
 import org.vclang.psi.stubs.VcNamedStub
 
-interface PsiReferable : VcCompositeElement, PsiNamedElement, NavigatablePsiElement, Referable
+interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable
 
 abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), PsiNameIdentifierOwner, PsiReferable {
 

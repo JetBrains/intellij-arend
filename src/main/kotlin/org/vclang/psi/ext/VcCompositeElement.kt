@@ -10,6 +10,9 @@ import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.naming.scope.local.EmptyLocalScope
+import com.jetbrains.jetpad.vclang.naming.scope.local.ExpressionScope
+import com.jetbrains.jetpad.vclang.naming.scope.local.LocalScope
 import org.vclang.psi.VcFile
 import org.vclang.resolving.*
 
@@ -30,7 +33,10 @@ private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
+        get() {
+            val parentScope = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
+            return ExpressionScope.localScope(parentScope as? LocalScope ?: EmptyLocalScope(parentScope), parent, this)
+        }
 
     override fun getReference(): VcReference? = null
 
