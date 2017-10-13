@@ -1,6 +1,8 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.psi.*
 import org.vclang.resolving.*
 
@@ -18,6 +20,10 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
         get() = text
 
     override fun getName(): String = referenceName
+
+    override fun getData() = this
+
+    override fun getReferent(): Referable = NamedUnresolvedReference(this, referenceName)
 
     override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this)
 }

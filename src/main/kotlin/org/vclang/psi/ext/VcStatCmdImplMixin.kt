@@ -36,5 +36,5 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getSubgroupReferences(): List<Referable> = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
 
-    override fun getParentGroup(): ChildGroup? = ancestors.filterIsInstance<ChildGroup>().first()
+    override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 }

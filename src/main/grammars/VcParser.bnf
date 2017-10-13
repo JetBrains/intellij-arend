@@ -164,11 +164,7 @@ defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier tele* FAT_ARROW expr {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionBody ::= FAT_ARROW !ELIM_KW expr | elim? functionClauses {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionBody" ]
-    mixin = "org.vclang.psi.ext.VcFunctionBodyImplMixin"
-}
+functionBody ::= FAT_ARROW !ELIM_KW expr | elim? functionClauses
 
 dataBody ::= elim constructorClause* | [FAT_ARROW PIPE? constructor] (PIPE constructor)*
 
@@ -179,7 +175,7 @@ constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (const
     mixin = "org.vclang.psi.ext.VcConstructorClauseImplMixin"
 }
 
-elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence atomFieldsAcc>>
+elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence refIdentifier>>
 
 classViewField ::= defIdentifier [FAT_ARROW prec? refIdentifier] {
     implements = "org.vclang.psi.ext.PsiConcreteReferable"
@@ -345,7 +341,7 @@ binOpRight ::= infixName newExpr | postfixName {
     mixin = "org.vclang.psi.ext.VcBinOpRightImplMixin"
 }
 
-newExpr ::= NEW_KW? binOpArg implementStatements? {
+newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE] {
     pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
@@ -381,8 +377,6 @@ atomFieldsAcc ::= atom fieldAcc* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
 }
-
-implementStatements ::= LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE
 
 implementStatement ::= refIdentifier FAT_ARROW expr {
     pin = 1
@@ -439,7 +433,8 @@ defIdentifier ::= PREFIX | INFIX {
 }
 
 refIdentifier ::= PREFIX | INFIX {
-    implements = "org.vclang.psi.ext.VcReferenceElement"
+    implements = [ "org.vclang.psi.ext.VcReferenceElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference" ]
     mixin = "org.vclang.psi.ext.VcRefIdentifierImplMixin"
 }
 

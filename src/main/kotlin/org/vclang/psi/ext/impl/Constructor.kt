@@ -29,7 +29,7 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun getParameters(): List<VcTele> = teleList
 
-    override fun getEliminatedExpressions(): List<VcExpr> = elim?.atomFieldsAccList ?: emptyList()
+    override fun getEliminatedExpressions(): List<VcRefIdentifier> = elim?.refIdentifierList ?: emptyList()
 
     override fun getClauses(): List<VcClause> = clauseList
 
