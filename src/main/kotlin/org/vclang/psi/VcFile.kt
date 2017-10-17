@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
-import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
+import com.jetbrains.jetpad.vclang.naming.scope.PartialLexicalScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.Group
@@ -33,7 +33,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
     override val scope: Scope
-        get() = LexicalScope(EmptyScope.INSTANCE, this)
+        get() = PartialLexicalScope(EmptyScope.INSTANCE, this)
 
     override fun getNameIdentifier(): PsiElement? = null
 

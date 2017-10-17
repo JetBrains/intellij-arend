@@ -347,12 +347,7 @@ newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence implementStatemen
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
 
-fieldAcc ::= DOT (NUMBER | refIdentifier) {
-    pin = 1
-    implements = [ "org.vclang.psi.ext.VcReferenceElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.FieldAcc" ]
-    mixin = "org.vclang.psi.ext.VcFieldAccImplMixin"
-}
+fieldAcc ::= DOT NUMBER
 
 moduleName ::= (COLONCOLON moduleNamePart)+
 
@@ -393,7 +388,7 @@ argument ::= atomFieldsAcc
     mixin = "org.vclang.psi.ext.VcArgumentImplMixin"
 }
 
-literal ::= prefixName
+literal ::= prefixName (DOT refIdentifier)*
     | PROP_KW
     | UNDERSCORE
     | goal {
