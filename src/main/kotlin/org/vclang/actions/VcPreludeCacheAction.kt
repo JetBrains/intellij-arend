@@ -57,8 +57,6 @@ class VcPreludeCacheAction : AnAction() {
 
         Typechecking(
                 cacheManager.typecheckerState,
-                staticNsProvider,
-                dynamicNsProvider,
                 concreteProvider,
                 errorReporter,
                 Prelude.UpdatePreludeReporter(),

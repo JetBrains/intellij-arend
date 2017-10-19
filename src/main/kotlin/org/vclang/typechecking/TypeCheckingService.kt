@@ -145,8 +145,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             val testResultReporter = TestResultReporter(eventsProcessor)
             val typeChecking = Typechecking(
                     typeCheckerState,
-                    staticNsProvider,
-                    dynamicNsProvider,
                     concreteProvider,
                     logger,
                     testResultReporter,
@@ -196,8 +194,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         // TODO[abstract]: We do not need to typecheck prelude
         Typechecking(
                 typeCheckerState,
-                staticNsProvider,
-                dynamicNsProvider,
                 PsiConcreteProvider(nameResolver, logger),
                 DummyErrorReporter.INSTANCE,
                 Prelude.UpdatePreludeReporter(),
