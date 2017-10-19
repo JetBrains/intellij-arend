@@ -145,6 +145,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier tele* [COLON expr] dataBod
 
 defClass ::= CLASS_KW prec? defIdentifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE classStat* RBRACE] where? {
     pin = 1
+    implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"

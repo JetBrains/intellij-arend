@@ -33,7 +33,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
     override val scope: Scope
-        get() = PartialLexicalScope(EmptyScope.INSTANCE, this)
+        get() = lexicalScope
 
     override fun getNameIdentifier(): PsiElement? = null
 

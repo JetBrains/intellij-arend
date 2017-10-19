@@ -22,7 +22,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override val scope: Scope
-        get() = LexicalScope(super.scope, this)
+        get() = lexicalScope
 
     open fun getWhere(): VcWhere? = null
 
