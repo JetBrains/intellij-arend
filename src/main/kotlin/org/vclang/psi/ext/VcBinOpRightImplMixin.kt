@@ -9,8 +9,8 @@ import org.vclang.psi.VcBinOpRight
 
 abstract class VcBinOpRightImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcBinOpRight {
     override fun getBinOpReference(): Referable {
-        infixName?.let { return NamedUnresolvedReference(it, it.referenceName ?: text) }
-        postfixName?.let { return NamedUnresolvedReference(it, it.referenceName ?: text) }
+        infixName?.let { return NamedUnresolvedReference(it, it.referenceName) }
+        postfixName?.let { return NamedUnresolvedReference(it, it.referenceName) }
         return NamedUnresolvedReference(this, text)
     }
 

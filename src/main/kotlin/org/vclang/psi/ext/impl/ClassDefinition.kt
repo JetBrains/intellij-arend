@@ -4,13 +4,14 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.*
-import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -23,7 +24,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getClassReference(): ClassReferable = this
 
-    override fun getSuperClassReferences(): List<ClassReferable> = atomFieldsAccList.mapNotNull { it.atom.literal?.prefixName?.referenceName?.let { (parent as? VcCompositeElement)?.scope?.resolveName(it) as? ClassReferable }  } // TODO[abstract]: merge with getSuperClasses
+    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
+        (it.referent as UnresolvedReference).resolve(parentGroup?.lexicalScope ?: EmptyScope.INSTANCE, null) as? ClassReferable
+    }
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
@@ -31,7 +34,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getParameters(): List<VcTele> = teleList
 
-    override fun getSuperClasses(): List<VcExpr> = atomFieldsAccList
+    override fun getSuperClasses(): List<VcLongName> = longNameList
 
     override fun getClassFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
 

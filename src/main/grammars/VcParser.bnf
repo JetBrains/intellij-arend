@@ -143,7 +143,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier tele* [COLON expr] dataBod
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier tele* [EXTENDS_KW <<comma_separated_sequence atomFieldsAcc>>] [LBRACE classStat* RBRACE] where? {
+defClass ::= CLASS_KW prec? defIdentifier tele* [EXTENDS_KW <<comma_separated_sequence longName>>] [LBRACE classStat* RBRACE] where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
@@ -389,7 +389,13 @@ argument ::= atomFieldsAcc
     mixin = "org.vclang.psi.ext.VcArgumentImplMixin"
 }
 
-literal ::= prefixName (DOT refIdentifier)*
+longName ::= prefixName (DOT refIdentifier)* {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference" ]
+    mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
+}
+
+literal ::= longName
     | PROP_KW
     | UNDERSCORE
     | goal {

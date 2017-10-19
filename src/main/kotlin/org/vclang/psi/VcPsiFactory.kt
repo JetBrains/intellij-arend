@@ -16,7 +16,7 @@ class VcPsiFactory(private val project: Project) {
 
     fun createPrefixName(name: String): VcPrefixName {
         val needsPrefix = !VcNamesValidator().isPrefixName(name)
-        return createLiteral(if (needsPrefix) "`$name" else name).prefixName
+        return createLiteral(if (needsPrefix) "`$name" else name).longName?.prefixName
                 ?: error("Failed to create prefix name: `$name`")
     }
 

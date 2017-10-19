@@ -31,8 +31,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
             LookupElementBuilder.create(it, it.textRepresentation())
     }.toTypedArray()
 
-    override fun resolve(): PsiElement? =
-        element.referenceName?.let { element.scope.resolveName(it) as? VcCompositeElement }
+    override fun resolve(): PsiElement? = element.scope.resolveName(element.referenceName) as? VcCompositeElement
 
     companion object {
         private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
