@@ -374,8 +374,7 @@ atomFieldsAcc ::= atom fieldAcc* {
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
 }
 
-implementStatement ::= refIdentifier FAT_ARROW expr {
-    pin = 1
+implementStatement ::= longName FAT_ARROW expr {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.VcImplementStatementImplMixin"
