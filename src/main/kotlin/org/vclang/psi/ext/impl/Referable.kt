@@ -17,7 +17,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
-    protected companion object {
+    companion object {
         fun calcPrecedence(prec: VcPrec?): Precedence {
             if (prec == null) return Precedence.DEFAULT
             val assoc = when {

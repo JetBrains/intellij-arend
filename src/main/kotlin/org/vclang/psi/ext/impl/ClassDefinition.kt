@@ -25,7 +25,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getClassReference(): ClassReferable = this
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
-        (it.referent as UnresolvedReference).resolve(parentGroup?.lexicalScope ?: EmptyScope.INSTANCE, null) as? ClassReferable
+        (it.referent as UnresolvedReference).resolve(parentGroup?.lexicalScope ?: EmptyScope.INSTANCE) as? ClassReferable
     }
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }

@@ -4,39 +4,39 @@ class VcModuleCompletionTest : VcCompletionTestBase() {
     fun `test module name completion`() = doSingleCompletionMultiflie(
             """
                 --! Main.vc
-                \open ::My{-caret-}
+                \import My{-caret-}
 
                 --! MyModule.vc
                 -- empty
             """,
             """
-                \open ::MyModule
+                \import MyModule
             """
     )
 
     fun `test directory name completion`() = doSingleCompletionMultiflie(
             """
                 --! Main.vc
-                \open ::Dir{-caret-}
+                \import Dir{-caret-}
 
                 --! Directory/MyModule.vc
                 -- empty
             """,
             """
-                \open ::Directory{-caret-}
+                \import Directory{-caret-}
             """
     )
 
     fun `test module name completion subdirectory`() = doSingleCompletionMultiflie(
             """
                 --! Main.vc
-                \open ::Directory::My{-caret-}
+                \import Directory.My{-caret-}
 
                 --! Directory/MyModule.vc
                 -- empty
             """,
             """
-                \open ::Directory::MyModule{-caret-}
+                \import Directory.MyModule{-caret-}
             """
     )
 }

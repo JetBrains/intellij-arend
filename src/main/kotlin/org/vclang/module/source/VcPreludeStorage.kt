@@ -41,7 +41,7 @@ class VcPreludeStorage(
     override fun getCacheOutputStream(sourceId: SourceId): OutputStream? = null
 
     override fun locateModule(modulePath: ModulePath): SourceId? =
-            if (modulePath.toString() == "::Prelude") preludeSourceId else null
+            if (modulePath.toString() == "Prelude") preludeSourceId else null
 
     override fun isAvailable(sourceId: SourceId): Boolean = sourceId === preludeSourceId
 

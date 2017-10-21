@@ -33,7 +33,7 @@ class VcColorSettingsPage : ColorSettingsPage {
                 .toTypedArray()
 
         // TODO: update demo text
-        private val DEMO_TEXT = "\\open ::Data::Bool\n" +
+        private val DEMO_TEXT = "\\import Data.Bool\n" +
                 "\n" +
                 "\\class Semigroup {\n" +
                 "  \\field X : \\Type0\n" +

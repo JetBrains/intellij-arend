@@ -13,5 +13,5 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
         visitor.visitClassExt(this, newKw != null, binOpArg, implementStatementList, params)
 
     override fun getClassReference(): ClassReferable? =
-        ((binOpArg as? VcArgumentBinOp)?.atomFieldsAcc?.atom?.literal?.longName?.referent as UnresolvedReference?)?.resolve(scope.globalSubscope, null) as? ClassReferable
+        ((binOpArg as? VcArgumentBinOp)?.atomFieldsAcc?.atom?.literal?.longName?.referent as UnresolvedReference?)?.resolve(scope.globalSubscope) as? ClassReferable
 }

@@ -23,7 +23,6 @@
         LPAREN              = '('
         RPAREN              = ')'
         COLON               = ':'
-        COLONCOLON          = '::'
         ARROW               = '->'
         FAT_ARROW           = '=>'
         DOT                 = '.'
@@ -36,7 +35,10 @@
 
         OPEN_KW             = '\open'
         EXPORT_KW           = '\export'
+        IMPORT_KW           = '\import'
         HIDING_KW           = '\hiding'
+        USING_KW            = '\using'
+        AS_KW               = '\as'
         FUNCTION_KW         = '\function'
         NON_ASSOC_KW        = '\infix'
         LEFT_ASSOC_KW       = '\infixl'
@@ -80,22 +82,28 @@ statements ::= topStatement*
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
-private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | FUNCTION_KW |
-                                TRUNCATED_KW | DATA_KW      | CLASS_KW    |
+private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | IMPORT_KW |
+                                FUNCTION_KW  | TRUNCATED_KW | DATA_KW   | CLASS_KW |
                                 VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
 statement ::= statCmd | definition
 
-statCmd ::= nsCmd nsCmdRoot (DOT refIdentifier)* [HIDING_KW? LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
+statCmd ::= nsCmd longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand" ]
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 
-nsCmd ::= OPEN_KW | EXPORT_KW
+nsCmd ::= OPEN_KW | EXPORT_KW | IMPORT_KW
 
-nsCmdRoot ::= moduleName | refIdentifier
+nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN { pin = 1 }
+
+nsId ::= refIdentifier [AS_KW prec? defIdentifier] {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.NameRenaming" ]
+    mixin = "org.vclang.psi.ext.VcNsIdImplMixin"
+}
 
 classStat ::= classField
     | classImplement
@@ -350,24 +358,14 @@ newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence implementStatemen
 
 fieldAcc ::= DOT NUMBER
 
-moduleName ::= (COLONCOLON moduleNamePart)+
-
-moduleNamePart ::= refIdentifier {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement" ]
-    mixin = "org.vclang.psi.ext.VcModuleNamePartImplMixin"
-}
-
 atom ::= literal
     | tuple
-    | NUMBER
-    | atomModuleCall {
+    | NUMBER {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
 }
 
 tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
-
-atomModuleCall ::= moduleName
 
 atomFieldsAcc ::= atom fieldAcc* {
     implements = "org.vclang.psi.VcExpr"

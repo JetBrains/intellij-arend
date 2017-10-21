@@ -13,6 +13,8 @@ import org.vclang.getPsiFileFor
 import org.vclang.psi.*
 import org.vclang.resolving.*
 
+// TODO[abstract]: Delete this
+/*
 abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcModuleNamePart {
     override val referenceNameElement: VcCompositeElement
         get() = refIdentifier
@@ -56,3 +58,4 @@ abstract class VcModuleNamePartImplMixin(node: ASTNode) : VcCompositeElementImpl
         }
     }
 }
+*/

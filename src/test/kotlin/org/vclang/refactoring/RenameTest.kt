@@ -152,14 +152,14 @@ class RenameTest : VcTestBase() {
     fun `test rename file`() = checkByDirectory(
             """
                 --! Main.vc
-                \open ::Foo
+                \import Foo
 
                 --! Foo.vc
                 -- empty
             """,
             """
                 --! Main.vc
-                \open ::Bar
+                \import Bar
 
                 --! Bar.vc
                 -- empty
@@ -172,14 +172,14 @@ class RenameTest : VcTestBase() {
     fun `test rename file without extension`() = checkByDirectory(
             """
                 --! Main.vc
-                \open ::Foo
+                \import Foo
 
                 --! Foo.vc
                 -- empty
             """,
             """
                 --! Main.vc
-                \open ::Bar
+                \import Bar
 
                 --! Bar.vc
                 -- empty
@@ -192,14 +192,14 @@ class RenameTest : VcTestBase() {
     fun `test rename directory`() = checkByDirectory(
             """
                 --! Main.vc
-                \open ::DirA::Foo
+                \import DirA.Foo
 
                 --! DirA/Foo.vc
                 -- empty
             """,
             """
                 --! Main.vc
-                \open ::DirB::Foo
+                \import DirB.Foo
 
                 --! DirB/Foo.vc
                 -- empty

@@ -15,12 +15,8 @@ abstract class VcCompletionTestBase : VcTestBase() {
         InlineFile(code).withCaret()
         executeSoloCompletion()
 
-        val normName = target
-                .substringAfterLast("::")
-                .substringAfterLast(".")
-        val shift = if (target.endsWith("::")) 3 else 2
-
-        val element = myFixture.file.findElementAt(myFixture.caretOffset - shift)!!
+        val normName = target.substringAfterLast(".")
+        val element = myFixture.file.findElementAt(myFixture.caretOffset - 2)!!
         val skipTextCheck = normName.isEmpty() || normName.contains(' ')
         check((skipTextCheck || element.text == normName)
                 && (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
