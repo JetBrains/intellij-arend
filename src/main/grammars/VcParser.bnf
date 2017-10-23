@@ -97,7 +97,7 @@ statCmd ::= nsCmd longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence
 
 nsCmd ::= OPEN_KW | EXPORT_KW | IMPORT_KW
 
-nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN { pin = 1 }
+nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN
 
 nsId ::= refIdentifier [AS_KW prec? defIdentifier] {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"

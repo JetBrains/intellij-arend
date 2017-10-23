@@ -10,7 +10,6 @@ import org.vclang.psi.VC_KEYWORDS
 import org.vclang.psi.VcElementTypes.ARROW
 import org.vclang.psi.VcElementTypes.BLOCK_COMMENT
 import org.vclang.psi.VcElementTypes.COLON
-import org.vclang.psi.VcElementTypes.COLONCOLON
 import org.vclang.psi.VcElementTypes.COMMA
 import org.vclang.psi.VcElementTypes.DOT
 import org.vclang.psi.VcElementTypes.FAT_ARROW
@@ -49,7 +48,7 @@ class VcSyntaxHighlighter : SyntaxHighlighterBase() {
             INFIX -> VcHighlightingColors.OPERATORS
             DOT -> VcHighlightingColors.DOT
             COMMA -> VcHighlightingColors.COMMA
-            COLON, COLONCOLON -> VcHighlightingColors.COLON
+            COLON -> VcHighlightingColors.COLON
             GRAVE -> VcHighlightingColors.GRAVE
             PIPE -> VcHighlightingColors.COMMA
             ARROW, FAT_ARROW -> VcHighlightingColors.ARROW

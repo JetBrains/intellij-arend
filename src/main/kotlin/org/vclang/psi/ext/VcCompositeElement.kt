@@ -10,7 +10,7 @@ import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import com.jetbrains.jetpad.vclang.naming.scope.local.ExpressionScope
+import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
@@ -33,7 +33,7 @@ private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
 
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope: Scope
-        get() = ExpressionScope.localScope((parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE, ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull())
+        get() = ScopeFactory.forSourceNode((parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE, ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull())
 
     fun getParentSourceNode(): Abstract.SourceNode? = parent.ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull()
 

@@ -9,8 +9,8 @@ import org.vclang.psi.ext.PsiReferable
 
 fun getPresentation(psi: VcCompositeElement): ItemPresentation {
     val location = run {
-        val module = psi.containingFile as? VcFile
-        "(in ${module?.relativeModulePath ?: psi.containingFile.name})"
+        val module = psi.containingFile
+        "(in ${(module as? VcFile)?.fullName ?: module.name})"
     }
 
     val name = presentableName(psi)
@@ -21,7 +21,7 @@ fun getPresentationForStructure(psi: VcCompositeElement): ItemPresentation =
         PresentationData(presentableName(psi), null, psi.getIcon(0), null)
 
 private fun presentableName(psi: PsiElement): String? = when (psi) {
-    is VcFile -> psi.relativeModulePath.toString()
+    is VcFile -> psi.fullName
     is PsiReferable -> psi.name
     else -> null
 }

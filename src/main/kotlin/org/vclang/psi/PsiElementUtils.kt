@@ -2,12 +2,14 @@ package org.vclang.psi
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
-import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
+import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.Group
+import org.vclang.module.PsiModuleScopeProvider
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { it.parent }
@@ -15,22 +17,11 @@ val PsiElement.ancestors: Sequence<PsiElement>
 val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 
-val PsiElement.contentRoot: VirtualFile?
-    get() {
-        val module = module ?: return null
-        val contentRoots = ModuleRootManager.getInstance(module).contentRoots
-        return containingDirectories.map { it.virtualFile }.firstOrNull { it in contentRoots }
-    }
+val PsiElement.moduleScopeProvider: ModuleScopeProvider
+    get() = module?.let { PsiModuleScopeProvider(project, it) } ?: EmptyModuleScopeProvider.INSTANCE
 
 val PsiElement.sourceRoot: VirtualFile?
-    get() {
-        val module = module ?: return null
-        val sourceRoots = ModuleRootManager.getInstance(module).sourceRoots
-        return containingDirectories.map { it.virtualFile }.firstOrNull { it in sourceRoots }
-    }
-
-val PsiElement.containingDirectories: Sequence<PsiDirectory>
-    get() = generateSequence(containingFile.originalFile.containingDirectory) { it.parentDirectory }
+    get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
         strict: Boolean = true,

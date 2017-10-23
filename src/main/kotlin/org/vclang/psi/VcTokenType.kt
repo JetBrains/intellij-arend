@@ -9,7 +9,7 @@ import org.vclang.psi.VcElementTypes.*
 class VcTokenType(debugName: String) : IElementType(debugName, VcLanguage)
 
 val VC_KEYWORDS: TokenSet = TokenSet.create(
-        OPEN_KW, EXPORT_KW, HIDING_KW, FUNCTION_KW, NON_ASSOC_KW,
+        OPEN_KW, EXPORT_KW, IMPORT_KW, USING_KW, AS_KW, HIDING_KW, FUNCTION_KW, NON_ASSOC_KW,
         LEFT_ASSOC_KW, RIGHT_ASSOC_KW, PROP_KW, WHERE_KW, WITH_KW,
         ELIM_KW, NEW_KW, PI_KW, SIGMA_KW, LAM_KW, LET_KW,
         IN_KW, CASE_KW, WITH_KW, DATA_KW, CLASS_KW, EXTENDS_KW,

@@ -5,7 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -25,7 +25,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getClassReference(): ClassReferable = this
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
-        (it.referent as UnresolvedReference).resolve(parentGroup?.lexicalScope ?: EmptyScope.INSTANCE) as? ClassReferable
+        val ref = it.referent
+        ((ref as? UnresolvedReference)?.resolve(ScopeFactory.forGroup(parentGroup, moduleScopeProvider)) ?: ref) as? ClassReferable
     }
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
