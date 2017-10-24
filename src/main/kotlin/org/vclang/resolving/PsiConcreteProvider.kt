@@ -11,8 +11,8 @@ import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteP
 import org.vclang.psi.ext.PsiConcreteReferable
 
 
-class PsiConcreteProvider(nameResolver: NameResolver, errorReporter: ErrorReporter) : ConcreteProvider {
-    private val visitor = DefinitionResolveNameVisitor(nameResolver, errorReporter)
+class PsiConcreteProvider(errorReporter: ErrorReporter) : ConcreteProvider {
+    private val visitor = DefinitionResolveNameVisitor(errorReporter)
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
         if (referable !is PsiConcreteReferable) {

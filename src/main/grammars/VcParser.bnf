@@ -351,7 +351,6 @@ binOpRight ::= infixName newExpr | postfixName {
 }
 
 newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE] {
-    pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
@@ -455,4 +454,4 @@ postfixName ::= POSTFIX_INFIX | POSTFIX_PREFIX {
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 
-private meta pipe_separated_sequence ::= PIPE? <<p>> (PIPE <<p>>)* { pin(".*") = 1 }
+private meta pipe_separated_sequence ::= PIPE? <<p>> (PIPE <<p>>)*

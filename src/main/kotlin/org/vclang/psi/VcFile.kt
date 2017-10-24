@@ -61,7 +61,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             val fileName = virtualFile.path
             val sourceRoot = sourceRoot?.path
             return if (sourceRoot == null || !fileName.startsWith(sourceRoot)) fileName
-                   else fileName.removePrefix(sourceRoot).removeSuffix('.' + VcFileType.defaultExtension)
+                   else fileName.removePrefix(sourceRoot).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension)
         }
 
     override fun moduleTextRepresentation(): String = name

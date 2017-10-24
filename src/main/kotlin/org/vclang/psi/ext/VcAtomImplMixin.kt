@@ -10,7 +10,10 @@ abstract class VcAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcAtom {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         literal?.let { return it.accept(visitor, params) }
         number?.text?.let { return visitor.visitNumericLiteral(this, BigInteger(it), params) }
-        tuple?.let { return visitor.visitTuple(this, it.exprList, params) }
+        tuple?.let {
+            val exprList = it.exprList
+            return if (exprList.size == 1) exprList[0].accept(visitor, params) else visitor.visitTuple(this, it.exprList, params)
+        }
         error("Incorrect expression: atom")
     }
 }

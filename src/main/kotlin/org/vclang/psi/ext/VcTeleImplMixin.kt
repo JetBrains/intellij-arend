@@ -13,9 +13,8 @@ abstract class VcTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcT
 
     override fun getReferableList(): List<Referable?> {
         typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.let { return it }
-        literal?.longName?.let { return listOf(it.referent) }
-        literal?.underscore?.let { return listOf(null) }
-        return emptyList()
+        literal?.longName?.let { if (it.refIdentifierList.isEmpty()) return listOf(it.prefixName) }
+        return listOf(null)
     }
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr

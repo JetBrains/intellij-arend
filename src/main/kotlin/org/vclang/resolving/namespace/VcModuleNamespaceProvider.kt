@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.naming.namespace.ModuleNamespaceProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Group
 
+// TODO[abstract]: Delete this
 class VcModuleNamespaceProvider : ModuleNamespaceProvider, ModuleRegistry {
     private val registered = mutableMapOf<GlobalReferable, ModuleNamespace>()
     private var root = VcModuleNamespace()

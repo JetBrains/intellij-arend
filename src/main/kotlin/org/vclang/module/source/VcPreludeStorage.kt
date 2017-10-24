@@ -7,7 +7,6 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.source.SourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.Storage
-import com.jetbrains.jetpad.vclang.naming.NameResolver
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
 import org.vclang.psi.VcFile
@@ -19,10 +18,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class VcPreludeStorage(
-        private val project: Project,
-        private val nameResolver: NameResolver
-) : Storage<VcPreludeStorage.SourceId> {
+class VcPreludeStorage(private val project: Project): Storage<VcPreludeStorage.SourceId> {
     val preludeSourceId: SourceId = SourceId()
 
     init {

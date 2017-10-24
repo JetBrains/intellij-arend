@@ -18,7 +18,7 @@ val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
-    get() = module?.let { PsiModuleScopeProvider(project, it) } ?: EmptyModuleScopeProvider.INSTANCE
+    get() = module?.let { PsiModuleScopeProvider(it) } ?: EmptyModuleScopeProvider.INSTANCE
 
 val PsiElement.sourceRoot: VirtualFile?
     get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }

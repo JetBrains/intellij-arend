@@ -8,11 +8,6 @@ import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheStorageSupplier
 import com.jetbrains.jetpad.vclang.module.source.SourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.Storage
-import com.jetbrains.jetpad.vclang.naming.NameResolver
-import com.jetbrains.jetpad.vclang.naming.namespace.Namespace
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
-import com.jetbrains.jetpad.vclang.naming.scope.NamespaceScope
-import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.VcFileType
 import org.vclang.getPsiFileFor
 import org.vclang.psi.VcFile
@@ -24,10 +19,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Objects
 
-class VcFileStorage(
-        private val project: Project,
-        private val nameResolver: NameResolver
-) : Storage<VcFileStorage.SourceId> {
+class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceId> {
     private val sourceRoot = Paths.get(project.basePath)
     private val cacheRoot = run {
         val basePath = Paths.get(project.basePath)
@@ -37,7 +29,6 @@ class VcFileStorage(
 
     private val sourceSupplier = VcFileSourceSupplier()
     private val cacheStorageSupplier = VcFileCacheStorageSupplier()
-    private var globalScope: Scope = EmptyScope.INSTANCE
 
     override fun getCacheInputStream(sourceId: SourceId): InputStream? =
             cacheStorageSupplier.getCacheInputStream(sourceId)
@@ -57,10 +48,6 @@ class VcFileStorage(
 
     override fun getAvailableVersion(sourceId: SourceId): Long =
             sourceSupplier.getAvailableVersion(sourceId)
-
-    fun setPreludeNamespace(namespace: Namespace) {
-        globalScope = NamespaceScope(namespace)
-    }
 
     inner class SourceId(
             val module: VcFile

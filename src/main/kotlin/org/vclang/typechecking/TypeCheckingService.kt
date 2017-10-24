@@ -22,9 +22,14 @@ import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.ModuleResolver
 import com.jetbrains.jetpad.vclang.naming.NameResolver
+import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
+import com.jetbrains.jetpad.vclang.naming.namespace.EmptyNamespace
+import com.jetbrains.jetpad.vclang.naming.namespace.StaticNamespaceProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.resolving.NamespaceProviders
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
+import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
@@ -34,15 +39,14 @@ import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.VcFileType
+import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.module.source.VcFileStorage
 import org.vclang.module.source.VcPreludeStorage
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.resolving.PsiConcreteProvider
-import org.vclang.resolving.namespace.VcDynamicNamespaceProvider
 import org.vclang.resolving.namespace.VcModuleNamespaceProvider
-import org.vclang.resolving.namespace.VcStaticNamespaceProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
@@ -75,13 +79,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
     private val moduleNsProvider = VcModuleNamespaceProvider()
-    private val staticNsProvider = VcStaticNamespaceProvider
-    private val dynamicNsProvider = VcDynamicNamespaceProvider
     private val nameResolver: NameResolver = NameResolver(
             NamespaceProviders(
                     moduleNsProvider,
-                    staticNsProvider,
-                    dynamicNsProvider
+                    StaticNamespaceProvider { EmptyNamespace.INSTANCE },
+                    DynamicNamespaceProvider { EmptyNamespace.INSTANCE }
             ),
             ModuleResolver { modulePath ->
                 val sourceId = storage.locateModule(modulePath)
@@ -91,8 +93,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
     )
 
-    private val projectStorage = VcFileStorage(project, nameResolver)
-    private val preludeStorage = VcPreludeStorage(project, nameResolver)
+    private val projectStorage = VcFileStorage(project)
+    private val preludeStorage = VcPreludeStorage(project)
     private val storage = CompositeStorage<VcFileStorage.SourceId, VcPreludeStorage.SourceId>(
             projectStorage,
             preludeStorage
@@ -141,7 +143,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             } catch (ignored: CacheLoadingException) {
             }
 
-            val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(nameResolver, logger))
+            val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(logger))
             val testResultReporter = TestResultReporter(eventsProcessor)
             val typeChecking = Typechecking(
                     typeCheckerState,
@@ -181,9 +183,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
-
-        val preludeNamespace = staticNsProvider.forReferable(prelude)
-        projectStorage.setPreludeNamespace(preludeNamespace)
+        PsiModuleScopeProvider.preludeScope = LexicalScope(EmptyScope.INSTANCE, prelude) // TODO[abstract]: Replace with the "only exported scope"
 
         try {
             cacheManager.loadCache(sourceId, prelude)
@@ -191,10 +191,10 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             throw IllegalStateException("Prelude cache is not available", e)
         }
 
-        // TODO[abstract]: We do not need to typecheck prelude
+        // TODO[prelude]: We do not need to typecheck prelude
         Typechecking(
                 typeCheckerState,
-                PsiConcreteProvider(nameResolver, logger),
+                PsiConcreteProvider(logger),
                 DummyErrorReporter.INSTANCE,
                 Prelude.UpdatePreludeReporter(),
                 object : DependencyListener {}
