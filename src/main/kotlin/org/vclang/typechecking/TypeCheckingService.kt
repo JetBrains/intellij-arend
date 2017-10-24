@@ -183,7 +183,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
-        PsiModuleScopeProvider.preludeScope = LexicalScope(EmptyScope.INSTANCE, prelude) // TODO[abstract]: Replace with the "only exported scope"
+        PsiModuleScopeProvider.preludeScope = LexicalScope(EmptyScope.INSTANCE, prelude, true)
 
         try {
             cacheManager.loadCache(sourceId, prelude)

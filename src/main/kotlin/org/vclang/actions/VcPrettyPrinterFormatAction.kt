@@ -79,7 +79,7 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
 
         private fun prettyPrint(module: VcFile): String {
             return "Pretty printing is not implemented yet"
-            /* TODO[abstract]
+            /* TODO[pretty]
             val builder = StringBuilder()
             val visitor = ToTextVisitor(builder, 0)
             visitor.visitModule(module)
