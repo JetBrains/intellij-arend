@@ -1,7 +1,6 @@
 package org.vclang.resolving
 
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.naming.NameResolver
 import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor

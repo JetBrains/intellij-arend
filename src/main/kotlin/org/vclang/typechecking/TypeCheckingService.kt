@@ -20,14 +20,8 @@ import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
-import com.jetbrains.jetpad.vclang.naming.ModuleResolver
-import com.jetbrains.jetpad.vclang.naming.NameResolver
-import com.jetbrains.jetpad.vclang.naming.namespace.DynamicNamespaceProvider
-import com.jetbrains.jetpad.vclang.naming.namespace.EmptyNamespace
-import com.jetbrains.jetpad.vclang.naming.namespace.StaticNamespaceProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.resolving.NamespaceProviders
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Group
@@ -46,7 +40,6 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.resolving.PsiConcreteProvider
-import org.vclang.resolving.namespace.VcModuleNamespaceProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
@@ -77,21 +70,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         set(value) {
             logger.eventsProcessor = value
         }
-
-    private val moduleNsProvider = VcModuleNamespaceProvider()
-    private val nameResolver: NameResolver = NameResolver(
-            NamespaceProviders(
-                    moduleNsProvider,
-                    StaticNamespaceProvider { EmptyNamespace.INSTANCE },
-                    DynamicNamespaceProvider { EmptyNamespace.INSTANCE }
-            ),
-            ModuleResolver { modulePath ->
-                val sourceId = storage.locateModule(modulePath)
-                val module = sourceId?.let { loadSource(it) }
-                module?.let { moduleNsProvider.registerModule(modulePath, it) }
-                module
-            }
-    )
 
     private val projectStorage = VcFileStorage(project)
     private val preludeStorage = VcPreludeStorage(project)
@@ -174,7 +152,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                         }
                     }
         } finally {
-            moduleNsProvider.unregisterAllModules()
             persistenceProvider.clear()
         }
     }
@@ -182,7 +159,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private fun loadPrelude(): Group {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
-        moduleNsProvider.registerModule(VcPreludeStorage.PRELUDE_MODULE_PATH, prelude)
         PsiModuleScopeProvider.preludeScope = LexicalScope(EmptyScope.INSTANCE, prelude, true)
 
         try {
@@ -230,22 +206,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         return sourceId
-    }
-
-    companion object {
-        private fun collectId(ref: GlobalReferable, map: MutableMap<String, GlobalReferable>) {
-            if (ref is PsiGlobalReferable) {
-                map[ref.fullName] = ref
-            }
-        }
-
-        private fun collectIds(group: Group, map: MutableMap<String, GlobalReferable>) {
-            collectId(group.referable, map)
-            group.subgroups.map { collectIds(it, map) }
-            group.constructors.map { collectId(it, map) }
-            group.dynamicSubgroups.map { collectIds(it, map) }
-            group.fields.map { collectId(it, map) }
-        }
     }
 
     internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
@@ -299,6 +259,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         override fun getFromId(sourceId: VcSourceIdT, id: String): GlobalReferable? {
+            /* TODO[abstract]
             val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
             val definitions = cache.getOrPut(sourceId.modulePath) {
                 val regClass = moduleNamespace.registeredClass
@@ -311,6 +272,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 }
             }
             return definitions[id]
+            */
+            return null
         }
 
         fun clear() = cache.clear()
