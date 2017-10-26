@@ -1,15 +1,12 @@
 package org.vclang.module
 
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.PartialLexicalScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import org.vclang.psi.VcFile
+import org.vclang.module.util.findVcFiles
 
 
 class PsiModuleScopeProvider(private val module: Module): ModuleScopeProvider {
@@ -22,11 +19,7 @@ class PsiModuleScopeProvider(private val module: Module): ModuleScopeProvider {
             return preludeScope
         }
 
-        var dirs: List<VirtualFile> = ModuleRootManager.getInstance(module).sourceRoots.toList()
-        for (name in modulePath.toList()) {
-            dirs = dirs.mapNotNull { it.findChild(name) }
-            if (dirs.isEmpty()) return null
-        }
-        return if (dirs.size == 1) (PsiManager.getInstance(module.project).findFile(dirs[0]) as? VcFile)?.let { PartialLexicalScope(EmptyScope.INSTANCE, it, true) } else null
+        val files = module.findVcFiles(modulePath)
+        return if (files.size == 1) PartialLexicalScope(EmptyScope.INSTANCE, files[0], true) else null
     }
 }

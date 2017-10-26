@@ -2,11 +2,11 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
-import com.intellij.psi.NavigatablePsiElement
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.*
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.navigation.getPresentation
 import org.vclang.psi.VcDefIdentifier
@@ -15,6 +15,8 @@ import org.vclang.psi.childOfType
 import org.vclang.psi.stubs.VcNamedStub
 
 interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable
+
+class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
 
 abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), PsiNameIdentifierOwner, PsiReferable {
 

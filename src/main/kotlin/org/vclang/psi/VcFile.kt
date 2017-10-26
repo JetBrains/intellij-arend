@@ -38,7 +38,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getFileType(): FileType = VcFileType
 
-    override fun textRepresentation(): String = name
+    override fun textRepresentation(): String = name.removeSuffix("." + VcFileType.defaultExtension)
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 

@@ -2,13 +2,13 @@ package org.vclang.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiReference
-import com.intellij.psi.PsiReferenceBase
+import com.intellij.psi.*
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import org.vclang.VcFileType
+import org.vclang.VcIcons
 import org.vclang.psi.*
+import org.vclang.psi.ext.PsiModuleReferable
 import org.vclang.psi.ext.VcCompositeElement
-import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
 
@@ -25,13 +25,25 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
     }
 
     override fun getVariants(): Array<Any> = element.scope.elements.map {
-        if (it is PsiReferable)
-            LookupElementBuilder.createWithIcon(it)
-        else
-            LookupElementBuilder.create(it, it.textRepresentation())
+        when (it) {
+            is PsiNamedElement -> LookupElementBuilder.createWithIcon(it)
+            is PsiModuleReferable ->
+                it.modules.firstOrNull()?.let { if (it is VcFile)
+                    LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
+                    LookupElementBuilder.createWithIcon(it) } ?:
+                LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+            else -> LookupElementBuilder.create(it, it.textRepresentation())
+        }
     }.toTypedArray()
 
-    override fun resolve(): PsiElement? = element.scope.resolveName(element.referenceName) as? VcCompositeElement
+    override fun resolve(): PsiElement? {
+        val ref = element.scope.resolveName(element.referenceName)
+        return when (ref) {
+            is PsiElement -> ref
+            is PsiModuleReferable -> ref.modules.firstOrNull()
+            else -> null
+        }
+    }
 
     companion object {
         private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
@@ -47,6 +59,17 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
                 else -> error("Unsupported identifier type for `$name`")
             }
             oldNameIdentifier.replace(newNameIdentifier)
+        }
+    }
+}
+
+open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element), PsiPolyVariantReference {
+    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
+        val ref = element.scope.resolveName(element.referenceName)
+        return when (ref) {
+            is PsiElement -> arrayOf(PsiElementResolveResult(ref))
+            is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
+            else -> emptyArray()
         }
     }
 }
