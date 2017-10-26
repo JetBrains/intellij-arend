@@ -22,7 +22,6 @@ import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
@@ -159,7 +158,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private fun loadPrelude(): Group {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
-        PsiModuleScopeProvider.preludeScope = LexicalScope(EmptyScope.INSTANCE, prelude, true)
+        PsiModuleScopeProvider.preludeScope = LexicalScope.opened(prelude)
 
         try {
             cacheManager.loadCache(sourceId, prelude)

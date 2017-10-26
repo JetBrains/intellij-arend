@@ -40,6 +40,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun textRepresentation(): String = name.removeSuffix("." + VcFileType.defaultExtension)
 
+    override fun isModule(): Boolean = true
+
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
     override fun getParentGroup(): ChildGroup? = null

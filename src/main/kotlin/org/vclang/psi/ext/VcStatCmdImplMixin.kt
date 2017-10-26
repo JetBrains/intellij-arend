@@ -19,10 +19,10 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         error("Incorrect expression: namespace command")
     }
 
-    override fun getGroupReference(): Referable? = longName?.referent
+    override fun getPath(): List<String> = longName?.let { listOf(it.prefixName.referenceName) + it.refIdentifierList.map { it.referenceName } } ?: emptyList()
 
     override fun getImportedPath(): List<PsiModuleReferable> {
-        val path = longName?.let { listOf(it.prefixName.referenceName) + it.refIdentifierList.map { it.referenceName } } ?: emptyList()
+        val path = path
         return if (nsCmd.importKw != null) {
             var dirs = module?.sourceRoots ?: emptyList()
             path.withIndex().map { (i, name) ->

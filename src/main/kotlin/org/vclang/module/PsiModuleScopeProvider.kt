@@ -2,10 +2,7 @@ package org.vclang.module
 
 import com.intellij.openapi.module.Module
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
-import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
-import com.jetbrains.jetpad.vclang.naming.scope.PartialLexicalScope
-import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.naming.scope.*
 import org.vclang.module.util.findVcFiles
 
 
@@ -20,6 +17,6 @@ class PsiModuleScopeProvider(private val module: Module): ModuleScopeProvider {
         }
 
         val files = module.findVcFiles(modulePath)
-        return if (files.size == 1) PartialLexicalScope(EmptyScope.INSTANCE, files[0], true) else null
+        return if (files.size == 1) LexicalScope.opened(files[0]) else null
     }
 }
