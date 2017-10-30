@@ -3,7 +3,7 @@ package org.vclang.resolving
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
-import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
+import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.psi.*
@@ -25,19 +25,21 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
     }
 
     override fun getVariants(): Array<Any> = element.scope.elements.map {
-        when (it) {
-            is PsiNamedElement -> LookupElementBuilder.createWithIcon(it)
+        val ref = if (it is RedirectingReferable) it.newReferable else it
+        when (ref) {
+            is PsiNamedElement -> LookupElementBuilder.createWithIcon(ref)
             is PsiModuleReferable ->
-                it.modules.firstOrNull()?.let { if (it is VcFile)
+                ref.modules.firstOrNull()?.let { if (it is VcFile)
                     LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
                     LookupElementBuilder.createWithIcon(it) } ?:
-                LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.DIRECTORY)
-            else -> LookupElementBuilder.create(it, it.textRepresentation())
+                LookupElementBuilder.create(ref, ref.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+            else -> LookupElementBuilder.create(ref, ref.textRepresentation())
         }
     }.toTypedArray()
 
     override fun resolve(): PsiElement? {
-        val ref = element.scope.resolveName(element.referenceName)
+        var ref = element.scope.resolveName(element.referenceName)
+        if (ref is RedirectingReferable) ref = ref.newReferable
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
@@ -65,7 +67,8 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
 
 open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element), PsiPolyVariantReference {
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        val ref = element.scope.resolveName(element.referenceName)
+        var ref = element.scope.resolveName(element.referenceName)
+        if (ref is RedirectingReferable) ref = ref.newReferable
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
