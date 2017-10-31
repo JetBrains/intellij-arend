@@ -40,6 +40,10 @@ abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), 
     override fun textRepresentation(): String = referenceName
 
     override fun getReference(): VcReference = VcReferenceImpl<VcPrefixName>(this)
+
+    override fun getData() = this
+
+    override fun getReferent(): Referable = this
 }
 
 abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcInfixName {

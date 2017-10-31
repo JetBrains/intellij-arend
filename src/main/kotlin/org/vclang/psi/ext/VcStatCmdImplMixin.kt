@@ -51,5 +51,5 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 
-    override fun getOpenedReference(): Abstract.Reference? = longName
+    override fun getOpenedReference(): Abstract.LongReference? = longName
 }

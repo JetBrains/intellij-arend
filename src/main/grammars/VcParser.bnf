@@ -387,7 +387,7 @@ argument ::= atomFieldsAcc
 
 longName ::= prefixName (DOT refIdentifier)* {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference" ]
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LongReference" ]
     mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
 }
 
@@ -438,6 +438,7 @@ refIdentifier ::= PREFIX | INFIX {
 
 prefixName ::= PREFIX | PREFIX_INFIX {
     implements = [ "org.vclang.psi.ext.VcReferenceElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference"
                    "com.jetbrains.jetpad.vclang.naming.reference.Referable" ]
     mixin = "org.vclang.psi.ext.VcPrefixImplMixin"
 }
