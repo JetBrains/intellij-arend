@@ -34,7 +34,6 @@
         BLOCK_COMMENT_END   = '-}'
 
         OPEN_KW             = '\open'
-        EXPORT_KW           = '\export'
         IMPORT_KW           = '\import'
         HIDING_KW           = '\hiding'
         USING_KW            = '\using'
@@ -82,7 +81,7 @@ statements ::= topStatement*
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
-private statement_recover ::= !(OPEN_KW      | EXPORT_KW    | IMPORT_KW |
+private statement_recover ::= !(OPEN_KW      | IMPORT_KW |
                                 FUNCTION_KW  | TRUNCATED_KW | DATA_KW   | CLASS_KW |
                                 VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
 
@@ -95,7 +94,7 @@ statCmd ::= nsCmd longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 
-nsCmd ::= OPEN_KW | EXPORT_KW | IMPORT_KW
+nsCmd ::= OPEN_KW | IMPORT_KW
 
 nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN
 

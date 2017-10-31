@@ -15,7 +15,6 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
         val cmd = nsCmd
         if (cmd.importKw != null) return NamespaceCommand.Kind.IMPORT
         if (cmd.openKw != null) return NamespaceCommand.Kind.OPEN
-        if (cmd.exportKw != null) return NamespaceCommand.Kind.EXPORT
         error("Incorrect expression: namespace command")
     }
 

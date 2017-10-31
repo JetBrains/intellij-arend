@@ -43,7 +43,7 @@ PREFIX_CHAR         = [a-zA-Z0-9_']
 PREFIX_START_CHAR   = [a-zA-Z_]
 
 PREFIX              = ({INFIX_CHAR}|{PREFIX_START_CHAR}) ({INFIX_CHAR}|{PREFIX_CHAR})*
-INFIX               = {INFIX_CHAR}*
+INFIX               = {INFIX_CHAR}+
 PREFIX_INFIX        = `{INFIX}
 INFIX_PREFIX        = `{PREFIX}
 POSTFIX_INFIX       = {INFIX}`
@@ -72,7 +72,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "|"                     { return PIPE; }
 
     "\\open"                { return OPEN_KW; }
-    "\\export"              { return EXPORT_KW; }
     "\\import"              { return IMPORT_KW; }
     "\\hiding"              { return HIDING_KW; }
     "\\using"               { return USING_KW; }
