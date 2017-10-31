@@ -11,12 +11,12 @@ class PsiModuleScopeProvider(private val module: Module): ModuleScopeProvider {
         var preludeScope: Scope? = null // TODO[prelude]: This is an ugly hack
     }
 
-    override fun forModule(modulePath: ModulePath): Scope? {
+    override fun forModule(modulePath: ModulePath, includeExports: Boolean): Scope? {
         if (modulePath.isSingleton && modulePath.name == "Prelude") {
             return preludeScope
         }
 
         val files = module.findVcFiles(modulePath)
-        return if (files.size == 1) LexicalScope.opened(files[0]) else null
+        return if (files.size == 1) (if (includeExports) LexicalScope.opened(files[0]) else LexicalScope.exported(files[0]) ) else null
     }
 }
