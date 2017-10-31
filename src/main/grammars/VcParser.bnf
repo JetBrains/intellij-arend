@@ -90,7 +90,7 @@ statement ::= statCmd | definition
 statCmd ::= nsCmd longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand" ]
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.NamespaceCommandHolder" ]
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 

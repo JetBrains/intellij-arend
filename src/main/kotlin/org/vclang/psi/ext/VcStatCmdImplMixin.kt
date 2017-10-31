@@ -5,12 +5,14 @@ import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.term.ChildGroup
+import com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcFileType
 import org.vclang.module.util.sourceRoots
 import org.vclang.psi.*
 
-abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd {
+abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
         val cmd = nsCmd
         if (cmd.importKw != null) return NamespaceCommand.Kind.IMPORT
@@ -48,4 +50,6 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getHiddenReferences(): List<Referable> = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
+
+    override fun getOpenedReference(): Abstract.Reference? = longName
 }
