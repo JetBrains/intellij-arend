@@ -66,6 +66,7 @@
         LH_KW               = '\lh'
         SUC_KW              = '\suc'
         MAX_KW              = '\max'
+        INVALID_KW          = '\invalid'
 
         LINE_COMMENT        = "regexp:--[^\r\n]*"
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'

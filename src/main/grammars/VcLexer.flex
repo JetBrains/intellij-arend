@@ -41,6 +41,7 @@ NUMBER              = [0-9]+
 INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:]
 PREFIX_CHAR         = [a-zA-Z0-9_']
 PREFIX_START_CHAR   = [a-zA-Z_]
+KEYWORD             = \\{PREFIX_START_CHAR}+{PREFIX_CHAR}*
 
 PREFIX              = ({INFIX_CHAR}|{PREFIX_START_CHAR}) ({INFIX_CHAR}|{PREFIX_CHAR})*
 INFIX               = {INFIX_CHAR}+
@@ -105,6 +106,12 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\suc"                 { return SUC_KW; }
     "\\max"                 { return MAX_KW; }
 
+    {SET}                   { return SET; }
+    {UNIVERSE}              { return UNIVERSE; }
+    {TRUNCATED_UNIVERSE}    { return TRUNCATED_UNIVERSE; }
+
+    {KEYWORD}               { return INVALID_KW; }
+
     {NUMBER}                { return NUMBER; }
 
     {INFIX}                 { return INFIX; }
@@ -113,10 +120,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {INFIX_PREFIX}          { return INFIX_PREFIX; }
     {POSTFIX_INFIX}         { return POSTFIX_INFIX; }
     {POSTFIX_PREFIX}        { return POSTFIX_PREFIX; }
-
-    {SET}                   { return SET; }
-    {UNIVERSE}              { return UNIVERSE; }
-    {TRUNCATED_UNIVERSE}    { return TRUNCATED_UNIVERSE; }
 
     {LINE_COMMENT}          { return LINE_COMMENT; }
     {BLOCK_COMMENT_START}   {
