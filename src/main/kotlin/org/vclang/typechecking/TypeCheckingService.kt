@@ -22,6 +22,8 @@ import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
+import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
@@ -39,6 +41,7 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.ResolvingPsiConcreteProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
@@ -120,7 +123,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             } catch (ignored: CacheLoadingException) {
             }
 
-            val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(logger))
+            val concreteProvider = CachingConcreteProvider()
             val testResultReporter = TestResultReporter(eventsProcessor)
             val typeChecking = Typechecking(
                     typeCheckerState,
@@ -131,9 +134,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             )
 
             if (definitionFullName.isEmpty()) {
+                concreteProvider.setProvider(PsiConcreteProvider(logger))
+                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope(module.scope), concreteProvider)
+                concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
                 typeChecking.typecheckModules(listOf(module))
                 eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
             } else {
+                concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
                 val group = module.findGroupByFullName(definitionFullName.split('.'))
                 val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
                 val definition = concreteProvider.getConcrete(ref)
@@ -160,16 +167,18 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         PsiModuleScopeProvider.preludeScope = LexicalScope.opened(prelude)
 
+        /*
         try {
             cacheManager.loadCache(sourceId, prelude)
         } catch (e: CacheLoadingException) {
             throw IllegalStateException("Prelude cache is not available", e)
         }
+        */
 
         // TODO[prelude]: We do not need to typecheck prelude
         Typechecking(
                 typeCheckerState,
-                PsiConcreteProvider(logger),
+                ResolvingPsiConcreteProvider(logger),
                 DummyErrorReporter.INSTANCE,
                 Prelude.UpdatePreludeReporter(),
                 object : DependencyListener {}

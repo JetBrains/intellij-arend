@@ -23,8 +23,8 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getPath(): List<String> = longName?.let { listOf(it.prefixName.referenceName) + it.refIdentifierList.map { it.referenceName } } ?: emptyList()
 
     override fun getImportedPath(): List<PsiModuleReferable> {
-        val path = path
         return if (nsCmd.importKw != null) {
+            val path = path
             var dirs = module?.sourceRoots ?: emptyList()
             path.withIndex().map { (i, name) ->
                 val modulePath = ModulePath(path.subList(0, i + 1))

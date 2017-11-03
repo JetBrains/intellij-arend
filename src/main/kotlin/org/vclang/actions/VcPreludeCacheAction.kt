@@ -9,7 +9,7 @@ import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.source.VcPreludeStorage
-import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.ResolvingPsiConcreteProvider
 import org.vclang.typechecking.PreludeCacheGenerator
 import java.nio.file.Paths
 
@@ -40,7 +40,7 @@ class VcPreludeCacheAction : AnAction() {
 
         Typechecking(
                 cacheManager.typecheckerState,
-                CachingConcreteProvider(PsiConcreteProvider(errorReporter)),
+                CachingConcreteProvider(ResolvingPsiConcreteProvider(errorReporter)),
                 errorReporter,
                 Prelude.UpdatePreludeReporter(),
                 object : DependencyListener {}
