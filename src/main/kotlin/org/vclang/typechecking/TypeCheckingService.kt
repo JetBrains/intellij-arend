@@ -135,7 +135,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
             if (definitionFullName.isEmpty()) {
                 concreteProvider.setProvider(PsiConcreteProvider(logger))
-                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope(module.scope), concreteProvider)
+                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
                 concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
                 typeChecking.typecheckModules(listOf(module))
                 eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
