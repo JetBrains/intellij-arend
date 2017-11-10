@@ -156,12 +156,6 @@
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
         </action>
 
-        <action id="PreludeCache" class="org.vclang.actions.VcPreludeCacheAction"
-                text="Generate Prelude Cache" description="Generate prelude cache">
-            <add-to-group group-id="RunMenu" anchor="before" relative-to-action="RunnerActions"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift D"/>
-        </action>
-
         <action id="Vclang.NewVclangFile"
                 class="org.vclang.actions.VcCreateFileAction"
                 text="Vclang File"

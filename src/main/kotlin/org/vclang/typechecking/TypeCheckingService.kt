@@ -5,6 +5,7 @@ import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEv
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
@@ -12,18 +13,16 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
-import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.CacheManager
-import com.jetbrains.jetpad.vclang.module.caching.CachePersistenceException
-import com.jetbrains.jetpad.vclang.module.caching.PersistenceProvider
-import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
+import com.jetbrains.jetpad.vclang.module.CacheModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.caching.*
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
+import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
+import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
@@ -40,6 +39,7 @@ import org.vclang.module.source.VcPreludeStorage
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
+import org.vclang.psi.ext.fullName_
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.ResolvingPsiConcreteProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
@@ -83,12 +83,18 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private val sourceInfoProvider = VcSourceInfoProvider()
     private val logger = TypeCheckConsoleLogger(sourceInfoProvider)
 
-    private val persistenceProvider = VcPersistenceProvider()
-    private val cacheManager = CacheManager(
-            persistenceProvider,
-            storage,
-            VcSourceVersionTracker(),
-            sourceInfoProvider
+    private val cacheModuleScopeProvider: CacheModuleScopeProvider
+        get() {
+            val modules = ModuleManager.getInstance(project).modules
+            return CacheModuleScopeProvider(if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0]))
+        }
+
+    private val cacheManager = SourcelessCacheManager(
+        storage,
+        VcPersistenceProvider(),
+        cacheModuleScopeProvider,
+        sourceInfoProvider,
+        VcSourceVersionTracker()
     )
     private val typeCheckerState = cacheManager.typecheckerState
     private val dependencyCollector = DependencyCollector(typeCheckerState)
@@ -99,67 +105,63 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     override fun typeCheck(modulePath: Path, definitionFullName: String) {
-        try {
-            ApplicationManager.getApplication().saveAll()
+        ApplicationManager.getApplication().saveAll()
 
-            val sourceId = sourceIdByPath(modulePath) ?: return
+        val sourceId = sourceIdByPath(modulePath) ?: return
 
-            val eventsProcessor = eventsProcessor!!
-            if (definitionFullName.isEmpty()) {
-                val module = sourceId.source1.module
-                eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
-                module.children
-                    .filterIsInstance<VcStatement>()
-                    .mapNotNull { it.definition }
-                    .forEach { eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null)) }
-            } else {
-                eventsProcessor.onTestStarted(TestStartedEvent(definitionFullName, null))
-            }
-
-            val module = loadSource(sourceId) ?: return
-
-            try {
-                cacheManager.loadCache(sourceId, module)
-            } catch (ignored: CacheLoadingException) {
-            }
-
-            val concreteProvider = CachingConcreteProvider()
-            val testResultReporter = TestResultReporter(eventsProcessor)
-            val typeChecking = Typechecking(
-                    typeCheckerState,
-                    concreteProvider,
-                    logger,
-                    testResultReporter,
-                    dependencyCollector
-            )
-
-            if (definitionFullName.isEmpty()) {
-                concreteProvider.setProvider(PsiConcreteProvider(logger))
-                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
-                concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
-                typeChecking.typecheckModules(listOf(module))
-                eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
-            } else {
-                concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
-                val group = module.findGroupByFullName(definitionFullName.split('.'))
-                val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
-                val definition = concreteProvider.getConcrete(ref)
-                if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
-                    else if (definition != null) error(definitionFullName + " is not a definition")
-            }
-
-            cacheManager.cachedModules
-                    .filter { it.actualSourceId !== preludeStorage.preludeSourceId }
-                    .forEach {
-                        try {
-                            cacheManager.persistCache(it)
-                        } catch (e: CachePersistenceException) {
-                            e.printStackTrace()
-                        }
-                    }
-        } finally {
-            persistenceProvider.clear()
+        val eventsProcessor = eventsProcessor!!
+        if (definitionFullName.isEmpty()) {
+            val module = sourceId.source1.module
+            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
+            module.children
+                .filterIsInstance<VcStatement>()
+                .mapNotNull { it.definition }
+                .forEach { eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null)) }
+        } else {
+            eventsProcessor.onTestStarted(TestStartedEvent(definitionFullName, null))
         }
+
+        val module = loadSource(sourceId) ?: return
+
+        try {
+            cacheManager.loadCache(sourceId, module)
+        } catch (ignored: CacheLoadingException) {
+        }
+
+        val concreteProvider = CachingConcreteProvider()
+        val testResultReporter = TestResultReporter(eventsProcessor)
+        val typeChecking = Typechecking(
+                typeCheckerState,
+                concreteProvider,
+                logger,
+                testResultReporter,
+                dependencyCollector
+        )
+
+        if (definitionFullName.isEmpty()) {
+            concreteProvider.setProvider(PsiConcreteProvider(logger))
+            DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
+            concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
+            typeChecking.typecheckModules(listOf(module))
+            eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
+        } else {
+            concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
+            val group = module.findGroupByFullName(definitionFullName.split('.'))
+            val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
+            val definition = concreteProvider.getConcrete(ref)
+            if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                else if (definition != null) error(definitionFullName + " is not a definition")
+        }
+
+        cacheManager.cachedModules
+                .filter { it.actualSourceId !== preludeStorage.preludeSourceId }
+                .forEach {
+                    try {
+                        cacheManager.persistCache(it)
+                    } catch (e: CachePersistenceException) {
+                        e.printStackTrace()
+                    }
+                    }
     }
 
     private fun loadPrelude(): Group {
@@ -167,13 +169,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         PsiModuleScopeProvider.preludeScope = LexicalScope.opened(prelude)
 
-        /*
         try {
             cacheManager.loadCache(sourceId, prelude)
         } catch (e: CacheLoadingException) {
             throw IllegalStateException("Prelude cache is not available", e)
         }
-        */
 
         // TODO[prelude]: We do not need to typecheck prelude
         Typechecking(
@@ -216,9 +216,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         return sourceId
     }
 
-    internal inner class VcPersistenceProvider : PersistenceProvider<VcSourceIdT> {
-        private val cache = mutableMapOf<ModulePath, Map<String, GlobalReferable>>()
-
+    internal inner class VcPersistenceProvider : ModuleUriProvider<VcSourceIdT> {
         override fun getUri(sourceId: VcSourceIdT): URI {
             return when {
                 sourceId.source1 != null -> URI(
@@ -260,31 +258,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
             return null
         }
-
-        override fun getIdFor(definition: GlobalReferable): String {
-            if (definition !is PsiGlobalReferable) throw IllegalStateException()
-            return definition.fullName
-        }
-
-        override fun getFromId(sourceId: VcSourceIdT, id: String): GlobalReferable? {
-            /* TODO[abstract]
-            val moduleNamespace = nameResolver.resolveModuleNamespace(sourceId.modulePath)
-            val definitions = cache.getOrPut(sourceId.modulePath) {
-                val regClass = moduleNamespace.registeredClass
-                if (regClass is Group) {
-                    val definitions = mutableMapOf<String, GlobalReferable>()
-                    collectIds(regClass, definitions)
-                    definitions
-                } else {
-                    mapOf()
-                }
-            }
-            return definitions[id]
-            */
-            return null
-        }
-
-        fun clear() = cache.clear()
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
@@ -340,9 +313,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
         override fun nameFor(referable: Referable): String = referable.textRepresentation()
 
-        override fun fullNameFor(definition: GlobalReferable): String {
+        override fun fullNameFor(definition: GlobalReferable): FullName {
             if (definition !is PsiGlobalReferable) throw IllegalStateException()
-            return definition.fullName
+            return definition.fullName_
         }
 
         override fun sourceOf(definition: GlobalReferable): VcSourceIdT? {

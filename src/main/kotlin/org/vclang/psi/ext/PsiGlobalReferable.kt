@@ -1,5 +1,6 @@
 package org.vclang.psi.ext
 
+import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 
 
@@ -19,4 +20,14 @@ val PsiGlobalReferable.fullName: String
         val builder = StringBuilder()
         getFullName(builder)
         return builder.toString()
+    }
+
+val PsiGlobalReferable.fullName_: FullName
+    get() {
+        val parent = parent
+        return if (parent is PsiGlobalReferable) {
+            FullName(parent.fullName_, textRepresentation())
+        } else {
+            FullName(textRepresentation())
+        }
     }
