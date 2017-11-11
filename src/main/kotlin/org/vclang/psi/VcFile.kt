@@ -4,6 +4,7 @@ import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
@@ -65,6 +66,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
             return if (sourceRoot == null || !fileName.startsWith(sourceRoot)) fileName
                    else fileName.removePrefix(sourceRoot).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
         }
+
+    val modulePath = ModulePath(fullName.split('.'))
 
     override fun moduleTextRepresentation(): String = name
 

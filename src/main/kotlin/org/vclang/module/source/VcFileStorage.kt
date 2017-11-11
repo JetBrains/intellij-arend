@@ -1,5 +1,6 @@
 package org.vclang.module.source
 
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -9,7 +10,7 @@ import com.jetbrains.jetpad.vclang.module.caching.CacheStorageSupplier
 import com.jetbrains.jetpad.vclang.module.source.SourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.Storage
 import org.vclang.VcFileType
-import org.vclang.getPsiFileFor
+import org.vclang.module.util.findVcFiles
 import org.vclang.psi.VcFile
 import java.io.IOException
 import java.io.InputStream
@@ -19,13 +20,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Objects
 
-class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceId> {
-    private val sourceRoot = Paths.get(project.basePath)
-    private val cacheRoot = run {
-        val basePath = Paths.get(project.basePath)
-        val relativeModulePath = basePath.relativize(sourceRoot)
-        basePath.resolve(".cache").resolve(relativeModulePath)
-    }
+class VcFileStorage(project: Project): Storage<VcFileStorage.SourceId> {
+    private val module = ModuleManager.getInstance(project).modules[0] // TODO[library]
+    private val cacheRoot = Paths.get(project.basePath).resolve(".cache")
 
     private val sourceSupplier = VcFileSourceSupplier()
     private val cacheStorageSupplier = VcFileCacheStorageSupplier()
@@ -54,11 +51,7 @@ class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceI
     ) : com.jetbrains.jetpad.vclang.module.source.SourceId {
         val storage = this@VcFileStorage
 
-        override fun getModulePath(): ModulePath {
-            val path = Paths.get(module.virtualFile.path)
-            val name = module.virtualFile.nameWithoutExtension
-            return modulePath(sourceRoot.relativize(path).resolveSibling(name))!!
-        }
+        override fun getModulePath() = module.modulePath
 
         override fun equals(other: Any?): Boolean {
             return this === other
@@ -75,10 +68,8 @@ class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceI
     private inner class VcFileSourceSupplier : SourceSupplier<SourceId> {
 
         override fun locateModule(modulePath: ModulePath): SourceId? {
-            val path = modulePathToSourcePath(modulePath)
-            val file = LocalFileSystem.getInstance().findFileByPath(path.toString())
-            val module = project.getPsiFileFor(file) as? VcFile
-            return module?.let { SourceId(it) }
+            val files = module.findVcFiles(modulePath)
+            return if (files.size == 1) SourceId(files[0]) else null // TODO[library]
         }
 
         fun locateModule(module: VcFile): SourceId? = SourceId(module)
@@ -91,9 +82,6 @@ class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceI
 
         override fun getAvailableVersion(sourceId: SourceId): Long =
                 sourceId.module.virtualFile.timeStamp
-
-        private fun modulePathToSourcePath(modulePath: ModulePath): Path =
-                sourceFile(baseFile(sourceRoot, modulePath))
     }
 
     private inner class VcFileCacheStorageSupplier : CacheStorageSupplier<SourceId> {
@@ -119,8 +107,7 @@ class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceI
             }
         }
 
-        private fun modulePathToSourcePath(modulePath: ModulePath): Path =
-                cacheFile(baseFile(cacheRoot, modulePath))
+        private fun modulePathToSourcePath(modulePath: ModulePath): Path = cacheFile(cacheRoot, modulePath)
 
         private fun cacheFileForSourceId(sourceId: SourceId): VirtualFile? {
             val path = cachePathForSourceId(sourceId)
@@ -140,13 +127,12 @@ class VcFileStorage(private val project: Project): Storage<VcFileStorage.SourceI
             return if (names.all { it.matches(pathRegex) }) ModulePath(names) else null
         }
 
-        fun sourceFile(base: Path): Path =
-                base.resolveSibling("${base.fileName}.${VcFileType.defaultExtension}")
+        private fun modulePathToFileName(basePath: Path?, modulePath: ModulePath, extension: String): Path {
+            val nameList: List<String> = modulePath.toList()
+            val path = Paths.get("", *nameList.subList(0, nameList.size - 1).toTypedArray(), nameList[nameList.size - 1] + "." + extension)
+            return if (basePath == null) path else basePath.resolve(path)
+        }
 
-        fun cacheFile(base: Path): Path =
-                base.resolveSibling("${base.fileName}.${VcFileType.defaultCacheExtension}")
-
-        private fun baseFile(root: Path, modulePath: ModulePath): Path =
-                root.resolve(Paths.get("", *modulePath.toArray()))
+        private fun cacheFile(base: Path?, modulePath: ModulePath) = modulePathToFileName(base, modulePath, VcFileType.defaultCacheExtension)
     }
 }

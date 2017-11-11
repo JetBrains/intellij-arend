@@ -12,7 +12,7 @@ import java.io.File
 val Project.modules: Collection<Module>
     get() = ModuleManager.getInstance(this).modules.toList()
 
-val Project.modulesWithVclangProject: Collection<Module>
+val Project.modulesWithVclangProject: Collection<Module> // TODO[library]
     get() = modules.filter {
         File(it.moduleFilePath)
                 .walk()

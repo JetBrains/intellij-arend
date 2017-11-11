@@ -2,9 +2,9 @@ package org.vclang.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
+import com.jetbrains.jetpad.vclang.module.ModulePath
 import org.vclang.typechecking.TypeCheckingService
 import java.io.OutputStream
-import java.nio.file.Paths
 
 
 class TypeCheckProcessHandler(
@@ -21,7 +21,7 @@ class TypeCheckProcessHandler(
         super.startNotify()
         ApplicationManager.getApplication().runReadAction {
             try {
-                typeChecker.typeCheck(Paths.get(command.modulePath), command.definitionFullName)
+                typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {

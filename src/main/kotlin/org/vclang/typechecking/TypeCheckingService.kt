@@ -14,6 +14,7 @@ import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.module.CacheModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.*
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
@@ -32,7 +33,6 @@ import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
-import org.vclang.VcFileType
 import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.module.source.VcFileStorage
 import org.vclang.module.source.VcPreludeStorage
@@ -45,7 +45,6 @@ import org.vclang.resolving.ResolvingPsiConcreteProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 import java.net.URI
 import java.net.URISyntaxException
-import java.nio.file.Path
 import java.nio.file.Paths
 
 typealias VcSourceIdT = CompositeSourceSupplier<
@@ -56,7 +55,7 @@ typealias VcSourceIdT = CompositeSourceSupplier<
 interface TypeCheckingService {
     var eventsProcessor: TypecheckingEventsProcessor?
 
-    fun typeCheck(modulePath: Path, definitionFullName: String)
+    fun typeCheck(modulePath: ModulePath, definitionFullName: String)
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -85,7 +84,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private val cacheModuleScopeProvider: CacheModuleScopeProvider
         get() {
-            val modules = ModuleManager.getInstance(project).modules
+            val modules = ModuleManager.getInstance(project).modules // TODO[library]
             return CacheModuleScopeProvider(if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0]))
         }
 
@@ -104,7 +103,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         loadPrelude()
     }
 
-    override fun typeCheck(modulePath: Path, definitionFullName: String) {
+    override fun typeCheck(modulePath: ModulePath, definitionFullName: String) {
         ApplicationManager.getApplication().saveAll()
 
         val sourceId = sourceIdByPath(modulePath) ?: return
@@ -190,30 +189,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private fun loadSource(sourceId: VcSourceIdT): VcFile? =
             storage.loadSource(sourceId, logger)?.group as? VcFile
 
-    private fun sourceIdByPath(path: Path): VcSourceIdT? {
-        val base = Paths.get(project.basePath)
-        val name = run {
-            val fileName = path.fileName.toString()
-            if (!fileName.endsWith('.' + VcFileType.defaultExtension)) {
-                return null
-            }
-            fileName.removeSuffix('.' + VcFileType.defaultExtension)
-        }
-        val sourcePath = base.relativize(path.resolveSibling(name))
-
-        val modulePath = VcFileStorage.modulePath(sourcePath)
-        if (modulePath == null) {
-//            logger.report("[Not found] $path is an illegal module path") // TODO: handle error
-            return null
-        }
-
+    private fun sourceIdByPath(modulePath: ModulePath): VcSourceIdT? {
         val sourceId = storage.locateModule(modulePath)
-        if (!storage.isAvailable(sourceId)) {
-//            logger.report("[Not found] $path is not available") // TODO: handle error
-            return null
+        if (storage.isAvailable(sourceId)) {
+            return sourceId
+        } else {
+            error(modulePath.toString() + " is not available")
         }
-
-        return sourceId
     }
 
     internal inner class VcPersistenceProvider : ModuleUriProvider<VcSourceIdT> {

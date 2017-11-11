@@ -18,6 +18,6 @@ class PsiModuleScopeProvider(private val module: Module): ModuleScopeProvider {
         }
 
         val files = module.findVcFiles(modulePath)
-        return if (files.size == 1) LexicalScope.opened(files[0]) else null
+        return if (files.size == 1) LexicalScope.opened(files[0]) else null // TODO[library]
     }
 }
