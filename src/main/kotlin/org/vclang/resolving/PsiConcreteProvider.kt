@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.typechecking.error.ProxyError
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.ext.PsiConcreteReferable
+import org.vclang.psi.ext.PsiGlobalReferable
 
 
 class PsiConcreteProvider(private val errorReporter: ErrorReporter) : ConcreteProvider {
@@ -14,7 +15,9 @@ class PsiConcreteProvider(private val errorReporter: ErrorReporter) : ConcretePr
         if (referable is PsiConcreteReferable) {
             referable.computeConcrete(errorReporter)
         } else {
-            errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
+            if (referable !is PsiGlobalReferable) {
+                errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
+            }
             null
         }
 }

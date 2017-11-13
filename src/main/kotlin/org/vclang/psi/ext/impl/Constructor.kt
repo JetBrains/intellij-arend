@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
 import org.vclang.psi.*
@@ -22,6 +23,12 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
             .flatMap { it.constructors }
             .firstOrNull { it.data === this }
     }
+
+    override fun getData() = this
+
+    override fun getPatterns(): List<Abstract.Pattern> = emptyList()
+
+    override fun getConstructors(): List<VcConstructor> = listOf(this)
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 

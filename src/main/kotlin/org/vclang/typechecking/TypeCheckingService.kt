@@ -111,7 +111,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val eventsProcessor = eventsProcessor!!
         if (definitionFullName.isEmpty()) {
             val module = sourceId.source1.module
-            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.name, null))
+            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.textRepresentation(), null))
             module.children
                 .filterIsInstance<VcStatement>()
                 .mapNotNull { it.definition }
@@ -142,7 +142,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
             concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
             typeChecking.typecheckModules(listOf(module))
-            eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.referable.textRepresentation()))
+            eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.textRepresentation()))
         } else {
             concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
             val group = module.findGroupByFullName(definitionFullName.split('.'))
@@ -160,7 +160,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     } catch (e: CachePersistenceException) {
                         e.printStackTrace()
                     }
-                    }
+                }
     }
 
     private fun loadPrelude(): Group {
@@ -264,7 +264,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         private fun processParent(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
                 val ancestors = event.parent.ancestors
-                val definition = ancestors.filterIsInstance<PsiGlobalReferable>().firstOrNull()
+                val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull()
                 definition?.let { dependencyCollector.update(definition) }
             }
         }
@@ -274,7 +274,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 event.child.accept(object : PsiRecursiveElementVisitor() {
                     override fun visitElement(element: PsiElement?) {
                         super.visitElement(element)
-                        if (element is GlobalReferable) {
+                        if (element is VcDefinition) {
                             dependencyCollector.update(element)
                         }
                     }

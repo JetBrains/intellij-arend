@@ -216,7 +216,8 @@ atomPattern ::= LPAREN pattern? RPAREN
 constructor ::= prec? defIdentifier tele* [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor" ]
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.vclang.psi.ext.impl.ConstructorAdapter"
     stubClass = "org.vclang.psi.stubs.VcConstructorStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"

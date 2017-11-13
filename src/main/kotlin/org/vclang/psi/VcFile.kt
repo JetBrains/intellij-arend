@@ -19,19 +19,36 @@ import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.*
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, ChildGroup {
+    var modulePath: ModulePath
+
+    init {
+        val fileName = viewProvider.virtualFile.path
+        val sourceRoot = sourceRoot?.path
+        val fullName = if (sourceRoot == null || !fileName.startsWith(sourceRoot)) fileName
+                       else fileName.removePrefix(sourceRoot).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
+        modulePath = ModulePath(fullName.split('.'))
+    }
+
+    val fullName = modulePath.toString()
+
     override fun setName(name: String): PsiElement {
-        val nameWithExtension = if (name.endsWith('.' + VcFileType.defaultExtension)) {
-            name
+        val (nameWithExt, nameWithoutExt) = if (name.endsWith('.' + VcFileType.defaultExtension)) {
+            Pair(name, name.removeSuffix('.' + VcFileType.defaultExtension))
         } else {
-            "$name.${VcFileType.defaultExtension}"
+            Pair(name + '.' + VcFileType.defaultExtension, name)
         }
-        return super.setName(nameWithExtension)
+
+        val list = modulePath.toList()
+        modulePath = ModulePath(list.subList(0, list.size - 1) + nameWithoutExt)
+        return super.setName(nameWithExt)
     }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
     override val scope: Scope
         get() = ScopeFactory.forGroup(this, moduleScopeProvider)
+
+    override fun getGroupScope() = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 
@@ -58,16 +75,6 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getDynamicSubgroups(): Collection<Group> = emptyList()
 
     override fun getFields(): Collection<GlobalReferable> = emptyList()
-
-    val fullName: String
-        get() {
-            val fileName = virtualFile.path
-            val sourceRoot = sourceRoot?.path
-            return if (sourceRoot == null || !fileName.startsWith(sourceRoot)) fileName
-                   else fileName.removePrefix(sourceRoot).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
-        }
-
-    val modulePath = ModulePath(fullName.split('.'))
 
     override fun moduleTextRepresentation(): String = name
 

@@ -28,7 +28,10 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
 
     override fun getUniverse(): VcExpr? = expr
 
-    override fun getClauses(): List<VcConstructorClause> = dataBody?.constructorClauseList ?: emptyList()
+    override fun getClauses(): List<Abstract.ConstructorClause> {
+        val body = dataBody ?: return emptyList()
+        return body.constructorClauseList + body.constructorList
+    }
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
