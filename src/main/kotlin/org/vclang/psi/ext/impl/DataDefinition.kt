@@ -20,7 +20,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
         return body.constructorClauseList.flatMap { it.constructorList } + body.constructorList
     }
 
-    override fun getParameters(): List<VcTele> = teleList
+    override fun getParameters(): List<VcTypeTele> = typeTeleList
 
     override fun getEliminatedExpressions(): List<VcRefIdentifier>? = dataBody?.elim?.refIdentifierList
 

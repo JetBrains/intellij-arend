@@ -33,7 +33,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getFields(): List<GlobalReferable> = classStatList.mapNotNull { it.classField }
 
-    override fun getParameters(): List<VcTele> = teleList
+    override fun getParameters(): List<VcTypeTele> = typeTeleList
 
     override fun getSuperClasses(): List<VcLongName> = longNameList
 

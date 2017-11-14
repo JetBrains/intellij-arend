@@ -137,21 +137,21 @@ definition ::= defFunction
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 
-defFunction ::= FUNCTION_KW prec? defIdentifier tele* [COLON expr] functionBody where? {
+defFunction ::= FUNCTION_KW prec? defIdentifier nameTele* [COLON expr] functionBody where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefFunctionStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier tele* [COLON expr] dataBody {
+defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dataBody {
     pin = 2
     mixin = "org.vclang.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefDataStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier tele* [EXTENDS_KW <<comma_separated_sequence longName>>] [LBRACE classStat* RBRACE] where? {
+defClass ::= CLASS_KW prec? defIdentifier typeTele* [EXTENDS_KW <<comma_separated_sequence longName>>] [LBRACE classStat* RBRACE] where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
@@ -166,7 +166,7 @@ defClassView ::= VIEW_KW defIdentifier ON_KW expr BY_KW refIdentifier LBRACE cla
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier tele* FAT_ARROW expr {
+defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier nameTele* FAT_ARROW expr {
     pin = 2
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
@@ -213,7 +213,7 @@ atomPattern ::= LPAREN pattern? RPAREN
     | LBRACE pattern RBRACE
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier tele* [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor"
@@ -253,17 +253,17 @@ caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces
     mixin = "org.vclang.psi.ext.VcCaseExprImplMixin"
 }
 
-piExpr ::= PI_KW tele+ ARROW expr {
+piExpr ::= PI_KW typeTele+ ARROW expr {
     pin = 1
     mixin = "org.vclang.psi.ext.VcPiExprImplMixin"
 }
 
-sigmaExpr ::= SIGMA_KW tele+ {
+sigmaExpr ::= SIGMA_KW typeTele+ {
     pin = 1
     mixin = "org.vclang.psi.ext.VcSigmaExprImplMixin"
 }
 
-lamExpr ::= LAM_KW tele+ FAT_ARROW expr {
+lamExpr ::= LAM_KW nameTele+ FAT_ARROW expr {
     pin = 1
     mixin = "org.vclang.psi.ext.VcLamExprImplMixin"
 }
@@ -276,7 +276,7 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE { pin = 1 }
 
-letClause ::= defIdentifier tele* typeAnnotation? FAT_ARROW expr {
+letClause ::= defIdentifier nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LetClause" ]
@@ -413,13 +413,22 @@ universeAtom ::= SET
     mixin = "org.vclang.psi.ext.VcUniverseAtomImplMixin"
 }
 
-tele ::= literal
+nameTele ::= prefixName
+    | UNDERSCORE
+    | LPAREN identifierOrUnknown+ [COLON expr] RPAREN
+    | LBRACE identifierOrUnknown+ [COLON expr] RBRACE {
+        implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
+        mixin = "org.vclang.psi.ext.VcNameTeleImplMixin"
+    }
+
+typeTele ::= literal
     | universeAtom
     | LPAREN typedExpr RPAREN
     | LBRACE typedExpr RBRACE {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
-        mixin = "org.vclang.psi.ext.VcTeleImplMixin"
+        mixin = "org.vclang.psi.ext.VcTypeTeleImplMixin"
     }
 
 typedExpr ::= identifierOrUnknown+ COLON expr | expr  // expr [COLON expr]

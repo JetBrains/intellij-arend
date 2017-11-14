@@ -34,7 +34,7 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun getReferable(): GlobalReferable = this
 
-    override fun getParameters(): List<VcTele> = teleList
+    override fun getParameters(): List<VcTypeTele> = typeTeleList
 
     override fun getEliminatedExpressions(): List<VcRefIdentifier> = elim?.refIdentifierList ?: emptyList()
 

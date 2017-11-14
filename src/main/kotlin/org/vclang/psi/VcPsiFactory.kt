@@ -57,7 +57,7 @@ class VcPsiFactory(private val project: Project) {
                     ?: error("Failed to create expression: `$expr`")
 
     private fun createLiteral(literal: String): VcLiteral =
-            createFunction("dummy", listOf(literal)).teleList.firstOrNull()?.childOfType()
+            createFunction("dummy", listOf(literal)).nameTeleList.firstOrNull()?.childOfType()
                     ?: error("Failed to create literal: `$literal`")
 
     private fun createStatCmd(name: String): VcStatCmd =

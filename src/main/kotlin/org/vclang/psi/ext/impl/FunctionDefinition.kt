@@ -15,7 +15,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     constructor(stub: VcDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getParameters(): List<VcTele> = teleList
+    override fun getParameters(): List<VcNameTele> = nameTeleList
 
     override fun getResultType(): VcExpr? = expr
 
