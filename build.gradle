@@ -120,3 +120,17 @@ task generateVcParser(type: GenerateParser) {
 
 compileKotlin.dependsOn generateVcLexer, generateVcParser
 compileTestKotlin.dependsOn generateVcLexer, generateVcParser
+
+// Prelude stuff
+
+def preludeOutputDir = "src/main/resources/lib"
+
+task prelude(type:Copy) {
+    //noinspection GroovyAssignabilityCheck
+    from project(':vclang').file('lib/Prelude.vc')
+    //noinspection GroovyAssignabilityCheck
+    from project(':vclang').file("${project(':vclang').buildDir}/classes/main/lib/Prelude.vcc")
+    into preludeOutputDir
+}
+
+prelude.dependsOn(":vclang:prelude")
