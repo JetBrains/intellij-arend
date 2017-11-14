@@ -65,6 +65,7 @@
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         SUC_KW              = '\suc'
+        LEVELS_KW           = '\levels'
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
@@ -75,7 +76,6 @@
     extends("def(Function|Data|Class|ClassView|Instance)") = definition
     extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)BinOp") = binOpArg
-    extends("(atom|suc|max)LevelExpr") = levelExpr
 }
 
 statements ::= topStatement*
@@ -292,8 +292,8 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
 }
 
 levelExpr ::= atomLevelExpr
-    | sucLevelExpr
-    | maxLevelExpr {
+    | SUC_KW atomLevelExpr
+    | MAX_KW atomLevelExpr atomLevelExpr {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprImplMixin"
@@ -303,20 +303,9 @@ atomLevelExpr ::= LP_KW
     | LH_KW
     | NUMBER
     | LPAREN levelExpr RPAREN {
-    implements = "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression"
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
-}
-
-sucLevelExpr ::= SUC_KW atomLevelExpr {
-    pin = 1
-    implements = "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression"
-    mixin = "org.vclang.psi.ext.VcSucLevelExprImplMixin"
-}
-
-maxLevelExpr ::= MAX_KW atomLevelExpr atomLevelExpr {
-    pin = 1
-    implements = "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression"
-    mixin = "org.vclang.psi.ext.VcMaxLevelExprImplMixin"
 }
 
 binOpArg ::= universeBinOp
@@ -341,7 +330,27 @@ truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? {
     mixin = "org.vclang.psi.ext.VcTruncatedUniverseBinOpImplMixin"
 }
 
-argumentBinOp ::= atomFieldsAcc argument* {
+onlyLevelExpr ::= atomOnlyLevelExpr
+    | MAX_KW atomLevelExpr atomLevelExpr
+    | SUC_KW atomLevelExpr {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
+    mixin = "org.vclang.psi.ext.VcOnlyLevelExprImplMixin"
+}
+
+maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
+
+levelsExpr ::= LEVELS_KW (maybeAtomLevelExpr maybeAtomLevelExpr | PROP_KW) | LPAREN levelsExpr RPAREN
+
+atomOnlyLevelExpr ::= LP_KW
+    | LH_KW
+    | LPAREN onlyLevelExpr RPAREN {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
+    mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
+}
+
+argumentBinOp ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) argument* {
     mixin = "org.vclang.psi.ext.VcArgumentBinOpImplMixin"
 }
 

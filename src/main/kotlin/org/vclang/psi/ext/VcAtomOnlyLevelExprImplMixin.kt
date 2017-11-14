@@ -2,16 +2,15 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
-import org.vclang.psi.VcAtomLevelExpr
+import org.vclang.psi.VcAtomOnlyLevelExpr
 
 
-abstract class VcAtomLevelExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcAtomLevelExpr {
+abstract class VcAtomOnlyLevelExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcAtomOnlyLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
         lpKw?.let { return visitor.visitLP(this, params) }
         lhKw?.let { return visitor.visitLH(this, params) }
-        number?.text?.toIntOrNull()?.let { return visitor.visitNumber(this, it, params) }
-        return levelExpr?.accept(visitor, params) ?: error("Incomplete expression: " + this)
+        return onlyLevelExpr?.accept(visitor, params) ?: error("Incomplete expression: " + this)
     }
 }

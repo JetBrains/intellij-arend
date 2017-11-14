@@ -104,6 +104,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\lp"                  { return LP_KW; }
     "\\lh"                  { return LH_KW; }
     "\\suc"                 { return SUC_KW; }
+    "\\levels"              { return LEVELS_KW; }
     "\\max"                 { return MAX_KW; }
 
     {SET}                   { return SET; }
