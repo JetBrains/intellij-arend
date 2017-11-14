@@ -9,7 +9,6 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.core.definition.Definition
-import com.jetbrains.jetpad.vclang.module.CacheModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.*
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
@@ -20,6 +19,7 @@ import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNam
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
+import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
@@ -49,6 +49,8 @@ typealias VcSourceIdT = CompositeSourceSupplier<
 interface TypeCheckingService {
     var eventsProcessor: TypecheckingEventsProcessor?
 
+    val moduleScopeProvider: ModuleScopeProvider
+
     fun typeCheck(modulePath: ModulePath, definitionFullName: String)
 
     companion object {
@@ -76,21 +78,20 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private val sourceInfoProvider = VcSourceInfoProvider()
     private val logger = TypeCheckConsoleLogger(PrettyPrinterConfig.DEFAULT)
 
-    private val cacheModuleScopeProvider: CacheModuleScopeProvider
-        get() {
-            val modules = ModuleManager.getInstance(project).modules // TODO[library]
-            return CacheModuleScopeProvider(if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0]))
-        }
-
     private val cacheManager = SourcelessCacheManager(
         storage,
         VcPersistenceProvider(),
-        cacheModuleScopeProvider,
+        run {
+            val modules = ModuleManager.getInstance(project).modules // TODO[library]
+            if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0])
+        },
         sourceInfoProvider,
         VcSourceVersionTracker()
     )
     private val typeCheckerState = cacheManager.typecheckerState
     private val dependencyCollector = DependencyCollector(typeCheckerState)
+
+    override val moduleScopeProvider: ModuleScopeProvider = cacheManager.createModuleScopeProvider()
 
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())

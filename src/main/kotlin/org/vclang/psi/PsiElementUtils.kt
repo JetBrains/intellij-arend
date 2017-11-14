@@ -1,5 +1,6 @@
 package org.vclang.psi
 
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootManager
@@ -10,6 +11,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.Group
 import org.vclang.module.PsiModuleScopeProvider
+import org.vclang.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { it.parent }
@@ -18,7 +20,9 @@ val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
-    get() = module?.let { PsiModuleScopeProvider(it) } ?: EmptyModuleScopeProvider.INSTANCE
+    get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.moduleScopeProvider
+        ?: module?.let { PsiModuleScopeProvider(it) }
+        ?: EmptyModuleScopeProvider.INSTANCE
 
 val PsiElement.sourceRoot: VirtualFile?
     get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }
