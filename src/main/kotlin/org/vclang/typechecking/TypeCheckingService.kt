@@ -12,7 +12,7 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
-import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
+import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.module.CacheModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.*
@@ -25,13 +25,11 @@ import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNam
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
-import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
-import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.module.source.VcFileStorage
@@ -123,7 +121,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         val module = loadSource(sourceId) ?: return
 
         try {
-            cacheManager.loadCache(sourceId, module)
+            cacheManager.loadCache(sourceId)
         } catch (ignored: CacheLoadingException) {
         }
 
@@ -143,47 +141,41 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
             typeChecking.typecheckModules(listOf(module))
             eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.textRepresentation()))
+
+            try {
+                cacheManager.persistCache(sourceId)
+            } catch (e: CachePersistenceException) {
+                e.printStackTrace()
+            }
         } else {
-            concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
             val group = module.findGroupByFullName(definitionFullName.split('.'))
             val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
-            val definition = concreteProvider.getConcrete(ref)
-            if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
-                else if (definition != null) error(definitionFullName + " is not a definition")
+            val typechecked = typeCheckerState.getTypechecked(ref)
+            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
+                val definition = concreteProvider.getConcrete(ref)
+                if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                    else if (definition != null) error(definitionFullName + " is not a definition")
+            } else {
+                testResultReporter.typecheckingFinished(typechecked)
+            }
         }
-
-        cacheManager.cachedModules
-                .filter { it.actualSourceId !== preludeStorage.preludeSourceId }
-                .forEach {
-                    try {
-                        cacheManager.persistCache(it)
-                    } catch (e: CachePersistenceException) {
-                        e.printStackTrace()
-                    }
-                }
     }
 
-    private fun loadPrelude(): Group {
+    private fun loadPrelude() {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         PsiModuleScopeProvider.preludeScope = LexicalScope.opened(prelude)
 
         try {
-            cacheManager.loadCache(sourceId, prelude)
+            cacheManager.loadCache(sourceId)
         } catch (e: CacheLoadingException) {
             throw IllegalStateException("Prelude cache is not available", e)
         }
 
-        // TODO[prelude]: We do not need to typecheck prelude
-        Typechecking(
-                typeCheckerState,
-                ResolvingPsiConcreteProvider(logger),
-                DummyErrorReporter.INSTANCE,
-                Prelude.UpdatePreludeReporter(),
-                object : DependencyListener {}
-        ).typecheckModules(listOf(prelude))
-
-        return prelude
+        prelude.subgroups
+            .mapNotNull { typeCheckerState.getTypechecked(it) }
+            .forEach { Prelude.update(it) }
     }
 
     private fun loadSource(sourceId: VcSourceIdT): VcFile? =
