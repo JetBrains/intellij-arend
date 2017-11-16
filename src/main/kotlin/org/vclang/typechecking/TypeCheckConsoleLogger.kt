@@ -3,10 +3,7 @@ package org.vclang.typechecking
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.testframework.CompositePrintable
 import com.intellij.execution.ui.ConsoleViewContentType
-import com.intellij.execution.ui.ConsoleViewContentType.ERROR_OUTPUT
-import com.intellij.execution.ui.ConsoleViewContentType.LOG_WARNING_OUTPUT
-import com.intellij.execution.ui.ConsoleViewContentType.NORMAL_OUTPUT
-import com.intellij.execution.ui.ConsoleViewContentType.USER_INPUT
+import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -14,20 +11,15 @@ import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.error.SourceInfoReference
-import com.jetbrains.jetpad.vclang.error.doc.HListDoc
-import com.jetbrains.jetpad.vclang.error.doc.LineDocVisitor
-import com.jetbrains.jetpad.vclang.error.doc.ReferenceDoc
-import com.jetbrains.jetpad.vclang.error.doc.TermLineDoc
-import com.jetbrains.jetpad.vclang.error.doc.TextDoc
-import com.jetbrains.jetpad.vclang.term.provider.PrettyPrinterInfoProvider
+import com.jetbrains.jetpad.vclang.error.doc.*
+import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
-import org.vclang.psi.parentOfType
 import org.vclang.typechecking.execution.DefinitionProxy
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 class TypeCheckConsoleLogger(
-        private val sourceInfoProvider: PrettyPrinterInfoProvider
+        private val sourceInfoProvider: PrettyPrinterConfig
 ) : ErrorReporter {
     var eventsProcessor: TypecheckingEventsProcessor? = null
 

@@ -7,11 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiRecursiveElementVisitor
-import com.intellij.psi.PsiTreeChangeAdapter
-import com.intellij.psi.PsiTreeChangeEvent
+import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.module.CacheModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -20,13 +16,13 @@ import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
-import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
+import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
@@ -78,7 +74,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     )
 
     private val sourceInfoProvider = VcSourceInfoProvider()
-    private val logger = TypeCheckConsoleLogger(sourceInfoProvider)
+    private val logger = TypeCheckConsoleLogger(PrettyPrinterConfig.DEFAULT)
 
     private val cacheModuleScopeProvider: CacheModuleScopeProvider
         get() {
@@ -285,8 +281,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
-        override fun nameFor(referable: Referable): String = referable.textRepresentation()
-
         override fun fullNameFor(definition: GlobalReferable): FullName {
             if (definition !is PsiGlobalReferable) throw IllegalStateException()
             return definition.fullName_
