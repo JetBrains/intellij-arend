@@ -17,15 +17,15 @@ import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheSourceInfoProvider
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.SourcelessCacheManager
+import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
 import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
-import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig

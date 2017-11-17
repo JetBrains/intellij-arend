@@ -3,7 +3,9 @@ package org.vclang.module
 import com.intellij.openapi.module.Module
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.naming.scope.*
+import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
+import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import org.vclang.module.util.findVcFiles
 
 

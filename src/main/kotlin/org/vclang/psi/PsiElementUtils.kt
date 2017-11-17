@@ -7,8 +7,8 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.jetbrains.jetpad.vclang.naming.scope.EmptyModuleScopeProvider
-import com.jetbrains.jetpad.vclang.naming.scope.ModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.Group
 import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.typechecking.TypeCheckingService
