@@ -30,7 +30,6 @@ import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
-import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.PsiModuleScopeProvider
@@ -112,14 +111,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
         val eventsProcessor = eventsProcessor!!
         if (definitionFullName.isEmpty()) {
-            val module = sourceId.source1.module
-            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(module.textRepresentation(), null))
-            module.children
-                .filterIsInstance<VcStatement>()
-                .mapNotNull { it.definition }
-                .forEach { eventsProcessor.onTestStarted(TestStartedEvent(it.fullName, null)) }
-        } else {
-            eventsProcessor.onTestStarted(TestStartedEvent(definitionFullName, null))
+            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(sourceId.source1.module.textRepresentation(), null))
         }
 
         val module = loadSource(sourceId) ?: return
@@ -130,12 +122,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         val concreteProvider = CachingConcreteProvider()
-        val testResultReporter = TestResultReporter(eventsProcessor)
-        val typeChecking = Typechecking(
+        val typeChecking = TestBasedTypechecking(
+                eventsProcessor,
                 typeCheckerState,
                 concreteProvider,
                 logger,
-                testResultReporter,
                 dependencyCollector
         )
 
@@ -161,7 +152,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
                     else if (definition != null) error(definitionFullName + " is not a definition")
             } else {
-                testResultReporter.typecheckingFinished(typechecked)
+                typeChecking.typecheckingStarted(ref)
+                typeChecking.typecheckingFinished(typechecked)
             }
         }
     }
