@@ -14,7 +14,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
-import org.vclang.resolving.*
+import org.vclang.resolving.VcReference
 
 interface VcCompositeElement : PsiElement, SourceInfo {
     val scope: Scope
@@ -50,9 +50,9 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override val scope: Scope
-        get() = (parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE
+        get() = ScopeFactory.forSourceNode((parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE, ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull())
 
-    fun getParentSourceNode(): Abstract.SourceNode? = null
+    fun getParentSourceNode(): Abstract.SourceNode? = parent.ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull()
 
     override fun getReference(): VcReference? = null
 
