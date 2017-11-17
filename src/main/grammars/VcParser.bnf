@@ -144,7 +144,7 @@ defFunction ::= FUNCTION_KW prec? defIdentifier nameTele* [COLON expr] functionB
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dataBody {
+defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dataBody where? {
     pin = 2
     mixin = "org.vclang.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefDataStub"

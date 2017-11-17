@@ -11,8 +11,8 @@ import com.intellij.psi.NavigatablePsiElement
 import org.vclang.navigation.getPresentationForStructure
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.VcCompositeElement
 
 class VcStructureViewModel(editor: Editor?, file: VcFile)
     : StructureViewModelBase(file, editor, VcStructureViewElement(file)),
@@ -55,7 +55,9 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
             is VcFile -> psi.children.filterIsInstance<VcStatement>().mapNotNull { it.definition }
             is VcDefClass -> psi.childDefinitions
             is VcDefClassView -> psi.classViewFieldList
-            is VcDefData -> psi.dataBody?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.constructorList ?: emptyList()
+            is VcDefData ->
+                (psi.dataBody?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.constructorList ?: emptyList()) +
+                (psi.where?.childDefinitions ?: emptyList())
             is VcDefFunction -> psi.where?.childDefinitions ?: emptyList()
             else -> emptyList()
         }
