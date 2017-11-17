@@ -25,11 +25,4 @@ val PsiGlobalReferable.fullName: String
     }
 
 val PsiGlobalReferable.fullName_: FullName
-    get() {
-        val parent = parent?.ancestors?.filterIsInstance<PsiGlobalReferable>()?.firstOrNull()
-        return if (!(parent == null || parent is VcFile)) {
-            FullName(parent.fullName_, textRepresentation())
-        } else {
-            FullName(textRepresentation())
-        }
-    }
+    get() = FullName(ancestors.filterIsInstance<PsiGlobalReferable>().takeWhile { it !is VcFile }.map { it.textRepresentation() }.toList().asReversed())
