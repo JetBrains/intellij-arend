@@ -166,7 +166,7 @@ defClassView ::= VIEW_KW defIdentifier ON_KW expr BY_KW refIdentifier LBRACE cla
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier nameTele* FAT_ARROW expr {
+defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier nameTele* FAT_ARROW expr where? {
     pin = 2
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
