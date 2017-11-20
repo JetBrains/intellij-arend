@@ -100,7 +100,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\by"                  { return BY_KW; }
     "\\instance"            { return INSTANCE_KW; }
     "\\truncated"           { return TRUNCATED_KW; }
-    "\\default"             { return DEFAULT_KW; }
     "\\lp"                  { return LP_KW; }
     "\\lh"                  { return LH_KW; }
     "\\suc"                 { return SUC_KW; }

@@ -61,7 +61,6 @@
         BY_KW               = '\by'
         INSTANCE_KW         = '\instance'
         TRUNCATED_KW        = '\truncated'
-        DEFAULT_KW          = '\default'
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         SUC_KW              = '\suc'
@@ -84,7 +83,7 @@ private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
 private statement_recover ::= !(OPEN_KW      | IMPORT_KW |
                                 FUNCTION_KW  | TRUNCATED_KW | DATA_KW   | CLASS_KW |
-                                VIEW_KW      | DEFAULT_KW   | INSTANCE_KW)
+                                VIEW_KW      | INSTANCE_KW)
 
 statement ::= statCmd | definition
 
@@ -166,8 +165,8 @@ defClassView ::= VIEW_KW defIdentifier ON_KW expr BY_KW refIdentifier LBRACE cla
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defInstance ::= DEFAULT_KW? INSTANCE_KW defIdentifier nameTele* FAT_ARROW expr where? {
-    pin = 2
+defInstance ::= INSTANCE_KW defIdentifier nameTele* COLON longName coClauses where? {
+    pin = 1
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
@@ -276,6 +275,20 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE { pin = 1 }
 
+coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)*
+
+clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionClause" ]
+    mixin = "org.vclang.psi.ext.VcClauseImplMixin"
+}
+
+coClause ::= refIdentifier FAT_ARROW expr {
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
+    mixin = "org.vclang.psi.ext.VcCoClauseImplMixin"
+}
+
 letClause ::= defIdentifier nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiReferable"
@@ -284,12 +297,6 @@ letClause ::= defIdentifier nameTele* typeAnnotation? FAT_ARROW expr {
 }
 
 typeAnnotation ::= COLON expr { pin = 1 }
-
-clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionClause" ]
-    mixin = "org.vclang.psi.ext.VcClauseImplMixin"
-}
 
 levelExpr ::= atomLevelExpr
     | SUC_KW atomLevelExpr
@@ -360,7 +367,7 @@ binOpRight ::= infixName newExpr | postfixName {
     mixin = "org.vclang.psi.ext.VcBinOpRightImplMixin"
 }
 
-newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence implementStatement>>? RBRACE] {
+newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
@@ -379,12 +386,6 @@ tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
 atomFieldsAcc ::= atom fieldAcc* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
-}
-
-implementStatement ::= longName FAT_ARROW expr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
-    mixin = "org.vclang.psi.ext.VcImplementStatementImplMixin"
 }
 
 argument ::= atomFieldsAcc
