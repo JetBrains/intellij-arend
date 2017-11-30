@@ -16,7 +16,6 @@ enum class VcHighlightingColors(humanName: String, default: TextAttributesKey) {
     OPERATORS("Operator sign", Default.COMMA),
     DOT("Dot", Default.COMMA),
     COMMA("Comma", Default.COMMA),
-    GRAVE("Grave", Default.COMMA),
     COLON("Colon", Default.COMMA),
     ARROW("Arrow", Default.COMMA),
 

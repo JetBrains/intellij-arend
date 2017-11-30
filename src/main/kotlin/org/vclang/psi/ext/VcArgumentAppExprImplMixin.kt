@@ -2,12 +2,12 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
-import org.vclang.psi.VcArgumentBinOp
+import org.vclang.psi.VcArgumentAppExpr
 
 
-abstract class VcArgumentBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentBinOp {
+abstract class VcArgumentAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        atomFieldsAcc?.let { return visitor.visitApp(this, it, argumentList, params) }
+        atomFieldsAcc?.let { return visitor.visitBinOpSequence(this, it, argumentList, params) }
         longName?.let { name ->
             val levels = generateSequence(levelsExpr) { it.levelsExpr }.lastOrNull()
             levels?.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, params) }

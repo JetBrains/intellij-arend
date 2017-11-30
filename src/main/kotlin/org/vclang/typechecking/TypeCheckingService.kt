@@ -1,6 +1,5 @@
 package org.vclang.typechecking
 
-import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -9,9 +8,9 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.core.definition.Definition
+import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.CachePersistenceException
 import com.jetbrains.jetpad.vclang.module.caching.ModuleUriProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
@@ -25,7 +24,6 @@ import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
-import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
@@ -35,10 +33,12 @@ import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingCo
 import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.module.source.VcFileStorage
 import org.vclang.module.source.VcPreludeStorage
-import org.vclang.psi.*
+import org.vclang.psi.VcDefinition
+import org.vclang.psi.VcFile
+import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.psi.ext.fullName
 import org.vclang.psi.ext.fullName_
+import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.ResolvingPsiConcreteProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
@@ -80,27 +80,33 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             preludeStorage
     )
 
-    private val sourceInfoProvider = CacheSourceInfoProvider(VcSourceInfoProvider())
     private val logger = TypeCheckConsoleLogger(PrettyPrinterConfig.DEFAULT)
+
+    private val sourceScopeProvider: ModuleScopeProvider
+        get() {
+            val modules = ModuleManager.getInstance(project).modules // TODO[library]
+            return if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0])
+        }
+
+    private val sourceInfoProvider = CacheSourceInfoProvider(VcSourceInfoProvider())
+
+    override val moduleScopeProvider: CacheModuleScopeProvider<VcSourceIdT> = CacheModuleScopeProvider(sourceScopeProvider)
 
     private val cacheManager = SourcelessCacheManager(
         storage,
         VcPersistenceProvider(),
+        EmptyModuleScopeProvider.INSTANCE,
         moduleScopeProvider,
         sourceInfoProvider,
         VcSourceVersionTracker()
     )
+
     private val typeCheckerState = cacheManager.typecheckerState
     private val dependencyCollector = DependencyCollector(typeCheckerState)
 
-    override val moduleScopeProvider: CacheModuleScopeProvider
-        get() {
-            val modules = ModuleManager.getInstance(project).modules // TODO[library]
-            return CacheModuleScopeProvider(if (modules.isEmpty()) EmptyModuleScopeProvider.INSTANCE else PsiModuleScopeProvider(modules[0]))
-        }
-
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+        moduleScopeProvider.initialise(storage, cacheManager)
         loadPrelude()
     }
 
@@ -116,10 +122,12 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
         val module = loadSource(sourceId) ?: return
 
+        /* TODO[caching]
         try {
             cacheManager.loadCache(sourceId)
         } catch (ignored: CacheLoadingException) {
         }
+        */
 
         val concreteProvider = CachingConcreteProvider()
         val typeChecking = TestBasedTypechecking(
@@ -137,11 +145,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             typeChecking.typecheckModules(listOf(module))
             eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.textRepresentation()))
 
+            /* TODO[caching]
             try {
                 cacheManager.persistCache(sourceId)
             } catch (e: CachePersistenceException) {
                 e.printStackTrace()
             }
+            */
         } else {
             val group = module.findGroupByFullName(definitionFullName.split('.'))
             val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
@@ -160,8 +170,10 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private fun loadPrelude() {
         val sourceId = storage.locateModule(VcPreludeStorage.PRELUDE_MODULE_PATH)
+        /* TODO[caching]
         val prelude = checkNotNull(loadSource(sourceId)) { "Failed to load prelude" }
         PsiModuleScopeProvider.preludeScope = LexicalScope.opened(prelude)
+        */
 
         try {
             cacheManager.loadCache(sourceId)
@@ -169,9 +181,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             throw IllegalStateException("Prelude cache is not available", e)
         }
 
-        prelude.subgroups
-            .mapNotNull { typeCheckerState.getTypechecked(it) }
-            .forEach { Prelude.update(it) }
+        Prelude.initialise(moduleScopeProvider.forCacheModule(PreludeStorage.PRELUDE_MODULE_PATH).root, typeCheckerState)
     }
 
     private fun loadSource(sourceId: VcSourceIdT): VcFile? =
@@ -272,12 +282,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class VcSourceVersionTracker : SourceVersionTracker<VcSourceIdT> {
-
         override fun getCurrentVersion(sourceId: VcSourceIdT): Long =
                 storage.getAvailableVersion(sourceId)
-
-        override fun ensureLoaded(sourceId: VcSourceIdT, version: Long): Boolean =
-                getCurrentVersion(sourceId) == version
     }
 
     private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
@@ -287,7 +293,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         override fun sourceOf(definition: GlobalReferable): VcSourceIdT? {
-            val module = (definition as? PsiElement)?.containingFile?.originalFile as? VcFile ?: error("Invalid definition")
+            val module = (definition as? PsiElement)?.containingFile?.originalFile as? VcFile ?: return null
             return if (module.virtualFile.nameWithoutExtension != "Prelude") {
                 storage.idFromFirst(projectStorage.locateModule(module))
             } else {

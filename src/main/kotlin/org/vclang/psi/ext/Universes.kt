@@ -2,12 +2,10 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.jetbrains.jetpad.vclang.term.Fixity
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
-import org.vclang.psi.VcSetUniverseBinOp
-import org.vclang.psi.VcTruncatedUniverseBinOp
-import org.vclang.psi.VcUniverseAtom
-import org.vclang.psi.VcUniverseBinOp
+import org.vclang.psi.*
 
 
 private fun <P : Any?, R : Any?> acceptSet(data: Any, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
@@ -29,17 +27,17 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiEl
 }
 
 
-abstract class VcSetUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSetUniverseBinOp {
+abstract class VcSetUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSetUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptSet(this, set, atomLevelExpr, visitor, params)
 }
 
-abstract class VcTruncatedUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcTruncatedUniverseBinOp {
+abstract class VcTruncatedUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcTruncatedUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptTruncated(this, truncatedUniverse, atomLevelExpr, visitor, params)
 }
 
-abstract class VcUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseBinOp {
+abstract class VcUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val levelExprs = atomLevelExprList
         return acceptUniverse(this, universe, levelExprs.getOrNull(0), levelExprs.getOrNull(1), visitor, params)
@@ -47,6 +45,12 @@ abstract class VcUniverseBinOpImplMixin(node: ASTNode) : VcExprImplMixin(node), 
 }
 
 abstract class VcUniverseAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAtom {
+    override fun isExplicit(): Boolean = true
+
+    override fun getFixity(): Fixity = Fixity.NONFIX
+
+    override fun getExpression(): VcExpr = this
+
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         set?.let { return acceptSet(this, it, null, visitor, params) }
         universe?.let { return acceptUniverse(this, it, null, null, visitor, params) }

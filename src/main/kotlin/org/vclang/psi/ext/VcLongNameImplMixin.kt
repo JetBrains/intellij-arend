@@ -11,9 +11,12 @@ abstract class VcLongNameImplMixin(node: ASTNode) : VcCompositeElementImpl(node)
     override fun getData() = this
 
     override fun getReferent(): UnresolvedReference =
-        LongUnresolvedReference(this, prefixName.referenceName, refIdentifierList.map { it.referenceName })
+        LongUnresolvedReference(this, refIdentifierList.map { it.referenceName })
 
-    override fun getHeadReference(): Abstract.Reference = prefixName
+    override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]
 
-    override fun getTailReferences(): List<Abstract.Reference> = refIdentifierList
+    override fun getTailReferences(): List<Abstract.Reference> {
+        val refs = refIdentifierList
+        return refs.subList(1, refs.size)
+    }
 }

@@ -16,7 +16,7 @@ abstract class VcPatternImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
 
     override fun getHeadReference(): Referable? {
         val conPattern = patternConstructor ?: return atomPattern?.pattern?.headReference
-        val conName = conPattern.prefixName
+        val conName = conPattern.defRefIdentifier
         return if (conPattern.atomPatternOrPrefixList.isEmpty()) conName else NamedUnresolvedReference(conName, conName.referenceName)
     }
 

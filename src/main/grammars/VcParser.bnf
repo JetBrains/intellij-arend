@@ -28,7 +28,6 @@
         DOT                 = '.'
         COMMA               = ','
         UNDERSCORE          = '_'
-        GRAVE               = '`'
         PIPE                = '|'
         BLOCK_COMMENT_START = '{-'
         BLOCK_COMMENT_END   = '-}'
@@ -73,8 +72,9 @@
     ]
 
     extends("def(Function|Data|Class|ClassView|Instance)") = definition
-    extends("(arr|binOp|pi|sigma|lam|let|case)Expr") = expr
-    extends("(universe|setUniverse|truncatedUniverse|argument)BinOp") = binOpArg
+    extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
+    extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
+    extends("atomArgument|newArg|universeAtom|implicitArgument|infixArgument|postfixArgument") = argument
 }
 
 statements ::= topStatement*
@@ -200,9 +200,9 @@ pattern ::= atomPattern | patternConstructor {
     mixin = "org.vclang.psi.ext.VcPatternImplMixin"
 }
 
-patternConstructor ::= prefixName atomPatternOrPrefix* { pin = 1 }
+patternConstructor ::= defRefIdentifier atomPatternOrPrefix* { pin = 1 }
 
-atomPatternOrPrefix ::= atomPattern | prefixName {
+atomPatternOrPrefix ::= atomPattern | defRefIdentifier {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Pattern" ]
     mixin = "org.vclang.psi.ext.VcAtomPatternOrPrefixImplMixin"
@@ -230,7 +230,7 @@ expr ::= arrExpr
     | piExpr
     | lamExpr
     | letExpr
-    | binOpExpr {
+    | newExpr {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
@@ -243,8 +243,15 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.vclang.psi.ext.VcArrExprImplMixin"
 }
 
-binOpExpr ::= newExpr binOpRight* {
-    mixin = "org.vclang.psi.ext.VcBinOpExprImplMixin"
+newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE argument*] {
+    mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
+}
+
+appExpr ::= universeAppExpr
+    | setUniverseAppExpr
+    | truncatedUniverseAppExpr
+    | argumentAppExpr {
+    implements = "org.vclang.psi.VcExpr"
 }
 
 caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces {
@@ -315,26 +322,19 @@ atomLevelExpr ::= LP_KW
     mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
 }
 
-binOpArg ::= universeBinOp
-    | setUniverseBinOp
-    | truncatedUniverseBinOp
-    | argumentBinOp {
-    implements = "org.vclang.psi.VcExpr"
+universeAppExpr ::= UNIVERSE [atomLevelExpr atomLevelExpr?] {
+    pin = 1
+    mixin = "org.vclang.psi.ext.VcUniverseAppExprImplMixin"
 }
 
-universeBinOp ::= UNIVERSE [atomLevelExpr atomLevelExpr?] {
+setUniverseAppExpr ::= SET atomLevelExpr? {
     pin = 1
-    mixin = "org.vclang.psi.ext.VcUniverseBinOpImplMixin"
+    mixin = "org.vclang.psi.ext.VcSetUniverseAppExprImplMixin"
 }
 
-setUniverseBinOp ::= SET atomLevelExpr? {
+truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
     pin = 1
-    mixin = "org.vclang.psi.ext.VcSetUniverseBinOpImplMixin"
-}
-
-truncatedUniverseBinOp ::= TRUNCATED_UNIVERSE atomLevelExpr? {
-    pin = 1
-    mixin = "org.vclang.psi.ext.VcTruncatedUniverseBinOpImplMixin"
+    mixin = "org.vclang.psi.ext.VcTruncatedUniverseAppExprImplMixin"
 }
 
 onlyLevelExpr ::= atomOnlyLevelExpr
@@ -357,19 +357,9 @@ atomOnlyLevelExpr ::= LP_KW
     mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
 
-argumentBinOp ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) argument* {
-    mixin = "org.vclang.psi.ext.VcArgumentBinOpImplMixin"
-}
-
-binOpRight ::= infixName newExpr | postfixName {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.BinOpSequenceElem" ]
-    mixin = "org.vclang.psi.ext.VcBinOpRightImplMixin"
-}
-
-newExpr ::= NEW_KW? binOpArg [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) argument* {
     implements = "org.vclang.psi.VcExpr"
-    mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
+    mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
 }
 
 fieldAcc ::= DOT NUMBER
@@ -388,15 +378,43 @@ atomFieldsAcc ::= atom fieldAcc* {
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
 }
 
-argument ::= atomFieldsAcc
+argument ::= atomArgument
+    | newArg
     | universeAtom
-    | LBRACE expr RBRACE {
+    | implicitArgument
+    | infixArgument
+    | postfixArgument {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Argument" ]
-    mixin = "org.vclang.psi.ext.VcArgumentImplMixin"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Argument"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.BinOpSequenceElem" ]
 }
 
-longName ::= prefixName (DOT refIdentifier)* {
+atomArgument ::= atomFieldsAcc {
+    implements = "org.vclang.psi.ext.VcCompositeElement"
+    mixin = "org.vclang.psi.ext.VcAtomArgumentImplMixin"
+}
+
+implicitArgument ::= LBRACE expr RBRACE {
+    implements = "org.vclang.psi.ext.VcCompositeElement"
+    mixin = "org.vclang.psi.ext.VcImplicitArgumentImplMixin"
+}
+
+infixArgument ::= INFIX {
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcInfixArgumentImplMixin"
+}
+
+postfixArgument ::= POSTFIX {
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcPostfixArgumentImplMixin"
+}
+
+newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
+}
+
+longName ::= refIdentifier (DOT refIdentifier)* {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LongReference" ]
     mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
@@ -423,7 +441,7 @@ universeAtom ::= SET
     mixin = "org.vclang.psi.ext.VcUniverseAtomImplMixin"
 }
 
-nameTele ::= prefixName
+nameTele ::= defIdentifier
     | UNDERSCORE
     | LPAREN identifierOrUnknown+ [COLON expr] RPAREN
     | LBRACE identifierOrUnknown+ [COLON expr] RBRACE {
@@ -441,36 +459,25 @@ typeTele ::= literal
         mixin = "org.vclang.psi.ext.VcTypeTeleImplMixin"
     }
 
-typedExpr ::= identifierOrUnknown+ COLON expr | expr  // expr [COLON expr]
+typedExpr ::= identifierOrUnknown+ COLON expr | expr
 
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
-defIdentifier ::= PREFIX | INFIX {
+defIdentifier ::= ID {
     implements = "org.vclang.psi.ext.PsiReferable"
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
 }
 
-refIdentifier ::= PREFIX | INFIX {
+refIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.VcReferenceElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference" ]
     mixin = "org.vclang.psi.ext.VcRefIdentifierImplMixin"
 }
 
-prefixName ::= PREFIX | PREFIX_INFIX {
-    implements = [ "org.vclang.psi.ext.VcReferenceElement"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference"
-                   "com.jetbrains.jetpad.vclang.naming.reference.Referable" ]
-    mixin = "org.vclang.psi.ext.VcPrefixImplMixin"
-}
-
-infixName ::= INFIX | INFIX_PREFIX {
-    implements = "org.vclang.psi.ext.VcReferenceElement"
-    mixin = "org.vclang.psi.ext.VcInfixImplMixin"
-}
-
-postfixName ::= POSTFIX_INFIX | POSTFIX_PREFIX {
-    implements = "org.vclang.psi.ext.VcReferenceElement"
-    mixin = "org.vclang.psi.ext.VcPostfixImplMixin"
+defRefIdentifier ::= ID {
+    implements = [ "org.vclang.psi.ext.PsiReferable"
+                   "org.vclang.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.psi.ext.VcDefRefIdentifierImplMixin"
 }
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }

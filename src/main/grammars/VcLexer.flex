@@ -38,17 +38,12 @@ BLOCK_COMMENT_END   = -\}
 
 NUMBER              = [0-9]+
 
-INFIX_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:]
-PREFIX_CHAR         = [a-zA-Z0-9_']
-PREFIX_START_CHAR   = [a-zA-Z_]
-KEYWORD             = \\{PREFIX_START_CHAR}+{PREFIX_CHAR}*
+START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:a-zA-Z_]
+KEYWORD             = \\{ID}
 
-PREFIX              = ({INFIX_CHAR}|{PREFIX_START_CHAR}) ({INFIX_CHAR}|{PREFIX_CHAR})*
-INFIX               = {INFIX_CHAR}+
-PREFIX_INFIX        = `{INFIX}
-INFIX_PREFIX        = `{PREFIX}
-POSTFIX_INFIX       = {INFIX}`
-POSTFIX_PREFIX      = {PREFIX}`
+ID                  = {START_CHAR} ({START_CHAR} | [0-9'])*
+POSTFIX             = `{ID}
+INFIX               = `{ID}`
 
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
@@ -69,7 +64,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "."                     { return DOT; }
     ","                     { return COMMA; }
     "_"                     { return UNDERSCORE; }
-    "`"                     { return GRAVE; }
     "|"                     { return PIPE; }
 
     "\\open"                { return OPEN_KW; }
@@ -114,12 +108,9 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
 
     {NUMBER}                { return NUMBER; }
 
+    {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }
-    {PREFIX}                { return PREFIX; }
-    {PREFIX_INFIX}          { return PREFIX_INFIX; }
-    {INFIX_PREFIX}          { return INFIX_PREFIX; }
-    {POSTFIX_INFIX}         { return POSTFIX_INFIX; }
-    {POSTFIX_PREFIX}        { return POSTFIX_PREFIX; }
+    {ID}                    { return ID; }
 
     {LINE_COMMENT}          { return LINE_COMMENT; }
     {BLOCK_COMMENT_START}   {

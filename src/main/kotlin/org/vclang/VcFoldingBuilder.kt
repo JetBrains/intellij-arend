@@ -40,7 +40,7 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
             private val descriptors: MutableList<FoldingDescriptor>
     ) : VcVisitor() {
 
-        override fun visitArgument(o: VcArgument) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitImplicitArgument(o: VcImplicitArgument) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitAtomPattern(o: VcAtomPattern) = foldBetween(o, o.lbrace, o.rbrace)
 

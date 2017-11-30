@@ -55,9 +55,8 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
             val newNameIdentifier = when (oldNameIdentifier) {
                 is VcDefIdentifier -> factory.createDefIdentifier(name)
                 is VcRefIdentifier -> factory.createRefIdentifier(name)
-                is VcPrefixName -> factory.createPrefixName(name)
-                is VcInfixName -> factory.createInfixName(name)
-                is VcPostfixName -> factory.createPostfixName(name)
+                is VcInfixArgument -> factory.createInfixName(name)
+                is VcPostfixArgument -> factory.createPostfixName(name)
                 else -> error("Unsupported identifier type for `$name`")
             }
             oldNameIdentifier.replace(newNameIdentifier)

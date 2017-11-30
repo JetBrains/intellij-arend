@@ -3,8 +3,11 @@ package org.vclang.psi.ext
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import org.vclang.psi.*
-import org.vclang.resolving.*
+import org.vclang.psi.VcDefIdentifier
+import org.vclang.psi.VcDefRefIdentifier
+import org.vclang.psi.VcRefIdentifier
+import org.vclang.resolving.VcReference
+import org.vclang.resolving.VcReferenceImpl
 
 abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), VcDefIdentifier {
     override fun getName(): String = text
@@ -13,7 +16,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
 }
 
 abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {
-    override val referenceNameElement: VcRefIdentifierImplMixin
+    override val referenceNameElement
         get() = this
 
     override val referenceName: String
@@ -28,44 +31,16 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(
     override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this)
 }
 
-abstract class VcPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPrefixName {
-    override val referenceNameElement: VcCompositeElement
+abstract class VcDefRefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), VcDefRefIdentifier {
+    override val referenceNameElement
         get() = this
 
     override val referenceName: String
-        get() = prefixInfix?.text?.removePrefix("`") ?: text
+        get() = text
 
     override fun getName(): String = referenceName
 
     override fun textRepresentation(): String = referenceName
 
-    override fun getReference(): VcReference = VcReferenceImpl<VcPrefixName>(this)
-
-    override fun getData() = this
-
-    override fun getReferent(): Referable = this
-}
-
-abstract class VcInfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcInfixName {
-    override val referenceNameElement: VcCompositeElement
-        get() = this
-
-    override val referenceName: String
-        get() = infixPrefix?.text?.removePrefix("`") ?: text
-
-    override fun getName(): String = referenceName
-
-    override fun getReference(): VcReference = VcReferenceImpl<VcInfixName>(this)
-}
-
-abstract class VcPostfixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPostfixName {
-    override val referenceNameElement: VcCompositeElement
-        get() = this
-
-    override val referenceName: String
-        get() = postfixInfix?.text?.removeSuffix("`") ?: postfixPrefix?.text?.removeSuffix("`") ?: text
-
-    override fun getName(): String = referenceName
-
-    override fun getReference(): VcReference = VcReferenceImpl<VcPostfixName>(this)
+    override fun getReference(): VcReference = VcReferenceImpl<VcDefRefIdentifier>(this)
 }

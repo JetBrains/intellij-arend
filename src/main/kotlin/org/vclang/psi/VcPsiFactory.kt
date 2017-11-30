@@ -14,27 +14,14 @@ class VcPsiFactory(private val project: Project) {
             createStatCmd(name).refIdentifierList.getOrNull(0)
                     ?: error("Failed to create ref identifier: `$name`")
 
-    fun createPrefixName(name: String): VcPrefixName {
-        val needsPrefix = !VcNamesValidator().isPrefixName(name)
-        return createLiteral(if (needsPrefix) "`$name" else name).longName?.prefixName
-                ?: error("Failed to create prefix name: `$name`")
-    }
-
-    fun createInfixName(name: String): VcInfixName {
+    fun createInfixName(name: String): VcInfixArgument {
         val needsPrefix = !VcNamesValidator().isInfixName(name)
-        return createExpression<VcBinOpExpr>("dummy ${if (needsPrefix) "`$name" else name} dummy")
-                .binOpRightList
-                .firstOrNull()
-                ?.infixName
-                ?: error("Failed to create infix name: `$name`")
+        return createExpression("dummy ${if (needsPrefix) "`$name`" else name} dummy")
     }
 
-    fun createPostfixName(name: String): VcPostfixName {
-        return createExpression<VcBinOpExpr>("dummy $name`")
-                .binOpRightList
-                .firstOrNull()
-                ?.postfixName
-                ?: error("Failed to create postfix name: `$name`")
+    fun createPostfixName(name: String): VcPostfixArgument {
+        val needsPrefix = !VcNamesValidator().isPostfixName(name)
+        return createExpression("dummy ${if (needsPrefix) "`$name" else name}")
     }
 
     private fun createFunction(

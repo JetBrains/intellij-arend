@@ -2,7 +2,10 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
-import com.intellij.psi.*
+import com.intellij.psi.NavigatablePsiElement
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFileSystemItem
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -18,7 +21,7 @@ interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, Navigatable
 
 class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
 
-abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), PsiNameIdentifierOwner, PsiReferable {
+abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), PsiReferable {
 
     override fun getNameIdentifier(): VcCompositeElement? = childOfType()
 
@@ -38,7 +41,7 @@ abstract class PsiReferableImpl(node: ASTNode) : VcCompositeElementImpl(node), P
     override fun getPresentation(): ItemPresentation = getPresentation(this)
 }
 
-abstract class PsiStubbedReferableImpl<StubT> : VcStubbedElementImpl<StubT>, PsiNameIdentifierOwner, PsiReferable
+abstract class PsiStubbedReferableImpl<StubT> : VcStubbedElementImpl<StubT>, PsiReferable
 where StubT : VcNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)
