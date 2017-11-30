@@ -200,9 +200,9 @@ pattern ::= atomPattern | patternConstructor {
     mixin = "org.vclang.psi.ext.VcPatternImplMixin"
 }
 
-patternConstructor ::= defRefIdentifier atomPatternOrPrefix* { pin = 1 }
+patternConstructor ::= defIdentifier atomPatternOrPrefix* { pin = 1 }
 
-atomPatternOrPrefix ::= atomPattern | defRefIdentifier {
+atomPatternOrPrefix ::= atomPattern | defIdentifier {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Pattern" ]
     mixin = "org.vclang.psi.ext.VcAtomPatternOrPrefixImplMixin"
@@ -464,7 +464,8 @@ typedExpr ::= identifierOrUnknown+ COLON expr | expr
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 defIdentifier ::= ID {
-    implements = "org.vclang.psi.ext.PsiReferable"
+    implements = [ "org.vclang.psi.ext.PsiReferable"
+                   "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
 }
 
@@ -472,12 +473,6 @@ refIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.VcReferenceElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Reference" ]
     mixin = "org.vclang.psi.ext.VcRefIdentifierImplMixin"
-}
-
-defRefIdentifier ::= ID {
-    implements = [ "org.vclang.psi.ext.PsiReferable"
-                   "org.vclang.psi.ext.VcReferenceElement" ]
-    mixin = "org.vclang.psi.ext.VcDefRefIdentifierImplMixin"
 }
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
