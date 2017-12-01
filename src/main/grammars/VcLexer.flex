@@ -72,9 +72,12 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\using"               { return USING_KW; }
     "\\as"                  { return AS_KW; }
     "\\function"            { return FUNCTION_KW; }
-    "\\infix"               { return NON_ASSOC_KW; }
-    "\\infixl"              { return LEFT_ASSOC_KW; }
-    "\\infixr"              { return RIGHT_ASSOC_KW; }
+    "\\infix"               { return INFIX_NON_KW; }
+    "\\infixl"              { return INFIX_LEFT_KW; }
+    "\\infixr"              { return INFIX_RIGHT_KW; }
+    "\\fix"                 { return NON_ASSOC_KW; }
+    "\\fixl"                { return LEFT_ASSOC_KW; }
+    "\\fixr"                { return RIGHT_ASSOC_KW; }
     "\\Prop"                { return PROP_KW; }
     "\\where"               { return WHERE_KW; }
     "\\with"                { return WITH_KW; }

@@ -26,12 +26,12 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
         fun calcPrecedence(prec: VcPrec?): Precedence {
             if (prec == null) return Precedence.DEFAULT
             val assoc = when {
-                prec.rightAssocKw != null -> Precedence.Associativity.RIGHT_ASSOC
-                prec.leftAssocKw != null -> Precedence.Associativity.LEFT_ASSOC
-                prec.nonAssocKw != null -> Precedence.Associativity.NON_ASSOC
+                prec.rightAssocKw != null || prec.infixRightKw != null -> Precedence.Associativity.RIGHT_ASSOC
+                prec.leftAssocKw != null || prec.infixLeftKw != null -> Precedence.Associativity.LEFT_ASSOC
+                prec.nonAssocKw != null || prec.infixNonKw != null -> Precedence.Associativity.NON_ASSOC
                 else -> return Precedence.DEFAULT
             }
-            return Precedence(assoc, prec.number.text.toByteOrNull() ?: Byte.MAX_VALUE, true)
+            return Precedence(assoc, prec.number.text.toByteOrNull() ?: Byte.MAX_VALUE, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

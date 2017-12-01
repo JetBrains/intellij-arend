@@ -38,9 +38,12 @@
         USING_KW            = '\using'
         AS_KW               = '\as'
         FUNCTION_KW         = '\function'
-        NON_ASSOC_KW        = '\infix'
-        LEFT_ASSOC_KW       = '\infixl'
-        RIGHT_ASSOC_KW      = '\infixr'
+        NON_ASSOC_KW        = '\fix'
+        LEFT_ASSOC_KW       = '\fixl'
+        RIGHT_ASSOC_KW      = '\fixr'
+        INFIX_NON_KW        = '\infix'
+        INFIX_LEFT_KW       = '\infixl'
+        INFIX_RIGHT_KW      = '\infixr'
         PROP_KW             = '\Prop'
         WHERE_KW            = '\where'
         WITH_KW             = '\with'
@@ -222,7 +225,7 @@ constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-prec ::= (NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW) NUMBER
+prec ::= (NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW) NUMBER
 
 expr ::= arrExpr
     | caseExpr
