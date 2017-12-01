@@ -14,7 +14,6 @@ import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.*
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.psi.ext.fullName
 import org.vclang.typechecking.execution.DefinitionProxy
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
@@ -24,10 +23,9 @@ class TypeCheckConsoleLogger(
     var eventsProcessor: TypecheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
-        for (definition in error.affectedDefinitions) {
-            val proxy = (definition as? PsiGlobalReferable)?.let { eventsProcessor?.getProxyByFullName(it.fullName) } ?: continue
-            DocConsolePrinter(proxy, error).print()
-        }
+        error.affectedDefinitions
+            .mapNotNull { if (it is PsiGlobalReferable) eventsProcessor?.getProxyByFullName(it) else null }
+            .forEach { DocConsolePrinter(it, error).print() }
     }
 
     companion object {

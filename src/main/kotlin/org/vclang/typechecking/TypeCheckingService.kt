@@ -1,7 +1,5 @@
 package org.vclang.typechecking
 
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.ModuleManager
@@ -114,12 +112,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         ApplicationManager.getApplication().saveAll()
 
         val sourceId = sourceIdByPath(modulePath) ?: return
-
-        val eventsProcessor = eventsProcessor!!
-        if (definitionFullName.isEmpty()) {
-            eventsProcessor.onSuiteStarted(TestSuiteStartedEvent(sourceId.source1.module.textRepresentation(), null))
-        }
-
         val module = loadSource(sourceId) ?: return
 
         /* TODO[caching]
@@ -129,6 +121,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
         */
 
+        val eventsProcessor = eventsProcessor!!
         val concreteProvider = CachingConcreteProvider()
         val typeChecking = TestBasedTypechecking(
                 eventsProcessor,
@@ -139,11 +132,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         )
 
         if (definitionFullName.isEmpty()) {
+            eventsProcessor.onSuiteStarted(module)
             concreteProvider.setProvider(PsiConcreteProvider(logger))
             DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
             concreteProvider.setProvider(ResolvingPsiConcreteProvider(logger))
             typeChecking.typecheckModules(listOf(module))
-            eventsProcessor.onSuiteFinished(TestSuiteFinishedEvent(module.textRepresentation()))
 
             /* TODO[caching]
             try {
@@ -166,6 +159,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 typeChecking.typecheckingFinished(typechecked)
             }
         }
+
+        eventsProcessor.onSuitesFinished()
     }
 
     private fun loadPrelude() {
