@@ -7,10 +7,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcExpr
-import org.vclang.psi.ancestors
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcClassFieldStub
 import javax.swing.Icon
 
@@ -27,6 +24,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun getReferable(): GlobalReferable = this
+
+    override fun getParameters(): List<VcTypeTele> = typeTeleList
 
     override fun getResultType(): VcExpr? = expr
 

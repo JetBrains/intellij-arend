@@ -6,6 +6,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.psi.VcClassImplement
 import org.vclang.psi.VcExpr
+import org.vclang.psi.VcNameTele
 import org.vclang.psi.ext.PsiStubbedReferableImpl
 import org.vclang.psi.stubs.VcClassImplementStub
 
@@ -17,6 +18,8 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
     override fun getData(): ClassFieldImplAdapter = this
 
     override fun getImplementedField(): Referable = NamedUnresolvedReference(this, textRepresentation())
+
+    override fun getParameters(): List<VcNameTele> = nameTeleList
 
     override fun getImplementation(): VcExpr? = expr
 }

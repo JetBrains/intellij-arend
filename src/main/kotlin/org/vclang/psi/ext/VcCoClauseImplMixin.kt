@@ -2,8 +2,9 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcCoClause
+import org.vclang.psi.VcExpr
+import org.vclang.psi.VcNameTele
 
 
 abstract class VcCoClauseImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcCoClause {
@@ -11,5 +12,7 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcCompositeElementImpl(node)
 
     override fun getImplementedField(): Referable = refIdentifier.referent
 
-    override fun getImplementation(): Abstract.Expression? = expr
+    override fun getParameters(): List<VcNameTele> = nameTeleList
+
+    override fun getImplementation(): VcExpr = expr
 }
