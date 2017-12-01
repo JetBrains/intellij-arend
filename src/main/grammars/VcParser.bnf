@@ -107,12 +107,15 @@ nsId ::= refIdentifier [AS_KW prec? defIdentifier] {
     mixin = "org.vclang.psi.ext.VcNsIdImplMixin"
 }
 
-classStat ::= classField
-    | classImplement
-    | definition
+private classStats ::= LBRACE classStat* RBRACE { pin = 1 }
 
-classField ::= PIPE prec? defIdentifier COLON expr {
-    pin = 4
+classStat ::= classFieldOrImplement | definition { recoverWhile = classStat_recover }
+
+private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CLASS_KW | VIEW_KW | INSTANCE_KW | RBRACE)
+
+private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
+
+classField ::= prec? defIdentifier COLON expr {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
@@ -120,8 +123,7 @@ classField ::= PIPE prec? defIdentifier COLON expr {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-classImplement ::= PIPE refIdentifier FAT_ARROW expr {
-    pin = 3
+classImplement ::= refIdentifier FAT_ARROW expr {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldImplAdapter"
@@ -153,7 +155,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dat
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier typeTele* [EXTENDS_KW <<comma_separated_sequence longName>>] [LBRACE classStat* RBRACE] where? {
+defClass ::= CLASS_KW prec? defIdentifier typeTele* [EXTENDS_KW <<comma_separated_sequence longName>>] classStats? where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
