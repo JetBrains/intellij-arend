@@ -10,7 +10,7 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.ModuleUriProvider
+import com.jetbrains.jetpad.vclang.module.caching.ModuleCacheIdProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheSourceInfoProvider
@@ -19,7 +19,6 @@ import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.source.CompositeSourceSupplier
 import com.jetbrains.jetpad.vclang.module.source.CompositeStorage
-import com.jetbrains.jetpad.vclang.naming.FullName
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
@@ -36,13 +35,10 @@ import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.psi.ext.fullName_
+import org.vclang.psi.ext.fullName
 import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
-import java.net.URI
-import java.net.URISyntaxException
-import java.nio.file.Paths
 
 typealias VcSourceIdT = CompositeSourceSupplier<
         VcFileStorage.SourceId,
@@ -197,48 +193,21 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 
-    internal inner class VcPersistenceProvider : ModuleUriProvider<VcSourceIdT> {
-        override fun getUri(sourceId: VcSourceIdT): URI {
+    internal inner class VcPersistenceProvider : ModuleCacheIdProvider<VcSourceIdT> {
+        override fun getCacheId(sourceId: VcSourceIdT): String {
             return when {
-                sourceId.source1 != null -> URI(
-                        "file",
-                        "",
-                        Paths.get("/", *sourceId.source1.modulePath.toArray()).toString(),
-                        null,
-                        null
-                )
-                sourceId.source2 != null -> URI(
-                        "prelude",
-                        "",
-                        "/",
-                        "",
-                        null
-                )
+                sourceId.source1 != null -> "file:" + sourceId.source1.modulePath.toString()
+                sourceId.source2 != null -> "prelude"
                 else -> error("Invalid sourceId")
             }
         }
 
-        override fun getModuleId(sourceUri: URI): VcSourceIdT? {
-            if (sourceUri.authority != null) return null
-            when (sourceUri.scheme) {
-                "file" -> {
-                    try {
-                        val path = Paths.get(URI("file", null, sourceUri.path, null))
-                        val modulePath = VcFileStorage.modulePath(path.root.relativize(path))
-                        val fileSourceId = modulePath?.let { projectStorage.locateModule(it) }
-                        return fileSourceId?.let { storage.idFromFirst(it) }
-                    } catch (e: URISyntaxException) {
-                    } catch (e: NumberFormatException) {
-                    }
-                }
-                "prelude" -> {
-                    if (sourceUri.path == "/") {
-                        return storage.idFromSecond(preludeStorage.preludeSourceId)
-                    }
-                }
+        override fun getModuleId(cacheId: String): VcSourceIdT? =
+            when {
+                cacheId == "prelude" -> storage.idFromSecond(preludeStorage.preludeSourceId)
+                cacheId.startsWith("file:") -> storage.idFromFirst(projectStorage.locateModule(ModulePath(cacheId.substring(5).split('.'))))
+                else -> null
             }
-            return null
-        }
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
@@ -288,9 +257,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class VcSourceInfoProvider : SourceInfoProvider<VcSourceIdT> {
-        override fun fullNameFor(definition: GlobalReferable): FullName {
+        override fun cacheIdFor(definition: GlobalReferable): String {
             if (definition !is PsiGlobalReferable) throw IllegalStateException()
-            return definition.fullName_
+            return definition.fullName
         }
 
         override fun sourceOf(definition: GlobalReferable): VcSourceIdT? {
