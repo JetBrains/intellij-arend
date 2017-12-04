@@ -155,7 +155,7 @@ defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dat
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier nameTele* [EXTENDS_KW <<comma_separated_sequence longName>>] classStats? where? {
+defClass ::= CLASS_KW prec? defIdentifier fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] classStats? where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
@@ -455,6 +455,12 @@ nameTele ::= defIdentifier
         mixin = "org.vclang.psi.ext.VcNameTeleImplMixin"
     }
 
+fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
+        implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
+        mixin = "org.vclang.psi.ext.VcFieldTeleImplMixin"
+    }
+
 typeTele ::= literal
     | universeAtom
     | LPAREN typedExpr RPAREN
@@ -467,6 +473,12 @@ typeTele ::= literal
 typedExpr ::= identifierOrUnknown+ COLON expr | expr
 
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
+
+fieldDefIdentifier ::= defIdentifier {
+    implements = ["org.vclang.psi.ext.PsiConcreteReferable"
+                   "org.vclang.psi.ext.VcReferenceElement" ]
+    mixin = "org.vclang.psi.ext.VcFieldDefIdentifierImplMixin"
+}
 
 defIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.PsiReferable"

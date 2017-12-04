@@ -19,7 +19,7 @@ interface VcReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-open class VcDefReferenceImpl<T : VcDefIdentifier>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
+open class VcDefReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element

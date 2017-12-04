@@ -31,9 +31,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
-    override fun getFields(): List<GlobalReferable> = classStatList.mapNotNull { it.classField }
-
-    override fun getParameters(): List<VcNameTele> = nameTeleList
+    override fun getFields(): List<GlobalReferable> = (fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
 
     override fun getSuperClasses(): List<VcLongName> = longNameList
 
