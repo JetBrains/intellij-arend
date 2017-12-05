@@ -5,7 +5,6 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.ChildGroup
@@ -16,7 +15,7 @@ import org.vclang.VcLanguage
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
-import org.vclang.resolving.*
+import org.vclang.resolving.VcReference
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, ChildGroup {
     var modulePath: ModulePath
@@ -70,11 +69,11 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getNamespaceCommands(): List<VcStatCmd> = children.mapNotNull { (it as? VcStatement)?.statCmd }
 
-    override fun getConstructors(): Collection<GlobalReferable> = emptyList()
+    override fun getConstructors(): List<Group.InternalReferable> = emptyList()
 
-    override fun getDynamicSubgroups(): Collection<Group> = emptyList()
+    override fun getDynamicSubgroups(): List<Group> = emptyList()
 
-    override fun getFields(): Collection<GlobalReferable> = emptyList()
+    override fun getFields(): List<Group.InternalReferable> = emptyList()
 
     override fun moduleTextRepresentation(): String = name
 

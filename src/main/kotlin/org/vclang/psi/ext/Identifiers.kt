@@ -51,6 +51,10 @@ abstract class VcFieldDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(n
     }
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getReferable() = this
+
+    override fun isVisible() = false
 }
 
 abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {

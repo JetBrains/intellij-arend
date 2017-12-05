@@ -4,14 +4,13 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.ChildGroup
-import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.Group
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcNamedStub
 
@@ -40,5 +39,5 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getDynamicSubgroups(): List<Group> = emptyList()
 
-    override fun getFields(): List<GlobalReferable> = emptyList()
+    override fun getFields(): List<Group.InternalReferable> = emptyList()
 }

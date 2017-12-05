@@ -117,6 +117,7 @@ private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
 
 classField ::= prec? defIdentifier typeTele* COLON expr {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
@@ -220,6 +221,7 @@ atomPattern ::= LPAREN pattern? RPAREN
 constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.vclang.psi.ext.impl.ConstructorAdapter"
@@ -475,7 +477,8 @@ typedExpr ::= identifierOrUnknown+ COLON expr | expr
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 fieldDefIdentifier ::= defIdentifier {
-    implements = ["org.vclang.psi.ext.PsiConcreteReferable"
+    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.VcFieldDefIdentifierImplMixin"
 }

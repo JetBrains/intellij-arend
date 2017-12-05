@@ -40,5 +40,7 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun getClauses(): List<VcClause> = clauseList
 
+    override fun isVisible(): Boolean = true
+
     override fun getIcon(flags: Int): Icon = VcIcons.CONSTRUCTOR
 }
