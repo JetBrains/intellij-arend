@@ -121,6 +121,10 @@
 
         <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.VcFoldingBuilder"/>
 
+        <!-- Refactoring -->
+
+        <renameInputValidator implementation="org.vclang.refactoring.VcRenameInputValidator"/>
+
         <!-- Run Configurations -->
 
         <programRunner implementation="org.vclang.typechecking.execution.TypeCheckRunner"/>
