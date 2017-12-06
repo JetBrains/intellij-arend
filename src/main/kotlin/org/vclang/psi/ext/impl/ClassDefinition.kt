@@ -35,6 +35,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getFieldReferables(): List<GlobalReferable> = (fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
 
+    override fun hasParameter() = fieldTele != null
+
     override fun getSuperClasses(): List<VcLongName> = longNameList
 
     override fun getClassFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
