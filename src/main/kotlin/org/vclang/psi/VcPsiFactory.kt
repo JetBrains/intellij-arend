@@ -15,12 +15,12 @@ class VcPsiFactory(private val project: Project) {
                     ?: error("Failed to create ref identifier: `$name`")
 
     fun createInfixName(name: String): VcInfixArgument {
-        val needsPrefix = !VcNamesValidator().isInfixName(name)
+        val needsPrefix = !VcNamesValidator.isInfixName(name)
         return createExpression("dummy ${if (needsPrefix) "`$name`" else name} dummy")
     }
 
     fun createPostfixName(name: String): VcPostfixArgument {
-        val needsPrefix = !VcNamesValidator().isPostfixName(name)
+        val needsPrefix = !VcNamesValidator.isPostfixName(name)
         return createExpression("dummy ${if (needsPrefix) "`$name" else name}")
     }
 

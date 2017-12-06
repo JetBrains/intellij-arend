@@ -15,17 +15,18 @@ class VcNamesValidator : NamesValidator {
     override fun isIdentifier(name: String, project: Project?): Boolean =
             isPrefixName(name) || isInfixName(name) || isPostfixName(name)
 
-    fun isPrefixName(name: String): Boolean = getLexerType(name) == VcElementTypes.ID && !containsComment(name)
+    companion object {
+        fun isPrefixName(name: String): Boolean = getLexerType(name) == VcElementTypes.ID && !containsComment(name)
 
-    fun isInfixName(name: String): Boolean = getLexerType(name) == VcElementTypes.INFIX && !containsComment(name)
+        fun isInfixName(name: String): Boolean = getLexerType(name) == VcElementTypes.INFIX && !containsComment(name)
 
-    fun isPostfixName(name: String): Boolean = getLexerType(name) == VcElementTypes.POSTFIX && !containsComment(name)
+        fun isPostfixName(name: String): Boolean = getLexerType(name) == VcElementTypes.POSTFIX && !containsComment(name)
 
-    private fun containsComment(name: String): Boolean = name.contains("--")
-
-    private fun getLexerType(text: String): IElementType? {
-        val lexer = VcLexerAdapter()
-        lexer.start(text)
-        return if (lexer.tokenEnd == text.length) lexer.tokenType else null
+        private fun containsComment(name: String): Boolean = name.contains("--")
+        fun getLexerType (text : String): IElementType? {
+            val lexer = VcLexerAdapter()
+            lexer.start(text)
+            return if (lexer.tokenEnd == text.length) lexer.tokenType else null
+        }
     }
 }
