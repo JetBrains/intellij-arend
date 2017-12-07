@@ -448,11 +448,9 @@ universeAtom ::= SET
     mixin = "org.vclang.psi.ext.VcUniverseAtomImplMixin"
 }
 
-nameTele ::= defIdentifier
-    | LBRACE defIdentifier RBRACE
-    | UNDERSCORE
+nameTele ::= identifierOrUnknown
     | LPAREN identifierOrUnknown+ COLON expr RPAREN
-    | LBRACE identifierOrUnknown+ COLON expr RBRACE {
+    | LBRACE identifierOrUnknown [identifierOrUnknown* COLON expr] RBRACE {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcNameTeleImplMixin"

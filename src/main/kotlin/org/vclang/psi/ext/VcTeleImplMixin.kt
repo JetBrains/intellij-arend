@@ -13,8 +13,7 @@ abstract class VcNameTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node),
 
     override fun isExplicit(): Boolean = lbrace == null
 
-    override fun getReferableList(): List<Referable?> =
-        defIdentifier?.let { listOf(it) } ?: underscore?.let { listOf(null) } ?: identifierOrUnknownList.map { it.defIdentifier }
+    override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
 
     override fun getType() = expr
 }
