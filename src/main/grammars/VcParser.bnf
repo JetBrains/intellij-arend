@@ -178,7 +178,7 @@ defInstance ::= INSTANCE_KW defIdentifier nameTele* COLON longName coClauses whe
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionBody ::= FAT_ARROW !ELIM_KW expr | elim? functionClauses
+functionBody ::= FAT_ARROW expr | elim? functionClauses
 
 dataBody ::= elim constructorClause* | [FAT_ARROW PIPE? constructor] (PIPE constructor)*
 
@@ -189,7 +189,7 @@ constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (const
     mixin = "org.vclang.psi.ext.VcConstructorClauseImplMixin"
 }
 
-elim ::= WITH_KW | FAT_ARROW ELIM_KW <<comma_separated_sequence refIdentifier>>
+elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
 
 classViewField ::= defIdentifier [FAT_ARROW prec? refIdentifier] {
     implements = "org.vclang.psi.ext.PsiConcreteReferable"
