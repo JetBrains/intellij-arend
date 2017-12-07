@@ -449,6 +449,7 @@ universeAtom ::= SET
 }
 
 nameTele ::= defIdentifier
+    | LBRACE defIdentifier RBRACE
     | UNDERSCORE
     | LPAREN identifierOrUnknown+ COLON expr RPAREN
     | LBRACE identifierOrUnknown+ COLON expr RBRACE {
