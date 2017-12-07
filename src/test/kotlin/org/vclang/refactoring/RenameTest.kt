@@ -8,144 +8,144 @@ class RenameTest : VcTestBase() {
     fun `test rename prefix to prefix`() = doTest(
             "bar",
             """
-                \function foo
-                \function _ : {-caret-}foo
+                \func foo
+                \func _ : {-caret-}foo
             """,
             """
-                \function bar
-                \function _ : bar
+                \func bar
+                \func _ : bar
             """
     )
 
     fun `test rename prefix to prefix infix`() = doTest(
             "**",
             """
-                \function foo
-                \function _ : {-caret-}foo
+                \func foo
+                \func _ : {-caret-}foo
             """,
             """
-                \function **
-                \function _ : `**
+                \func **
+                \func _ : `**
             """
     )
 
     fun `test rename prefix infix to prefix`() = doTest(
             "bar",
             """
-                \function ++
-                \function _ : {-caret-}`++
+                \func ++
+                \func _ : {-caret-}`++
             """,
             """
-                \function bar
-                \function _ : bar
+                \func bar
+                \func _ : bar
             """
     )
 
     fun `test rename prefix infix to prefix infix`() = doTest(
             "**",
             """
-                \function ++
-                \function _ : {-caret-}`++
+                \func ++
+                \func _ : {-caret-}`++
             """,
             """
-                \function **
-                \function _ : `**
+                \func **
+                \func _ : `**
             """
     )
 
     fun `test rename infix to infix`() = doTest(
             "**",
             """
-                \function ++
-                \function _ : _ {-caret-}++ _
+                \func ++
+                \func _ : _ {-caret-}++ _
             """,
             """
-                \function **
-                \function _ : _ ** _
+                \func **
+                \func _ : _ ** _
             """
     )
 
     fun `test rename infix to infix prefix`() = doTest(
             "bar",
             """
-                \function ++
-                \function _ : _ {-caret-}++ _
+                \func ++
+                \func _ : _ {-caret-}++ _
             """,
             """
-                \function bar
-                \function _ : _ `bar _
+                \func bar
+                \func _ : _ `bar _
             """
     )
 
     fun `test rename infix prefix to infix`() = doTest(
             "**",
             """
-                \function foo
-                \function _ : _ {-caret-}`foo _
+                \func foo
+                \func _ : _ {-caret-}`foo _
             """,
             """
-                \function **
-                \function _ : _ ** _
+                \func **
+                \func _ : _ ** _
             """
     )
 
     fun `test rename infix prefix to infix prefix`() = doTest(
             "bar",
             """
-                \function foo
-                \function _ : _ {-caret-}`foo _
+                \func foo
+                \func _ : _ {-caret-}`foo _
             """,
             """
-                \function bar
-                \function _ : _ `bar _
+                \func bar
+                \func _ : _ `bar _
             """
     )
 
     fun `test rename postfix prefix to postfix prefix`() = doTest(
             "bar",
             """
-                \function foo
-                \function _ : _ {-caret-}foo`
+                \func foo
+                \func _ : _ {-caret-}foo`
             """,
             """
-                \function bar
-                \function _ : _ bar`
+                \func bar
+                \func _ : _ bar`
             """
     )
 
     fun `test rename postfix prefix to postfix infix`() = doTest(
             "**",
             """
-                \function foo
-                \function _ : _ {-caret-}foo`
+                \func foo
+                \func _ : _ {-caret-}foo`
             """,
             """
-                \function **
-                \function _ : _ **`
+                \func **
+                \func _ : _ **`
             """
     )
 
     fun `test rename postfix infix to postfix prefix`() = doTest(
             "bar",
             """
-                \function ++
-                \function _ : _ {-caret-}++`
+                \func ++
+                \func _ : _ {-caret-}++`
             """,
             """
-                \function bar
-                \function _ : _ bar`
+                \func bar
+                \func _ : _ bar`
             """
     )
 
     fun `test rename postfix infix to postfix infix`() = doTest(
             "**",
             """
-                \function ++
-                \function _ : _ {-caret-}++`
+                \func ++
+                \func _ : _ {-caret-}++`
             """,
             """
-                \function **
-                \function _ : _ **`
+                \func **
+                \func _ : _ **`
             """
     )
 

@@ -41,7 +41,6 @@ class VcColorSettingsPage : ColorSettingsPage {
                 "  \\field assoc : \\Pi (x y z : X) -> op (op x y) z = op x (op y z)\n" +
                 "}\n" +
                 "\n" +
-                "\\function\n" +
-                "xor-semigroup => \\new Semigroup { X => Bool | op => xor | assoc => {?} }"
+                "\\func xor-semigroup => \\new Semigroup { X => Bool | op => xor | assoc => {?} }"
     }
 }

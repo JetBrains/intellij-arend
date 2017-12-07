@@ -30,7 +30,7 @@ class VcPsiFactory(private val project: Project) {
             expr: String? = null
     ): VcDefFunction {
         val code = buildString {
-            append("\\function ")
+            append("\\func ")
             append(name)
             append(teles.joinToString(" ", " "))
             expr?.let { append(" : $expr") }

@@ -71,7 +71,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\hiding"              { return HIDING_KW; }
     "\\using"               { return USING_KW; }
     "\\as"                  { return AS_KW; }
-    "\\function"            { return FUNCTION_KW; }
+    "\\func"                { return FUNCTION_KW; }
     "\\infix"               { return INFIX_NON_KW; }
     "\\infixl"              { return INFIX_LEFT_KW; }
     "\\infixr"              { return INFIX_RIGHT_KW; }

@@ -37,7 +37,7 @@
         HIDING_KW           = '\hiding'
         USING_KW            = '\using'
         AS_KW               = '\as'
-        FUNCTION_KW         = '\function'
+        FUNCTION_KW         = '\func'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
         RIGHT_ASSOC_KW      = '\fixr'
