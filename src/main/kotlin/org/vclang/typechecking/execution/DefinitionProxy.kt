@@ -8,7 +8,7 @@ class DefinitionProxy(
     definitionName: String,
     isSuite: Boolean,
     locationUrl: String?,
-    preservePresentableName: Boolean = false
+    preservePresentableName: Boolean = true
 ) : SMTestProxy(definitionName, isSuite, locationUrl, preservePresentableName) {
 
     fun addText(text: String, contentType: ConsoleViewContentType) =
