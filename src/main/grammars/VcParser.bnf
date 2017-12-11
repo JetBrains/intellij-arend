@@ -458,7 +458,8 @@ nameTele ::= identifierOrUnknown
 
 fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
+                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter"
+                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
         mixin = "org.vclang.psi.ext.VcFieldTeleImplMixin"
     }
 

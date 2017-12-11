@@ -11,7 +11,10 @@ import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
-import org.vclang.psi.*
+import org.vclang.psi.VcClassImplement
+import org.vclang.psi.VcDefClass
+import org.vclang.psi.VcLongName
+import org.vclang.psi.moduleScopeProvider
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -39,7 +42,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getSuperClasses(): List<VcLongName> = longNameList
 
-    override fun getClassFields(): List<VcClassField> = classStatList.mapNotNull { it.classField }
+    override fun getClassFields(): List<Abstract.ClassField> = (fieldTele?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
 

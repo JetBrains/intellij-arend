@@ -37,4 +37,10 @@ abstract class VcFieldTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node)
     override fun getReferableList(): List<Referable> = listOf(fieldDefIdentifier)
 
     override fun getType() = expr
+
+    override fun getParameters(): List<Abstract.Parameter> = emptyList()
+
+    override fun getReferable() = fieldDefIdentifier
+
+    override fun getResultType() = expr
 }
