@@ -105,64 +105,58 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     override fun typeCheck(modulePath: ModulePath, definitionFullName: String) {
-        ApplicationManager.getApplication().saveAll()
+        val sourceId = sourceIdByPath(modulePath) ?: return
+        val module = loadSource(sourceId) ?: return
 
+        /* TODO[caching]
         try {
-            val sourceId = sourceIdByPath(modulePath) ?: return
-            val module = loadSource(sourceId) ?: return
+            cacheManager.loadCache(sourceId)
+        } catch (ignored: CacheLoadingException) {
+        }
+        */
 
-            /* TODO[caching]
-            try {
-                cacheManager.loadCache(sourceId)
-            } catch (ignored: CacheLoadingException) {
-            }
-            */
-
-            val eventsProcessor = eventsProcessor!!
-            val psiConcreteProvider = PsiConcreteProvider(logger, eventsProcessor)
-            val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
-            val typeChecking = TestBasedTypechecking(
+        val eventsProcessor = eventsProcessor!!
+        val psiConcreteProvider = PsiConcreteProvider(logger, eventsProcessor)
+        val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
+        val typeChecking = TestBasedTypechecking(
                 eventsProcessor,
                 typeCheckerState,
                 concreteProvider,
                 logger,
                 dependencyCollector
-            )
+        )
 
-            if (definitionFullName.isEmpty()) {
-                eventsProcessor.onSuiteStarted(module)
-                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
+        if (definitionFullName.isEmpty()) {
+            eventsProcessor.onSuiteStarted(module)
+            DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
+            psiConcreteProvider.isResolving = true
+            typeChecking.typecheckModules(listOf(module))
+
+            /* TODO[caching]
+            try {
+                cacheManager.persistCache(sourceId)
+            } catch (e: CachePersistenceException) {
+                e.printStackTrace()
+            }
+            */
+        } else {
+            val group = module.findGroupByFullName(definitionFullName.split('.'))
+            val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
+            val typechecked = typeCheckerState.getTypechecked(ref)
+            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
                 psiConcreteProvider.isResolving = true
-                typeChecking.typecheckModules(listOf(module))
-
-                /* TODO[caching]
-                try {
-                    cacheManager.persistCache(sourceId)
-                } catch (e: CachePersistenceException) {
-                    e.printStackTrace()
-                }
-                */
+                val definition = concreteProvider.getConcrete(ref)
+                if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                else if (definition != null) error(definitionFullName + " is not a definition")
             } else {
-                val group = module.findGroupByFullName(definitionFullName.split('.'))
-                val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
-                val typechecked = typeCheckerState.getTypechecked(ref)
-                if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                    psiConcreteProvider.isResolving = true
-                    val definition = concreteProvider.getConcrete(ref)
-                    if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
-                    else if (definition != null) error(definitionFullName + " is not a definition")
-                } else {
-                    if (ref is PsiGlobalReferable) {
-                        eventsProcessor.onTestStarted(ref)
-                        typeChecking.typecheckingFinished(typechecked)
-                    }
+                if (ref is PsiGlobalReferable) {
+                    eventsProcessor.onTestStarted(ref)
+                    typeChecking.typecheckingFinished(typechecked)
                 }
             }
-
-            eventsProcessor.onSuitesFinished()
-        } catch (e: Exception) {
-            Logger.getInstance(TypeCheckingService::class.java).error(e)
         }
+
+        eventsProcessor.onSuitesFinished()
     }
 
     private fun loadPrelude() {

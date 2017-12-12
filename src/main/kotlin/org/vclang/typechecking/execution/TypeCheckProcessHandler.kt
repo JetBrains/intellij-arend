@@ -2,6 +2,14 @@ package org.vclang.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressIndicatorProvider
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.openapi.progress.util.ProgressIndicatorUtils
+import com.intellij.openapi.progress.util.ReadTask
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import org.vclang.typechecking.TypeCheckingService
 import java.io.OutputStream
@@ -19,15 +27,30 @@ class TypeCheckProcessHandler(
 
     override fun startNotify() {
         super.startNotify()
-        ApplicationManager.getApplication().runReadAction {
-            try {
-                typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                notifyProcessTerminated(0)
+
+        ApplicationManager.getApplication().saveAll()
+
+        ProgressIndicatorUtils.scheduleWithWriteActionPriority(ProgressIndicatorBase(), object : ReadTask(){
+            override fun onCanceled(indicator: ProgressIndicator) {
+                //eventsProcessor?.onSuitesFinished()
+                this@TypeCheckProcessHandler.destroyProcess()
             }
-        }
+
+            override fun computeInReadAction(indicator: ProgressIndicator) {
+                ApplicationManager.getApplication().runReadAction {
+                    try {
+                        typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName)
+                    } catch (e: ProcessCanceledException) {
+
+                    } catch (e: Exception) {
+                        Logger.getInstance(TypeCheckingService::class.java).error(e)
+                    } finally {
+                        this@TypeCheckProcessHandler.destroyProcess()
+                    }
+                }
+            }
+
+        })
     }
 
     override fun detachProcessImpl() = notifyProcessDetached()
