@@ -48,20 +48,20 @@ class TypecheckingEventsProcessor(
     }
 
     fun onSuiteStarted(file: VcFile) {
-        if (fileToProxy.containsKey(file)) return
-
         addToInvokeLater {
-            val parentSuite = typeCheckingRootNode
-            val newSuite = DefinitionProxy(
-                file.textRepresentation(),
-                true,
-                null,
-                parentSuite.isPreservePresentableName
-            )
-            parentSuite.addChild(newSuite)
-            fileToProxy.put(file, newSuite)
-            newSuite.setSuiteStarted()
-            fireOnSuiteStarted(newSuite)
+            if (!fileToProxy.containsKey(file)) {
+                val parentSuite = typeCheckingRootNode
+                val newSuite = DefinitionProxy(
+                        file.textRepresentation(),
+                        true,
+                        null,
+                        parentSuite.isPreservePresentableName
+                )
+                parentSuite.addChild(newSuite)
+                fileToProxy.put(file, newSuite)
+                newSuite.setSuiteStarted()
+                fireOnSuiteStarted(newSuite)
+            }
         }
     }
 
@@ -76,10 +76,10 @@ class TypecheckingEventsProcessor(
     }
 
     fun onTestStarted(ref: PsiGlobalReferable) {
-        val file = ref.containingFile as? VcFile
-        if (file != null) onSuiteStarted(file)
-
         addToInvokeLater {
+            val file = ref.containingFile as? VcFile
+            if (file != null) onSuiteStarted(file)
+
             val fullName = ref.fullName
             if (definitionToProxy.containsKey(ref)) {
                 logProblem("Type checking [$fullName] has been already started")

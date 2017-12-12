@@ -30,9 +30,8 @@ class TypeCheckProcessHandler(
 
         ApplicationManager.getApplication().saveAll()
 
-        ProgressIndicatorUtils.scheduleWithWriteActionPriority(ProgressIndicatorBase(), object : ReadTask(){
+        ProgressIndicatorUtils.scheduleWithWriteActionPriority(object : ReadTask(){
             override fun onCanceled(indicator: ProgressIndicator) {
-                //eventsProcessor?.onSuitesFinished()
                 this@TypeCheckProcessHandler.destroyProcess()
             }
 
