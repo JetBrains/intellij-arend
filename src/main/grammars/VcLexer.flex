@@ -92,7 +92,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\data"                { return DATA_KW; }
     "\\class"               { return CLASS_KW; }
     "\\extends"             { return EXTENDS_KW; }
-    "\\view"                { return VIEW_KW; }
     "\\on"                  { return ON_KW; }
     "\\by"                  { return BY_KW; }
     "\\instance"            { return INSTANCE_KW; }

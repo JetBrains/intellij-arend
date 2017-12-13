@@ -55,8 +55,6 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
         override fun visitDefClass(o: VcDefClass) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitDefClassView(o: VcDefClassView) = foldBetween(o, o.lbrace, o.rbrace)
-
         override fun visitNewExpr(o: VcNewExpr) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitNameTele(o: VcNameTele) = foldBetween(o, o.lbrace, o.rbrace)

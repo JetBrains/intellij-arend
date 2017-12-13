@@ -1,6 +1,7 @@
 package org.vclang.psi.stubs
 
 import com.intellij.psi.stubs.IndexSink
+import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.psi.stubs.index.VcGotoClassIndex
 import org.vclang.psi.stubs.index.VcNamedElementIndex
 
@@ -15,22 +16,17 @@ fun IndexSink.indexClassField(stub: VcClassFieldStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexClassFieldSyn(stub: VcClassFieldSynStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexClassImplement(stub: VcClassImplementStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)
 }
 
-fun IndexSink.indexClassView(stub: VcDefClassViewStub) {
-    indexNamedStub(stub)
-    indexDefinitionStub(stub)
-}
-
-fun IndexSink.indexClassViewField(stub: VcClassViewFieldStub) {
-    indexNamedStub(stub)
-    indexDefinitionStub(stub)
-}
-
-fun IndexSink.indexClassViewImplement(stub: VcDefInstanceStub) {
+fun IndexSink.indexClassInstance(stub: VcDefInstanceStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)
 }
@@ -55,7 +51,7 @@ private fun IndexSink.indexNamedStub(stub: VcNamedStub) {
 }
 
 private fun IndexSink.indexDefinitionStub(stub: VcNamedStub) {
-    stub.name?.let { occurrence(VcNamedElementIndex.KEY, it) }
+    stub.name?.let { occurrence(VcDefinitionIndex.KEY, it) }
 }
 
 private fun IndexSink.indexGotoClass(stub: VcNamedStub) {

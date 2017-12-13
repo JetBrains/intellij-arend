@@ -154,7 +154,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 } else {
                     if (ref is PsiGlobalReferable) {
                         eventsProcessor.onTestStarted(ref)
-                        typeChecking.typecheckingFinished(typechecked)
+                        typeChecking.typecheckingFinished(ref, typechecked)
                     }
                 }
             }

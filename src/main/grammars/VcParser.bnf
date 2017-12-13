@@ -58,7 +58,6 @@
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
         EXTENDS_KW          = '\extends'
-        VIEW_KW             = '\view'
         ON_KW               = '\on'
         BY_KW               = '\by'
         INSTANCE_KW         = '\instance'
@@ -74,7 +73,7 @@
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
-    extends("def(Function|Data|Class|ClassView|Instance)") = definition
+    extends("def(Function|Data|Class|Instance)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument|infixArgument|postfixArgument") = argument
@@ -84,9 +83,8 @@ statements ::= topStatement*
 
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
-private statement_recover ::= !(OPEN_KW      | IMPORT_KW |
-                                FUNCTION_KW  | TRUNCATED_KW | DATA_KW   | CLASS_KW |
-                                VIEW_KW      | INSTANCE_KW)
+private statement_recover ::= !(OPEN_KW      | IMPORT_KW | FUNCTION_KW  |
+                                TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW)
 
 statement ::= statCmd | definition
 
@@ -111,7 +109,7 @@ private classStats ::= LBRACE classStat* RBRACE { pin = 1 }
 
 classStat ::= classFieldOrImplement | definition { recoverWhile = classStat_recover }
 
-private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CLASS_KW | VIEW_KW | INSTANCE_KW | RBRACE)
+private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CLASS_KW | INSTANCE_KW | RBRACE)
 
 private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
 
@@ -121,6 +119,16 @@ classField ::= prec? defIdentifier typeTele* COLON expr {
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
+    elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
+}
+
+classFieldSyn ::= PIPE refIdentifier FAT_ARROW prec? defIdentifier {
+    pin = 1
+    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldSynonym" ]
+    mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
+    stubClass = "org.vclang.psi.stubs.VcClassFieldSynStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -135,7 +143,6 @@ classImplement ::= refIdentifier nameTele* FAT_ARROW expr {
 definition ::= defFunction
     | defData
     | defClass
-    | defClassView
     | defInstance {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.ChildGroup" ]
@@ -156,18 +163,11 @@ defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dat
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] classStats? where? {
+defClass ::= CLASS_KW prec? defIdentifier fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
-    elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
-}
-
-defClassView ::= VIEW_KW defIdentifier ON_KW expr BY_KW refIdentifier LBRACE classViewField* RBRACE {
-    pin = 1
-    mixin = "org.vclang.psi.ext.impl.ClassViewAdapter"
-    stubClass = "org.vclang.psi.stubs.VcDefClassViewStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -177,6 +177,8 @@ defInstance ::= INSTANCE_KW defIdentifier nameTele* COLON longName coClauses whe
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
+
+private classBodySyn ::= FAT_ARROW refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
 
 functionBody ::= FAT_ARROW expr | elim? functionClauses
 
@@ -190,13 +192,6 @@ constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (const
 }
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
-
-classViewField ::= defIdentifier [FAT_ARROW prec? refIdentifier] {
-    implements = "org.vclang.psi.ext.PsiConcreteReferable"
-    mixin = "org.vclang.psi.ext.impl.ClassViewFieldAdapter"
-    stubClass = "org.vclang.psi.stubs.VcClassViewFieldStub"
-    elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
-}
 
 where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
 

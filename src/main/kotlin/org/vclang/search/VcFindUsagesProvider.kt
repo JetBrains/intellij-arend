@@ -18,10 +18,10 @@ class VcFindUsagesProvider : FindUsagesProvider {
     override fun getHelpId(element: PsiElement): String = HelpID.FIND_OTHER_USAGES
 
     override fun getType(element: PsiElement): String = when (element) {
-        is VcDefClass -> "class"
+        is VcDefClass -> if (element.fatArrow == null) "class" else "class synonym"
         is VcClassField -> "class field"
-        is VcDefClassView -> "class view"
-        is VcDefInstance -> "class view instance"
+        is VcClassFieldSyn -> "class field synonym"
+        is VcDefInstance -> "class instance"
         is VcDefData -> "data"
         is VcConstructor -> "constructor"
         is VcDefFunction -> "function"

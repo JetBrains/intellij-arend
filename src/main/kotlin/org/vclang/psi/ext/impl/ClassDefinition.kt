@@ -7,14 +7,10 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.Group
-import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
-import org.vclang.psi.VcClassImplement
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcLongName
-import org.vclang.psi.moduleScopeProvider
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -34,7 +30,10 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
-    override fun getFields(): List<Group.InternalReferable> = (fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
+    override fun getFields(): List<Group.InternalReferable> =
+        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<Group.InternalReferable>) +
+            classStatList.mapNotNull { it.classField } +
+            classFieldSynList
 
     override fun getFieldReferables(): List<GlobalReferable> = (fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
 
@@ -46,7 +45,11 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
 
-    override fun getPrecedence(): Precedence = calcPrecedence(prec)
+    override fun getPrecedence() = calcPrecedence(prec)
+
+    override fun getUnderlyingClass() = refIdentifier
+
+    override fun getFieldSynonyms(): List<VcClassFieldSyn> = classFieldSynList
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 

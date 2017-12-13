@@ -2,6 +2,7 @@ package org.vclang.typechecking
 
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
@@ -18,8 +19,8 @@ class TestBasedTypechecking(
     dependencyListener: DependencyListener)
     : Typechecking(state, concreteProvider, errorReporter, dependencyListener) {
 
-    override fun typecheckingFinished(definition: Definition) {
-        val ref = definition.referable as? PsiGlobalReferable ?: return
+    override fun typecheckingFinished(referable: GlobalReferable, definition: Definition) {
+        val ref = referable as? PsiGlobalReferable ?: return
         if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
             eventsProcessor.onTestFailure(ref)
         }

@@ -17,11 +17,6 @@ class VcDefClassGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<VcDefClass>()
 }
 
-class VcDefClassViewGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<VcDefClassView>()
-}
-
 class VcDefDataGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
             createGroupingRule<VcDefData>()
@@ -35,11 +30,6 @@ class VcDefFunctionGroupingRuleProvider : FileStructureGroupRuleProvider {
 class VcClassFieldGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
             createGroupingRule<VcClassField>()
-}
-
-class VcClassViewFieldGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<VcClassViewField>()
 }
 
 class VcDefInstanceGroupingRuleProvider : FileStructureGroupRuleProvider {

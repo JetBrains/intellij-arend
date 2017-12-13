@@ -28,13 +28,12 @@ class VcStructureViewModel(editor: Editor?, file: VcFile)
     override fun isAlwaysLeaf(element: StructureViewTreeElement): Boolean = when (element.value) {
         is VcFile,
         is VcDefClass,
-        is VcDefClassView,
         is VcDefData,
+        is VcDefInstance,
         is VcDefFunction -> false
         is VcClassField,
+        is VcClassFieldSyn,
         is VcClassImplement,
-        is VcClassViewField,
-        is VcDefInstance,
         is VcConstructor -> true
         else -> error("Unexpected tree element")
     }
@@ -54,7 +53,6 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
         get() = when (psi) {
             is VcFile -> psi.children.filterIsInstance<VcStatement>().mapNotNull { it.definition }
             is VcDefClass -> psi.childDefinitions
-            is VcDefClassView -> psi.classViewFieldList
             is VcDefData ->
                 (psi.dataBody?.constructorClauseList?.flatMap { it.constructorList } ?: psi.dataBody?.constructorList ?: emptyList()) +
                 (psi.where?.childDefinitions ?: emptyList())
@@ -67,7 +65,7 @@ private val VcDefClass.childDefinitions: List<PsiGlobalReferable>
     get() {
         val classDefinitions = classStatList.mapNotNull { it.classField ?: it.definition as PsiGlobalReferable }
         val whereDefinitions = where?.childDefinitions ?: emptyList()
-        return classDefinitions + whereDefinitions
+        return classDefinitions + classFieldSynList + whereDefinitions
     }
 
 private val VcWhere.childDefinitions: List<VcDefinition>

@@ -26,10 +26,10 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
             generateDoc(element, originalElement)
 
     private fun getType(element: PsiElement): String? = when (element) {
-        is VcDefClass -> "class"
+        is VcDefClass -> if (element.fatArrow == null) "class" else "class synonym"
         is VcClassField -> "class field"
-        is VcDefClassView -> "class view"
-        is VcDefInstance -> "class view instance"
+        is VcClassFieldSyn -> "class field synonym"
+        is VcDefInstance -> "class instance"
         is VcClassImplement -> "implementation"
         is VcDefData -> "data"
         is VcConstructor -> "constructor"

@@ -37,9 +37,8 @@ class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
 fun factory(name: String): VcStubElementType<*, *> = when (name) {
     "DEF_CLASS" -> VcDefClassStub.Type
     "CLASS_FIELD" -> VcClassFieldStub.Type
+    "CLASS_FIELD_SYN" -> VcClassFieldSynStub.Type
     "CLASS_IMPLEMENT" -> VcClassImplementStub.Type
-    "DEF_CLASS_VIEW" -> VcDefClassViewStub.Type
-    "CLASS_VIEW_FIELD" -> VcClassViewFieldStub.Type
     "DEF_INSTANCE" -> VcDefInstanceStub.Type
     "CONSTRUCTOR" -> VcConstructorStub.Type
     "DEF_DATA" -> VcDefDataStub.Type
@@ -99,6 +98,29 @@ class VcClassFieldStub(
     }
 }
 
+class VcClassFieldSynStub(
+        parent: StubElement<*>?,
+        elementType: IStubElementType<*, *>,
+        name: String?
+) : VcStub<VcClassFieldSyn>(parent, elementType, name) {
+
+    object Type : VcStubElementType<VcClassFieldSynStub, VcClassFieldSyn>("CLASS_FIELD_SYN") {
+
+        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
+                VcClassFieldSynStub(parentStub, this, dataStream.readName()?.string)
+
+        override fun serialize(stub: VcClassFieldSynStub, dataStream: StubOutputStream) =
+                with(dataStream) { writeName(stub.name) }
+
+        override fun createPsi(stub: VcClassFieldSynStub): VcClassFieldSyn = VcClassFieldSynImpl(stub, this)
+
+        override fun createStub(psi: VcClassFieldSyn, parentStub: StubElement<*>?): VcClassFieldSynStub =
+                VcClassFieldSynStub(parentStub, this, psi.textRepresentation())
+
+        override fun indexStub(stub: VcClassFieldSynStub, sink: IndexSink) = sink.indexClassFieldSyn(stub)
+    }
+}
+
 class VcClassImplementStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
@@ -126,60 +148,6 @@ class VcClassImplementStub(
     }
 }
 
-class VcDefClassViewStub(
-        parent: StubElement<*>?,
-        elementType: IStubElementType<*, *>,
-        name: String?
-) : VcStub<VcDefClassView>(parent, elementType, name) {
-
-    object Type : VcStubElementType<VcDefClassViewStub, VcDefClassView>("DEF_CLASS_VIEW") {
-
-        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
-                VcDefClassViewStub(parentStub, this, dataStream.readName()?.string)
-
-        override fun serialize(stub: VcDefClassViewStub, dataStream: StubOutputStream) =
-                with(dataStream) { writeName(stub.name) }
-
-        override fun createPsi(stub: VcDefClassViewStub): VcDefClassView =
-                VcDefClassViewImpl(stub, this)
-
-        override fun createStub(
-                psi: VcDefClassView,
-                parentStub: StubElement<*>?
-        ): VcDefClassViewStub = VcDefClassViewStub(parentStub, this, psi.textRepresentation())
-
-        override fun indexStub(stub: VcDefClassViewStub, sink: IndexSink) =
-                sink.indexClassView(stub)
-    }
-}
-
-class VcClassViewFieldStub(
-        parent: StubElement<*>?,
-        elementType: IStubElementType<*, *>,
-        name: String?
-) : VcStub<VcClassViewField>(parent, elementType, name) {
-
-    object Type : VcStubElementType<VcClassViewFieldStub, VcClassViewField>("CLASS_VIEW_FIELD") {
-
-        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
-                VcClassViewFieldStub(parentStub, this, dataStream.readName()?.string)
-
-        override fun serialize(stub: VcClassViewFieldStub, dataStream: StubOutputStream) =
-                with(dataStream) { writeName(stub.name) }
-
-        override fun createPsi(stub: VcClassViewFieldStub): VcClassViewField =
-                VcClassViewFieldImpl(stub, this)
-
-        override fun createStub(
-                psi: VcClassViewField,
-                parentStub: StubElement<*>?
-        ): VcClassViewFieldStub = VcClassViewFieldStub(parentStub, this, psi.textRepresentation())
-
-        override fun indexStub(stub: VcClassViewFieldStub, sink: IndexSink) =
-                sink.indexClassViewField(stub)
-    }
-}
-
 class VcDefInstanceStub(
         parent: StubElement<*>?,
         elementType: IStubElementType<*, *>,
@@ -203,7 +171,7 @@ class VcDefInstanceStub(
         ): VcDefInstanceStub = VcDefInstanceStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcDefInstanceStub, sink: IndexSink) =
-                sink.indexClassViewImplement(stub)
+                sink.indexClassInstance(stub)
     }
 }
 
