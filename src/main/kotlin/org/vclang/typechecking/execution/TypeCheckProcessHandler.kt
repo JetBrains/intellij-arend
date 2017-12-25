@@ -1,12 +1,10 @@
 package org.vclang.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressIndicatorProvider
-import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.*
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
@@ -31,22 +29,20 @@ class TypeCheckProcessHandler(
         ApplicationManager.getApplication().saveAll()
 
         ProgressIndicatorUtils.scheduleWithWriteActionPriority(object : ReadTask(){
-            override fun onCanceled(indicator: ProgressIndicator) {
-                this@TypeCheckProcessHandler.destroyProcess()
-            }
+            override fun onCanceled(indicator: ProgressIndicator) {}
 
             override fun computeInReadAction(indicator: ProgressIndicator) {
-                ApplicationManager.getApplication().runReadAction {
-                    try {
-                        typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName)
-                    } catch (e: ProcessCanceledException) {
-
-                    } catch (e: Exception) {
-                        Logger.getInstance(TypeCheckingService::class.java).error(e)
-                    } finally {
-                        this@TypeCheckProcessHandler.destroyProcess()
-                    }
-                }
+                try {
+                    typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName)
+                } catch (e: ProcessCanceledException) {}
+                  catch (e: Exception) {
+                      Logger.getInstance(TypeCheckingService::class.java).error(e)
+                  }
+                  finally {
+                      ApplicationManager.getApplication().executeOnPooledThread {
+                          this@TypeCheckProcessHandler.destroyProcess()
+                      }
+                  }
             }
 
         })
