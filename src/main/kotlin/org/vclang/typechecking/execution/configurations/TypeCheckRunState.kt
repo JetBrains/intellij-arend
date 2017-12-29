@@ -96,8 +96,9 @@ class TypeCheckRunState(
         processHandler.addProcessListener(object : ProcessAdapter() {
 
             override fun processTerminated(event: ProcessEvent?) {
-                Disposer.dispose(eventsProcessor)
+                eventsProcessor.suppressStartingNewTests = true
                 eventsProcessor.onFinishTesting()
+                Disposer.dispose(eventsProcessor)
             }
 
             override fun startNotified(event: ProcessEvent?) = eventsProcessor.onStartTesting()

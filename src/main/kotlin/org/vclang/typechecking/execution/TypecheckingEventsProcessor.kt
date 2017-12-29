@@ -18,6 +18,7 @@ class TypecheckingEventsProcessor(
     private val definitionToProxy = mutableMapOf<PsiGlobalReferable, DefinitionProxy>()
     private val fileToProxy = mutableMapOf<VcFile, SMTestProxy>()
     private var isTypeCheckingFinished = false
+    var suppressStartingNewTests = false
 
     override fun onStartTesting() {
         addToInvokeLater {
@@ -77,6 +78,7 @@ class TypecheckingEventsProcessor(
 
     fun onTestStarted(ref: PsiGlobalReferable) {
         addToInvokeLater {
+            if (!suppressStartingNewTests) {
             val file = ref.containingFile as? VcFile
             if (file != null) onSuiteStarted(file)
 
@@ -92,6 +94,7 @@ class TypecheckingEventsProcessor(
             definitionToProxy.put(ref, proxy)
             proxy.setStarted()
             fireOnTestStarted(proxy)
+            }
         }
     }
 
