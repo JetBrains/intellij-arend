@@ -22,13 +22,14 @@ class TypeCheckProcessHandler(
         set(value) {
             typeChecker.eventsProcessor = value
         }
+    private val indicator: ProgressIndicator = ProgressIndicatorBase()
 
     override fun startNotify() {
         super.startNotify()
 
         ApplicationManager.getApplication().saveAll()
 
-        ProgressIndicatorUtils.scheduleWithWriteActionPriority(object : ReadTask(){
+        ProgressIndicatorUtils.scheduleWithWriteActionPriority(indicator, object : ReadTask() {
             override fun onCanceled(indicator: ProgressIndicator) {}
 
             override fun computeInReadAction(indicator: ProgressIndicator) {
@@ -48,7 +49,15 @@ class TypeCheckProcessHandler(
         })
     }
 
-    override fun detachProcessImpl() = notifyProcessDetached()
+    override fun detachProcessImpl() {
+        //Since we have no separate process to detach from, we simply interrupt current typechecking computation
+        indicator.cancel()
+        //eventsProcessor?.onFinishTesting()
+        //TODO: Line below is a temporary workaround for the problem that vclang typechecker currently does not monitor the state of "indicator"
+        //We execute dummy write action which terminates the computation
+        ApplicationManager.getApplication().runWriteAction {}
+        notifyProcessDetached()
+    }
 
     override fun destroyProcessImpl() = notifyProcessTerminated(0)
 
@@ -56,3 +65,4 @@ class TypeCheckProcessHandler(
 
     override fun getProcessInput(): OutputStream? = null
 }
+
