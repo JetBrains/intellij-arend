@@ -56,7 +56,8 @@ class TypecheckingEventsProcessor(
                         file.textRepresentation(),
                         true,
                         null,
-                        parentSuite.isPreservePresentableName
+                        parentSuite.isPreservePresentableName,
+                        null
                 )
                 parentSuite.addChild(newSuite)
                 fileToProxy.put(file, newSuite)
@@ -89,7 +90,7 @@ class TypecheckingEventsProcessor(
             }
 
             val parentSuite = file?.let { fileToProxy[it] } ?: typeCheckingRootNode
-            val proxy = DefinitionProxy(fullName, false, null)
+            val proxy = DefinitionProxy(fullName, false, null, true, ref)
             parentSuite.addChild(proxy)
             definitionToProxy.put(ref, proxy)
             proxy.setStarted()
