@@ -18,6 +18,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
                 append(element.textRepresentation())
                 when (element) {
                     is VcDefFunction -> append (getDefFunctionInfo(element))
+                    is VcConstructor -> append (getConstructorInfo(element))
                 }
                 element.getContainingFile().originalFile.let {
                     append(" <i>defined in</i> ")
@@ -27,6 +28,22 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         } else {
             null
         }
+    }
+
+    fun getConstructorInfo (element : VcConstructor) : String? {
+        val reporter = ListErrorReporter()
+        val concreteElement = element.computeConcrete(reporter)
+        val builder = StringBuilder()
+        if (reporter.errorList.isEmpty()) {
+            when (concreteElement) {
+                is Concrete.Constructor -> {
+                    builder.append(' ')
+                    val printer = PrettyPrintVisitor(builder, 0, false)
+                    printer.prettyPrintParameters(concreteElement.parameters, 0)
+                }
+            }
+        }
+        return builder.toString()
     }
 
     fun getDefFunctionInfo(element : VcDefFunction) : String? {
