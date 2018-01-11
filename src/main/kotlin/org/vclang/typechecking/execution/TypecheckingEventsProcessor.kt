@@ -28,7 +28,6 @@ class TypecheckingEventsProcessor(
     }
 
     override fun onFinishTesting() {
-        stopEventProcessing()
         addToInvokeLater {
             if (isTypeCheckingFinished) return@addToInvokeLater
             isTypeCheckingFinished = true
@@ -46,6 +45,7 @@ class TypecheckingEventsProcessor(
             typeCheckingRootNode.setFinished()
             fireOnTestingFinished(typeCheckingRootNode)
         }
+        stopEventProcessing()
     }
 
     fun onSuiteStarted(file: VcFile) {
@@ -62,7 +62,13 @@ class TypecheckingEventsProcessor(
                 )
                 parentSuite.addChild(newSuite)
                 fileToProxy.put(file, newSuite)
-                newSuite.setSuiteStarted()
+
+                if (!isTypeCheckingFinished) {
+                    newSuite.setSuiteStarted()
+                } else {
+                    newSuite.setTerminated()
+                }
+
                 fireOnSuiteStarted(newSuite)
             }
         }
@@ -93,7 +99,13 @@ class TypecheckingEventsProcessor(
             val proxy = DefinitionProxy(fullName, false, ref.getUrl(), true, ref)
             parentSuite.addChild(proxy)
             definitionToProxy.put(ref, proxy)
-            proxy.setStarted()
+
+            if (!isTypeCheckingFinished) {
+                proxy.setStarted()
+            } else {
+                proxy.setTerminated()
+            }
+
             fireOnTestStarted(proxy)
         }
     }
