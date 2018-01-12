@@ -11,6 +11,10 @@ import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.psi.ext.getUrl
 
+interface ProxyAction {
+    fun runAction(p : DefinitionProxy)
+}
+
 class TypecheckingEventsProcessor(
     project: Project,
     private val typeCheckingRootNode: SMTestProxy.SMRootTestProxy,
@@ -18,6 +22,7 @@ class TypecheckingEventsProcessor(
 ) : GeneralTestEventsProcessor(project, typeCheckingFrameworkName) {
     private val definitionToProxy = mutableMapOf<PsiGlobalReferable, DefinitionProxy>()
     private val fileToProxy = mutableMapOf<VcFile, SMTestProxy>()
+    private val deferredActions = mutableMapOf<PsiGlobalReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false
 
     override fun onStartTesting() {
@@ -86,27 +91,33 @@ class TypecheckingEventsProcessor(
 
     fun onTestStarted(ref: PsiGlobalReferable) {
         addToInvokeLater {
-            val file = ref.containingFile as? VcFile
-            if (file != null) onSuiteStarted(file)
+            synchronized(this@TypecheckingEventsProcessor, {
+                val file = ref.containingFile as? VcFile
+                if (file != null) onSuiteStarted(file)
 
-            val fullName = ref.fullName
-            if (definitionToProxy.containsKey(ref)) {
-                logProblem("Type checking [$fullName] has been already started")
-                if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
-            }
+                val fullName = ref.fullName
+                if (definitionToProxy.containsKey(ref)) {
+                    logProblem("Type checking [$fullName] has been already started")
+                    if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
+                }
 
-            val parentSuite = file?.let { fileToProxy[it] } ?: typeCheckingRootNode
-            val proxy = DefinitionProxy(fullName, false, ref.getUrl(), true, ref)
-            parentSuite.addChild(proxy)
-            definitionToProxy.put(ref, proxy)
+                val parentSuite = file?.let { fileToProxy[it] } ?: typeCheckingRootNode
+                val proxy = DefinitionProxy(fullName, false, ref.getUrl(), true, ref)
+                parentSuite.addChild(proxy)
+                definitionToProxy.put(ref, proxy)
 
-            if (!isTypeCheckingFinished) {
-                proxy.setStarted()
-            } else {
-                proxy.setTerminated()
-            }
+                val da = deferredActions[ref]
+                if (da != null) for (a in da) a.runAction(proxy)
+                deferredActions.remove(ref)
 
-            fireOnTestStarted(proxy)
+                if (!isTypeCheckingFinished) {
+                    proxy.setStarted()
+                } else {
+                    proxy.setTerminated()
+                }
+
+                fireOnTestStarted(proxy)
+            })
         }
     }
 
@@ -157,8 +168,21 @@ class TypecheckingEventsProcessor(
         }
     }
 
-    fun getProxyByFullName(ref: PsiGlobalReferable): DefinitionProxy? =
-        definitionToProxy[ref]
+    // Routine which allows executing/scheduling actions for proxies which need not even exist at the time this routine is invoked
+    fun executeProxyAction(ref: PsiGlobalReferable, action: ProxyAction) {
+        synchronized(this, {
+            val p = definitionToProxy[ref]
+            if (p != null) {
+                action.runAction(p)
+            } else {
+                var actions = deferredActions[ref]
+                if (actions == null) actions = mutableListOf()
+                actions.add(actions.size, action)
+                deferredActions[ref] = actions
+            }
+        })
+    }
+
 
     override fun onSuiteStarted(suiteStartedEvent: TestSuiteStartedEvent) =
         throw UnsupportedOperationException()
