@@ -15,10 +15,10 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         return if (element is PsiGlobalReferable) {
             buildString {
                 getType(element)?.let { append("<b>$it</b> ") }
-                append(element.textRepresentation())
+                append(toHTML(element.textRepresentation()))
                 when (element) {
-                    is VcDefFunction -> append (getDefFunctionInfo(element))
-                    is VcConstructor -> append (getConstructorInfo(element))
+                    is VcDefFunction -> append (toHTML(getDefFunctionInfo(element)))
+                    is VcConstructor -> append (toHTML(getConstructorInfo(element)))
                 }
                 element.getContainingFile().originalFile.let {
                     append(" <i>defined in</i> ")
@@ -81,4 +81,9 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         is VcDefFunction -> "function"
         else -> null
     }
+
+    companion object {
+        fun toHTML (s : String?) : String? = s?.replace("&", "&amp")?.replace("<", "&lt")?.replace(">", "&gt")
+    }
+
 }
