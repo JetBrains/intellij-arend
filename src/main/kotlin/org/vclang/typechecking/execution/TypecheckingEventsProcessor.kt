@@ -43,10 +43,10 @@ class TypecheckingEventsProcessor(
             )
             if (isTreeNotComplete) {
                 typeCheckingRootNode.setTerminated()
-                definitionToProxy.clear()
+                //definitionToProxy.clear()
             }
 
-            fileToProxy.clear()
+            //fileToProxy.clear()
             typeCheckingRootNode.setFinished()
             fireOnTestingFinished(typeCheckingRootNode)
         }
@@ -59,7 +59,7 @@ class TypecheckingEventsProcessor(
                 val parentSuite = typeCheckingRootNode
                 val url = "vclang://" + file.fullName
                 val newSuite = DefinitionProxy(
-                        file.textRepresentation(),
+                        file.fullName,
                         true,
                         url,
                         parentSuite.isPreservePresentableName,
