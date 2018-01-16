@@ -9,7 +9,6 @@ import com.intellij.openapi.util.Key
 import org.vclang.psi.VcFile
 import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
-import org.vclang.psi.ext.getUrl
 
 interface ProxyAction {
     fun runAction(p : DefinitionProxy)
@@ -57,11 +56,10 @@ class TypecheckingEventsProcessor(
         addToInvokeLater {
             if (!fileToProxy.containsKey(file)) {
                 val parentSuite = typeCheckingRootNode
-                val url = "vclang://" + file.fullName
                 val newSuite = DefinitionProxy(
                         file.fullName,
                         true,
-                        url,
+                        null,
                         parentSuite.isPreservePresentableName,
                         null
                 )
@@ -102,7 +100,7 @@ class TypecheckingEventsProcessor(
                 }
 
                 val parentSuite = file?.let { fileToProxy[it] } ?: typeCheckingRootNode
-                val proxy = DefinitionProxy(fullName, false, ref.getUrl(), true, ref)
+                val proxy = DefinitionProxy(fullName, false, null, true, ref)
                 parentSuite.addChild(proxy)
                 definitionToProxy.put(ref, proxy)
 
