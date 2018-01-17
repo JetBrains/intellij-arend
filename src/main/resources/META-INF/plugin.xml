@@ -31,6 +31,10 @@
         <projectStructureDetector
                 implementation="org.vclang.module.util.VcProjectStructureDetector"/>
 
+        <!-- Startup -->
+
+        <postStartupActivity implementation="org.vclang.VcStartupActivity"/>
+
         <!-- Vclang -->
 
         <!-- File-type Factory -->

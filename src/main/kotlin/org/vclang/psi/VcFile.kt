@@ -22,9 +22,9 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     init {
         val fileName = viewProvider.virtualFile.path
-        val sourceRoot = sourceRoot?.path
-        val fullName = if (sourceRoot == null || !fileName.startsWith(sourceRoot)) fileName
-                       else fileName.removePrefix(sourceRoot).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
+        val root = (sourceRoot ?: contentRoot)?.path
+        val fullName = if (root == null || !fileName.startsWith(root)) fileName
+                       else fileName.removePrefix(root).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
         modulePath = ModulePath(fullName.split('.'))
     }
 

@@ -19,6 +19,8 @@ val Project.modulesWithVclangProject: Collection<Module> // TODO[library]
                 .any { it.extension == VcFileType.defaultExtension }
     }
 
+
+
 fun Project.getPsiFileFor(file: VirtualFile?): PsiFile? =
         file?.let { PsiManager.getInstance(this).findFile(it) }
 

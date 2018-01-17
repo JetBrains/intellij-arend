@@ -9,7 +9,7 @@ import com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcFileType
-import org.vclang.module.util.sourceRoots
+import org.vclang.module.util.contentRoots
 import org.vclang.psi.*
 
 abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd, ChildNamespaceCommand {
@@ -25,7 +25,7 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getImportedPath(): List<PsiModuleReferable> {
         return if (nsCmd.importKw != null) {
             val path = path
-            var dirs = module?.sourceRoots ?: emptyList()
+            var dirs = module?.contentRoots ?: emptyList()
             path.withIndex().map { (i, name) ->
                 val modulePath = ModulePath(path.subList(0, i + 1))
                 if (i < path.size - 1) {

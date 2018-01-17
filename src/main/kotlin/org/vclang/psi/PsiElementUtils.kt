@@ -27,6 +27,9 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
 val PsiElement.sourceRoot: VirtualFile?
     get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }
 
+val PsiElement.contentRoot: VirtualFile?
+    get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(it) ?: it.parent }
+
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
         strict: Boolean = true,
         minStartOffset: Int = -1
