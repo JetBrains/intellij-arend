@@ -1,8 +1,6 @@
 package org.vclang.typechecking
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
@@ -51,6 +49,8 @@ interface TypeCheckingService {
     val moduleScopeProvider: ModuleScopeProvider
 
     fun typeCheck(modulePath: ModulePath, definitionFullName: String)
+
+    fun getState(definition: GlobalReferable) : Boolean?
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -157,6 +157,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         eventsProcessor.onSuitesFinished()
+    }
+
+    override fun getState(definition: GlobalReferable) : Boolean? {
+        val d = typeCheckerState.getTypechecked(definition) ?: return null
+        return d.status() == Definition.TypeCheckingStatus.NO_ERRORS
     }
 
     private fun loadPrelude() {

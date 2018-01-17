@@ -22,6 +22,3 @@ val PsiGlobalReferable.fullName: String
         getFullName(builder)
         return builder.toString()
     }
-
-public fun PsiGlobalReferable.getUrl(): String =
-        "vclang://" + (containingFile as VcFile).fullName+"/"+fullName
