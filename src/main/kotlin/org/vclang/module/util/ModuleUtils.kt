@@ -8,11 +8,17 @@ import com.jetbrains.jetpad.vclang.module.ModulePath
 import org.vclang.VcFileType
 import org.vclang.psi.VcFile
 
+val Module.sourceRoots: List<PsiDirectory>
+    get() = ModuleRootManager.getInstance(this).sourceRoots.mapNotNull { PsiManager.getInstance(project).findDirectory(it) }
+
 val Module.contentRoots: List<PsiDirectory>
     get() = ModuleRootManager.getInstance(this).contentRoots.mapNotNull { PsiManager.getInstance(project).findDirectory(it) }
 
+val Module.roots: List<PsiDirectory>
+    get() = if (!sourceRoots.isEmpty()) sourceRoots else contentRoots
+
 fun Module.findVcFiles(modulePath: ModulePath): List<VcFile> {
-    var dirs = contentRoots
+    var dirs = roots
     val path = modulePath.toList()
     for ((i, name) in path.withIndex()) {
         if (i < path.size - 1) {
