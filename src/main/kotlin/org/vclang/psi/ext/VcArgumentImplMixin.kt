@@ -29,13 +29,13 @@ abstract class VcInfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node), 
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, infix.text.removeSurrounding("`")), null, null, params)
+        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, params)
 
     override val referenceNameElement
         get() = this
 
     override val referenceName: String
-        get() = text
+        get() = infix.text.removeSurrounding("`")
 
     override fun getReference(): VcReference = VcReferenceImpl(this)
 }
@@ -50,13 +50,13 @@ abstract class VcPostfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node)
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, postfix.text.removePrefix("`")), null, null, params)
+        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, params)
 
     override val referenceNameElement
         get() = this
 
     override val referenceName: String
-        get() = text
+        get() = postfix.text.removePrefix("`")
 
     override fun getReference(): VcReference = VcReferenceImpl(this)
 }
