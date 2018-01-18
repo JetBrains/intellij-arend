@@ -2,35 +2,74 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
-import com.jetbrains.jetpad.vclang.error.ListErrorReporter
 import com.jetbrains.jetpad.vclang.term.Precedence
-import com.jetbrains.jetpad.vclang.term.concrete.Concrete
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.VcLetClauseImplMixin
+import org.vclang.psi.ext.impl.*
 
 class VcDocumentationProvider : AbstractDocumentationProvider() {
 
-    override fun generateDoc(element: PsiElement, originalElement: PsiElement?): String? {
-        return if (element is PsiGlobalReferable) {
-            buildString {
+    override fun generateDoc(element: PsiElement, originalElement: PsiElement?) =
+        when (element) {
+            is PsiGlobalReferable -> buildString {
                 getType(element)?.let { append("<b>$it</b> ") }
                 append(toHTML(element.textRepresentation()))
-                when (element) {
-                    is VcDefFunction -> append (toHTML(getDefFunctionInfo(element)))
-                    is VcConstructor -> append (toHTML(getConstructorInfo(element)))
-                }
+                append(when (element) {
+                    is FunctionDefinitionAdapter -> printHeader(element.parameters, element.resultType)
+                    is ClassFieldAdapter -> printHeader(element.parameters, element.resultType)
+                    is ClassDefinitionAdapter -> printHeader(if (element.fieldTele == null) listOf() else listOf(element.fieldTele!!), null)
+                    is ConstructorAdapter -> printHeader(element.parameters, null)
+                    is DataDefinitionAdapter -> printHeader(element.parameters, null)
+                    else -> ""
+                })
                 element.getContainingFile().originalFile.let {
                     append(" <i>defined in</i> ")
                     append((it as? VcFile)?.fullName ?: it.name)
                 }
             }
-        } else {
-            null
+            is VcLetClauseImplMixin -> buildString {
+                append("<b> var </b>")
+                append(element.name)
+                append(printHeader(element.parameters, element.resultType))
+            }
+            else -> null
         }
+
+    private fun printHeader(parameters : List<Abstract.Parameter>, resultType : Abstract.Expression?) =
+        toHTML(buildString {
+            append (printParameters(parameters))
+            if (resultType != null) {
+                append(" : ")
+                append(printExpression(resultType))
+            }
+        })
+
+    private fun printParameters(parameters: List<Abstract.Parameter>): String? {
+        val list = ConcreteBuilder.convertParams(parameters)
+        return if (list != null && list.isNotEmpty()) {
+            val builder = StringBuilder()
+            val printer = PrettyPrintVisitor(builder, 0, false)
+            builder.append(' ')
+            printer.prettyPrintParameters(list, 0)
+            builder.toString()
+        } else ""
     }
 
-    fun getConstructorInfo (element : VcConstructor) : String? {
+    private fun printExpression(element: Abstract.Expression): String? {
+        val expression = ConcreteBuilder.convertExpression(element)
+        return if (expression != null) {
+            val builder = StringBuilder()
+            val printer = PrettyPrintVisitor(builder, 0, false)
+            expression.accept(printer, Precedence(0))
+            builder.toString()
+        } else ""
+    }
+
+    /* fun getConstructorInfo (element : VcConstructor) : String? {
         val reporter = ListErrorReporter()
         val concreteElement = element.computeConcrete(reporter)
         val builder = StringBuilder()
@@ -65,7 +104,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
             }
         }
         return builder.toString()
-    }
+    } */
 
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?): String? =
             generateDoc(element, originalElement)
