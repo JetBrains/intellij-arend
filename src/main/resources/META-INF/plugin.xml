@@ -150,6 +150,10 @@
 
         <lookup.charFilter implementation="org.vclang.codeInsight.VclangCharFilter"/>
 
+        <!-- Highlight Filter -->
+
+        <problemFileHighlightFilter implementation="org.vclang.highlight.VcProblemHighlightFilter"/>
+
         <!-- Services -->
 
         <projectService serviceInterface="org.vclang.typechecking.TypeCheckingService"
