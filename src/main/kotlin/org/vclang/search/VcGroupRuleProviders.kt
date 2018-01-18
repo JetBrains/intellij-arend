@@ -42,6 +42,11 @@ class VcConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<VcConstructor>()
 }
 
+class VcClassFieldSynGroupingRuleProvider : FileStructureGroupRuleProvider {
+    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
+            createGroupingRule<VcClassFieldSyn>()
+}
+
 private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {
     return object : SingleParentUsageGroupingRule() {
         override fun getParentGroupFor(usage: Usage, targets: Array<out UsageTarget>): UsageGroup? {

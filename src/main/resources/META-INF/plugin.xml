@@ -79,15 +79,13 @@
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcDefClassGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefClassViewGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcDefDataGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcDefFunctionGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassViewFieldGroupingRuleProvider"/>
+                implementation="org.vclang.search.VcClassFieldSynGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
                 implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
