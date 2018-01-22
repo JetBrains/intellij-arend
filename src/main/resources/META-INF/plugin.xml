@@ -46,6 +46,10 @@
         <lang.parserDefinition language="Vclang"
                                implementationClass="org.vclang.parser.VcParserDefinition"/>
 
+        <!-- Name Validator -->
+
+        <lang.namesValidator language="Vclang" implementationClass="org.vclang.refactoring.VcNamesValidator"/>
+
         <!-- Syntax Highlighter -->
 
         <lang.syntaxHighlighterFactory language="Vclang"

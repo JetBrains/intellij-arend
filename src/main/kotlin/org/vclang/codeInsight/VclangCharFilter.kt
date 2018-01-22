@@ -6,14 +6,15 @@ import org.vclang.VcLanguage
 import org.vclang.search.VcWordScanner
 
 class VclangCharFilter : CharFilter() {
-    override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): CharFilter.Result? {
-        if (lookup.psiFile?.language?.isKindOf(VcLanguage) ?: false) {
-            if (VcWordScanner.isVclangIdentifierPart(c)) return CharFilter.Result.ADD_TO_PREFIX
-            return when (c) {
-                '.', ',', ' ', '(' -> CharFilter.Result.SELECT_ITEM_AND_FINISH_LOOKUP
-                else -> CharFilter.Result.HIDE_LOOKUP
+    override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): CharFilter.Result? =
+        if (lookup.psiFile?.language?.isKindOf(VcLanguage) == true) {
+            if (VcWordScanner.isVclangIdentifierPart(c)) {
+                Result.ADD_TO_PREFIX
+            } else when (c) {
+                '.', ',', ' ', '(' -> Result.SELECT_ITEM_AND_FINISH_LOOKUP
+                else -> Result.HIDE_LOOKUP
             }
+        } else {
+            null
         }
-        return null
-    }
 }

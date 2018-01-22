@@ -16,12 +16,12 @@ class VcPsiFactory(private val project: Project) {
 
     fun createInfixName(name: String): VcInfixArgument {
         val needsPrefix = !VcNamesValidator.isInfixName(name)
-        return createExpression("dummy ${if (needsPrefix) "`$name`" else name} dummy")
+        return createExpression("dummy ${if (needsPrefix) "`$name`" else name} dummy") as VcInfixArgument
     }
 
     fun createPostfixName(name: String): VcPostfixArgument {
         val needsPrefix = !VcNamesValidator.isPostfixName(name)
-        return createExpression("dummy ${if (needsPrefix) "`$name" else name}")
+        return createExpression("dummy ${if (needsPrefix) "`$name" else name}") as VcPostfixArgument
     }
 
     private fun createFunction(
@@ -38,20 +38,18 @@ class VcPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun <T : VcExpr> createExpression(expr: String): T =
-            createFunction("dummy", emptyList(), expr).expr as? T
-                    ?: error("Failed to create expression: `$expr`")
+    private fun createExpression(expr: String): VcArgument =
+        ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }
+            ?: error("Failed to create expression: `$expr`")
 
     private fun createLiteral(literal: String): VcLiteral =
-            createFunction("dummy", listOf(literal)).nameTeleList.firstOrNull()?.childOfType()
-                    ?: error("Failed to create literal: `$literal`")
+        createFunction("dummy", listOf(literal)).nameTeleList.firstOrNull()?.childOfType()
+            ?: error("Failed to create literal: `$literal`")
 
     private fun createStatCmd(name: String): VcStatCmd =
-            createFromText("\\open X \\hiding ($name)")?.childOfType()
-                    ?: error("Failed to create stat cmd: `$name`")
+        createFromText("\\open X \\hiding ($name)")?.childOfType()
+            ?: error("Failed to create stat cmd: `$name`")
 
     private fun createFromText(code: String): VcFile? =
-            PsiFileFactory.getInstance(project)
-                    .createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
+        PsiFileFactory.getInstance(project).createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
 }

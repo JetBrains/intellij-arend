@@ -20,4 +20,6 @@ val VC_KEYWORDS: TokenSet = TokenSet.create(
 
 val VC_COMMENTS: TokenSet = TokenSet.create(LINE_COMMENT, BLOCK_COMMENT)
 
+val VC_NAMES: TokenSet = TokenSet.create(ID, INFIX, POSTFIX)
+
 val VC_WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)
