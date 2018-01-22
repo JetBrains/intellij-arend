@@ -133,6 +133,7 @@
         <!-- Refactoring -->
 
         <renameInputValidator implementation="org.vclang.refactoring.VcRenameInputValidator"/>
+        <lang.refactoringSupport language="Vclang" implementationClass="org.vclang.refactoring.VcRefactoringSupportProvider"/>
 
         <!-- Run Configurations -->
 
