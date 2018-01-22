@@ -31,7 +31,7 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
         val project = AnAction.getEventProject(e) ?: return
         if (psiFile !is VcFile) return
 
-        val groupId = StringUtil.notNullize(e.presentation.text, NOTIFICATION_TITLE)
+        val groupId = "Vclang pretty printing"
         try {
             ApplicationManager.getApplication().saveAll()
 

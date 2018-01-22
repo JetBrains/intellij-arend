@@ -1,5 +1,8 @@
 package org.vclang.typechecking
 
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -145,17 +148,21 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 */
             } else {
                 val group = module.findGroupByFullName(definitionFullName.split('.'))
-                val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
-                val typechecked = typeCheckerState.getTypechecked(ref)
-                if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                    psiConcreteProvider.isResolving = true
-                    val definition = concreteProvider.getConcrete(ref)
-                    if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
-                    else if (definition != null) error(definitionFullName + " is not a definition")
+                val ref = group?.referable
+                if (ref == null) {
+                    Notifications.Bus.notify(Notification("Vclang typechecking", "Typechecking", "Definition $definitionFullName not found", NotificationType.ERROR))
                 } else {
-                    if (ref is PsiGlobalReferable) {
-                        eventsProcessor.onTestStarted(ref)
-                        typeChecking.typecheckingFinished(ref, typechecked)
+                    val typechecked = typeCheckerState.getTypechecked(ref)
+                    if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                        psiConcreteProvider.isResolving = true
+                        val definition = concreteProvider.getConcrete(ref)
+                        if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                        else if (definition != null) error(definitionFullName + " is not a definition")
+                    } else {
+                        if (ref is PsiGlobalReferable) {
+                            eventsProcessor.onTestStarted(ref)
+                            typeChecking.typecheckingFinished(ref, typechecked)
+                        }
                     }
                 }
             }
