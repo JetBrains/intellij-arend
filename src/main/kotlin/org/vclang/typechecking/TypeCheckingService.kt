@@ -133,11 +133,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 dependencyCollector
             )
 
+            var computationFinished = false
+
             if (definitionFullName.isEmpty()) {
                 eventsProcessor.onSuiteStarted(module)
                 DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
                 psiConcreteProvider.isResolving = true
-                typeChecking.typecheckModules(listOf(module))
+                computationFinished = typeChecking.typecheckModules(listOf(module))
 
                 /* TODO[caching]
                 try {
@@ -156,7 +158,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
                         psiConcreteProvider.isResolving = true
                         val definition = concreteProvider.getConcrete(ref)
-                        if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
+                        if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition))
                         else if (definition != null) error(definitionFullName + " is not a definition")
                     } else {
                         if (ref is PsiGlobalReferable) {
@@ -167,7 +169,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 }
             }
 
-            eventsProcessor.onSuitesFinished()
+            if (computationFinished) eventsProcessor.onSuitesFinished()
         } finally {
             Typechecking.setDefaultCancellationIndicator()
         }
