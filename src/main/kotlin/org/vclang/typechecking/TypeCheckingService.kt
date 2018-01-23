@@ -224,6 +224,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
+         override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
+            processParent(event)
+        }
 
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event)
@@ -246,7 +249,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             if (event.file is VcFile) {
                 val ancestors = event.parent.ancestors
                 val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull()
-                definition?.let { dependencyCollector.update(definition) }
+                definition?.let {
+                    dependencyCollector.update(definition)
+                }
             }
         }
 
