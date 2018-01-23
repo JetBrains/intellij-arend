@@ -35,7 +35,9 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
         }
 
     override fun getUseScope(): SearchScope {
-        if (parent != null && parent.parent is VcFieldTele) {
+        if (parent != null && parent.parent is VcTypedExpr && parent.parent.parent is VcTypeTele) {
+            return LocalSearchScope(parent.parent.parent.parent) //Pi expression
+        } else if (parent != null && parent.parent is VcFieldTele) {
             return LocalSearchScope(parent.parent.parent)
         } else if (parent != null && parent.parent is VcNameTele) {
             return LocalSearchScope(parent.parent.parent)
