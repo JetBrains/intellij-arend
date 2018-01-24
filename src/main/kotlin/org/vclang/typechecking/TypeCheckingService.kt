@@ -134,7 +134,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 dependencyCollector
             )
 
-            var computationFinished = false
+            var computationFinished = true
 
             if (definitionFullName.isEmpty()) {
                 eventsProcessor.onSuiteStarted(module)
