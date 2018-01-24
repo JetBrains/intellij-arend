@@ -11,6 +11,7 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
+import com.jetbrains.jetpad.vclang.module.caching.LocalizedTypecheckerState
 import com.jetbrains.jetpad.vclang.module.caching.ModuleCacheIdProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
@@ -175,6 +176,19 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 
+    fun invalidCount() : Int {
+        if (typeCheckerState is LocalizedTypecheckerState<*>) {
+            val ar = typeCheckerState.allReferables
+            var invalid = 0
+            ar.filterIsInstance<PsiElement>().forEach {
+                if (!it.isValid)
+                    invalid++
+            }
+            return invalid
+        }
+        return -1
+    }
+
     override fun getState(definition: GlobalReferable) : Boolean? {
         val d = typeCheckerState.getTypechecked(definition) ?: return null
         return d.status() == Definition.TypeCheckingStatus.NO_ERRORS
@@ -201,7 +215,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private fun sourceIdByPath(modulePath: ModulePath): VcSourceIdT? {
         val sourceId = storage.locateModule(modulePath)
-        if (storage.isAvailable(sourceId)) {
+        if (sourceId != null && storage.isAvailable(sourceId)) {
             return sourceId
         } else {
             error(modulePath.toString() + " is not available")
@@ -243,8 +257,12 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
-            processChildren(event)
-            processParent(event)
+            if (event.child is VcFile) { // whole file has been removed
+                for (child in event.child.children) invalidateChild(child)
+            } else {
+                processChildren(event)
+                processParent(event)
+            }
         }
 
         private fun processParent(event: PsiTreeChangeEvent) {
@@ -257,16 +275,20 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
         }
 
+        private fun invalidateChild(element : PsiElement) {
+            element.accept(object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement?) {
+                    super.visitElement(element)
+                    if (element is GlobalReferable) {
+                        dependencyCollector.update(element)
+                    }
+                }
+            })
+        }
+
         private fun processChildren(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
-                event.child.accept(object : PsiRecursiveElementVisitor() {
-                    override fun visitElement(element: PsiElement?) {
-                        super.visitElement(element)
-                        if (element is VcDefinition) {
-                            dependencyCollector.update(element)
-                        }
-                    }
-                })
+                invalidateChild(event.child)
             }
         }
     }

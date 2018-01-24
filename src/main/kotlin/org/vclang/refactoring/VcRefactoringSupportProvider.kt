@@ -9,7 +9,8 @@ import org.vclang.psi.VcElementTypes.POSTFIX
 
 class VcRefactoringSupportProvider : RefactoringSupportProvider() {
     override fun isInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean {
-        return element is VcDefIdentifier || element is VcFieldDefIdentifier || element is VcLetClause
+        return false
+        /* return element is VcDefIdentifier || element is VcFieldDefIdentifier || element is VcLetClause */
     }
 
     override fun isMemberInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean {
