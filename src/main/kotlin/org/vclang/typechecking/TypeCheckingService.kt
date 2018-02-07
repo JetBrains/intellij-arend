@@ -11,7 +11,6 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
-import com.jetbrains.jetpad.vclang.module.caching.LocalizedTypecheckerState
 import com.jetbrains.jetpad.vclang.module.caching.ModuleCacheIdProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
@@ -174,19 +173,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         } finally {
             Typechecking.setDefaultCancellationIndicator()
         }
-    }
-
-    fun invalidCount() : Int {
-        if (typeCheckerState is LocalizedTypecheckerState<*>) {
-            val ar = typeCheckerState.allReferables
-            var invalid = 0
-            ar.filterIsInstance<PsiElement>().forEach {
-                if (!it.isValid)
-                    invalid++
-            }
-            return invalid
-        }
-        return -1
     }
 
     override fun getState(definition: GlobalReferable) : Boolean? {
