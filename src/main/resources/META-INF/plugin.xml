@@ -72,6 +72,11 @@
         <lang.psiStructureViewFactory language="Vclang"
                                       implementationClass="org.vclang.structure.VcPsiStructureViewFactory"/>
 
+        <!-- Hierarchy -->
+
+        <callHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.call.VcCallHierarchyProvider"/>
+        <typeHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.clazz.VcClassHierarchyProvider"/>
+
         <!-- Usages Provider -->
 
         <lang.findUsagesProvider language="Vclang"
