@@ -1,5 +1,8 @@
 package org.vclang.typechecking
 
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -8,6 +11,7 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.caching.CacheLoadingException
+import com.jetbrains.jetpad.vclang.module.caching.LocalizedTypecheckerState
 import com.jetbrains.jetpad.vclang.module.caching.ModuleCacheIdProvider
 import com.jetbrains.jetpad.vclang.module.caching.SourceVersionTracker
 import com.jetbrains.jetpad.vclang.module.caching.sourceless.CacheModuleScopeProvider
@@ -24,6 +28,8 @@ import com.jetbrains.jetpad.vclang.term.Prelude
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import com.jetbrains.jetpad.vclang.term.provider.SourceInfoProvider
+import com.jetbrains.jetpad.vclang.typechecking.CancellationIndicator
+import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.PsiModuleScopeProvider
@@ -48,7 +54,7 @@ interface TypeCheckingService {
 
     val moduleScopeProvider: ModuleScopeProvider
 
-    fun typeCheck(modulePath: ModulePath, definitionFullName: String)
+    fun typeCheck(modulePath: ModulePath, definitionFullName: String, cancellationIndicator: CancellationIndicator)
 
     fun getState(definition: GlobalReferable) : Boolean?
 
@@ -104,59 +110,83 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         loadPrelude()
     }
 
-    override fun typeCheck(modulePath: ModulePath, definitionFullName: String) {
-        val sourceId = sourceIdByPath(modulePath) ?: return
-        val module = loadSource(sourceId) ?: return
-
-        /* TODO[caching]
+    override fun typeCheck(modulePath: ModulePath, definitionFullName: String, cancellationIndicator: CancellationIndicator) {
+        Typechecking.CANCELLATION_INDICATOR = cancellationIndicator
         try {
-            cacheManager.loadCache(sourceId)
-        } catch (ignored: CacheLoadingException) {
-        }
-        */
+            val sourceId = sourceIdByPath(modulePath) ?: return
+            val module = loadSource(sourceId) ?: return
 
-        val eventsProcessor = eventsProcessor!!
-        val psiConcreteProvider = PsiConcreteProvider(logger, eventsProcessor)
-        val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
-        val typeChecking = TestBasedTypechecking(
+            /* TODO[caching]
+            try {
+                cacheManager.loadCache(sourceId)
+            } catch (ignored: CacheLoadingException) {
+            }
+            */
+
+            val eventsProcessor = eventsProcessor!!
+            val psiConcreteProvider = PsiConcreteProvider(logger, eventsProcessor)
+            val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
+            val typeChecking = TestBasedTypechecking(
                 eventsProcessor,
                 typeCheckerState,
                 concreteProvider,
                 logger,
                 dependencyCollector
-        )
+            )
 
-        if (definitionFullName.isEmpty()) {
-            eventsProcessor.onSuiteStarted(module)
-            DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
-            psiConcreteProvider.isResolving = true
-            typeChecking.typecheckModules(listOf(module))
+            var computationFinished = true
 
-            /* TODO[caching]
-            try {
-                cacheManager.persistCache(sourceId)
-            } catch (e: CachePersistenceException) {
-                e.printStackTrace()
-            }
-            */
-        } else {
-            val group = module.findGroupByFullName(definitionFullName.split('.'))
-            val ref = checkNotNull(group?.referable) { "Definition $definitionFullName not found" }
-            val typechecked = typeCheckerState.getTypechecked(ref)
-            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+            if (definitionFullName.isEmpty()) {
+                eventsProcessor.onSuiteStarted(module)
+                DefinitionResolveNameVisitor(logger).resolveGroup(module, CachingScope.make(module.scope), concreteProvider)
                 psiConcreteProvider.isResolving = true
-                val definition = concreteProvider.getConcrete(ref)
-                if (definition is Concrete.Definition) typeChecking.typecheckDefinitions(listOf(definition))
-                else if (definition != null) error(definitionFullName + " is not a definition")
+                computationFinished = typeChecking.typecheckModules(listOf(module))
+
+                /* TODO[caching]
+                try {
+                    cacheManager.persistCache(sourceId)
+                } catch (e: CachePersistenceException) {
+                    e.printStackTrace()
+                }
+                */
             } else {
-                if (ref is PsiGlobalReferable) {
-                    eventsProcessor.onTestStarted(ref)
-                    typeChecking.typecheckingFinished(ref, typechecked)
+                val group = module.findGroupByFullName(definitionFullName.split('.'))
+                val ref = group?.referable
+                if (ref == null) {
+                    Notifications.Bus.notify(Notification("Vclang typechecking", "Typechecking", "Definition $definitionFullName not found", NotificationType.ERROR))
+                } else {
+                    val typechecked = typeCheckerState.getTypechecked(ref)
+                    if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                        psiConcreteProvider.isResolving = true
+                        val definition = concreteProvider.getConcrete(ref)
+                        if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition))
+                        else if (definition != null) error(definitionFullName + " is not a definition")
+                    } else {
+                        if (ref is PsiGlobalReferable) {
+                            eventsProcessor.onTestStarted(ref)
+                            typeChecking.typecheckingFinished(ref, typechecked)
+                        }
+                    }
                 }
             }
-        }
 
-        eventsProcessor.onSuitesFinished()
+            if (computationFinished) eventsProcessor.onSuitesFinished()
+        } finally {
+            Typechecking.setDefaultCancellationIndicator()
+        }
+    }
+
+    fun invalidCount() : Int {
+        if (typeCheckerState is LocalizedTypecheckerState<*>) {
+            val ar = typeCheckerState.allReferables
+            var invalid = 0
+            ar.filterIsInstance<PsiElement>().forEach {
+                if (!it.isValid)
+                    invalid++
+            }
+            return invalid
+        }
+        return -1
     }
 
     override fun getState(definition: GlobalReferable) : Boolean? {
@@ -185,7 +215,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private fun sourceIdByPath(modulePath: ModulePath): VcSourceIdT? {
         val sourceId = storage.locateModule(modulePath)
-        if (storage.isAvailable(sourceId)) {
+        if (sourceId != null && storage.isAvailable(sourceId)) {
             return sourceId
         } else {
             error(modulePath.toString() + " is not available")
@@ -210,6 +240,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
+         override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
+            processParent(event)
+        }
 
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event)
@@ -224,28 +257,38 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
-            processChildren(event)
-            processParent(event)
+            if (event.child is VcFile) { // whole file has been removed
+                for (child in event.child.children) invalidateChild(child)
+            } else {
+                processChildren(event)
+                processParent(event)
+            }
         }
 
         private fun processParent(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
                 val ancestors = event.parent.ancestors
                 val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull()
-                definition?.let { dependencyCollector.update(definition) }
+                definition?.let {
+                    dependencyCollector.update(definition)
+                }
             }
+        }
+
+        private fun invalidateChild(element : PsiElement) {
+            element.accept(object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement?) {
+                    super.visitElement(element)
+                    if (element is GlobalReferable) {
+                        dependencyCollector.update(element)
+                    }
+                }
+            })
         }
 
         private fun processChildren(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
-                event.child.accept(object : PsiRecursiveElementVisitor() {
-                    override fun visitElement(element: PsiElement?) {
-                        super.visitElement(element)
-                        if (element is VcDefinition) {
-                            dependencyCollector.update(element)
-                        }
-                    }
-                })
+                invalidateChild(event.child)
             }
         }
     }
