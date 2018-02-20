@@ -7,9 +7,9 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
-import com.jetbrains.jetpad.vclang.term.ChildGroup
-import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.group.ChildGroup
+import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
 import org.vclang.psi.ext.PsiGlobalReferable

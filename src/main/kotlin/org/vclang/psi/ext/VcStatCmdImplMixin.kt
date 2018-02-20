@@ -4,10 +4,10 @@ import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import org.vclang.VcFileType
 import org.vclang.module.util.roots
 import org.vclang.psi.*

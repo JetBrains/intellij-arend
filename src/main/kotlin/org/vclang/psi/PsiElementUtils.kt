@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
-import com.jetbrains.jetpad.vclang.term.Group
+import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.typechecking.TypeCheckingService
 
