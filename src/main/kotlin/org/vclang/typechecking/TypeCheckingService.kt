@@ -183,7 +183,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             throw IllegalStateException("Prelude cache is not available", e)
         }
 
-        Prelude.initialise(moduleScopeProvider.forCacheModule(PreludeStorage.PRELUDE_MODULE_PATH).root, typeCheckerState)
+        Prelude.initialize(moduleScopeProvider.forCacheModule(PreludeStorage.PRELUDE_MODULE_PATH).root, typeCheckerState)
     }
 
     private fun loadSource(sourceId: VcSourceIdT): VcFile? =
