@@ -83,6 +83,8 @@
 
         <!-- Usages Provider -->
 
+        <referencesSearch implementation="org.vclang.search.VcCustomSearcher"/>
+
         <lang.findUsagesProvider language="Vclang"
                                  implementationClass="org.vclang.search.VcFindUsagesProvider"/>
         <fileStructureGroupRuleProvider
