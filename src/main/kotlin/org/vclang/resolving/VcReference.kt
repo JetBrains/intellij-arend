@@ -54,7 +54,10 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
     }.toTypedArray()
 
     override fun resolve(): PsiElement? {
-        var ref = element.scope.resolveName(element.referenceName)
+        var ref = VcResolveCache.resolveCached( { element ->
+            element.scope.resolveName(element.referenceName)
+        }, this.element)
+
         if (ref is RedirectingReferable) ref = ref.newReferable
         return when (ref) {
             is PsiElement -> ref

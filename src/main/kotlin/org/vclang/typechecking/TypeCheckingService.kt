@@ -7,6 +7,8 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
+import com.intellij.psi.impl.AnyPsiChangeListener
+import com.intellij.psi.impl.PsiManagerImpl
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.frontend.storage.PreludeStorage
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -41,6 +43,7 @@ import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.fullName
 import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 typealias VcSourceIdT = CompositeSourceSupplier<
@@ -105,6 +108,15 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+
+        val messageBus = project.messageBus
+
+        messageBus.connect().subscribe(PsiManagerImpl.ANY_PSI_CHANGE_TOPIC, object : AnyPsiChangeListener.Adapter() {
+            override fun beforePsiChanged(isPhysical: Boolean) {
+                VcResolveCache.clearCache()
+            }
+        })
+
         moduleScopeProvider.initialise(storage, cacheManager)
         loadPrelude()
     }
