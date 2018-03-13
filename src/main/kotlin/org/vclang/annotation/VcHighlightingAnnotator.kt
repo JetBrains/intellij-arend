@@ -25,34 +25,41 @@ class VcHighlightingAnnotator : Annotator {
             if (reference != null) {
                 val psiElement = reference.resolve()
                 if (psiElement == null) {
+                    val parent : PsiElement? = element.parent
+                    val needsFix = parent !is VcLongName || element.prevSibling == null
                     val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
                     annotation.highlightType = ProblemHighlightType.ERROR
-                    val name = element.referenceName
-                    val project = element.project
-                    val scope = ProjectAndLibrariesScope(project)
-                    val v = StubIndex.getElements(VcDefinitionIndex.KEY, name, project,scope, PsiReferable::class.java)
-                    for (psi in v) {
-                        annotation.registerFix(object: BaseIntentionAction(){
-                            var decision : List<ResolveRefFixAction> = ResolveRefQuickFix.getDecision(psi, element)
 
-                            override fun getFamilyName(): String {
-                                return "vclang.reference.resolve"
+                    if (needsFix) {
+                        val name = element.referenceName
+                        val project = element.project
+                        val scope = ProjectAndLibrariesScope(project)
+                        val v = StubIndex.getElements(VcDefinitionIndex.KEY, name, project,scope, PsiReferable::class.java)
+                        for (psi in v) {
+                            val actions = ResolveRefQuickFix.getDecision(psi, element)
+                            for (action in actions) {
+                                annotation.registerFix(object: BaseIntentionAction(){
+                                    var decision : List<ResolveRefFixAction> = action
+
+                                    override fun getFamilyName(): String {
+                                        return "vclang.reference.resolve"
+                                    }
+
+                                    override fun getText(): String {
+                                        return decision.toString()
+                                    }
+
+                                    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
+                                        return decision.isNotEmpty()
+                                    }
+
+                                    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+
+                                    }
+                                })
                             }
-
-                            override fun getText(): String {
-                                return decision.toString()
-                            }
-
-                            override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-                                return decision.isNotEmpty()
-                            }
-
-                            override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-
-                            }
-                        })
+                        }
                     }
-
 
                 }
             }
