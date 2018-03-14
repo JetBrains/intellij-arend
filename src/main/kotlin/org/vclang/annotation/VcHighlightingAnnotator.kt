@@ -34,27 +34,27 @@ class VcHighlightingAnnotator : Annotator {
                         val name = element.referenceName
                         val project = element.project
                         val scope = ProjectAndLibrariesScope(project)
-                        val v = StubIndex.getElements(VcDefinitionIndex.KEY, name, project,scope, PsiReferable::class.java)
-                        for (psi in v) {
+                        val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, name, project,scope, PsiReferable::class.java)
+                        for (psi in indexedDefinitions) {
                             val actions = ResolveRefQuickFix.getDecision(psi, element)
                             for (action in actions) {
                                 annotation.registerFix(object: BaseIntentionAction(){
-                                    var decision : List<ResolveRefFixAction> = action
+                                    var action: List<ResolveRefFixAction> = action
 
                                     override fun getFamilyName(): String {
                                         return "vclang.reference.resolve"
                                     }
 
                                     override fun getText(): String {
-                                        return decision.toString()
+                                        return this.action.toString()
                                     }
 
                                     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-                                        return decision.isNotEmpty()
+                                        return this.action.isNotEmpty()
                                     }
 
                                     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-
+                                        for (atomicAction in this.action) atomicAction.execute()
                                     }
                                 })
                             }
