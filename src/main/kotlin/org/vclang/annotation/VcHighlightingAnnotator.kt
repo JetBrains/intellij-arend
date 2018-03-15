@@ -20,7 +20,7 @@ import org.vclang.quickfix.ResolveRefQuickFix
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        if (element is VcReferenceElement) {
+        if (element is VcRefIdentifier) {
             val reference = element.reference
             if (reference != null) {
                 val psiElement = reference.resolve()
@@ -54,7 +54,7 @@ class VcHighlightingAnnotator : Annotator {
                                     }
 
                                     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-                                        for (atomicAction in this.action) atomicAction.execute()
+                                        for (atomicAction in this.action) atomicAction.execute(editor)
                                     }
                                 })
                             }

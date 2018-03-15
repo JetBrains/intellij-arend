@@ -1,5 +1,6 @@
 package org.vclang.quickfix
 
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
@@ -9,10 +10,11 @@ import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.quickfix.ResolveRefQuickFix.Companion.createFromText
 import java.util.*
 
 interface ResolveRefFixAction {
-    fun execute()
+    fun execute(editor: Editor?)
 }
 
 class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile) : ResolveRefFixAction {
@@ -20,7 +22,7 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
         return "Import file "+ importFile.fullName
     }
 
-    override fun execute() {
+    override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
         val file = ResolveRefQuickFix.createFromText(importFile.project, "\\import "+fullName)
         val commands = file?.namespaceCommands
@@ -59,8 +61,31 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
         return "Add "+ id + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
     }
 
-    override fun execute() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun execute(editor: Editor?) {
+        if (statCmd.nsCmd.importKw != null) {
+            val project = statCmd.project
+            val using = statCmd.nsUsing
+            if (using != null) {
+                val nsIds = using.nsIdList
+                var anchor = using.lparen
+                var needsCommaBefore = false
+
+                for (nsId in nsIds) {
+                    val name = nsId.refIdentifier.referenceName
+                    if (name > id) break
+                    anchor = nsId
+                    needsCommaBefore = true
+                }
+
+                val vcfile = createFromText(project, "\\import Dummy (a,$id)")
+                val nsCmd = vcfile?.namespaceCommands?.first()
+                val nsId = nsCmd?.nsUsing?.nsIdList?.get(1)
+                if (nsId != null) {
+                    anchor.parent.addAfter(nsId, anchor)
+                    if (needsCommaBefore) anchor.parent.addAfter(nsId.prevSibling, anchor)
+                }
+            }
+        }
     }
 }
 
@@ -69,12 +94,11 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
         return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
     }
 
-    override fun execute() {
+    override fun execute(editor: Editor?) {
         var startSibling : PsiElement = id
         var endSibling : PsiElement = id
 
         if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
-
 
         val leftEnd = startSibling.prevSibling.node.elementType == VcElementTypes.LPAREN
 
@@ -90,17 +114,30 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
             if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
         }
 
+        if (leftEnd && rightEnd) {
+            startSibling = startSibling.prevSibling
+            endSibling = endSibling.nextSibling
+            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling.node.elementType == VcElementTypes.HIDING_KW) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+        }
+
         id.parent.deleteChildRange(startSibling, endSibling)
     }
 }
 
-class RenameReferenceAction(val element: PsiElement, val id : String) : ResolveRefFixAction {
+class RenameReferenceAction(val element: VcRefIdentifier, val id : String) : ResolveRefFixAction {
     override fun toString(): String {
-        return "Rename usage of "+element.text+" to "+id+" as suggested by the namespace/import command"
+        return "Rename usage of "+element.referenceName+" to "+id+" as suggested by the namespace/import command"
     }
 
-    override fun execute() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun execute(editor: Editor?) {
+        val factory = VcPsiFactory(element.project)
+        val offset = element.textOffset
+        val refId = factory.createRefIdentifier(id)
+        element.replace(refId)
+
+        editor?.caretModel?.moveToOffset(offset + id.length)
     }
 }
 
@@ -109,7 +146,7 @@ class AddItemsToLongName(val element: PsiElement, val id : List<String>) : Resol
         return "Replace " + element.text + " with \"long name\" "+LongName(id).toString()
     }
 
-    override fun execute() {
+    override fun execute(editor: Editor?) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
@@ -133,10 +170,9 @@ class ResolveRefQuickFix {
             return "???"
         }
 
-        fun getDecision(target: PsiElement, element: PsiElement): List<List<ResolveRefFixAction>> {
+        fun getDecision(target: PsiElement, element: VcRefIdentifier): List<List<ResolveRefFixAction>> {
             val targetFile = target.containingFile
             val elementFile = element.containingFile
-            val project = element.project
             val result = ArrayList<ResolveRefFixAction>()
             val results = ArrayList<List<ResolveRefFixAction>>()
 
