@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
 import org.vclang.psi.*
@@ -73,6 +74,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
                 for (nsId in nsIds) {
                     val name = nsId.refIdentifier.referenceName
                     if (name > id) break
+
                     anchor = nsId
                     needsCommaBefore = true
                 }
@@ -80,9 +82,19 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
                 val vcfile = createFromText(project, "\\import Dummy (a,$id)")
                 val nsCmd = vcfile?.namespaceCommands?.first()
                 val nsId = nsCmd?.nsUsing?.nsIdList?.get(1)
+
                 if (nsId != null) {
+                    val comma = nsId.prevSibling //we will need the comma only once
+
+                    if (!needsCommaBefore && !nsIds.isEmpty()) {
+                        anchor.parent.addAfter(ResolveRefQuickFix.createWhitespace(project, " "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
+                    }
                     anchor.parent.addAfter(nsId, anchor)
-                    if (needsCommaBefore) anchor.parent.addAfter(nsId.prevSibling, anchor)
+                    if (needsCommaBefore) {
+                        anchor.parent.addAfter(ResolveRefQuickFix.createWhitespace(project, " "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
+                    }
                 }
             }
         }
@@ -141,13 +153,22 @@ class RenameReferenceAction(val element: VcRefIdentifier, val id : String) : Res
     }
 }
 
-class AddItemsToLongName(val element: PsiElement, val id : List<String>) : ResolveRefFixAction {
+class AddItemsToLongName(private val element: VcRefIdentifier, private val id : List<String>) : ResolveRefFixAction {
     override fun toString(): String {
         return "Replace " + element.text + " with \"long name\" "+LongName(id).toString()
     }
 
     override fun execute(editor: Editor?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        /* if (element.parent is VcLongName) {
+            val vcfile = createFromText(element.project, "\\func dummy => "+LongName(id).toString())
+            val longName = (((((vcfile?.subgroups?.get(0) as VcDefFunction).expr as VcNewExpr?)?.
+                    appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }) as VcArgumentAppExpr).
+                    atomFieldsAcc?.atom?.literal?.longName
+            if (longName != null) {
+                element.parent.addRangeBefore(longName.firstChild, longName.lastChild, element)
+                element.delete()
+            }
+        } */
     }
 }
 
@@ -187,64 +208,63 @@ class ResolveRefQuickFix {
                 }
                 psi2 = psi2.parent
             }
-
             val fullNames = HashSet<List<String>>()
 
             if (elementFile is VcFile && targetFile is VcFile) {
                 if (elementFile != targetFile) {
                     var validImportFound = false
+                    val originalName = fullName.first()
+                    val aliases = HashSet<String>()
+
                     for (namespaceCommand in elementFile.namespaceCommands) if (namespaceCommand.nsCmd.importKw != null) {
                         val fileIdent = namespaceCommand.longName?.refIdentifierList?.last()
                         if (fileIdent?.reference?.resolve() == targetFile) {
                             val nsUsing = namespaceCommand.nsUsing
-                            val hidden = namespaceCommand.refIdentifierList
-                            val id = fullName.first()
+                            val hiddenList = namespaceCommand.refIdentifierList
                             val needNoFurtherFixes = result.size > 0
-
-                            var ok = true // meaning: namespace command correctly imports "id" (possibly renaming it at the same time)
-                            val ids = HashSet<String>()
+                            var importIsCorrect = true
 
                             if (nsUsing != null) {
                                 var found = false
                                 for (refIdent in nsUsing.nsIdList) {
-                                    if (refIdent.refIdentifier.text == id) {
+                                    if (refIdent.refIdentifier.text == originalName) {
                                         found = true
                                         val defIdentifier = refIdent.defIdentifier
                                         if (defIdentifier != null) {
-                                            ids.add(defIdentifier.name!!)
+                                            aliases.add(defIdentifier.name!!)
                                         } else {
-                                            ids.add(id)
+                                            aliases.add(originalName)
                                         }
                                     }
                                 }
 
                                 if (!found) {
-                                    ok = false
-                                    if (!needNoFurtherFixes) result.add(AddIdToUsingAction(namespaceCommand, id))
+                                    importIsCorrect = false
+                                    if (!needNoFurtherFixes) result.add(AddIdToUsingAction(namespaceCommand, originalName))
                                 }
                             }
 
-                            if (ids.isEmpty() && hidden.isNotEmpty()) {
-                                for (ref in hidden) {
-                                    if (ref.referenceName == id) {
-                                        ok = false
+                            if (aliases.isEmpty() && hiddenList.isNotEmpty()) {
+                                for (ref in hiddenList) {
+                                    if (ref.referenceName == originalName) {
+                                        importIsCorrect = false
                                         if (!needNoFurtherFixes) result.add(RemoveFromHidingAction(namespaceCommand, ref))
                                     }
                                 }
                             }
 
-                            if (ids.isEmpty()) ids.add(id) //
-
-                            for (name in ids) {
-                                val fullName2 = ArrayList<String>()
-                                fullName2.addAll(fullName)
-                                fullName2.removeAt(0)
-                                fullName2.add(0, name)
-                                fullNames.add(fullName2)
-                            }
-
-                            if (ok) validImportFound = true
+                            if (importIsCorrect) validImportFound = true
                         }
+                    }
+
+                    if (aliases.isEmpty()) aliases.add(originalName) //
+
+                    for (name in aliases) {
+                        val fullName2 = ArrayList<String>()
+                        fullName2.addAll(fullName)
+                        fullName2.removeAt(0)
+                        fullName2.add(0, name)
+                        fullNames.add(fullName2)
                     }
 
                     if (!validImportFound && result.size == 0) { //no valid import and no other proposed ways of fixing imports
