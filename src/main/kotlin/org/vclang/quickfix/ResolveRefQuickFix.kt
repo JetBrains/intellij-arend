@@ -159,16 +159,16 @@ class AddItemsToLongName(private val element: VcRefIdentifier, private val id : 
     }
 
     override fun execute(editor: Editor?) {
-        /* if (element.parent is VcLongName) {
+        if (element.parent is VcLongName) {
             val vcfile = createFromText(element.project, "\\func dummy => "+LongName(id).toString())
-            val longName = (((((vcfile?.subgroups?.get(0) as VcDefFunction).expr as VcNewExpr?)?.
-                    appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }) as VcArgumentAppExpr).
-                    atomFieldsAcc?.atom?.literal?.longName
+            val defFunc = vcfile?.subgroups?.get(0) as VcDefFunction
+            val appExpr = (defFunc.functionBody?.expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?
+            val longName = (appExpr)?.atomFieldsAcc?.atom?.literal?.longName
             if (longName != null) {
                 element.parent.addRangeBefore(longName.firstChild, longName.lastChild, element)
                 element.delete()
             }
-        } */
+        }
     }
 }
 
