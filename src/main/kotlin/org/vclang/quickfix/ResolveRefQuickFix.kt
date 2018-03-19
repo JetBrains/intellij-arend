@@ -6,7 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
-import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
 import org.vclang.psi.*
@@ -138,35 +138,23 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
     }
 }
 
-class RenameReferenceAction(val element: VcRefIdentifier, val id : String) : ResolveRefFixAction {
+class RenameReferenceAction(private val element: VcRefIdentifier, private val id : List<String>) : ResolveRefFixAction {
     override fun toString(): String {
-        return "Rename usage of "+element.referenceName+" to "+id+" as suggested by the namespace/import command"
-    }
-
-    override fun execute(editor: Editor?) {
-        val factory = VcPsiFactory(element.project)
-        val offset = element.textOffset
-        val refId = factory.createRefIdentifier(id)
-        element.replace(refId)
-
-        editor?.caretModel?.moveToOffset(offset + id.length)
-    }
-}
-
-class AddItemsToLongName(private val element: VcRefIdentifier, private val id : List<String>) : ResolveRefFixAction {
-    override fun toString(): String {
-        return "Replace " + element.text + " with \"long name\" "+LongName(id).toString()
+        return "Rename " + element.text + " to "+LongName(id).toString()
     }
 
     override fun execute(editor: Editor?) {
         if (element.parent is VcLongName) {
-            val vcfile = createFromText(element.project, "\\func dummy => "+LongName(id).toString())
+            val lName = LongName(id).toString()
+            val vcfile = createFromText(element.project, "\\func dummy => "+lName)
             val defFunc = vcfile?.subgroups?.get(0) as VcDefFunction
             val appExpr = (defFunc.functionBody?.expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?
             val longName = (appExpr)?.atomFieldsAcc?.atom?.literal?.longName
+            val offset = element.textOffset
             if (longName != null) {
                 element.parent.addRangeBefore(longName.firstChild, longName.lastChild, element)
                 element.delete()
+                editor?.caretModel?.moveToOffset(offset + lName.length)
             }
         }
     }
@@ -195,7 +183,6 @@ class ResolveRefQuickFix {
             val targetFile = target.containingFile
             val elementFile = element.containingFile
             val result = ArrayList<ResolveRefFixAction>()
-            val results = ArrayList<List<ResolveRefFixAction>>()
 
             val fullName = ArrayList<String>()
 
@@ -282,16 +269,9 @@ class ResolveRefQuickFix {
             }
 
 
-
+            var currentBlock : Set<List<String>>
             if (fullName.size > 1) {
-                for (fName in fullNames) {
-                    val actions = ArrayList<ResolveRefFixAction>()
-                    actions.addAll(result)
-                    actions.add(AddItemsToLongName(element, fName))
-                    results.add(actions)
-                }
-                // need to add further \open commands
-                /*val namespaceCommands = ArrayList<List<VcStatCmd>>()
+                val namespaceCommands = ArrayList<List<VcStatCmd>>()
                 psi2 = element
                 while (psi2.parent != null) {
                     var statements : List<VcStatCmd>? = null
@@ -304,28 +284,110 @@ class ResolveRefQuickFix {
                     psi2 = psi2.parent
                 }
 
-                var currentBlock = fullNames
-                for (block in namespaceCommands) {
-                    val newBlock = ArrayList<List<String>>()
+                currentBlock = fullNames
 
-                    currentBlock = newBlock
-                } */
+                for (commandBlock in namespaceCommands) {
+                    val newBlock = HashSet<List<String>>()
+                    newBlock.addAll(currentBlock)
 
-            } else {
-                var allNamesDifferent = fullNames.isNotEmpty() && result.isEmpty()
-                fullNames.filter { it.size != 1 || it[0] == fullName[0] }.forEach { allNamesDifferent = false }
-                if (allNamesDifferent) {
-                    for (fName in fullNames) {
-                        val actions = ArrayList<ResolveRefFixAction>()
-                        actions.add(RenameReferenceAction(element, fName[0]))
-                        results.add(actions)
+                    for (command in commandBlock) {
+                        val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
+                        var renamings : HashMap<String, String>? = null
+                        val using = command.nsUsing
+
+                        if (using != null) {
+                            renamings = HashMap()
+                            for (nsId in using.nsIdList) {
+                                val oldName = nsId.refIdentifier.referenceName
+                                val defIdentifier = nsId.defIdentifier
+                                if (defIdentifier != null) renamings[oldName] = defIdentifier.name!!
+                                  else renamings[oldName] = oldName
+                            }
+                        }
+
+                        if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
+                            for (fName in currentBlock) {
+                                val i1 = fName.iterator()
+                                val i2 = refIdentifiers.iterator()
+                                var equals = true
+                                while (i2.hasNext()) {
+                                    if (i1.next() != i2.next()) {
+                                        equals = false
+                                        break
+                                    }
+                                }
+                                if (equals && i1.hasNext()) {
+                                    val fName2 = ArrayList<String>()
+                                    while (i1.hasNext()) fName2.add(i1.next())
+                                    if (renamings != null) {
+                                        val newName = renamings[fName2[0]]
+                                        if (newName != null) {
+                                            fName2.removeAt(0)
+                                            fName2.add(0, newName)
+                                        } else {
+                                            equals = false
+                                        }
+                                    }
+
+                                    if (equals) newBlock.add(fName2)
+
+                                }
+                            }
+                        }
                     }
 
-                } else {
-                    results.add(result)
+                    currentBlock = newBlock
                 }
+
+                val newBlock = HashSet<List<String>>()
+
+                for (fName in currentBlock) {
+                    val referable = Scope.Utils.resolveName(element.scope, fName)
+                    //TODO: we need to verify that the name correctly resolves to the destination
+                    if (referable == target) { //Perhaps some weaker condition will do the job (i. e. we should allow "referable" to be a DefIdentifier from renaming namespace command)
+                        newBlock.add(fName)
+                    }
+
+                }
+
+                if (newBlock.isEmpty()) { //fallback mode if reference resolving does not work for any reason
+                    newBlock.addAll(fullNames)
+                }
+
+                currentBlock = newBlock
+
+            } else {
+                currentBlock = fullNames
             }
 
+            // Determine shortest possible name in current scope
+            val iterator = currentBlock.iterator()
+            var length = -1
+            val resultNames : HashSet<List<String>> = HashSet()
+
+            do {
+                val lName = iterator.next()
+                if (length == -1 || lName.size == length) {
+                    length = lName.size
+                    resultNames.add(lName)
+                } else if (lName.size < length) {
+                    length = lName.size
+                    resultNames.clear()
+                    resultNames.add(lName)
+                }
+            } while (iterator.hasNext())
+
+            // Form resulting actions
+            val results = ArrayList<List<ResolveRefFixAction>>()
+            for (resultName in resultNames) {
+                val actions = ArrayList<ResolveRefFixAction>()
+                actions.addAll(result)
+
+                if ((resultName.size > 1 || (resultName[0] != element.referenceName))) {
+                    actions.add(RenameReferenceAction(element, resultName))
+                }
+                results.add(actions)
+            }
 
             return results
         }
