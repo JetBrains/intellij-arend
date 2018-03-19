@@ -10,7 +10,7 @@ import com.intellij.ide.util.treeView.SourceComparator
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.vclang.hierarchy.VcHierarchyNodeDescriptor
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import java.util.*
 import javax.swing.JTree
 
@@ -45,6 +45,6 @@ class VcCallHierarchyBrowser(project: Project, method: PsiElement) : CallHierarc
     }
 
     override fun isApplicableElement(element: PsiElement): Boolean {
-        return element is PsiGlobalReferable
+        return element is PsiLocatedReferable
     }
 }

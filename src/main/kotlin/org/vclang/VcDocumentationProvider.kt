@@ -7,7 +7,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcLetClauseImplMixin
 import org.vclang.psi.ext.impl.*
 
@@ -15,7 +15,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) =
         when (element) {
-            is PsiGlobalReferable -> buildString {
+            is PsiLocatedReferable -> buildString {
                 getType(element)?.let { append("<b>$it</b> ") }
                 append(toHTML(element.textRepresentation()))
                 append(when (element) {

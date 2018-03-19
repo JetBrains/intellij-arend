@@ -12,12 +12,12 @@ import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, ChildGroup {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiLocatedReferable, ChildGroup {
     var modulePath: ModulePath
 
     init {
@@ -47,6 +47,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override val scope: Scope
         get() = ScopeFactory.forGroup(this, moduleScopeProvider)
 
+    override fun getLocation(fullName: MutableList<in String>) = modulePath
+
     override fun getGroupScope() = scope
 
     override fun getNameIdentifier(): PsiElement? = null
@@ -63,7 +65,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getParentGroup(): ChildGroup? = null
 
-    override fun getReferable(): PsiGlobalReferable = this
+    override fun getReferable(): PsiLocatedReferable = this
 
     override fun getSubgroups(): List<VcDefinition> = children.mapNotNull { (it as? VcStatement)?.definition }
 

@@ -12,24 +12,37 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.*
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.DefinitionProxy
 import org.vclang.typechecking.execution.ProxyAction
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
-class TypeCheckConsoleLogger(
-        private val sourceInfoProvider: PrettyPrinterConfig
-) : ErrorReporter {
+class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : ErrorReporter {
     var eventsProcessor: TypecheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
-        error.affectedDefinitions
-            .mapNotNull { if (it is PsiGlobalReferable) eventsProcessor?.executeProxyAction(it, object : ProxyAction {
-                override fun runAction(p: DefinitionProxy) {
-                    DocConsolePrinter(p, error).print()
+        var reported = false
+        val eventsProcessor = eventsProcessor
+        if (eventsProcessor != null) {
+            error.affectedDefinitions.mapNotNull {
+                if (it is PsiLocatedReferable || it is ModuleReferable) {
+                    reported = true
+                    val proxyAction = object : ProxyAction {
+                        override fun runAction(p: DefinitionProxy) {
+                            DocConsolePrinter(p, error).print()
+                        }
+                    }
+                    if (it is PsiLocatedReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+                    if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
                 }
-            }) }
+            }
+        }
+
+        if (!reported) {
+            LogErrorReporter(ppConfig).report(error)
+        }
     }
 
     companion object {
@@ -49,7 +62,7 @@ class TypeCheckConsoleLogger(
         private val stringBuilder = StringBuilder()
 
         fun print() {
-            error.getDoc(sourceInfoProvider).accept(this, true)
+            error.getDoc(ppConfig).accept(this, true)
             printNewLine()
             flushText()
             if (contentType in setOf(ERROR_OUTPUT, LOG_WARNING_OUTPUT)) {

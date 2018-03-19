@@ -10,8 +10,6 @@ import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.psi.*
 import org.vclang.psi.impl.VcAtomPatternOrPrefixImpl
-import org.vclang.psi.impl.VcLetClauseImpl
-import org.vclang.psi.impl.VcNameTeleImpl
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcPatternDefReferenceImpl
 import org.vclang.resolving.VcReference

@@ -3,26 +3,21 @@ package org.vclang
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
+import com.intellij.openapi.util.io.FileUtil
+import com.jetbrains.jetpad.vclang.util.FileUtils
 import java.io.File
 
-val Project.modules: Collection<Module>
-    get() = ModuleManager.getInstance(this).modules.toList()
-
-val Project.modulesWithVclangProject: Collection<Module> // TODO[library]
-    get() = modules.filter {
-        File(it.moduleFilePath)
-                .walk()
-                .any { it.extension == VcFileType.defaultExtension }
+val Project.vcModules: Collection<Module>
+    get() {
+        val allModules = ModuleManager.getInstance(this).modules
+        val modulesWithLibraryFile = allModules.filter {
+            val moduleFile = it.moduleFile ?: return@filter false
+            moduleFile.parent?.findChild(moduleFile.nameWithoutExtension + FileUtils.LIBRARY_EXTENSION) != null
+        }
+        return if (modulesWithLibraryFile.isNotEmpty()) modulesWithLibraryFile else
+            allModules.filter {
+                File(FileUtil.toSystemDependentName(it.moduleFilePath)).parentFile
+                    .walk()
+                    .any { it.extension == VcFileType.defaultExtension }
+            }
     }
-
-
-
-fun Project.getPsiFileFor(file: VirtualFile?): PsiFile? =
-        file?.let { PsiManager.getInstance(this).findFile(it) }
-
-fun Project.getPsiDirectoryFor(file: VirtualFile?): PsiDirectory? =
-        file?.let { PsiManager.getInstance(this).findDirectory(it) }

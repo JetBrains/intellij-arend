@@ -20,7 +20,7 @@ val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
-    get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.moduleScopeProvider
+    get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.libraryManager?.moduleScopeProvider
         ?: module?.let { PsiModuleScopeProvider(it) }
         ?: EmptyModuleScopeProvider.INSTANCE
 

@@ -19,9 +19,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getReferable(): ClassReferable = this
+    override fun getReferable() = this
 
-    override fun getClassReference(): ClassReferable = this
+    override fun getClassReference() = this
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
         val ref = it.referent

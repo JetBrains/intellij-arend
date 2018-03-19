@@ -7,7 +7,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.stubs.StubIndexKey
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.fullName
 
@@ -39,7 +39,7 @@ abstract class VcNavigationContributorBase<T> protected constructor(
     override fun getQualifiedName(item: NavigationItem?): String? =
             when (item) {
                 is Referable -> item.textRepresentation()
-                is PsiGlobalReferable -> item.fullName
+                is PsiLocatedReferable -> item.fullName
                 else -> null
             }
 

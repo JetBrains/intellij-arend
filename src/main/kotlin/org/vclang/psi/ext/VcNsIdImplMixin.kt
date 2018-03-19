@@ -10,7 +10,7 @@ import org.vclang.psi.ext.impl.ReferableAdapter
 abstract class VcNsIdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcNsId {
     override fun getOldReference(): Referable = refIdentifier.referent
 
-    override fun getNewReferable(): Referable? = defIdentifier
+    override fun getName() = defIdentifier?.referenceName
 
     override fun getPrecedence(): Precedence? = prec.let { ReferableAdapter.calcPrecedence(it) }
 }

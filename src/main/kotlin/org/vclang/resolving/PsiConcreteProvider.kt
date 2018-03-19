@@ -9,7 +9,7 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.typechecking.error.ProxyError
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.ext.PsiConcreteReferable
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 
@@ -18,17 +18,22 @@ class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val 
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
         if (referable !is PsiConcreteReferable) {
-            if (referable !is PsiGlobalReferable) {
+            if (referable !is PsiLocatedReferable) {
                 errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
             }
             return null
         }
 
-        eventsProcessor.onTestStarted(referable)
+        val typecheckable = referable.typecheckable as? PsiLocatedReferable
+        if (typecheckable != null) {
+            eventsProcessor.onTestStarted(typecheckable)
+        }
         val def = referable.computeConcrete(errorReporter)
         if (def == null) {
-            eventsProcessor.onTestFailure(referable)
-            eventsProcessor.onTestFinished(referable)
+            if (typecheckable != null) {
+                eventsProcessor.onTestFailure(typecheckable)
+                eventsProcessor.onTestFinished(typecheckable)
+            }
         } else if (isResolving) {
             def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(referable.scope))
         }

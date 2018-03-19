@@ -8,7 +8,7 @@ import com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
-import org.vclang.VcFileType
+import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.module.util.roots
 import org.vclang.psi.*
 
@@ -32,7 +32,7 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
                     dirs = dirs.mapNotNull { it.findSubdirectory(name) }
                     PsiModuleReferable(dirs, modulePath)
                 } else {
-                    PsiModuleReferable(dirs.mapNotNull { it.findFile(name + "." + VcFileType.defaultExtension) as? VcFile }, modulePath)
+                    PsiModuleReferable(dirs.mapNotNull { it.findFile(name + FileUtils.EXTENSION) as? VcFile }, modulePath)
                 }
             }
         } else {
