@@ -5,7 +5,7 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
 import org.vclang.psi.VcLevelExpr
 
 
-abstract class VcLevelExprImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcLevelExpr {
+abstract class VcLevelExprImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {

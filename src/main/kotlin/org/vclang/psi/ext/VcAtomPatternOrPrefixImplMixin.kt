@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcAtomPatternOrPrefix
 
 
-abstract class VcAtomPatternOrPrefixImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcAtomPatternOrPrefix {
+abstract class VcAtomPatternOrPrefixImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomPatternOrPrefix {
     override fun getData(): Any? = this
 
     override fun isEmpty(): Boolean = isEmpty(atomPattern)

@@ -12,7 +12,7 @@ import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.module.util.roots
 import org.vclang.psi.*
 
-abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd, ChildNamespaceCommand {
+abstract class VcStatCmdImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
         val cmd = nsCmd
         if (cmd.importKw != null) return NamespaceCommand.Kind.IMPORT

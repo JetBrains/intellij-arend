@@ -6,7 +6,7 @@ import org.vclang.psi.VcConstructorClause
 import org.vclang.psi.VcPattern
 
 
-abstract class VcConstructorClauseImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcConstructorClause {
+abstract class VcConstructorClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcConstructorClause {
     override fun getData(): VcConstructorClauseImplMixin = this
 
     override fun getPatterns(): List<VcPattern> = patternList

@@ -80,7 +80,7 @@ abstract class VcFieldDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(n
     }
 }
 
-abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcRefIdentifier {
+abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcRefIdentifier {
     override val referenceNameElement
         get() = this
 

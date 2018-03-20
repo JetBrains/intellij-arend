@@ -234,7 +234,7 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | newExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
@@ -311,7 +311,7 @@ typeAnnotation ::= COLON expr { pin = 1 }
 levelExpr ::= atomLevelExpr
     | SUC_KW atomLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprImplMixin"
 }
@@ -320,7 +320,7 @@ atomLevelExpr ::= LP_KW
     | LH_KW
     | NUMBER
     | LPAREN levelExpr RPAREN {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
 }
@@ -343,7 +343,7 @@ truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
 onlyLevelExpr ::= atomOnlyLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr
     | SUC_KW atomLevelExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcOnlyLevelExprImplMixin"
 }
@@ -355,7 +355,7 @@ levelsExpr ::= LEVELS_KW (maybeAtomLevelExpr maybeAtomLevelExpr | PROP_KW) | LPA
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
     | LPAREN onlyLevelExpr RPAREN {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
@@ -418,7 +418,7 @@ newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] 
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LongReference" ]
     mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
 }
