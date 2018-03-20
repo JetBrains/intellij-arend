@@ -9,11 +9,12 @@ import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.library.Library
 import com.jetbrains.jetpad.vclang.library.LibraryManager
-import com.jetbrains.jetpad.vclang.library.SourceLibrary
+import com.jetbrains.jetpad.vclang.library.error.LibraryError
 import com.jetbrains.jetpad.vclang.library.error.ModuleError
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.error.ModuleNotFoundError
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
+import com.jetbrains.jetpad.vclang.module.scopeprovider.LocatingModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
@@ -67,9 +68,10 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
     override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, typecheckingErrorReporter, LogErrorReporter(PrettyPrinterConfig.DEFAULT))
 
     init {
+        libraryManager.moduleScopeProvider = LocatingModuleScopeProvider(libraryManager)
         libraryManager.loadLibrary(PreludeResourceLibrary(typecheckerState))
         for (module in project.vcModules) {
-            libraryManager.loadLibrary(VcRawLibrary(module))
+            libraryManager.loadLibrary(VcRawLibrary(module, typecheckerState))
         }
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
     }
@@ -85,7 +87,13 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
                 eventsProcessor.onSuitesFinished()
                 return
             }
-            val module = library.getModuleGroup(modulePath) ?: return
+
+            val module = library.getModuleGroup(modulePath)
+            if (module == null) {
+                libraryManager.libraryErrorReporter.report(LibraryError.moduleNotFound(modulePath, library.name))
+                eventsProcessor.onSuitesFinished()
+                return
+            }
 
             val psiConcreteProvider = PsiConcreteProvider(typecheckingErrorReporter, eventsProcessor)
             val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
@@ -126,11 +134,13 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
 
             if (computationFinished) eventsProcessor.onSuitesFinished()
 
+            /* TODO[references]
             if (library is SourceLibrary && library.supportsPersisting()) {
                 for (updatedModule in typeChecking.typecheckedModulesWithoutErrors) {
                     library.persistModule(updatedModule, libraryManager.libraryErrorReporter)
                 }
             }
+            */
         } finally {
             Typechecking.setDefaultCancellationIndicator()
         }

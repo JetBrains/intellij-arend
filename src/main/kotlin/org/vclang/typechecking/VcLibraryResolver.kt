@@ -10,6 +10,6 @@ import org.vclang.module.VcRawLibrary
 class VcLibraryResolver(private val project: Project): LibraryResolver {
     override fun resolve(name: String): Library? {
         val module = ModuleManager.getInstance(project)?.findModuleByName(name) ?: return null
-        return VcRawLibrary(module)
+        return VcRawLibrary(module, TypeCheckingService.getInstance(project).typecheckerState)
     }
 }
