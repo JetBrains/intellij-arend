@@ -7,7 +7,7 @@ import org.vclang.psi.VcExpr
 import org.vclang.psi.VcNameTele
 
 
-abstract class VcCoClauseImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcCoClause {
+abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCoClause {
     override fun getData() = this
 
     override fun getImplementedField(): Referable = refIdentifier.referent

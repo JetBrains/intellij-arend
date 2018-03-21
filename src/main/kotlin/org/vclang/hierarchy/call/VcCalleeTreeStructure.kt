@@ -5,7 +5,7 @@ import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.vclang.hierarchy.VcHierarchyNodeDescriptor
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.resolving.VcReference
 
@@ -13,7 +13,7 @@ class VcCalleeTreeStructure(project: Project, baseNode: PsiElement) :
         HierarchyTreeStructure(project, VcHierarchyNodeDescriptor(project, null, baseNode, true)) {
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<Any> {
-        val defElement = descriptor.psiElement as PsiGlobalReferable // ?: return ArrayUtil.EMPTY_OBJECT_ARRAY
+        val defElement = descriptor.psiElement as PsiLocatedReferable // ?: return ArrayUtil.EMPTY_OBJECT_ARRAY
         val callees = HashSet<PsiElement>()
         val result = ArrayList<VcHierarchyNodeDescriptor>()
         visit(defElement, callees, defElement)
@@ -21,14 +21,14 @@ class VcCalleeTreeStructure(project: Project, baseNode: PsiElement) :
         return result.toArray()
     }
 
-    private fun visit(element: PsiElement, callees: HashSet<PsiElement>, root: PsiGlobalReferable) {
+    private fun visit(element: PsiElement, callees: HashSet<PsiElement>, root: PsiLocatedReferable) {
         val children = element.children
         for (child in children) {
             visit(child, callees, root)
             if (child is VcReferenceElement && root.name != child.referenceName) {
                 if (child.reference != null) {
                     val ref = (child.reference as VcReference).resolve()
-                    if (ref != null && ref is PsiGlobalReferable) {
+                    if (ref != null && ref is PsiLocatedReferable) {
                         callees.add(ref)
                     }
                 }

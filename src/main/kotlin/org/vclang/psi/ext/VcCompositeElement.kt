@@ -12,8 +12,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import org.vclang.psi.VcFile
-import org.vclang.psi.ancestors
+import org.vclang.psi.*
 import org.vclang.resolving.VcReference
 
 interface VcCompositeElement : PsiElement, SourceInfo {
@@ -31,11 +30,42 @@ private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
     return (line + 1).toString() + ":" + (column + 1).toString()
 }
 
-abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
-    override val scope: Scope
-        get() = ScopeFactory.forSourceNode((parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE, ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull())
+interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {
+    override fun getTopmostEquivalentSourceNode(): VcSourceNode
+    override fun getParentSourceNode(): VcSourceNode?
+}
 
-    fun getParentSourceNode(): Abstract.SourceNode? = parent.ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull()
+private fun getVcScope(element: VcCompositeElement): Scope {
+    val sourceNode = element.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE
+    return ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode)
+}
+
+fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {
+    var current = sourceNode
+    while (true) {
+        val parent = current.parent
+        current = when {
+            parent is VcLiteral -> parent
+            parent is VcAtom -> parent
+            parent is VcAtomFieldsAcc && parent.fieldAccList.isEmpty() -> parent
+            parent is VcLongName && parent.refIdentifierList.size == 1 -> parent
+            parent is VcLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
+            parent is VcAtomLevelExpr && parent.lparen != null -> parent
+            parent is VcOnlyLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
+            parent is VcAtomOnlyLevelExpr && parent.lparen != null -> parent
+            else -> return current
+        }
+    }
+}
+
+fun getParentSourceNode(sourceNode: VcSourceNode): VcSourceNode? {
+    val parent = sourceNode.topmostEquivalentSourceNode.parent
+    return if (parent is VcFile) null else parent.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()
+}
+
+abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
+    override val scope
+        get() = getVcScope(this)
 
     override fun getReference(): VcReference? = null
 
@@ -44,15 +74,19 @@ abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node
     override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
 }
 
-abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, VcCompositeElement {
+abstract class VcSourceNodeImpl(node: ASTNode) : VcCompositeElementImpl(node), VcSourceNode {
+    override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
+
+    override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
+}
+
+abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, VcSourceNode {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override val scope: Scope
-        get() = ScopeFactory.forSourceNode((parent as? VcCompositeElement)?.scope ?: EmptyScope.INSTANCE, ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull())
-
-    fun getParentSourceNode(): Abstract.SourceNode? = parent.ancestors.filterIsInstance<Abstract.SourceNode>().firstOrNull()
+    override val scope
+        get() = getVcScope(this)
 
     override fun getReference(): VcReference? = null
 
@@ -61,4 +95,8 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     override fun moduleTextRepresentation(): String? = moduleTextRepresentationImpl()
 
     override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
+
+    override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
+
+    override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
 }

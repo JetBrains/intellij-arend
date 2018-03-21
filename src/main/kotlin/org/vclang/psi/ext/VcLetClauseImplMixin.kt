@@ -10,7 +10,7 @@ import org.vclang.psi.VcLetExpr
 import org.vclang.psi.VcNameTele
 
 
-abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcLetClause {
+abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcLetClause, VcSourceNode {
     override fun getReferable(): Referable = this
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
@@ -23,4 +23,8 @@ abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcL
         if (parent is VcLetExpr) return LocalSearchScope(parent)
         return super.getUseScope()
     }
+
+    override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
+
+    override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
 }

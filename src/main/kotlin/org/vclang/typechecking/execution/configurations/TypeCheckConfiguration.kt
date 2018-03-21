@@ -10,9 +10,9 @@ import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
 import org.jdom.Element
-import org.vclang.modulesWithVclangProject
 import org.vclang.typechecking.execution.TypeCheckCommand
 import org.vclang.typechecking.execution.TypeCheckRunConfigurationEditor
+import org.vclang.vcModules
 
 class TypeCheckConfiguration(
         project: Project,
@@ -38,10 +38,10 @@ class TypeCheckConfiguration(
     private var _vclangArgs = SerializableTypeCheckCommand()
 
     init {
-        configurationModule.module = project.modulesWithVclangProject.firstOrNull()
+        configurationModule.module = project.vcModules.firstOrNull()
     }
 
-    override fun getValidModules(): Collection<Module> = project.modulesWithVclangProject
+    override fun getValidModules(): Collection<Module> = project.vcModules
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> =
             TypeCheckRunConfigurationEditor(project)

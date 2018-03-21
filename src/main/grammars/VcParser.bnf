@@ -115,7 +115,7 @@ private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
 
 classField ::= prec? defIdentifier typeTele* COLON expr {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
@@ -125,7 +125,7 @@ classField ::= prec? defIdentifier typeTele* COLON expr {
 classFieldSyn ::= PIPE refIdentifier FAT_ARROW prec? defIdentifier {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldSynonym" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldSynStub"
@@ -145,7 +145,8 @@ definition ::= defFunction
     | defClass
     | defInstance {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.ChildGroup" ]
+                   "org.vclang.psi.ext.PsiLocatedReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.ChildGroup" ]
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 
@@ -216,7 +217,7 @@ atomPattern ::= LPAREN pattern? RPAREN
 constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.vclang.psi.ext.impl.ConstructorAdapter"
@@ -233,7 +234,7 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | newExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
@@ -310,7 +311,7 @@ typeAnnotation ::= COLON expr { pin = 1 }
 levelExpr ::= atomLevelExpr
     | SUC_KW atomLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprImplMixin"
 }
@@ -319,7 +320,7 @@ atomLevelExpr ::= LP_KW
     | LH_KW
     | NUMBER
     | LPAREN levelExpr RPAREN {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
 }
@@ -342,7 +343,7 @@ truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
 onlyLevelExpr ::= atomOnlyLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr
     | SUC_KW atomLevelExpr {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcOnlyLevelExprImplMixin"
 }
@@ -354,7 +355,7 @@ levelsExpr ::= LEVELS_KW (maybeAtomLevelExpr maybeAtomLevelExpr | PROP_KW) | LPA
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
     | LPAREN onlyLevelExpr RPAREN {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
@@ -417,7 +418,7 @@ newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] 
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {
-    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+    implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LongReference" ]
     mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
 }
@@ -473,7 +474,7 @@ identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 fieldDefIdentifier ::= defIdentifier {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "com.jetbrains.jetpad.vclang.term.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.VcFieldDefIdentifierImplMixin"
 }

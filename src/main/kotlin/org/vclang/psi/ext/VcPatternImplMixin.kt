@@ -7,7 +7,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcAtomPattern
 import org.vclang.psi.VcPattern
 
-abstract class VcPatternImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcPattern {
+abstract class VcPatternImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcPattern {
     override fun getData(): Any? = this
 
     override fun isEmpty(): Boolean = isEmpty(atomPattern)
