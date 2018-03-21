@@ -10,7 +10,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.quickfix.ResolveRefQuickFix.Companion.createFromText
 import java.util.*
 
@@ -189,7 +189,7 @@ class ResolveRefQuickFix {
             var psi2: PsiElement = target
 
             while (psi2.parent != null) {
-                if (psi2 is PsiGlobalReferable && psi2 !is VcFile) {
+                if (psi2 is PsiLocatedReferable && psi2 !is VcFile) {
                     val name = psi2.name ?: return ArrayList()
                     fullName.add(0, name)
                 }
