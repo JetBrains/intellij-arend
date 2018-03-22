@@ -119,6 +119,10 @@
         <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefFunction"
                                  implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
 
+        <!-- Code Insight -->
+
+        <codeInsight.parameterInfo language="Vclang" implementationClass="org.vclang.codeInsight.VcParameterInfoHandler"/>
+
         <!-- Annotation -->
 
         <annotator language="Vclang"
