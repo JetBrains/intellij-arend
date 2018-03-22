@@ -23,12 +23,13 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     init {
         val fileName = viewProvider.virtualFile.path
         val root = (sourceRoot ?: contentRoot)?.path
-        val fullName = if (root == null || !fileName.startsWith(root)) fileName
-                       else fileName.removePrefix(root).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
+        val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
+        val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
         modulePath = ModulePath(fullName.split('.'))
     }
 
-    val fullName = modulePath.toString()
+    val fullName
+        get() = modulePath.toString()
 
     override fun setName(name: String): PsiElement {
         val (nameWithExt, nameWithoutExt) = if (name.endsWith('.' + VcFileType.defaultExtension)) {

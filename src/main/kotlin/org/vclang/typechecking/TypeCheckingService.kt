@@ -21,7 +21,6 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
-import com.jetbrains.jetpad.vclang.prelude.PreludeResourceLibrary
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import com.jetbrains.jetpad.vclang.typechecking.CancellationIndicator
@@ -30,7 +29,6 @@ import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
-import org.vclang.module.VcRawLibrary
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
@@ -39,7 +37,6 @@ import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
-import org.vclang.vcModules
 
 interface TypeCheckingService {
     var eventsProcessor: TypecheckingEventsProcessor?
@@ -72,13 +69,9 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
 
     init {
         libraryManager.moduleScopeProvider = LocatingModuleScopeProvider(libraryManager)
-        libraryManager.loadLibrary(PreludeResourceLibrary(typecheckerState))
-        for (module in project.vcModules) {
-            libraryManager.loadLibrary(VcRawLibrary(module, typecheckerState))
-        }
 
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
-        project.messageBus.connect().subscribe(PsiManagerImpl.ANY_PSI_CHANGE_TOPIC, object : AnyPsiChangeListener.Adapter() {
+        project.messageBus.connect(project).subscribe(PsiManagerImpl.ANY_PSI_CHANGE_TOPIC, object : AnyPsiChangeListener.Adapter() {
             override fun beforePsiChanged(isPhysical: Boolean) {
                 VcResolveCache.clearCache()
             }
@@ -117,7 +110,7 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
             var computationFinished = true
 
             if (definitionFullName.isEmpty()) {
-                DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, CachingScope.make(ScopeFactory.forGroup(module, library.moduleScopeProvider)), concreteProvider)
+                DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, CachingScope.make(ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider)), concreteProvider)
                 psiConcreteProvider.isResolving = true
                 computationFinished = typeChecking.typecheckModules(listOf(module))
             } else {

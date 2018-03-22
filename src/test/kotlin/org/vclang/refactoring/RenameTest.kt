@@ -25,7 +25,7 @@ class RenameTest : VcTestBase() {
             """,
             """
                 \func **
-                \func _ : `**
+                \func _ : **
             """
     )
 
@@ -33,7 +33,7 @@ class RenameTest : VcTestBase() {
             "bar",
             """
                 \func ++
-                \func _ : {-caret-}`++
+                \func _ : {-caret-}++
             """,
             """
                 \func bar
@@ -45,22 +45,22 @@ class RenameTest : VcTestBase() {
             "**",
             """
                 \func ++
-                \func _ : {-caret-}`++
+                \func _ : {-caret-}++
             """,
             """
                 \func **
-                \func _ : `**
+                \func _ : **
             """
     )
 
     fun `test rename infix to infix`() = doTest(
             "**",
             """
-                \func ++
+                \func \infixl 6 ++
                 \func _ : _ {-caret-}++ _
             """,
             """
-                \func **
+                \func \infixl 6 **
                 \func _ : _ ** _
             """
     )
@@ -68,12 +68,12 @@ class RenameTest : VcTestBase() {
     fun `test rename infix to infix prefix`() = doTest(
             "bar",
             """
-                \func ++
+                \func \infixl 6 ++
                 \func _ : _ {-caret-}++ _
             """,
             """
-                \func bar
-                \func _ : _ `bar _
+                \func \infixl 6 bar
+                \func _ : _ bar _
             """
     )
 
@@ -81,11 +81,11 @@ class RenameTest : VcTestBase() {
             "**",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo _
+                \func _ : _ {-caret-}`foo` _
             """,
             """
                 \func **
-                \func _ : _ ** _
+                \func _ : _ `**` _
             """
     )
 
@@ -93,11 +93,11 @@ class RenameTest : VcTestBase() {
             "bar",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo _
+                \func _ : _ {-caret-}`foo` _
             """,
             """
                 \func bar
-                \func _ : _ `bar _
+                \func _ : _ `bar` _
             """
     )
 
@@ -105,11 +105,11 @@ class RenameTest : VcTestBase() {
             "bar",
             """
                 \func foo
-                \func _ : _ {-caret-}foo`
+                \func _ : _ {-caret-}`foo
             """,
             """
                 \func bar
-                \func _ : _ bar`
+                \func _ : _ `bar
             """
     )
 
@@ -117,11 +117,11 @@ class RenameTest : VcTestBase() {
             "**",
             """
                 \func foo
-                \func _ : _ {-caret-}foo`
+                \func _ : _ {-caret-}`foo
             """,
             """
                 \func **
-                \func _ : _ **`
+                \func _ : _ `**
             """
     )
 
@@ -129,11 +129,11 @@ class RenameTest : VcTestBase() {
             "bar",
             """
                 \func ++
-                \func _ : _ {-caret-}++`
+                \func _ : _ {-caret-}`++
             """,
             """
                 \func bar
-                \func _ : _ bar`
+                \func _ : _ `bar
             """
     )
 
@@ -141,11 +141,11 @@ class RenameTest : VcTestBase() {
             "**",
             """
                 \func ++
-                \func _ : _ {-caret-}++`
+                \func _ : _ {-caret-}`++
             """,
             """
                 \func **
-                \func _ : _ **`
+                \func _ : _ `**
             """
     )
 

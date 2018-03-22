@@ -13,7 +13,7 @@ import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 
-class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor) : ConcreteProvider {
+class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
     var isResolving = false
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
@@ -25,12 +25,12 @@ class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val 
         }
 
         val typecheckable = referable.typecheckable as? PsiLocatedReferable
-        if (typecheckable != null) {
+        if (typecheckable != null && eventsProcessor != null) {
             eventsProcessor.onTestStarted(typecheckable)
         }
         val def = referable.computeConcrete(errorReporter)
         if (def == null) {
-            if (typecheckable != null) {
+            if (typecheckable != null && eventsProcessor != null) {
                 eventsProcessor.onTestFailure(typecheckable)
                 eventsProcessor.onTestFinished(typecheckable)
             }
