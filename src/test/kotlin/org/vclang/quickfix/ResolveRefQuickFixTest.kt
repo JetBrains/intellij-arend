@@ -6,10 +6,10 @@ import org.vclang.fileTreeFromText
 class ResolveRefQuickFixTest : VcTestBase() {
     val fileA = """
                 --! A.vc
-                \\func aa => 0 \\where {\n
-                  \\func bb => 0 \\where {\n
-                    \\func cc => 0\n
-                  }\n
+                \func aa => 0 \where {
+                  \func bb => 0 \where {
+                    \func cc => 0
+                  }
                 }"""
 
     val fileB = """
@@ -18,14 +18,20 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => {-caret-}bb
                 """
 
-    fun test1 () {
-        setUp()
+    fun test1() {
+        simpleQuickFixTest("B.vc", fileA + "\n" + fileB)
+    }
 
-        val fileTree = fileTreeFromText(fileA + "\n" + fileB)
+    fun simpleQuickFixTest (fileName: String, contents: String) {
+        val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
-        myFixture.configureFromTempProjectFile("A.vc")
-        myFixture.configureFromTempProjectFile("B.vc")
         myFixture.doHighlighting()
-        assert(myFixture.getAllQuickFixes("B.vc").size > 0)
+        myFixture.configureFromTempProjectFile(fileName)
+
+        val quickfixes = myFixture.getAllQuickFixes(fileName)
+        assert(quickfixes.size == 1)
+        val quickfix = quickfixes[0]
+
+        myFixture.launchAction(quickfix)
     }
 }
