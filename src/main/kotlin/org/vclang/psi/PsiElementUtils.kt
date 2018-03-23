@@ -10,7 +10,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
 import com.jetbrains.jetpad.vclang.term.group.Group
-import org.vclang.module.PsiModuleScopeProvider
 import org.vclang.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
@@ -21,7 +20,6 @@ val PsiElement.module: Module?
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.libraryManager?.moduleScopeProvider
-        ?: module?.let { PsiModuleScopeProvider(it) }
         ?: EmptyModuleScopeProvider.INSTANCE
 
 val PsiElement.sourceRoot: VirtualFile?

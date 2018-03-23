@@ -16,6 +16,7 @@ import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
+import org.vclang.module.util.isVcModule
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.typechecking.TypeCheckingService
 
@@ -40,11 +41,13 @@ class VcStartupActivity : StartupActivity {
 
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun moduleAdded(project: Project, module: Module) {
-                service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))
+                if (module.isVcModule) {
+                    service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))
+                }
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                service.libraryManager.unloadLibrary(VcRawLibrary(module, service.typecheckerState))
+                service.libraryManager.getLibrary(module.name)?.let { service.libraryManager.unloadLibrary(it) }
             }
         })
 
