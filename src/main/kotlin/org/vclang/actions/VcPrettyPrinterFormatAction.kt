@@ -10,11 +10,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAware
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiDocumentManager
-import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
-import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.module.source.SourceId
 import org.vclang.psi.VcFile
 import java.io.PrintWriter
 import java.io.StringWriter

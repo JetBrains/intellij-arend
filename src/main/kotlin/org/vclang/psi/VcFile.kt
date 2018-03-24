@@ -7,28 +7,29 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
-import com.jetbrains.jetpad.vclang.term.ChildGroup
-import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.group.ChildGroup
+import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiGlobalReferable, ChildGroup {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiLocatedReferable, ChildGroup {
     var modulePath: ModulePath
 
     init {
         val fileName = viewProvider.virtualFile.path
         val root = (sourceRoot ?: contentRoot)?.path
-        val fullName = if (root == null || !fileName.startsWith(root)) fileName
-                       else fileName.removePrefix(root).removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
+        val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
+        val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
         modulePath = ModulePath(fullName.split('.'))
     }
 
-    val fullName = modulePath.toString()
+    val fullName
+        get() = modulePath.toString()
 
     override fun setName(name: String): PsiElement {
         val (nameWithExt, nameWithoutExt) = if (name.endsWith('.' + VcFileType.defaultExtension)) {
@@ -47,6 +48,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override val scope: Scope
         get() = ScopeFactory.forGroup(this, moduleScopeProvider)
 
+    override fun getLocation(fullName: MutableList<in String>) = modulePath
+
     override fun getGroupScope() = scope
 
     override fun getNameIdentifier(): PsiElement? = null
@@ -63,7 +66,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getParentGroup(): ChildGroup? = null
 
-    override fun getReferable(): PsiGlobalReferable = this
+    override fun getReferable(): PsiLocatedReferable = this
 
     override fun getSubgroups(): List<VcDefinition> = children.mapNotNull { (it as? VcStatement)?.definition }
 

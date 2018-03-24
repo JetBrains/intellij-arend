@@ -11,7 +11,7 @@ import org.vclang.resolving.VcReference
 import org.vclang.resolving.VcReferenceImpl
 
 
-abstract class VcImplicitArgumentImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcImplicitArgument {
+abstract class VcImplicitArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcImplicitArgument {
     override fun isExplicit(): Boolean = false
 
     override fun getFixity(): Fixity = Fixity.NONFIX
@@ -76,7 +76,7 @@ abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewAr
     override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(appExpr)
 }
 
-abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcAtomArgument {
+abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomArgument {
     override fun isExplicit(): Boolean = true
 
     override fun getFixity(): Fixity {

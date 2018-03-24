@@ -7,7 +7,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 
 class VcCallHierarchyProvider : HierarchyProvider {
     override fun createHierarchyBrowser(target: PsiElement): HierarchyBrowser {
@@ -20,6 +20,6 @@ class VcCallHierarchyProvider : HierarchyProvider {
 
     override fun getTarget(dataContext: DataContext): PsiElement? {
         val element = CommonDataKeys.PSI_ELEMENT.getData(dataContext)
-        return PsiTreeUtil.getParentOfType(element, PsiGlobalReferable::class.java, false)
+        return PsiTreeUtil.getParentOfType(element, PsiLocatedReferable::class.java, false)
     }
 }

@@ -1,13 +1,19 @@
 package org.vclang.typechecking.execution
 
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
-import com.intellij.execution.testframework.sm.runner.*
+import com.intellij.execution.testframework.sm.runner.GeneralTestEventsProcessor
+import com.intellij.execution.testframework.sm.runner.SMTestLocator
+import com.intellij.execution.testframework.sm.runner.SMTestProxy
+import com.intellij.execution.testframework.sm.runner.TestProxyPrinterProvider
 import com.intellij.execution.testframework.sm.runner.events.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import org.vclang.psi.VcFile
-import org.vclang.psi.ext.PsiGlobalReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.fullName
 
 interface ProxyAction {
@@ -19,9 +25,9 @@ class TypecheckingEventsProcessor(
     private val typeCheckingRootNode: SMTestProxy.SMRootTestProxy,
     typeCheckingFrameworkName: String
 ) : GeneralTestEventsProcessor(project, typeCheckingFrameworkName) {
-    private val definitionToProxy = mutableMapOf<PsiGlobalReferable, DefinitionProxy>()
-    private val fileToProxy = mutableMapOf<VcFile, SMTestProxy>()
-    private val deferredActions = mutableMapOf<PsiGlobalReferable, MutableList<ProxyAction>>()
+    private val definitionToProxy = mutableMapOf<PsiLocatedReferable, DefinitionProxy>()
+    private val fileToProxy = mutableMapOf<ModulePath, DefinitionProxy>()
+    private val deferredActions = mutableMapOf<LocatedReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false
 
     override fun onStartTesting() {
@@ -52,19 +58,19 @@ class TypecheckingEventsProcessor(
         stopEventProcessing()
     }
 
-    fun onSuiteStarted(file: VcFile) {
+    fun onSuiteStarted(modulePath: ModulePath) {
         addToInvokeLater {
-            if (!fileToProxy.containsKey(file)) {
+            if (!fileToProxy.containsKey(modulePath)) {
                 val parentSuite = typeCheckingRootNode
                 val newSuite = DefinitionProxy(
-                        file.fullName,
+                        modulePath.toString(),
                         true,
                         null,
                         parentSuite.isPreservePresentableName,
                         null
                 )
                 parentSuite.addChild(newSuite)
-                fileToProxy.put(file, newSuite)
+                fileToProxy.put(modulePath, newSuite)
 
                 if (!isTypeCheckingFinished) {
                     newSuite.setSuiteStarted()
@@ -73,12 +79,26 @@ class TypecheckingEventsProcessor(
                 }
 
                 fireOnSuiteStarted(newSuite)
+
+                val actions = deferredActions.remove(ModuleReferable(modulePath))
+                if (actions != null) {
+                    for (action in actions) {
+                        action.runAction(newSuite)
+                    }
+                }
             }
         }
     }
 
     fun onSuitesFinished() {
         addToInvokeLater {
+            for (ref in deferredActions.keys) {
+                if (ref is ModuleReferable) {
+                    onSuiteStarted(ref.path)
+                } else if (ref is PsiLocatedReferable) {
+                    onTestStarted(ref)
+                }
+            }
             for (suite in fileToProxy.values) {
                 suite.setFinished()
                 fireOnSuiteFinished(suite)
@@ -87,11 +107,11 @@ class TypecheckingEventsProcessor(
         }
     }
 
-    fun onTestStarted(ref: PsiGlobalReferable) {
+    fun onTestStarted(ref: PsiLocatedReferable) {
         addToInvokeLater {
             synchronized(this@TypecheckingEventsProcessor, {
-                val file = ref.containingFile as? VcFile
-                if (file != null) onSuiteStarted(file)
+                val modulePath = (ref.containingFile as? VcFile)?.modulePath
+                if (modulePath != null) onSuiteStarted(modulePath)
 
                 val fullName = ref.fullName
                 if (definitionToProxy.containsKey(ref)) {
@@ -99,14 +119,13 @@ class TypecheckingEventsProcessor(
                     if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
                 }
 
-                val parentSuite = file?.let { fileToProxy[it] } ?: typeCheckingRootNode
+                val parentSuite = modulePath?.let { fileToProxy[it] } ?: typeCheckingRootNode
                 val proxy = DefinitionProxy(fullName, false, null, true, ref)
                 parentSuite.addChild(proxy)
                 definitionToProxy.put(ref, proxy)
 
-                val da = deferredActions[ref]
+                val da = deferredActions.remove(ref)
                 if (da != null) for (a in da) a.runAction(proxy)
-                deferredActions.remove(ref)
 
                 if (!isTypeCheckingFinished) {
                     proxy.setStarted()
@@ -119,7 +138,7 @@ class TypecheckingEventsProcessor(
         }
     }
 
-    fun onTestFailure(ref: PsiGlobalReferable) {
+    fun onTestFailure(ref: PsiLocatedReferable) {
         addToInvokeLater {
             val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
             proxy.setTestFailed("", null, proxy.hasErrors())
@@ -127,7 +146,7 @@ class TypecheckingEventsProcessor(
         }
     }
 
-    fun onTestFinished(ref: PsiGlobalReferable) {
+    fun onTestFinished(ref: PsiLocatedReferable) {
         addToInvokeLater {
             val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
             proxy.setFinished()
@@ -167,7 +186,7 @@ class TypecheckingEventsProcessor(
     }
 
     // Allows executing/scheduling actions for proxies which need not even exist at the time this routine is invoked
-    fun executeProxyAction(ref: PsiGlobalReferable, action: ProxyAction) {
+    fun executeProxyAction(ref: PsiLocatedReferable, action: ProxyAction) {
         synchronized(this, {
             val p = definitionToProxy[ref]
             if (p != null) {
@@ -175,7 +194,21 @@ class TypecheckingEventsProcessor(
             } else {
                 var actions = deferredActions[ref]
                 if (actions == null) actions = mutableListOf()
-                actions.add(actions.size, action)
+                actions.add(action)
+                deferredActions[ref] = actions
+            }
+        })
+    }
+
+    fun executeProxyAction(ref: ModuleReferable, action: ProxyAction) {
+        synchronized(this, {
+            val p = fileToProxy[ref.path]
+            if (p != null) {
+                action.runAction(p)
+            } else {
+                var actions = deferredActions[ref]
+                if (actions == null) actions = mutableListOf()
+                actions.add(action)
                 deferredActions[ref] = actions
             }
         })

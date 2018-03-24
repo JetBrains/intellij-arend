@@ -6,7 +6,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcExpr
 
 
-abstract class VcExprImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcExpr {
+abstract class VcExprImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcExpr {
     override fun getData(): VcExprImplMixin = this
 
     override fun isExplicit(): Boolean = true

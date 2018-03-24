@@ -11,13 +11,18 @@ import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcNewExpr
 
 abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewExpr, Abstract.ClassReferenceHolder {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitClassExt(this, newKw != null, appExpr, if (lbrace == null) null else coClauseList, argumentList, params)
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
+        if (newKw == null && lbrace == null && argumentList.isEmpty()) {
+            return appExpr.accept(visitor, params)
+        }
+        return visitor.visitClassExt(this, newKw != null, appExpr, if (lbrace == null) null else coClauseList, argumentList, params)
+    }
 
     override fun getClassReference(): ClassReferable? = getClassReference(appExpr)
 
     companion object {
-        fun getClassReference(appExpr: VcAppExpr): ClassReferable? {
+        fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {
+            if (appExpr == null) return null
             var ref = (appExpr as? VcArgumentAppExpr)?.longName?.referent ?: return null
             if (ref is RedirectingReferable) {
                 ref = ref.originalReferable

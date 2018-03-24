@@ -8,7 +8,7 @@ import org.vclang.psi.VcNameTele
 import org.vclang.psi.VcTypeTele
 
 
-abstract class VcNameTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcNameTele {
+abstract class VcNameTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcNameTele {
     override fun getData() = this
 
     override fun isExplicit(): Boolean = lbrace == null
@@ -18,7 +18,7 @@ abstract class VcNameTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node),
     override fun getType() = expr
 }
 
-abstract class VcTypeTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcTypeTele {
+abstract class VcTypeTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcTypeTele {
     override fun getData() = this
 
     override fun isExplicit(): Boolean = lbrace == null
@@ -29,7 +29,7 @@ abstract class VcTypeTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node),
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
 }
 
-abstract class VcFieldTeleImplMixin(node: ASTNode): VcCompositeElementImpl(node), VcFieldTele {
+abstract class VcFieldTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcFieldTele {
     override fun getData() = this
 
     override fun isExplicit() = true

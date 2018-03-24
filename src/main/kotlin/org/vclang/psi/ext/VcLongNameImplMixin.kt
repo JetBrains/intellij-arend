@@ -7,7 +7,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.VcLongName
 
 
-abstract class VcLongNameImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcLongName {
+abstract class VcLongNameImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLongName {
     override fun getData() = this
 
     override fun getReferent(): UnresolvedReference =
