@@ -38,7 +38,7 @@ class VcPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
-    private fun createExpression(expr: String): VcArgument =
+    fun createExpression(expr: String): VcArgument =
         ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")
 
