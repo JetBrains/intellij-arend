@@ -93,7 +93,7 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => a.b
             """)
 
-    fun `test that adding library import preserves alphabetic order #1` () = simpleQuickFixTest("[Import file C]", fileA+fileC+fileD+
+    fun `test that adding library import preserves alphabetic order 1` () = simpleQuickFixTest("[Import file C]", fileA+fileC+fileD+
             """
                 --! B.vc
                 \import A
@@ -109,7 +109,7 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => f
             """)
 
-    fun `test that adding library import preserves alphabetic order #2` () = simpleQuickFixTest("[Import", fileA+fileC+fileD+
+    fun `test that adding library import preserves alphabetic order 2` () = simpleQuickFixTest("[Import", fileA+fileC+fileD+
             """
                 --! B.vc
                 \import C
@@ -123,7 +123,7 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => a.b.c
             """)
 
-    fun `test taking into account open commands`() = simpleQuickFixTest("[Rename", fileA +
+    fun `test that open commands are taken into account`() = simpleQuickFixTest("[Rename", fileA +
             """
                 --! B.vc
                 \import A
@@ -136,6 +136,68 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => b.c
             """)
 
+    fun `test that clashing names are taken into account 1`() = simpleQuickFixTest("[Rename", fileA +
+            """
+                --! B.vc
+                \import A
+                \open a
+                \func a => 0
+                \func d => {-caret-}c
+            """,
+            """
+                \import A
+                \open a
+                \func a => 0
+                \func d => A.a.b.c
+            """)
+
+    fun testB1(prefix : String, s : String) =
+            """
+                $prefix\import C (f \as f')
+                \open f' (f \as f'')
+                \func d => $s
+            """
+
+    fun `test that clashing names are taken into account`(s : String) =
+            simpleQuickFixTest("[Rename f to $s]", fileC + testB1("                --! B.vc\n                ", "{-caret-}f"), testB1("", s))
+
+    fun `test that clashing names are taken into account 2-1`() = `test that clashing names are taken into account`("f''")
+    fun `test that clashing names are taken into account 2-2`() = `test that clashing names are taken into account`("f''.f")
+    fun `test that clashing names are taken into account 2-3`() = `test that clashing names are taken into account`("f'")
+
+    fun `test that simple renamings are taking into account`() = simpleQuickFixTest("[Rename", fileA +
+            """
+                --! B.vc
+                \import A
+                \open a (b \as b')
+                \func d => 0 \where {
+                  \func e => {-caret-}c
+                }
+            """,
+            """
+                \import A
+                \open a (b \as b')
+                \func d => 0 \where {
+                  \func e => b'.c
+                }
+            """)
+
+    fun testB2 (prefix : String, s : String) =
+            """
+                $prefix\import A (a \as a')
+                \import A (a \as a'')
+                \open a' (b \as b')
+                \func d => 0 \where {
+                  \open a'' (b \as b'')
+                  \func e => $s
+                }
+            """
+
+    fun `test that all possible variants of renaming are shown to the user`(s : String) =
+            simpleQuickFixTest("[Rename c to $s]", fileA + testB2("                --! B.vc\n                ", "{-caret-}c"), testB2("", s))
+
+    fun `test that all possible variants of renaming are shown to the user 1`() = `test that all possible variants of renaming are shown to the user`("b'.c")
+    fun `test that all possible variants of renaming are shown to the user 2`() = `test that all possible variants of renaming are shown to the user`("b''.c")
 
     private fun simpleQuickFixTest (fixName: String,
                                     @Language("Vclang") contents: String,

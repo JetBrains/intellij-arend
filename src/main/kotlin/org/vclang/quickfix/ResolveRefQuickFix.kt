@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
+import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
@@ -342,16 +343,27 @@ class ResolveRefQuickFix {
                 val newBlock = HashSet<List<String>>()
 
                 for (fName in currentBlock) {
-                    val referable = Scope.Utils.resolveName(element.scope, fName)
-                    //TODO: we need to verify that the name correctly resolves to the destination
-                    if (referable == target) { //Perhaps some weaker condition will do the job (i. e. we should allow "referable" to be a DefIdentifier from renaming namespace command)
+                    val correctScope = element.scope
+                    //TODO: we need to modify correctScope so that it looks just like if all "result" actions have already been executed
+
+                    var referable = Scope.Utils.resolveName(correctScope, fName)
+                    if (referable is RedirectingReferable) {
+                        referable = referable.originalReferable
+                    }
+
+                    if (referable == target) {
                         newBlock.add(fName)
                     }
 
                 }
 
-                if (newBlock.isEmpty()) { //fallback mode if reference resolving does not work for any reason
-                    newBlock.addAll(fullNames)
+                if (newBlock.isEmpty()) { //If we cannot resolve anything -- then perhaps there is some obstruction in scopes -- let us use the longest possible name
+                    for (fN in fullNames) {
+                        val veryLongName = ArrayList<String>()
+                        veryLongName.addAll(targetFile.modulePath.toList())
+                        veryLongName.addAll(fN)
+                        newBlock.add(veryLongName)
+                    }
                 }
 
                 currentBlock = newBlock
