@@ -3,7 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
@@ -32,7 +32,7 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
-    override fun getReferable(): GlobalReferable = this
+    override fun getReferable(): LocatedReferable = this
 
     override fun getParameters(): List<VcTypeTele> = typeTeleList
 

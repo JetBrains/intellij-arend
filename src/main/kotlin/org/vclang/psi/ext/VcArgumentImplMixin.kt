@@ -16,7 +16,7 @@ abstract class VcImplicitArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(nod
 
     override fun getFixity(): Fixity = Fixity.NONFIX
 
-    override fun getExpression(): Abstract.Expression? = expr
+    override fun getExpression(): Abstract.Expression = expr
 }
 
 abstract class VcInfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node), VcInfixArgument, VcReferenceElement {

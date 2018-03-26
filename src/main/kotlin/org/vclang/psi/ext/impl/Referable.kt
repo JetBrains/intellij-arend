@@ -6,9 +6,11 @@ import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.psi.VcDefinition
+import org.vclang.psi.VcFile
 import org.vclang.psi.VcPrec
 import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiConcreteReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiStubbedReferableImpl
 import org.vclang.psi.stubs.VcNamedStub
 
@@ -21,6 +23,20 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
     override fun getTypecheckable(): GlobalReferable = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: this
+
+    override fun getLocation(fullName: MutableList<in String>?) =
+        if (fullName != null) {
+            val parent = parent?.ancestors?.filterIsInstance<PsiLocatedReferable>()?.firstOrNull()
+            val modulePath = when {
+                parent is VcFile -> parent.modulePath
+                parent != null -> parent.getLocation(fullName)
+                else -> null
+            }
+            fullName.add(textRepresentation())
+            modulePath
+        } else {
+            (containingFile as? VcFile)?.modulePath
+        }
 
     companion object {
         fun calcPrecedence(prec: VcPrec?): Precedence {
