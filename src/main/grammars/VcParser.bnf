@@ -374,7 +374,10 @@ atom ::= literal
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
 }
 
-tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN
+tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN {
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcTupleImplMixin"
+}
 
 atomFieldsAcc ::= atom fieldAcc* {
     implements = "org.vclang.psi.VcExpr"
@@ -413,11 +416,13 @@ postfixArgument ::= POSTFIX {
 }
 
 newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+    pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LongReference" ]
     mixin = "org.vclang.psi.ext.VcLongNameImplMixin"
