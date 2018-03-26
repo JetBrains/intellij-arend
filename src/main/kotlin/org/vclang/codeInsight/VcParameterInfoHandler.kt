@@ -32,12 +32,18 @@ class VcParameterInfoHandler: ParameterInfoHandler<VcArgumentAppExpr, List<Abstr
         var ind = 0
         for (pm in p) {
             // val tele = if (pm is Concrete.TelescopeParameter) Array(pm.referableList.size, {_ -> pm.type}) else arrayOf(pm)
+            val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
-            for (v in vars) {
+            if (!vars.isEmpty()) {
+                vars.mapTo(nameTypeList) { Pair(it.textRepresentation(), ConcreteBuilder.convertExpression(pm.type).toString()) }
+            } else {
+                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(pm.type).toString()))
+            }
+            for (v in nameTypeList) {
                 if (text != "") {
                     text += ", "
                 }
-                var varText = v.textRepresentation() + ":" + ConcreteBuilder.convertExpression(pm.type).toString()
+                var varText = v.first + ":" + v.second
                 if (!pm.isExplicit) {
                     varText = "{$varText}"
                 }
@@ -162,7 +168,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<VcArgumentAppExpr, List<Abstr
         }
 
         val defaultRes = if (absNodeParent is VcArgument && absNodeParent.parentSourceNode is VcArgumentAppExpr) {
-            Pair(absNodeParent as VcArgument, absNodeParent.parentSourceNode as VcArgumentAppExpr) } else null
+            Pair(absNodeParent, absNodeParent.parentSourceNode as VcArgumentAppExpr) } else null
 
         return (absNode).accept(object : BaseAbstractExpressionVisitor<Void, Pair<VcArgument?, VcArgumentAppExpr>?>(defaultRes) {
             override fun visitApp(data: Any?, expr: Abstract.Expression, arguments: MutableCollection<out Abstract.Argument>, params: Void?): Pair<VcArgument?, VcArgumentAppExpr>? {

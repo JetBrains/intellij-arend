@@ -88,4 +88,3 @@ abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), 
 
     override fun getExpression(): VcExpr = atomFieldsAcc
 }
-

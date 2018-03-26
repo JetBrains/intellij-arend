@@ -17,7 +17,7 @@ import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.fullName
 
 interface ProxyAction {
-    fun runAction(p : DefinitionProxy)
+    fun runAction(p : SMTestProxy)
 }
 
 class TypecheckingEventsProcessor(
@@ -211,6 +211,12 @@ class TypecheckingEventsProcessor(
                 actions.add(action)
                 deferredActions[ref] = actions
             }
+        })
+    }
+
+    fun executeProxyAction(action: ProxyAction) {
+        synchronized(this, {
+            action.runAction(typeCheckingRootNode)
         })
     }
 
