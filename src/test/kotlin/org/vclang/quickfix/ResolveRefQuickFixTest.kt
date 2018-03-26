@@ -263,6 +263,27 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func f => A.a.b.c
             """)
 
+    fun `test that everything works in the situation when there is only one file`() = simpleQuickFixTest("[Rename",
+            """
+                --! A.vc
+                \func a => 0 \where
+                  \func b => 1 \where
+                    \func c => 2
+                \open a (b \as b')
+                \func d => 0 \where {
+                  \func e => {-caret-}c
+                }
+            """,
+            """
+                \func a => 0 \where
+                  \func b => 1 \where
+                    \func c => 2
+                \open a (b \as b')
+                \func d => 0 \where {
+                  \func e => b'.c
+                }
+            """)
+
     private fun simpleQuickFixTest (fixName: String,
                                     @Language("Vclang") contents: String,
                                     @Language("Vclang") resultingContent: String) {
