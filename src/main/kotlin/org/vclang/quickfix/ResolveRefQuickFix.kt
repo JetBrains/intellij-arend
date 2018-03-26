@@ -370,12 +370,10 @@ class ResolveRefQuickFix {
                 }
 
                 if (newBlock.isEmpty()) { //If we cannot resolve anything -- then perhaps there is some obstruction in scopes -- let us use the longest possible name
-                    for (fN in fullNames) {
-                        val veryLongName = ArrayList<String>()
-                        veryLongName.addAll(targetFile.modulePath.toList())
-                        veryLongName.addAll(fN)
-                        newBlock.add(veryLongName)
-                    }
+                    val veryLongName = ArrayList<String>()
+                    veryLongName.addAll(targetFile.modulePath.toList())
+                    veryLongName.addAll(fullName)
+                    newBlock.add(veryLongName)
                 }
 
                 currentBlock = newBlock

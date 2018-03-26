@@ -250,6 +250,19 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 }
             """)
 
+    fun `test that renamings are not taken into account when names clash`() = simpleQuickFixTest("[Rename", fileA +
+            """
+                --! B.vc
+                \import A (a \as a')
+                \func a' => 0
+                \func f => {-caret-}c
+            """,
+            """
+                \import A (a \as a')
+                \func a' => 0
+                \func f => A.a.b.c
+            """)
+
     private fun simpleQuickFixTest (fixName: String,
                                     @Language("Vclang") contents: String,
                                     @Language("Vclang") resultingContent: String) {
