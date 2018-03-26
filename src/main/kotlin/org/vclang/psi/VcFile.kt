@@ -12,6 +12,7 @@ import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcLanguage
+import org.vclang.module.ModuleScope
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
@@ -46,7 +47,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
     override val scope: Scope
-        get() = ScopeFactory.forGroup(this, moduleScopeProvider)
+        get() = ScopeFactory.forGroup(this, moduleScopeProvider, module?.let { ModuleScope(it) })
 
     override fun getLocation(fullName: MutableList<in String>) = modulePath
 
