@@ -13,7 +13,9 @@ import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
 import org.intellij.lang.annotations.Language
+import org.vclang.module.VcRawLibrary
 import org.vclang.psi.parentOfType
+import org.vclang.typechecking.TypeCheckingService
 
 abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCase {
 
@@ -87,6 +89,11 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
                 contentEntry: ContentEntry
         ) {
             super.configureModule(module, model, contentEntry)
+
+            val service = TypeCheckingService.getInstance(module.project)
+            val library = VcRawLibrary(module, service.typecheckerState)
+            service.libraryManager.loadLibrary(library)
+
             skipTestReason ?: return
             val libraries = LibraryTablesRegistrar.getInstance()
                     .getLibraryTable(module.project).libraries
