@@ -7,7 +7,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
-import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.VcFileType
 import org.vclang.psi.*
@@ -186,13 +186,14 @@ class ResolveRefQuickFix {
             val result = ArrayList<ResolveRefFixAction>()
 
             val fullName = ArrayList<String>()
-
             var psi2: PsiElement = target
+            var targetTop : PsiLocatedReferable? = null
 
             while (psi2.parent != null) {
                 if (psi2 is PsiLocatedReferable && psi2 !is VcFile) {
                     val name = psi2.name ?: return ArrayList()
                     fullName.add(0, name)
+                    targetTop = psi2
                 }
                 psi2 = psi2.parent
             }
@@ -343,10 +344,21 @@ class ResolveRefQuickFix {
                 val newBlock = HashSet<List<String>>()
 
                 for (fName in currentBlock) {
-                    val correctScope = element.scope
-                    //TODO: we need to modify correctScope so that it looks just like if all "result" actions have already been executed
+                    var correctedScope = element.scope
 
-                    var referable = Scope.Utils.resolveName(correctScope, fName)
+                    if (result.size > 0 && targetTop != null) { // calculate the scope imitating current scope after the import command have been fixed
+                        val tt = targetTop
+                        val complementScope = object : SingletonScope(tt) {
+                            override fun resolveNamespace(name: String?, resolveModuleNames: Boolean): Scope? {
+                                if (tt is VcDefinition && name == tt.textRepresentation()) return LexicalScope.opened(tt)
+                                return super.resolveNamespace(name, resolveModuleNames)
+                            }
+                        }
+
+                        correctedScope = MergeScope(correctedScope, complementScope)
+                    }
+
+                    var referable = Scope.Utils.resolveName(correctedScope, fName)
                     if (referable is RedirectingReferable) {
                         referable = referable.originalReferable
                     }

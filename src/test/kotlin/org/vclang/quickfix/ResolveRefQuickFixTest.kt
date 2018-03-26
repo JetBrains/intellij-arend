@@ -10,7 +10,8 @@ class ResolveRefQuickFixTest : VcTestBase() {
             --! A.vc
             \func a => 0 \where
                 \func b => 0 \where
-                    \func c => 0
+                    \func c => 0 \where
+                       \func d => 0
             \func e => 0
         """
 
@@ -28,6 +29,12 @@ class ResolveRefQuickFixTest : VcTestBase() {
             \func g => 0
         """
 
+    private val fileE =
+        """
+            --! E.vc
+            \func a => 0
+        """
+
     fun `test completing short name to full name if imports are correct`() = simpleQuickFixTest("[Rename", fileA +
             """
                 --! B.vc
@@ -40,6 +47,16 @@ class ResolveRefQuickFixTest : VcTestBase() {
             """)
 
     fun `test importing of libraries if imports are not correct`() = simpleQuickFixTest("[Import", fileA +
+            """
+                --! B.vc
+                \func d => {-caret-}a
+            """,
+            """
+                \import A
+                \func d => a
+            """)
+
+    fun `test importing of libraries if imports are not correct 2`() = simpleQuickFixTest("[Import", fileA +
             """
                 --! B.vc
                 \func d => {-caret-}b
@@ -151,19 +168,32 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 \func d => A.a.b.c
             """)
 
-    fun testB1(prefix : String, s : String) =
+    private fun testB1(prefix : String, s : String) =
             """
                 $prefix\import C (f \as f')
                 \open f' (f \as f'')
                 \func d => $s
             """
 
-    fun `test that clashing names are taken into account`(s : String) =
+    private fun `test that clashing names are taken into account`(s : String) =
             simpleQuickFixTest("[Rename f to $s]", fileC + testB1("                --! B.vc\n                ", "{-caret-}f"), testB1("", s))
 
     fun `test that clashing names are taken into account 2-1`() = `test that clashing names are taken into account`("f''")
     fun `test that clashing names are taken into account 2-2`() = `test that clashing names are taken into account`("f''.f")
     fun `test that clashing names are taken into account 2-3`() = `test that clashing names are taken into account`("f'")
+
+    fun `test that clashing names are taken into account 3`() = simpleQuickFixTest("[Import", fileA + fileE +
+            """
+                --! B.vc
+                \import E
+                \func d => {-caret-}b
+            """,
+            """
+                \import A
+                \import E
+                \func d => A.a.b
+            """)
+
 
     fun `test that simple renamings are taking into account`() = simpleQuickFixTest("[Rename", fileA +
             """
@@ -182,7 +212,7 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 }
             """)
 
-    fun testB2 (prefix : String, s : String) =
+    private fun testB2 (prefix : String, s : String) =
             """
                 $prefix\import A (a \as a')
                 \import A (a \as a'')
@@ -193,11 +223,32 @@ class ResolveRefQuickFixTest : VcTestBase() {
                 }
             """
 
-    fun `test that all possible variants of renaming are shown to the user`(s : String) =
+    private fun `test that all possible variants of renaming are shown to the user`(s : String) =
             simpleQuickFixTest("[Rename c to $s]", fileA + testB2("                --! B.vc\n                ", "{-caret-}c"), testB2("", s))
 
     fun `test that all possible variants of renaming are shown to the user 1`() = `test that all possible variants of renaming are shown to the user`("b'.c")
     fun `test that all possible variants of renaming are shown to the user 2`() = `test that all possible variants of renaming are shown to the user`("b''.c")
+
+    fun `test that shorter names are always preferred`() = simpleQuickFixTest("[Rename", fileA +
+            """
+                --! B.vc
+                \import A (a \as a')
+                \import A (a \as a'')
+                \open a' (b \as b')
+                \func f => 0 \where {
+                  \open a''.b (c \as c')
+                  \func e => {-caret-}d
+                }
+            """,
+            """
+                \import A (a \as a')
+                \import A (a \as a'')
+                \open a' (b \as b')
+                \func f => 0 \where {
+                  \open a''.b (c \as c')
+                  \func e => c'.d
+                }
+            """)
 
     private fun simpleQuickFixTest (fixName: String,
                                     @Language("Vclang") contents: String,
