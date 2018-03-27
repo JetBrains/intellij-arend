@@ -18,12 +18,12 @@ class VcPsiFactory(private val project: Project) {
 
     fun createInfixName(name: String): VcInfixArgument {
         val needsPrefix = !VcNamesValidator.isInfixName(name)
-        return createExpression("dummy ${if (needsPrefix) "`$name`" else name} dummy") as VcInfixArgument
+        return createArgument("dummy ${if (needsPrefix) "`$name`" else name} dummy") as VcInfixArgument
     }
 
     fun createPostfixName(name: String): VcPostfixArgument {
         val needsPrefix = !VcNamesValidator.isPostfixName(name)
-        return createExpression("dummy ${if (needsPrefix) "`$name" else name}") as VcPostfixArgument
+        return createArgument("dummy ${if (needsPrefix) "`$name" else name}") as VcPostfixArgument
     }
 
     private fun createFunction(
@@ -40,13 +40,13 @@ class VcPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
-    fun createExpression(expr: String): VcArgument =
+    private fun createArgument(expr: String): VcArgument =
         ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")
 
-    private fun createLiteral(literal: String): VcLiteral =
-        createFunction("dummy", listOf(literal)).nameTeleList.firstOrNull()?.childOfType()
-            ?: error("Failed to create literal: `$literal`")
+    fun createLiteral(expr: String): VcLiteral =
+        ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
+            ?: error("Failed to create literal: `$expr`")
 
     private fun createStatCmd(name: String): VcStatCmd =
         createFromText("\\open X \\hiding ($name)")?.childOfType()

@@ -145,10 +145,8 @@ class RenameReferenceAction(private val element: VcRefIdentifier, private val id
         if (element.parent is VcLongName) {
             val lName = LongName(id).toString()
             val factory = VcPsiFactory(element.project)
-            val vcfile = factory.createFromText("\\func dummy => "+lName)
-            val defFunc = vcfile?.subgroups?.get(0) as VcDefFunction
-            val appExpr = (defFunc.functionBody?.expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?
-            val longName = (appExpr)?.atomFieldsAcc?.atom?.literal?.longName
+            val literal =  factory.createLiteral(lName)
+            val longName = literal.longName
             val offset = element.textOffset
             if (longName != null) {
                 element.parent.addRangeBefore(longName.firstChild, longName.lastChild, element)
