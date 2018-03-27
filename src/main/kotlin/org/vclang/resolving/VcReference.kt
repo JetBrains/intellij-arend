@@ -3,9 +3,11 @@ package org.vclang.resolving
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import org.vclang.VcFileType
 import org.vclang.VcIcons
+import org.vclang.module.util.findVcFilesAndDirectories
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiModuleReferable
 import org.vclang.psi.ext.PsiReferable
@@ -44,11 +46,14 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
         val ref = (it as? RedirectingReferable)?.originalReferable ?: it
         when (ref) {
             is PsiNamedElement -> LookupElementBuilder.createWithIcon(ref)
-            is PsiModuleReferable ->
-                ref.modules.firstOrNull()?.let { if (it is VcFile)
-                    LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
-                    LookupElementBuilder.createWithIcon(it) } ?:
-                LookupElementBuilder.create(ref, ref.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+            is ModuleReferable -> {
+                val module = if (ref is PsiModuleReferable) (ref.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(ref.path)?.firstOrNull()
+                module?.let {
+                    if (it is VcFile)
+                        LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
+                        LookupElementBuilder.createWithIcon(it)
+                } ?: LookupElementBuilder.create(ref, ref.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+            }
             else -> LookupElementBuilder.create(ref, ref.textRepresentation())
         }
     }.toTypedArray()
@@ -62,6 +67,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
+            is ModuleReferable -> element.module?.findVcFilesAndDirectories(ref.path)?.firstOrNull()
             else -> null
         }
     }
@@ -88,6 +94,7 @@ open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceI
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
+            is ModuleReferable -> element.module?.findVcFilesAndDirectories(ref.path)?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()
         }
     }

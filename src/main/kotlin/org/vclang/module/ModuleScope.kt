@@ -13,13 +13,13 @@ import org.vclang.psi.VcFile
 import org.vclang.psi.ext.PsiModuleReferable
 
 
-class ModuleScope private constructor(private val module: Module, private val rootDir: VirtualFile?) : Scope {
+class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
     constructor(module: Module) : this(module, null)
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
         val psiManager = PsiManager.getInstance(module.project)
-        for (root in if (rootDir != null) arrayOf(rootDir) else module.roots) {
+        for (root in rootDirs ?: module.roots.asList()) {
             for (file in root.children) {
                 if (file.isDirectory) {
                     val name = file.name
@@ -38,13 +38,14 @@ class ModuleScope private constructor(private val module: Module, private val ro
     }
 
     override fun resolveNamespace(name: String, resolveModuleNames: Boolean): Scope {
-        for (root in if (rootDir != null) arrayOf(rootDir) else module.roots) {
+        val newRootDirs = (rootDirs ?: module.roots.asList()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {
-                    return if (file.isDirectory) ModuleScope(module, file) else EmptyScope.INSTANCE
+                    return@mapNotNull if (file.isDirectory) file else null
                 }
             }
+            return@mapNotNull null
         }
-        return EmptyScope.INSTANCE
+        return if (newRootDirs.isEmpty()) EmptyScope.INSTANCE else ModuleScope(module, newRootDirs)
     }
 }
