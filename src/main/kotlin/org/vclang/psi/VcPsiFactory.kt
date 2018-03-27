@@ -52,6 +52,14 @@ class VcPsiFactory(private val project: Project) {
         createFromText("\\open X \\hiding ($name)")?.childOfType()
             ?: error("Failed to create stat cmd: `$name`")
 
+    fun createImportCommand(command : String): VcStatement {
+        val commands = createFromText("\\import "+command)?.namespaceCommands
+        if (commands != null && commands.size == 1) {
+            return commands[0].parent as VcStatement
+        }
+        error("Failed to create import command: \\import $command")
+    }
+
     fun createFromText(code: String): VcFile? =
         PsiFileFactory.getInstance(project).createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
 

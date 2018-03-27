@@ -22,33 +22,31 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
         val factory = VcPsiFactory(importFile.project)
-        val file = factory.createFromText("\\import "+fullName)
-        val commands = file?.namespaceCommands
-        if (commands != null && commands.isNotEmpty()) {
-            if (currentFile.children.isEmpty()) currentFile.add(commands[0])
-            var anchor = currentFile.children[0]
-            var after = false
+        val commandStatement = factory.createImportCommand(fullName)
 
-            val currFileCommands = currentFile.namespaceCommands.filter { it.nsCmd.importKw != null }
-            if (currFileCommands.isNotEmpty()) {
-                val name = LongName(currFileCommands[0].path).toString()
-                anchor = currFileCommands[0].parent
-                if (fullName >= name) after = true
-            }
+        if (currentFile.children.isEmpty()) currentFile.add(commandStatement)
+        var anchor = currentFile.children[0]
+        var after = false
 
-            if (after) for (nC in currFileCommands.drop(1)) {
-                val name = LongName(nC.path).toString()
-                if (fullName >= name) anchor = nC.parent else break
-            }
+        val currFileCommands = currentFile.namespaceCommands.filter { it.nsCmd.importKw != null }
+        if (currFileCommands.isNotEmpty()) {
+            val name = LongName(currFileCommands[0].path).toString()
+            anchor = currFileCommands[0].parent
+            if (fullName >= name) after = true
+        }
 
-            if (anchor.parent == currentFile) {
-                if (after) {
-                    currentFile.addAfter(commands[0].parent, anchor)
-                    currentFile.addAfter(factory.createWhitespace("\n"), anchor)
-                } else {
-                    currentFile.addBefore(commands[0].parent, anchor)
-                    currentFile.addBefore(factory.createWhitespace("\n"), anchor)
-                }
+        if (after) for (nC in currFileCommands.drop(1)) {
+            val name = LongName(nC.path).toString()
+            if (fullName >= name) anchor = nC.parent else break
+        }
+
+        if (anchor.parent == currentFile) {
+            if (after) {
+                currentFile.addAfter(commandStatement, anchor)
+                currentFile.addAfter(factory.createWhitespace("\n"), anchor)
+            } else {
+                currentFile.addBefore(commandStatement, anchor)
+                currentFile.addBefore(factory.createWhitespace("\n"), anchor)
             }
         }
     }
@@ -77,8 +75,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
                 }
 
                 val factory = VcPsiFactory(project)
-                val vcFile = factory.createFromText("\\import Dummy (a,$id)")
-                val nsCmd = vcFile?.namespaceCommands?.first()
+                val nsCmd = factory.createImportCommand("Dummy (a,$id)").statCmd
                 val nsId = nsCmd?.nsUsing?.nsIdList?.get(1)
 
                 if (nsId != null) {
