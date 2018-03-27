@@ -1,18 +1,13 @@
 package org.vclang.quickfix
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.util.LongName
-import org.vclang.VcFileType
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.quickfix.ResolveRefQuickFix.Companion.createFromText
 import java.util.*
 
 interface ResolveRefFixAction {
@@ -26,7 +21,8 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
-        val file = ResolveRefQuickFix.createFromText(importFile.project, "\\import "+fullName)
+        val factory = VcPsiFactory(importFile.project)
+        val file = factory.createFromText("\\import "+fullName)
         val commands = file?.namespaceCommands
         if (commands != null && commands.isNotEmpty()) {
             if (currentFile.children.isEmpty()) currentFile.add(commands[0])
@@ -48,10 +44,10 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
             if (anchor.parent == currentFile) {
                 if (after) {
                     currentFile.addAfter(commands[0].parent, anchor)
-                    currentFile.addAfter(ResolveRefQuickFix.createWhitespace(currentFile.project, "\n"), anchor)
+                    currentFile.addAfter(factory.createWhitespace("\n"), anchor)
                 } else {
                     currentFile.addBefore(commands[0].parent, anchor)
-                    currentFile.addBefore(ResolveRefQuickFix.createWhitespace(currentFile.project, "\n"), anchor)
+                    currentFile.addBefore(factory.createWhitespace("\n"), anchor)
                 }
             }
         }
@@ -80,20 +76,21 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
                     needsCommaBefore = true
                 }
 
-                val vcfile = createFromText(project, "\\import Dummy (a,$id)")
-                val nsCmd = vcfile?.namespaceCommands?.first()
+                val factory = VcPsiFactory(project)
+                val vcFile = factory.createFromText("\\import Dummy (a,$id)")
+                val nsCmd = vcFile?.namespaceCommands?.first()
                 val nsId = nsCmd?.nsUsing?.nsIdList?.get(1)
 
                 if (nsId != null) {
                     val comma = nsId.prevSibling //we will need the comma only once
 
                     if (!needsCommaBefore && !nsIds.isEmpty()) {
-                        anchor.parent.addAfter(ResolveRefQuickFix.createWhitespace(project, " "), anchor)
+                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
                         anchor.parent.addAfter(comma, anchor)
                     }
                     anchor.parent.addAfter(nsId, anchor)
                     if (needsCommaBefore) {
-                        anchor.parent.addAfter(ResolveRefQuickFix.createWhitespace(project, " "), anchor)
+                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
                         anchor.parent.addAfter(comma, anchor)
                     }
                 }
@@ -147,7 +144,8 @@ class RenameReferenceAction(private val element: VcRefIdentifier, private val id
     override fun execute(editor: Editor?) {
         if (element.parent is VcLongName) {
             val lName = LongName(id).toString()
-            val vcfile = createFromText(element.project, "\\func dummy => "+lName)
+            val factory = VcPsiFactory(element.project)
+            val vcfile = factory.createFromText("\\func dummy => "+lName)
             val defFunc = vcfile?.subgroups?.get(0) as VcDefFunction
             val appExpr = (defFunc.functionBody?.expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?
             val longName = (appExpr)?.atomFieldsAcc?.atom?.literal?.longName
@@ -163,14 +161,6 @@ class RenameReferenceAction(private val element: VcRefIdentifier, private val id
 
 class ResolveRefQuickFix {
     companion object {
-
-        fun createFromText(project: Project, code: String) : VcFile? {
-            return PsiFileFactory.getInstance(project).createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
-        }
-
-        fun createWhitespace(project: Project, symbol: String): PsiElement {
-            return PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
-        }
 
         fun statCmdName(statCmd : VcStatCmd) : String {
             val file = statCmd.longName?.refIdentifierList?.last()?.reference?.resolve()

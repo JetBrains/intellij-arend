@@ -1,7 +1,9 @@
 package org.vclang.psi
 
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.PsiParserFacade
 import org.vclang.VcFileType
 import org.vclang.refactoring.VcNamesValidator
 
@@ -50,6 +52,10 @@ class VcPsiFactory(private val project: Project) {
         createFromText("\\open X \\hiding ($name)")?.childOfType()
             ?: error("Failed to create stat cmd: `$name`")
 
-    private fun createFromText(code: String): VcFile? =
+    fun createFromText(code: String): VcFile? =
         PsiFileFactory.getInstance(project).createFileFromText("DUMMY.vc", VcFileType, code) as? VcFile
+
+    fun createWhitespace(symbol: String): PsiElement {
+        return PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
+    }
 }
