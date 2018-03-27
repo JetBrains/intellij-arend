@@ -6,9 +6,9 @@ import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
-import com.jetbrains.jetpad.vclang.term.Group
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
@@ -19,9 +19,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getReferable(): ClassReferable = this
+    override fun getReferable() = this
 
-    override fun getClassReference(): ClassReferable = this
+    override fun getClassReference() = this
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
         val ref = it.referent

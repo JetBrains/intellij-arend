@@ -10,7 +10,6 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
 import org.vclang.navigation.getPresentationForStructure
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiGlobalReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcCompositeElement
 
@@ -61,9 +60,9 @@ private class VcStructureViewElement(val psi: VcCompositeElement)
         }
 }
 
-private val VcDefClass.childDefinitions: List<PsiGlobalReferable>
+private val VcDefClass.childDefinitions: List<PsiReferable>
     get() {
-        val classDefinitions = classStatList.mapNotNull { it.classField ?: it.definition as PsiGlobalReferable }
+        val classDefinitions = classStatList.mapNotNull { it.classField ?: it.definition as PsiReferable }
         val whereDefinitions = where?.childDefinitions ?: emptyList()
         return classDefinitions + classFieldSynList + whereDefinitions
     }

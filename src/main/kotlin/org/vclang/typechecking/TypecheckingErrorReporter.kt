@@ -2,6 +2,7 @@ package org.vclang.typechecking
 
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.testframework.CompositePrintable
+import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.ide.util.EditSourceUtil
@@ -12,44 +13,53 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.*
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
-import org.vclang.psi.ext.PsiGlobalReferable
-import org.vclang.typechecking.execution.DefinitionProxy
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.ProxyAction
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
-class TypeCheckConsoleLogger(
-        private val sourceInfoProvider: PrettyPrinterConfig
-) : ErrorReporter {
+private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
+    Error.Level.ERROR -> ERROR_OUTPUT
+    Error.Level.GOAL -> USER_INPUT
+    Error.Level.WARNING -> LOG_WARNING_OUTPUT
+    Error.Level.INFO -> NORMAL_OUTPUT
+}
+
+class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : ErrorReporter {
     var eventsProcessor: TypecheckingEventsProcessor? = null
 
     override fun report(error: GeneralError) {
-        error.affectedDefinitions
-            .mapNotNull { if (it is PsiGlobalReferable) eventsProcessor?.executeProxyAction(it, object : ProxyAction {
-                override fun runAction(p: DefinitionProxy) {
-                    DocConsolePrinter(p, error).print()
-                }
-            }) }
-    }
+        val proxyAction = object : ProxyAction {
+            override fun runAction(p: SMTestProxy) {
+                DocConsolePrinter(p, error).print()
+            }
+        }
 
-    companion object {
-        private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
-            Error.Level.ERROR -> ERROR_OUTPUT
-            Error.Level.GOAL -> USER_INPUT
-            Error.Level.WARNING -> LOG_WARNING_OUTPUT
-            Error.Level.INFO -> NORMAL_OUTPUT
+        var reported = false
+        val eventsProcessor = eventsProcessor!!
+        error.affectedDefinitions.mapNotNull {
+            if (it is PsiLocatedReferable || it is ModuleReferable) {
+                reported = true
+                if (it is PsiLocatedReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+                if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+            }
+        }
+
+        if (!reported) {
+            eventsProcessor.executeProxyAction(proxyAction)
         }
     }
 
     private inner class DocConsolePrinter(
-        private val proxy: DefinitionProxy,
+        private val proxy: SMTestProxy,
         private val error: GeneralError
     ) : LineDocVisitor() {
         private val contentType = levelToContentType(error.level)
         private val stringBuilder = StringBuilder()
 
         fun print() {
-            error.getDoc(sourceInfoProvider).accept(this, true)
+            error.getDoc(ppConfig).accept(this, true)
             printNewLine()
             flushText()
             if (contentType in setOf(ERROR_OUTPUT, LOG_WARNING_OUTPUT)) {
@@ -88,7 +98,8 @@ class TypeCheckConsoleLogger(
 
         private fun flushText() {
             if (stringBuilder.isNotEmpty()) {
-                proxy.addText(stringBuilder.toString(), contentType)
+                val text = stringBuilder.toString()
+                proxy.addLast { it.print(text, contentType) }
                 stringBuilder.setLength(0)
             }
         }
@@ -99,7 +110,7 @@ class TypeCheckConsoleLogger(
 
         private fun printHyperlink(text: String, info: HyperlinkInfo?) {
             flushText()
-            proxy.addHyperlink(text, info)
+            proxy.addLast { it.printHyperlink(text, info) }
         }
 
         private fun printNewLine() = printText(CompositePrintable.NEW_LINE)

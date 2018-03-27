@@ -4,15 +4,15 @@ import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.term.ChildGroup
 import com.jetbrains.jetpad.vclang.term.ChildNamespaceCommand
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import org.vclang.VcFileType
-import org.vclang.module.util.roots
+import com.jetbrains.jetpad.vclang.term.group.ChildGroup
+import com.jetbrains.jetpad.vclang.util.FileUtils
+import org.vclang.module.util.psiRoots
 import org.vclang.psi.*
 
-abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node), VcStatCmd, ChildNamespaceCommand {
+abstract class VcStatCmdImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
         val cmd = nsCmd
         if (cmd.importKw != null) return NamespaceCommand.Kind.IMPORT
@@ -25,14 +25,14 @@ abstract class VcStatCmdImplMixin(node: ASTNode) : VcCompositeElementImpl(node),
     override fun getImportedPath(): List<PsiModuleReferable> {
         return if (nsCmd.importKw != null) {
             val path = path
-            var dirs = module?.roots ?: emptyList()
+            var dirs = module?.psiRoots ?: emptyList()
             path.withIndex().map { (i, name) ->
                 val modulePath = ModulePath(path.subList(0, i + 1))
                 if (i < path.size - 1) {
                     dirs = dirs.mapNotNull { it.findSubdirectory(name) }
                     PsiModuleReferable(dirs, modulePath)
                 } else {
-                    PsiModuleReferable(dirs.mapNotNull { it.findFile(name + "." + VcFileType.defaultExtension) as? VcFile }, modulePath)
+                    PsiModuleReferable(dirs.mapNotNull { it.findFile(name + FileUtils.EXTENSION) as? VcFile }, modulePath)
                 }
             }
         } else {
