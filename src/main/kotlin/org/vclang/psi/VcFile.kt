@@ -5,6 +5,7 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.Precedence
@@ -49,7 +50,9 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override val scope: Scope
         get() = ScopeFactory.forGroup(this, moduleScopeProvider, module?.let { ModuleScope(it) })
 
-    override fun getLocation(fullName: MutableList<in String>) = modulePath
+    override fun getLocation() = modulePath
+
+    override fun getLocatedReferableParent(): LocatedReferable? = null
 
     override fun getGroupScope() = scope
 

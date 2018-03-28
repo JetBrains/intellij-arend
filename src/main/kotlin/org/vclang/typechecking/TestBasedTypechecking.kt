@@ -30,7 +30,7 @@ class TestBasedTypechecking(
         }
         eventsProcessor.onTestFinished(ref)
 
-        val modulePath = referable.getLocation(null) ?: return
+        val modulePath = referable.getLocation() ?: return
         if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
             typecheckedModules.add(modulePath)
         } else {
