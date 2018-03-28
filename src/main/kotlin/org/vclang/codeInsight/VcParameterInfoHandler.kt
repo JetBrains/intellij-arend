@@ -10,6 +10,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
+import com.jetbrains.jetpad.vclang.term.abs.IdReferableConverter
 import org.vclang.psi.VcArgument
 import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcTypeTele
@@ -35,9 +36,9 @@ class VcParameterInfoHandler: ParameterInfoHandler<VcArgumentAppExpr, List<Abstr
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (!vars.isEmpty()) {
-                vars.mapTo(nameTypeList) { Pair(it.textRepresentation(), ConcreteBuilder.convertExpression(pm.type).toString()) }
+                vars.mapTo(nameTypeList) { Pair(it.textRepresentation(), ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
             } else {
-                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(pm.type).toString()))
+                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
             }
             for (v in nameTypeList) {
                 if (text != "") {

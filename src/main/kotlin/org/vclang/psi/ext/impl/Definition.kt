@@ -12,6 +12,7 @@ import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcNamedStub
+import org.vclang.resolving.VcReferableConverter
 
 abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ChildGroup, Abstract.Definition
 where StubT : VcNamedStub, StubT : StubElement<*> {
@@ -24,7 +25,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     open fun getWhere(): VcWhere? = null
 
-    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ReferableDefinition? = ConcreteBuilder.convert(this, errorReporter)
+    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ReferableDefinition? = ConcreteBuilder.convert(VcReferableConverter(containingFile), this, errorReporter)
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 
