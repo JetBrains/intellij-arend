@@ -11,8 +11,8 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.*
+import com.jetbrains.jetpad.vclang.naming.reference.DataContainer
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import org.vclang.psi.ext.PsiLocatedReferable
@@ -86,7 +86,7 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = ((doc.reference as? SourceInfoReference)?.sourceInfo ?: doc.reference) as? PsiElement
+            val ref = ((doc.reference as? DataContainer)?.data ?: doc.reference) as? PsiElement
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {
