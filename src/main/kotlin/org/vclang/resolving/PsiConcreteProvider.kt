@@ -27,15 +27,22 @@ class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val 
         val typecheckable = referable.typecheckable as? PsiLocatedReferable
         if (typecheckable != null && eventsProcessor != null) {
             eventsProcessor.onTestStarted(typecheckable)
+            eventsProcessor.startTimer(typecheckable)
         }
         val def = referable.computeConcrete(errorReporter)
         if (def == null) {
             if (typecheckable != null && eventsProcessor != null) {
+                eventsProcessor.stopTimer(typecheckable)
                 eventsProcessor.onTestFailure(typecheckable)
                 eventsProcessor.onTestFinished(typecheckable)
             }
-        } else if (isResolving) {
-            def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(referable.scope))
+        } else {
+            if (isResolving) {
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(referable.scope))
+            }
+            if (typecheckable != null && eventsProcessor != null) {
+                eventsProcessor.stopTimer(typecheckable)
+            }
         }
         return def
     }

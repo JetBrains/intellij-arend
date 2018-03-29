@@ -128,7 +128,7 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
                     } else {
                         if (ref is PsiLocatedReferable) {
                             eventsProcessor.onTestStarted(ref)
-                            typeChecking.typecheckingFinished(ref, typechecked)
+                            typeChecking.typecheckingBodyFinished(ref, typechecked)
                         }
                     }
                 }
