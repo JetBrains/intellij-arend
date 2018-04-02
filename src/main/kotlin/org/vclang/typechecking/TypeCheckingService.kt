@@ -1,14 +1,12 @@
 package org.vclang.typechecking
 
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.AnyPsiChangeListener
 import com.intellij.psi.impl.PsiManagerImpl
 import com.jetbrains.jetpad.vclang.core.definition.Definition
+import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.library.Library
 import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.library.error.LibraryError
@@ -29,6 +27,7 @@ import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
+import org.vclang.module.VcRawLibrary
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
@@ -37,6 +36,7 @@ import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
+import org.vclang.vcModules
 
 interface TypeCheckingService {
     var eventsProcessor: TypecheckingEventsProcessor?
@@ -45,7 +45,7 @@ interface TypeCheckingService {
 
     val typecheckerState: TypecheckerState
 
-    fun typeCheck(modulePath: ModulePath, definitionFullName: String, cancellationIndicator: CancellationIndicator)
+    fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator)
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -55,7 +55,7 @@ interface TypeCheckingService {
     }
 }
 
-class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
+class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
     override var eventsProcessor: TypecheckingEventsProcessor?
         get() = typecheckingErrorReporter.eventsProcessor
         set(value) {
@@ -78,23 +78,30 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
         })
     }
 
-    override fun typeCheck(modulePath: ModulePath, definitionFullName: String, cancellationIndicator: CancellationIndicator) {
+    override fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator) {
         Typechecking.CANCELLATION_INDICATOR = cancellationIndicator
         try {
             val eventsProcessor = eventsProcessor!!
-            eventsProcessor.onSuiteStarted(modulePath)
+            if (modulePath != null) {
+                eventsProcessor.onSuiteStarted(modulePath)
+            }
 
-            val library = findLibrary(modulePath)
-            if (library == null) {
+            if (definitionFullName != "" && modulePath == null) {
+                libraryManager.typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName))
                 eventsProcessor.onSuitesFinished()
                 return
             }
 
-            val module = library.getModuleGroup(modulePath)
-            if (module == null) {
-                libraryManager.libraryErrorReporter.report(LibraryError.moduleNotFound(modulePath, library.name))
-                eventsProcessor.onSuitesFinished()
-                return
+            val libraries = if (libraryName == "" && modulePath == null) project.vcModules.map { VcRawLibrary(it, typecheckerState) } else {
+                val library = if (libraryName != "") libraryManager.getLibrary(libraryName) else findLibrary(modulePath!!)
+                if (library == null) {
+                    if (libraryName != "") {
+                        libraryManager.typecheckingErrorReporter.report(LibraryError.notFound(libraryName))
+                    }
+                    eventsProcessor.onSuitesFinished()
+                    return
+                }
+                listOf(library)
             }
 
             val psiConcreteProvider = PsiConcreteProvider(typecheckingErrorReporter, eventsProcessor)
@@ -109,43 +116,62 @@ class TypeCheckingServiceImpl(project: Project) : TypeCheckingService {
 
             var computationFinished = true
 
-            if (definitionFullName.isEmpty()) {
-                DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, CachingScope.make(ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider)), concreteProvider)
-                psiConcreteProvider.isResolving = true
-                computationFinished = typeChecking.typecheckModules(listOf(module))
-            } else {
-                val group = module.findGroupByFullName(definitionFullName.split('.'))
-                val ref = group?.referable
-                if (ref == null) {
-                    Notifications.Bus.notify(Notification("Vclang typechecking", "Typechecking", "Definition $definitionFullName not found", NotificationType.ERROR))
+            for (library in libraries) {
+                val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
+                val modules = modulePaths.mapNotNull {
+                    val module = library.getModuleGroup(it)
+                    if (module == null) {
+                        libraryManager.typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
+                    }
+                    module
+                }
+
+                if (definitionFullName == "") {
+                    for (module in modules) {
+                        DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, CachingScope.make(ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider)), concreteProvider)
+                    }
+                    psiConcreteProvider.isResolving = true
+                    computationFinished = typeChecking.typecheckModules(modules) && computationFinished
                 } else {
-                    val typechecked = typecheckerState.getTypechecked(ref)
-                    if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                        psiConcreteProvider.isResolving = true
-                        val definition = concreteProvider.getConcrete(ref)
-                        if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition))
-                        else if (definition != null) error(definitionFullName + " is not a definition")
+                    val ref = modules.firstOrNull()?.findGroupByFullName(definitionFullName.split('.'))?.referable
+                    if (ref == null) {
+                        if (modules.isNotEmpty()) {
+                            libraryManager.typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName, modulePath))
+                        }
                     } else {
-                        if (ref is PsiLocatedReferable) {
-                            eventsProcessor.onTestStarted(ref)
-                            typeChecking.typecheckingBodyFinished(ref, typechecked)
+                        val typechecked = typecheckerState.getTypechecked(ref)
+                        if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                            psiConcreteProvider.isResolving = true
+                            val definition = concreteProvider.getConcrete(ref)
+                            if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition)) && computationFinished
+                            else if (definition != null) error(definitionFullName + " is not a definition")
+                        } else {
+                            if (ref is PsiLocatedReferable) {
+                                eventsProcessor.onTestStarted(ref)
+                                typeChecking.typecheckingBodyFinished(ref, typechecked)
+                            }
                         }
                     }
                 }
+
+                /* TODO[references]
+                if (library is SourceLibrary && library.supportsPersisting()) {
+                    for (updatedModule in typeChecking.typecheckedModulesWithoutErrors) {
+                        library.persistModule(updatedModule, libraryManager.libraryErrorReporter)
+                    }
+                }
+                */
             }
 
             if (computationFinished) eventsProcessor.onSuitesFinished()
-
-            /* TODO[references]
-            if (library is SourceLibrary && library.supportsPersisting()) {
-                for (updatedModule in typeChecking.typecheckedModulesWithoutErrors) {
-                    library.persistModule(updatedModule, libraryManager.libraryErrorReporter)
-                }
-            }
-            */
         } finally {
             Typechecking.setDefaultCancellationIndicator()
         }
+    }
+
+    private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
+        GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
+        override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
     }
 
     private fun findLibrary(modulePath: ModulePath): Library? {

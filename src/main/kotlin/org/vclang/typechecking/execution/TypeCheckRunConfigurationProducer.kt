@@ -38,7 +38,7 @@ class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfi
                 val file = definition.containingFile as? VcFile ?: return null
                 sourceElement?.set(definition)
                 val fullName = definition.fullName
-                return MyConfiguration("Type check $fullName", TypeCheckCommand(file.fullName, fullName))
+                return MyConfiguration("Type check $fullName", TypeCheckCommand("", file.fullName, fullName))
             }
             is VcFile -> {
                 sourceElement?.set(definition)

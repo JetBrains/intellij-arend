@@ -35,7 +35,7 @@ class TypeCheckProcessHandler(
 
             override fun computeInReadAction(indicator: ProgressIndicator) {
                 try {
-                    typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName, CancellationIndicator { indicator.isCanceled })
+                    typeChecker.typeCheck(command.library, if (command.modulePath == "") null else ModulePath(command.modulePath.split('.')), command.definitionFullName, CancellationIndicator { indicator.isCanceled })
                 }
                 catch (e: ProcessCanceledException) {}
                 catch (e: Exception) {
