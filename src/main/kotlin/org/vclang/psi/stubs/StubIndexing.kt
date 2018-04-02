@@ -16,6 +16,11 @@ fun IndexSink.indexClassField(stub: VcClassFieldStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexClassFieldParam(stub: VcClassFieldParamStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexClassFieldSyn(stub: VcClassFieldSynStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)

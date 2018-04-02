@@ -482,7 +482,8 @@ fieldDefIdentifier ::= defIdentifier {
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"
-    stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
+    stubClass = "org.vclang.psi.stubs.VcClassFieldParamStub"
+    elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
 defIdentifier ::= ID {

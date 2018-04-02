@@ -50,7 +50,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getNameIdentifier(): VcDefIdentifier? = childOfType()
 
-    override fun getName(): String? = nameIdentifier?.referenceName
+    override fun getName(): String? = stub?.name ?: nameIdentifier?.referenceName
 
     override fun textRepresentation(): String = name ?: "_"
 
