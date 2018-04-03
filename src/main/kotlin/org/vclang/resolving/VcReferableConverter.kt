@@ -13,8 +13,8 @@ class VcReferableConverter(private val file: PsiFile) : ReferableConverter {
         if (referable is PsiElement) DataLocalReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(referable, file), referable.textRepresentation())
         else referable
 
-    override fun toDataLocatedReferable(referable: LocatedReferable?, isTypecheckable: Boolean): LocatedReferable? =
+    override fun toDataLocatedReferable(referable: LocatedReferable?): LocatedReferable? =
         // TODO[referable]
-        /* if (referable is PsiElement) DataLocatedReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(referable, file), referable.precedence, referable.textRepresentation(), toDataLocatedReferable(referable.locatedReferableParent, true), isTypecheckable)
+        /* if (referable is PsiElement) DataLocatedReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(referable, file), referable.precedence, referable.textRepresentation(), toDataLocatedReferable(referable.locatedReferableParent), referable.isTypecheckable)
         else */ referable
 }

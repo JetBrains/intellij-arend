@@ -24,6 +24,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getTypecheckable(): GlobalReferable = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: this
 
+    override fun isTypecheckable() = false
+
     override fun getLocation() = (containingFile as? VcFile)?.modulePath
 
     override fun getLocatedReferableParent() = parent.ancestors.filterIsInstance<LocatedReferable>().firstOrNull()

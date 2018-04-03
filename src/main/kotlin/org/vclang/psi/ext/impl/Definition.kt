@@ -23,6 +23,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
+    override fun isTypecheckable() = true
+
     open fun getWhere(): VcWhere? = null
 
     override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ReferableDefinition? = ConcreteBuilder.convert(VcReferableConverter(containingFile), this, errorReporter)
