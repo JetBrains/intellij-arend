@@ -23,12 +23,14 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
         """
             --! D.vc
             \func g => 0
+            \func \infixl 6 ++ (a b : Nat) => a
         """
 
     private val fileE =
         """
             --! E.vc
             \func a => 0
+            \func e => 0
         """
 
     fun `test completing short name to full name if imports are correct`() = simpleQuickFixTest("[Rename", fileA +
@@ -185,7 +187,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => {-caret-}b
             """,
             """
-                \import A
+                \import A ()
                 \import E
                 \func d => A.a.b
             """)
@@ -278,5 +280,85 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => 0 \where {
                   \func e => b'.c
                 }
+            """)
+
+    private val fileF =
+            """
+            --! F.vc
+                \class Test1 (El : \Set) {
+                    | \infixl 7 * : El -> El -> El
+                }
+
+                \class Test2 => Test1 {
+                    | * => \infixl 6 +
+                }
+            """
+
+    fun `test that class fields are supported`() = simpleQuickFixTest("[Import", fileF +
+            """
+                --! B.vc
+                \func test => 1 *{-caret-} 1
+            """,
+            """
+                \import F
+                \func test => 1 * 1
+            """)
+
+    fun `test that class synonyms are supported`() = simpleQuickFixTest("[Import", fileF +
+            """
+                --! B.vc
+                \func test => 1 +{-caret-} 1
+            """,
+            """
+                \import F
+                \func test => 1 + 1
+            """)
+
+    fun `test that infix quickfixes work for infix operators`() = simpleQuickFixTest("[Import", fileD +
+            """
+                --! B.vc
+                \func test => 1 `++`{-caret-} 1
+            """,
+            """
+                \import D
+                \func test => 1 `++` 1
+            """)
+
+    fun `test that infix operators are used with prefix syntax`() = simpleQuickFixTest("[Import", fileD +
+            """
+                --! B.vc
+                \func test => ++{-caret-} 1 1
+            """,
+            """
+                \import D
+                \func test => (++) 1 1
+            """)
+
+    fun `test that possible name clashes are prevented by using empty imports`() = simpleQuickFixTest("[Import", fileA + fileE +
+            """
+                --! B.vc
+                \import E
+                \func f => e
+                \func g => b{-caret-}
+            """,
+            """
+                \import A ()
+                \import E
+                \func f => e
+                \func g => A.a.b
+            """)
+
+    fun `test that possible name clashes are prevented by using partial imports`() = simpleQuickFixTest("[Import", fileA + fileE +
+            """
+                --! B.vc
+                \import E (e)
+                \func f => e
+                \func g => b{-caret-}
+            """,
+            """
+                \import A (a)
+                \import E (e)
+                \func f => e
+                \func g => a.b
             """)
 }
