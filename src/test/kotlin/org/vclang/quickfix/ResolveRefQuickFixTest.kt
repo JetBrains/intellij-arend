@@ -324,16 +324,6 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 `++` 1
             """)
 
-    fun `test that infix operators are used with prefix syntax`() = simpleQuickFixTest("[Import", fileD +
-            """
-                --! B.vc
-                \func test => ++{-caret-} 1 1
-            """,
-            """
-                \import D
-                \func test => (++) 1 1
-            """)
-
     fun `test that possible name clashes are prevented by using empty imports`() = simpleQuickFixTest("[Import", fileA + fileE +
             """
                 --! B.vc

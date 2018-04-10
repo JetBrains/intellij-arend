@@ -13,13 +13,14 @@ import com.intellij.psi.stubs.StubIndex
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.quickfix.ResolveRefFixAction
 import org.vclang.quickfix.ResolveRefQuickFix
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        if (element is VcRefIdentifier) {
+        if (element is VcReferenceElement) {
             val reference = element.reference
             if (reference != null) {
                 val psiElement = reference.resolve()
