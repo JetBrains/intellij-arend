@@ -351,4 +351,109 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func f => e
                 \func g => a.b
             """)
+
+    fun `test that renames are preferred to imports`() = simpleQuickFixTest("[Rename", fileF +
+            """
+                --! B.vc
+                \import F (Test1 \as Test)
+                \func test => 1 *{-caret-} 2
+            """,
+            """
+                \import F (Test1 \as Test)
+                \func test => 1 Test.* 2
+            """) //TODO: this is probably not a correct expression with current syntax;
+                 //ensure it is a valid expression with a future one
+
+    fun `test that member and its parent are imported simultaneously if there are no name clashes`() = simpleQuickFixTest("[Add", fileF +
+            """
+                --! B.vc
+                \import F ()
+                \func test => 1 *{-caret-} 2
+            """,
+            """
+                \import F (*, Test1)
+                \func test => 1 * 2
+            """)
+
+    fun `test that only member is imported if there is a name clash for the parent`() = simpleQuickFixTest("[Add", fileF +
+            """
+                --! C.vc
+                \func Test1 => 0
+                --! B.vc
+                \import C
+                \import F ()
+                \func test => 1 *{-caret-} 2
+            """,
+            """
+                \import C
+                \import F (*)
+                \func test => 1 * 2
+            """)
+
+    fun `test that deliberate empty imports left by the user lead to the "precarious mode" not being activated`() = simpleQuickFixTest("[Import", fileA + fileE +
+            """
+                --! B.vc
+                \import E ()
+                \func g => b{-caret-}
+            """,
+            """
+                \import A
+                \import E ()
+                \func g => a.b
+            """)
+
+    fun `test function name is not removed from the list of hidden definitions if there are clashing names`() = simpleQuickFixTest("[Rename", fileA +
+            """
+                --! B.vc
+                \import A \hiding (a, e)
+                \import E (a)
+                \func d => {-caret-}b
+            """,
+            """
+                \import A \hiding (a, e)
+                \import E (a)
+                \func d => A.a.b
+            """)
+
+    fun `test that two items simultaneously can be removed from the list of hidden definitions`() = simpleQuickFixTest("[Remove", fileF +
+            """
+                --! B.vc
+                \import F \hiding (Test1, *)
+                \func test => 1 *{-caret-} 2
+            """,
+            """
+                \import F
+                \func test => 1 * 2
+            """) //not very good behavior actually -- too many actions are generated
+                 //i'd like to have as few actions as possible, ideally -- only one to fix the command and one to rename the local identifier
+
+    fun `test that nothing is removed from hidden definitions if renaming to "very long name" is used anyway`() = simpleQuickFixTest("[Re", fileA +
+            """
+                --! B.vc
+                \import A \hiding (a, e)
+                \func a => 1
+                \func d => {-caret-}b
+            """,
+            """
+                \import A \hiding (a, e)
+                \func a => 1
+                \func d => A.a.b
+            """)
+
+    fun `test that nothing is added to the "using" list if renaming to "very long name" is used anyway`() = simpleQuickFixTest("[Re", fileA +
+            """
+                --! B.vc
+                \import A (e)
+                \func a => 1
+                \func d => {-caret-}b
+            """,
+            """
+                \import A (e)
+                \func a => 1
+                \func d => A.a.b
+            """)
+
+    //TODO: Add test similar to the above two which tests the same thing for ImportFileAction()
+    //TODO: Test that top-level open commands also have effect on the activation of "precarious mode", etc
+
 }

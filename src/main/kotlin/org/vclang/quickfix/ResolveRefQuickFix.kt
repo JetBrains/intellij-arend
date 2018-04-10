@@ -406,17 +406,23 @@ class ResolveRefQuickFix {
 
                 }
 
-                if (newBlock.isEmpty()) { //If we cannot resolve anything -- then perhaps there is some obstruction in scopes -- let us use the longest possible name
-                    val veryLongName = ArrayList<String>()
-                    veryLongName.addAll(targetFile.modulePath.toList())
-                    veryLongName.addAll(fullName)
-                    newBlock.add(veryLongName)
-                }
-
                 currentBlock = newBlock
 
             } else {
                 currentBlock = fullNames
+            }
+
+            if (currentBlock.isEmpty()) {
+                // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
+                // Let us use the "longest possible name" when referring to the element
+                val veryLongName = ArrayList<String>()
+                veryLongName.addAll(targetFile.modulePath.toList())
+                veryLongName.addAll(fullName)
+                currentBlock.add(veryLongName)
+
+                // no point removing anything from the list of hidden definitions or adding anything to the using list if very long name is used anyway
+                result.removeAll(result.filter { it is RemoveFromHidingAction })
+                result.removeAll(result.filter { it is AddIdToUsingAction })
             }
 
             // Determine shortest possible name in current scope
