@@ -63,7 +63,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList : Li
         return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
     }
 
-    private fun executeId(editor: Editor?, id : String) {
+    private fun executeId(id : String) {
         if (statCmd.nsCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
@@ -103,7 +103,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList : Li
 
     override fun execute(editor: Editor?) {
         for (id in idList)
-            executeId(editor, id)
+            executeId(id)
     }
 }
 
@@ -179,14 +179,19 @@ class ResolveRefQuickFix {
         fun getDecision(target: PsiElement, element: VcReferenceElement): List<List<ResolveRefFixAction>> {
             val targetFile = target.containingFile
             val currentFile = element.containingFile
-            val result = ArrayList<ResolveRefFixAction>()
 
             val fullName = ArrayList<String>()
-            val alternativeFullName : ArrayList<String>? = if (target is VcClassFieldSyn || target is VcClassField || target is VcConstructor) ArrayList() else null
+            val alternativeFullName : ArrayList<String>? = if (target is VcClassFieldSyn || target is VcClassField || target is VcConstructor)
+                ArrayList() else
+                null
             var ignoreFlag = true
 
             var psi: PsiElement = target
             var targetTop : MutableList<PsiReferable> = ArrayList()
+
+            var modifyingImportsNeeded = false
+            var fallbackImportAction : ResolveRefFixAction? = null
+            val importActionMap : HashMap<List<String>, ResolveRefFixAction?> = HashMap()
 
             while (psi.parent != null) {
                 if (psi is PsiReferable && psi !is VcFile) {
@@ -217,18 +222,12 @@ class ResolveRefQuickFix {
 
             if (currentFile is VcFile && targetFile is VcFile) {
                 if (currentFile != targetFile) {
-                    var precariousMode = false // True if imported scope of the current file has nonempty intersection with the scope of the target file
                     val fileGroup =  object: Group by currentFile {
                         override fun getSubgroups(): Collection<Group> = emptyList()
                     }
                     val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, null, false)
 
-                    for (vcDef in targetFile.subgroups) {
-                        if (importedScope.resolveName(vcDef.name) != null) {
-                            precariousMode = true
-                            break
-                        }
-                    }
+                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
                     var suitableImport : VcStatCmd? = null
                     val aliases = HashMap<List<String>, HashSet<String>>()
@@ -278,35 +277,44 @@ class ResolveRefQuickFix {
                     }
 
                     if (fullNames.isEmpty()) { // target definition is inaccessible in current context
+                        modifyingImportsNeeded = true
+
                         if (importedScope.resolveName(fullName[0]) == null) fullNames.add(fullName)
                         if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null) fullNames.add(alternativeFullName)
 
-                        if (suitableImport != null) { // the definition is unused or hidden
+                        if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
                             val nsUsing = suitableImport.nsUsing
                             val hiddenList = suitableImport.refIdentifierList
-                            val addToUsing = ArrayList<String>()
 
                             for (fName in fullNames) {
-                                var hiddenRef : VcRefIdentifier? = null
-                                for (ref in hiddenList) if (ref.referenceName == fName[0]) hiddenRef = ref
-                                if (hiddenRef != null) {
-                                    result.add(RemoveFromHidingAction(suitableImport, hiddenRef))
-                                } else if (nsUsing != null) {
-                                    addToUsing.add(fName[0])
-                                }
+                                val hiddenRef : VcRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
+                                if (hiddenRef != null)
+                                    importActionMap.put(fName, RemoveFromHidingAction(suitableImport, hiddenRef))
+                                else if (nsUsing != null)
+                                    importActionMap.put(fName, AddIdToUsingAction(suitableImport, singletonList(fName[0])))
                             }
+                            fallbackImportAction = null
+                        } else { // targetFile has not been imported
+                            if (cautiousMode) {
+                                fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
+                                for (fName in fullNames) importActionMap.put(fName, ImportFileAction(targetFile, currentFile, singletonList(fName[0])))
+                            } else {
+                                fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
+                                for (fName in fullNames) importActionMap.put(fName, fallbackImportAction)
+                            }
+                        }
 
-                            if (addToUsing.isNotEmpty()) result.add(AddIdToUsingAction(suitableImport, addToUsing))
-
-                        } else // target file not imported at all
-                            result.add(ImportFileAction(targetFile, currentFile, if (precariousMode) fullNames.map { it[0] } else null))
                     }
                 }
             } else {
                 return ArrayList()
             }
 
-            var currentBlock : Set<List<String>>
+            var currentBlock : Map<List<String>, ResolveRefFixAction?>
+
+            currentBlock = HashMap()
+            for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
+
             if (fullName.size > 1) {
                 val namespaceCommands = ArrayList<List<VcStatCmd>>()
                 psi = element
@@ -321,11 +329,9 @@ class ResolveRefQuickFix {
                     psi = psi.parent
                 }
 
-                currentBlock = fullNames
-
                 for (commandBlock in namespaceCommands) {
-                    val newBlock = HashSet<List<String>>()
-                    newBlock.addAll(currentBlock)
+                    val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+                    newBlock.putAll(currentBlock)
 
                     for (command in commandBlock) {
                         val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
@@ -343,7 +349,7 @@ class ResolveRefQuickFix {
                         }
 
                         if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
-                            for (fName in currentBlock) {
+                            for (fName in currentBlock.keys) {
                                 val i1 = fName.iterator()
                                 val i2 = refIdentifiers.iterator()
                                 var equals = true
@@ -366,7 +372,7 @@ class ResolveRefQuickFix {
                                         }
                                     }
 
-                                    if (equals) newBlock.add(fName2)
+                                    if (equals) newBlock.put(fName2, currentBlock[fName])
 
                                 }
                             }
@@ -376,12 +382,12 @@ class ResolveRefQuickFix {
                     currentBlock = newBlock
                 }
 
-                val newBlock = HashSet<List<String>>()
+                val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
 
-                for (fName in currentBlock) {
+                for (fName in currentBlock.keys) {
                     var correctedScope = element.scope
 
-                    if (result.size > 0 && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the import command have been fixed
+                    if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
                         val complementScope = object : ListScope(targetTop as List<Referable>?) {
                             override fun resolveNamespace(name: String?, resolveModuleNames: Boolean): Scope? {
                                 return targetTop
@@ -401,15 +407,13 @@ class ResolveRefQuickFix {
                     }
 
                     if (referable == target) {
-                        newBlock.add(fName)
+                        newBlock.put(fName, currentBlock[fName])
                     }
 
                 }
 
                 currentBlock = newBlock
 
-            } else {
-                currentBlock = fullNames
             }
 
             if (currentBlock.isEmpty()) {
@@ -418,43 +422,55 @@ class ResolveRefQuickFix {
                 val veryLongName = ArrayList<String>()
                 veryLongName.addAll(targetFile.modulePath.toList())
                 veryLongName.addAll(fullName)
-                currentBlock.add(veryLongName)
-
-                // no point removing anything from the list of hidden definitions or adding anything to the using list if very long name is used anyway
-                result.removeAll(result.filter { it is RemoveFromHidingAction })
-                result.removeAll(result.filter { it is AddIdToUsingAction })
+                currentBlock.put(veryLongName, fallbackImportAction)
             }
 
             // Determine shortest possible name in current scope
-            val iterator = currentBlock.iterator()
+            val iterator = currentBlock.keys.iterator()
             var length = -1
-            val resultNames : HashSet<List<String>> = HashSet()
+            val resultNames : MutableList<Pair<List<String>, ResolveRefFixAction?>> = ArrayList()
 
             do {
                 val lName = iterator.next()
-                if (length == -1 || lName.size == length) {
-                    length = lName.size
-                    resultNames.add(lName)
-                } else if (lName.size < length) {
-                    length = lName.size
+
+                if (lName.size < length)
                     resultNames.clear()
-                    resultNames.add(lName)
+
+                if (length == -1 || lName.size <= length) {
+                    length = lName.size
+                    resultNames.add(Pair(lName, currentBlock[lName]))
                 }
             } while (iterator.hasNext())
 
-            // Form resulting actions
-            val results = ArrayList<List<ResolveRefFixAction>>()
-            for (resultName in resultNames) {
-                val actions = ArrayList<ResolveRefFixAction>()
-                actions.addAll(result)
+            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 ->
+                if (o1 == null && o2 == null) return@Comparator 0
+                if (o1 == null) return@Comparator -1
+                if (o2 == null) return@Comparator 1
 
-                if ((resultName.size > 1 || (resultName[0] != element.referenceName))) {
+                val s1 = o1.first
+                val s2 = o2.first
+                (0 until minOf(s1.size, s2.size))
+                        .filter { s1[it] != s2[it] }
+                        .forEach { return@Comparator s1[it].compareTo(s2[it]) }
+                if (s1.size != s2.size) return@Comparator s1.size.compareTo(s2.size)
+                0
+            }
+            resultNames.sortedWith(comparator)
+
+            val actions = ArrayList<ResolveRefFixAction>()
+
+            if (resultNames.size > 0) {
+                val resultName = resultNames[0].first
+                val importAction = resultNames[0].second
+
+                if (importAction != null) actions.add(importAction)
+                if ((resultName.size > 1 || (resultName[0] != element.referenceName)))
                     actions.add(RenameReferenceAction(element, resultName))
-                }
-                results.add(actions)
             }
 
-            return results
+            return (if (actions.isEmpty())
+                emptyList() else
+                singletonList(actions))
         }
     }
 }

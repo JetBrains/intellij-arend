@@ -221,11 +221,10 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 }
             """
 
-    private fun `test that all possible variants of renaming are shown to the user`(s : String) =
+    private fun testB3(s : String) =
             simpleQuickFixTest("[Rename c to $s]", fileA + testB2("                --! B.vc\n                ", "{-caret-}c"), testB2("", s))
 
-    fun `test that all possible variants of renaming are shown to the user 1`() = `test that all possible variants of renaming are shown to the user`("b'.c")
-    fun `test that all possible variants of renaming are shown to the user 2`() = `test that all possible variants of renaming are shown to the user`("b''.c")
+    fun `test that only the smallest (wrt to lexicographic order) renaming option is shown to the user`() = testB3("b'.c")
 
     fun `test that shorter names are always preferred`() = simpleQuickFixTest("[Rename", fileA +
             """
@@ -364,18 +363,18 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """) //TODO: this is probably not a correct expression with current syntax;
                  //ensure it is a valid expression with a future one
 
-    fun `test that member and its parent are imported simultaneously if there are no name clashes`() = simpleQuickFixTest("[Add", fileF +
+    fun `test that only member is imported if there are no name clashes`() = simpleQuickFixTest("[Add", fileF +
             """
                 --! B.vc
                 \import F ()
                 \func test => 1 *{-caret-} 2
             """,
             """
-                \import F (*, Test1)
+                \import F (*)
                 \func test => 1 * 2
             """)
 
-    fun `test that only member is imported if there is a name clash for the parent`() = simpleQuickFixTest("[Add", fileF +
+    fun `test that only member is imported in the situation when there is a name clash for the parent`() = simpleQuickFixTest("[Add", fileF +
             """
                 --! C.vc
                 \func Test1 => 0
@@ -390,7 +389,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 * 2
             """)
 
-    fun `test that deliberate empty imports left by the user lead to the "precarious mode" not being activated`() = simpleQuickFixTest("[Import", fileA + fileE +
+    fun `test that deliberate empty imports left by the user lead to the "cautious mode" not being activated`() = simpleQuickFixTest("[Import", fileA + fileE +
             """
                 --! B.vc
                 \import E ()
@@ -402,7 +401,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func g => a.b
             """)
 
-    fun `test function name is not removed from the list of hidden definitions if there are clashing names`() = simpleQuickFixTest("[Rename", fileA +
+    fun `test function name is not removed from the list of hidden definitions if there are clashing names`() = simpleQuickFixTest("[Rename", fileA + fileE +
             """
                 --! B.vc
                 \import A \hiding (a, e)
@@ -415,17 +414,16 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
-    fun `test that two items simultaneously can be removed from the list of hidden definitions`() = simpleQuickFixTest("[Remove", fileF +
+    fun `test that only one item is removed from the list of hidden definitions`() = simpleQuickFixTest("[Remove", fileF +
             """
                 --! B.vc
                 \import F \hiding (Test1, *)
                 \func test => 1 *{-caret-} 2
             """,
             """
-                \import F
+                \import F \hiding (Test1)
                 \func test => 1 * 2
-            """) //not very good behavior actually -- too many actions are generated
-                 //i'd like to have as few actions as possible, ideally -- only one to fix the command and one to rename the local identifier
+            """)
 
     fun `test that nothing is removed from hidden definitions if renaming to "very long name" is used anyway`() = simpleQuickFixTest("[Re", fileA +
             """
@@ -453,7 +451,53 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
-    //TODO: Add test similar to the above two which tests the same thing for ImportFileAction()
-    //TODO: Test that top-level open commands also have effect on the activation of "precarious mode", etc
+    fun `test that empty using list is used in import command if "very long name" is used anyway`() = simpleQuickFixTest("[Import", fileA + fileE +
+            """
+                --! B.vc
+                \import E (e)
+                \func a => 1
+                \func d => {-caret-}b
+            """,
+            """
+                \import A ()
+                \import E (e)
+                \func a => 1
+                \func d => A.a.b
+            """)
 
+    fun `test that top-level open commands also can activate "cautious mode" 1`() = simpleQuickFixTest("[Import", fileA +
+            """
+                --! C.vc
+                \func j => 1 \where
+                  \func e => 1
+
+                --! B.vc
+                \import C
+                \open j
+                \func d => {-caret-}b
+            """,
+            """
+                \import A (a)
+                \import C
+                \open j
+                \func d => a.b
+            """)
+
+    fun `test that top-level open commands also can activate "cautious mode" 2`() = simpleQuickFixTest("[Import", fileA +
+            """
+                --! C.vc
+                \func j => 1 \where
+                  \func a => 1
+
+                --! B.vc
+                \import C
+                \open j
+                \func d => {-caret-}b
+            """,
+            """
+                \import A ()
+                \import C
+                \open j
+                \func d => A.a.b
+            """)
 }
