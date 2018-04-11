@@ -75,7 +75,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => a.b
             """)
 
-    fun `test adding function name to nonempty using list`() = simpleQuickFixTest("[Add", fileA +
+    fun `test adding function name to nonempty using list 1`() = simpleQuickFixTest("[Add", fileA +
             """
                 --! B.vc
                 \import A (e)
@@ -84,6 +84,17 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
                 \import A (a, e)
                 \func d => a.b.c
+            """)
+
+    fun `test adding function name to nonempty using list 2`() = simpleQuickFixTest("[Add", fileA +
+            """
+                --! B.vc
+                \import A (a)
+                \func d => {-caret-}e
+            """,
+            """
+                \import A (a, e)
+                \func d => e
             """)
 
     fun `test removing function name from the singleton list of hidden definitions`() = simpleQuickFixTest("[Remove", fileA +
@@ -106,6 +117,17 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
                 \import A \hiding (e)
                 \func d => a.b
+            """)
+
+    fun `test removing function name from the list of hidden definitions 2`() = simpleQuickFixTest("[Remove", fileA +
+            """
+                --! B.vc
+                \import A \hiding ( a , e)
+                \func d => {-caret-}e
+            """,
+            """
+                \import A \hiding ( a)
+                \func d => e
             """)
 
     fun `test that adding library import preserves alphabetic order 1` () = simpleQuickFixTest("[Import file C]", fileA+fileC+fileD+
@@ -136,6 +158,20 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import C
                 \import D
                 \func d => a.b.c
+            """)
+
+    fun `test that adding library import preserves alphabetic order 3` () = simpleQuickFixTest("[Import", fileA+fileC+fileD+
+            """
+                --! B.vc
+                \import A
+                \import C
+                \func d => {-caret-}g
+            """,
+            """
+                \import A
+                \import C
+                \import D
+                \func d => g
             """)
 
     fun `test that open commands are taken into account`() = simpleQuickFixTest("[Rename", fileA +

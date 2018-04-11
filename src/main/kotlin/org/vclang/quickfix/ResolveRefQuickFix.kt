@@ -27,7 +27,8 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
         val factory = VcPsiFactory(importFile.project)
         val commandStatement = factory.createImportCommand(fullName + (if (usingList == null) "" else " ()"))
 
-        if (currentFile.children.isEmpty()) currentFile.add(commandStatement)
+        if (currentFile.children.isEmpty())
+            currentFile.add(commandStatement)
         var anchor = currentFile.children[0]
         var after = false
 
@@ -35,15 +36,18 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
         if (currFileCommands.isNotEmpty()) {
             val name = LongName(currFileCommands[0].path).toString()
             anchor = currFileCommands[0].parent
-            if (fullName >= name) after = true
+            if (fullName >= name)
+                after = true
         }
 
         if (after) for (nC in currFileCommands.drop(1)) {
             val name = LongName(nC.path).toString()
-            if (fullName >= name) anchor = nC.parent else break
+            if (fullName >= name)
+                anchor = nC.parent else break
         }
 
-        if (usingList != null) AddIdToUsingAction(commandStatement.statCmd!!, usingList).execute(editor)
+        if (usingList != null)
+            AddIdToUsingAction(commandStatement.statCmd!!, usingList).execute(editor)
 
         if (anchor.parent == currentFile) {
             if (after) {
@@ -122,22 +126,27 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
 
         while (endSibling.nextSibling is PsiWhiteSpace || endSibling.nextSibling.node.elementType == VcElementTypes.COMMA) {
             endSibling = endSibling.nextSibling
-            if (endSibling.node.elementType == VcElementTypes.COMMA && !leftEnd) break
+            if (endSibling.node.elementType == VcElementTypes.COMMA && !leftEnd)
+                break
         }
 
         val rightEnd = endSibling.nextSibling.node.elementType == VcElementTypes.RPAREN
 
         if (rightEnd && startSibling.prevSibling.node.elementType == VcElementTypes.COMMA) {
             startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
         }
 
         if (leftEnd && rightEnd) {
             startSibling = startSibling.prevSibling
             endSibling = endSibling.nextSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling.node.elementType == VcElementTypes.HIDING_KW) startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling.node.elementType == VcElementTypes.HIDING_KW)
+                startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
         }
 
         id.parent.deleteChildRange(startSibling, endSibling)
@@ -279,8 +288,10 @@ class ResolveRefQuickFix {
                     if (fullNames.isEmpty()) { // target definition is inaccessible in current context
                         modifyingImportsNeeded = true
 
-                        if (importedScope.resolveName(fullName[0]) == null) fullNames.add(fullName)
-                        if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null) fullNames.add(alternativeFullName)
+                        if (importedScope.resolveName(fullName[0]) == null)
+                            fullNames.add(fullName)
+                        if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null)
+                            fullNames.add(alternativeFullName)
 
                         if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
                             val nsUsing = suitableImport.nsUsing
@@ -297,10 +308,12 @@ class ResolveRefQuickFix {
                         } else { // targetFile has not been imported
                             if (cautiousMode) {
                                 fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
-                                for (fName in fullNames) importActionMap.put(fName, ImportFileAction(targetFile, currentFile, singletonList(fName[0])))
+                                for (fName in fullNames)
+                                    importActionMap.put(fName, ImportFileAction(targetFile, currentFile, singletonList(fName[0])))
                             } else {
                                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
-                                for (fName in fullNames) importActionMap.put(fName, fallbackImportAction)
+                                for (fName in fullNames)
+                                    importActionMap.put(fName, fallbackImportAction)
                             }
                         }
 
@@ -321,10 +334,13 @@ class ResolveRefQuickFix {
                 while (psi.parent != null) {
                     var statements : List<VcStatCmd>? = null
 
-                    if (psi is VcWhere) statements = psi.children.mapNotNull { (it as? VcStatement)?.statCmd }
-                    else if (psi is VcFile) statements = psi.namespaceCommands
+                    if (psi is VcWhere)
+                        statements = psi.children.mapNotNull { (it as? VcStatement)?.statCmd }
+                    else if (psi is VcFile)
+                        statements = psi.namespaceCommands
 
-                    if (statements != null) namespaceCommands.add(0, statements.filter { it.nsCmd.openKw != null })
+                    if (statements != null)
+                        namespaceCommands.add(0, statements.filter { it.nsCmd.openKw != null })
 
                     psi = psi.parent
                 }
@@ -343,8 +359,9 @@ class ResolveRefQuickFix {
                             for (nsId in using.nsIdList) {
                                 val oldName = nsId.refIdentifier.referenceName
                                 val defIdentifier = nsId.defIdentifier
-                                if (defIdentifier != null) renamings[oldName] = defIdentifier.name!!
-                                  else renamings[oldName] = oldName
+                                if (defIdentifier != null)
+                                    renamings[oldName] = defIdentifier.name!!
+                                else renamings[oldName] = oldName
                             }
                         }
 
@@ -372,7 +389,8 @@ class ResolveRefQuickFix {
                                         }
                                     }
 
-                                    if (equals) newBlock.put(fName2, currentBlock[fName])
+                                    if (equals)
+                                        newBlock.put(fName2, currentBlock[fName])
 
                                 }
                             }
