@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import org.vclang.highlight.VcHighlightingColors
@@ -65,9 +66,16 @@ class VcHighlightingAnnotator : Annotator {
             }
         }
 
-        val color = when (element) {
-            is VcDefIdentifier -> VcHighlightingColors.DECLARATION
-            is VcInfixArgument, is VcPostfixArgument -> VcHighlightingColors.OPERATORS
+        val color = when {
+            element is VcDefIdentifier -> VcHighlightingColors.DECLARATION
+            element is VcInfixArgument || element is VcPostfixArgument -> VcHighlightingColors.OPERATORS
+            element is VcRefIdentifier || element is LeafPsiElement && element.node.elementType == VcElementTypes.DOT -> {
+                val parent = element.parent as? VcLongName ?: return
+                if (parent.parent is VcStatCmd) return
+                val refList = parent.refIdentifierList
+                if (refList.indexOf(element) == refList.size - 1) return
+                VcHighlightingColors.LONG_NAME
+            }
             else -> return
         }
 
