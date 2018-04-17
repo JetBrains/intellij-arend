@@ -32,4 +32,6 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun getLoadedModules() = module.vcFiles.map { it.modulePath }
 
     override fun getRawSource(modulePath: ModulePath) = module.findVcFiles(modulePath).firstOrNull()?.let { VcRawSource(it) }
+
+    override fun needsTypechecking(): Boolean = true
 }

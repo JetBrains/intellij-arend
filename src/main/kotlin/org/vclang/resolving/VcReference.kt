@@ -44,26 +44,28 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
 
     override fun getVariants(): Array<Any> = element.scope.elements.map {
         val ref = (it as? RedirectingReferable)?.originalReferable ?: it
-        when (ref) {
-            is PsiNamedElement -> LookupElementBuilder.createWithIcon(ref)
+        val origRef: Any? = if (ref is DataLocatedReferable) ref.data else ref
+        when (origRef) {
+            is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
             is ModuleReferable -> {
-                val module = if (ref is PsiModuleReferable) (ref.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(ref.path)?.firstOrNull()
+                val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
                 module?.let {
                     if (it is VcFile)
                         LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
                         LookupElementBuilder.createWithIcon(it)
-                } ?: LookupElementBuilder.create(ref, ref.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+                } ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(VcIcons.DIRECTORY)
             }
             else -> LookupElementBuilder.create(ref, ref.textRepresentation())
         }
     }.toTypedArray()
 
     override fun resolve(): PsiElement? {
-        var ref = VcResolveCache.resolveCached( { element ->
+        var ref: Any? = VcResolveCache.resolveCached( { element ->
             element.scope.resolveName(element.referenceName)
         }, this.element)
 
         if (ref is RedirectingReferable) ref = ref.originalReferable
+        if (ref is DataLocatedReferable) ref = ref.data
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
@@ -89,8 +91,9 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
 
 open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element), PsiPolyVariantReference {
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        var ref = element.scope.resolveName(element.referenceName)
+        var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable
+        if (ref is DataLocatedReferable) ref = ref.data
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()

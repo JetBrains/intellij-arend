@@ -7,10 +7,10 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
-import com.jetbrains.jetpad.vclang.term.abs.IdReferableConverter
 import org.vclang.psi.VcArgument
 import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcTypeTele

@@ -3,6 +3,7 @@ package org.vclang.resolving
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
@@ -13,7 +14,7 @@ import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 
-class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
+class PsiConcreteProvider(private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
     var isResolving = false
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
@@ -29,7 +30,7 @@ class PsiConcreteProvider(private val errorReporter: ErrorReporter, private val 
             eventsProcessor.onTestStarted(typecheckable)
             eventsProcessor.startTimer(typecheckable)
         }
-        val def = referable.computeConcrete(errorReporter)
+        val def = referable.computeConcrete(referableConverter, errorReporter)
         if (def == null) {
             if (typecheckable != null && eventsProcessor != null) {
                 eventsProcessor.stopTimer(typecheckable)

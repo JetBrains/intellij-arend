@@ -8,6 +8,7 @@ import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
+import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
@@ -32,6 +33,9 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     val fullName
         get() = modulePath.toString()
+
+    val libraryName
+        get() = module?.name ?: if (modulePath == Prelude.MODULE_PATH) "prelude" else null
 
     override fun setName(name: String): PsiElement {
         val (nameWithExt, nameWithoutExt) = if (name.endsWith('.' + VcFileType.defaultExtension)) {

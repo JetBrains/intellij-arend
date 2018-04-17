@@ -3,6 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
 import org.vclang.psi.*
@@ -14,8 +15,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
 
     constructor(stub: VcClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ClassField? {
-        val classDef = ancestors.filterIsInstance<VcDefClass>().firstOrNull()?.computeConcrete(errorReporter) as? Concrete.ClassDefinition ?: return null
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ClassField? {
+        val classDef = ancestors.filterIsInstance<VcDefClass>().firstOrNull()?.computeConcrete(referableConverter, errorReporter) as? Concrete.ClassDefinition ?: return null
         return classDef.fields.firstOrNull { it.data === this }
     }
 

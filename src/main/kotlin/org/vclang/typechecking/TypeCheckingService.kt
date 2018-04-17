@@ -34,9 +34,9 @@ import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.VcLocalReferableConverter
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
-import org.vclang.vcModules
 
 interface TypeCheckingService {
     var eventsProcessor: TypecheckingEventsProcessor?
@@ -92,8 +92,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 return
             }
 
-            val libraries = if (libraryName == "" && modulePath == null) project.vcModules.map { VcRawLibrary(it, typecheckerState) } else {
-                val library = if (libraryName != "") libraryManager.getLibrary(libraryName) else findLibrary(modulePath!!)
+            val libraries = if (libraryName == "" && modulePath == null) libraryManager.registeredLibraries.filterIsInstance<VcRawLibrary>() else {
+                val library = if (libraryName != "") libraryManager.getRegisteredLibrary(libraryName) else findLibrary(modulePath!!)
                 if (library == null) {
                     if (libraryName != "") {
                         libraryManager.typecheckingErrorReporter.report(LibraryError.notFound(libraryName))
@@ -104,7 +104,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 listOf(library)
             }
 
-            val psiConcreteProvider = PsiConcreteProvider(typecheckingErrorReporter, eventsProcessor)
+            val psiConcreteProvider = PsiConcreteProvider(VcLocalReferableConverter(project), typecheckingErrorReporter, eventsProcessor)
             val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
             val typeChecking = TestBasedTypechecking(
                 eventsProcessor,
@@ -117,6 +117,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             var computationFinished = true
 
             for (library in libraries) {
+                if (!library.needsTypechecking()) continue
+
                 val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
                 val modules = modulePaths.mapNotNull {
                     val module = library.getModuleGroup(it)

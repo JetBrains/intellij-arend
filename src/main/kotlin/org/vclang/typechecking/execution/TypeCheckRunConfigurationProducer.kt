@@ -43,7 +43,7 @@ class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfi
             is VcFile -> {
                 sourceElement?.set(definition)
                 val fullName = definition.fullName
-                return MyConfiguration("Type check $fullName", TypeCheckCommand(fullName))
+                return MyConfiguration("Type check $fullName", TypeCheckCommand("", fullName))
             }
             else -> return null
         }

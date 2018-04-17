@@ -2,16 +2,21 @@ package org.vclang.module
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
+import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.library.BaseLibrary
 import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.scopeprovider.ModuleScopeProvider
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
+import com.jetbrains.jetpad.vclang.naming.scope.ConvertingScope
 import com.jetbrains.jetpad.vclang.naming.scope.LexicalScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
+import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.VcLanguage
 import org.vclang.psi.VcFile
@@ -41,14 +46,13 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
 
     override fun typecheck(typechecking: Typechecking): Boolean {
         if (isTypechecked) return true
-        if (!super.typecheck(typechecking)) return false
 
         if (Prelude.INTERVAL == null) {
             synchronized(VcPreludeLibrary::class.java) {
                 if (Prelude.INTERVAL == null) {
                     return if (super.typecheck(typechecking)) {
                         isTypechecked = true
-                        Prelude.initialize(moduleScopeProvider.forModule(Prelude.MODULE_PATH), typecheckerState)
+                        Prelude.initialize(scope ?: return false, typecheckerState)
                         true
                     } else {
                         false
@@ -63,11 +67,23 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
     }
 
     override fun load(libraryManager: LibraryManager): Boolean {
-        val text = String(Files.readAllBytes(Paths.get(VcPreludeLibrary::class.java.getResource("/lib").toURI()).resolve(Paths.get("Prelude" + FileUtils.EXTENSION))), StandardCharsets.UTF_8)
-        prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, VcLanguage, text) as? VcFile
-        val preludeFile = prelude ?: return false
-        preludeFile.virtualFile.isWritable = false
-        scope = CachingScope.make(LexicalScope.opened(preludeFile))
-        return super.load(libraryManager)
+        if (prelude == null) {
+            synchronized(VcPreludeLibrary::class.java) {
+                if (prelude == null) {
+                    val text = String(Files.readAllBytes(Paths.get(VcPreludeLibrary::class.java.getResource("/lib").toURI()).resolve(Paths.get("Prelude" + FileUtils.EXTENSION))), StandardCharsets.UTF_8)
+                    prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, VcLanguage, text) as? VcFile
+                    prelude?.virtualFile?.isWritable = false
+                }
+            }
+        }
+
+        return prelude != null && super.load(libraryManager)
+    }
+
+    fun resolveNames(referableConverter: ReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
+        if (scope != null) throw IllegalStateException()
+        val preludeFile = prelude ?: return
+        scope = CachingScope.make(ConvertingScope(referableConverter, LexicalScope.opened(preludeFile)))
+        DefinitionResolveNameVisitor(errorReporter).resolveGroup(preludeFile, scope, concreteProvider)
     }
 }

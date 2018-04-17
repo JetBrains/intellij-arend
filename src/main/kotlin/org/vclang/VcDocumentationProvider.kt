@@ -2,10 +2,10 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
+import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
-import com.jetbrains.jetpad.vclang.term.abs.IdReferableConverter
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable

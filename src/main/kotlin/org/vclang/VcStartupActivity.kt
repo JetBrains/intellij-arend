@@ -18,6 +18,7 @@ import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.isVcModule
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.resolving.VcReferableConverter
 import org.vclang.typechecking.TypeCheckingService
 
 class VcStartupActivity : StartupActivity {
@@ -31,9 +32,10 @@ class VcStartupActivity : StartupActivity {
         // TODO[references]: Load typechecked prelude library from resources
         val preludeLibrary = VcPreludeLibrary(project, service.typecheckerState)
         service.libraryManager.loadLibrary(preludeLibrary)
-        val psiConcreteProvider = PsiConcreteProvider(DummyErrorReporter.INSTANCE, null)
-        psiConcreteProvider.isResolving = true
-        preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, CachingConcreteProvider(psiConcreteProvider)))
+        val referableConverter = VcReferableConverter(project)
+        val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null))
+        preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.typecheckingErrorReporter)
+        preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, concreteProvider))
 
         for (module in project.vcModules) {
             service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))
@@ -47,7 +49,7 @@ class VcStartupActivity : StartupActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                service.libraryManager.getLibrary(module.name)?.let { service.libraryManager.unloadLibrary(it) }
+                service.libraryManager.getRegisteredLibrary(module.name)?.let { service.libraryManager.unloadLibrary(it) }
             }
         })
 

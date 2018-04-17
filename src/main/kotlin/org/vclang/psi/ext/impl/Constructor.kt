@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
@@ -17,8 +18,8 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     constructor(stub: VcConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.Constructor? {
-        val data = ancestors.filterIsInstance<VcDefData>().firstOrNull()?.computeConcrete(errorReporter) as? Concrete.DataDefinition ?: return null
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Constructor? {
+        val data = ancestors.filterIsInstance<VcDefData>().firstOrNull()?.computeConcrete(referableConverter, errorReporter) as? Concrete.DataDefinition ?: return null
         return data.constructorClauses
             .flatMap { it.constructors }
             .firstOrNull { it.data === this }
