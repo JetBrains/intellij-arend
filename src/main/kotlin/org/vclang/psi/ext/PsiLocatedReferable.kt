@@ -1,11 +1,17 @@
 package org.vclang.psi.ext
 
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import org.vclang.psi.VcFile
 import org.vclang.psi.ancestors
+import org.vclang.resolving.DataLocatedReferable
 
 
-interface PsiLocatedReferable : LocatedReferable, PsiReferable
+interface PsiLocatedReferable : LocatedReferable, PsiReferable {
+    companion object {
+        fun fromReferable(referable: GlobalReferable) = ((referable as? DataLocatedReferable)?.data ?: referable) as? PsiLocatedReferable
+    }
+}
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {
     val parent = parent?.ancestors?.filterIsInstance<PsiLocatedReferable>()?.firstOrNull()

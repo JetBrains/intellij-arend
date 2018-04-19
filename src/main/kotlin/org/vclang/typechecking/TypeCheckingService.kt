@@ -16,8 +16,10 @@ import com.jetbrains.jetpad.vclang.module.error.ModuleNotFoundError
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.LocatingModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
+import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
-import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
@@ -34,7 +36,7 @@ import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
-import org.vclang.resolving.VcLocalReferableConverter
+import org.vclang.resolving.VcReferableConverter
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
@@ -45,7 +47,13 @@ interface TypeCheckingService {
 
     val typecheckerState: TypecheckerState
 
+    val referableConverter: ReferableConverter
+
+    fun getTypechecked(definition: VcDefinition): Definition?
+
     fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator)
+
+    fun updateDefinition(referable: LocatedReferable)
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -67,6 +75,10 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     private val typecheckingErrorReporter = TypecheckingErrorReporter(PrettyPrinterConfig.DEFAULT)
     override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, typecheckingErrorReporter, LogErrorReporter(PrettyPrinterConfig.DEFAULT))
 
+    private val simpleReferableConverter = SimpleReferableConverter()
+    override val referableConverter: ReferableConverter
+        get() = VcReferableConverter(project, simpleReferableConverter)
+
     init {
         libraryManager.moduleScopeProvider = LocatingModuleScopeProvider(libraryManager)
 
@@ -77,6 +89,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
         })
     }
+
+    override fun getTypechecked(definition: VcDefinition) =
+        simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     override fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator) {
         Typechecking.CANCELLATION_INDICATOR = cancellationIndicator
@@ -101,18 +116,18 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     eventsProcessor.onSuitesFinished()
                     return
                 }
+                if (library !is VcRawLibrary) {
+                    libraryManager.typecheckingErrorReporter.report(LibraryError.incorrectLibrary(libraryName))
+                    eventsProcessor.onSuitesFinished()
+                    return
+                }
                 listOf(library)
             }
 
-            val psiConcreteProvider = PsiConcreteProvider(VcLocalReferableConverter(project), typecheckingErrorReporter, eventsProcessor)
+            val referableConverter = referableConverter
+            val psiConcreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, eventsProcessor)
             val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
-            val typeChecking = TestBasedTypechecking(
-                eventsProcessor,
-                typecheckerState,
-                concreteProvider,
-                typecheckingErrorReporter,
-                dependencyCollector
-            )
+            val typeChecking = TestBasedTypechecking(eventsProcessor, typecheckerState, concreteProvider, typecheckingErrorReporter, dependencyCollector, referableConverter)
 
             var computationFinished = true
 
@@ -124,14 +139,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     val module = library.getModuleGroup(it)
                     if (module == null) {
                         libraryManager.typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
+                    } else if (definitionFullName == "") {
+                        DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider), concreteProvider)
                     }
                     module
                 }
 
                 if (definitionFullName == "") {
-                    for (module in modules) {
-                        DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, CachingScope.make(ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider)), concreteProvider)
-                    }
                     psiConcreteProvider.isResolving = true
                     computationFinished = typeChecking.typecheckModules(modules) && computationFinished
                 } else {
@@ -141,7 +155,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                             libraryManager.typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName, modulePath))
                         }
                     } else {
-                        val typechecked = typecheckerState.getTypechecked(ref)
+                        val tcReferable = referableConverter.toDataLocatedReferable(ref)
+                        val typechecked = typecheckerState.getTypechecked(tcReferable)
                         if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
                             psiConcreteProvider.isResolving = true
                             val definition = concreteProvider.getConcrete(ref)
@@ -150,7 +165,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                         } else {
                             if (ref is PsiLocatedReferable) {
                                 eventsProcessor.onTestStarted(ref)
-                                typeChecking.typecheckingBodyFinished(ref, typechecked)
+                                typeChecking.typecheckingBodyFinished(tcReferable, typechecked)
                             }
                         }
                     }
@@ -206,6 +221,10 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         return library
     }
 
+    override fun updateDefinition(referable: LocatedReferable) {
+        simpleReferableConverter.remove(referable)?.let { dependencyCollector.update(it) }
+    }
+
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
             processParent(event)
@@ -235,10 +254,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         private fun processParent(event: PsiTreeChangeEvent) {
             if (event.file is VcFile) {
                 val ancestors = event.parent.ancestors
-                val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull()
-                definition?.let {
-                    dependencyCollector.update(definition)
-                }
+                val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: return
+                updateDefinition(definition)
             }
         }
 
@@ -246,8 +263,8 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             element.accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement?) {
                     super.visitElement(element)
-                    if (element is GlobalReferable) {
-                        dependencyCollector.update(element)
+                    if (element is LocatedReferable) {
+                        updateDefinition(element)
                     }
                 }
             })

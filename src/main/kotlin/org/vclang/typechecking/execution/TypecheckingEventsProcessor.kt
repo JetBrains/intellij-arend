@@ -29,13 +29,13 @@ class TypecheckingEventsProcessor(
     private val fileToProxy = mutableMapOf<ModulePath, DefinitionProxy>()
     private val deferredActions = mutableMapOf<LocatedReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false
-    private val testsDuration = mutableMapOf<LocatedReferable, Long>()
+    private val testsDuration = mutableMapOf<PsiLocatedReferable, Long>()
 
-    fun startTimer(ref: LocatedReferable) {
+    fun startTimer(ref: PsiLocatedReferable) {
         testsDuration.compute(ref, { _, time -> System.currentTimeMillis() + (time ?: 0) })
     }
 
-    fun stopTimer(ref: LocatedReferable) {
+    fun stopTimer(ref: PsiLocatedReferable) {
         testsDuration.compute(ref, { _, time -> time?.let { System.currentTimeMillis() - it } })
     }
 
@@ -112,7 +112,11 @@ class TypecheckingEventsProcessor(
                 suite.setFinished()
                 fireOnSuiteFinished(suite)
             }
+
+            deferredActions.clear()
+            testsDuration.clear()
             fileToProxy.clear()
+            definitionToProxy.clear()
         }
     }
 

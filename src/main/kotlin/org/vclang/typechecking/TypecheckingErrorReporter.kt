@@ -39,9 +39,10 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         var reported = false
         val eventsProcessor = eventsProcessor!!
         error.affectedDefinitions.mapNotNull {
-            if (it is PsiLocatedReferable || it is ModuleReferable) {
+            val ref = PsiLocatedReferable.fromReferable(it)
+            if (ref is PsiLocatedReferable || it is ModuleReferable) {
                 reported = true
-                if (it is PsiLocatedReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+                if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref, proxyAction)
                 if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
             }
         }

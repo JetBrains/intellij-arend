@@ -6,11 +6,13 @@ import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.library.LibraryHeader
 import com.jetbrains.jetpad.vclang.library.SourceLibrary
 import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.source.FileBinarySource
 import com.jetbrains.jetpad.vclang.source.GZIPStreamBinarySource
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import org.vclang.module.util.findVcFiles
 import org.vclang.module.util.vcFiles
+import org.vclang.typechecking.TypeCheckingService
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -34,4 +36,8 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun getRawSource(modulePath: ModulePath) = module.findVcFiles(modulePath).firstOrNull()?.let { VcRawSource(it) }
 
     override fun needsTypechecking(): Boolean = true
+
+    override fun unloadDefinition(referable: LocatedReferable) {
+        TypeCheckingService.getInstance(module.project).updateDefinition(referable)
+    }
 }

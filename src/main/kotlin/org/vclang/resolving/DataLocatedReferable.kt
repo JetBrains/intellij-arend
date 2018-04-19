@@ -2,12 +2,17 @@ package org.vclang.resolving
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
-import com.jetbrains.jetpad.vclang.naming.reference.DataContainer
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferableImpl
-import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.naming.reference.*
 
 
-class DataLocatedReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, precedence: Precedence, name: String, parent: LocatedReferable?, isTypecheckable: Boolean) : LocatedReferableImpl(precedence, name, parent, isTypecheckable), DataContainer {
+open class DataLocatedReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, referable: LocatedReferable, parent: TCReferable?) : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.isTypecheckable), DataContainer {
     override fun getData(): PsiElement? = psiElementPointer.element
+}
+
+class ClassDataLocatedReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, referable: LocatedReferable, parent: TCReferable?, private val superClassReferences: Collection<TCClassReferable>, private val fieldReferables: Collection<TCReferable>) : DataLocatedReferable(psiElementPointer, referable, parent), TCClassReferable {
+    override fun getData(): PsiElement? = psiElementPointer.element
+
+    override fun getSuperClassReferences(): Collection<TCClassReferable> = superClassReferences
+
+    override fun getFieldReferables(): Collection<TCReferable> = fieldReferables
 }

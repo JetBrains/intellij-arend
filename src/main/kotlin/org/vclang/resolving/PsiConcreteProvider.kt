@@ -6,6 +6,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.CachingScope
+import com.jetbrains.jetpad.vclang.naming.scope.ConvertingScope
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.typechecking.error.ProxyError
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
@@ -18,19 +19,20 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     var isResolving = false
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
-        if (referable !is PsiConcreteReferable) {
-            if (referable !is PsiLocatedReferable) {
+        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        if (psiReferable !is PsiConcreteReferable) {
+            if (psiReferable == null) {
                 errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
             }
             return null
         }
 
-        val typecheckable = referable.typecheckable as? PsiLocatedReferable
+        val typecheckable = psiReferable.typecheckable as? PsiLocatedReferable
         if (typecheckable != null && eventsProcessor != null) {
             eventsProcessor.onTestStarted(typecheckable)
             eventsProcessor.startTimer(typecheckable)
         }
-        val def = referable.computeConcrete(referableConverter, errorReporter)
+        val def = psiReferable.computeConcrete(referableConverter, errorReporter)
         if (def == null) {
             if (typecheckable != null && eventsProcessor != null) {
                 eventsProcessor.stopTimer(typecheckable)
@@ -39,7 +41,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
             }
         } else {
             if (isResolving) {
-                def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(referable.scope))
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope)))
             }
             if (typecheckable != null && eventsProcessor != null) {
                 eventsProcessor.stopTimer(typecheckable)

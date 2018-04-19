@@ -3,27 +3,27 @@ package org.vclang.resolving
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
+import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
 
 
-class VcLocalReferableConverter(private val project: Project) : ReferableConverter {
-    override fun toDataReferable(referable: Referable?): Referable? =
-        if (referable is PsiElement) DataLocalReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.textRepresentation())
-        else referable
-
-    override fun toDataLocatedReferable(referable: LocatedReferable?): LocatedReferable? = referable
-}
-
-class VcReferableConverter(private val project: Project) : ReferableConverter {
-    private val cache = HashMap<PsiElement, LocatedReferable>()
+class VcReferableConverter(private val project: Project, private val state: SimpleReferableConverter) : ReferableConverter {
+    private val cache = HashMap<PsiElement, TCReferable>()
 
     override fun toDataReferable(referable: Referable?): Referable? =
         if (referable is PsiElement) DataLocalReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.textRepresentation())
         else referable
 
-    override fun toDataLocatedReferable(referable: LocatedReferable?): LocatedReferable? =
-        if (referable is PsiElement) cache.computeIfAbsent(referable, { DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.precedence, referable.textRepresentation(), toDataLocatedReferable(referable.locatedReferableParent), referable.isTypecheckable) })
-        else referable
+    override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
+        when (referable) {
+            is PsiElement -> cache.computeIfAbsent(referable, { state.computeIfAbsent(referable, {
+                val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable)
+                val parent = toDataLocatedReferable(referable.locatedReferableParent)
+                if (referable is ClassReferable) ClassDataLocatedReferable(pointer, referable, parent, referable.superClassReferences.mapNotNull { toDataLocatedReferable(it) as? TCClassReferable }, referable.fieldReferables.mapNotNull { (it as? LocatedReferable)?.let { toDataLocatedReferable(it) } })
+                else DataLocatedReferable(pointer, referable, parent)
+            }) })
+            is TCReferable -> referable
+            else -> null
+        }
 }
