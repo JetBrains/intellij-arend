@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2017 Mikhail Chernyavsky
+Copyright (c) 2017 Mikhail Chernyavsky, Valery Isaev, Sergey Sinchuk, Fedor Part
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@ contributors, 2015 as part of project Rust plugin for the IntelliJ Platform
 and are provided under the MIT license.
 
 All other copyright for project Vclang plugin for the IntelliJ IDEA are
-held by Mikhail Chernyavsky, 2017.
+held by Mikhail Chernyavsky, Valery Isaev, Sergey Sinchuk and Fedor Part, 2017.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
