@@ -396,8 +396,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
                 \import F (Test1 \as Test)
                 \func test => 1 Test.* 2
-            """) //TODO: this is probably not a correct expression with current syntax;
-                 //ensure it is a valid expression with a future one
+            """)
 
     fun `test that only member is imported if there are no name clashes`() = simpleQuickFixTest("[Add", fileF +
             """

@@ -165,7 +165,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 */
             }
 
-            if (computationFinished) eventsProcessor.onSuitesFinished()
+            if (computationFinished)
+                eventsProcessor.onSuitesFinished()
+
         } finally {
             Typechecking.setDefaultCancellationIndicator()
         }
