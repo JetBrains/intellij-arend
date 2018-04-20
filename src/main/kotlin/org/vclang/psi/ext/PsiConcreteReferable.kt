@@ -6,5 +6,5 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 
 
 interface PsiConcreteReferable: PsiLocatedReferable {
-    fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ReferableDefinition?
+    fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition?
 }

@@ -114,7 +114,7 @@ private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CL
 private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
 
 classField ::= prec? defIdentifier typeTele* COLON expr {
-    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+    implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
@@ -124,7 +124,7 @@ classField ::= prec? defIdentifier typeTele* COLON expr {
 
 classFieldSyn ::= PIPE refIdentifier FAT_ARROW prec? defIdentifier {
     pin = 1
-    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+    implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldSynonym" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
@@ -145,7 +145,6 @@ definition ::= defFunction
     | defClass
     | defInstance {
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
-                   "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.ChildGroup" ]
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
@@ -216,7 +215,7 @@ atomPattern ::= LPAREN pattern? RPAREN
 
 constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     pin = 2
-    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+    implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Constructor"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ConstructorClause" ]
@@ -478,7 +477,7 @@ typedExpr ::= identifierOrUnknown+ COLON expr | expr
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 fieldDefIdentifier ::= defIdentifier {
-    implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
+    implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"

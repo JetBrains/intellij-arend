@@ -13,7 +13,6 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.startup.StartupActivity
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.prelude.Prelude
-import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.isVcModule
@@ -32,7 +31,7 @@ class VcStartupActivity : StartupActivity {
         val preludeLibrary = VcPreludeLibrary(project, service.typecheckerState)
         service.libraryManager.loadLibrary(preludeLibrary)
         val referableConverter = service.referableConverter
-        val concreteProvider = CachingConcreteProvider(PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null))
+        val concreteProvider = PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.typecheckingErrorReporter)
         preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, concreteProvider))
 

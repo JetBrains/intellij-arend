@@ -2,9 +2,6 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.error.ErrorReporter
-import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
-import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcClassFieldStub
@@ -14,11 +11,6 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ClassField? {
-        val classDef = ancestors.filterIsInstance<VcDefClass>().firstOrNull()?.computeConcrete(referableConverter, errorReporter) as? Concrete.ClassDefinition ?: return null
-        return classDef.fields.firstOrNull { it.data === this }
-    }
 
     override fun getPrecedence() = calcPrecedence(prec)
 

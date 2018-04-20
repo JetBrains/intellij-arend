@@ -10,11 +10,11 @@ import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
 import org.vclang.psi.VcPrec
 import org.vclang.psi.ancestors
-import org.vclang.psi.ext.PsiConcreteReferable
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiStubbedReferableImpl
 import org.vclang.psi.stubs.VcNamedStub
 
-abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiConcreteReferable
+abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : VcNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 

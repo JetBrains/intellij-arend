@@ -28,7 +28,6 @@ import com.jetbrains.jetpad.vclang.typechecking.SimpleTypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
-import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.VcRawLibrary
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
@@ -125,8 +124,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             }
 
             val referableConverter = referableConverter
-            val psiConcreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, eventsProcessor)
-            val concreteProvider = CachingConcreteProvider(psiConcreteProvider)
+            val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, eventsProcessor)
             val typeChecking = TestBasedTypechecking(eventsProcessor, typecheckerState, concreteProvider, typecheckingErrorReporter, dependencyCollector, referableConverter)
 
             var computationFinished = true
@@ -146,7 +144,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 }
 
                 if (definitionFullName == "") {
-                    psiConcreteProvider.isResolving = true
+                    concreteProvider.isResolving = true
                     computationFinished = typeChecking.typecheckModules(modules) && computationFinished
                 } else {
                     val ref = modules.firstOrNull()?.findGroupByFullName(definitionFullName.split('.'))?.referable
@@ -158,7 +156,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                         val tcReferable = referableConverter.toDataLocatedReferable(ref)
                         val typechecked = typecheckerState.getTypechecked(tcReferable)
                         if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                            psiConcreteProvider.isResolving = true
+                            concreteProvider.isResolving = true
                             val definition = concreteProvider.getConcrete(ref)
                             if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition)) && computationFinished
                             else if (definition != null) error(definitionFullName + " is not a definition")
