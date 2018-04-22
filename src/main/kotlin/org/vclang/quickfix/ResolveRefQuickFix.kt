@@ -174,6 +174,22 @@ class RenameReferenceAction(private val element: VcReferenceElement, private val
     }
 }
 
+class ResolveRefFixData(val target : PsiElement,
+                        val targetFullName : List<String>,
+                        val currentElement : PsiElement,
+                        val commandFixAction: ResolveRefFixAction?,
+                        val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
+
+    override fun toString(): String {
+        return "Import "+LongName(targetFullName).toString()
+    }
+
+    override fun execute(editor: Editor?) {
+        commandFixAction?.execute(editor)
+        cursorFixAction?.execute(editor)
+    }
+}
+
 class ResolveRefQuickFix {
     companion object {
 
@@ -185,7 +201,7 @@ class ResolveRefQuickFix {
             return "???"
         }
 
-        fun getDecision(target: PsiElement, element: VcReferenceElement): List<List<ResolveRefFixAction>> {
+        fun getDecision(target: PsiElement, element: VcReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile
             val currentFile = element.containingFile
 
@@ -204,7 +220,7 @@ class ResolveRefQuickFix {
 
             while (psi.parent != null) {
                 if (psi is PsiReferable && psi !is VcFile) {
-                    val name = psi.name ?: return ArrayList()
+                    val name = psi.name ?: return null
 
                     fullName.add(0, name)
                     if (alternativeFullName != null) {
@@ -319,9 +335,8 @@ class ResolveRefQuickFix {
 
                     }
                 }
-            } else {
-                return ArrayList()
-            }
+            } else
+                return null
 
             var currentBlock : Map<List<String>, ResolveRefFixAction?>
 
@@ -434,12 +449,13 @@ class ResolveRefQuickFix {
 
             }
 
+            val veryLongName = ArrayList<String>()
+            veryLongName.addAll(targetFile.modulePath.toList())
+            veryLongName.addAll(fullName)
+
             if (currentBlock.isEmpty()) {
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
                 // Let us use the "longest possible name" when referring to the element
-                val veryLongName = ArrayList<String>()
-                veryLongName.addAll(targetFile.modulePath.toList())
-                veryLongName.addAll(fullName)
                 currentBlock.put(veryLongName, fallbackImportAction)
             }
 
@@ -475,20 +491,13 @@ class ResolveRefQuickFix {
             }
             resultNames.sortedWith(comparator)
 
-            val actions = ArrayList<ResolveRefFixAction>()
-
             if (resultNames.size > 0) {
                 val resultName = resultNames[0].first
                 val importAction = resultNames[0].second
-
-                if (importAction != null) actions.add(importAction)
-                if ((resultName.size > 1 || (resultName[0] != element.referenceName)))
-                    actions.add(RenameReferenceAction(element, resultName))
-            }
-
-            return (if (actions.isEmpty())
-                emptyList() else
-                singletonList(actions))
+                val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
+                return ResolveRefFixData(target, veryLongName, element, importAction, renameAction)
+            } else
+                return null
         }
     }
 }
