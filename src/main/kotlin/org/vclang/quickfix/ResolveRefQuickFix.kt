@@ -54,8 +54,8 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
                 currentFile.addAfter(commandStatement, anchor)
                 currentFile.addAfter(factory.createWhitespace("\n"), anchor)
             } else {
-                currentFile.addBefore(commandStatement, anchor)
-                currentFile.addBefore(factory.createWhitespace("\n"), anchor)
+                val insertedCommand = currentFile.addBefore(commandStatement, anchor)
+                currentFile.addAfter(factory.createWhitespace("\n"), insertedCommand)
             }
         }
     }

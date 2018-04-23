@@ -19,9 +19,9 @@ class VclangReferenceImporter : ReferenceImporter {
 
         val element = file.findReferenceAt(offset)
         if (element is VcReferenceElement) {
-            val fixes = VcHighlightingAnnotator.createResolveDataByRef(element)
-            if (fixes.isNotEmpty()) {
-                VclangImportHintAction(element, fixes).doFix(editor, false, true)
+            val fix = VclangImportHintAction(element)
+            if (fix.isAvailable(element.project, editor, file)) {
+                fix.doFix(editor, false, true)
                 return true
             }
         }
@@ -43,9 +43,9 @@ class VclangReferenceImporter : ReferenceImporter {
         val elements = CollectHighlightsUtil.getElementsInRange(file, startOffset, endOffset)
         for (element in elements) {
             if (element is VcReferenceElement) {
-                val fixes = VcHighlightingAnnotator.createResolveDataByRef(element)
-                if (fixes.isNotEmpty()) {
-                    VclangImportHintAction(element, fixes).doFix(editor, false, false)
+                val fix = VclangImportHintAction(element)
+                if (fix.isAvailable(element.project, editor, file)) {
+                    fix.doFix(editor, false, false)
                     return true
                 }
             }

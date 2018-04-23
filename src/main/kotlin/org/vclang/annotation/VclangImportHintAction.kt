@@ -13,13 +13,21 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.search.ProjectAndLibrariesScope
+import com.intellij.psi.stubs.StubIndex
+import org.vclang.psi.VcLongName
+import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.quickfix.ResolveRefFixData
+import org.vclang.quickfix.ResolveRefQuickFix
 
 enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
 
-class VclangImportHintAction(private val referenceElement: VcReferenceElement, private val fixData: List<ResolveRefFixData>) : HintAction, HighPriorityAction {
+class VclangImportHintAction(private val referenceElement: VcReferenceElement) : HintAction, HighPriorityAction {
+
     override fun startInWriteAction(): Boolean = false
 
     override fun getFamilyName(): String = "vclang.reference.resolve"
@@ -30,7 +38,23 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement, p
     }
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        return this.fixData.isNotEmpty()
+        return this.getItemsToImport().isNotEmpty()
+    }
+
+    private fun getItemsToImport() : List<ResolveRefFixData> {
+        val reference = referenceElement.reference
+        if (reference != null) {
+            val psiElement = reference.resolve()
+            if (psiElement == null) {
+                val parent : PsiElement? = referenceElement.parent
+                if (parent !is VcLongName || referenceElement.prevSibling == null) {
+                    val project = referenceElement.project
+                    val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, referenceElement.referenceName, project, ProjectAndLibrariesScope(project), PsiReferable::class.java)
+                    return indexedDefinitions.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
+                }
+            }
+        }
+        return emptyList()
     }
 
     override fun getText(): String {
@@ -42,6 +66,8 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement, p
 
         if (referenceElement.reference?.resolve() != null) return // already imported
 
+        val fixData = getItemsToImport()
+
         ApplicationManager.getApplication().runWriteAction {
             if (fixData.isEmpty()) return@runWriteAction
             val action = VclangAddImportAction(project, editor!!, referenceElement, fixData)
@@ -51,7 +77,9 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement, p
     }
 
     fun doFix(editor: Editor, allowPopup : Boolean, allowCaretNearRef: Boolean) : Result {
-        if (referenceElement.reference?.resolve() != null || fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
+        if (referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported
+        val fixData = getItemsToImport()
+        if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
         val psiFile = referenceElement.containingFile
         val classes = fixData.toTypedArray()
