@@ -12,8 +12,6 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
-import com.jetbrains.jetpad.vclang.util.LongName
-import org.vclang.psi.VcFile
 
 class VclangAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveRefFixData>): QuestionAction {
 

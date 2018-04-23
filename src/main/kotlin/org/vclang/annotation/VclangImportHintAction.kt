@@ -33,7 +33,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     override fun getFamilyName(): String = "vclang.reference.resolve"
 
     override fun showHint(editor: Editor): Boolean {
-        val result = doFix(editor, true, false)
+        val result = doFix(editor, true)
         return result == Result.POPUP_SHOWN || result == Result.CLASS_AUTO_IMPORTED
     }
 
@@ -76,7 +76,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
 
     }
 
-    fun doFix(editor: Editor, allowPopup : Boolean, allowCaretNearRef: Boolean) : Result {
+    fun doFix(editor: Editor, allowPopup : Boolean) : Result {
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val fixData = getItemsToImport()
         if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
@@ -98,7 +98,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
 
         if (allowPopup) {
             val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
-            if (!ApplicationManager.getApplication().isUnitTestMode /* && !HintManager.getInstance().hasShownHintsThatWillHideByOtherHint(true) */) {
+            if (!ApplicationManager.getApplication().isUnitTestMode) {
                 HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textOffset, referenceElement.textRange.endOffset, action)
             }
             return Result.POPUP_SHOWN

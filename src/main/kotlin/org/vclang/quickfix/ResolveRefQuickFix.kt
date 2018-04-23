@@ -175,7 +175,7 @@ class RenameReferenceAction(private val element: VcReferenceElement, private val
 }
 
 class ResolveRefFixData(val target: PsiElement,
-                        val targetFullName: List<String>,
+                        private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
                         private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
 
@@ -213,11 +213,11 @@ class ResolveRefQuickFix {
             var ignoreFlag = true
 
             var psi: PsiElement = target
-            var targetTop : MutableList<PsiReferable> = ArrayList()
+            var targetTop: MutableList<PsiReferable> = ArrayList()
 
             var modifyingImportsNeeded = false
             var fallbackImportAction : ResolveRefFixAction? = null
-            val importActionMap : HashMap<List<String>, ResolveRefFixAction?> = HashMap()
+            val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
 
             while (psi.parent != null) {
                 if (psi is PsiReferable && psi !is VcFile) {
@@ -255,7 +255,7 @@ class ResolveRefQuickFix {
 
                     val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
-                    var suitableImport : VcStatCmd? = null
+                    var suitableImport: VcStatCmd? = null
                     val aliases = HashMap<List<String>, HashSet<String>>()
 
                     for (fName in fullNames) {
@@ -491,13 +491,13 @@ class ResolveRefQuickFix {
             }
             resultNames.sortedWith(comparator)
 
-            if (resultNames.size > 0) {
+            return if (resultNames.size > 0) {
                 val resultName = resultNames[0].first
                 val importAction = resultNames[0].second
                 val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
-                return ResolveRefFixData(target, fullName, importAction, renameAction)
+                ResolveRefFixData(target, fullName, importAction, renameAction)
             } else
-                return null
+                null
         }
     }
 }

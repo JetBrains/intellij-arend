@@ -21,7 +21,7 @@ class VclangReferenceImporter : ReferenceImporter {
         if (element is VcReferenceElement) {
             val fix = VclangImportHintAction(element)
             if (fix.isAvailable(element.project, editor, file)) {
-                fix.doFix(editor, false, true)
+                fix.doFix(editor, false)
                 return true
             }
         }
@@ -45,7 +45,7 @@ class VclangReferenceImporter : ReferenceImporter {
             if (element is VcReferenceElement) {
                 val fix = VclangImportHintAction(element)
                 if (fix.isAvailable(element.project, editor, file)) {
-                    fix.doFix(editor, false, false)
+                    fix.doFix(editor, false)
                     return true
                 }
             }
