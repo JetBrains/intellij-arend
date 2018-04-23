@@ -17,7 +17,7 @@ interface ResolveRefFixAction {
     fun execute(editor: Editor?)
 }
 
-class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?) : ResolveRefFixAction {
+class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString(): String {
         return "Import file "+ importFile.fullName
     }
@@ -61,7 +61,7 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
     }
 }
 
-class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList : List<String>) : ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: List<String>): ResolveRefFixAction {
     override fun toString(): String {
         val name = if (idList.size == 1) idList[0] else idList.toString()
         return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
@@ -111,7 +111,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList : Li
     }
 }
 
-class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdentifier) : ResolveRefFixAction {
+class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id: VcRefIdentifier): ResolveRefFixAction {
     override fun toString(): String {
         return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
     }
@@ -153,7 +153,7 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
     }
 }
 
-class RenameReferenceAction(private val element: VcReferenceElement, private val id : List<String>) : ResolveRefFixAction {
+class RenameReferenceAction(private val element: VcReferenceElement, private val id: List<String>): ResolveRefFixAction {
     override fun toString(): String {
         return "Rename " + element.text + " to "+LongName(id).toString()
     }
@@ -174,10 +174,10 @@ class RenameReferenceAction(private val element: VcReferenceElement, private val
     }
 }
 
-class ResolveRefFixData(val target : PsiElement,
-                        val targetFullName : List<String>,
-                        val commandFixAction: ResolveRefFixAction?,
-                        val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
+class ResolveRefFixData(val target: PsiElement,
+                        val targetFullName: List<String>,
+                        private val commandFixAction: ResolveRefFixAction?,
+                        private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
 
     override fun toString(): String {
         return "Import "+LongName(targetFullName).toString()

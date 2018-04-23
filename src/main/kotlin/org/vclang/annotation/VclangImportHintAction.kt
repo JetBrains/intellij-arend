@@ -13,24 +13,24 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.quickfix.ResolveRefFixData
 
 enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
 
-class VclangImportHintAction(val currentElement : PsiElement, val classesToImport: List<ResolveRefFixData>) : HintAction, HighPriorityAction {
+class VclangImportHintAction(private val referenceElement: VcReferenceElement, private val fixData: List<ResolveRefFixData>) : HintAction, HighPriorityAction {
     override fun startInWriteAction(): Boolean = false
 
     override fun getFamilyName(): String = "vclang.reference.resolve"
 
     override fun showHint(editor: Editor): Boolean {
-        val result = doFix(editor, true)
+        val result = doFix(editor, true, false)
         return result == Result.POPUP_SHOWN || result == Result.CLASS_AUTO_IMPORTED
     }
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        return this.classesToImport.isNotEmpty()
+        return this.fixData.isNotEmpty()
     }
 
     override fun getText(): String {
@@ -39,42 +39,40 @@ class VclangImportHintAction(val currentElement : PsiElement, val classesToImpor
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
+
+        if (referenceElement.reference?.resolve() != null) return // already imported
+
         ApplicationManager.getApplication().runWriteAction {
-            if (classesToImport.isEmpty()) return@runWriteAction
-            val action = VclangAddImportAction(project, editor!!, currentElement, classesToImport)
+            if (fixData.isEmpty()) return@runWriteAction
+            val action = VclangAddImportAction(project, editor!!, referenceElement, fixData)
             action.execute()
         }
 
     }
 
-    fun doFix(editor: Editor, allowPopup : Boolean) : Result {
-        if (classesToImport.isEmpty()) return Result.POPUP_NOT_SHOWN
+    fun doFix(editor: Editor, allowPopup : Boolean, allowCaretNearRef: Boolean) : Result {
+        if (referenceElement.reference?.resolve() != null || fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
-        val psiFile = currentElement.containingFile
-        val classes = classesToImport.toTypedArray()
-        val project = currentElement.project
+        val psiFile = referenceElement.containingFile
+        val classes = fixData.toTypedArray()
+        val project = referenceElement.project
 
-        val action = VclangAddImportAction(project, editor, currentElement, classesToImport)
-
-        val canImportHere = true
-
+        val action = VclangAddImportAction(project, editor, referenceElement, fixData)
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality"))
             !LaterInvocator.isInModalContextForProject(editor.project)
         else
             !LaterInvocator.isInModalContext()
 
-        if (classes.size == 1 &&
-                CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
-                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
-                isInModlessContext) {
+        if (classes.size == 1 && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
+                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (allowPopup && canImportHere) {
-            val hintText = ShowAutoImportPass.getMessage(classes.size > 1, currentElement.text)
+        if (allowPopup) {
+            val hintText = ShowAutoImportPass.getMessage(classes.size > 1, referenceElement.text)
             if (!ApplicationManager.getApplication().isUnitTestMode && !HintManager.getInstance().hasShownHintsThatWillHideByOtherHint(true)) {
-                HintManager.getInstance().showQuestionHint(editor, hintText, currentElement.textOffset, currentElement.textRange.endOffset, action)
+                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textOffset, referenceElement.textRange.endOffset, action)
             }
             return Result.POPUP_SHOWN
         }

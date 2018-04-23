@@ -12,27 +12,17 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.stubs.index.VcDefinitionIndex
+import org.vclang.quickfix.ResolveRefFixData
 import org.vclang.quickfix.ResolveRefQuickFix
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         if (element is VcReferenceElement) {
-            val reference = element.reference
-            if (reference != null) {
-                val psiElement = reference.resolve()
-                if (psiElement == null) {
-                    val parent : PsiElement? = element.parent
-                    val needsFix = parent !is VcLongName || element.prevSibling == null
-                    val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
-                    annotation.highlightType = ProblemHighlightType.ERROR
-
-                    if (needsFix) {
-                        val project = element.project
-                        val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, element.referenceName, project, ProjectAndLibrariesScope(project), PsiReferable::class.java)
-                        val fixes = indexedDefinitions.mapNotNull { ResolveRefQuickFix.getDecision(it, element) }
-                        annotation.registerFix(VclangImportHintAction(element, fixes))
-                    }
-                }
+            val fixes = createResolveDataByRef(element)
+            if (fixes.isNotEmpty()) {
+                val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
+                annotation.highlightType = ProblemHighlightType.ERROR
+                annotation.registerFix(VclangImportHintAction(element, fixes))
             }
         }
 
@@ -51,5 +41,23 @@ class VcHighlightingAnnotator : Annotator {
 
 
         holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
+    }
+
+    companion object {
+        fun createResolveDataByRef(element: VcReferenceElement) : List<ResolveRefFixData> {
+            val reference = element.reference
+            if (reference != null) {
+                val psiElement = reference.resolve()
+                if (psiElement == null) {
+                    val parent : PsiElement? = element.parent
+                    if (parent !is VcLongName || element.prevSibling == null) {
+                        val project = element.project
+                        val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, element.referenceName, project, ProjectAndLibrariesScope(project), PsiReferable::class.java)
+                        return indexedDefinitions.mapNotNull { ResolveRefQuickFix.getDecision(it, element) }
+                    }
+                }
+            }
+            return emptyList()
+        }
     }
 }
