@@ -43,7 +43,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
 
     private fun getItemsToImport() : List<ResolveRefFixData> {
         val reference = referenceElement.reference
-        if (reference != null) {
+        if (reference != null && referenceElement.isValid) {
             val psiElement = reference.resolve()
             if (psiElement == null) {
                 val parent : PsiElement? = referenceElement.parent
@@ -64,7 +64,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
 
-        if (referenceElement.reference?.resolve() != null) return // already imported
+        if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return // already imported or invalid
 
         val fixData = getItemsToImport()
 
@@ -77,7 +77,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     }
 
     fun doFix(editor: Editor, allowPopup : Boolean, allowCaretNearRef: Boolean) : Result {
-        if (referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported
+        if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val fixData = getItemsToImport()
         if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
