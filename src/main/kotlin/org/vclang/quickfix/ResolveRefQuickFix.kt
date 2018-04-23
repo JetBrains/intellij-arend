@@ -180,7 +180,9 @@ class ResolveRefFixData(val target: PsiElement,
                         private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
 
     override fun toString(): String {
-        return "Import "+LongName(targetFullName).toString()
+        return LongName(targetFullName).toString() + (if (target.containingFile is VcFile)
+            " in " + LongName((target.containingFile as VcFile).modulePath.toList()).toString() else
+            "")
     }
 
     override fun execute(editor: Editor?) {

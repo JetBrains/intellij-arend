@@ -82,7 +82,6 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
         val psiFile = referenceElement.containingFile
-        val classes = fixData.toTypedArray()
         val project = referenceElement.project
 
         val action = VclangAddImportAction(project, editor, referenceElement, fixData)
@@ -91,15 +90,15 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         else
             !LaterInvocator.isInModalContext()
 
-        if (classes.size == 1 && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
+        if (fixData.size == 1 && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
         if (allowPopup) {
-            val hintText = ShowAutoImportPass.getMessage(classes.size > 1, referenceElement.text)
-            if (!ApplicationManager.getApplication().isUnitTestMode && !HintManager.getInstance().hasShownHintsThatWillHideByOtherHint(true)) {
+            val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
+            if (!ApplicationManager.getApplication().isUnitTestMode /* && !HintManager.getInstance().hasShownHintsThatWillHideByOtherHint(true) */) {
                 HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textOffset, referenceElement.textRange.endOffset, action)
             }
             return Result.POPUP_SHOWN

@@ -39,16 +39,14 @@ class VclangAddImportAction(val project : Project, val editor : Editor, val curr
             WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(editor) }, currentElement.containingFile) })
     }
 
-    fun chooseItemAndImport(){
+    private fun chooseItemAndImport(){
         if (resolveData.size == 1)
             resolveData[0].execute(editor)
 
         if (resolveData.size > 1) {
             val step = object: BaseListPopupStep<ResolveRefFixData>("Imports", resolveData) {
                 override fun getTextFor(value: ResolveRefFixData?): String {
-                    if (value != null && value.target.containingFile is VcFile) {
-                        return LongName(value.targetFullName).toString() + " in " + LongName((value.target.containingFile as VcFile).modulePath.toList()).toString()
-                    }
+                    if (value != null) return value.toString()
                     return super.getTextFor(value)
                 }
 
