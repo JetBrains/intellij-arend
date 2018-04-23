@@ -29,10 +29,9 @@ class VcHighlightingAnnotator : Annotator {
                     if (needsFix) {
                         val project = element.project
                         val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, element.referenceName, project, ProjectAndLibrariesScope(project), PsiReferable::class.java)
-                        val fixes = indexedDefinitions.map { ResolveRefQuickFix.getDecision(it, element) }.filterNotNull()
-                        annotation.registerFix(VclangImportHintAction(fixes))
+                        val fixes = indexedDefinitions.mapNotNull { ResolveRefQuickFix.getDecision(it, element) }
+                        annotation.registerFix(VclangImportHintAction(element, fixes))
                     }
-
                 }
             }
         }

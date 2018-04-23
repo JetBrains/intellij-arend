@@ -176,7 +176,6 @@ class RenameReferenceAction(private val element: VcReferenceElement, private val
 
 class ResolveRefFixData(val target : PsiElement,
                         val targetFullName : List<String>,
-                        val currentElement : PsiElement,
                         val commandFixAction: ResolveRefFixAction?,
                         val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
 
@@ -449,11 +448,10 @@ class ResolveRefQuickFix {
 
             }
 
-            val veryLongName = ArrayList<String>()
-            veryLongName.addAll(targetFile.modulePath.toList())
-            veryLongName.addAll(fullName)
-
             if (currentBlock.isEmpty()) {
+                val veryLongName = ArrayList<String>()
+                veryLongName.addAll(targetFile.modulePath.toList())
+                veryLongName.addAll(fullName)
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
                 // Let us use the "longest possible name" when referring to the element
                 currentBlock.put(veryLongName, fallbackImportAction)
@@ -495,7 +493,7 @@ class ResolveRefQuickFix {
                 val resultName = resultNames[0].first
                 val importAction = resultNames[0].second
                 val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
-                return ResolveRefFixData(target, veryLongName, element, importAction, renameAction)
+                return ResolveRefFixData(target, fullName, importAction, renameAction)
             } else
                 return null
         }
