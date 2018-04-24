@@ -537,4 +537,25 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \open j
                 \func d => A.a.b
             """)
+
+    /* fun `test strange behavior of vclang import commands`() = simpleImportFixTest(
+            """
+                --! A.vc
+                \func lol => 0
+
+                --! B.vc
+                \func f => 1
+
+                --! C.vc
+                \import A(f)
+                \import B
+
+                \func a => f{-caret-}
+            """,
+            """
+                \import A(f)
+                \import B
+
+                \func a => f
+            """) */
 }

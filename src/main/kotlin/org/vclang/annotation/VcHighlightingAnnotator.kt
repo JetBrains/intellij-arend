@@ -12,11 +12,13 @@ import org.vclang.psi.ext.VcReferenceElement
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         if (element is VcReferenceElement) {
-            val fix = VclangImportHintAction(element)
-            if (fix.isAvailable(element.project, null, element.containingFile)) {
+            if (VclangImportHintAction.referenceUnresolved(element)) {
                 val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
                 annotation.highlightType = ProblemHighlightType.ERROR
-                annotation.registerFix(fix)
+
+                val fix = VclangImportHintAction(element)
+                if (fix.isAvailable(element.project, null, element.containingFile))
+                    annotation.registerFix(fix)
             }
         }
 

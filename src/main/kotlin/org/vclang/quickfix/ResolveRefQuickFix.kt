@@ -9,6 +9,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.psi.*
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
 import java.util.Collections.singletonList
@@ -174,7 +175,7 @@ class RenameReferenceAction(private val element: VcReferenceElement, private val
     }
 }
 
-class ResolveRefFixData(val target: PsiElement,
+class ResolveRefFixData(val target: PsiLocatedReferable,
                         private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
                         private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
@@ -202,7 +203,7 @@ class ResolveRefQuickFix {
             return "???"
         }
 
-        fun getDecision(target: PsiElement, element: VcReferenceElement): ResolveRefFixData? {
+        fun getDecision(target: PsiLocatedReferable, element: VcReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile
             val currentFile = element.containingFile
 
