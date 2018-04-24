@@ -393,7 +393,13 @@ argument ::= atomArgument
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Argument"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.BinOpSequenceElem" ]
+    mixin = "org.vclang.psi.ext.VcArgumentImplMixin"
+//    recoverWhile = argumentRecover
 }
+
+private argumentRecover ::= !(RBRACE | RPAREN | OPEN_KW
+                            | IMPORT_KW | FUNCTION_KW  |
+                            TRUNCATED_KW | DATA_KW   | CLASS_KW | INSTANCE_KW)
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.vclang.psi.ext.VcCompositeElement"

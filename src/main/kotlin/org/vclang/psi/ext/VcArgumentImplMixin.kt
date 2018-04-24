@@ -88,3 +88,11 @@ abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), 
 
     override fun getExpression(): VcExpr = atomFieldsAcc
 }
+
+abstract class VcArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcArgument {
+    override fun isExplicit(): Boolean = true
+
+    override fun getFixity(): Fixity = Fixity.UNKNOWN
+
+    override fun getExpression(): VcExpr? = null
+}
