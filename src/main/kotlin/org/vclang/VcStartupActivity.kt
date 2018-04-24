@@ -13,7 +13,6 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.startup.StartupActivity
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.prelude.Prelude
-import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.CachingConcreteProvider
 import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.isVcModule
@@ -31,9 +30,10 @@ class VcStartupActivity : StartupActivity {
         // TODO[references]: Load typechecked prelude library from resources
         val preludeLibrary = VcPreludeLibrary(project, service.typecheckerState)
         service.libraryManager.loadLibrary(preludeLibrary)
-        val psiConcreteProvider = PsiConcreteProvider(DummyErrorReporter.INSTANCE, null)
-        psiConcreteProvider.isResolving = true
-        preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, CachingConcreteProvider(psiConcreteProvider)))
+        val referableConverter = service.referableConverter
+        val concreteProvider = PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null)
+        preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.typecheckingErrorReporter)
+        preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, concreteProvider))
 
         for (module in project.vcModules) {
             service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))
@@ -47,7 +47,7 @@ class VcStartupActivity : StartupActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                service.libraryManager.getLibrary(module.name)?.let { service.libraryManager.unloadLibrary(it) }
+                service.libraryManager.getRegisteredLibrary(module.name)?.let { service.libraryManager.unloadLibrary(it) }
             }
         })
 

@@ -11,8 +11,8 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.error.SourceInfoReference
 import com.jetbrains.jetpad.vclang.error.doc.*
+import com.jetbrains.jetpad.vclang.naming.reference.DataContainer
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import org.vclang.psi.ext.PsiLocatedReferable
@@ -39,9 +39,10 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         var reported = false
         val eventsProcessor = eventsProcessor!!
         error.affectedDefinitions.mapNotNull {
-            if (it is PsiLocatedReferable || it is ModuleReferable) {
+            val ref = PsiLocatedReferable.fromReferable(it)
+            if (ref is PsiLocatedReferable || it is ModuleReferable) {
                 reported = true
-                if (it is PsiLocatedReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+                if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref.typecheckable, proxyAction)
                 if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
             }
         }
@@ -86,7 +87,7 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = ((doc.reference as? SourceInfoReference)?.sourceInfo ?: doc.reference) as? PsiElement
+            val ref = ((doc.reference as? DataContainer)?.data ?: doc.reference) as? PsiElement
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {

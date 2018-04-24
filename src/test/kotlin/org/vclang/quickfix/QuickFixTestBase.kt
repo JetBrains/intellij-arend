@@ -17,4 +17,9 @@ abstract class QuickFixTestBase : VcTestBase() {
         myFixture.checkResult(resultingContent.trimIndent(), true)
     }
 
+    protected fun simpleImportFixTest(@Language("Vclang") contents: String,
+                                      @Language("Vclang") resultingContent: String) {
+        simpleQuickFixTest("Fix import", contents, resultingContent)
+    }
+
 }

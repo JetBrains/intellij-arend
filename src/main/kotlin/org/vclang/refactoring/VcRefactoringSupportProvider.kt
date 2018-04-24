@@ -9,17 +9,13 @@ import org.vclang.psi.VcElementTypes.POSTFIX
 
 class VcRefactoringSupportProvider : RefactoringSupportProvider() {
     override fun isInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean {
-        return false
-        /* return element is VcDefIdentifier || element is VcFieldDefIdentifier || element is VcLetClause */
+        return element is VcDefIdentifier || element is VcFieldDefIdentifier || element is VcLetClause
     }
 
     override fun isMemberInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean {
-        return false
-        /*
         if (context is LeafPsiElement && (context.elementType == INFIX || context.elementType == POSTFIX)) return false
 
         return element is VcDefClass || element is VcDefFunction || element is VcDefData ||
                 element is VcClassField || element is VcClassFieldSyn || element is VcConstructor
-        */
     }
 }

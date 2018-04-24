@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
+import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
@@ -11,9 +12,10 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.psi.*
+import org.vclang.psi.ext.PsiConcreteReferable
 import org.vclang.psi.stubs.VcNamedStub
 
-abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ChildGroup, Abstract.Definition
+abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ChildGroup, Abstract.Definition, PsiConcreteReferable
 where StubT : VcNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
@@ -22,9 +24,12 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
+    override fun isTypecheckable() = true
+
     open fun getWhere(): VcWhere? = null
 
-    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.ReferableDefinition? = ConcreteBuilder.convert(this, errorReporter)
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
+        ConcreteBuilder.convert(referableConverter, this, errorReporter)
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 

@@ -15,7 +15,8 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
         val parent = element.parent
         if (element is VcDefIdentifier && parent is VcDefinition) {
-            val state = TypeCheckingService.getInstance(element.project).typecheckerState.getTypechecked(parent)?.let { it.status() == Definition.TypeCheckingStatus.NO_ERRORS }
+            val service = TypeCheckingService.getInstance(parent.project)
+            val state = service.getTypechecked(parent)?.let { it.status() == Definition.TypeCheckingStatus.NO_ERRORS }
             val icon = when (state) {
                 true -> AllIcons.RunConfigurations.TestState.Green2
                 false -> AllIcons.RunConfigurations.TestState.Red2
@@ -23,7 +24,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             }
             return Info(
                     icon,
-                    Function<PsiElement, String> { "Type check ${parent.fullName}" },
+                    Function { "Type check ${parent.fullName}" },
                     *ExecutorAction.getActions(1)
             )
         }

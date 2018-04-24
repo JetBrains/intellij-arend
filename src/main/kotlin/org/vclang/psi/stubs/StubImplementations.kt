@@ -37,6 +37,7 @@ class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
 fun factory(name: String): VcStubElementType<*, *> = when (name) {
     "DEF_CLASS" -> VcDefClassStub.Type
     "CLASS_FIELD" -> VcClassFieldStub.Type
+    "FIELD_DEF_IDENTIFIER" -> VcClassFieldParamStub.Type
     "CLASS_FIELD_SYN" -> VcClassFieldSynStub.Type
     "CLASS_IMPLEMENT" -> VcClassImplementStub.Type
     "DEF_INSTANCE" -> VcDefInstanceStub.Type
@@ -95,6 +96,29 @@ class VcClassFieldStub(
                 VcClassFieldStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: VcClassFieldStub, sink: IndexSink) = sink.indexClassField(stub)
+    }
+}
+
+class VcClassFieldParamStub(
+    parent: StubElement<*>?,
+    elementType: IStubElementType<*, *>,
+    name: String?
+) : VcStub<VcFieldDefIdentifier>(parent, elementType, name) {
+
+    object Type : VcStubElementType<VcClassFieldParamStub, VcFieldDefIdentifier>("FIELD_DEF_IDENTIFIER") {
+
+        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
+            VcClassFieldParamStub(parentStub, this, dataStream.readName()?.string)
+
+        override fun serialize(stub: VcClassFieldParamStub, dataStream: StubOutputStream) =
+            with(dataStream) { writeName(stub.name) }
+
+        override fun createPsi(stub: VcClassFieldParamStub): VcFieldDefIdentifier = VcFieldDefIdentifierImpl(stub, this)
+
+        override fun createStub(psi: VcFieldDefIdentifier, parentStub: StubElement<*>?): VcClassFieldParamStub =
+            VcClassFieldParamStub(parentStub, this, psi.textRepresentation())
+
+        override fun indexStub(stub: VcClassFieldParamStub, sink: IndexSink) = sink.indexClassFieldParam(stub)
     }
 }
 

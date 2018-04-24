@@ -2,11 +2,9 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcConstructorStub
@@ -16,13 +14,6 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override fun computeConcrete(errorReporter: ErrorReporter): Concrete.Constructor? {
-        val data = ancestors.filterIsInstance<VcDefData>().firstOrNull()?.computeConcrete(errorReporter) as? Concrete.DataDefinition ?: return null
-        return data.constructorClauses
-            .flatMap { it.constructors }
-            .firstOrNull { it.data === this }
-    }
 
     override fun getData() = this
 

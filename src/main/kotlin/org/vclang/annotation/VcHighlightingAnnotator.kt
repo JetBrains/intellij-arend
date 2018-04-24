@@ -1,72 +1,37 @@
 package org.vclang.annotation
 
-import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.search.ProjectAndLibrariesScope
-import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiReferable
-import org.vclang.psi.stubs.index.VcDefinitionIndex
-import org.vclang.quickfix.ResolveRefFixAction
-import org.vclang.quickfix.ResolveRefQuickFix
+import org.vclang.psi.ext.VcReferenceElement
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        if (element is VcRefIdentifier) {
-            val reference = element.reference
-            if (reference != null) {
-                val psiElement = reference.resolve()
-                if (psiElement == null) {
-                    val parent : PsiElement? = element.parent
-                    val needsFix = parent !is VcLongName || element.prevSibling == null
-                    val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
-                    annotation.highlightType = ProblemHighlightType.ERROR
+        if (element is VcReferenceElement) {
+            if (VclangImportHintAction.referenceUnresolved(element)) {
+                val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
+                annotation.highlightType = ProblemHighlightType.ERROR
 
-                    if (needsFix) {
-                        val name = element.referenceName
-                        val project = element.project
-                        val scope = ProjectAndLibrariesScope(project)
-                        val indexedDefinitions = StubIndex.getElements(VcDefinitionIndex.KEY, name, project,scope, PsiReferable::class.java)
-                        for (psi in indexedDefinitions) {
-                            val actions = ResolveRefQuickFix.getDecision(psi, element)
-                            for (action in actions) {
-                                annotation.registerFix(object: BaseIntentionAction(){
-                                    var action: List<ResolveRefFixAction> = action
-
-                                    override fun getFamilyName(): String {
-                                        return "vclang.reference.resolve"
-                                    }
-
-                                    override fun getText(): String {
-                                        return this.action.toString()
-                                    }
-
-                                    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-                                        return this.action.isNotEmpty()
-                                    }
-
-                                    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-                                        for (atomicAction in this.action) atomicAction.execute(editor)
-                                    }
-                                })
-                            }
-                        }
-                    }
-
-                }
+                val fix = VclangImportHintAction(element)
+                if (fix.isAvailable(element.project, null, element.containingFile))
+                    annotation.registerFix(fix)
             }
         }
 
-        val color = when (element) {
-            is VcDefIdentifier -> VcHighlightingColors.DECLARATION
-            is VcInfixArgument, is VcPostfixArgument -> VcHighlightingColors.OPERATORS
+        val color = when {
+            element is VcDefIdentifier -> VcHighlightingColors.DECLARATION
+            element is VcInfixArgument || element is VcPostfixArgument -> VcHighlightingColors.OPERATORS
+            element is VcRefIdentifier || element is LeafPsiElement && element.node.elementType == VcElementTypes.DOT -> {
+                val parent = element.parent as? VcLongName ?: return
+                if (parent.parent is VcStatCmd) return
+                val refList = parent.refIdentifierList
+                if (refList.indexOf(element) == refList.size - 1) return
+                VcHighlightingColors.LONG_NAME
+            }
             else -> return
         }
 

@@ -4,17 +4,21 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.*
+import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
-import java.util.*
+import org.vclang.psi.ext.PsiReferable
+import org.vclang.psi.ext.VcReferenceElement
+import java.util.Collections.singletonList
 
 interface ResolveRefFixAction {
     fun execute(editor: Editor?)
 }
 
-class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile) : ResolveRefFixAction {
+class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString(): String {
         return "Import file "+ importFile.fullName
     }
@@ -22,9 +26,10 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
         val factory = VcPsiFactory(importFile.project)
-        val commandStatement = factory.createImportCommand(fullName)
+        val commandStatement = factory.createImportCommand(fullName + (if (usingList == null) "" else " ()"))
 
-        if (currentFile.children.isEmpty()) currentFile.add(commandStatement)
+        if (currentFile.children.isEmpty())
+            currentFile.add(commandStatement)
         var anchor = currentFile.children[0]
         var after = false
 
@@ -32,32 +37,38 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
         if (currFileCommands.isNotEmpty()) {
             val name = LongName(currFileCommands[0].path).toString()
             anchor = currFileCommands[0].parent
-            if (fullName >= name) after = true
+            if (fullName >= name)
+                after = true
         }
 
         if (after) for (nC in currFileCommands.drop(1)) {
             val name = LongName(nC.path).toString()
-            if (fullName >= name) anchor = nC.parent else break
+            if (fullName >= name)
+                anchor = nC.parent else break
         }
+
+        if (usingList != null)
+            AddIdToUsingAction(commandStatement.statCmd!!, usingList).execute(editor)
 
         if (anchor.parent == currentFile) {
             if (after) {
                 currentFile.addAfter(commandStatement, anchor)
                 currentFile.addAfter(factory.createWhitespace("\n"), anchor)
             } else {
-                currentFile.addBefore(commandStatement, anchor)
-                currentFile.addBefore(factory.createWhitespace("\n"), anchor)
+                val insertedCommand = currentFile.addBefore(commandStatement, anchor)
+                currentFile.addAfter(factory.createWhitespace("\n"), insertedCommand)
             }
         }
     }
 }
 
-class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: List<String>): ResolveRefFixAction {
     override fun toString(): String {
-        return "Add "+ id + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
+        val name = if (idList.size == 1) idList[0] else idList.toString()
+        return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
     }
 
-    override fun execute(editor: Editor?) {
+    private fun executeId(id : String) {
         if (statCmd.nsCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
@@ -94,9 +105,14 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, val id : String) : Reso
             }
         }
     }
+
+    override fun execute(editor: Editor?) {
+        for (id in idList)
+            executeId(id)
+    }
 }
 
-class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdentifier) : ResolveRefFixAction {
+class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id: VcRefIdentifier): ResolveRefFixAction {
     override fun toString(): String {
         return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
     }
@@ -111,29 +127,34 @@ class RemoveFromHidingAction(private val statCmd: VcStatCmd, val id : VcRefIdent
 
         while (endSibling.nextSibling is PsiWhiteSpace || endSibling.nextSibling.node.elementType == VcElementTypes.COMMA) {
             endSibling = endSibling.nextSibling
-            if (endSibling.node.elementType == VcElementTypes.COMMA && !leftEnd) break
+            if (endSibling.node.elementType == VcElementTypes.COMMA && !leftEnd)
+                break
         }
 
         val rightEnd = endSibling.nextSibling.node.elementType == VcElementTypes.RPAREN
 
         if (rightEnd && startSibling.prevSibling.node.elementType == VcElementTypes.COMMA) {
             startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
         }
 
         if (leftEnd && rightEnd) {
             startSibling = startSibling.prevSibling
             endSibling = endSibling.nextSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling.node.elementType == VcElementTypes.HIDING_KW) startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling.node.elementType == VcElementTypes.HIDING_KW)
+                startSibling = startSibling.prevSibling
+            if (startSibling.prevSibling is PsiWhiteSpace)
+                startSibling = startSibling.prevSibling
         }
 
         id.parent.deleteChildRange(startSibling, endSibling)
     }
 }
 
-class RenameReferenceAction(private val element: VcRefIdentifier, private val id : List<String>) : ResolveRefFixAction {
+class RenameReferenceAction(private val element: VcReferenceElement, private val id: List<String>): ResolveRefFixAction {
     override fun toString(): String {
         return "Rename " + element.text + " to "+LongName(id).toString()
     }
@@ -154,6 +175,23 @@ class RenameReferenceAction(private val element: VcRefIdentifier, private val id
     }
 }
 
+class ResolveRefFixData(val target: PsiLocatedReferable,
+                        private val targetFullName: List<String>,
+                        private val commandFixAction: ResolveRefFixAction?,
+                        private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
+
+    override fun toString(): String {
+        return LongName(targetFullName).toString() + (if (target.containingFile is VcFile)
+            " in " + LongName((target.containingFile as VcFile).modulePath.toList()).toString() else
+            "")
+    }
+
+    override fun execute(editor: Editor?) {
+        commandFixAction?.execute(editor)
+        cursorFixAction?.execute(editor)
+    }
+}
+
 class ResolveRefQuickFix {
     companion object {
 
@@ -165,117 +203,168 @@ class ResolveRefQuickFix {
             return "???"
         }
 
-        fun getDecision(target: PsiElement, element: VcRefIdentifier): List<List<ResolveRefFixAction>> {
+        fun getDecision(target: PsiLocatedReferable, element: VcReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile
-            val elementFile = element.containingFile
-            val result = ArrayList<ResolveRefFixAction>()
+            val currentFile = element.containingFile
 
             val fullName = ArrayList<String>()
-            var psi2: PsiElement = target
-            var targetTop : PsiLocatedReferable? = null
+            val alternativeFullName : ArrayList<String>? = if (target is VcClassFieldSyn || target is VcClassField || target is VcConstructor)
+                ArrayList() else
+                null
+            var ignoreFlag = true
 
-            while (psi2.parent != null) {
-                if (psi2 is PsiLocatedReferable && psi2 !is VcFile) {
-                    val name = psi2.name ?: return ArrayList()
+            var psi: PsiElement = target
+            var targetTop: MutableList<PsiReferable> = ArrayList()
+
+            var modifyingImportsNeeded = false
+            var fallbackImportAction : ResolveRefFixAction? = null
+            val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
+
+            while (psi.parent != null) {
+                if (psi is PsiReferable && psi !is VcFile) {
+                    val name = psi.name ?: return null
+
                     fullName.add(0, name)
-                    targetTop = psi2
+                    if (alternativeFullName != null) {
+                        if (ignoreFlag && alternativeFullName.isNotEmpty()) {
+                            ignoreFlag = false
+                            targetTop.add(psi)
+                        } else {
+                            alternativeFullName.add(0, name)
+                            targetTop = ArrayList()
+                            targetTop.add(psi)
+                        }
+                    } else {
+                        targetTop = ArrayList()
+                        targetTop.add(psi)
+                    }
+
                 }
-                psi2 = psi2.parent
+                psi = psi.parent
             }
+
             val fullNames = HashSet<List<String>>()
+            fullNames.add(fullName)
+            if (alternativeFullName != null) fullNames.add(alternativeFullName)
 
-            if (elementFile is VcFile && targetFile is VcFile) {
-                if (elementFile != targetFile) {
-                    var validImportFound = false
-                    val originalName = fullName.first()
-                    val aliases = HashSet<String>()
+            if (currentFile is VcFile && targetFile is VcFile) {
+                if (currentFile != targetFile) {
+                    val fileGroup =  object: Group by currentFile {
+                        override fun getSubgroups(): Collection<Group> = emptyList()
+                    }
+                    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, null, false)
 
-                    for (namespaceCommand in elementFile.namespaceCommands) if (namespaceCommand.nsCmd.importKw != null) {
+                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+
+                    var suitableImport: VcStatCmd? = null
+                    val aliases = HashMap<List<String>, HashSet<String>>()
+
+                    for (fName in fullNames) {
+                        aliases[fName] = HashSet()
+                    }
+
+                    for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.nsCmd.importKw != null) {
                         val fileIdent = namespaceCommand.longName?.refIdentifierList?.last()
                         if (fileIdent?.reference?.resolve() == targetFile) {
+                            suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
+
                             val nsUsing = namespaceCommand.nsUsing
                             val hiddenList = namespaceCommand.refIdentifierList
-                            val needNoFurtherFixes = result.size > 0
-                            var importIsCorrect = true
+                            val defaultNameHiddenFNames : HashSet<List<String>> = HashSet()
+
+                            if (hiddenList.isNotEmpty()) for (ref in hiddenList) fullNames.filterTo(defaultNameHiddenFNames) { ref.referenceName == it[0] }
 
                             if (nsUsing != null) {
-                                var found = false
-                                for (refIdent in nsUsing.nsIdList) {
-                                    if (refIdent.refIdentifier.text == originalName) {
-                                        found = true
-                                        val defIdentifier = refIdent.defIdentifier
-                                        if (defIdentifier != null) {
-                                            aliases.add(defIdentifier.name!!)
-                                        } else {
-                                            aliases.add(originalName)
+                                for (refIdentifier in nsUsing.nsIdList) {
+                                    for (fName in fullNames) {
+                                        val originalName = fName[0]
+                                        if (refIdentifier.refIdentifier.text == originalName) {
+                                            val defIdentifier = refIdentifier.defIdentifier
+                                            aliases[fName]?.add(if (defIdentifier != null) defIdentifier.name!! else originalName)
                                         }
                                     }
                                 }
-
-                                if (!found) {
-                                    importIsCorrect = false
-                                    if (!needNoFurtherFixes) result.add(AddIdToUsingAction(namespaceCommand, originalName))
-                                }
+                            } else {
+                                fullNames.filter { !defaultNameHiddenFNames.contains(it) }.forEach { aliases[it]!!.add(it[0]) }
                             }
 
-                            if (aliases.isEmpty() && hiddenList.isNotEmpty()) {
-                                for (ref in hiddenList) {
-                                    if (ref.referenceName == originalName) {
-                                        importIsCorrect = false
-                                        if (!needNoFurtherFixes) result.add(RemoveFromHidingAction(namespaceCommand, ref))
-                                    }
-                                }
-                            }
-
-                            if (importIsCorrect) validImportFound = true
                         }
                     }
 
-                    if (aliases.isEmpty()) aliases.add(originalName) //
+                    fullNames.clear()
 
-                    for (name in aliases) {
-                        val fullName2 = ArrayList<String>()
-                        fullName2.addAll(fullName)
-                        fullName2.removeAt(0)
-                        fullName2.add(0, name)
-                        fullNames.add(fullName2)
+                    for (fName in aliases.keys) {
+                        for (alias in aliases[fName]!!) {
+                            val fName2 = ArrayList<String>()
+                            fName2.addAll(fName)
+                            fName2.removeAt(0)
+                            fName2.add(0, alias)
+                            fullNames.add(fName2)
+                        }
                     }
 
-                    if (!validImportFound && result.size == 0) { //no valid import and no other proposed ways of fixing imports
-                        result.add(ImportFileAction(targetFile, elementFile))
-                    }
+                    if (fullNames.isEmpty()) { // target definition is inaccessible in current context
+                        modifyingImportsNeeded = true
 
-                    if (validImportFound) {
-                        result.clear()
+                        if (importedScope.resolveName(fullName[0]) == null)
+                            fullNames.add(fullName)
+                        if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null)
+                            fullNames.add(alternativeFullName)
+
+                        if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
+                            val nsUsing = suitableImport.nsUsing
+                            val hiddenList = suitableImport.refIdentifierList
+
+                            for (fName in fullNames) {
+                                val hiddenRef : VcRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
+                                if (hiddenRef != null)
+                                    importActionMap.put(fName, RemoveFromHidingAction(suitableImport, hiddenRef))
+                                else if (nsUsing != null)
+                                    importActionMap.put(fName, AddIdToUsingAction(suitableImport, singletonList(fName[0])))
+                            }
+                            fallbackImportAction = null
+                        } else { // targetFile has not been imported
+                            if (cautiousMode) {
+                                fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
+                                for (fName in fullNames)
+                                    importActionMap.put(fName, ImportFileAction(targetFile, currentFile, singletonList(fName[0])))
+                            } else {
+                                fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
+                                for (fName in fullNames)
+                                    importActionMap.put(fName, fallbackImportAction)
+                            }
+                        }
+
                     }
-                } else {
-                    fullNames.add(fullName) // source & target file coincide -- in this case there are no tricky renaming commands to process
                 }
-            } else {
-                return ArrayList()
-            }
+            } else
+                return null
 
+            var currentBlock : Map<List<String>, ResolveRefFixAction?>
 
-            var currentBlock : Set<List<String>>
+            currentBlock = HashMap()
+            for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
+
             if (fullName.size > 1) {
                 val namespaceCommands = ArrayList<List<VcStatCmd>>()
-                psi2 = element
-                while (psi2.parent != null) {
+                psi = element
+                while (psi.parent != null) {
                     var statements : List<VcStatCmd>? = null
 
-                    if (psi2 is VcWhere) statements = psi2.children.mapNotNull { (it as? VcStatement)?.statCmd }
-                    else if (psi2 is VcFile) statements = psi2.namespaceCommands
+                    if (psi is VcWhere)
+                        statements = psi.children.mapNotNull { (it as? VcStatement)?.statCmd }
+                    else if (psi is VcFile)
+                        statements = psi.namespaceCommands
 
-                    if (statements != null) namespaceCommands.add(0, statements.filter { it.nsCmd.openKw != null })
+                    if (statements != null)
+                        namespaceCommands.add(0, statements.filter { it.nsCmd.openKw != null })
 
-                    psi2 = psi2.parent
+                    psi = psi.parent
                 }
 
-                currentBlock = fullNames
-
                 for (commandBlock in namespaceCommands) {
-                    val newBlock = HashSet<List<String>>()
-                    newBlock.addAll(currentBlock)
+                    val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+                    newBlock.putAll(currentBlock)
 
                     for (command in commandBlock) {
                         val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
@@ -287,13 +376,14 @@ class ResolveRefQuickFix {
                             for (nsId in using.nsIdList) {
                                 val oldName = nsId.refIdentifier.referenceName
                                 val defIdentifier = nsId.defIdentifier
-                                if (defIdentifier != null) renamings[oldName] = defIdentifier.name!!
-                                  else renamings[oldName] = oldName
+                                if (defIdentifier != null)
+                                    renamings[oldName] = defIdentifier.name!!
+                                else renamings[oldName] = oldName
                             }
                         }
 
                         if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
-                            for (fName in currentBlock) {
+                            for (fName in currentBlock.keys) {
                                 val i1 = fName.iterator()
                                 val i2 = refIdentifiers.iterator()
                                 var equals = true
@@ -316,7 +406,8 @@ class ResolveRefQuickFix {
                                         }
                                     }
 
-                                    if (equals) newBlock.add(fName2)
+                                    if (equals)
+                                        newBlock.put(fName2, currentBlock[fName])
 
                                 }
                             }
@@ -326,17 +417,19 @@ class ResolveRefQuickFix {
                     currentBlock = newBlock
                 }
 
-                val newBlock = HashSet<List<String>>()
+                val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
 
-                for (fName in currentBlock) {
+                for (fName in currentBlock.keys) {
                     var correctedScope = element.scope
 
-                    if (result.size > 0 && targetTop != null) { // calculate the scope imitating current scope after the import command have been fixed
-                        val tt = targetTop
-                        val complementScope = object : SingletonScope(tt) {
+                    if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
+                        val complementScope = object : ListScope(targetTop as List<Referable>?) {
                             override fun resolveNamespace(name: String?, resolveModuleNames: Boolean): Scope? {
-                                if (tt is VcDefinition && name == tt.textRepresentation()) return LexicalScope.opened(tt)
-                                return super.resolveNamespace(name, resolveModuleNames)
+                                return targetTop
+                                        .filterIsInstance<VcDefinition>()
+                                        .firstOrNull { name == it.textRepresentation() }
+                                        ?.let { LexicalScope.opened(it) }
+                                        ?: super.resolveNamespace(name, resolveModuleNames)
                             }
                         }
 
@@ -349,54 +442,63 @@ class ResolveRefQuickFix {
                     }
 
                     if (referable == target) {
-                        newBlock.add(fName)
+                        newBlock.put(fName, currentBlock[fName])
                     }
 
                 }
 
-                if (newBlock.isEmpty()) { //If we cannot resolve anything -- then perhaps there is some obstruction in scopes -- let us use the longest possible name
-                    val veryLongName = ArrayList<String>()
-                    veryLongName.addAll(targetFile.modulePath.toList())
-                    veryLongName.addAll(fullName)
-                    newBlock.add(veryLongName)
-                }
-
                 currentBlock = newBlock
 
-            } else {
-                currentBlock = fullNames
+            }
+
+            if (currentBlock.isEmpty()) {
+                val veryLongName = ArrayList<String>()
+                veryLongName.addAll(targetFile.modulePath.toList())
+                veryLongName.addAll(fullName)
+                // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
+                // Let us use the "longest possible name" when referring to the element
+                currentBlock.put(veryLongName, fallbackImportAction)
             }
 
             // Determine shortest possible name in current scope
-            val iterator = currentBlock.iterator()
+            val iterator = currentBlock.keys.iterator()
             var length = -1
-            val resultNames : HashSet<List<String>> = HashSet()
+            val resultNames : MutableList<Pair<List<String>, ResolveRefFixAction?>> = ArrayList()
 
             do {
                 val lName = iterator.next()
-                if (length == -1 || lName.size == length) {
-                    length = lName.size
-                    resultNames.add(lName)
-                } else if (lName.size < length) {
-                    length = lName.size
+
+                if (lName.size < length)
                     resultNames.clear()
-                    resultNames.add(lName)
+
+                if (length == -1 || lName.size <= length) {
+                    length = lName.size
+                    resultNames.add(Pair(lName, currentBlock[lName]))
                 }
             } while (iterator.hasNext())
 
-            // Form resulting actions
-            val results = ArrayList<List<ResolveRefFixAction>>()
-            for (resultName in resultNames) {
-                val actions = ArrayList<ResolveRefFixAction>()
-                actions.addAll(result)
+            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 ->
+                if (o1 == null && o2 == null) return@Comparator 0
+                if (o1 == null) return@Comparator -1
+                if (o2 == null) return@Comparator 1
 
-                if ((resultName.size > 1 || (resultName[0] != element.referenceName))) {
-                    actions.add(RenameReferenceAction(element, resultName))
-                }
-                results.add(actions)
+                val s1 = o1.first
+                val s2 = o2.first
+                (0 until minOf(s1.size, s2.size))
+                        .filter { s1[it] != s2[it] }
+                        .forEach { return@Comparator s1[it].compareTo(s2[it]) }
+                if (s1.size != s2.size) return@Comparator s1.size.compareTo(s2.size)
+                0
             }
+            resultNames.sortedWith(comparator)
 
-            return results
+            return if (resultNames.size > 0) {
+                val resultName = resultNames[0].first
+                val importAction = resultNames[0].second
+                val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
+                ResolveRefFixData(target, fullName, importAction, renameAction)
+            } else
+                null
         }
     }
 }

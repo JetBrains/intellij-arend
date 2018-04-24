@@ -24,6 +24,7 @@ enum class VcHighlightingColors(humanName: String, default: TextAttributesKey) {
 
     BLOCK_COMMENT("Block comment", Default.BLOCK_COMMENT),
     LINE_COMMENT("Line comment", Default.LINE_COMMENT),
+    LONG_NAME("Long name", Default.CONSTANT),
 
     BAD_CHARACTER("Bad character", HighlighterColors.BAD_CHARACTER);
 

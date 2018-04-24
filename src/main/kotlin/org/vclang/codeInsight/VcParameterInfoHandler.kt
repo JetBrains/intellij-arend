@@ -11,8 +11,10 @@ import com.jetbrains.jetpad.vclang.naming.BinOpParser
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.Fixity
+
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
@@ -43,10 +45,13 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (!vars.isEmpty()) {
-                vars.mapTo(nameTypeList) {
-                    Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
+
+//                vars.mapTo(nameTypeList) {
+ //                   Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
+
+                vars.mapTo(nameTypeList) { Pair(it.textRepresentation(), ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
             } else {
-                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(pm.type).toString()))
+                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
             }
             for (v in nameTypeList) {
                 if (text != "") {
@@ -73,18 +78,8 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
         val referable = ref?.referent?.let{ resolveIfNeeded(it, (ref as VcSourceNode).scope) }
-        // val curArg = appExprInfo
-       // var appExpr = curArg?.let { PsiTreeUtil.getParentOfType(it, VcArgumentAppExpr::class.java) } ?:
-       //          ParameterInfoUtils.findParentOfTypeWithStopElements(context.file, adjustOffset(context.file, context.editor.caretModel.offset), VcArgumentAppExpr::class.java, PsiGlobalReferable::class.java) ?: return null
-     //   var appExpr = appExprInfo?.second ?: return null
-    //    var paramsHolder = extractParametersHolder(appExpr)
 
-    //    if (paramsHolder == null) {
-     //       appExpr = PsiTreeUtil.getParentOfType(appExpr.parent, VcArgumentAppExpr::class.java, true, PsiLocatedReferable::class.java) ?: return null
-     //       paramsHolder = extractParametersHolder(appExpr)
-     //   }
-
-        if (referable is Abstract.ParametersHolder) {
+        if (referable is Abstract.ParametersHolder && !referable.parameters.isEmpty()) {
             context.itemsToShow = arrayOf((referable as Abstract.ParametersHolder).parameters)
         } else {
             context.itemsToShow = null
@@ -277,6 +272,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
         var absNode = fixedFindElement(file, offset)?.let { PsiTreeUtil.findFirstParent(it, {x -> x is Abstract.SourceNode}) as? Abstract.SourceNode } ?: return null
         var absNodeParent = absNode.parentSourceNode ?: return null
+        /*
         val mbJumpToExternalAppExpr = lbl_@{arg:VcArgument?, appExpr:VcArgumentAppExpr ->
             if (extractParametersHolder(appExpr) == null) {
                 if (arg != null || appExpr.parentSourceNode !is VcArgument || appExpr.parentSourceNode?.parentSourceNode !is VcArgumentAppExpr) {
@@ -286,7 +282,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
             }
             return@lbl_ Pair(arg, appExpr)
         }
-        /*
+
         val processReference = lbl@{
             if (absNodeParent is VcArgument) {
                 val argLoc = locateArg(absNodeParent as VcArgument)
@@ -358,100 +354,13 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
                 else null}
         }
 
-        /*
-        return (absNode).accept(object : BaseAbstractExpressionVisitor<Void, Pair<VcArgument?, VcArgumentAppExpr>?>(defaultRes) {
-            override fun visitApp(data: Any?, expr: Abstract.Expression, arguments: MutableCollection<out Abstract.Argument>, params: Void?): Pair<VcArgument?, VcArgumentAppExpr>? {
-                // if (arguments.isEmpty()) return expr.accept(this, params)
-                if (absNode !is VcArgumentAppExpr) return null
-                /*if (expr.accept(object : BaseAbstractExpressionVisitor<Void, Boolean>(false) {
-                    override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Boolean {
-                        if (referent is UnresolvedReference) return referent.resolve((absNode as VcArgumentAppExpr).scope) is Abstract.ParametersHolder
-                        return referent is Abstract.ParametersHolder
-                    }
-
-                    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Boolean {
-                        if (referent is UnresolvedReference) return referent.resolve((absNode as VcArgumentAppExpr).scope) is Abstract.ParametersHolder
-                        return referent is Abstract.ParametersHolder
-                    }
-                }, null)) {
-                    return Pair(null, absNode as VcArgumentAppExpr)
-                } else if (absNodeParent is Abstract.Argument && arguments.isEmpty()) {
-                    if (absNodeParent?.parentSourceNode !is VcArgumentAppExpr) return null
-                    return Pair(absNodeParent as? VcArgument, absNodeParent!!.parentSourceNode as VcArgumentAppExpr)
-                } */
-                return mbJumpToExternalAppExpr(null, absNode as VcArgumentAppExpr)
-            }
-
-            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Pair<VcArgument?, VcArgumentAppExpr>? {
-                return processReference()
-            }
-
-            override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Pair<VcArgument?, VcArgumentAppExpr>? {
-                return visitReference(data, referent, 0, 0, params)
-            }
-
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Void?): Pair<VcArgument?, VcArgumentAppExpr>? {
-
-                return visitApp(data, left, sequence.filter { it is Abstract.Argument }.map { it as Abstract.Argument }.toMutableList(), null)
-            }
-
-        }, null) */
         return null
     }
 
     override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): Abstract.Reference? {
         val offset = adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo: Pair<Int, Abstract.Reference> = findAppExpr(context.file, offset) ?: return null
-//        val curArg = appExprInfo?.first
-//        val appExpr = appExprInfo?.second ?: return null
-       // val paramsHolder = appExprInfo.second//extractParametersHolder(appExpr)
 
-       // if (appExpr != lastAppExpr) {
-       //     context.setCurrentParameter(-1)
-        //    return null
-       // }
-
-
-        //val parameters = paramsHolder.parameters ?: return null
-        /*
-        val argIndex = // ParameterInfoUtils.getCurrentParameterIndex(appExpr.node, context.offset, TokenType.WHITE_SPACE)
-                 appExpr.argumentList.indexOf(curArg)
-        if (argIndex >= 0) {
-            val argIsExplicit = appExpr.argumentList[argIndex].isExplicit
-            var numExplicitsBefore = 0
-            var numImplicitsJustBefore = 0
-            for (i in 0 until argIndex) {
-                if (appExpr.argumentList[i].isExplicit) {
-                    ++numExplicitsBefore
-                    numImplicitsJustBefore = 0
-                } else {
-                    ++numImplicitsJustBefore
-                }
-            }
-            var paramIndex = 0
-            loop@for (p in 0 until parameters.size) {
-                for (v in parameters[p].referableList) {
-                    if (numExplicitsBefore == 0) {
-                        if ((argIsExplicit && parameters[p].isExplicit) ||
-                                (!argIsExplicit && numImplicitsJustBefore == 0)) {
-                            break@loop
-                        }
-                        --numImplicitsJustBefore
-                    } else if (parameters[p].isExplicit) {
-                        --numExplicitsBefore
-                    }
-                    ++paramIndex
-                }
-            }
-            if (numExplicitsBefore == 0 && numImplicitsJustBefore <= 0) {
-                context.setCurrentParameter(paramIndex)
-            } else {
-                context.setCurrentParameter(-1)
-            }
-        } else {
-            context.setCurrentParameter(-1)
-        }
-        return appExpr */
         context.setCurrentParameter(appExprInfo.first)
         return appExprInfo.second
     }

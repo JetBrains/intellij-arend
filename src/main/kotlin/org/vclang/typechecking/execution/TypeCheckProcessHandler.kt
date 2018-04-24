@@ -35,7 +35,7 @@ class TypeCheckProcessHandler(
 
             override fun computeInReadAction(indicator: ProgressIndicator) {
                 try {
-                    typeChecker.typeCheck(ModulePath(command.modulePath.split('.')), command.definitionFullName, CancellationIndicator { indicator.isCanceled })
+                    typeChecker.typeCheck(command.library, if (command.modulePath == "") null else ModulePath(command.modulePath.split('.')), command.definitionFullName, CancellationIndicator { indicator.isCanceled })
                 }
                 catch (e: ProcessCanceledException) {}
                 catch (e: Exception) {
@@ -43,7 +43,7 @@ class TypeCheckProcessHandler(
                 }
                 finally {
                     ApplicationManager.getApplication().executeOnPooledThread {
-                        this@TypeCheckProcessHandler.destroyProcess()
+                        destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
                     }
                 }
             }
@@ -56,7 +56,8 @@ class TypeCheckProcessHandler(
         indicator.cancel()
     }
 
-    override fun destroyProcessImpl() = notifyProcessTerminated(0)
+    override fun destroyProcessImpl() =
+            notifyProcessTerminated(0)
 
     override fun detachIsDefault(): Boolean = true
 

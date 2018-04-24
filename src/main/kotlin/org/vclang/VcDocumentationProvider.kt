@@ -2,6 +2,7 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
+import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
@@ -49,7 +50,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         })
 
     private fun printParameters(parameters: List<Abstract.Parameter>): String? {
-        val list = ConcreteBuilder.convertParams(parameters)
+        val list = ConcreteBuilder.convertParams(IdReferableConverter.INSTANCE, parameters)
         return if (list != null && list.isNotEmpty()) {
             val builder = StringBuilder()
             val printer = PrettyPrintVisitor(builder, 0, false)
@@ -60,7 +61,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun printExpression(element: Abstract.Expression): String? {
-        val expression = ConcreteBuilder.convertExpression(element)
+        val expression = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, element)
         return if (expression != null) {
             val builder = StringBuilder()
             val printer = PrettyPrintVisitor(builder, 0, false)

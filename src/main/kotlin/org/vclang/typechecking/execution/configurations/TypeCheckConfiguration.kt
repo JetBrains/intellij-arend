@@ -28,8 +28,9 @@ class TypeCheckConfiguration(
     @get: com.intellij.util.xmlb.annotations.Transient
     @set: com.intellij.util.xmlb.annotations.Transient
     var vclangTypeCheckCommand: TypeCheckCommand
-        get() = TypeCheckCommand(_vclangArgs.modulePath, _vclangArgs.definitionFullName)
+        get() = TypeCheckCommand(_vclangArgs.library, _vclangArgs.modulePath, _vclangArgs.definitionFullName)
         set(value) = with(value) {
+            _vclangArgs.library = library
             _vclangArgs.modulePath = modulePath
             _vclangArgs.definitionFullName = definitionFullName
         }
@@ -62,6 +63,7 @@ class TypeCheckConfiguration(
 
 @Tag(value = "parameters")
 data class SerializableTypeCheckCommand(
-        var modulePath: String = "",
-        var definitionFullName: String = ""
+    var library: String = "",
+    var modulePath: String = "",
+    var definitionFullName: String = ""
 )
