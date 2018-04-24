@@ -101,11 +101,12 @@ class TypecheckingEventsProcessor(
 
     fun onSuitesFinished() {
         addToInvokeLater {
-            for (ref in deferredActions.keys) {
+            for (ref in ArrayList(deferredActions.keys)) {
                 if (ref is ModuleReferable) {
                     onSuiteStarted(ref.path)
                 } else if (ref is PsiLocatedReferable) {
                     onTestStarted(ref)
+                    onTestFinished(ref)
                 }
             }
             for (suite in fileToProxy.values) {

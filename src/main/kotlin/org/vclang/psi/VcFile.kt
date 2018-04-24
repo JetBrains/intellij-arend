@@ -56,6 +56,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getLocation() = modulePath
 
+    override fun getTypecheckable(): PsiLocatedReferable = this
+
     override fun getLocatedReferableParent(): LocatedReferable? = null
 
     override fun getGroupScope() = scope

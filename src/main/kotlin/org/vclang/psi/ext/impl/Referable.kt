@@ -3,7 +3,6 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.psi.VcDefinition
@@ -22,7 +21,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
-    override fun getTypecheckable(): GlobalReferable = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: this
+    override fun getTypecheckable(): PsiLocatedReferable = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: this
 
     override fun isTypecheckable() = false
 

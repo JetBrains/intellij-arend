@@ -42,7 +42,7 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
             val ref = PsiLocatedReferable.fromReferable(it)
             if (ref is PsiLocatedReferable || it is ModuleReferable) {
                 reported = true
-                if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref, proxyAction)
+                if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref.typecheckable, proxyAction)
                 if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
             }
         }
