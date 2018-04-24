@@ -222,7 +222,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     override fun updateDefinition(referable: LocatedReferable) {
         simpleReferableConverter.remove(referable)?.let {
             for (ref in dependencyCollector.update(it)) {
-                PsiLocatedReferable.fromReferable(ref)?.let { simpleReferableConverter.remove(it) }
+                simpleReferableConverter.remove(PsiLocatedReferable.fromReferable(ref))
             }
         }
     }
