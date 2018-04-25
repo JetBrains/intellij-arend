@@ -40,4 +40,6 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun unloadDefinition(referable: LocatedReferable) {
         TypeCheckingService.getInstance(module.project).updateDefinition(referable)
     }
+
+    override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).referableConverter
 }

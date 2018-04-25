@@ -169,13 +169,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     }
                 }
 
-                /* TODO[references]
-                if (library is SourceLibrary && library.supportsPersisting()) {
+                if (library.supportsPersisting()) {
                     for (updatedModule in typeChecking.typecheckedModulesWithoutErrors) {
-                        library.persistModule(updatedModule, libraryManager.libraryErrorReporter)
+                        library.persistModule(updatedModule, referableConverter, libraryManager.libraryErrorReporter)
                     }
                 }
-                */
             }
 
             if (computationFinished)
