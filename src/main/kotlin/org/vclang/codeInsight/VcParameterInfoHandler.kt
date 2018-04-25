@@ -14,7 +14,6 @@ import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.Fixity
-
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
@@ -23,6 +22,7 @@ import org.vclang.psi.VcArgument
 import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcTypeTele
+import org.vclang.psi.ext.PsiLocatedReferable.Companion.fromReferable
 import org.vclang.psi.ext.VcSourceNode
 
 class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
@@ -196,10 +196,13 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
             val funcRes = findArgInParsedBinopSeq(arg, appData.first, curArgInd, curFunc)
             if (funcRes != null) return funcRes
             var func = (appData.first as? Concrete.ReferenceExpression)?.data as? Abstract.Reference
-            val funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
+            var funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
             val argExplicitness = mutableListOf<Boolean>()
 
-            if (funcReferable !is Abstract.ParametersHolder) func = null
+            if (funcReferable !is Abstract.ParametersHolder) {
+                func = null
+                funcReferable = null
+            }
 
             for (i in 0 until appData.second.size) {
                 argExplicitness.add(appData.second[i].isExplicit)
@@ -214,8 +217,8 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
         return null
     }
 
-    private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable {
-        return (referent as? UnresolvedReference)?.resolve(scope) ?: referent
+    private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? {
+        return (((referent as? UnresolvedReference)?.resolve(scope) ?: referent) as? GlobalReferable)?.let{ fromReferable(it) }
     }
 
     private fun expressionToReference(expr: Abstract.Expression): Concrete.ReferenceExpression? {
@@ -316,21 +319,10 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
             return null
         }
 
-      //  if (absNode is Abstract.Argument) {
-      //      if (absNodeParent !is VcArgumentAppExpr) return null
-       //     return Pair(absNode as? VcArgument, absNodeParent)
-       // }
-
         while (absNode !is Abstract.Expression) {
             absNode = absNodeParent
             absNodeParent = absNodeParent.parentSourceNode ?: return null
         }
-
-        //val defaultRes =
-        //if (absNodeParent is VcArgument) {
-        //    return locateArg(absNodeParent as VcArgument)
-       // }
-        //else return null
 
         if (absNodeParent is VcArgument && absNodeParent.parentSourceNode is VcExpr) {
             var arg: VcArgument = absNodeParent
@@ -360,6 +352,10 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): Abstract.Reference? {
         val offset = adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo: Pair<Int, Abstract.Reference> = findAppExpr(context.file, offset) ?: return null
+
+        if (context.parameterOwner != appExprInfo.second) {
+            return null
+        }
 
         context.setCurrentParameter(appExprInfo.first)
         return appExprInfo.second
