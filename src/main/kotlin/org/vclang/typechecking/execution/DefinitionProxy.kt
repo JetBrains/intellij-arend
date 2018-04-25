@@ -5,6 +5,8 @@ import com.intellij.execution.PsiLocation
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.GlobalSearchScope
 
 class DefinitionProxy(
@@ -12,8 +14,16 @@ class DefinitionProxy(
     isSuite: Boolean,
     locationUrl: String?,
     preservePresentableName: Boolean = true,
-    private val psi: PsiElement?) : SMTestProxy(definitionName, isSuite, locationUrl, preservePresentableName) {
+    psi: PsiElement?) : SMTestProxy(definitionName, isSuite, locationUrl, preservePresentableName) {
+
+    private val psiPointer: SmartPsiElementPointer<PsiElement>? =
+        if (psi == null) {
+            null
+        } else {
+            val file = psi.containingFile
+            SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(psi, file)
+        }
 
     override fun getLocation(project: Project, searchScope: GlobalSearchScope): Location<*>? =
-        if (psi != null) PsiLocation(psi) else null
+        psiPointer?.element?.let { PsiLocation(it) }
 }

@@ -162,6 +162,8 @@
         <stubIndex implementation="org.vclang.psi.stubs.index.VcDefinitionIndex"/>
         <stubIndex implementation="org.vclang.psi.stubs.index.VcGotoClassIndex"/>
 
+        <stubElementTypeHolder class="org.vclang.psi.VcElementTypes"/>
+
         <!-- Lookup Filters -->
 
         <lookup.charFilter implementation="org.vclang.codeInsight.VclangCharFilter"/>
