@@ -35,7 +35,10 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
-    override fun getFieldReferables(): List<GlobalReferable> = (fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
+    override fun getFieldReferables(): List<GlobalReferable> =
+        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<GlobalReferable>) +
+            classStatList.mapNotNull { it.classField } +
+            classFieldSynList
 
     override fun hasParameter() = fieldTele != null
 
