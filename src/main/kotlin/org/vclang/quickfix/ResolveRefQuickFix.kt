@@ -3,11 +3,13 @@ package org.vclang.quickfix
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.util.containers.isNullOrEmpty
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
+import org.vclang.module.util.findVcFilesAndDirectories
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
@@ -16,12 +18,18 @@ import java.util.Collections.singletonList
 
 interface ResolveRefFixAction {
     fun execute(editor: Editor?)
+    fun isValid(): Boolean = true
 }
 
 class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString(): String {
-        return "Import file "+ importFile.fullName
+        return "Import file " + importFile.fullName
     }
+
+    override fun isValid(): Boolean {
+        return !currentFile.module?.findVcFilesAndDirectories(importFile.modulePath).isNullOrEmpty()
+    }
+
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
@@ -495,6 +503,10 @@ class ResolveRefQuickFix {
             return if (resultNames.size > 0) {
                 val resultName = resultNames[0].first
                 val importAction = resultNames[0].second
+
+                if (importAction != null && !importAction.isValid())
+                    return null //Perhaps current or target directory is not marked as a content root
+
                 val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
                 ResolveRefFixData(target, fullName, importAction, renameAction)
             } else
