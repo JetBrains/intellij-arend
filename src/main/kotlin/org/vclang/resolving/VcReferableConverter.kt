@@ -20,6 +20,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
 
     override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
         when (referable) {
+            is VcFile -> null
             is PsiElement -> {
                 var superClasses: MutableList<TCClassReferable>? = null
                 var fields: MutableList<TCReferable>? = null

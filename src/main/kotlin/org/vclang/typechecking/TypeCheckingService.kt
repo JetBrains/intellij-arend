@@ -10,7 +10,7 @@ import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.library.Library
 import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.library.error.LibraryError
-import com.jetbrains.jetpad.vclang.library.error.ModuleError
+import com.jetbrains.jetpad.vclang.library.error.ModuleInSeveralLibrariesError
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.module.error.ModuleNotFoundError
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
@@ -210,7 +210,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         if (libraries != null) {
-            libraryManager.typecheckingErrorReporter.report(ModuleError(modulePath, libraries))
+            libraryManager.typecheckingErrorReporter.report(ModuleInSeveralLibrariesError(modulePath, libraries))
         }
 
         if (library == null) {
