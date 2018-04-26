@@ -21,15 +21,14 @@ import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiLocatedReferable, ChildGroup {
-    var modulePath: ModulePath
-
-    init {
-        val fileName = viewProvider.virtualFile.path
-        val root = (sourceRoot ?: contentRoot)?.path
-        val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
-        val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
-        modulePath = ModulePath(fullName.split('.'))
-    }
+    val modulePath: ModulePath
+        get() {
+            val fileName = viewProvider.virtualFile.path
+            val root = (sourceRoot ?: contentRoot)?.path
+            val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
+            val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
+            return ModulePath(fullName.split('.'))
+        }
 
     val fullName
         get() = modulePath.toString()
@@ -38,15 +37,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
         get() = module?.name ?: if (modulePath == Prelude.MODULE_PATH) "prelude" else null
 
     override fun setName(name: String): PsiElement {
-        val (nameWithExt, nameWithoutExt) = if (name.endsWith('.' + VcFileType.defaultExtension)) {
-            Pair(name, name.removeSuffix('.' + VcFileType.defaultExtension))
-        } else {
-            Pair(name + '.' + VcFileType.defaultExtension, name)
-        }
-
-        val list = modulePath.toList()
-        modulePath = ModulePath(list.subList(0, list.size - 1) + nameWithoutExt)
-        return super.setName(nameWithExt)
+        return super.setName(if (name.endsWith('.' + VcFileType.defaultExtension)) name else name + '.' + VcFileType.defaultExtension)
     }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
