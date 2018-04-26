@@ -50,4 +50,6 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     }
 
     override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).referableConverter
+
+    override fun getDependencyListener() = TypeCheckingService.getInstance(module.project).dependencyListener
 }

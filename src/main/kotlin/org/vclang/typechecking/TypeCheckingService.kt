@@ -28,6 +28,7 @@ import com.jetbrains.jetpad.vclang.typechecking.SimpleTypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
+import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.module.VcRawLibrary
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
@@ -45,6 +46,8 @@ interface TypeCheckingService {
     val libraryManager: LibraryManager
 
     val typecheckerState: TypecheckerState
+
+    val dependencyListener: DependencyListener
 
     val referableConverter: ReferableConverter
 
@@ -70,7 +73,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
     override val typecheckerState = SimpleTypecheckerState()
-    private val dependencyCollector = DependencyCollector(typecheckerState)
+    override val dependencyListener = DependencyCollector(typecheckerState)
     private val typecheckingErrorReporter = TypecheckingErrorReporter(PrettyPrinterConfig.DEFAULT)
     override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, typecheckingErrorReporter, LogErrorReporter(PrettyPrinterConfig.DEFAULT))
 
@@ -125,7 +128,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
             val referableConverter = referableConverter
             val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, eventsProcessor)
-            val typeChecking = TestBasedTypechecking(eventsProcessor, typecheckerState, concreteProvider, typecheckingErrorReporter, dependencyCollector, referableConverter)
+            val typeChecking = TestBasedTypechecking(eventsProcessor, typecheckerState, concreteProvider, typecheckingErrorReporter, dependencyListener, referableConverter)
 
             var computationFinished = true
 
@@ -219,7 +222,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     override fun updateDefinition(referable: LocatedReferable) {
         simpleReferableConverter.remove(referable)?.let {
-            for (ref in dependencyCollector.update(it)) {
+            for (ref in dependencyListener.update(it)) {
                 PsiLocatedReferable.fromReferable(ref)?.let { simpleReferableConverter.remove(it) }
             }
         }
