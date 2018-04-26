@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.io.FileUtil
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.library.LibraryHeader
+import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.library.SourceLibrary
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
@@ -29,6 +30,13 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
         baseBinaryPath = Paths.get(FileUtil.toSystemDependentName(module.moduleFilePath)).resolveSibling(".output")
         return LibraryHeader(loadedModules, emptyList())
+    }
+
+    override fun load(libraryManager: LibraryManager?): Boolean {
+        if (!super.load(libraryManager)) {
+            setLoaded()
+        }
+        return true
     }
 
     override fun getLoadedModules() = module.vcFiles.map { it.modulePath }
