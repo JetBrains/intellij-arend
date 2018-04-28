@@ -173,7 +173,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 }
 
                 if (library.supportsPersisting()) {
-                    for (updatedModule in typeChecking.typecheckedModulesWithoutErrors) {
+                    for (updatedModule in typeChecking.typecheckedModules) {
                         library.persistModule(updatedModule, referableConverter, libraryManager.libraryErrorReporter)
                     }
                 }

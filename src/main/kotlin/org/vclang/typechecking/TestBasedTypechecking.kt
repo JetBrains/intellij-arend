@@ -23,8 +23,7 @@ class TestBasedTypechecking(
     referableConverter: ReferableConverter)
     : Typechecking(state, concreteProvider, errorReporter, dependencyListener, referableConverter) {
 
-    private val typecheckedModules = LinkedHashSet<ModulePath>()
-    private val typecheckedModulesWithErrors = HashSet<ModulePath>()
+    val typecheckedModules = LinkedHashSet<ModulePath>()
 
     private fun startTimer(definition: TCReferable) {
         ((definition as? DataLocatedReferable)?.data as? PsiLocatedReferable)?.let { eventsProcessor.startTimer(it) }
@@ -46,13 +45,7 @@ class TestBasedTypechecking(
             eventsProcessor.onTestFailure(ref)
         }
         eventsProcessor.onTestFinished(ref)
-
-        val modulePath = referable.location ?: return
-        if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
-            typecheckedModules.add(modulePath)
-        } else {
-            typecheckedModulesWithErrors.add(modulePath)
-        }
+        typecheckedModules.add(referable.location ?: return)
     }
 
     override fun typecheckingHeaderStarted(definition: TCReferable) {
@@ -70,7 +63,4 @@ class TestBasedTypechecking(
     override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {
         typecheckingUnitFinished(referable, definition)
     }
-
-    val typecheckedModulesWithoutErrors
-        get() = typecheckedModules.minus(typecheckedModulesWithErrors)
 }
