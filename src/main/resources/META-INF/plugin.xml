@@ -123,6 +123,8 @@
 
         <codeInsight.parameterInfo language="Vclang" implementationClass="org.vclang.codeInsight.VcParameterInfoHandler"/>
 
+        <completion.contributor language="Vclang" implementationClass="org.vclang.codeInsight.completion.VclangCompletionContributor"/>
+
         <!-- Annotation -->
 
         <annotator language="Vclang"
