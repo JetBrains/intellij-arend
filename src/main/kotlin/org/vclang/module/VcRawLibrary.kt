@@ -49,8 +49,6 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
         TypeCheckingService.getInstance(module.project).updateDefinition(referable)
     }
 
-    override fun supportsMixedSources() = true
-
     override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).referableConverter
 
     override fun getDependencyListener() = TypeCheckingService.getInstance(module.project).dependencyListener
