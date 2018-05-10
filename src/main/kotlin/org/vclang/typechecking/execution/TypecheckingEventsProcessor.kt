@@ -99,6 +99,14 @@ class TypecheckingEventsProcessor(
         }
     }
 
+    fun onSuiteFailure(modulePath: ModulePath) {
+        addToInvokeLater {
+            val proxy = fileToProxy[modulePath] ?: return@addToInvokeLater
+            proxy.setTestFailed("", null, proxy.hasErrors())
+            fireOnTestFailed(proxy)
+        }
+    }
+
     fun onSuitesFinished() {
         addToInvokeLater {
             for (ref in ArrayList(deferredActions.keys)) {

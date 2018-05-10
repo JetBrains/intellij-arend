@@ -17,6 +17,7 @@ import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.LocatingModuleScopeProvider
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -30,14 +31,14 @@ import com.jetbrains.jetpad.vclang.typechecking.Typechecking
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
 import org.vclang.module.VcRawLibrary
-import org.vclang.psi.VcDefinition
-import org.vclang.psi.VcFile
-import org.vclang.psi.ancestors
+import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.resolving.VcReferableConverter
 import org.vclang.resolving.VcResolveCache
+import org.vclang.typechecking.error.LogErrorReporter
+import org.vclang.typechecking.error.ParserError
+import org.vclang.typechecking.error.TypecheckingErrorReporter
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 interface TypeCheckingService {
@@ -148,6 +149,9 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
                 if (definitionFullName == "") {
                     concreteProvider.isResolving = true
+                    for (module in modules) {
+                        reportParserErrors(module, module)
+                    }
                     computationFinished = typeChecking.typecheckModules(modules) && computationFinished
                 } else {
                     val ref = modules.firstOrNull()?.findGroupByFullName(definitionFullName.split('.'))?.referable
@@ -184,6 +188,23 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
         } finally {
             Typechecking.setDefaultCancellationIndicator()
+        }
+    }
+
+    private fun reportParserErrors(group: PsiElement, module: VcFile) {
+        for (child in group.children) {
+            when (child) {
+                is PsiErrorElement -> {
+                    val modulePath = module.modulePath
+                    typecheckingErrorReporter.report(ParserError(child, group as? PsiLocatedReferable ?: ModuleReferable(modulePath)))
+                    if (group is PsiLocatedReferable) {
+                        eventsProcessor!!.onTestFailure(group)
+                    } else {
+                        eventsProcessor!!.onSuiteFailure(modulePath)
+                    }
+                }
+                is VcStatement -> child.definition?.let { reportParserErrors(it, module) }
+            }
         }
     }
 

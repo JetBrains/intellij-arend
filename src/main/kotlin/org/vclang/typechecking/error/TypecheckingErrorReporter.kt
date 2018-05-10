@@ -1,4 +1,4 @@
-package org.vclang.typechecking
+package org.vclang.typechecking.error
 
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.testframework.CompositePrintable

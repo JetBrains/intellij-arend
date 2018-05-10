@@ -1,4 +1,4 @@
-package org.vclang.typechecking
+package org.vclang.typechecking.error
 
 import com.intellij.openapi.diagnostic.Logger
 import com.jetbrains.jetpad.vclang.error.Error.Level

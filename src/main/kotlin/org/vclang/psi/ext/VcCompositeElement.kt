@@ -20,9 +20,9 @@ interface VcCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): VcReference?
 }
 
-private fun VcCompositeElement.moduleTextRepresentationImpl(): String? = (containingFile as? VcFile)?.name
+fun PsiElement.moduleTextRepresentationImpl(): String? = (containingFile as? VcFile)?.name
 
-private fun VcCompositeElement.positionTextRepresentationImpl(): String? {
+fun PsiElement.positionTextRepresentationImpl(): String? {
     val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
     val offset = textOffset
     val line = document.getLineNumber(offset)
