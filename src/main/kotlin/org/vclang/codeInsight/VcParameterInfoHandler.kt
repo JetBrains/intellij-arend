@@ -57,7 +57,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
                 if (text != "") {
                     text += ", "
                 }
-                var varText = v.first + ":" + v.second
+                var varText = v.first + " : " + v.second
                 if (!pm.isExplicit) {
                     varText = "{$varText}"
                 }
