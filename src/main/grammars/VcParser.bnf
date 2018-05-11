@@ -84,7 +84,7 @@ statements ::= topStatement*
 private topStatement ::= !<<eof>> statement { recoverWhile = statement_recover }
 
 private statement_recover ::= !(OPEN_KW      | IMPORT_KW | FUNCTION_KW  |
-                                TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW)
+                                TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW | <<eof>>)
 
 statement ::= statCmd | definition
 
@@ -199,7 +199,10 @@ pattern ::= atomPattern | patternConstructor {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Pattern" ]
     mixin = "org.vclang.psi.ext.VcPatternImplMixin"
+    recoverWhile = pattern_recover
 }
+
+private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | WHERE_KW | COMMA) & statement_recover
 
 patternConstructor ::= defIdentifier atomPatternOrPrefix* { pin = 1 }
 
@@ -245,7 +248,7 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.vclang.psi.ext.VcArrExprImplMixin"
 }
 
-newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE argument*] {
+newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*] {
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
 
@@ -359,7 +362,7 @@ atomOnlyLevelExpr ::= LP_KW
     mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
 
-argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) argument* {
+argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) (argument | argumentRecovery)* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
 }
@@ -393,12 +396,13 @@ argument ::= atomArgument
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Argument"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.BinOpSequenceElem" ]
     mixin = "org.vclang.psi.ext.VcArgumentImplMixin"
-//    recoverWhile = argumentRecover
 }
 
-private argumentRecover ::= !(RBRACE | RPAREN | OPEN_KW
-                            | IMPORT_KW | FUNCTION_KW  |
-                            TRUNCATED_KW | DATA_KW   | CLASS_KW | INSTANCE_KW)
+private argumentRecovery ::= argument_recover {
+    recoverWhile = argument_recover
+}
+
+private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.vclang.psi.ext.VcCompositeElement"
@@ -460,7 +464,10 @@ nameTele ::= identifierOrUnknown
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcNameTeleImplMixin"
+        recoverWhile = nameTele_recover
     }
+
+private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | WITH_KW | ELIM_KW) & statement_recover
 
 fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
@@ -476,7 +483,10 @@ typeTele ::= literal
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcTypeTeleImplMixin"
+        recoverWhile = typeTele_recover
     }
+
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | WHERE_KW | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | LGOAL) & statement_recover
 
 typedExpr ::= identifierOrUnknown+ COLON expr | expr
 
@@ -495,6 +505,7 @@ defIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.PsiReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
+    recoverWhile = typeTele_recover
 }
 
 refIdentifier ::= ID {
