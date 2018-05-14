@@ -111,7 +111,7 @@ classStat ::= classFieldOrImplement | definition { recoverWhile = classStat_reco
 
 private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CLASS_KW | INSTANCE_KW | RBRACE)
 
-private classFieldOrImplement ::= PIPE (classField | classImplement) { pin = 1 }
+private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin = 1 }
 
 classField ::= prec? defIdentifier typeTele* COLON expr {
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
@@ -122,7 +122,7 @@ classField ::= prec? defIdentifier typeTele* COLON expr {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-classFieldSyn ::= PIPE refIdentifier FAT_ARROW prec? defIdentifier {
+classFieldSyn ::= pipe_def refIdentifier fat_arrow_def prec? defIdentifier {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
@@ -178,18 +178,40 @@ defInstance ::= INSTANCE_KW defIdentifier nameTele* COLON longName coClauses whe
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-private classBodySyn ::= FAT_ARROW refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
+private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
 
 functionBody ::= FAT_ARROW expr | elim? functionClauses
 
-dataBody ::= elim constructorClause* | [FAT_ARROW PIPE? constructor] (PIPE constructor)*
+dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)*
 
-constructorClause ::= PIPE <<comma_separated_sequence pattern>> FAT_ARROW (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE) {
+private fat_arrow_def_pipe ::= FAT_ARROW {
+    recoverWhile = def_pipe_recover
+}
+
+private def_pipe_recover ::= !(ID | PIPE | assoc)
+
+private pipe_def ::= PIPE {
+    recoverWhile = def_recover
+}
+
+private def_recover ::= !(ID | assoc)
+
+constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE) {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.vclang.psi.ext.VcConstructorClauseImplMixin"
 }
+
+private fat_arrow_def ::= FAT_ARROW {
+    recoverWhile = def_recover
+}
+
+private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
+    recoverWhile = def_pipe_lbrace_recover
+}
+
+private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc)
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
 
@@ -227,7 +249,9 @@ constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-prec ::= (NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW) NUMBER
+private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
+
+prec ::= assoc NUMBER
 
 expr ::= arrExpr
     | caseExpr
@@ -285,7 +309,7 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 }
 
 functionClauses ::= clausesWithBraces | (PIPE clause)*
-private clausesWithBraces ::= LBRACE <<pipe_separated_sequence clause>>? RBRACE { pin = 1 }
+private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
 coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)*
 
@@ -516,4 +540,4 @@ refIdentifier ::= ID {
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 
-private meta pipe_separated_sequence ::= PIPE? <<p>> (PIPE <<p>>)*
+private meta pipe_separated_sequence ::= pipe_def? <<p>> (pipe_def <<p>>)*
