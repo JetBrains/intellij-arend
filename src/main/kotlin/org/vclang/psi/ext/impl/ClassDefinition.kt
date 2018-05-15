@@ -3,7 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -35,8 +35,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
-    override fun getFieldReferables(): List<GlobalReferable> =
-        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<GlobalReferable>) +
+    override fun getFieldReferables(): List<LocatedReferable> =
+        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<LocatedReferable>) +
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
