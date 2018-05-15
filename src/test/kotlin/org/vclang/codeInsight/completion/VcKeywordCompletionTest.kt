@@ -96,7 +96,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\import B (lol) {-caret-}", singletonList("\\hiding"), CompletionCondition.CONTAINS)
 
     fun `test nsCmd completion in namespace command 2`() =
-            checkCompletionVariants("\\import B (lol) \\{-caret-}", singletonList("\\hiding"), CompletionCondition.CONTAINS)
+            checkSingleCompletion("\\hiding", "\\import B (lol) \\{-caret-}")
 
     fun `test nsCmd completion in namespace command 3`() =
             checkCompletionVariants("\\import B {-caret-}", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)

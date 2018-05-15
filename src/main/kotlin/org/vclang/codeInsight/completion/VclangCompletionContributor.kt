@@ -20,10 +20,11 @@ import java.util.Collections.singletonList
 class VclangCompletionContributor: CompletionContributor() {
 
     init {
-        extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS)) // fixity kws
+        extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
         extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
         extend(CompletionType.BASIC, AS_CONTEXT, KeywordCompletionProvider(singletonList(AS_KW)))
-        //extend(CompletionType.BASIC, PlatformPatterns.psiElement(), KeywordCompletionProvider(singletonList(INVALID_KW)))
+        extend(CompletionType.BASIC, ROOT_CONTEXT, ProviderWithCondition<CompletionParameters>({a, b -> (a.position.parent as PsiErrorElement).errorDescription.contains("\\hiding")}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+        extend(CompletionType.BASIC, ROOT_CONTEXT, ProviderWithCondition<CompletionParameters>({a, b -> (a.position.parent as PsiErrorElement).errorDescription.contains("ns using")}, KeywordCompletionProvider(singletonList(USING_KW))))
     }
 
     companion object {
