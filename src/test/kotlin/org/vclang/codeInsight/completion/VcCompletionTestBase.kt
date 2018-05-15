@@ -3,6 +3,7 @@ package org.vclang.codeInsight.completion
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.testFramework.UsefulTestCase
 import org.intellij.lang.annotations.Language
 import org.vclang.VcTestBase
 import org.vclang.fileTreeFromText
@@ -22,6 +23,14 @@ abstract class VcCompletionTestBase : VcTestBase() {
                 && (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
             "Wrong completion, expected `$target`, but got\n${myFixture.file.text}"
         }
+    }
+
+    protected fun checkCompletionVariants(@Language("Vclang") code: String, variants: List<String>) {
+        InlineFile(code).withCaret()
+
+        val result = myFixture.getCompletionVariants("Main.vc")
+        assertNotNull(result)
+        UsefulTestCase.assertSameElements<String>(result!!, variants)
     }
 
     protected fun doSingleCompletion(
