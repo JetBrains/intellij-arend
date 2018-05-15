@@ -1,10 +1,12 @@
 package org.vclang.codeInsight.completion
 
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ROOT_KWS
 import java.util.Collections.singletonList
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
     private val fixityKws = FIXITY_KWS.map { it.toString() }
+    private val rootKws = ROOT_KWS.map { it.toString() }
 
     fun `test fixity completion after func`() =
             checkCompletionVariants("\\func {-caret-} test => 0", fixityKws)
@@ -89,5 +91,27 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test as completion in namespace command 2`() =
             checkSingleCompletion("\\as", "\\import B (lol \\{-caret-})")
+
+    fun `test nsCmd completion in namespace command`() =
+            checkCompletionVariants("\\import B (lol) {-caret-}", singletonList("\\hiding"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 2`() =
+            checkCompletionVariants("\\import B (lol) \\{-caret-}", singletonList("\\hiding"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 3`() =
+            checkCompletionVariants("\\import B {-caret-}", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 4`() =
+            checkCompletionVariants("\\import B \\{-caret-}", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 5`() =
+            checkCompletionVariants("\\import B {-caret-} (lol)", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 6`() =
+            checkCompletionVariants("\\import B \\{-caret-} (lol)", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
+
+    fun `test root completion in empty context`() =
+            checkCompletionVariants("{-caret-}", rootKws, CompletionCondition.CONTAINS)
+
 
 }

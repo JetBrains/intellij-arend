@@ -14,18 +14,21 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
+import org.vclang.psi.impl.VcStatementImpl
 import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS)) // fixity kws
-        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), OriginalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
+        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
         extend(CompletionType.BASIC, AS_CONTEXT, KeywordCompletionProvider(singletonList(AS_KW)))
+        //extend(CompletionType.BASIC, PlatformPatterns.psiElement(), KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW)
+        val ROOT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW, IMPORT_KW)
 
         private fun afterLeaf(et : IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun<T: PsiElement> withParent(et : Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
@@ -41,14 +44,22 @@ class VclangCompletionContributor: CompletionContributor() {
                 and(afterLeaf(FAT_ARROW), withGrandParent(VcClassFieldSyn::class.java))) //class field synonym
 
         val AS_CONTEXT = and(withGrandParent(VcNsId::class.java), withParents(VcRefIdentifier::class.java, PsiErrorElement::class.java))
+        val ROOT_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParent(VcFile::class.java))
+        val ROOT_CONTEXT_O = and(PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(VcStatementImpl::class.java)), withParents(VcFile::class.java, VcWhere::class.java))
     }
 
-    class OriginalPositionCondition<T>(private val originalPositionCondition : ElementPattern<T>, private val completionProvider : CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
+
+    class ProviderWithCondition<T>(private val condition : (CompletionParameters, ProcessingContext?) -> Boolean, private val completionProvider : CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
-            if (originalPositionCondition.accepts(parameters.originalPosition, context))
+            if (condition(parameters, context))
                 completionProvider.addCompletionVariants(parameters, context, result)
         }
     }
+
+    fun<T> originalPositionCondition (opc: ElementPattern<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
+            ProviderWithCondition<T>({a, b ->
+                opc.accepts(a.originalPosition, b)
+            }, completionProvider)
 
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
@@ -63,6 +74,15 @@ class VclangCompletionContributor: CompletionContributor() {
 
             val nonEmptyPrefix = result.prefixMatcher.prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
+
+            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
+
+            System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
+            System.out.println("originalPosition.prevSibling: "+parameters.originalPosition?.prevSibling?.javaClass)
+            System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
+
+            System.out.println(ROOT_CONTEXT_O.accepts(parameters.originalPosition, context))
 
             for (keyword in keywords)
                 result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+result.prefixMatcher.prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))
