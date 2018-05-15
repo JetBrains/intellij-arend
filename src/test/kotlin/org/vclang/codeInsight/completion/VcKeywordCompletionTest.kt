@@ -22,22 +22,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\data \\{-caret-} MyNat | myzero", fixityKws)
 
     fun `test fixity completion after as`() =
-            checkCompletionVariants(
-                    """
-                        \import B (lol \as {-caret-} +)
+            checkCompletionVariants("\\import B (lol \\as {-caret-} +)", fixityKws)
 
-                        -- B.vc
-                        \func lol (a b : Nat) => a
-                    """, fixityKws)
-
-    /* fun `test fixity completion after as 2`() =
-            checkCompletionVariants(
-                    """
-                        \import B (lol \as \\{-caret-} +)
-
-                        -- B.vc
-                        \func lol (a b : Nat) => a
-                    """, fixityKws) */ //TODO: Fix me
+    fun `test fixity completion after as 2`() =
+            checkCompletionVariants("\\import B (lol \\as \\{-caret-} +)", fixityKws)
 
     fun `test fixity completion after simple datatype constructor`() =
             checkCompletionVariants("\\data MyNat | {-caret-} myzero", fixityKws)
@@ -57,13 +45,11 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test fixity completion after class field 2`() =
             checkCompletionVariants("\\class Monoid (El : \\Set) { | \\{-caret-} * : El -> El -> El}", fixityKws)
 
-    /* fun `test fixity completion after class field synonym`() =
-            checkCompletionVariants("\\class Monoid (El : \\Set) { | * : El -> El -> El}\n" +
-                                    "\\class AddMonoid => Monoid { | * => {-caret-} +}", fixityKws) */ //TODO: Fix me
+    fun `test fixity completion after class field synonym`() =
+            checkCompletionVariants("\\class AddMonoid => Monoid { | * => {-caret-} +}", fixityKws)
 
     fun `test fixity completion after class field synonym 2`() =
-            checkCompletionVariants("\\class Monoid (El : \\Set) { | * : El -> El -> El}\n" +
-                                    "\\class AddMonoid => Monoid { | * => \\{-caret-} +}", fixityKws)
+            checkCompletionVariants("\\class AddMonoid => Monoid { | * => \\{-caret-} +}", fixityKws)
 
 
 }
