@@ -18,22 +18,23 @@ class VclangCompletionContributor: CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS)) // fixity kws
-        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW),
-                OriginalPositionCondition(withParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
+        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), OriginalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
     }
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW)
 
         private fun afterLeaf(et : IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
-        private fun<T: PsiElement> withGrandParent(et : Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
         private fun<T: PsiElement> withParent(et : Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
+        private fun<T: PsiElement> withGrandParent(et : Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
+        private fun<T: PsiElement> withParentOrGrandParent(et : Class<T>) = or(withParent(et), withGrandParent(et))
+        private fun<T: PsiElement> withGrandParents(vararg et : Class<out T>) = or(*et.map { withGrandParent(it) }.toTypedArray())
 
         val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(AS_KW),
-                and(afterLeaf(PIPE),      or(withGrandParent(VcConstructor::class.java), withGrandParent(VcDataBody::class.java))), //simple data type constructor
-                and(afterLeaf(FAT_ARROW), or(withGrandParent(VcConstructor::class.java), withGrandParent(VcConstructorClause::class.java))), //data type constructors with patterns
-                and(afterLeaf(PIPE),      or(withGrandParent(VcClassField::class.java), withGrandParent(VcClassStat::class.java))), //class field
-                and(afterLeaf(FAT_ARROW), PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(VcClassFieldSyn::class.java)))) //class field synonym
+                and(afterLeaf(PIPE),      withGrandParents(VcConstructor::class.java, VcDataBody::class.java)), //simple data type constructor
+                and(afterLeaf(FAT_ARROW), withGrandParents(VcConstructor::class.java, VcConstructorClause::class.java)), //data type constructors with patterns
+                and(afterLeaf(PIPE),      withGrandParents(VcClassField::class.java, VcClassStat::class.java)), //class field
+                and(afterLeaf(FAT_ARROW), withGrandParent(VcClassFieldSyn::class.java))) //class field synonym
     }
 
     class OriginalPositionCondition<T>(private val originalPositionCondition : ElementPattern<T>, private val completionProvider : CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
