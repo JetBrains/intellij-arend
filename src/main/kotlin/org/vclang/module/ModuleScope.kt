@@ -37,7 +37,7 @@ class ModuleScope private constructor(private val module: Module, private val ro
         return result
     }
 
-    override fun resolveNamespace(name: String, resolveModuleNames: Boolean): Scope {
+    override fun resolveNamespace(name: String): Scope {
         val newRootDirs = (rootDirs ?: module.roots.asList()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {

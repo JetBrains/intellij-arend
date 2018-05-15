@@ -222,7 +222,7 @@ class ResolveRefQuickFix {
             var ignoreFlag = true
 
             var psi: PsiElement = target
-            var targetTop: MutableList<PsiReferable> = ArrayList()
+            var targetTop: MutableList<Referable> = ArrayList()
 
             var modifyingImportsNeeded = false
             var fallbackImportAction : ResolveRefFixAction? = null
@@ -431,14 +431,11 @@ class ResolveRefQuickFix {
                     var correctedScope = element.scope
 
                     if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
-                        val complementScope = object : ListScope(targetTop as List<Referable>?) {
-                            override fun resolveNamespace(name: String?, resolveModuleNames: Boolean): Scope? {
-                                return targetTop
-                                        .filterIsInstance<VcDefinition>()
-                                        .firstOrNull { name == it.textRepresentation() }
-                                        ?.let { LexicalScope.opened(it) }
-                                        ?: super.resolveNamespace(name, resolveModuleNames)
-                            }
+                        val complementScope = object : ListScope(targetTop) {
+                            override fun resolveNamespace(name: String?): Scope? = targetTop
+                                .filterIsInstance<VcDefinition>()
+                                .firstOrNull { name == it.textRepresentation() }
+                                ?.let { LexicalScope.opened(it) }
                         }
 
                         correctedScope = MergeScope(correctedScope, complementScope)
