@@ -1,6 +1,7 @@
 package org.vclang.codeInsight.completion
 
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
+import java.util.Collections.singletonList
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
     private val fixityKws = FIXITY_KWS.map { it.toString() }
@@ -83,5 +84,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no fixity completion after func fat arrow`() =
             checkCompletionVariants("\\fun foo (n : Nat) => {-caret-} n ", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
 
+    fun `test as completion in namespace command`() =
+            checkCompletionVariants("\\import B (lol {-caret-})", singletonList("\\as"))
+
+    fun `test as completion in namespace command 2`() =
+            checkSingleCompletion("\\as", "\\import B (lol \\{-caret-})")
 
 }
