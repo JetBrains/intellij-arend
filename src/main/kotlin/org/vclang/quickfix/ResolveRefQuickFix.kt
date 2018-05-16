@@ -95,23 +95,29 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
 
                 val factory = VcPsiFactory(project)
                 val nsCmd = factory.createImportCommand("Dummy (a,$id)").statCmd
-                val nsId = nsCmd?.nsUsing?.nsIdList?.get(1)
+                val newNsUsing = nsCmd!!.nsUsing!!
+                val nsId = newNsUsing.nsIdList[1]
 
                 if (nsId != null) {
                     val comma = nsId.prevSibling //we will need the comma only once
+                    val needsBraces = anchor == null
 
-                    if (anchor != null) {
-                        if (!needsCommaBefore && !nsIds.isEmpty()) {
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(comma, anchor)
-                        }
-                        anchor.parent.addAfter(nsId, anchor)
-                        if (needsCommaBefore) {
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(comma, anchor)
-                        }
-                    } else {
-                        System.out.println("LOL")
+                    if (needsBraces) {
+                        anchor = using.usingKw!!
+                        anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
+                        anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
+                        anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
+                    }
+
+                    if (!needsCommaBefore && !nsIds.isEmpty()) {
+                        anchor!!.parent.addAfter(factory.createWhitespace(" "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
+                    }
+
+                    anchor!!.parent.addAfter(nsId, anchor)
+                    if (needsCommaBefore) {
+                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
                     }
 
                 }

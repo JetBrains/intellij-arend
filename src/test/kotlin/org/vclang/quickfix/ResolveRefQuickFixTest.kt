@@ -1,5 +1,8 @@
 package org.vclang.quickfix
 
+import com.intellij.codeInsight.daemon.QuickFixBundle
+import com.intellij.openapi.command.WriteCommandAction
+
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
         """
@@ -558,4 +561,11 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
                 \func a => f
             """) */
+
+    fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
+            "\\import A \\using {-caret-}",
+            "\\import A \\using (a, b, z)", {file ->
+        val cmd = file.namespaceCommands.first()
+        val action = AddIdToUsingAction(cmd, listOf("a", "z", "b"))
+        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) })
 }
