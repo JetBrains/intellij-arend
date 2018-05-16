@@ -276,11 +276,13 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         private fun processParent(event: PsiTreeChangeEvent) {
-            if (event.file is VcFile) {
-                val ancestors = event.parent.ancestors
-                val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: return
-                updateDefinition(definition)
+            if (event.file !is VcFile || event.child is PsiErrorElement || event.child is PsiWhiteSpace || event.oldChild is PsiErrorElement && event.newChild is PsiErrorElement || event.oldChild is PsiWhiteSpace && event.newChild is PsiWhiteSpace) {
+                return
             }
+
+            val ancestors = event.parent.ancestors
+            val definition = ancestors.filterIsInstance<VcDefinition>().firstOrNull() ?: return
+            updateDefinition(definition)
         }
 
         private fun invalidateChild(element : PsiElement) {
