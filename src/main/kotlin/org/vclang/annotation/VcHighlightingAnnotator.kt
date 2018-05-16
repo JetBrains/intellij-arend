@@ -8,10 +8,14 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.resolving.DuplicateNameChecker
+import com.jetbrains.jetpad.vclang.naming.resolving.NameClashesChecker
+import com.jetbrains.jetpad.vclang.term.NameRenaming
+import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.group.Group
+import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
+import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
 
 class VcHighlightingAnnotator : Annotator {
@@ -28,12 +32,37 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is Group) {
-            object : DuplicateNameChecker() {
-                override fun duplicateName(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
-                    annotateDuplicateName(ref1, level, holder)
-                    annotateDuplicateName(ref2, level, holder)
+            object : NameClashesChecker() {
+                override fun definitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
+                    annotateDefinitionNamesClash(ref1, level)
+                    annotateDefinitionNamesClash(ref2, level)
                 }
-            }.checkGroup(element)
+
+                private fun annotateDefinitionNamesClash(ref: LocatedReferable, level: Error.Level) {
+                    var psiRef = ref as? PsiElement ?: return
+                    if (psiRef is VcDefinition) {
+                        psiRef = psiRef.children.first { it is VcDefIdentifier } ?: psiRef
+                    }
+                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name")
+                }
+
+                override fun namespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
+                    annotateNamespacesClash(cmd1, cmd2, name, level)
+                    annotateNamespacesClash(cmd2, cmd1, name, level)
+                }
+
+                private fun annotateNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
+                    if (cmd1 is PsiElement) {
+                        holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '" + name + "' is imported from " + LongName(cmd2.path))
+                    }
+                }
+
+                override fun namespaceDefinitionNameClash(renaming: NameRenaming, ref: LocatedReferable, level: Error.Level) {
+                    if (renaming is PsiElement) {
+                        holder.createAnnotation(levelToSeverity(level), renaming.textRange, "Definition '" + ref.textRepresentation() + "' is not imported since it is defined in this module")
+                    }
+                }
+            }.checkGroup(element, (element as? VcCompositeElement)?.scope)
             return
         }
 
@@ -51,14 +80,6 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
-    }
-
-    private fun annotateDuplicateName(ref: LocatedReferable, level: Error.Level, holder: AnnotationHolder) {
-        var psiRef = ref as? PsiElement ?: return
-        if (psiRef is VcDefinition) {
-            psiRef = psiRef.children.first { it is VcDefIdentifier } ?: psiRef
-        }
-        holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name")
     }
 
     private fun levelToSeverity(level: Error.Level) = when (level) {
