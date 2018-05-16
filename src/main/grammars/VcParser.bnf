@@ -90,16 +90,26 @@ private statement_recover ::= (!WHERE_KW) & topStatement_recover
 
 statement ::= statCmd | definition
 
-statCmd ::= nsCmd longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
+statCmd ::= nsCmd ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.NamespaceCommandHolder" ]
     mixin = "org.vclang.psi.ext.VcStatCmdImplMixin"
 }
 
+private ns_longName ::= longName {
+    recoverWhile = ns_longName_recover
+}
+
+private ns_longName_recover ::= !(USING_KW | LPAREN | HIDING_KW) & statement_recover
+
 nsCmd ::= OPEN_KW | IMPORT_KW
 
-nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN
+nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN {
+  recoverWhile = nsUsing_recover
+}
+
+private nsUsing_recover ::= !(LPAREN | HIDING_KW) & statement_recover
 
 nsId ::= ns_refIdentifier [AS_KW prec? defIdentifier] {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
