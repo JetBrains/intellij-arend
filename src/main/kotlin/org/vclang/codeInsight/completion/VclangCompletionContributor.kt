@@ -6,7 +6,6 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.PsiElementPattern
 import com.intellij.patterns.StandardPatterns.and
 import com.intellij.patterns.StandardPatterns.or
 import com.intellij.psi.PsiElement
@@ -15,7 +14,6 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
-import org.vclang.psi.impl.VcStatementImpl
 import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
@@ -25,17 +23,22 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
         extend(CompletionType.BASIC, AS_CONTEXT, KeywordCompletionProvider(singletonList(AS_KW)))
 
-        extend(CompletionType.BASIC, NSCMD_CONTEXT, originalPositionCondition(withParent(VcFile::class.java), KeywordCompletionProvider(listOf(HIDING_KW, USING_KW))))
-        extend(CompletionType.BASIC, NSCMD_CONTEXT, ProviderWithCondition<CompletionParameters>({a, _ -> noUsing(a.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(USING_KW))))
-        extend(CompletionType.BASIC, NSCMD_CONTEXT, ProviderWithCondition<CompletionParameters>({a, _ -> noUsingAndHiding(a.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
-        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java), ProviderWithCondition<CompletionParameters>({a, _ -> noHiding(a.position.parent.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, originalPositionCondition(withParent(VcFile::class.java), KeywordCompletionProvider(listOf(HIDING_KW, USING_KW))))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsing(parameters.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(USING_KW))))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsingAndHiding(parameters.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java), ProviderWithCondition({parameters, _ -> noHiding(parameters.position.parent.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
 
-        //extend(CompletionType.BASIC, PlatformPatterns.psiElement(), KeywordCompletionProvider(singletonList(INVALID_KW)))
+        extend(CompletionType.BASIC, ANY, ProviderWithCondition({ parameters, context -> withParent(VcFile::class.java).accepts(parameters.originalPosition, context) &&
+                    parameters.originalPosition != null && (parameters.originalPosition?.prevSibling == null || parameters.originalPosition?.prevSibling is VcStatement) }, KeywordCompletionProvider(ROOT_KWS)))
+        extend(CompletionType.BASIC, ANY, originalPositionCondition(withParent(VcWhere::class.java), KeywordCompletionProvider(WHERE_KWS)))
+
+        //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW)
-        val ROOT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW, IMPORT_KW)
+        val WHERE_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW)
+        val ROOT_KWS = WHERE_KWS + singletonList(IMPORT_KW)
 
         private fun afterLeaf(et : IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun<T: PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
@@ -52,10 +55,8 @@ class VclangCompletionContributor: CompletionContributor() {
                 and(afterLeaf(FAT_ARROW), withGrandParent(VcClassFieldSyn::class.java))) //class field synonym
 
         val AS_CONTEXT = and(withGrandParent(VcNsId::class.java), withParents(VcRefIdentifier::class.java, PsiErrorElement::class.java))
-        val NSCMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
-
-        val ROOT_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParent(VcFile::class.java))
-        val ROOT_CONTEXT_O = and(PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(VcStatementImpl::class.java)), withParents(VcFile::class.java, VcWhere::class.java))
+        val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
+        val ANY = PlatformPatterns.psiElement()!!
 
         private fun noUsing(cmd : VcStatCmd) : Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd : VcStatCmd) : Boolean = cmd.hidingKw == null
@@ -63,16 +64,16 @@ class VclangCompletionContributor: CompletionContributor() {
     }
 
 
-    class ProviderWithCondition<T>(private val condition : (CompletionParameters, ProcessingContext?) -> Boolean, private val completionProvider : CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
+    class ProviderWithCondition(private val condition : (CompletionParameters, ProcessingContext?) -> Boolean, private val completionProvider : CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
             if (condition(parameters, context))
                 completionProvider.addCompletionVariants(parameters, context, result)
         }
     }
 
-    fun<T> originalPositionCondition (opc: ElementPattern<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
-            ProviderWithCondition<T>({a, b ->
-                opc.accepts(a.originalPosition, b)
+    private fun<T> originalPositionCondition (opc: ElementPattern<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
+            ProviderWithCondition({parameters, context ->
+                opc.accepts(parameters.originalPosition, context)
             }, completionProvider)
 
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {

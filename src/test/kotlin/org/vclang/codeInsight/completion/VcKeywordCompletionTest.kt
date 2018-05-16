@@ -1,12 +1,15 @@
 package org.vclang.codeInsight.completion
 
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ROOT_KWS
 import java.util.Collections.singletonList
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
     private val fixityKws = FIXITY_KWS.map { it.toString() }
+    private val whereKws = WHERE_KWS.map { it.toString() }
     private val rootKws = ROOT_KWS.map { it.toString() }
+    private val importKw = singletonList("\\import")
 
     fun `test fixity completion after func`() =
             checkCompletionVariants("\\func {-caret-} test => 0", fixityKws)
@@ -119,8 +122,50 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test nsCmd completion in namespace command 9`() =
             checkNoCompletion("\\import B \\using (lol) {-caret-} \\hiding (lol)")
 
+    fun `test root keywords completion 1`() =
+            checkCompletionVariants("\\import B {-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
 
-    //fun `test root completion in empty context`() = checkCompletionVariants("{-caret-}", rootKws, CompletionCondition.CONTAINS)
+    fun `test root keywords completion 2`() =
+            checkCompletionVariants("\\import B \\func foo => 0 {-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
 
+    fun `test root keywords completion 3`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar {-caret-} \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 4`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {{-caret-} \\func g => 1 } ", whereKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 4bis`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test root keywords completion 5`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 {-caret-}}", whereKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 5bis`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 {-caret-}}", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    /* fun `test root keywords completion 6`() =
+            checkCompletionVariants("\\import B \\{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 7`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\{-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 8`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar \\{-caret-} \\func f => 0 \\where { \\func g => 1 } ", rootKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 9`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\{-caret-} \\func g => 1 } ", whereKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 9bis`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test root keywords completion 10`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 \\{-caret-}} ", whereKws, CompletionCondition.CONTAINS)
+
+    fun `test root keywords completion 10bis`() =
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 \\{-caret-}} ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test root completion in empty context`() = checkCompletionVariants("{-caret-}", rootKws, CompletionCondition.CONTAINS)
+
+    fun `test root completion in empty context 2`() = checkCompletionVariants("\\{-caret-}", rootKws, CompletionCondition.CONTAINS) */ //TODO: Fixme
 
 }
