@@ -303,6 +303,9 @@ class ResolveRefQuickFix {
                                         }
                                     }
                                 }
+
+                                if (nsUsing.usingKw != null)
+                                    fullNames.filter { aliases[it]!!.isEmpty() && !defaultNameHiddenFNames.contains(it) }.forEach { aliases[it]!!.add(it[0]) }
                             } else {
                                 fullNames.filter { !defaultNameHiddenFNames.contains(it) }.forEach { aliases[it]!!.add(it[0]) }
                             }

@@ -205,6 +205,38 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b.c
             """)
 
+    fun `test that using keyword has effect when clashing names are analyzed`() = simpleImportFixTest(fileE +
+            """
+                --! A.vc
+                \func b => 0
+                \func a => 0
+
+                --! B.vc
+                \import A \using (b \as b')
+                \func d => {-caret-}e
+            """,
+            """
+                \import A \using (b \as b')
+                \import E (e)
+                \func d => e
+            """)
+
+    fun `test that using keyword has effect when clashing names are analyzed 2`() = simpleImportFixTest(fileE +
+            """
+                --! A.vc
+                \func b => 0
+                \func a => 0
+
+                --! B.vc
+                \import A (b \as b')
+                \func d => {-caret-}e
+            """,
+            """
+                \import A (b \as b')
+                \import E
+                \func d => e
+            """)
+
 
 /*  private fun testB1(prefix : String, s : String) =
             """

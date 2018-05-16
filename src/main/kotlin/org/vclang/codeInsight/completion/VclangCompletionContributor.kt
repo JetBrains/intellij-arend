@@ -89,12 +89,12 @@ class VclangCompletionContributor: CompletionContributor() {
             val nonEmptyPrefix = result.prefixMatcher.prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
 
-            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
 
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.prevSibling: "+parameters.originalPosition?.prevSibling?.javaClass)
-            System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
+            System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)*/
 
             for (keyword in keywords)
                 result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+result.prefixMatcher.prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))
