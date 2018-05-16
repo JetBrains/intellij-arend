@@ -105,9 +105,15 @@ private ns_longName_recover ::= !(USING_KW | LPAREN | HIDING_KW) & statement_rec
 
 nsCmd ::= OPEN_KW | IMPORT_KW
 
-nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN {
+nsUsing ::= nsUsingUsing | nsUsingParams {
   recoverWhile = nsUsing_recover
 }
+
+private nsUsingUsing ::= USING_KW nsUsingParams {
+    pin = 1
+}
+
+private nsUsingParams ::= LPAREN <<comma_separated_sequence nsId>>? RPAREN
 
 private nsUsing_recover ::= !(LPAREN | HIDING_KW) & statement_recover
 

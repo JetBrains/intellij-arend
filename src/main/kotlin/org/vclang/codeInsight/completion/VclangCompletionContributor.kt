@@ -6,6 +6,7 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
+import com.intellij.patterns.PsiElementPattern
 import com.intellij.patterns.StandardPatterns.and
 import com.intellij.patterns.StandardPatterns.or
 import com.intellij.psi.PsiElement
@@ -23,8 +24,13 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
         extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
         extend(CompletionType.BASIC, AS_CONTEXT, KeywordCompletionProvider(singletonList(AS_KW)))
-        extend(CompletionType.BASIC, ROOT_CONTEXT, ProviderWithCondition<CompletionParameters>({a, b -> (a.position.parent as PsiErrorElement).errorDescription.contains("\\hiding")}, KeywordCompletionProvider(singletonList(HIDING_KW))))
-        extend(CompletionType.BASIC, ROOT_CONTEXT, ProviderWithCondition<CompletionParameters>({a, b -> (a.position.parent as PsiErrorElement).errorDescription.contains("ns using")}, KeywordCompletionProvider(singletonList(USING_KW))))
+
+        extend(CompletionType.BASIC, NSCMD_CONTEXT, originalPositionCondition(withParent(VcFile::class.java), KeywordCompletionProvider(listOf(HIDING_KW, USING_KW))))
+        extend(CompletionType.BASIC, NSCMD_CONTEXT, ProviderWithCondition<CompletionParameters>({a, _ -> noUsing(a.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(USING_KW))))
+        extend(CompletionType.BASIC, NSCMD_CONTEXT, ProviderWithCondition<CompletionParameters>({a, _ -> noUsingAndHiding(a.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java), ProviderWithCondition<CompletionParameters>({a, _ -> noHiding(a.position.parent.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+
+        //extend(CompletionType.BASIC, PlatformPatterns.psiElement(), KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
 
     companion object {
@@ -32,11 +38,12 @@ class VclangCompletionContributor: CompletionContributor() {
         val ROOT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW, IMPORT_KW)
 
         private fun afterLeaf(et : IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
-        private fun<T: PsiElement> withParent(et : Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
-        private fun<T: PsiElement> withGrandParent(et : Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
-        private fun<T: PsiElement> withParentOrGrandParent(et : Class<T>) = or(withParent(et), withGrandParent(et))
-        private fun<T: PsiElement> withGrandParents(vararg et : Class<out T>) = or(*et.map { withGrandParent(it) }.toTypedArray())
-        private fun<T: PsiElement> withParents(vararg et : Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
+        private fun<T: PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
+        private fun<T: PsiElement> withGrandParent(et: Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
+        private fun<T: PsiElement> withParentOrGrandParent(et: Class<T>) = or(withParent(et), withGrandParent(et))
+        private fun<T: PsiElement> withGrandParents(vararg et: Class<out T>) = or(*et.map { withGrandParent(it) }.toTypedArray())
+        private fun<T: PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
+        private fun<T: PsiElement> withAncestors(vararg et : Class<out T>) : ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
         val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(AS_KW),
                 and(afterLeaf(PIPE),      withGrandParents(VcConstructor::class.java, VcDataBody::class.java)), //simple data type constructor
@@ -45,8 +52,14 @@ class VclangCompletionContributor: CompletionContributor() {
                 and(afterLeaf(FAT_ARROW), withGrandParent(VcClassFieldSyn::class.java))) //class field synonym
 
         val AS_CONTEXT = and(withGrandParent(VcNsId::class.java), withParents(VcRefIdentifier::class.java, PsiErrorElement::class.java))
+        val NSCMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
+
         val ROOT_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParent(VcFile::class.java))
         val ROOT_CONTEXT_O = and(PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(VcStatementImpl::class.java)), withParents(VcFile::class.java, VcWhere::class.java))
+
+        private fun noUsing(cmd : VcStatCmd) : Boolean = cmd.nsUsing?.usingKw == null
+        private fun noHiding(cmd : VcStatCmd) : Boolean = cmd.hidingKw == null
+        private fun noUsingAndHiding(cmd : VcStatCmd) : Boolean = noUsing(cmd) && noHiding(cmd)
     }
 
 
@@ -82,8 +95,6 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.prevSibling: "+parameters.originalPosition?.prevSibling?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
-
-            System.out.println(ROOT_CONTEXT_O.accepts(parameters.originalPosition, context))
 
             for (keyword in keywords)
                 result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+result.prefixMatcher.prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))

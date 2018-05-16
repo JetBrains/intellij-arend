@@ -110,8 +110,17 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test nsCmd completion in namespace command 6`() =
             checkCompletionVariants("\\import B \\{-caret-} (lol)", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
 
-    fun `test root completion in empty context`() =
-            checkCompletionVariants("{-caret-}", rootKws, CompletionCondition.CONTAINS)
+    fun `test nsCmd completion in namespace command 7`() =
+            checkCompletionVariants("\\import B {-caret-}(lol)", listOf("\\hiding", "\\using"), CompletionCondition.CONTAINS)
+
+    fun `test nsCmd completion in namespace command 8`() =
+            checkNoCompletion("\\import B {-caret-}\\using (lol)")
+
+    fun `test nsCmd completion in namespace command 9`() =
+            checkNoCompletion("\\import B \\using (lol) {-caret-} \\hiding (lol)")
+
+
+    //fun `test root completion in empty context`() = checkCompletionVariants("{-caret-}", rootKws, CompletionCondition.CONTAINS)
 
 
 }

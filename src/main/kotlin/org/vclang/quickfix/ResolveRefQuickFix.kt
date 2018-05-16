@@ -100,15 +100,20 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
                 if (nsId != null) {
                     val comma = nsId.prevSibling //we will need the comma only once
 
-                    if (!needsCommaBefore && !nsIds.isEmpty()) {
-                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
+                    if (anchor != null) {
+                        if (!needsCommaBefore && !nsIds.isEmpty()) {
+                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                            anchor.parent.addAfter(comma, anchor)
+                        }
+                        anchor.parent.addAfter(nsId, anchor)
+                        if (needsCommaBefore) {
+                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                            anchor.parent.addAfter(comma, anchor)
+                        }
+                    } else {
+                        System.out.println("LOL")
                     }
-                    anchor.parent.addAfter(nsId, anchor)
-                    if (needsCommaBefore) {
-                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
-                    }
+
                 }
             }
         }
@@ -326,20 +331,20 @@ class ResolveRefQuickFix {
                             for (fName in fullNames) {
                                 val hiddenRef : VcRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
                                 if (hiddenRef != null)
-                                    importActionMap.put(fName, RemoveFromHidingAction(suitableImport, hiddenRef))
+                                    importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
                                 else if (nsUsing != null)
-                                    importActionMap.put(fName, AddIdToUsingAction(suitableImport, singletonList(fName[0])))
+                                    importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(fName[0]))
                             }
                             fallbackImportAction = null
                         } else { // targetFile has not been imported
                             if (cautiousMode) {
                                 fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
                                 for (fName in fullNames)
-                                    importActionMap.put(fName, ImportFileAction(targetFile, currentFile, singletonList(fName[0])))
+                                    importActionMap[fName] = ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
                             } else {
                                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
                                 for (fName in fullNames)
-                                    importActionMap.put(fName, fallbackImportAction)
+                                    importActionMap[fName] = fallbackImportAction
                             }
                         }
 
@@ -415,7 +420,7 @@ class ResolveRefQuickFix {
                                     }
 
                                     if (equals)
-                                        newBlock.put(fName2, currentBlock[fName])
+                                        newBlock[fName2] = currentBlock[fName]
 
                                 }
                             }
@@ -447,7 +452,7 @@ class ResolveRefQuickFix {
                     }
 
                     if (referable == target) {
-                        newBlock.put(fName, currentBlock[fName])
+                        newBlock[fName] = currentBlock[fName]
                     }
 
                 }
