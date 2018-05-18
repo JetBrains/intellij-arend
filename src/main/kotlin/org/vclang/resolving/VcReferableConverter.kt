@@ -9,6 +9,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableCon
 import org.vclang.psi.VcClassField
 import org.vclang.psi.VcFieldTele
 import org.vclang.psi.VcFile
+import org.vclang.psi.ext.PsiReferable
 
 
 class VcReferableConverter(private val project: Project, private val state: SimpleReferableConverter) : ReferableConverter {
@@ -21,7 +22,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
     override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
         when (referable) {
             is VcFile -> null
-            is PsiElement -> {
+            is PsiReferable -> {
                 var superClasses: MutableList<TCClassReferable>? = null
                 var fields: MutableList<TCReferable>? = null
                 val result = cache.computeIfAbsent(referable, { state.computeIfAbsent(referable, {
@@ -34,8 +35,8 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                             fields = ArrayList()
                             ClassDataLocatedReferable(pointer, referable, parent, superClasses!!, fields!!)
                         }
-                        is VcClassField, is VcFieldTele -> cache[referable] ?: DataLocatedReferable(pointer, referable, parent)
-                        else -> DataLocatedReferable(pointer, referable, parent)
+                        is VcClassField, is VcFieldTele -> cache[referable] ?: DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.resolveTypeClassReference()) as? TCClassReferable)
+                        else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.resolveTypeClassReference()) as? TCClassReferable)
                     }
                 }) })
 
@@ -44,8 +45,8 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                         (toDataLocatedReferable(ref) as? TCClassReferable)?.let { superClasses?.add(it) }
                     }
                     for (ref in referable.fieldReferables) {
-                        if (ref is LocatedReferable && ref is PsiElement) {
-                            fields?.add(DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result))
+                        if (ref is LocatedReferable && ref is PsiReferable) {
+                            fields?.add(DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.resolveTypeClassReference()) as? TCClassReferable))
                         }
                     }
                 }

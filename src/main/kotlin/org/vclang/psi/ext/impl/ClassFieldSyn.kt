@@ -2,6 +2,9 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import org.vclang.VcIcons
 import org.vclang.psi.VcClassFieldSyn
 import org.vclang.psi.stubs.VcClassFieldSynStub
@@ -21,4 +24,9 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
     override fun isVisible() = true
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
+
+    override fun getTypeClassReference(): ClassReferable? {
+        val ref = refIdentifier?.referent
+        return (((ref as? UnresolvedReference)?.resolve(scope) ?: ref) as? GlobalReferable)?.typeClassReference
+    }
 }

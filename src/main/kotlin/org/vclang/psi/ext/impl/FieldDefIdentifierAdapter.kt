@@ -2,8 +2,11 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.abs.ReferableExtractVisitor
 import org.vclang.psi.VcFieldDefIdentifier
+import org.vclang.psi.VcFieldTele
 import org.vclang.psi.stubs.VcClassFieldParamStub
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcReference
@@ -30,4 +33,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun getReferable() = this
 
     override fun isVisible() = false
+
+    override fun getTypeClassReference(): ClassReferable? =
+        (parent as? VcFieldTele)?.expr?.accept(ReferableExtractVisitor(scope), null)
 }

@@ -365,7 +365,7 @@ coClause ::= refIdentifier nameTele* FAT_ARROW expr {
 
 letClause ::= defIdentifier nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
-    implements = [ "org.vclang.psi.ext.PsiReferable"
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LetClause" ]
     mixin = "org.vclang.psi.ext.VcLetClauseImplMixin"
 }

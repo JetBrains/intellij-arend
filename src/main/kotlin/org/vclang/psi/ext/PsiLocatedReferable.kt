@@ -10,6 +10,8 @@ import org.vclang.resolving.DataLocatedReferable
 interface PsiLocatedReferable : LocatedReferable, PsiReferable {
     override fun getTypecheckable(): PsiLocatedReferable
 
+    override fun resolveTypeClassReference() = typeClassReference
+
     companion object {
         fun fromReferable(referable: GlobalReferable) = ((referable as? DataLocatedReferable)?.data ?: referable) as? PsiLocatedReferable
     }
