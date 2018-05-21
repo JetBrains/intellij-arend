@@ -49,7 +49,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
 //                vars.mapTo(nameTypeList) {
  //                   Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
 
-                vars.mapTo(nameTypeList) { Pair(it.textRepresentation(), ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
+                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
             } else {
                 nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
             }
@@ -70,7 +70,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
                 ++ind
             }
         }
-        context.setupUIComponentPresentation(text, hlStart, hlEnd, true, false, false, context.defaultParameterColor)
+        context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): Abstract.Reference? {
