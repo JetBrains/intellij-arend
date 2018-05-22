@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.resolving.NameClashesChecker
+import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
 import com.jetbrains.jetpad.vclang.term.NameRenaming
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.group.Group
@@ -32,7 +32,7 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is Group) {
-            object : NameClashesChecker() {
+            object : NameResolvingChecker() {
                 override fun definitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
                     annotateDefinitionNamesClash(ref1, level)
                     annotateDefinitionNamesClash(ref2, level)
@@ -62,7 +62,13 @@ class VcHighlightingAnnotator : Annotator {
                         holder.createAnnotation(levelToSeverity(level), renaming.textRange, "Definition '" + ref.textRepresentation() + "' is not imported since it is defined in this module")
                     }
                 }
-            }.checkGroup(element, (element as? VcCompositeElement)?.scope)
+
+                override fun nonTopLevelImport(command: NamespaceCommand?) {
+                    if (command is PsiElement) {
+                        holder.createErrorAnnotation(command.textRange, "\\import is allowed only on the top level")
+                    }
+                }
+            }.checkGroup(element, (element as? VcCompositeElement)?.scope, element is VcFile)
             return
         }
 
