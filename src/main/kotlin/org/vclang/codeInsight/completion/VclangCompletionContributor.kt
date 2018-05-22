@@ -11,6 +11,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
@@ -80,7 +81,7 @@ class VclangCompletionContributor: CompletionContributor() {
 
     private fun<T> noCommonAncestorWithNextElement(c: Class<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
             ProviderWithCondition({parameters, _ ->
-                var ofs = 0;
+                var ofs = 0
                 var nextElement: PsiElement?
                 var prevElement: PsiElement?
                 do {
@@ -107,7 +108,10 @@ class VclangCompletionContributor: CompletionContributor() {
                     pp = pp.parent
                 }
 
-                ancestorsNE.intersect(ancestorsPE).isEmpty()
+                val lastExprIncorrect = (prevElement?.nextSibling is PsiErrorElement) || // meaning: the last expression was erroneous (e.g. unfinished dot expression)
+                                         prevElement?.node?.elementType == IMPORT_KW     // meaning: there should be no keyword completion immediately after \import. TODO: Why this is not covered by the previous condition?
+
+                !lastExprIncorrect && ancestorsNE.intersect(ancestorsPE).isEmpty()
             }, completionProvider)
 
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {
@@ -129,13 +133,11 @@ class VclangCompletionContributor: CompletionContributor() {
             val nonEmptyPrefix = prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
 
-
-
             var ofs = 1;
             var nextElement: PsiElement?
             do { nextElement = parameters.originalFile.findElementAt(parameters.offset + (ofs++))} while (nextElement is PsiWhiteSpace)
 
-            /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
 
@@ -147,7 +149,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement.parent: ${nextElement?.parent?.javaClass}")
 
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("") */
+            System.out.println("")
 
             for (keyword in keywords)
                 result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))
