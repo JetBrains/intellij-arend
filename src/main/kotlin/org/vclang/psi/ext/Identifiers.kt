@@ -3,8 +3,10 @@ package org.vclang.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.term.abs.ReferableExtractVisitor
 import org.vclang.psi.*
 import org.vclang.psi.impl.VcAtomPatternOrPrefixImpl
 import org.vclang.resolving.VcDefReferenceImpl
@@ -28,6 +30,25 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             is VcPatternConstructor, is VcAtomPatternOrPrefix -> VcPatternDefReferenceImpl<VcDefIdentifier>(this)
             else -> VcDefReferenceImpl<VcDefIdentifier>(this)
         }
+
+    override fun getTypeClassReference(): ClassReferable? {
+        val parent = parent
+        val expr = when (parent) {
+            is VcIdentifierOrUnknown -> {
+                val pparent = parent.parent
+                when (pparent) {
+                    is VcNameTele -> pparent.expr
+                    is VcTypedExpr -> pparent.expr
+                    else -> null
+                }
+            }
+            is VcFieldDefIdentifier -> (parent.parent as? VcFieldTele)?.expr
+            is VcLetClause -> parent.typeAnnotation?.expr
+            else -> null
+        } ?: return null
+
+        return expr.accept(ReferableExtractVisitor(expr.scope), null)
+    }
 
     override fun getUseScope(): SearchScope {
         if (parent != null && parent.parent is VcTypedExpr && parent.parent.parent is VcTypeTele) {

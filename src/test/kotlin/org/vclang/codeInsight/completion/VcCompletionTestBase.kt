@@ -12,7 +12,7 @@ import org.vclang.replaceCaretMarker
 
 abstract class VcCompletionTestBase : VcTestBase() {
 
-    protected fun checkSingleCompletion(target: String, @Language("Vclang") code: String) {
+    protected fun checkSingleCompletion(@Language("Vclang") code: String, target: String) {
         InlineFile(code).withCaret()
         executeSoloCompletion()
 

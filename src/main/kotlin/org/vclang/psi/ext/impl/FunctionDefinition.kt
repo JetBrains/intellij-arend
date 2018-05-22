@@ -2,9 +2,11 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.term.abs.ReferableExtractVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefFunctionStub
@@ -30,4 +32,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
     override fun getIcon(flags: Int): Icon = VcIcons.FUNCTION_DEFINITION
+
+    override fun getTypeClassReference(): ClassReferable? =
+        if (parameters.all { !it.isExplicit }) resultType?.accept(ReferableExtractVisitor(scope), null) else null
 }
