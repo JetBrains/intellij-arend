@@ -79,16 +79,24 @@
     extends("atomArgument|newArg|universeAtom|implicitArgument|infixArgument|postfixArgument") = argument
 }
 
-statements ::= topStatement*
+statements ::= (topStatement | topStatement_recovery)*
 
-private topStatement ::= !<<eof>> statement { recoverWhile = topStatement_recover }
+private topStatement ::= !<<eof>> statement
+
+private topStatement_recovery ::= topStatement_recover {
+    recoverWhile = topStatement_recover
+}
 
 private topStatement_recover ::= !(OPEN_KW      | IMPORT_KW | FUNCTION_KW  |
                                 TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW | <<eof>>)
 
-private statement_recover ::= !WHERE_KW & topStatement_recover
+private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-statement ::= statCmd | definition
+statement ::= statCmd | definition | statement_recovery
+
+private statement_recovery ::= statement_recover {
+    recoverWhile = statement_recover
+}
 
 statCmd ::= nsCmd ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
@@ -268,7 +276,11 @@ private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_re
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
 
-where ::= WHERE_KW (LBRACE statement* RBRACE | statement) { pin = 1 }
+where ::= WHERE_KW (statementList | statement) { pin = 1 }
+
+private statementList ::= LBRACE statement* RBRACE {
+    pin = 1
+}
 
 pattern ::= atomPattern | patternConstructor {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
