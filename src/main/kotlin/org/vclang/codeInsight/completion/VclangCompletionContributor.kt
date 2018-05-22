@@ -6,10 +6,11 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.StandardPatterns.and
-import com.intellij.patterns.StandardPatterns.or
+import com.intellij.patterns.StandardPatterns.*
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
@@ -28,17 +29,17 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsingAndHiding(parameters.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java), ProviderWithCondition({parameters, _ -> noHiding(parameters.position.parent.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
 
-        extend(CompletionType.BASIC, ANY, ProviderWithCondition({ parameters, context -> withParent(VcFile::class.java).accepts(parameters.originalPosition, context) &&
-                    parameters.originalPosition != null && (parameters.originalPosition?.prevSibling == null || parameters.originalPosition?.prevSibling is VcStatement) }, KeywordCompletionProvider(ROOT_KWS)))
-        extend(CompletionType.BASIC, ANY, originalPositionCondition(withParent(VcWhere::class.java), KeywordCompletionProvider(WHERE_KWS)))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, noCommonAncestorWithNextElement(VcStatement::class.java, KeywordCompletionProvider(STATEMENT_KWS)))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, noCommonAncestorWithNextElement(VcStatement::class.java,
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() }, KeywordCompletionProvider(singletonList(IMPORT_KW)))))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW)
-        val WHERE_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW)
-        val ROOT_KWS = WHERE_KWS + singletonList(IMPORT_KW)
+        val STATEMENT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW)
+        val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + singletonList(IMPORT_KW)
 
         private fun afterLeaf(et : IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun<T: PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
@@ -57,6 +58,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val AS_CONTEXT = and(withGrandParent(VcNsId::class.java), withParents(VcRefIdentifier::class.java, PsiErrorElement::class.java))
         val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
         val ANY = PlatformPatterns.psiElement()!!
+        val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
 
         private fun noUsing(cmd : VcStatCmd) : Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd : VcStatCmd) : Boolean = cmd.hidingKw == null
@@ -76,6 +78,38 @@ class VclangCompletionContributor: CompletionContributor() {
                 opc.accepts(parameters.originalPosition, context)
             }, completionProvider)
 
+    private fun<T> noCommonAncestorWithNextElement(c: Class<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
+            ProviderWithCondition({parameters, _ ->
+                var ofs = 0;
+                var nextElement: PsiElement?
+                var prevElement: PsiElement?
+                do {
+                    val pos = parameters.offset + (ofs++)
+                    nextElement = if (pos > parameters.originalFile.textLength) null else parameters.originalFile.findElementAt(pos)
+                } while (nextElement is PsiWhiteSpace || nextElement is PsiComment)
+                ofs = -1
+                do {
+                    val pos = parameters.offset + (ofs--)
+                    prevElement = if (pos < 0) null else parameters.originalFile.findElementAt(pos)
+                } while (prevElement is PsiWhiteSpace || prevElement is PsiComment)
+
+                val ancestorsNE = HashSet<PsiElement>()
+                var nep = nextElement
+                while (nep != null && !c.isInstance(nep)) {
+                    ancestorsNE.add(nep)
+                    nep = nep.parent
+                }
+
+                val ancestorsPE = HashSet<PsiElement>()
+                var pp = prevElement
+                while (pp != null && !c.isInstance(pp)) {
+                    ancestorsPE.add(pp)
+                    pp = pp.parent
+                }
+
+                ancestorsNE.intersect(ancestorsPE).isEmpty()
+            }, completionProvider)
+
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
             val insertHandler = InsertHandler<LookupElement> { insertContext, _ ->
@@ -87,18 +121,36 @@ class VclangCompletionContributor: CompletionContributor() {
                 insertContext.commitDocument()
             }
 
-            val nonEmptyPrefix = result.prefixMatcher.prefix.isNotEmpty() ||
+            var prefix = result.prefixMatcher.prefix
+            while (prefix.contains(' '))
+                prefix = prefix.substring(prefix.indexOf(' ')+1, prefix.length)
+            if (prefix == "\\") prefix = ""
+
+            val nonEmptyPrefix = prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
+
+
+
+            var ofs = 1;
+            var nextElement: PsiElement?
+            do { nextElement = parameters.originalFile.findElementAt(parameters.offset + (ofs++))} while (nextElement is PsiWhiteSpace)
 
             /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
+            System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
 
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.prevSibling: "+parameters.originalPosition?.prevSibling?.javaClass)
-            System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)*/
+            System.out.println("originalPosition.nextSibling: "+parameters.originalPosition?.nextSibling?.javaClass)
+            System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
+            System.out.println("nextElement: $nextElement")
+            System.out.println("nextElement.parent: ${nextElement?.parent?.javaClass}")
+
+            if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
+            System.out.println("") */
 
             for (keyword in keywords)
-                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+result.prefixMatcher.prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))
+                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))
         }
     }
 }
