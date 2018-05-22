@@ -14,5 +14,5 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
-    override fun getImplementation(): VcExpr = expr
+    override fun getImplementation(): VcExpr? = expr
 }

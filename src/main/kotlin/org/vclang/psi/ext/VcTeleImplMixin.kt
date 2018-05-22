@@ -34,7 +34,7 @@ abstract class VcFieldTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcFi
 
     override fun isExplicit() = true
 
-    override fun getReferableList(): List<Referable> = listOf(fieldDefIdentifier)
+    override fun getReferableList(): List<Referable> = fieldDefIdentifier?.let { listOf(it) } ?: emptyList()
 
     override fun getType() = expr
 

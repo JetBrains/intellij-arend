@@ -113,7 +113,9 @@ private nsUsingUsing ::= USING_KW nsUsingParams {
     pin = 1
 }
 
-private nsUsingParams ::= LPAREN <<comma_separated_sequence nsId>>? RPAREN
+private nsUsingParams ::= LPAREN <<comma_separated_sequence nsId>>? RPAREN {
+    pin = 1
+}
 
 private nsUsing_recover ::= !(LPAREN | HIDING_KW) & statement_recover
 
@@ -124,23 +126,24 @@ nsId ::= ns_refIdentifier [AS_KW prec? defIdentifier] {
     recoverWhile = nsId_recover
 }
 
-private nsId_recover ::= !(COMMA | RPAREN)
+private nsId_recover ::= !(COMMA | RPAREN) & nsUsing_recover
 
 private ns_refIdentifier ::= refIdentifier {
     recoverWhile = ns_refIdentifier_recover
 }
 
-private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN)
+private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
 private classStats ::= LBRACE classStat* RBRACE { pin = 1 }
 
 classStat ::= classFieldOrImplement | definition { recoverWhile = classStat_recover }
 
-private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CLASS_KW | INSTANCE_KW | RBRACE)
+private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
 private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin = 1 }
 
 classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
+    pin = 4
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
@@ -164,6 +167,7 @@ private defIdentifier_classFieldSyn ::= defIdentifier {
 }
 
 classImplement ::= refIdentifier nameTele* FAT_ARROW expr {
+    pin = 3
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldImplAdapter"
@@ -225,7 +229,7 @@ private defIdentifier_instance ::= defIdentifier {
     recoverWhile = defIdentifier_instance_recover
 }
 
-private defIdentifier_instance_recover ::= !COLON & nameTele_first
+private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_recover
 
 private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
 
@@ -237,13 +241,13 @@ private fat_arrow_def_pipe ::= FAT_ARROW {
     recoverWhile = def_pipe_recover
 }
 
-private def_pipe_recover ::= !(ID | PIPE | assoc)
+private def_pipe_recover ::= !(ID | PIPE | assoc) & statement_recover
 
 private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | assoc)
+private def_recover ::= !(ID | assoc) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE) {
     pin = 1
@@ -260,7 +264,7 @@ private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
     recoverWhile = def_pipe_lbrace_recover
 }
 
-private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc)
+private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_recover
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
 
@@ -327,7 +331,7 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.vclang.psi.ext.VcArrExprImplMixin"
 }
 
-newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence internal_coClause>>? RBRACE (argument | argumentRecovery)*] {
+newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*] {
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
 
@@ -363,41 +367,26 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
     mixin = "org.vclang.psi.ext.VcLetExprImplMixin"
 }
 
-functionClauses ::= clausesWithBraces | (PIPE external_clause)*
-private clausesWithBraces ::= LBRACE [pipe_def? internal_clause] (pipe_def internal_clause)* RBRACE { pin = 1 }
+functionClauses ::= clausesWithBraces | (PIPE clause)*
+private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
-coClauses ::= LBRACE <<pipe_separated_sequence internal_coClause>>? RBRACE | (PIPE external_coClause)*
+coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)*
 
-private internal_coClause ::= coClause {
-    recoverWhile = pipe_seq_recover
-}
-
-private external_coClause ::= coClause {
-    recoverWhile = external_pipe_seq_recover
-}
-
-private pipe_seq_recover ::= !(PIPE | RBRACE)
-
-private external_pipe_seq_recover ::= pipe_seq_recover & statement_recover
+private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover
 
 clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionClause" ]
     mixin = "org.vclang.psi.ext.VcClauseImplMixin"
-}
-
-private internal_clause ::= clause {
     recoverWhile = pipe_seq_recover
 }
 
-private external_clause ::= clause {
-    recoverWhile = external_pipe_seq_recover
-}
-
 coClause ::= refIdentifier nameTele* FAT_ARROW expr {
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.VcCoClauseImplMixin"
+    recoverWhile = pipe_seq_recover
 }
 
 letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
@@ -411,7 +400,7 @@ private defIdentifier_letClause ::= defIdentifier {
     recoverWhile = defIdentifier_letClause_recover
 }
 
-private defIdentifier_letClause_recover ::= !(COLON | FAT_ARROW) & nameTele_first
+private defIdentifier_letClause_recover ::= !(COLON | FAT_ARROW | IN_KW) & nameTele_first & statement_recover
 
 typeAnnotation ::= COLON expr { pin = 1 }
 
@@ -529,7 +518,7 @@ postfixArgument ::= POSTFIX {
     mixin = "org.vclang.psi.ext.VcPostfixArgumentImplMixin"
 }
 
-newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence internal_coClause>>? RBRACE] {
+newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
     pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
@@ -560,7 +549,7 @@ private defIdentifier_goal ::= defIdentifier {
     recoverWhile = defIdentifier_goal_recover
 }
 
-private defIdentifier_goal_recover ::= !(LBRACE | RBRACE)
+private defIdentifier_goal_recover ::= !(LBRACE | RBRACE) & statement_recover
 
 universeAtom ::= SET
     | UNIVERSE
@@ -580,9 +569,10 @@ nameTele ::= identifierOrUnknown
 
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
-private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | WITH_KW | ELIM_KW) & statement_recover
+private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | ELIM_KW) & statement_recover
 
 fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
+        pin = 1
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
@@ -618,7 +608,7 @@ fieldDefIdentifier ::= defIdentifier {
     recoverWhile = fieldDefIdentifier_recover
 }
 
-private fieldDefIdentifier_recover ::= !COLON
+private fieldDefIdentifier_recover ::= !COLON & fieldTele_recover
 
 defIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.PsiReferable"
