@@ -88,6 +88,6 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\import B (lol {-caret-})", singletonList("\\as"))
 
     fun `test as completion in namespace command 2`() =
-            checkSingleCompletion("\\as", "\\import B (lol \\{-caret-})")
+            checkSingleCompletion("\\import B (lol \\{-caret-})", "\\as")
 
 }

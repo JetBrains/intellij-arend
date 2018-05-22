@@ -7,7 +7,10 @@ import org.vclang.psi.VcArgumentAppExpr
 
 abstract class VcArgumentAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        atomFieldsAcc?.let { return visitor.visitBinOpSequence(this, it, argumentList, params) }
+        atomFieldsAcc?.let {
+            val args = argumentList
+            return if (args.isEmpty()) it.accept(visitor, params) else visitor.visitBinOpSequence(this, it, args, params)
+        }
         longName?.let { name ->
             val levels = generateSequence(levelsExpr) { it.levelsExpr }.lastOrNull()
             levels?.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, params) }

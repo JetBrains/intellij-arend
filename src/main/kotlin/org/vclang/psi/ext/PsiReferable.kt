@@ -9,18 +9,15 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
-import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
 import org.vclang.navigation.getPresentation
 import org.vclang.psi.VcDefIdentifier
 import org.vclang.psi.VcPsiFactory
 import org.vclang.psi.childOfType
 import org.vclang.psi.stubs.VcNamedStub
 
-interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable {
-    fun resolveTypeClassReference(): ClassReferable? = null
-}
+interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable
 
 class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
 

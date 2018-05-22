@@ -31,7 +31,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             else -> VcDefReferenceImpl<VcDefIdentifier>(this)
         }
 
-    override fun resolveTypeClassReference(): ClassReferable? {
+    override fun getTypeClassReference(): ClassReferable? {
         val parent = parent
         val expr = when (parent) {
             is VcIdentifierOrUnknown -> {

@@ -35,8 +35,8 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                             fields = ArrayList()
                             ClassDataLocatedReferable(pointer, referable, parent, superClasses!!, fields!!)
                         }
-                        is VcClassField, is VcFieldTele -> cache[referable] ?: DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.resolveTypeClassReference()) as? TCClassReferable)
-                        else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.resolveTypeClassReference()) as? TCClassReferable)
+                        is VcClassField, is VcFieldTele -> cache[referable] ?: DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                        else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                     }
                 }) })
 
@@ -46,7 +46,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                     }
                     for (ref in referable.fieldReferables) {
                         if (ref is LocatedReferable && ref is PsiReferable) {
-                            fields?.add(DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.resolveTypeClassReference()) as? TCClassReferable))
+                            fields?.add(DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable))
                         }
                     }
                 }
