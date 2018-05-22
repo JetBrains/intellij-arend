@@ -44,7 +44,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test fixity completion after as`() =
             checkCompletionVariants("\\import B (lol \\as {-caret-} +)", fixityKws)
 
-    //fun `test fixity completion after as 2`() = checkCompletionVariants("\\import B (lol \\as \\{-caret-})", fixityKws) //TODO: Fixme
+    fun `test fixity completion after as 2`() =
+            checkCompletionVariants("\\import B (lol \\as \\{-caret-}+)", fixityKws)
 
     fun `test fixity completion after as 3`() =
             checkCompletionVariants("\\import B (lol \\as {-caret-}+)", fixityKws)
