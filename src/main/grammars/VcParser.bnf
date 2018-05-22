@@ -86,7 +86,7 @@ private topStatement ::= !<<eof>> statement { recoverWhile = topStatement_recove
 private topStatement_recover ::= !(OPEN_KW      | IMPORT_KW | FUNCTION_KW  |
                                 TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW | <<eof>>)
 
-private statement_recover ::= (!WHERE_KW) & topStatement_recover
+private statement_recover ::= !WHERE_KW & topStatement_recover
 
 statement ::= statCmd | definition
 
@@ -115,7 +115,10 @@ nsId ::= ns_refIdentifier [AS_KW prec? defIdentifier] {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.NameRenaming" ]
     mixin = "org.vclang.psi.ext.VcNsIdImplMixin"
+    recoverWhile = nsId_recover
 }
+
+private nsId_recover ::= !(COMMA | RPAREN)
 
 private ns_refIdentifier ::= refIdentifier {
     recoverWhile = ns_refIdentifier_recover
@@ -131,7 +134,7 @@ private classStat_recover ::= !(PIPE | FUNCTION_KW | TRUNCATED_KW | DATA_KW | CL
 
 private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin = 1 }
 
-classField ::= prec? defIdentifier typeTele* COLON expr {
+classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
@@ -140,7 +143,7 @@ classField ::= prec? defIdentifier typeTele* COLON expr {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-classFieldSyn ::= pipe_def refIdentifier fat_arrow_def prec? defIdentifier {
+classFieldSyn ::= pipe_def refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
@@ -148,6 +151,10 @@ classFieldSyn ::= pipe_def refIdentifier fat_arrow_def prec? defIdentifier {
     mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldSynStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
+}
+
+private defIdentifier_classFieldSyn ::= defIdentifier {
+    recoverWhile = pipe_seq_recover
 }
 
 classImplement ::= refIdentifier nameTele* FAT_ARROW expr {
@@ -167,21 +174,27 @@ definition ::= defFunction
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
 }
 
-defFunction ::= FUNCTION_KW prec? defIdentifier nameTele* [COLON expr] functionBody where? {
+defFunction ::= FUNCTION_KW prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefFunctionStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier typeTele* [COLON expr] dataBody where? {
+private defIdentifier_func ::= defIdentifier {
+    recoverWhile = defIdentifier_func_recover
+}
+
+private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
+
+defData ::= TRUNCATED_KW? DATA_KW prec? defIdentifier_typeTele typeTele* [COLON expr] dataBody where? {
     pin = 2
     mixin = "org.vclang.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefDataStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defClass ::= CLASS_KW prec? defIdentifier fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
+defClass ::= CLASS_KW prec? defIdentifier_class fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
@@ -189,12 +202,24 @@ defClass ::= CLASS_KW prec? defIdentifier fieldTele? [EXTENDS_KW <<comma_separat
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-defInstance ::= INSTANCE_KW defIdentifier nameTele* COLON longName coClauses where? {
+private defIdentifier_class ::= defIdentifier {
+    recoverWhile = defIdentifier_class_recover
+}
+
+private defIdentifier_class_recover ::= !LPAREN & fieldTele_recover
+
+defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
+
+private defIdentifier_instance ::= defIdentifier {
+    recoverWhile = defIdentifier_instance_recover
+}
+
+private defIdentifier_instance_recover ::= !COLON & nameTele_first
 
 private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
 
@@ -244,19 +269,25 @@ pattern ::= atomPattern | patternConstructor {
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
-patternConstructor ::= defIdentifier atomPatternOrPrefix* { pin = 1 }
+patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin = 1 }
 
-atomPatternOrPrefix ::= atomPattern | defIdentifier {
+atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Pattern" ]
     mixin = "org.vclang.psi.ext.VcAtomPatternOrPrefixImplMixin"
 }
 
+private defIdentifier_pattern ::= defIdentifier {
+    recoverWhile = defIdentifier_pattern_recover
+}
+
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | UNDERSCORE) & pattern_recover
+
 atomPattern ::= LPAREN pattern? RPAREN
     | LBRACE pattern RBRACE
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier typeTele* [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier_typeTele typeTele* [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
@@ -363,12 +394,18 @@ coClause ::= refIdentifier nameTele* FAT_ARROW expr {
     mixin = "org.vclang.psi.ext.VcCoClauseImplMixin"
 }
 
-letClause ::= defIdentifier nameTele* typeAnnotation? FAT_ARROW expr {
+letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LetClause" ]
     mixin = "org.vclang.psi.ext.VcLetClauseImplMixin"
 }
+
+private defIdentifier_letClause ::= defIdentifier {
+    recoverWhile = defIdentifier_letClause_recover
+}
+
+private defIdentifier_letClause_recover ::= !(COLON | FAT_ARROW) & nameTele_first
 
 typeAnnotation ::= COLON expr { pin = 1 }
 
@@ -507,11 +544,17 @@ literal ::= longName
     mixin = "org.vclang.psi.ext.VcLiteralImplMixin"
 }
 
-goal ::= LGOAL defIdentifier? [LBRACE expr RBRACE] RBRACE {
+goal ::= LGOAL defIdentifier_goal? [LBRACE expr RBRACE] RBRACE {
     pin = 1
     implements = "org.vclang.psi.ext.PsiReferable"
     mixin = "org.vclang.psi.ext.PsiReferableImpl"
 }
+
+private defIdentifier_goal ::= defIdentifier {
+    recoverWhile = defIdentifier_goal_recover
+}
+
+private defIdentifier_goal_recover ::= !(LBRACE | RBRACE)
 
 universeAtom ::= SET
     | UNIVERSE
@@ -529,6 +572,8 @@ nameTele ::= identifierOrUnknown
         recoverWhile = nameTele_recover
     }
 
+private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
+
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | WITH_KW | ELIM_KW) & statement_recover
 
 fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
@@ -536,7 +581,10 @@ fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
         mixin = "org.vclang.psi.ext.VcFieldTeleImplMixin"
+        recoverWhile = fieldTele_recover
     }
+
+private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE) & statement_recover
 
 typeTele ::= literal
     | universeAtom
@@ -561,12 +609,18 @@ fieldDefIdentifier ::= defIdentifier {
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldParamStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
+    recoverWhile = fieldDefIdentifier_recover
 }
+
+private fieldDefIdentifier_recover ::= !COLON
 
 defIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.PsiReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.VcDefIdentifierImplMixin"
+}
+
+private defIdentifier_typeTele ::= defIdentifier {
     recoverWhile = typeTele_recover
 }
 
