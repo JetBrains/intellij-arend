@@ -9,6 +9,8 @@ import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.and
 import com.intellij.patterns.StandardPatterns.or
 import com.intellij.psi.*
+import com.intellij.psi.TokenType.BAD_CHARACTER
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
@@ -94,9 +96,10 @@ class VclangCompletionContributor: CompletionContributor() {
         private fun <T> ancestorsUntil(c: Class<T>, element: PsiElement?): HashSet<PsiElement> {
             val ancestors = HashSet<PsiElement>()
             var elem: PsiElement? = element
+            if (elem != null) ancestors.add(elem)
             while (elem != null && !c.isInstance(elem)) {
-                ancestors.add(elem)
                 elem = elem.parent
+                ancestors.add(elem)
             }
             return ancestors
         }
@@ -105,11 +108,20 @@ class VclangCompletionContributor: CompletionContributor() {
                 ProviderWithCondition({ parameters, _ ->
                     val closestElements = findClosestElements(parameters.originalFile, parameters.offset)
                     val prevElement = closestElements.first
-                    val ancestorsNE = ancestorsUntil<T>(c, closestElements.second)
-                    val ancestorsPE = ancestorsUntil<T>(c, prevElement)
+                    val ancestorsNE = ancestorsUntil(c, closestElements.second)
+                    val ancestorsPE = ancestorsUntil(c, prevElement)
 
-                    val lastExprIncorrect = (prevElement?.nextSibling is PsiErrorElement ||
+                    var lastExprIncorrect = (prevElement?.nextSibling is PsiErrorElement ||
                             prevElement?.parent?.nextSibling is PsiErrorElement)
+
+                    if (prevElement?.node?.elementType == BAD_CHARACTER && prevElement?.parent is PsiErrorElement && prevElement.parent.prevSibling != null) {
+                        var truePrevElement = prevElement.parent.prevSibling!!
+                        while (truePrevElement is PsiComment || truePrevElement is PsiWhiteSpace) truePrevElement = truePrevElement.prevSibling
+                        //lastExprIncorrect = true
+
+                        //System.out.println("truePrevElement= "+truePrevElement.text+" class="+truePrevElement.javaClass)
+                        //lastExprIncorrect = lastExprIncorrect || truePrevElement is LeafPsiElement
+                    }
 
                     !lastExprIncorrect && ancestorsNE.intersect(ancestorsPE).isEmpty()
                 }, completionProvider)
@@ -134,18 +146,18 @@ class VclangCompletionContributor: CompletionContributor() {
             val nonEmptyPrefix = prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
 
-            /* System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
             val closestElements = findClosestElements(parameters.originalFile, parameters.offset)
-            System.out.println("prevElement: ${closestElements.first}")
+            System.out.println("prevElement: ${closestElements.first} text: ${closestElements.first?.text}")
             System.out.println("prevElement.parent: ${closestElements.first?.parent?.javaClass}")
-            System.out.println("nextElement: ${closestElements.second}")
+            System.out.println("nextElement: ${closestElements.second} text: ${closestElements.second?.text}")
             System.out.println("nextElement.parent: ${closestElements.second?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("") */
+            System.out.println("")
 
             for (keyword in keywords)
                 result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(insertHandler))

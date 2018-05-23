@@ -603,4 +603,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =
             checkNoImport("\\func bar => 0\n\\class A {}\n\\func f => \\new A {| bar{-caret-} => 1}")
+
+    fun `test that resolve ref quick fixes are disabled for matched variable of elim expressions`() =
+            checkNoImport("\\func bar => 0 \\func foo(a : Nat): Nat \\elim bar{-caret-} | _ => zero")
 }
