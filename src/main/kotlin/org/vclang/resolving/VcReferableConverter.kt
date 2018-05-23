@@ -23,35 +23,44 @@ class VcReferableConverter(private val project: Project, private val state: Simp
         when (referable) {
             is VcFile -> null
             is PsiReferable -> {
-                var superClasses: MutableList<TCClassReferable>? = null
-                var fields: MutableList<TCReferable>? = null
-                val result = cache.computeIfAbsent(referable, { state.computeIfAbsent(referable, {
-                    val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable)
-                    val locatedParent = referable.locatedReferableParent
-                    val parent = if (locatedParent is VcFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
-                    when (referable) {
-                        is ClassReferable -> {
-                            superClasses = ArrayList()
-                            fields = ArrayList()
-                            ClassDataLocatedReferable(pointer, referable, parent, superClasses!!, fields!!)
-                        }
-                        is VcClassField, is VcFieldTele -> cache[referable] ?: DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
-                        else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                if (referable is VcClassField || referable is VcFieldTele) {
+                    cache[referable] ?: run {
+                        toDataLocatedReferable(referable.locatedReferableParent)
+                        cache[referable]
                     }
-                }) })
+                } else {
+                    var superClasses: MutableList<TCClassReferable>? = null
+                    var fields: MutableList<TCReferable>? = null
+                    val result = cache.computeIfAbsent(referable, { state.computeIfAbsent(referable, {
+                        val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable)
+                        val locatedParent = referable.locatedReferableParent
+                        val parent = if (locatedParent is VcFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
+                        when (referable) {
+                            is ClassReferable -> {
+                                superClasses = ArrayList()
+                                fields = ArrayList()
+                                ClassDataLocatedReferable(pointer, referable, parent, superClasses!!, fields!!)
+                            }
+                            is VcClassField, is VcFieldTele -> cache[referable]
+                            else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                        }
+                    }) })
 
-                if (referable is ClassReferable) {
-                    for (ref in referable.superClassReferences) {
-                        (toDataLocatedReferable(ref) as? TCClassReferable)?.let { superClasses?.add(it) }
-                    }
-                    for (ref in referable.fieldReferables) {
-                        if (ref is LocatedReferable && ref is PsiReferable) {
-                            fields?.add(DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable))
+                    if (referable is ClassReferable) {
+                        for (ref in referable.superClassReferences) {
+                            (toDataLocatedReferable(ref) as? TCClassReferable)?.let { superClasses?.add(it) }
+                        }
+                        for (ref in referable.fieldReferables) {
+                            if (ref is LocatedReferable && ref is PsiReferable) {
+                                fields?.add(cache.computeIfAbsent(ref, { state.computeIfAbsent(ref, {
+                                    DataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable)
+                                }) }))
+                            }
                         }
                     }
+
+                    result
                 }
-
-                result
             }
             is TCReferable -> referable
             else -> null
