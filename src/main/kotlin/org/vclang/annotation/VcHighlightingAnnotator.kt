@@ -41,9 +41,9 @@ class VcHighlightingAnnotator : Annotator {
                 private fun annotateDefinitionNamesClash(ref: LocatedReferable, level: Error.Level) {
                     var psiRef = ref as? PsiElement ?: return
                     if (psiRef is VcDefinition) {
-                        psiRef = psiRef.children.first { it is VcDefIdentifier } ?: psiRef
+                        psiRef = psiRef.children.firstOrNull { it is VcDefIdentifier } ?: psiRef
                     }
-                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name")
+                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name + '${ref.textRepresentation()}'")
                 }
 
                 override fun namespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
