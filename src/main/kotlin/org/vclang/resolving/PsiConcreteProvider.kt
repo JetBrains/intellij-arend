@@ -38,7 +38,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
                 return@computeIfAbsent CachingConcreteProvider.NULL_DEFINITION
             } else {
                 if (isResolving) {
-                    def.relatedDefinition.accept(DefinitionResolveNameVisitor(errorReporter), CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope)))
+                    def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, errorReporter), CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope)))
                 }
                 eventsProcessor?.stopTimer(psiReferable)
                 return@computeIfAbsent def

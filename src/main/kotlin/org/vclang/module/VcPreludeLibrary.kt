@@ -98,6 +98,6 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
         scope = CachingScope.make(ConvertingScope(referableConverter, LexicalScope.opened(preludeFile)))
-        DefinitionResolveNameVisitor(errorReporter).resolveGroup(preludeFile, null, scope, concreteProvider)
+        DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope)
     }
 }

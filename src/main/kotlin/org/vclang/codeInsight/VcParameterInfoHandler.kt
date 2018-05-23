@@ -6,14 +6,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
-import com.jetbrains.jetpad.vclang.naming.BinOpParser
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import com.jetbrains.jetpad.vclang.term.Fixity
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
@@ -22,8 +18,8 @@ import org.vclang.psi.VcArgument
 import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcTypeTele
-import org.vclang.psi.ext.PsiLocatedReferable.Companion.fromReferable
 import org.vclang.psi.ext.VcSourceNode
+import org.vclang.typing.parseBinOp
 
 class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
     // private var lastAppExpr: VcArgumentAppExpr? = null
@@ -218,18 +214,16 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     }
 
     private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? {
-        return (((referent as? UnresolvedReference)?.resolve(scope) ?: referent) as? GlobalReferable)?.let{ fromReferable(it) }
+        return (referent as? UnresolvedReference)?.resolve(scope) ?: referent
     }
 
-    private fun expressionToReference(expr: Abstract.Expression): Concrete.ReferenceExpression? {
-        return expr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.ReferenceExpression?>(null) {
-            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Concrete.ReferenceExpression? {
-                return Concrete.ReferenceExpression(data, resolveIfNeeded(referent, (expr as VcExpr).scope), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
-            }
+    private fun expressionToReference(expr: Abstract.Expression): Abstract.Reference? {
+        return expr.accept(object : BaseAbstractExpressionVisitor<Void, Abstract.Reference?>(null) {
+            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Abstract.Reference? =
+                data as? Abstract.Reference
 
-            override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Concrete.ReferenceExpression? {
-                return visitReference(data, referent, 0, 0, params)
-            }
+            override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Abstract.Reference? =
+                data as? Abstract.Reference
         }, null)
     }
 
@@ -241,34 +235,13 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
                     argExplicitness.add(arg_.isExplicit)
                     if (arg_ == arg) break
                 }
-                return ((expressionToReference(expr))?.data as? Abstract.Reference)?.let {
-                    if (it.referent is Abstract.ParametersHolder) Pair(findParamIndex(it.referent as Abstract.ParametersHolder, argExplicitness), it)
-                    else null }
+
+                val reference = expressionToReference(expr) ?: return null
+                return (reference.referent as? Abstract.ParametersHolder)?.let { Pair(findParamIndex(it, argExplicitness), reference) }
             }
 
-            private fun pushExpression(expr: Abstract.Expression?, binopSeq: MutableList<Concrete.BinOpSequenceElem>, fixity: Fixity, isExplicit: Boolean) {
-                val ref = expr?.let { expressionToReference(it) }
-                if (ref != null && (ref.referent as? GlobalReferable)?.precedence != null) {
-                    //parser.push(ref, (ref.referent as? GlobalReferable)?.precedence ?: Precedence.DEFAULT, fixity == Fixity.POSTFIX)
-                    binopSeq.add(Concrete.BinOpSequenceElem(ref, fixity, isExplicit))
-                } else {
-                    //parser.push(Concrete.InferHoleExpression(expr), isExplicit)
-                    binopSeq.add(Concrete.BinOpSequenceElem(Concrete.InferHoleExpression(expr), fixity, isExplicit))
-                }
-            }
-
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, Abstract.Reference>? {
-                val parser = BinOpParser(DummyErrorReporter.INSTANCE)
-                val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem>()
-
-
-                pushExpression(left, concreteSeq, Fixity.NONFIX, true)
-                for (elem in sequence) {
-                    pushExpression(elem.expression, concreteSeq, elem.fixity, elem.isExplicit)
-                }
-
-                return findArgInParsedBinopSeq(arg, parser.parse(Concrete.BinOpSequenceExpression(null, concreteSeq)), -1, null)
-            }
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, Abstract.Reference>? =
+                findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
         }, null)
     }
 
@@ -341,9 +314,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
                 return arg.expression?.let { locateArg(it as VcExpr, absNodeParent.parentSourceNode?.parentSourceNode as VcExpr) }
             }
 
-            return expressionToReference(absNodeParent)?.let {
-                if (it.data is Abstract.Reference) Pair(-1, it.data as Abstract.Reference)
-                else null}
+            return expressionToReference(absNodeParent)?.let { Pair(-1, it) }
         }
 
         return null

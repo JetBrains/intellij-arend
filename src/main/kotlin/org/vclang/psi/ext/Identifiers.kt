@@ -6,13 +6,13 @@ import com.intellij.psi.search.SearchScope
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.term.abs.ReferableExtractVisitor
 import org.vclang.psi.*
 import org.vclang.psi.impl.VcAtomPatternOrPrefixImpl
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcPatternDefReferenceImpl
 import org.vclang.resolving.VcReference
 import org.vclang.resolving.VcReferenceImpl
+import org.vclang.typing.ReferableExtractVisitor
 
 abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), VcDefIdentifier {
     override val referenceNameElement
@@ -47,7 +47,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             else -> null
         } ?: return null
 
-        return expr.accept(ReferableExtractVisitor(expr.scope), null)
+        return ReferableExtractVisitor(expr.scope).findClassReferable(expr)
     }
 
     override fun getUseScope(): SearchScope {

@@ -142,7 +142,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                     if (module == null) {
                         libraryManager.typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
                     } else if (definitionFullName == "") {
-                        DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider), concreteProvider)
+                        DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider))
                     }
                     module
                 }

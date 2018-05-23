@@ -63,4 +63,46 @@ class VcFieldCompletionTest : VcCompletionTestBase() {
             "\\class C { | a : A | b : B }\n" +
             "\\func test (c : C) => c.b.{-caret-}",
             listOf("f", "g", "h"))
+
+    fun `test function reference`() =
+        checkCompletionVariants(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func B => A\n" +
+            "\\func test (a : B) => a.{-caret-}",
+            listOf("f", "g"))
+
+    fun `test iterated function reference`() =
+        checkCompletionVariants(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func C => B\n" +
+            "\\func B => A\n" +
+            "\\func test (a : C) => a.{-caret-}",
+            listOf("f", "g"))
+
+    fun `test recursive function reference`() =
+        checkNoCompletion(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func C => B\n" +
+            "\\func B => C\n" +
+            "\\func test (a : C) => a.{-caret-}")
+
+    fun `test function with parameters reference`() =
+        checkCompletionVariants(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func B (x : Nat) => A\n" +
+            "\\func test (a : B 0) => a.{-caret-}",
+            listOf("f", "g"))
+
+    fun `test function with no parameters reference`() =
+        checkNoCompletion(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func B (x : Nat) => A\n" +
+            "\\func test (a : B) => a.{-caret-}")
+
+    fun `test infix function with parameters reference`() =
+        checkCompletionVariants(
+            "\\class A { | f : Nat | g : Nat }\n" +
+            "\\func \\infixr 3 + (x y : Nat) => A\n" +
+            "\\func test (a : 0 + 1) => a.{-caret-}",
+            listOf("f", "g"))
 }

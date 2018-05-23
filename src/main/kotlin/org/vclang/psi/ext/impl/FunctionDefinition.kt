@@ -6,10 +6,10 @@ import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
-import com.jetbrains.jetpad.vclang.term.abs.ReferableExtractVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefFunctionStub
+import org.vclang.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
 abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>, VcDefFunction, Abstract.FunctionDefinition {
@@ -33,6 +33,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     override fun getIcon(flags: Int): Icon = VcIcons.FUNCTION_DEFINITION
 
-    override fun getTypeClassReference(): ClassReferable? =
-        if (parameters.all { !it.isExplicit }) resultType?.accept(ReferableExtractVisitor(scope), null) else null
+    override fun getTypeClassReference(): ClassReferable? {
+        val type = resultType ?: return null
+        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor(scope).findClassReferable(type) else null
+    }
 }
