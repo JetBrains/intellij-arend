@@ -9,7 +9,7 @@ import org.vclang.psi.ext.VcCompositeElement
 
 abstract class VcStubElementType<StubT : StubElement<*>, PsiT : VcCompositeElement>(
         debugName: String
-) : IStubElementType<StubT, PsiT>(debugName, VcLanguage) {
+) : IStubElementType<StubT, PsiT>(debugName, VcLanguage.INSTANCE) {
 
     final override fun getExternalId(): String = "vclang.${super.toString()}"
 

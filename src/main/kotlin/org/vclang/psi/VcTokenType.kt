@@ -6,7 +6,7 @@ import com.intellij.psi.tree.TokenSet
 import org.vclang.VcLanguage
 import org.vclang.psi.VcElementTypes.*
 
-class VcTokenType(debugName: String) : IElementType(debugName, VcLanguage)
+class VcTokenType(debugName: String) : IElementType(debugName, VcLanguage.INSTANCE)
 
 val VC_KEYWORDS: TokenSet = TokenSet.create(
         OPEN_KW, IMPORT_KW, USING_KW, AS_KW, HIDING_KW, FUNCTION_KW, NON_ASSOC_KW,

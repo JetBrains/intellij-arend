@@ -13,7 +13,7 @@ class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
 
     override fun getType(): Type = Type
 
-    object Type : IStubFileElementType<VcFileStub>(VcLanguage) {
+    object Type : IStubFileElementType<VcFileStub>(VcLanguage.INSTANCE) {
 
         override fun getStubVersion(): Int = 1
 

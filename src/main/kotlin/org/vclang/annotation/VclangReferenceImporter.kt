@@ -14,7 +14,7 @@ class VclangReferenceImporter : ReferenceImporter {
         if (!CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY)
             return false
 
-        if (!file.viewProvider.languages.contains(VcLanguage))
+        if (!file.viewProvider.languages.contains(VcLanguage.INSTANCE))
             return false
 
         val element = file.findReferenceAt(offset)

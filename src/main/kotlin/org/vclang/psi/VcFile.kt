@@ -20,7 +20,7 @@ import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiLocatedReferable, ChildGroup {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage.INSTANCE), VcCompositeElement, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath
         get() {
             val fileName = viewProvider.virtualFile.path

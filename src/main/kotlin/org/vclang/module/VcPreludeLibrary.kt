@@ -73,7 +73,7 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
             synchronized(VcPreludeLibrary::class.java) {
                 if (prelude == null) {
                     val text = String(Files.readAllBytes(Paths.get(VcPreludeLibrary::class.java.getResource("/lib").toURI()).resolve(Paths.get("Prelude" + FileUtils.EXTENSION))), StandardCharsets.UTF_8)
-                    prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, VcLanguage, text) as? VcFile
+                    prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, VcLanguage.INSTANCE, text) as? VcFile
                     prelude?.virtualFile?.isWritable = false
                 }
             }
