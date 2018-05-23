@@ -600,4 +600,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
         val cmd = file.namespaceCommands.first()
         val action = AddIdToUsingAction(cmd, listOf("a", "z", "b"))
         WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) })
+
+    fun `test that resolve ref quick fixes are disabled inside class extensions`() =
+            checkNoImport("\\func bar => 0\n\\class A {}\n\\func f => \\new A {| bar{-caret-} => 1}")
 }

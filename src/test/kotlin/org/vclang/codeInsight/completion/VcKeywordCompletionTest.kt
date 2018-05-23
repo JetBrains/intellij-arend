@@ -23,6 +23,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test fixity completion after func 3`() =
             checkCompletionVariants("\\func {-caret-}test => 0", fixityKws)
 
+    fun `test fixity completion after func 4`() =
+            checkCompletionVariants("\\func {-caret-}", fixityKws)
+
+    fun `test fixity completion after func 5`() =
+            checkCompletionVariants("\\func \\{-caret-}", fixityKws)
+
     fun `test fixity completion after class`() =
             checkCompletionVariants("\\class {-caret-} testClass {}", fixityKws)
 
@@ -173,6 +179,9 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test root keywords completion 13`() =
             checkCompletionVariants("\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1} \\{-caret-} ", globalStatementKws, CompletionCondition.CONTAINS)
 
+    fun `test root keywords completion 14`() =
+            checkCompletionVariants("\\class A {| foo : Nat}\n\\func f => \\new A {| foo => 0 | {-caret-} => 1\n}\n", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
+
     fun `test no import in completion 1`() =
             checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
 
@@ -190,5 +199,17 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test root completion in empty context 2`() =
             checkCompletionVariants("\\{-caret-}", globalStatementKws, CompletionCondition.CONTAINS)
+
+    fun `test completion after truncated`() =
+            checkCompletionVariants("\\truncated {-caret-}", statementKws.minus("\\data"), CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test completion after truncated 2`() =
+            checkSingleCompletion("\\tru{-caret-}", "\\truncated data")
+
+    fun `test completion after truncated 3`() =
+            checkSingleCompletion("\\truncated {-caret-}", "\\data")
+
+    fun `test completion after truncated 4`() =
+            checkSingleCompletion("\\truncated \\{-caret-}", "\\data")
 
 }
