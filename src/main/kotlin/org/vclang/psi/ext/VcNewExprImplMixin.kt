@@ -22,13 +22,24 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
 
     companion object {
         fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {
-            if (appExpr == null) return null
-            var ref = (appExpr as? VcArgumentAppExpr)?.longName?.referent ?: return null
-            if (ref is RedirectingReferable) {
+            val argAppExpr = appExpr as? VcArgumentAppExpr ?: return null
+            var ref = argAppExpr.longName?.referent
+            if (ref == null) {
+                val atomFieldsAcc = argAppExpr.atomFieldsAcc ?: return null
+                if (!atomFieldsAcc.fieldAccList.isEmpty()) {
+                    return null
+                }
+                ref = atomFieldsAcc.atom.literal?.longName?.referent
+            }
+
+            while (ref is RedirectingReferable) {
                 ref = ref.originalReferable
             }
             if (ref is UnresolvedReference) {
                 ref = ref.resolve(appExpr.scope.globalSubscope)
+            }
+            while (ref is RedirectingReferable) {
+                ref = ref.originalReferable
             }
             return ref as? ClassReferable
         }
