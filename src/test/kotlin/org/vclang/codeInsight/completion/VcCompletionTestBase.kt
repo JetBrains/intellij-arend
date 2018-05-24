@@ -40,6 +40,14 @@ abstract class VcCompletionTestBase : VcTestBase() {
         }
     }
 
+    protected fun checkKeywordCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS){
+        val code1 = code.replace("{-caret-}", "\\{-caret-}",false)
+        val code2 = code.replace("{-caret-}", "{-caret-} ",false)
+        checkCompletionVariants(code, variants, condition)
+        checkCompletionVariants(code1, variants, condition)
+        checkCompletionVariants(code2, variants, condition)
+    }
+
     protected fun doSingleCompletion(
             @Language("Vclang") before: String,
             @Language("Vclang") after: String
