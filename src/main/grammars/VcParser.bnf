@@ -175,7 +175,7 @@ private defIdentifier_classFieldSyn ::= defIdentifier {
 }
 
 classImplement ::= longName nameTele* FAT_ARROW expr {
-    pin = 3
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldImplAdapter"

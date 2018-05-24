@@ -7,6 +7,7 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
 import com.jetbrains.jetpad.vclang.term.NameRenaming
@@ -15,6 +16,7 @@ import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
 
@@ -39,12 +41,22 @@ class VcHighlightingAnnotator : Annotator {
                 }
 
                 private fun annotateDefinitionNamesClash(ref: LocatedReferable, level: Error.Level) {
-                    var psiRef = ref as? PsiElement ?: return
-                    if (psiRef is VcDefinition) {
-                        psiRef = psiRef.children.firstOrNull { it is VcDefIdentifier } ?: psiRef
-                    }
+                    val psiRef = referableToPsi(ref) ?: return
                     holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name + '${ref.textRepresentation()}'")
                 }
+
+                override fun fieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
+                    if (superClass2 == currentClass) {
+                        val psiRef = referableToPsi(ref2) ?: return
+                        holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Field '${ref2.textRepresentation()}' is already defined in super class ${superClass1.textRepresentation()}")
+                    } else {
+                        val psiRef = referableToPsi(currentClass) ?: return
+                        holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Field '${ref2.textRepresentation()}' is defined in super classes ${superClass1.textRepresentation()} and ${superClass2.textRepresentation()}")
+                    }
+                }
+
+                private fun referableToPsi(ref: LocatedReferable): PsiElement? =
+                    (ref as? PsiLocatedReferable)?.children?.firstOrNull { it is VcDefIdentifier } ?: (ref as? PsiElement)
 
                 override fun namespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
                     annotateNamespacesClash(cmd1, cmd2, name, level)
