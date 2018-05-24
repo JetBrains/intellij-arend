@@ -32,7 +32,7 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is Group) {
-            object : NameResolvingChecker() {
+            object : NameResolvingChecker(true) {
                 override fun definitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
                     annotateDefinitionNamesClash(ref1, level)
                     annotateDefinitionNamesClash(ref2, level)
