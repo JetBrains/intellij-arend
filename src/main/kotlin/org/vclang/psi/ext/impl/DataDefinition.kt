@@ -26,7 +26,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
 
     override fun isTruncated(): Boolean = truncatedKw != null
 
-    override fun getUniverse(): VcExpr? = expr
+    override fun getUniverse(): VcExpr? = universeExpr
 
     override fun getClauses(): List<Abstract.ConstructorClause> {
         val body = dataBody ?: return emptyList()

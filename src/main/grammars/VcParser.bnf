@@ -205,12 +205,19 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
-defData ::= dataKw prec? defIdentifier_typeTele typeTele* [COLON expr] dataBody where? {
+defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefDataStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
+
+private dataUniverse ::= COLON universeExpr {
+    pin = 1
+    recoverWhile = dataUniverse_recover
+}
+
+private dataUniverse_recover ::= !(PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
 
 private dataKw ::= truncatedKW DATA_KW | DATA_KW {
     pin(".*") = 1
@@ -353,6 +360,14 @@ arrExpr ::= expr ARROW expr {
 
 newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*] {
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
+}
+
+universeExpr ::= universeAppExpr
+    | setUniverseAppExpr
+    | truncatedUniverseAppExpr
+    | PROP_KW {
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcUniverseExprImplMixin"
 }
 
 appExpr ::= universeAppExpr

@@ -12,7 +12,7 @@ class VcDeclarationRangeHandler : DeclarationRangeHandler<PsiElement> {
     override fun getDeclarationRange(container: PsiElement): TextRange =
         when (container) {
             is VcDefFunction -> container.expr ?: container.nameTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
-            is VcDefData -> container.expr ?: container.typeTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
+            is VcDefData -> container.universeExpr ?: container.typeTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is VcDefClass -> container.longNameList.lastOrNull() ?: container.fieldTele as PsiElement? ?: container.defIdentifier
             is VcDefInstance -> container.nameTeleList.lastOrNull() ?: container.defIdentifier
             else -> null
