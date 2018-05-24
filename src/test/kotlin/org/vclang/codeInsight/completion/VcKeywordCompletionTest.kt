@@ -114,7 +114,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\import B (lol) {-caret-}", hidingKw, CompletionCondition.CONTAINS)
 
     fun `test nsCmd completion in namespace command 2`() =
-            checkCompletionVariants("\\import B (lol) \\{-caret-}", hidingKw, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B (lol)\n \\{-caret-}", hidingKw, CompletionCondition.CONTAINS)
 
     fun `test nsCmd completion in namespace command 3`() =
             checkCompletionVariants("\\import B {-caret-}", huKw, CompletionCondition.CONTAINS)
@@ -147,58 +147,58 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\import {-caret-}", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test root keywords completion 1`() =
-            checkCompletionVariants("\\import B {-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B\n {-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 2`() =
-            checkCompletionVariants("\\import B \\func foo => 0 {-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0\n {-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 3`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar {-caret-} \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar\n {-caret-} \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 4`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {{-caret-} \\func g => 1 } ", statementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-} \\func g => 1 } ", statementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 5`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 {-caret-}}", statementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}", statementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 6`() =
-            checkCompletionVariants("\\import B \\{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B\n\\{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 7`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\{-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0\n \\{-caret-} \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 8`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar \\{-caret-} \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar\n \\{-caret-} \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 9`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\{-caret-} \\func g => 1 } ", statementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n\\{-caret-} \\func g => 1 } ", statementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 10`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 \\{-caret-}} ", statementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n \\{-caret-}} ", statementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 11`() =
-            checkCompletionVariants("\\import B \\hiding (a){-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\hiding (a)\n{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 12`() =
-            checkCompletionVariants("\\import B \\hiding (a)\\{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\import B \\hiding (a)\n\\{-caret-} \\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 13`() =
-            checkCompletionVariants("\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1} \\{-caret-} ", globalStatementKws, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n \\{-caret-} ", globalStatementKws, CompletionCondition.CONTAINS)
 
     fun `test root keywords completion 14`() =
-            checkCompletionVariants("\\class A {| foo : Nat}\n\\func f => \\new A {| foo => 0 | {-caret-} => 1\n}\n", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\class A {| foo : Nat}\n\\func f => \\new A {| foo => 0 |\n{-caret-} => 1\n}\n", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test no import in completion 1`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test no import in completion 2`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 {-caret-}}", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}", importKw, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test no import in completion 3`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1 \\{-caret-}} ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n \\{-caret-}} ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test no import in completion 4`() =
-            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n\\{-caret-} \\func g => 1 } ", importKw, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test root completion in empty context`() =
             checkCompletionVariants("{-caret-}", globalStatementKws, CompletionCondition.CONTAINS)
@@ -213,13 +213,16 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkSingleCompletion("\\tru{-caret-}", "\\truncated \\data")
 
     fun `test completion after truncated 3`() =
-            checkSingleCompletion("\\truncated {-caret-}", "\\data")
+            checkCompletionVariants("\\truncated {-caret-}", singletonList("\\data"), CompletionCondition.CONTAINS)
 
     fun `test completion after truncated 4`() =
             checkSingleCompletion("\\truncated \\{-caret-}", "\\data")
 
     fun `test completion after truncated 5`() =
             checkSingleCompletion("\\truncated \\da{-caret-}", "\\data")
+
+    fun `test completion after truncated 6`() =
+            checkSingleCompletion("\\tru{-caret-}\\func", "\\truncated \\data \\func")
 
     fun `test no keyword completion after instance` () =
             checkCompletionVariants("\\instance \\{-caret-}", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
