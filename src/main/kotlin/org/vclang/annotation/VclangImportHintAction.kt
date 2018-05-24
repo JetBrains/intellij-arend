@@ -16,11 +16,11 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
-import org.vclang.psi.VcLongName
-import org.vclang.psi.VcNsId
+import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.quickfix.ResolveRefFixData
 import org.vclang.quickfix.ResolveRefQuickFix
@@ -102,23 +102,12 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     }
 
     companion object {
-        fun importQuickFixAllowed(referenceElement : VcReferenceElement) : Boolean {
-            if (!referenceUnresolved(referenceElement)) return false
-
-            val parent = referenceElement.parent
-            if (parent is VcLongName && referenceElement.prevSibling != null) return false // we resolve only first identifiers in longNames
-            if (parent is VcNsId) return false // do not resolve identifiers in using/hiding lists in namespace commands
-
-            return true
-        }
+        fun importQuickFixAllowed(referenceElement : VcReferenceElement) =
+            referenceElement is VcSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isParentScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
         fun referenceUnresolved(referenceElement : VcReferenceElement) : Boolean {
-            val reference = referenceElement.reference
-
-            if (!referenceElement.isValid || reference == null) return false //reference element is invalid
-            val psiElement = reference.resolve()
-
-            return psiElement == null // return false if already imported
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
+            return reference.resolve() == null // return false if already imported
         }
     }
 }

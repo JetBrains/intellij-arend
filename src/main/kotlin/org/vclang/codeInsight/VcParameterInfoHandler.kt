@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
@@ -18,6 +19,7 @@ import org.vclang.psi.VcArgument
 import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcTypeTele
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcSourceNode
 import org.vclang.typing.parseBinOp
 
@@ -213,9 +215,8 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
         return null
     }
 
-    private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? {
-        return (referent as? UnresolvedReference)?.resolve(scope) ?: referent
-    }
+    private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
+        (((referent as? UnresolvedReference)?.resolve(scope) ?: referent) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
 
     private fun expressionToReference(expr: Abstract.Expression): Abstract.Reference? {
         return expr.accept(object : BaseAbstractExpressionVisitor<Void, Abstract.Reference?>(null) {
