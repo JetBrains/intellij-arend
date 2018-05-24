@@ -11,7 +11,7 @@ abstract class VcLongNameImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLo
     override fun getData() = this
 
     override fun getReferent(): UnresolvedReference =
-        LongUnresolvedReference(this, refIdentifierList.map { it.referenceName })
+        LongUnresolvedReference.make(this, refIdentifierList.map { it.referenceName })
 
     override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]
 

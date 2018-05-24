@@ -2,7 +2,6 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import org.vclang.psi.VcClassImplement
 import org.vclang.psi.VcNameTele
 import org.vclang.psi.ext.PsiStubbedReferableImpl
@@ -15,9 +14,9 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
 
     override fun getData() = this
 
-    override fun getName() = refIdentifier.referenceName
+    override fun getName() = longName.refIdentifierList.lastOrNull()?.referenceName
 
-    override fun getImplementedField() = NamedUnresolvedReference(this, textRepresentation())
+    override fun getImplementedField() = longName.referent
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
