@@ -177,7 +177,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     }
 
     private fun findArgInParsedBinopSeq(arg: VcExpr, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
-        if (expr is Concrete.ReferenceExpression || expr is Concrete.InferHoleExpression) {
+        if (expr is Concrete.ReferenceExpression || expr is Concrete.HoleExpression) {
             if ((expr.data as? VcSourceNode)?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode ||
                     (expr.data as? VcSourceNode)?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode) {
                 if (curFunc == null) {

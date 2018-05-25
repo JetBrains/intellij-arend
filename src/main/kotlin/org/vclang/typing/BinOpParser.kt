@@ -24,7 +24,7 @@ private fun addExpression(expr: Abstract.Expression?, binOpSeq: MutableList<Conc
     if (ref != null && ref.referent is GlobalReferable) {
         binOpSeq.add(Concrete.BinOpSequenceElem(ref, fixity, isExplicit))
     } else {
-        binOpSeq.add(Concrete.BinOpSequenceElem(Concrete.InferHoleExpression(expr), fixity, isExplicit))
+        binOpSeq.add(Concrete.BinOpSequenceElem(Concrete.HoleExpression(expr), fixity, isExplicit))
     }
 }
 
