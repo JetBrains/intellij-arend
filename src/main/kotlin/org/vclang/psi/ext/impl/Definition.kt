@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -44,4 +45,20 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override fun getDynamicSubgroups(): List<Group> = emptyList()
 
     override fun getFields(): List<Group.InternalReferable> = emptyList()
+
+    override fun getEnclosingClass(): ClassReferable? {
+        var parent = parentGroup
+        while (parent != null && parent !is VcFile) {
+            val ref = parent.referable
+            if (ref is ClassReferable) {
+                for (subgroup in parent.dynamicSubgroups) {
+                    if (subgroup.referable == referable) {
+                        return ref
+                    }
+                }
+            }
+            parent = parent.parentGroup
+        }
+        return null
+    }
 }
