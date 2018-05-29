@@ -14,6 +14,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
+import org.vclang.psi.ext.impl.DefinitionAdapter
 import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
@@ -32,6 +33,20 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() }, KeywordCompletionProvider(singletonList(IMPORT_KW)))))
         extend(CompletionType.BASIC, DATA_AFTER_TRUNCATED_CONTEXT, genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW}, KeywordCompletionProvider(singletonList(DATA_KW)))) //data after \truncated keyword
+
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(singletonList(WHERE_KW)),
+                {jD: JointData ->
+                    var anc = jD.prevElement
+                    while (anc != null && anc !is VcStatement) anc = anc.parent
+                    var flag = false
+                    if (anc is VcStatement) {
+                        val da = anc.definition
+                        if (da is DefinitionAdapter<*>) {
+                            val where =  da.getWhere()
+                            if (where == null || (where.lbrace == null && where.rbrace == null)) flag = true
+                        }
+                    }
+                    flag}))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
@@ -118,11 +133,12 @@ class VclangCompletionContributor: CompletionContributor() {
                 ProviderWithCondition({ parameters, context -> condition(parameters, context, elementsOnJoint(parameters.originalFile, parameters.offset)) }, completionProvider)
 
 
-        private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>): CompletionProvider<CompletionParameters> =
+        private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>,
+                                                     additionalCondition: (JointData) -> Boolean = {jointData: JointData -> true}): CompletionProvider<CompletionParameters> =
                 genericJointCondition({_, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementClass, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementClass, jointData.prevElement)
-                    jointData.delimeterBeforeCaret && ancestorsNE.intersect(ancestorsPE).isEmpty() }, completionProvider)
+                    jointData.delimeterBeforeCaret && additionalCondition(jointData) && ancestorsNE.intersect(ancestorsPE).isEmpty() }, completionProvider)
     }
 
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {

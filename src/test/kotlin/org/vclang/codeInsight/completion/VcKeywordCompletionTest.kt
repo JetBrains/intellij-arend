@@ -12,6 +12,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     private val importKw = singletonList("\\import")
     private val asKw = singletonList("\\as")
     private val hidingKw = singletonList("\\hiding")
+    private val whereKw = singletonList("\\where")
     private val huKw = listOf("\\using", "\\hiding")
 
     fun `test fixity completion after func 1`() =
@@ -126,7 +127,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\truncated {-caret-}", statementKws.minus("\\data"), CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test completion after truncated 2`() =
-            checkSingleCompletion("\\tru{-caret-}", "\\truncated \\data")
+            checkSingleCompletion("\\tru{-caret-}", "\\data")
 
     fun `test completion after truncated 3`() =
             checkCompletionVariants("\\truncated {-caret-}", singletonList("\\data"), CompletionCondition.CONTAINS)
@@ -155,4 +156,27 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no root keywords completion after wrong state 3` () =
             checkKeywordCompletionVariants("\\func f ({-caret-}", globalStatementKws, CompletionCondition.DOES_NOT_CONTAIN)
 
+    fun `test no where completion in empty context`() =
+            checkKeywordCompletionVariants("{-caret-}", whereKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no where completion after import`() =
+            checkKeywordCompletionVariants("\\import A\n{-caret-}", whereKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no where completion after open`() =
+            checkKeywordCompletionVariants("\\open Nat\n{-caret-}", whereKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test where completion after func`() =
+            checkKeywordCompletionVariants("\\func lol => 0\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
+
+    fun `test where completion after data`() =
+            checkKeywordCompletionVariants("\\data Lol | lol1 | lol2\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
+
+    fun `test where completion after class`() =
+            checkKeywordCompletionVariants("\\class Lol {}\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
+
+    fun `test where completion after interated where`() =
+            checkKeywordCompletionVariants("\\func foo => 0 \\where \\func bar => 0\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
+
+    fun `test no where completion after interated where`() =
+            checkKeywordCompletionVariants("\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}", whereKw, CompletionCondition.DOES_NOT_CONTAIN)
 }
