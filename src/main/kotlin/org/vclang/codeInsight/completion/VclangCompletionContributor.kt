@@ -129,18 +129,15 @@ class VclangCompletionContributor: CompletionContributor() {
 
         private val insertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document
-            if (insertContext.tailOffset < document.textLength && !Character.isWhitespace(document.getText(TextRange(insertContext.tailOffset, insertContext.tailOffset+1))[0]))
-                document.insertString(insertContext.tailOffset, " ") // add tail whitespace
-
+            document.insertString(insertContext.tailOffset, " ") // add tail whitespace
             insertContext.commitDocument()
+            insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
         }
 
-        private val truncatedInsertHandler = InsertHandler<LookupElement> {insertContext, lookupElement ->
+        private val truncatedInsertHandler = InsertHandler<LookupElement> {insertContext, _ ->
             val document = insertContext.document
-            document.insertString(insertContext.tailOffset, " \\data")
-
-            if (insertContext.tailOffset < document.textLength && !Character.isWhitespace(document.getText(TextRange(insertContext.tailOffset, insertContext.tailOffset+1))[0]))
-                document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+            document.insertString(insertContext.tailOffset, " \\data ")
+            insertContext.commitDocument()
             insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
         }
 
@@ -172,8 +169,13 @@ class VclangCompletionContributor: CompletionContributor() {
                     else -> insertHandler
                 }
 
-                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).
-                        addElement(LookupElementBuilder.create(keyword.toString()).bold().withInsertHandler(handler))
+                val lookupElement = when (keyword) {
+                    TRUNCATED_KW -> LookupElementBuilder.create(keyword.toString()).withPresentableText("\\truncated \\data")
+                    else -> LookupElementBuilder.create(keyword.toString())
+                }
+
+
+                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(lookupElement.bold().withInsertHandler(handler))
             }
 
         }
