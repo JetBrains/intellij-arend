@@ -174,9 +174,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test where completion after class`() =
             checkKeywordCompletionVariants("\\class Lol {}\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
 
-    fun `test where completion after interated where`() =
+    fun `test where completion after iterated where`() =
             checkKeywordCompletionVariants("\\func foo => 0 \\where \\func bar => 0\n{-caret-}", whereKw, CompletionCondition.CONTAINS)
 
-    fun `test no where completion after interated where`() =
+    fun `test no where completion after iterated where`() =
             checkKeywordCompletionVariants("\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}", whereKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no keyword completion before crlf`() =
+            checkKeywordCompletionVariants("\\func foo => 0 {-caret-}\n", globalStatementKws + whereKw, CompletionCondition.DOES_NOT_CONTAIN)
 }

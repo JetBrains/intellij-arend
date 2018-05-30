@@ -95,6 +95,13 @@ class VclangCompletionContributor: CompletionContributor() {
 
         private class JointData(val prevElement: PsiElement?, val delimeterBeforeCaret: Boolean, val nextElement: PsiElement?)
 
+        private fun textBeforeCaret(whiteSpace: PsiWhiteSpace, caretOffset: Int): String = when {
+                whiteSpace.textRange.contains(caretOffset) -> whiteSpace.text.substring(0, caretOffset - whiteSpace.textRange.startOffset)
+                caretOffset < whiteSpace.textRange.startOffset -> ""
+                else -> whiteSpace.text
+            }
+
+
         private fun elementsOnJoint(file: PsiFile, caretOffset: Int): JointData {
             var ofs = 0
             var nextElement: PsiElement?
@@ -109,7 +116,7 @@ class VclangCompletionContributor: CompletionContributor() {
             do {
                 val pos = caretOffset + (ofs--)
                 prevElement = if (pos < 0) null else file.findElementAt(pos)
-                delimiterBeforeCaret = delimiterBeforeCaret || (prevElement is PsiWhiteSpace && prevElement.textContains('\n')) || (pos <= 0)
+                delimiterBeforeCaret = delimiterBeforeCaret || (prevElement is PsiWhiteSpace && textBeforeCaret(prevElement, caretOffset).contains('\n')) || (pos <= 0)
                 var skipFirstErrorExpr = ((prevElement?.node?.elementType == BAD_CHARACTER || prevElement?.node?.elementType == INVALID_KW) &&
                                 prevElement?.parent is PsiErrorElement && prevElement.text.startsWith("\\"))
                 if (skipFirstErrorExpr && skippedFirstErrorExpr != null && skippedFirstErrorExpr != prevElement) skipFirstErrorExpr = false else skippedFirstErrorExpr = prevElement
