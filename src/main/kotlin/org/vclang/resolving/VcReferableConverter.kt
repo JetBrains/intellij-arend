@@ -7,7 +7,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
 import org.vclang.psi.VcClassField
-import org.vclang.psi.VcFieldTele
+import org.vclang.psi.VcFieldDefIdentifier
 import org.vclang.psi.VcFile
 import org.vclang.psi.ext.PsiReferable
 
@@ -23,7 +23,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
         when (referable) {
             is VcFile -> null
             is PsiReferable -> {
-                if (referable is VcClassField || referable is VcFieldTele) {
+                if (referable is VcClassField || referable is VcFieldDefIdentifier) {
                     cache[referable] ?: run {
                         toDataLocatedReferable(referable.locatedReferableParent)
                         cache[referable]
@@ -41,7 +41,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                                 fields = ArrayList()
                                 ClassDataLocatedReferable(pointer, referable, parent, superClasses!!, fields!!)
                             }
-                            is VcClassField, is VcFieldTele -> cache[referable]
+                            is VcClassField, is VcFieldDefIdentifier -> cache[referable]
                             else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                         }
                     }) })

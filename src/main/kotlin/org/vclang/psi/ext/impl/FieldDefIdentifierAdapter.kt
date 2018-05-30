@@ -4,6 +4,8 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import org.vclang.psi.VcExpr
 import org.vclang.psi.VcFieldDefIdentifier
 import org.vclang.psi.VcFieldTele
 import org.vclang.psi.stubs.VcClassFieldParamStub
@@ -22,7 +24,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override val referenceName: String
         get() = text
 
-    override fun getName(): String = referenceName
+    override fun getName(): String = stub?.name ?: referenceName
 
     override fun textRepresentation(): String = referenceName
 
@@ -35,5 +37,9 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun isVisible() = false
 
     override fun getTypeClassReference(): ClassReferable? =
-        (parent as? VcFieldTele)?.expr?.let { ReferableExtractVisitor(scope).findClassReferable(it) }
+        resultType?.let { ReferableExtractVisitor(scope).findClassReferable(it) }
+
+    override fun getParameters(): List<Abstract.Parameter> = emptyList()
+
+    override fun getResultType(): VcExpr? = (parent as? VcFieldTele)?.expr
 }

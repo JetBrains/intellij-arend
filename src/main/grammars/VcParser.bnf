@@ -58,8 +58,6 @@
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
         EXTENDS_KW          = '\extends'
-        ON_KW               = '\on'
-        BY_KW               = '\by'
         INSTANCE_KW         = '\instance'
         TRUNCATED_KW        = '\truncated'
         LP_KW               = '\lp'
@@ -227,19 +225,13 @@ private truncatedKW ::= TRUNCATED_KW {
   recoverWhile = statement_recover
 }
 
-defClass ::= CLASS_KW prec? defIdentifier_class fieldTele? [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
+defClass ::= CLASS_KW prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
-
-private defIdentifier_class ::= defIdentifier {
-    recoverWhile = defIdentifier_class_recover
-}
-
-private defIdentifier_class_recover ::= !LPAREN & fieldTele_recover
 
 defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
     pin = 1
@@ -606,16 +598,21 @@ private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | ELIM_KW) & statement_recover
 
-fieldTele ::= LPAREN fieldDefIdentifier COLON expr RPAREN {
-        pin = 1
+fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
-                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter"
-                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
+                       "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcFieldTeleImplMixin"
-        recoverWhile = fieldTele_recover
     }
 
-private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE) & statement_recover
+private fieldTeleRecovery ::= fieldTele_recover {
+    recoverWhile = fieldTele_recover
+}
+
+private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+
+private fieldTeleImplicit ::= LBRACE fieldDefIdentifier+ COLON expr RBRACE { pin = 2 }
+
+private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN) & statement_recover
 
 typeTele ::= literal
     | universeAtom
@@ -636,6 +633,7 @@ identifierOrUnknown ::= defIdentifier | UNDERSCORE
 fieldDefIdentifier ::= defIdentifier {
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldParamStub"
@@ -643,7 +641,7 @@ fieldDefIdentifier ::= defIdentifier {
     recoverWhile = fieldDefIdentifier_recover
 }
 
-private fieldDefIdentifier_recover ::= !COLON & fieldTele_recover
+private fieldDefIdentifier_recover ::= !(COLON | ID | EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN) & topStatement_recover
 
 defIdentifier ::= ID {
     implements = [ "org.vclang.psi.ext.PsiReferable"

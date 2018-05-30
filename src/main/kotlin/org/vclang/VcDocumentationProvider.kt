@@ -22,7 +22,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
                 append(when (element) {
                     is FunctionDefinitionAdapter -> printHeader(element.parameters, element.resultType)
                     is ClassFieldAdapter -> printHeader(element.parameters, element.resultType)
-                    is ClassDefinitionAdapter -> printHeader(if (element.fieldTele == null) listOf() else listOf(element.fieldTele!!), null)
+                    is ClassDefinitionAdapter -> printHeader(element.fieldTeleList, null)
                     is ConstructorAdapter -> printHeader(element.parameters, null)
                     is DataDefinitionAdapter -> printHeader(element.parameters, null)
                     else -> ""

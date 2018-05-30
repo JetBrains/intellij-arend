@@ -30,21 +30,23 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
+    private inline val parameterFields: List<VcFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
+
     override fun getFields(): List<Group.InternalReferable> =
-        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<Group.InternalReferable>) +
+        (parameterFields as List<Group.InternalReferable> ) +
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
     override fun getFieldReferables(): List<LocatedReferable> =
-        ((fieldTele?.fieldDefIdentifier?.let { listOf(it) } ?: emptyList()) as List<LocatedReferable>) +
+        (parameterFields as List<LocatedReferable>) +
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
-    override fun hasParameter() = fieldTele != null
+    override fun getParameters(): List<Abstract.Parameter> = fieldTeleList
 
     override fun getSuperClasses(): List<VcLongName> = longNameList
 
-    override fun getClassFields(): List<Abstract.ClassField> = (fieldTele?.let { listOf(it) } ?: emptyList()) + classStatList.mapNotNull { it.classField }
+    override fun getClassFields(): List<Abstract.ClassField> = classStatList.mapNotNull { it.classField }
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
 
