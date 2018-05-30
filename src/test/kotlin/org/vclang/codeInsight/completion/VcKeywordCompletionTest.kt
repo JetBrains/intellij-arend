@@ -188,25 +188,25 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants("\\func foo => 0 {-caret-}\n", globalStatementKws + whereKw, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test extends completion after class name`() =
-            checkCompletionVariants("\\class Lol {-caret-}", extendsKw, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\class Lol {-caret-}", extendsKw)
 
     fun `test extends completion after class name 2`() =
             checkSingleCompletion("\\class Lol \\{-caret-}", extendsKw[0])
 
     fun `test extends completion after class name 3`() =
-            checkCompletionVariants("\\class Lol {-caret-}{}", extendsKw, CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\class Lol {-caret-}{}", extendsKw)
 
     fun `test extends completion after class name 4`() =
             checkSingleCompletion("\\class Lol \\{-caret-}{}", extendsKw[0])
 
     fun `test extends completion after class arguments`() =
-            checkCompletionVariants("\\class Lol (n: Nat) {-caret-}", extendsKw, CompletionCondition.CONTAINS) //TODO: Should work without additional space
+            checkCompletionVariants("\\class Lol (n: Nat){-caret-}", extendsKw)
 
     fun `test extends completion after class arguments 2`() =
-            checkSingleCompletion("\\class Lol (n: Nat) \\{-caret-}", extendsKw[0])
+            checkSingleCompletion("\\class Lol (n: Nat)\\{-caret-}", extendsKw[0])
 
     fun `test extends completion after class arguments 3`() =
-            checkKeywordCompletionVariants("\\class Lol (n: Nat) {-caret-}{}", extendsKw, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\class Lol (n: Nat){-caret-}{}", extendsKw)
 
     fun `test no extends after class without name`() =
             checkKeywordCompletionVariants("\\class {-caret-}{}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN)

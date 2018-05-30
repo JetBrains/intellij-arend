@@ -15,6 +15,7 @@ import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.psi.impl.VcFieldTeleImpl
+import org.vclang.search.VcWordScanner
 import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
@@ -183,14 +184,15 @@ class VclangCompletionContributor: CompletionContributor() {
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
             var prefix = result.prefixMatcher.prefix
-            while (prefix.contains(' '))
-                prefix = prefix.substring(prefix.indexOf(' ')+1, prefix.length)
+            val lastInvalidIndex = prefix.mapIndexedNotNull({i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}).lastOrNull()
+            if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
+
             if (prefix == "\\") prefix = ""
 
             val nonEmptyPrefix = prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
 
-            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
@@ -202,7 +204,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")
+            System.out.println("")*/
 
             for (keyword in keywords) {
                 val handler = when (keyword) {
