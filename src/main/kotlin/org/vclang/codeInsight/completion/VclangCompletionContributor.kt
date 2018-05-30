@@ -3,7 +3,6 @@ package org.vclang.codeInsight.completion
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.and
@@ -15,6 +14,7 @@ import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
+import org.vclang.psi.impl.VcFieldTeleImpl
 import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
@@ -47,6 +47,18 @@ class VclangCompletionContributor: CompletionContributor() {
                         }
                     }
                     flag}))
+
+        extend(CompletionType.BASIC,  withAncestors(PsiErrorElement::class.java, VcDefClass::class.java),
+                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
+        extend(CompletionType.BASIC, withParentOrGrandParent(VcFieldDefIdentifier::class.java),
+                ProviderWithCondition({ parameters, _ ->
+                    val fieldDefId = when {
+                        parameters.position.parent is VcFieldDefIdentifier -> parameters.position.parent
+                        parameters.position.parent!!.parent is VcFieldDefIdentifier -> parameters.position.parent!!.parent
+                        else -> null
+                    }
+                    if (fieldDefId != null && fieldDefId.parent is VcFieldTele)fieldDefId.parent.nextSibling !is VcFieldTele else false
+                }, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
     }
@@ -119,8 +131,8 @@ class VclangCompletionContributor: CompletionContributor() {
                 val pos = caretOffset + (ofs--)
                 prevElement = if (pos < 0) null else file.findElementAt(pos)
                 delimiterBeforeCaret = delimiterBeforeCaret || (prevElement is PsiWhiteSpace && textBeforeCaret(prevElement, caretOffset).contains('\n')) || (pos <= 0)
-                var skipFirstErrorExpr = ((prevElement?.node?.elementType == BAD_CHARACTER || prevElement?.node?.elementType == INVALID_KW) &&
-                                prevElement?.parent is PsiErrorElement && prevElement.text.startsWith("\\"))
+                var skipFirstErrorExpr = (prevElement?.node?.elementType == BAD_CHARACTER || (prevElement?.node?.elementType == INVALID_KW &&
+                                prevElement?.parent is PsiErrorElement && prevElement.text.startsWith("\\")))
                 if (skipFirstErrorExpr && skippedFirstErrorExpr != null && skippedFirstErrorExpr != prevElement) skipFirstErrorExpr = false else skippedFirstErrorExpr = prevElement
             } while (prevElement is PsiWhiteSpace || prevElement is PsiComment || skipFirstErrorExpr)
 
@@ -143,7 +155,7 @@ class VclangCompletionContributor: CompletionContributor() {
 
 
         private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>,
-                                                     additionalCondition: (JointData) -> Boolean = {jointData: JointData -> true}): CompletionProvider<CompletionParameters> =
+                                                     additionalCondition: (JointData) -> Boolean = {_: JointData -> true}): CompletionProvider<CompletionParameters> =
                 genericJointCondition({_, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementClass, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementClass, jointData.prevElement)
@@ -178,7 +190,7 @@ class VclangCompletionContributor: CompletionContributor() {
             val nonEmptyPrefix = prefix.isNotEmpty() ||
                                  parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
 
-            /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
@@ -186,10 +198,11 @@ class VclangCompletionContributor: CompletionContributor() {
             val jointData = elementsOnJoint(parameters.originalFile, parameters.offset)
             System.out.println("prevElement: ${jointData.prevElement} text: ${jointData.prevElement?.text}")
             System.out.println("prevElement.parent: ${jointData.prevElement?.parent?.javaClass}")
+            System.out.println("prevElement.grandparent: ${jointData.prevElement?.parent?.parent?.javaClass}")
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")*/
+            System.out.println("")
 
             for (keyword in keywords) {
                 val handler = when (keyword) {

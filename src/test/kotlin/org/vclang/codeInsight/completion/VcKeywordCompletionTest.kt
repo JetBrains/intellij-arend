@@ -3,17 +3,21 @@ package org.vclang.codeInsight.completion
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.GLOBAL_STATEMENT_KWS
+import org.vclang.psi.VcElementTypes
+import org.vclang.psi.VcElementTypes.*
 import java.util.Collections.singletonList
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
     private val fixityKws = FIXITY_KWS.map { it.toString() }
     private val statementKws = STATEMENT_KWS.map { it.toString() }
     private val globalStatementKws = GLOBAL_STATEMENT_KWS.map { it.toString() }
-    private val importKw = singletonList("\\import")
-    private val asKw = singletonList("\\as")
-    private val hidingKw = singletonList("\\hiding")
-    private val whereKw = singletonList("\\where")
-    private val huKw = listOf("\\using", "\\hiding")
+    private val importKw = singletonList(IMPORT_KW.toString())
+    private val asKw = singletonList(AS_KW.toString())
+    private val hidingKw = singletonList(HIDING_KW.toString())
+    private val whereKw = singletonList(WHERE_KW.toString())
+    private val extendsKw = singletonList(EXTENDS_KW.toString())
+    private val huKw = listOf(USING_KW.toString(), HIDING_KW.toString())
+    private val dataKw = VcElementTypes.DATA_KW.toString()
 
     fun `test fixity completion after func 1`() =
             checkKeywordCompletionVariants("\\func {-caret-}test => 0", fixityKws)
@@ -130,13 +134,13 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkSingleCompletion("\\tru{-caret-}", "\\data")
 
     fun `test completion after truncated 3`() =
-            checkCompletionVariants("\\truncated {-caret-}", singletonList("\\data"), CompletionCondition.CONTAINS)
+            checkCompletionVariants("\\truncated {-caret-}", singletonList(dataKw), CompletionCondition.CONTAINS)
 
     fun `test completion after truncated 4`() =
-            checkSingleCompletion("\\truncated \\{-caret-}", "\\data")
+            checkSingleCompletion("\\truncated \\{-caret-}", dataKw)
 
     fun `test completion after truncated 5`() =
-            checkSingleCompletion("\\truncated \\da{-caret-}", "\\data")
+            checkSingleCompletion("\\truncated \\da{-caret-}", dataKw)
 
     fun `test completion after truncated 6`() =
             checkSingleCompletion("\\tru{-caret-}\\func", "\\truncated \\data \\func")
@@ -182,4 +186,32 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants("\\func foo => 0 {-caret-}\n", globalStatementKws + whereKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test extends completion after class name`() =
+            checkCompletionVariants("\\class Lol {-caret-}", extendsKw, CompletionCondition.CONTAINS)
+
+    fun `test extends completion after class name 2`() =
+            checkSingleCompletion("\\class Lol \\{-caret-}", extendsKw[0])
+
+    fun `test extends completion after class name 3`() =
+            checkCompletionVariants("\\class Lol {-caret-}{}", extendsKw, CompletionCondition.CONTAINS)
+
+    fun `test extends completion after class name 4`() =
+            checkSingleCompletion("\\class Lol \\{-caret-}{}", extendsKw[0])
+
+    fun `test extends completion after class arguments`() =
+            checkCompletionVariants("\\class Lol (n: Nat) {-caret-}", extendsKw, CompletionCondition.CONTAINS) //TODO: Should work without additional space
+
+    fun `test extends completion after class arguments 2`() =
+            checkSingleCompletion("\\class Lol (n: Nat) \\{-caret-}", extendsKw[0])
+
+    fun `test extends completion after class arguments 3`() =
+            checkKeywordCompletionVariants("\\class Lol (n: Nat) {-caret-}{}", extendsKw, CompletionCondition.CONTAINS)
+
+    fun `test no extends after class without name`() =
+            checkKeywordCompletionVariants("\\class {-caret-}{}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN)
+
+    //fun `test no extends inside class arguments block`() = checkKeywordCompletionVariants("\\class Lol (n: Nat) {-caret-} (m: Nat){}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN) //TODO: Test when multiple fields are supported
+
+
 }
