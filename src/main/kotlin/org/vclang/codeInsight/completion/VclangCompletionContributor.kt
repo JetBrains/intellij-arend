@@ -56,6 +56,8 @@ class VclangCompletionContributor: CompletionContributor() {
         val STATEMENT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW)
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + singletonList(IMPORT_KW)
 
+        const val KEYWORD_PRIORITY = 10.0
+
         private fun afterLeaf(et: IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withGrandParent(et: Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
@@ -146,6 +148,9 @@ class VclangCompletionContributor: CompletionContributor() {
                     val ancestorsNE = ancestorsUntil(statementClass, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementClass, jointData.prevElement)
                     jointData.delimeterBeforeCaret && additionalCondition(jointData) && ancestorsNE.intersect(ancestorsPE).isEmpty() }, completionProvider)
+
+        // Contribution to LookupElementBuilder
+        fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
     }
 
     class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {
@@ -197,8 +202,7 @@ class VclangCompletionContributor: CompletionContributor() {
                     else -> LookupElementBuilder.create(keyword.toString())
                 }
 
-
-                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(lookupElement.bold().withInsertHandler(handler))
+                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(lookupElement.bold().withInsertHandler(handler).withPriority(KEYWORD_PRIORITY))
             }
 
         }
