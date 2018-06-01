@@ -9,7 +9,9 @@ open class DataLocatedReferable(private val psiElementPointer: SmartPsiElementPo
     override fun getData(): PsiElement? = psiElementPointer.element
 }
 
-class ClassDataLocatedReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, referable: LocatedReferable, parent: LocatedReferable?, private val superClassReferences: Collection<TCClassReferable>, private val fieldReferables: Collection<TCReferable>) : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
+class ClassDataLocatedReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, referable: LocatedReferable, parent: LocatedReferable?, val superClassReferences: MutableList<TCClassReferable>, val fieldReferables: MutableList<TCReferable>) : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
+    var filledIn = false
+
     override fun getData(): PsiElement? = psiElementPointer.element
 
     override fun getSuperClassReferences(): Collection<TCClassReferable> = superClassReferences
