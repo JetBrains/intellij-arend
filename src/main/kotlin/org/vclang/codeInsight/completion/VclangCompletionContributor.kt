@@ -51,14 +51,11 @@ class VclangCompletionContributor: CompletionContributor() {
 
         extend(CompletionType.BASIC,  withAncestors(PsiErrorElement::class.java, VcDefClass::class.java),
                 genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
-        extend(CompletionType.BASIC, withParentOrGrandParent(VcFieldDefIdentifier::class.java),
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcFieldTele::class.java, VcDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
-                    val fieldDefId = when {
-                        parameters.position.parent is VcFieldDefIdentifier -> parameters.position.parent
-                        parameters.position.parent!!.parent is VcFieldDefIdentifier -> parameters.position.parent!!.parent
-                        else -> null
-                    }
-                    if (fieldDefId != null && fieldDefId.parent is VcFieldTele)fieldDefId.parent.nextSibling !is VcFieldTele else false
+                    var nS = parameters.position.parent!!.parent.nextSibling
+                    while (nS is PsiWhiteSpace) nS = nS.nextSibling
+                    nS !is VcFieldTele
                 }, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
@@ -186,11 +183,9 @@ class VclangCompletionContributor: CompletionContributor() {
             var prefix = result.prefixMatcher.prefix
             val lastInvalidIndex = prefix.mapIndexedNotNull({i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}).lastOrNull()
             if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
-
-            if (prefix == "\\") prefix = ""
-
-            val nonEmptyPrefix = prefix.isNotEmpty() ||
-                                 parameters.offset > 0 && parameters.originalFile.text.substring(parameters.offset - 1, parameters.offset) == "\\" //prefix consists of single slash character
+            val pos = parameters.offset - prefix.length - 1
+            if (pos >= 0 && pos < parameters.originalFile.textLength)
+                prefix = (if (parameters.originalFile.text[pos] == '\\') "\\" else "") + prefix
 
             /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
@@ -206,6 +201,10 @@ class VclangCompletionContributor: CompletionContributor() {
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
             System.out.println("")*/
 
+            val prefixMatcher = object: PlainPrefixMatcher(prefix) {
+                override fun prefixMatches(name: String): Boolean = isStartMatch(name)
+            }
+
             for (keyword in keywords) {
                 val handler = when (keyword) {
                     TRUNCATED_KW -> truncatedInsertHandler
@@ -217,7 +216,7 @@ class VclangCompletionContributor: CompletionContributor() {
                     else -> LookupElementBuilder.create(keyword.toString())
                 }
 
-                result.withPrefixMatcher(PlainPrefixMatcher(if (nonEmptyPrefix) "\\"+prefix else "")).addElement(lookupElement.bold().withInsertHandler(handler).withPriority(KEYWORD_PRIORITY))
+                result.withPrefixMatcher(prefixMatcher).addElement(lookupElement.bold().withInsertHandler(handler).withPriority(KEYWORD_PRIORITY))
             }
 
         }

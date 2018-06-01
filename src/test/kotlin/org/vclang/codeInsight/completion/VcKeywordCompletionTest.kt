@@ -53,10 +53,13 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants("\\class AddMonoid => Monoid { | * => {-caret-}+}", fixityKws)
 
     fun `test no fixity completion in pattern matching`() =
-            checkKeywordCompletionVariants("\\fun foo (n : Nat) \\elim n | {-caret-}zero =>", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
+            checkKeywordCompletionVariants("\\func foo (n : Nat) \\elim n | {-caret-}zero =>", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test no fixity completion after func fat arrow`() =
-            checkKeywordCompletionVariants("\\fun foo (n : Nat) => {-caret-}n ", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
+            checkKeywordCompletionVariants("\\func foo (n : Nat) => {-caret-}n ", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no fixity completion after func if function name starts with f`() =
+            checkCompletionVariants("\\func f{-caret-}", fixityKws, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test as completion in namespace command`() =
             checkCompletionVariants("\\import B (lol {-caret-})", asKw)
@@ -200,18 +203,22 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkSingleCompletion("\\class Lol \\{-caret-}{}", extendsKw[0])
 
     fun `test extends completion after class arguments`() =
-            checkCompletionVariants("\\class Lol (n: Nat){-caret-}", extendsKw)
+            checkCompletionVariants("\\class Lol (n : Nat){-caret-}", extendsKw)
 
     fun `test extends completion after class arguments 2`() =
-            checkSingleCompletion("\\class Lol (n: Nat)\\{-caret-}", extendsKw[0])
+            checkSingleCompletion("\\class Lol (n : Nat)\\{-caret-}", extendsKw[0])
 
     fun `test extends completion after class arguments 3`() =
-            checkKeywordCompletionVariants("\\class Lol (n: Nat){-caret-}{}", extendsKw)
+            checkCompletionVariants("\\class Lol (n : Nat){-caret-}{}", extendsKw)
+
+    fun `test extends completion after class arguments 4`() =
+            checkSingleCompletion("\\class Lol (n : Nat)\\{-caret-}{}", extendsKw[0])
 
     fun `test no extends after class without name`() =
             checkKeywordCompletionVariants("\\class {-caret-}{}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN)
 
-    //fun `test no extends inside class arguments block`() = checkKeywordCompletionVariants("\\class Lol (n: Nat) {-caret-} (m: Nat){}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN) //TODO: Test when multiple fields are supported
+    fun `test no extends inside class arguments block`() =
+            checkKeywordCompletionVariants("\\class Lol (n : Nat) {-caret-} (m : Nat){}", extendsKw, CompletionCondition.DOES_NOT_CONTAIN)
 
 
 }
