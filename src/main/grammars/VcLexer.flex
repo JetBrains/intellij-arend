@@ -118,6 +118,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
                                 commentDepth = 0;
                                 commentStart = getTokenStart();
                             }
+    {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
 }
 
 <BLOCK_COMMENT_INNER> {

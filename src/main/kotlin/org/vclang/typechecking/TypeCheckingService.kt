@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.AnyPsiChangeListener
 import com.intellij.psi.impl.PsiManagerImpl
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.library.Library
@@ -276,7 +277,20 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
 
         private fun processParent(event: PsiTreeChangeEvent) {
-            if (event.file !is VcFile || event.child is PsiErrorElement || event.child is PsiWhiteSpace || event.oldChild is PsiErrorElement && event.newChild is PsiErrorElement || event.oldChild is PsiWhiteSpace && event.newChild is PsiWhiteSpace) {
+            if (event.file !is VcFile) {
+                return
+            }
+            val child = event.child
+            if (child is PsiErrorElement ||
+                child is PsiWhiteSpace ||
+                child is LeafPsiElement && child.node.elementType == VcElementTypes.BLOCK_COMMENT) {
+                return
+            }
+            val oldChild = event.oldChild
+            val newChild = event.newChild
+            if (oldChild is PsiErrorElement && newChild is PsiErrorElement ||
+                oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
+                oldChild is LeafPsiElement && oldChild.node.elementType == VcElementTypes.BLOCK_COMMENT && newChild is LeafPsiElement && newChild.node.elementType == VcElementTypes.BLOCK_COMMENT) {
                 return
             }
 

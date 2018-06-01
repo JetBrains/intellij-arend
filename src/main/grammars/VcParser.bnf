@@ -586,27 +586,28 @@ universeAtom ::= SET
 }
 
 nameTele ::= identifierOrUnknown
-    | LPAREN identifierOrUnknown+ COLON expr RPAREN
-    | LBRACE identifierOrUnknown [identifierOrUnknown* COLON expr] RBRACE {
+    | nameTeleExplicit
+    | nameTeleImplicit {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcNameTeleImplMixin"
         recoverWhile = nameTele_recover
     }
 
+private nameTeleExplicit ::= LPAREN identifierOrUnknown+ COLON expr RPAREN { pin = 1}
+
+private nameTeleImplicit ::= LBRACE identifierOrUnknown [identifierOrUnknown* COLON expr] RBRACE { pin = 1 }
+
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | ELIM_KW) & statement_recover
 
-fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
+fieldTele ::= fieldTeleExplicit | fieldTeleImplicit {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcFieldTeleImplMixin"
+        recoverWhile = fieldTele_recover
     }
-
-private fieldTeleRecovery ::= fieldTele_recover {
-    recoverWhile = fieldTele_recover
-}
 
 private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
@@ -616,13 +617,17 @@ private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN) & stat
 
 typeTele ::= literal
     | universeAtom
-    | LPAREN typedExpr RPAREN
-    | LBRACE typedExpr RBRACE {
+    | typedTeleExplicit
+    | typedTeleImplicit {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
                        "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
         mixin = "org.vclang.psi.ext.VcTypeTeleImplMixin"
         recoverWhile = typeTele_recover
     }
+
+private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
+
+private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
 private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | LGOAL) & statement_recover
 
