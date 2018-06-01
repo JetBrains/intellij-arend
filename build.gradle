@@ -29,7 +29,6 @@ idea {
 
 apply plugin: 'org.jetbrains.intellij'
 intellij {
-    version ideaVersion
     updateSinceUntilBuild = false
     instrumentCode = false
 }
@@ -52,6 +51,12 @@ sourceSets {
     main {
         java.srcDirs += 'src/gen'
     }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+  kotlinOptions {
+    jvmTarget = "1.8"
+  }
 }
 
 apply plugin: 'org.jetbrains.grammarkit'

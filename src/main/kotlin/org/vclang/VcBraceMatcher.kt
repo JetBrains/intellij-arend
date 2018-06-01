@@ -23,10 +23,6 @@ class VcBraceMatcher : PairedBraceMatcher {
 
     companion object {
         private val PAIRS = arrayOf(
-                // For some reason, the first element of this array is treated in a special way at com.intellij.lang.parser.GeneratedParserUtilBase:1202.
-                // This causes some problems during parser recovery.
-                // To fix this issue, we added a fake pair (the lexer never generates BLOCK_COMMENT_START).
-                BracePair(BLOCK_COMMENT_START, BLOCK_COMMENT_START, false),
                 BracePair(LBRACE, RBRACE, true),
                 BracePair(LPAREN, RPAREN, false)
         )

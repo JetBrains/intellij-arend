@@ -19,7 +19,7 @@ import org.vclang.psi.VcFile
 import java.util.*
 
 class VcCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
-    override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<PsiReference>) {
+    override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>) {
         val elementToSearch = parameters.elementToSearch
         val scope = parameters.scopeDeterminedByUser
         val fileBasedIndex = FileBasedIndex.getInstance()
