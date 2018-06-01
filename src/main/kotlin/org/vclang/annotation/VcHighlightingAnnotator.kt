@@ -42,7 +42,7 @@ class VcHighlightingAnnotator : Annotator {
 
                 private fun annotateDefinitionNamesClash(ref: LocatedReferable, level: Error.Level) {
                     val psiRef = referableToPsi(ref) ?: return
-                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name + '${ref.textRepresentation()}'")
+                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name '${ref.textRepresentation()}'")
                 }
 
                 override fun fieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
@@ -65,13 +65,13 @@ class VcHighlightingAnnotator : Annotator {
 
                 private fun annotateNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
                     if (cmd1 is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '" + name + "' is imported from " + LongName(cmd2.path))
+                        holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '$name' is imported from ${LongName(cmd2.path)}")
                     }
                 }
 
                 override fun namespaceDefinitionNameClash(renaming: NameRenaming, ref: LocatedReferable, level: Error.Level) {
                     if (renaming is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), renaming.textRange, "Definition '" + ref.textRepresentation() + "' is not imported since it is defined in this module")
+                        holder.createAnnotation(levelToSeverity(level), renaming.textRange, "Definition '${ref.textRepresentation()}' is not imported since it is defined in this module")
                     }
                 }
 
