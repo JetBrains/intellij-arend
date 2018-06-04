@@ -29,7 +29,7 @@ abstract class VcInfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node), 
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, params)
+        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
     override val referenceNameElement
         get() = this
@@ -50,7 +50,7 @@ abstract class VcPostfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node)
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, params)
+        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
     override val referenceNameElement
         get() = this
@@ -71,7 +71,7 @@ abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewAr
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitClassExt(this, true, appExpr, if (lbrace == null) null else coClauseList, emptyList(), params)
+        visitor.visitClassExt(this, true, appExpr, if (lbrace == null) null else coClauseList, emptyList(), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
     override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(appExpr)
 }

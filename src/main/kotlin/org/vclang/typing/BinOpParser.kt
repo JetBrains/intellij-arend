@@ -16,9 +16,9 @@ private fun addExpression(expr: Abstract.Expression?, binOpSeq: MutableList<Conc
     val ref = expr?.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.ReferenceExpression?>(null) {
         private fun getResult(data: Any?, referent: Referable) = Concrete.ReferenceExpression(data, (referent as? UnresolvedReference)?.resolve((expr as VcExpr).scope) ?: referent, Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
 
-        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = getResult(data, referent)
+        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?) = getResult(data, referent)
 
-        override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = getResult(data, referent)
+        override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = getResult(data, referent)
     }, null)
 
     if (ref != null && ref.referent is GlobalReferable) {

@@ -5,9 +5,11 @@ import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.SourceInfo
+import com.jetbrains.jetpad.vclang.naming.reference.DataContainer
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
@@ -69,6 +71,17 @@ fun getParentSourceNode(sourceNode: VcSourceNode): VcSourceNode? {
     return if (parent is VcFile) null else parent.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()
 }
 
+private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(cause, cause.errorDescription), SourceInfo, DataContainer {
+    override fun getData(): Any = cause
+
+    override fun moduleTextRepresentation(): String? = (cause as PsiErrorElement).moduleTextRepresentationImpl()
+
+    override fun positionTextRepresentation(): String? = (cause as PsiErrorElement).positionTextRepresentationImpl()
+}
+
+fun getErrorData(element: VcCompositeElement): Abstract.ErrorData? =
+    element.children.filterIsInstance<PsiErrorElement>().firstOrNull()?.let { SourceInfoErrorData(it) }
+
 abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), VcCompositeElement  {
     override val scope
         get() = getVcScope(this)
@@ -84,6 +97,8 @@ abstract class VcSourceNodeImpl(node: ASTNode) : VcCompositeElementImpl(node), V
     override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
 
     override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
+
+    override fun getErrorData(): Abstract.ErrorData? = org.vclang.psi.ext.getErrorData(this)
 }
 
 abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, VcSourceNode {
@@ -105,4 +120,6 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
     override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
 
     override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
+
+    override fun getErrorData(): Abstract.ErrorData? = org.vclang.psi.ext.getErrorData(this)
 }
