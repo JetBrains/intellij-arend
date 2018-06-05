@@ -42,6 +42,7 @@ class TestBasedTypechecking(
 
         val ref = PsiLocatedReferable.fromReferable(referable) ?: return
         if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+            definition.setStatus(if (definition.status().headerIsOK()) Definition.TypeCheckingStatus.BODY_NEEDS_TYPE_CHECKING else Definition.TypeCheckingStatus.HEADER_NEEDS_TYPE_CHECKING)
             eventsProcessor.onTestFailure(ref)
         }
         eventsProcessor.onTestFinished(ref)
