@@ -57,8 +57,8 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
         var expr = parseBinOp(left, sequence)
-        while (expr is Concrete.AppExpression) {
-            arguments++
+        if (expr is Concrete.AppExpression) {
+            arguments += expr.arguments.size
             expr = expr.function
         }
         return (expr as? Concrete.ReferenceExpression)?.referent
