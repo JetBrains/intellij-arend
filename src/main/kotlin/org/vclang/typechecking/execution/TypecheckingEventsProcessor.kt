@@ -79,7 +79,7 @@ class TypecheckingEventsProcessor(
                         null
                 )
                 parentSuite.addChild(newSuite)
-                fileToProxy.put(modulePath, newSuite)
+                fileToProxy[modulePath] = newSuite
 
                 if (!isTypeCheckingFinished) {
                     newSuite.setSuiteStarted()
@@ -117,6 +117,11 @@ class TypecheckingEventsProcessor(
                     onTestFinished(ref)
                 }
             }
+            for (entry in definitionToProxy) {
+                testsDuration[entry.key]?.let { entry.value.setDuration(it) }
+                entry.value.setFinished()
+                fireOnTestFinished(entry.value)
+            }
             for (suite in fileToProxy.values) {
                 suite.setFinished()
                 fireOnSuiteFinished(suite)
@@ -144,7 +149,7 @@ class TypecheckingEventsProcessor(
                 val parentSuite = modulePath?.let { fileToProxy[it] } ?: typeCheckingRootNode
                 val proxy = DefinitionProxy(fullName, false, null, true, ref)
                 parentSuite.addChild(proxy)
-                definitionToProxy.put(ref, proxy)
+                definitionToProxy[ref] = proxy
 
                 val da = deferredActions.remove(ref)
                 if (da != null) for (a in da) a.runAction(proxy)
@@ -170,10 +175,9 @@ class TypecheckingEventsProcessor(
 
     fun onTestFinished(ref: PsiLocatedReferable) {
         addToInvokeLater {
-            val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
+            val proxy = definitionToProxy.remove(ref) ?: return@addToInvokeLater
             testsDuration[ref]?.let { proxy.setDuration(it) }
             proxy.setFinished()
-            definitionToProxy.remove(ref)
             fireOnTestFinished(proxy)
         }
     }
@@ -215,10 +219,7 @@ class TypecheckingEventsProcessor(
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }
@@ -229,10 +230,7 @@ class TypecheckingEventsProcessor(
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }
