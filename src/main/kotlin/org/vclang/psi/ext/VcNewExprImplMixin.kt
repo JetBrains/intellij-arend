@@ -15,7 +15,7 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
         if (newKw == null && lbrace == null && argumentList.isEmpty()) {
             return appExpr.accept(visitor, params)
         }
-        return visitor.visitClassExt(this, newKw != null, appExpr, if (lbrace == null) null else coClauseList, argumentList, params)
+        return visitor.visitClassExt(this, newKw != null, appExpr, if (lbrace == null) null else coClauseList, argumentList, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
     }
 
     override fun getClassReference(): ClassReferable? = getClassReference(appExpr)

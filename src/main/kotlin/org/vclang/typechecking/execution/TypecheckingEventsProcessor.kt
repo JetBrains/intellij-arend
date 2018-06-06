@@ -114,6 +114,11 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
                     onTestFinished(ref)
                 }
             }
+            for (entry in definitionToProxy) {
+                testsDuration[entry.key]?.let { entry.value.setDuration(it) }
+                entry.value.setFinished()
+                fireOnTestFinished(entry.value)
+            }
             for (suite in fileToProxy.values) {
                 suite.setFinished()
                 fireOnSuiteFinished(suite)
@@ -167,10 +172,9 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
     fun onTestFinished(ref: PsiLocatedReferable) {
         addToInvokeLater {
-            val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
+            val proxy = definitionToProxy.remove(ref) ?: return@addToInvokeLater
             testsDuration[ref]?.let { proxy.setDuration(it) }
             proxy.setFinished()
-            definitionToProxy.remove(ref)
             fireOnTestFinished(proxy)
         }
     }
@@ -212,10 +216,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }
@@ -226,10 +227,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }

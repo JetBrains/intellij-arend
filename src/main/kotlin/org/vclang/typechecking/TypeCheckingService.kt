@@ -149,7 +149,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 }
 
                 if (definitionFullName == "") {
-                    concreteProvider.isResolving = true
                     for (module in modules) {
                         reportParserErrors(module, module)
                     }
@@ -164,7 +163,6 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                         val tcReferable = referableConverter.toDataLocatedReferable(ref)
                         val typechecked = typecheckerState.getTypechecked(tcReferable)
                         if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                            concreteProvider.isResolving = true
                             val definition = concreteProvider.getConcrete(ref)
                             if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition)) && computationFinished
                             else if (definition != null) error(definitionFullName + " is not a definition")
