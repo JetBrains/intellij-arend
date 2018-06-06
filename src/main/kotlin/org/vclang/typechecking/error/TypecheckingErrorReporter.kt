@@ -26,9 +26,7 @@ private fun levelToContentType(level: Error.Level): ConsoleViewContentType = whe
     Error.Level.INFO -> NORMAL_OUTPUT
 }
 
-class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : ErrorReporter {
-    var eventsProcessor: TypecheckingEventsProcessor? = null
-
+class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
     override fun report(error: GeneralError) {
         val proxyAction = object : ProxyAction {
             override fun runAction(p: SMTestProxy) {
@@ -37,7 +35,6 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         }
 
         var reported = false
-        val eventsProcessor = eventsProcessor!!
         error.affectedDefinitions.mapNotNull {
             val ref = PsiLocatedReferable.fromReferable(it)
             if (ref is PsiLocatedReferable || it is ModuleReferable) {

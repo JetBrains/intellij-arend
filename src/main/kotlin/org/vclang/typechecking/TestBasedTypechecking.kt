@@ -4,10 +4,9 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.TCReferable
-import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import com.jetbrains.jetpad.vclang.typechecking.Typechecking
-import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
+import com.jetbrains.jetpad.vclang.typechecking.order.listener.TypecheckingOrderingListener
+import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.resolving.DataLocatedReferable
@@ -19,9 +18,8 @@ class TestBasedTypechecking(
     state: TypecheckerState,
     concreteProvider: ConcreteProvider,
     errorReporter: ErrorReporter,
-    dependencyListener: DependencyListener,
-    referableConverter: ReferableConverter)
-    : Typechecking(state, concreteProvider, errorReporter, dependencyListener, referableConverter) {
+    dependencyListener: DependencyListener)
+    : TypecheckingOrderingListener(state, concreteProvider, errorReporter, dependencyListener) {
 
     val typecheckedModules = LinkedHashSet<ModulePath>()
 

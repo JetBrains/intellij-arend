@@ -17,7 +17,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import com.jetbrains.jetpad.vclang.typechecking.Typechecking
+import com.jetbrains.jetpad.vclang.typechecking.order.Ordering
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.VcLanguage
@@ -46,13 +46,13 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
 
     override fun getUpdatedModules(): List<ModulePath> = if (isTypechecked) emptyList() else listOf(Prelude.MODULE_PATH)
 
-    override fun typecheck(typechecking: Typechecking): Boolean {
+    override fun orderModules(ordering: Ordering): Boolean {
         if (isTypechecked) return true
 
         if (Prelude.INTERVAL == null) {
             synchronized(VcPreludeLibrary::class.java) {
                 if (Prelude.INTERVAL == null) {
-                    return if (super.typecheck(typechecking)) {
+                    return if (super.orderModules(ordering)) {
                         isTypechecked = true
                         Prelude.initialize(scope ?: return false, typecheckerState)
                         true
