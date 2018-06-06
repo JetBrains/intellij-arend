@@ -2,6 +2,7 @@ package org.vclang.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -148,7 +149,7 @@ class TypeCheckProcessHandler(
 
                     if (library.supportsPersisting()) {
                         for (updatedModule in typechecking.typecheckedModules) {
-                            library.persistModule(updatedModule, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter)
+                            runReadAction { library.persistModule(updatedModule, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
                         }
                     }
 

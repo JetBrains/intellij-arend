@@ -3,6 +3,7 @@ package org.vclang.psi.ext
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
@@ -22,14 +23,14 @@ interface VcCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): VcReference?
 }
 
-fun PsiElement.moduleTextRepresentationImpl(): String? = (containingFile as? VcFile)?.name
+fun PsiElement.moduleTextRepresentationImpl(): String? = runReadAction { (containingFile as? VcFile)?.name }
 
-fun PsiElement.positionTextRepresentationImpl(): String? {
-    val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
+fun PsiElement.positionTextRepresentationImpl(): String? = runReadAction {
+    val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return@runReadAction null) ?: return@runReadAction null
     val offset = textOffset
     val line = document.getLineNumber(offset)
     val column = offset - document.getLineStartOffset(line)
-    return (line + 1).toString() + ":" + (column + 1).toString()
+    (line + 1).toString() + ":" + (column + 1).toString()
 }
 
 interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {

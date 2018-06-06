@@ -22,11 +22,11 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
         get() = this
 
     override val referenceName: String
-        get() = text
+        get() = name
 
-    override fun getName(): String = stub?.name ?: referenceName
+    override fun getName(): String = stub?.name ?: text
 
-    override fun textRepresentation(): String = referenceName
+    override fun textRepresentation(): String = name
 
     override fun getReference(): VcReference = VcDefReferenceImpl<VcFieldDefIdentifier>(this)
 
