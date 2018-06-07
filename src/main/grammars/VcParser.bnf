@@ -57,6 +57,7 @@
         CASE_KW             = '\case'
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
+        RECORD_KW           = '\record'
         EXTENDS_KW          = '\extends'
         INSTANCE_KW         = '\instance'
         TRUNCATED_KW        = '\truncated'
@@ -85,8 +86,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW      | IMPORT_KW | FUNCTION_KW  |
-                                TRUNCATED_KW | DATA_KW   | CLASS_KW     | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | FUNCTION_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -225,13 +225,18 @@ private truncatedKW ::= TRUNCATED_KW {
   recoverWhile = statement_recover
 }
 
-defClass ::= CLASS_KW prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
-    pin = 1
+defClass ::= (defClassClass | defClassRecord) where? {
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
+
+private defClassClass ::= CLASS_KW defClassHeader [classBodySyn | classStats] { pin = 1 }
+
+private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
+
+private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
 defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
     pin = 1
