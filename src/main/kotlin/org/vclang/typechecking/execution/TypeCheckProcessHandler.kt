@@ -12,6 +12,7 @@ import com.intellij.psi.PsiErrorElement
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.library.Library
+import com.jetbrains.jetpad.vclang.library.SourceLibrary
 import com.jetbrains.jetpad.vclang.library.error.LibraryError
 import com.jetbrains.jetpad.vclang.library.error.ModuleInSeveralLibrariesError
 import com.jetbrains.jetpad.vclang.module.ModulePath
@@ -87,54 +88,48 @@ class TypeCheckProcessHandler(
             return
         }
 
-        if (registeredLibraries.size == 1) {
-            typecheckLibrary(libraries[0], modulePath, command.definitionFullName, typecheckingErrorReporter)
-        } else {
-            // TODO: for each library in libraries, typecheck its dependencies first and only then typecheck the library itself
-        }
-    }
-
-    private fun typecheckLibrary(library: VcRawLibrary, modulePath: ModulePath?, definitionFullName: String, typecheckingErrorReporter: TypecheckingErrorReporter) {
         val referableConverter = typeCheckerService.referableConverter
         val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
         val collector = CollectingOrderingListener()
         val ordering = Ordering(concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
 
-        val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
-        val modules = modulePaths.mapNotNull {
-            val module = library.getModuleGroup(it)
-            if (module == null) {
-                typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
-            } else if (definitionFullName == "") {
-                DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.moduleScopeProvider))
-            }
-            module
-        }
-
-        if (definitionFullName == "") {
-            for (module in modules) {
-                reportParserErrors(module, module, typecheckingErrorReporter)
-            }
-            ordering.orderModules(modules)
-        } else {
-            val ref = modules.firstOrNull()?.findGroupByFullName(definitionFullName.split('.'))?.referable
-            if (ref == null) {
-                if (modules.isNotEmpty()) {
-                    typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName, modulePath))
+        for (library in libraries) {
+            val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
+            val modules = modulePaths.mapNotNull {
+                val module = library.getModuleGroup(it)
+                if (module == null) {
+                    typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
+                } else if (command.definitionFullName == "") {
+                    DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.moduleScopeProvider))
                 }
+                module
+            }
+
+            if (command.definitionFullName == "") {
+                for (module in modules) {
+                    reportParserErrors(module, module, typecheckingErrorReporter)
+                }
+                ordering.orderModules(modules)
             } else {
-                val tcReferable = referableConverter.toDataLocatedReferable(ref)
-                val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
-                if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                    val definition = concreteProvider.getConcrete(ref)
-                    if (definition is Concrete.Definition) {
-                        ordering.orderDefinition(definition)
+                val ref = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable
+                if (ref == null) {
+                    if (modules.isNotEmpty()) {
+                        typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath))
                     }
-                    else if (definition != null) error("$definitionFullName is not a definition")
                 } else {
-                    if (ref is PsiLocatedReferable) {
-                        typecheckingErrorReporter.eventsProcessor.onTestStarted(ref)
-                        typecheckingErrorReporter.eventsProcessor.onTestFinished(ref)
+                    val tcReferable = referableConverter.toDataLocatedReferable(ref)
+                    val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                    if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                        val definition = concreteProvider.getConcrete(ref)
+                        if (definition is Concrete.Definition) {
+                            ordering.orderDefinition(definition)
+                        }
+                        else if (definition != null) error(command.definitionFullName + " is not a definition")
+                    } else {
+                        if (ref is PsiLocatedReferable) {
+                            typecheckingErrorReporter.eventsProcessor.onTestStarted(ref)
+                            typecheckingErrorReporter.eventsProcessor.onTestFinished(ref)
+                        }
                     }
                 }
             }
@@ -145,11 +140,13 @@ class TypeCheckProcessHandler(
                 TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
                 try {
                     val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
-                    val finished = typechecking.typecheckCollected(collector)
 
-                    if (finished && library.supportsPersisting()) {
-                        for (updatedModule in typechecking.typecheckedModules) {
-                            runReadAction { library.persistModule(updatedModule, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
+                    if (typechecking.typecheckCollected(collector)) {
+                        for (module in typechecking.typecheckedModules) {
+                            val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary ?: continue
+                            if (library.supportsPersisting()) {
+                                runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
+                            }
                         }
                     }
 
