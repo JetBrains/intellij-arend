@@ -145,9 +145,9 @@ class TypeCheckProcessHandler(
                 TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
                 try {
                     val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
-                    typechecking.typecheckCollected(collector)
+                    val finished = typechecking.typecheckCollected(collector)
 
-                    if (library.supportsPersisting()) {
+                    if (finished && library.supportsPersisting()) {
                         for (updatedModule in typechecking.typecheckedModules) {
                             runReadAction { library.persistModule(updatedModule, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
                         }
