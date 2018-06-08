@@ -14,28 +14,52 @@ import com.intellij.util.ProcessingContext
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
-import org.vclang.psi.impl.VcFieldTeleImpl
 import org.vclang.search.VcWordScanner
-import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
-        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java), KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
-        extend(CompletionType.BASIC, AS_CONTEXT, ProviderWithCondition({parameters, _ -> (parameters.position.parent.parent as VcNsId).asKw == null}, KeywordCompletionProvider(singletonList(AS_KW))))
+        extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java),
+                KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
+        extend(CompletionType.BASIC, AS_CONTEXT, ProviderWithCondition({parameters, _ -> (parameters.position.parent.parent as VcNsId).asKw == null},
+                KeywordCompletionProvider(AS_KW_LIST)))
 
-        extend(CompletionType.BASIC, NS_CMD_CONTEXT, originalPositionCondition(withParent(VcFile::class.java), KeywordCompletionProvider(listOf(HIDING_KW, USING_KW))))
-        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsing(parameters.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(USING_KW))))
-        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsingAndHiding(parameters.position.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
-        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java), ProviderWithCondition({parameters, _ -> noHiding(parameters.position.parent.parent.parent as VcStatCmd)}, KeywordCompletionProvider(singletonList(HIDING_KW))))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, originalPositionCondition(withParent(VcFile::class.java),
+                KeywordCompletionProvider(HU_KW_LIST)))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsing(parameters.position.parent.parent as VcStatCmd)},
+                KeywordCompletionProvider(USING_KW_LIST)))
+        extend(CompletionType.BASIC, NS_CMD_CONTEXT, ProviderWithCondition({ parameters, _ -> noUsingAndHiding(parameters.position.parent.parent as VcStatCmd)},
+                KeywordCompletionProvider(HIDING_KW_LIST)))
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcNsUsing::class.java, VcStatCmd::class.java),
+                ProviderWithCondition({parameters, _ -> noHiding(parameters.position.parent.parent.parent as VcStatCmd)},
+                        KeywordCompletionProvider(HIDING_KW_LIST)))
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(STATEMENT_KWS)))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
+                onJointOfStatementsCondition(VcStatement::class.java,
+                        KeywordCompletionProvider(STATEMENT_WT_KWS)))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
+                onJointOfStatementsCondition(VcStatement::class.java,
+                        object: KeywordCompletionProvider(TRUNCATED_KW_LIST){
+                            override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler {insertContext, _ ->
+                                val document = insertContext.document
+                                document.insertString(insertContext.tailOffset, " \\data ")
+                                insertContext.commitDocument()
+                                insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
+                            }
+
+                            override fun lookupElement(keyword: String): LookupElementBuilder =
+                                    LookupElementBuilder.create(keyword).withPresentableText("\\truncated \\data")
+                        }))
+
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() }, KeywordCompletionProvider(singletonList(IMPORT_KW)))))
-        extend(CompletionType.BASIC, DATA_AFTER_TRUNCATED_CONTEXT, genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW}, KeywordCompletionProvider(singletonList(DATA_KW)))) //data after \truncated keyword
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() },
+                        KeywordCompletionProvider(IMPORT_KW_LIST))))
+        extend(CompletionType.BASIC, DATA_AFTER_TRUNCATED_CONTEXT,
+                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW},
+                        KeywordCompletionProvider(DATA_KW_LIST))) //data after \truncated keyword
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(singletonList(WHERE_KW)),
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST),
                 {jD: JointData ->
                     var anc = jD.prevElement
                     while (anc != null && anc !is VcStatement) anc = anc.parent
@@ -50,21 +74,62 @@ class VclangCompletionContributor: CompletionContributor() {
                     flag}))
 
         extend(CompletionType.BASIC,  withAncestors(PsiErrorElement::class.java, VcDefClass::class.java),
-                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
+                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(EXTENDS_KW_LIST)))
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcFieldTele::class.java, VcDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
                     var nS = parameters.position.parent!!.parent.nextSibling
                     while (nS is PsiWhiteSpace) nS = nS.nextSibling
                     nS !is VcFieldTele
-                }, KeywordCompletionProvider(singletonList(EXTENDS_KW))))
+                }, KeywordCompletionProvider(EXTENDS_KW_LIST)))
 
-        //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW)))
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java),
+                genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
+                        KeywordCompletionProvider(DATA_UNIVERSE_KW)))
+
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java),
+                genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
+                        object: KeywordCompletionProvider(listOf("\\1-Type")) {
+                            override fun lookupElement(keyword: String): LookupElementBuilder =
+                                    LookupElementBuilder.create(keyword).withPresentableText("\\n-Type")
+
+                            override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
+                                val document = insertContext.document
+                                document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+                                insertContext.commitDocument()
+                                insertContext.editor.caretModel.moveToOffset(insertContext.startOffset+1)
+                                insertContext.editor.selectionModel.setSelection(insertContext.startOffset+1, insertContext.startOffset+2)
+                            }
+                        }))
+
+
+        fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
+        fun isAfterDash(element: PsiElement?): Boolean = element?.node?.elementType == ID && element?.text != null && element.text.startsWith("-")
+
+        extend(CompletionType.BASIC, withAncestors(VcDefData::class.java, VcStatement::class.java),
+                genericJointCondition({ _, _, jD -> isAfterNumber(jD.prevElement)}, KeywordCompletionProvider(listOf("-Type"))))
+        extend(CompletionType.BASIC, withAncestors(VcDefData::class.java, VcStatement::class.java),
+                genericJointCondition({ _, _, jD -> isAfterDash(jD.prevElement) && isAfterNumber(jD.prevElement?.prevSibling) }, KeywordCompletionProvider(listOf("Type"))))
+
+        //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
     }
 
     companion object {
-        val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW)
-        val STATEMENT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, TRUNCATED_KW, OPEN_KW)
-        val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + singletonList(IMPORT_KW)
+        val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
+        val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, OPEN_KW).map {it.toString()}
+        val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
+
+        val AS_KW_LIST = listOf(AS_KW.toString())
+        val USING_KW_LIST = listOf(USING_KW.toString())
+        val HIDING_KW_LIST = listOf(HIDING_KW.toString())
+        val EXTENDS_KW_LIST = listOf(EXTENDS_KW.toString())
+        val DATA_KW_LIST = listOf(DATA_KW.toString())
+        val IMPORT_KW_LIST = listOf(IMPORT_KW.toString())
+        val WHERE_KW_LIST = listOf(WHERE_KW.toString())
+        val TRUNCATED_KW_LIST = listOf(TRUNCATED_KW.toString())
+
+        val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
+        val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
+        val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
 
         const val KEYWORD_PRIORITY = 10.0
 
@@ -163,21 +228,16 @@ class VclangCompletionContributor: CompletionContributor() {
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
     }
 
-    class KeywordCompletionProvider(private val keywords : List<IElementType>) : CompletionProvider<CompletionParameters>() {
+    open class KeywordCompletionProvider(private val keywords : List<String>) : CompletionProvider<CompletionParameters>() {
 
-        private val insertHandler = InsertHandler<LookupElement> { insertContext, _ ->
+        open fun insertHandler(keyword: String) : InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
             val document = insertContext.document
             document.insertString(insertContext.tailOffset, " ") // add tail whitespace
             insertContext.commitDocument()
             insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
         }
 
-        private val truncatedInsertHandler = InsertHandler<LookupElement> {insertContext, _ ->
-            val document = insertContext.document
-            document.insertString(insertContext.tailOffset, " \\data ")
-            insertContext.commitDocument()
-            insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
-        }
+        open fun lookupElement(keyword: String) : LookupElementBuilder = LookupElementBuilder.create(keyword)
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
             var prefix = result.prefixMatcher.prefix
@@ -205,20 +265,8 @@ class VclangCompletionContributor: CompletionContributor() {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
             }
 
-            for (keyword in keywords) {
-                val handler = when (keyword) {
-                    TRUNCATED_KW -> truncatedInsertHandler
-                    else -> insertHandler
-                }
-
-                val lookupElement = when (keyword) {
-                    TRUNCATED_KW -> LookupElementBuilder.create(keyword.toString()).withPresentableText("\\truncated \\data")
-                    else -> LookupElementBuilder.create(keyword.toString())
-                }
-
-                result.withPrefixMatcher(prefixMatcher).addElement(lookupElement.bold().withInsertHandler(handler).withPriority(KEYWORD_PRIORITY))
-            }
-
+            for (keyword in keywords)
+                result.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).bold().withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
         }
     }
 
