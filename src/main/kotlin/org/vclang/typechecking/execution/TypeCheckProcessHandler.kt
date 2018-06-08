@@ -34,6 +34,7 @@ import org.vclang.psi.VcStatement
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.findGroupByFullName
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.typechecking.PsiInstanceProviderSet
 import org.vclang.typechecking.TestBasedTypechecking
 import org.vclang.typechecking.TypeCheckingService
 import org.vclang.typechecking.error.ParserError
@@ -91,7 +92,8 @@ class TypeCheckProcessHandler(
         val referableConverter = typeCheckerService.referableConverter
         val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
         val collector = CollectingOrderingListener()
-        val ordering = Ordering(concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
+        val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
+        val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
 
         for (library in libraries) {
             val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
@@ -139,7 +141,7 @@ class TypeCheckProcessHandler(
             try {
                 TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
                 try {
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
 
                     if (typechecking.typecheckCollected(collector)) {
                         for (module in typechecking.typecheckedModules) {

@@ -17,6 +17,7 @@ import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.isVcModule
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.typechecking.PsiInstanceProviderSet
 import org.vclang.typechecking.TypeCheckingService
 
 class VcStartupActivity : StartupActivity {
@@ -33,7 +34,7 @@ class VcStartupActivity : StartupActivity {
         val referableConverter = service.referableConverter
         val concreteProvider = PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
 
         for (module in project.vcModules) {
             service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))

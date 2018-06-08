@@ -49,7 +49,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = LogErrorReporter(PrettyPrinterConfig.DEFAULT)
-    override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, libraryErrorReporter, libraryErrorReporter)
+    override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
     override val referableConverter: ReferableConverter

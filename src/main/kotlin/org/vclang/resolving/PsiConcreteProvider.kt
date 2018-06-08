@@ -2,6 +2,7 @@ package org.vclang.resolving
 
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferableImpl
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
@@ -14,6 +15,9 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.concrete.ConcreteDefinitionVisitor
 import com.jetbrains.jetpad.vclang.typechecking.error.ProxyError
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
+import org.vclang.psi.VcDefClass
+import org.vclang.psi.VcDefFunction
+import org.vclang.psi.VcDefInstance
 import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiConcreteReferable
 import org.vclang.psi.ext.PsiLocatedReferable
@@ -97,5 +101,20 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
         cache[psiReferable]?.let { return it }
         psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull()?.let { getConcreteDefinition(it) } ?: return null
         return cache[psiReferable]
+    }
+
+    override fun getConcreteFunction(referable: GlobalReferable): Concrete.FunctionDefinition? {
+        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        return if (psiReferable is VcDefFunction) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
+    }
+
+    override fun getConcreteInstance(referable: GlobalReferable): Concrete.Instance? {
+        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        return if (psiReferable is VcDefInstance) getConcreteDefinition(psiReferable) as? Concrete.Instance else null
+    }
+
+    override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
+        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        return if (psiReferable is VcDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
     }
 }

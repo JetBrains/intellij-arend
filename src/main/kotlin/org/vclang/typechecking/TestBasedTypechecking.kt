@@ -17,11 +17,12 @@ import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 class TestBasedTypechecking(
     private val eventsProcessor: TypecheckingEventsProcessor,
+    instanceProviderSet: PsiInstanceProviderSet,
     state: TypecheckerState,
     concreteProvider: ConcreteProvider,
     errorReporter: ErrorReporter,
     dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(state, concreteProvider, errorReporter, dependencyListener) {
+    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener) {
 
     val typecheckedModules = LinkedHashSet<FullModulePath>()
 
