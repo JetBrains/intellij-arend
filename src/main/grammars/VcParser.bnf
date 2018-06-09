@@ -389,7 +389,7 @@ piExpr ::= PI_KW typeTele+ ARROW expr {
     mixin = "org.vclang.psi.ext.VcPiExprImplMixin"
 }
 
-sigmaExpr ::= SIGMA_KW typeTele+ {
+sigmaExpr ::= SIGMA_KW typeTele* {
     pin = 1
     mixin = "org.vclang.psi.ext.VcSigmaExprImplMixin"
 }
@@ -539,10 +539,16 @@ atom ::= literal
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
 }
 
-tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN {
+tuple ::= LPAREN <<comma_separated_sequence tupleExpr>>? RPAREN {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcTupleImplMixin"
 }
+
+private tupleExpr ::= expr {
+    recoverWhile = tupleExpr_recover
+}
+
+private tupleExpr_recover ::= !(RPAREN | COMMA)
 
 atomFieldsAcc ::= atom fieldAcc* {
     implements = "org.vclang.psi.VcExpr"
