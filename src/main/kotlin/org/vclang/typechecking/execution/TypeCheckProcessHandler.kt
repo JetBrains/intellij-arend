@@ -63,28 +63,32 @@ class TypeCheckProcessHandler(
         if (command.definitionFullName != "" && modulePath == null) {
             typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName))
             eventsProcessor.onSuitesFinished()
+            destroyProcessImpl()
             return
         }
 
-        val registeredLibraries = typeCheckerService.libraryManager.registeredLibraries.filterIsInstance<VcRawLibrary>()
-        val libraries = if (command.library == "" && modulePath == null) registeredLibraries else {
+        val registeredLibraries = typeCheckerService.libraryManager.registeredLibraries
+        val libraries = if (command.library == "" && modulePath == null) registeredLibraries.filterIsInstance<VcRawLibrary>() else {
             val library = if (command.library != "") typeCheckerService.libraryManager.getRegisteredLibrary(command.library) else findLibrary(modulePath!!, registeredLibraries, typecheckingErrorReporter)
             if (library == null) {
                 if (command.library != "") {
                     typecheckingErrorReporter.report(LibraryError.notFound(command.library))
                 }
                 eventsProcessor.onSuitesFinished()
+                destroyProcessImpl()
                 return
             }
             if (library !is VcRawLibrary) {
-                typecheckingErrorReporter.report(LibraryError.incorrectLibrary(command.library))
+                typecheckingErrorReporter.report(LibraryError.incorrectLibrary(library.name))
                 eventsProcessor.onSuitesFinished()
+                destroyProcessImpl()
                 return
             }
             listOf(library)
         }
 
         if (libraries.isEmpty()) {
+            destroyProcessImpl()
             return
         }
 
@@ -184,8 +188,8 @@ class TypeCheckProcessHandler(
         }
     }
 
-    private fun findLibrary(modulePath: ModulePath, registeredLibraries: Collection<VcRawLibrary>, typecheckingErrorReporter: TypecheckingErrorReporter): VcRawLibrary? {
-        var library: VcRawLibrary? = null
+    private fun findLibrary(modulePath: ModulePath, registeredLibraries: Collection<Library>, typecheckingErrorReporter: TypecheckingErrorReporter): Library? {
+        var library: Library? = null
         var libraries: MutableList<Library>? = null
         for (lib in registeredLibraries) {
             if (lib.containsModule(modulePath)) {
