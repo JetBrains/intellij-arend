@@ -13,12 +13,15 @@ abstract class VcArgumentAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node)
         }
         longName?.let { name ->
             val levels = generateSequence(levelsExpr) { it.levelsExpr }.lastOrNull()
-            levels?.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params) }
-            levels?.maybeAtomLevelExprList?.let { if (it.size == 2) {
-                return visitor.visitReference(name, name.referent, it[0].atomLevelExpr, it[1].atomLevelExpr, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
-            } }
-            val levelExprList = atomOnlyLevelExprList
-            return visitor.visitReference(name, name.referent, levelExprList.getOrNull(0), levelExprList.getOrNull(1), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
+            if (levels != null) {
+                levels.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params) }
+                val lp = levels.atomLevelExprLP
+                val lh = levels.atomLevelExprLH
+                if (lp != null && lh != null) {
+                    return visitor.visitReference(name, name.referent, lp, lh, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
+                }
+            }
+            return visitor.visitReference(name, name.referent, atomOnlyLevelExprLP, atomOnlyLevelExprLH, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
         }
         error("Incomplete expression: " + this)
     }
