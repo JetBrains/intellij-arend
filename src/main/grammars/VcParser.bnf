@@ -225,12 +225,16 @@ private truncatedKW ::= TRUNCATED_KW {
   recoverWhile = statement_recover
 }
 
-defClass ::= CLASS_KW prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>] [classBodySyn | classStats] where? {
+defClass ::= CLASS_KW prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>] classBody? where? {
     pin = 1
     implements = "com.jetbrains.jetpad.vclang.naming.reference.ClassReferable"
     mixin = "org.vclang.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefClassStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
+}
+
+private classBody ::= classBodySyn | classStats {
+    recoverWhile = statement_recover
 }
 
 defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
@@ -248,9 +252,15 @@ private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_r
 
 private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
 
-functionBody ::= FAT_ARROW expr | elim? functionClauses
+functionBody ::= functionTermBody | elim? functionClauses {
+    recoverWhile = statement_recover
+}
 
-dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)*
+private functionTermBody ::= FAT_ARROW expr { pin = 1 }
+
+dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)* {
+    recoverWhile = statement_recover
+}
 
 private fat_arrow_def_pipe ::= FAT_ARROW {
     recoverWhile = def_pipe_recover
@@ -281,7 +291,7 @@ private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
 
 private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_recover
 
-elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
+elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
 
 where ::= WHERE_KW (statementList | statement) { pin = 1 }
 
@@ -397,7 +407,10 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
-coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)*
+coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)* {
+    pin(".*") = 1
+    recoverWhile = statement_recover
+}
 
 private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover
 
