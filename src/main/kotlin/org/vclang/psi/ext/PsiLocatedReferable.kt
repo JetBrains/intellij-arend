@@ -1,5 +1,6 @@
 package org.vclang.psi.ext
 
+import com.intellij.openapi.application.runReadAction
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import org.vclang.psi.VcFile
@@ -11,7 +12,10 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
     override fun getTypecheckable(): PsiLocatedReferable
 
     companion object {
-        fun fromReferable(referable: GlobalReferable) = ((referable as? DataLocatedReferable)?.data ?: referable) as? PsiLocatedReferable
+        fun fromReferable(referable: GlobalReferable): PsiLocatedReferable? {
+            val psiPtr = (referable as? DataLocatedReferable)?.data ?: return referable as? PsiLocatedReferable
+            return runReadAction { psiPtr.element } as? PsiLocatedReferable
+        }
     }
 }
 

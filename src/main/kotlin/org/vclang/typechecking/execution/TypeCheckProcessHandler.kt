@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.SmartPointerManager
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.GeneralError
 import com.jetbrains.jetpad.vclang.library.Library
@@ -176,7 +177,7 @@ class TypeCheckProcessHandler(
             when (child) {
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(child, group as? PsiLocatedReferable ?: ModuleReferable(modulePath)))
+                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable ?: ModuleReferable(modulePath), child.errorDescription))
                     if (group is PsiLocatedReferable) {
                         typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
                     } else {

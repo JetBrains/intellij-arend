@@ -6,8 +6,11 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.ide.util.EditSourceUtil
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
@@ -84,7 +87,8 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = ((doc.reference as? DataContainer)?.data ?: doc.reference) as? PsiElement
+            val ref = (doc.reference as? DataContainer)?.data as? SmartPsiElementPointer<*> ?:
+                (doc.reference as? PsiElement)?.let { SmartPointerManager.createPointer(it) }
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {
@@ -114,9 +118,10 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
         private fun printNewLine() = printText(CompositePrintable.NEW_LINE)
     }
 
-    private class PsiHyperlinkInfo(private val sourceElement: PsiElement) : HyperlinkInfo {
+    private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
         override fun navigate(project: Project?) {
-            val descriptor = EditSourceUtil.getDescriptor(sourceElement)
+            val psi = runReadAction { sourceElement.element } ?: return
+            val descriptor = EditSourceUtil.getDescriptor(psi)
             if (descriptor != null && descriptor.canNavigate()) {
                 descriptor.navigate(true)
             }
