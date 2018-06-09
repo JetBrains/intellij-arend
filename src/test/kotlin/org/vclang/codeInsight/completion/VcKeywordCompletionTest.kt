@@ -2,6 +2,7 @@ package org.vclang.codeInsight.completion
 
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.AS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_UNIVERSE_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.EXTENDS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
@@ -225,4 +226,19 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test data universe keywords after truncation level 3`() =
             checkSingleCompletion("\\data d1 (n : Nat): \\101-T{-caret-}", "\\101-Type")
+
+    fun `test expression keywords`() =
+            checkKeywordCompletionVariants("\\func f => {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+
+    fun `test expression keywords 2`() =
+            checkKeywordCompletionVariants("\\func f (a : Nat) => f({-caret-})", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+
+    fun `test expression keywords 3`() =
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 \\in {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+
+    fun `test expression keywords 4`() =
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => {-caret-}\\in 101", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+
+    fun `test expression keywords 5`() =
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
 }

@@ -87,29 +87,32 @@ class VclangCompletionContributor: CompletionContributor() {
                 genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
                         KeywordCompletionProvider(DATA_UNIVERSE_KW)))
 
-        extend(CompletionType.BASIC, DATA_CONTEXT,
-                genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
-                        object: KeywordCompletionProvider(listOf("\\1-Type")) {
-                            override fun lookupElement(keyword: String): LookupElementBuilder =
-                                    LookupElementBuilder.create(keyword).withPresentableText("\\n-Type")
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, KeywordCompletionProvider(DATA_OR_EXPRESSION_KW))
 
-                            override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
-                                val document = insertContext.document
-                                document.insertString(insertContext.tailOffset, " ") // add tail whitespace
-                                insertContext.commitDocument()
-                                insertContext.editor.caretModel.moveToOffset(insertContext.startOffset+1)
-                                insertContext.editor.selectionModel.setSelection(insertContext.startOffset+1, insertContext.startOffset+2)
-                            }
-                        }))
+        val truncatedTypeCompletionProvider = object: KeywordCompletionProvider(listOf("\\1-Type")) {
+            override fun lookupElement(keyword: String): LookupElementBuilder =
+                    LookupElementBuilder.create(keyword).withPresentableText("\\n-Type")
+
+            override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
+                val document = insertContext.document
+                document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+                insertContext.commitDocument()
+                insertContext.editor.caretModel.moveToOffset(insertContext.startOffset+1)
+                insertContext.editor.selectionModel.setSelection(insertContext.startOffset+1, insertContext.startOffset+2)
+            }
+        }
+
+        extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON }, truncatedTypeCompletionProvider))
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, truncatedTypeCompletionProvider)
 
 
         fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
 
-        extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> isAfterNumber(jD.prevElement)}, object: KeywordCompletionProvider(listOf("-Type")){
+        extend(CompletionType.BASIC, DATA_OR_EXPRESSION_CONTEXT, genericJointCondition({ _, _, jD -> isAfterNumber(jD.prevElement)}, object: KeywordCompletionProvider(listOf("-Type")){
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
         }))
 
-        extend(CompletionType.BASIC, DATA_CONTEXT, ProviderWithCondition({cP, _ ->
+        extend(CompletionType.BASIC, DATA_OR_EXPRESSION_CONTEXT, ProviderWithCondition({cP, _ ->
             cP.originalPosition != null && cP.originalPosition!!.text.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?"))
         }, object: KeywordCompletionProvider(listOf("Type")) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
@@ -123,6 +126,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
         val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, OPEN_KW).map {it.toString()}
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
+        val EXPRESSION_KW = listOf(NEW_KW, PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -136,6 +140,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
+        val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + EXPRESSION_KW
 
         const val KEYWORD_PRIORITY = 10.0
 
@@ -158,6 +163,10 @@ class VclangCompletionContributor: CompletionContributor() {
         val ANY = PlatformPatterns.psiElement()!!
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
+        val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java),
+                                    withParentOrGrandParent(VcFunctionBody::class.java),
+                                    withParentOrGrandParent(VcExpr::class.java))
+        val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT)
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -258,8 +267,14 @@ class VclangCompletionContributor: CompletionContributor() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
             val prefix = computePrefix(parameters, resultSet)
 
-            /*System.out.println("keywords: "+ keywords.toString())
+            val text = parameters.position.containingFile.text
+            val mn = Math.max(0, parameters.position.node.startOffset - 15)
+            val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
+
+            /*System.out.println("")
+            System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
+            System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.great-grandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
