@@ -15,6 +15,7 @@ import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
+import java.util.*
 
 class VclangCompletionContributor: CompletionContributor() {
 
@@ -55,7 +56,7 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
-        extend(CompletionType.BASIC, DATA_AFTER_TRUNCATED_CONTEXT,
+        extend(CompletionType.BASIC, DATA_CONTEXT,
                 genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW},
                         KeywordCompletionProvider(DATA_KW_LIST))) //data after \truncated keyword
 
@@ -82,11 +83,11 @@ class VclangCompletionContributor: CompletionContributor() {
                     nS !is VcFieldTele
                 }, KeywordCompletionProvider(EXTENDS_KW_LIST)))
 
-        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java),
+        extend(CompletionType.BASIC, DATA_CONTEXT,
                 genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
                         KeywordCompletionProvider(DATA_UNIVERSE_KW)))
 
-        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java),
+        extend(CompletionType.BASIC, DATA_CONTEXT,
                 genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
                         object: KeywordCompletionProvider(listOf("\\1-Type")) {
                             override fun lookupElement(keyword: String): LookupElementBuilder =
@@ -103,12 +104,17 @@ class VclangCompletionContributor: CompletionContributor() {
 
 
         fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
-        fun isAfterDash(element: PsiElement?): Boolean = element?.node?.elementType == ID && element?.text != null && element.text.startsWith("-")
 
-        extend(CompletionType.BASIC, withAncestors(VcDefData::class.java, VcStatement::class.java),
-                genericJointCondition({ _, _, jD -> isAfterNumber(jD.prevElement)}, KeywordCompletionProvider(listOf("-Type"))))
-        extend(CompletionType.BASIC, withAncestors(VcDefData::class.java, VcStatement::class.java),
-                genericJointCondition({ _, _, jD -> isAfterDash(jD.prevElement) && isAfterNumber(jD.prevElement?.prevSibling) }, KeywordCompletionProvider(listOf("Type"))))
+        extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> isAfterNumber(jD.prevElement)}, object: KeywordCompletionProvider(listOf("-Type")){
+            override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
+        }))
+
+        extend(CompletionType.BASIC, DATA_CONTEXT, ProviderWithCondition({cP, _ ->
+            cP.originalPosition != null && cP.originalPosition!!.text.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?"))
+        }, object: KeywordCompletionProvider(listOf("Type")) {
+            override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
+                    super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
+        }))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
     }
@@ -151,7 +157,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
         val ANY = PlatformPatterns.psiElement()!!
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
-        val DATA_AFTER_TRUNCATED_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java)
+        val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -239,17 +245,24 @@ class VclangCompletionContributor: CompletionContributor() {
 
         open fun lookupElement(keyword: String) : LookupElementBuilder = LookupElementBuilder.create(keyword)
 
-        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
-            var prefix = result.prefixMatcher.prefix
+        open fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String {
+            var prefix = resultSet.prefixMatcher.prefix
             val lastInvalidIndex = prefix.mapIndexedNotNull({i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}).lastOrNull()
             if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
             val pos = parameters.offset - prefix.length - 1
             if (pos >= 0 && pos < parameters.originalFile.textLength)
                 prefix = (if (parameters.originalFile.text[pos] == '\\') "\\" else "") + prefix
+            return prefix
+        }
 
-            /*System.out.println("position.parent: "+parameters.position.parent?.javaClass)
+        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
+            val prefix = computePrefix(parameters, resultSet)
+
+            /*System.out.println("keywords: "+ keywords.toString())
+            System.out.println("prefix: $prefix")
+            System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
-            System.out.println("position.grandgrandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
+            System.out.println("position.great-grandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
             val jointData = elementsOnJoint(parameters.originalFile, parameters.offset)
@@ -266,7 +279,7 @@ class VclangCompletionContributor: CompletionContributor() {
             }
 
             for (keyword in keywords)
-                result.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).bold().withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
+                resultSet.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).bold().withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
         }
     }
 
