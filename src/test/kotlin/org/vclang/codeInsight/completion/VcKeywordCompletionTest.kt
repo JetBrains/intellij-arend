@@ -241,4 +241,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test expression keywords 5`() =
             checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+
+    fun `test expression keywords 6`() =
+            checkKeywordCompletionVariants("\\class C { | f : Nat | g : Nat }\n" +
+                                           "\\func test (c : C) => c.f {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
 }

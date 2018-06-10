@@ -87,7 +87,13 @@ class VclangCompletionContributor: CompletionContributor() {
                 genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
                         KeywordCompletionProvider(DATA_UNIVERSE_KW)))
 
-        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, KeywordCompletionProvider(DATA_OR_EXPRESSION_KW))
+        val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters> ->
+            genericJointCondition({cP, pC, jD ->
+                !FIELD_CONTEXT.accepts(jD.prevElement) //No keyword completion after field
+            }, basicCompletionProvider)
+        }
+
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(KeywordCompletionProvider(DATA_OR_EXPRESSION_KW)))
 
         val truncatedTypeCompletionProvider = object: KeywordCompletionProvider(listOf("\\1-Type")) {
             override fun lookupElement(keyword: String): LookupElementBuilder =
@@ -103,7 +109,7 @@ class VclangCompletionContributor: CompletionContributor() {
         }
 
         extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON }, truncatedTypeCompletionProvider))
-        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, truncatedTypeCompletionProvider)
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(truncatedTypeCompletionProvider))
 
 
         fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
@@ -167,6 +173,7 @@ class VclangCompletionContributor: CompletionContributor() {
                                     withParentOrGrandParent(VcFunctionBody::class.java),
                                     withParentOrGrandParent(VcExpr::class.java))
         val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT)
+        val FIELD_CONTEXT = withAncestors(VcFieldAcc::class.java, VcAtomFieldsAcc::class.java)
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -271,7 +278,7 @@ class VclangCompletionContributor: CompletionContributor() {
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
-            /*System.out.println("")
+            System.out.println("")
             System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
@@ -287,7 +294,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")*/
+            System.out.println("")
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
