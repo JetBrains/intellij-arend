@@ -94,7 +94,9 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         if (allowPopup) {
             val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
-                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textOffset, referenceElement.textRange.endOffset, action)
+                var endOffset = referenceElement.textRange.endOffset
+                if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
+                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN
         }

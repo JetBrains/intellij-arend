@@ -60,19 +60,19 @@ class VclangCompletionContributor: CompletionContributor() {
                 genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW},
                         KeywordCompletionProvider(DATA_KW_LIST))) //data after \truncated keyword
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST),
-                {jD: JointData ->
-                    var anc = jD.prevElement
-                    while (anc != null && anc !is VcStatement) anc = anc.parent
-                    var flag = false
-                    if (anc is VcStatement) {
-                        val da = anc.definition
-                        if (da is DefinitionAdapter<*>) {
-                            val where =  da.getWhere()
-                            if (where == null || (where.lbrace == null && where.rbrace == null)) flag = true
-                        }
-                    }
-                    flag}))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST)
+        ) { jD: JointData ->
+            var anc = jD.prevElement
+            while (anc != null && anc !is VcStatement) anc = anc.parent
+            var flag = false
+            if (anc is VcStatement) {
+                val da = anc.definition
+                if (da is DefinitionAdapter<*>) {
+                    val where =  da.getWhere()
+                    if (where == null || (where.lbrace == null && where.rbrace == null)) flag = true
+                }
+            }
+            flag})
 
         extend(CompletionType.BASIC,  withAncestors(PsiErrorElement::class.java, VcDefClass::class.java),
                 genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(EXTENDS_KW_LIST)))
@@ -87,30 +87,41 @@ class VclangCompletionContributor: CompletionContributor() {
                 genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
                         KeywordCompletionProvider(DATA_UNIVERSE_KW)))
 
-        val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters> ->
-            genericJointCondition({cP, pC, jD ->
-                !FIELD_CONTEXT.accepts(jD.prevElement) //No keyword completion after field
+         val sigmaOrPi = {expression: PsiElement ->
+            val l = expression.ancestors.filter { it is VcExpr && it !is VcUniverseAtom }.toList()
+            if (l.isEmpty()) false else l.first() is VcSigmaExpr || l.first() is VcPiExpr
+        }
+
+        val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, f1: Boolean, f2: Boolean ->
+            genericJointCondition({cP, _, jD ->
+                !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
+                        !(ofType(RBRACE, WITH_KW).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
+                        !ofType(NEW_KW).accepts(jD.prevElement) && // No keyword completion after \new keyword
+                        (f1 || jD.prevElement == null || !sigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
+                        (f2 || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
             }, basicCompletionProvider)
         }
 
-        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(KeywordCompletionProvider(DATA_OR_EXPRESSION_KW)))
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(KeywordCompletionProvider(DATA_UNIVERSE_KW), true, true))
+        extend(CompletionType.BASIC, TELE_CONTEXT, KeywordCompletionProvider(DATA_UNIVERSE_KW))
 
-        val truncatedTypeCompletionProvider = object: KeywordCompletionProvider(listOf("\\1-Type")) {
-            override fun lookupElement(keyword: String): LookupElementBuilder =
-                    LookupElementBuilder.create(keyword).withPresentableText("\\n-Type")
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(KeywordCompletionProvider(BASIC_EXPRESSION_KW), false, false))
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(KeywordCompletionProvider(NEW_KW_LIST), false, true))
 
+        val truncatedTypeCompletionProvider = object: KeywordCompletionProvider(FAKE_NTYPE_LIST) {
             override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
                 val document = insertContext.document
                 document.insertString(insertContext.tailOffset, " ") // add tail whitespace
                 insertContext.commitDocument()
                 insertContext.editor.caretModel.moveToOffset(insertContext.startOffset+1)
+                document.replaceString(insertContext.startOffset+1, insertContext.startOffset+2, "1") //replace letter n by 1 so that the keyword would be highlighted correctly
                 insertContext.editor.selectionModel.setSelection(insertContext.startOffset+1, insertContext.startOffset+2)
             }
         }
 
         extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON }, truncatedTypeCompletionProvider))
-        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(truncatedTypeCompletionProvider))
-
+        extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(truncatedTypeCompletionProvider, true, true))
+        extend(CompletionType.BASIC, TELE_CONTEXT, truncatedTypeCompletionProvider)
 
         fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
 
@@ -132,7 +143,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
         val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, OPEN_KW).map {it.toString()}
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
-        val EXPRESSION_KW = listOf(NEW_KW, PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
+        val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -142,19 +153,23 @@ class VclangCompletionContributor: CompletionContributor() {
         val IMPORT_KW_LIST = listOf(IMPORT_KW.toString())
         val WHERE_KW_LIST = listOf(WHERE_KW.toString())
         val TRUNCATED_KW_LIST = listOf(TRUNCATED_KW.toString())
+        val NEW_KW_LIST = listOf(NEW_KW.toString())
+        val FAKE_NTYPE_LIST = listOf("\\n-Type")
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
-        val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + EXPRESSION_KW
+        val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
 
         const val KEYWORD_PRIORITY = 10.0
 
         private fun afterLeaf(et: IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
+        private fun ofType(vararg types: IElementType) = or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
         private fun <T : PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withGrandParent(et: Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withParentOrGrandParent(et: Class<T>) = or(withParent(et), withGrandParent(et))
         private fun <T : PsiElement> withGrandParents(vararg et: Class<out T>) = or(*et.map { withGrandParent(it) }.toTypedArray())
+        private fun <T : PsiElement> withGreatGrandParents(vararg et: Class<out T>) = or(*et.map { PlatformPatterns.psiElement().withSuperParent(3, it) }.toTypedArray())
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
@@ -169,11 +184,19 @@ class VclangCompletionContributor: CompletionContributor() {
         val ANY = PlatformPatterns.psiElement()!!
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
-        val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java),
+        val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
                                     withParentOrGrandParent(VcFunctionBody::class.java),
                                     withParentOrGrandParent(VcExpr::class.java))
-        val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT)
         val FIELD_CONTEXT = withAncestors(VcFieldAcc::class.java, VcAtomFieldsAcc::class.java)
+        val TELE_CONTEXT =
+                or(and(withAncestors(PsiErrorElement::class.java, VcTypeTele::class.java),
+                        withGreatGrandParents(VcClassField::class.java, VcConstructor::class.java, VcDefData::class.java, VcPiExpr::class.java, VcSigmaExpr::class.java)),
+                withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcTypeTele::class.java))
+        val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT)
+        val ARGUMENT_EXPRESSION = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java,
+                VcAtomFieldsAcc::class.java, VcAtomArgument::class.java),
+                withAncestors(PsiErrorElement::class.java, VcArgumentAppExpr::class.java))
+
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -263,7 +286,7 @@ class VclangCompletionContributor: CompletionContributor() {
 
         open fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String {
             var prefix = resultSet.prefixMatcher.prefix
-            val lastInvalidIndex = prefix.mapIndexedNotNull({i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}).lastOrNull()
+            val lastInvalidIndex = prefix.mapIndexedNotNull { i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}.lastOrNull()
             if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
             val pos = parameters.offset - prefix.length - 1
             if (pos >= 0 && pos < parameters.originalFile.textLength)
@@ -278,13 +301,16 @@ class VclangCompletionContributor: CompletionContributor() {
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
-            System.out.println("")
+            /* System.out.println("")
             System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position.parent: "+parameters.position.parent?.javaClass)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass)
             System.out.println("position.great-grandparent: "+parameters.position.parent?.parent?.parent?.javaClass)
+            System.out.println("position.great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.javaClass)
+            System.out.println("position.great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.javaClass)
+            System.out.println("position.great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.javaClass)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
             val jointData = elementsOnJoint(parameters.originalFile, parameters.offset)
@@ -294,7 +320,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")
+            System.out.println("") */
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)

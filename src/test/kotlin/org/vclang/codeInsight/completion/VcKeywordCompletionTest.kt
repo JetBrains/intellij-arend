@@ -5,12 +5,14 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.D
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_UNIVERSE_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.EXTENDS_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FAKE_NTYPE_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.GLOBAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HIDING_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HU_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IMPORT_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KW_LIST
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
@@ -216,7 +218,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants("\\class Lol (n : Nat) {-caret-} (m : Nat){}", EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test data universe keywords after semicolon`() =
-            checkKeywordCompletionVariants("\\data d1 (n : Nat): {-caret-}", DATA_UNIVERSE_KW + listOf("\\1-Type"))
+            checkKeywordCompletionVariants("\\data d1 (n : Nat): {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST)
 
     fun `test data universe keywords after truncation level 1`() =
             checkCompletionVariants("\\data d1 (n : Nat): \\101{-caret-}", listOf("-Type"))
@@ -228,21 +230,56 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkSingleCompletion("\\data d1 (n : Nat): \\101-T{-caret-}", "\\101-Type")
 
     fun `test expression keywords`() =
-            checkKeywordCompletionVariants("\\func f => {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\func f => {-caret-}", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST , CompletionCondition.SAME_KEYWORDS)
 
     fun `test expression keywords 2`() =
-            checkKeywordCompletionVariants("\\func f (a : Nat) => f({-caret-})", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\func f (a : Nat) => f({-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
     fun `test expression keywords 3`() =
-            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 \\in {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 \\in {-caret-}", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
     fun `test expression keywords 4`() =
-            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => {-caret-}\\in 101", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => {-caret-}\\in 101", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test expression keywords 5`() =
-            checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => 101 {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+    fun `test only new & universes in application expression 1`() =
+            checkCompletionVariants("\\func f (a : Nat) => f {-caret-}", DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test expression keywords 6`() =
-            checkKeywordCompletionVariants("\\class C { | f : Nat | g : Nat }\n" +
-                                           "\\func test (c : C) => c.f {-caret-}", DATA_OR_EXPRESSION_KW, CompletionCondition.CONTAINS)
+    fun `test only new & universes in application expression 2`() =
+            checkCompletionVariants("\\func f (a : Nat) => f \\{-caret-}", DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test no keyword completion after with`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with {-caret-}")
+
+    fun `test no keyword completion after with 2`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with \\{-caret-}")
+
+    fun `test no keyword completion after with 3`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with {-caret-} { | zero => 0 | suc a' => a'}")
+
+    fun `test no keyword completion after with 4`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with \\{-caret-} { | zero => 0 | suc a' => a'}")
+
+    fun `test no keyword completion after with braces`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with { | zero => 0 | suc a' => a'}{-caret-}")
+
+    fun `test no keyword completion after with braces 2`() = checkNoCompletion("\\func lol (a : Nat) => \\case a \\with { | zero => 0 | suc a' => a'}\\{-caret-}")
+
+    fun `test only universe keywords after Sigma`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Sigma {-caret-} -> \\Type", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test only universe keywords after Sigma 2`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Sigma \\Type {-caret-} -> \\Type", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test only universe keywords after Pi`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Pi {-caret-} -> \\Type", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test only universe keywords after Pi 2`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Pi \\Type {-caret-} -> \\Type", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test no keywords after new`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\new {-caret-}", emptyList(), CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in data`() =
+            checkCompletionVariants("\\data \\fix 10 lol-data {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    /* fun `test universe keywords as typed tele in data 2`() =
+            checkCompletionVariants("\\data \\fix 10 lol-data \\{-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS) */ //Fixme
+
+    fun `test universe keywords as typed tele in data (after param)`() =
+            checkKeywordCompletionVariants("\\data \\fix 10 lol-data (a : \\Type) {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 }

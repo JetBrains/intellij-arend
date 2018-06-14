@@ -25,16 +25,19 @@ abstract class VcCompletionTestBase : VcTestBase() {
         }
     }
 
-    enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, DOES_NOT_CONTAIN}
+    enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN}
 
     protected fun checkCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
         InlineFile(code).withCaret()
 
-        val result = myFixture.getCompletionVariants("Main.vc")
+        var result = myFixture.getCompletionVariants("Main.vc")
         assertNotNull(result)
 
+        if (condition == CompletionCondition.SAME_KEYWORDS)
+            result = result?.filter { it.startsWith("\\") }
+
         when (condition) {
-            CompletionCondition.SAME_ELEMENTS -> UsefulTestCase.assertSameElements<String>(result!!, variants)
+            CompletionCondition.SAME_ELEMENTS, CompletionCondition.SAME_KEYWORDS -> UsefulTestCase.assertSameElements<String>(result!!, variants)
             CompletionCondition.CONTAINS -> UsefulTestCase.assertContainsElements<String>(result!!, variants)
             CompletionCondition.DOES_NOT_CONTAIN -> UsefulTestCase.assertDoesntContain<String>(result!!, variants)
         }
