@@ -241,6 +241,15 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test expression keywords 4`() =
             checkKeywordCompletionVariants("\\func f (a : Nat) => \\let a => {-caret-}\\in 101", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
+    fun `test expression keywords 5`() =
+            checkCompletionVariants("\\func f (a : Nat) => \\Pi ({-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test expression keywords 5'`() =
+            checkCompletionVariants("\\func f (a : Nat) => \\Pi (\\{-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test expression keywords 6`() =
+            checkKeywordCompletionVariants("\\func f (a : Nat) => \\Sigma ({-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
     fun `test only new & universes in application expression 1`() =
             checkCompletionVariants("\\func f (a : Nat) => f {-caret-}", DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
@@ -272,14 +281,48 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Pi \\Type {-caret-} -> \\Type", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
     fun `test no keywords after new`() =
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\new {-caret-}", emptyList(), CompletionCondition.SAME_KEYWORDS)
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\new {-caret-})", emptyList(), CompletionCondition.SAME_KEYWORDS)
 
-    fun `test universe keywords as typed tele in data`() =
-            checkCompletionVariants("\\data \\fix 10 lol-data {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+    fun `test no keywords after let`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\let {-caret-})", emptyList(), CompletionCondition.SAME_KEYWORDS)
 
-    /* fun `test universe keywords as typed tele in data 2`() =
-            checkCompletionVariants("\\data \\fix 10 lol-data \\{-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS) */ //Fixme
+    fun `test no keywords after lam`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\lam {-caret-})", emptyList(), CompletionCondition.SAME_KEYWORDS)
 
     fun `test universe keywords as typed tele in data (after param)`() =
             checkKeywordCompletionVariants("\\data \\fix 10 lol-data (a : \\Type) {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test no expression keywords after universe literal`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Set {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no expression keywords after universe literal 2`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Prop {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test no expression keywords after universe literal 3`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test universe keywords as typed tele in data`() =
+            checkCompletionVariants("\\data lol {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in data 2`() =
+            checkCompletionVariants("\\data lol \\{-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in constructors`() =
+            checkCompletionVariants("\\data DDD | ccc {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in constructors 2`() =
+            checkCompletionVariants("\\data DDD | ccc \\{-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in constructors with patterns`() =
+            checkCompletionVariants("\\data DDDD (x : Nat) \\with\n   | zero => cccc {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in constructors with patterns 2`() =
+            checkCompletionVariants("\\data DDDD (x : Nat) \\with\n   | zero => cccc \\{-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in class fields`() =
+            checkCompletionVariants("\\class X {\n   | xxxx {-caret-} : xxxx\n}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test universe keywords as typed tele in class fields 2`() =
+            checkCompletionVariants("\\class X {\n   | xxxx \\{-caret-} : xxxx\n}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
+
 }
