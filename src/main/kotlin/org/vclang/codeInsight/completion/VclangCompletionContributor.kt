@@ -85,7 +85,7 @@ class VclangCompletionContributor: CompletionContributor() {
          val bareSigmaOrPi = { expression: PsiElement ->
              var result : PsiElement? = expression
 
-             val context = or(afterLeaf(PI_KW), afterLeaf(SIGMA_KW))
+             val context = ofType(PI_KW, SIGMA_KW)
 
              var tele: VcTypeTele? = null
              while (result != null) {
@@ -98,14 +98,17 @@ class VclangCompletionContributor: CompletionContributor() {
              if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
                 result is VcSigmaExpr || result is VcPiExpr
         }
+        val noExpressionKwsAfter = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
+        val noExpressionKwsAfter_EvenInBraces = and(ofType(LPAREN), or(afterLeaf(SET), afterLeaf(PROP_KW), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE)))
 
         val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, f1: Boolean, f2: Boolean ->
             genericJointCondition({cP, _, jD ->
                 !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
                         !(ofType(RBRACE, WITH_KW).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
                         !(ofType(LAM_KW, LET_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
-                        !(ofType(SET, PROP_KW, UNIVERSE).accepts(jD.prevElement)) && //No expression keyword completion after universe literals
-                        !ofType(NEW_KW).accepts(jD.prevElement) && // No keyword completion after \new keyword
+                        !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
+                        !(withAncestors(PsiErrorElement::class.java, VcTuple::class.java).accepts(cP.position)
+                                && noExpressionKwsAfter_EvenInBraces.accepts(jD.prevElement)) && //Fixme: should also work for double braces & inside level expressions
                         (f1 || jD.prevElement == null || !bareSigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
                         (f2 || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
             }, basicCompletionProvider)
