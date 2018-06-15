@@ -16,7 +16,6 @@ import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
-import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
@@ -85,6 +84,9 @@ class VclangCompletionContributor: CompletionContributor() {
 
          val bareSigmaOrPi = { expression: PsiElement ->
              var result : PsiElement? = expression
+
+             val context = or(afterLeaf(PI_KW), afterLeaf(SIGMA_KW))
+
              var tele: VcTypeTele? = null
              while (result != null) {
                  if (result is VcTypeTele) tele = result
@@ -92,7 +94,8 @@ class VclangCompletionContributor: CompletionContributor() {
                  result = result.parent
              }
 
-            if (tele?.text != null && tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+             if (context.accepts(expression)) true else
+             if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
                 result is VcSigmaExpr || result is VcPiExpr
         }
 
@@ -305,7 +308,7 @@ class VclangCompletionContributor: CompletionContributor() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
             val prefix = computePrefix(parameters, resultSet)
 
-            /* val text = parameters.position.containingFile.text
+            val text = parameters.position.containingFile.text
 
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
@@ -329,7 +332,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("") */
+            System.out.println("")
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
