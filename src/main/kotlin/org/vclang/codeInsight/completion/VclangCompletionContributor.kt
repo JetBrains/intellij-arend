@@ -57,9 +57,7 @@ class VclangCompletionContributor: CompletionContributor() {
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
-        extend(CompletionType.BASIC, DATA_CONTEXT,
-                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == TRUNCATED_KW},
-                        KeywordCompletionProvider(DATA_KW_LIST))) //data after \truncated keyword
+        extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST)
         ) { jD: JointData ->
@@ -75,8 +73,7 @@ class VclangCompletionContributor: CompletionContributor() {
             }
             flag})
 
-        extend(CompletionType.BASIC,  withAncestors(PsiErrorElement::class.java, VcDefClass::class.java),
-                genericJointCondition({_, _, jD -> jD.prevElement?.node?.elementType == ID}, KeywordCompletionProvider(EXTENDS_KW_LIST)))
+        extend(CompletionType.BASIC,  and(withAncestors(PsiErrorElement::class.java, VcDefClass::class.java), afterLeaf(ID)), KeywordCompletionProvider(EXTENDS_KW_LIST))
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcFieldTele::class.java, VcDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
                     var nS = parameters.position.parent!!.parent.nextSibling
@@ -84,15 +81,19 @@ class VclangCompletionContributor: CompletionContributor() {
                     nS !is VcFieldTele
                 }, KeywordCompletionProvider(EXTENDS_KW_LIST)))
 
-        extend(CompletionType.BASIC, DATA_CONTEXT,
-                genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON },
-                        KeywordCompletionProvider(DATA_UNIVERSE_KW)))
+        extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(COLON)), KeywordCompletionProvider(DATA_UNIVERSE_KW))
 
          val bareSigmaOrPi = { expression: PsiElement ->
-            val l = expression.ancestors.filter { it is VcExpr && it !is VcUniverseAtom }.toList()
-            val tele = expression.ancestors.filter {it is VcTypeTele}.toList()
-            if (tele.isNotEmpty() && tele.first().text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
-                if (l.isEmpty()) false else l.first() is VcSigmaExpr || l.first() is VcPiExpr
+             var result : PsiElement? = expression
+             var tele: VcTypeTele? = null
+             while (result != null) {
+                 if (result is VcTypeTele) tele = result
+                 if (result is VcExpr && result !is VcUniverseAtom) break
+                 result = result.parent
+             }
+
+            if (tele?.text != null && tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+                result is VcSigmaExpr || result is VcPiExpr
         }
 
         val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, f1: Boolean, f2: Boolean ->
@@ -124,7 +125,7 @@ class VclangCompletionContributor: CompletionContributor() {
             }
         }
 
-        extend(CompletionType.BASIC, DATA_CONTEXT, genericJointCondition({ _, _, jD -> jD.prevElement?.node?.elementType == COLON }, truncatedTypeCompletionProvider))
+        extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(COLON)), truncatedTypeCompletionProvider)
         extend(CompletionType.BASIC, EXPRESSION_CONTEXT, expressionFilter.invoke(truncatedTypeCompletionProvider, true, true))
         extend(CompletionType.BASIC, or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), truncatedTypeCompletionProvider)
 
@@ -304,11 +305,12 @@ class VclangCompletionContributor: CompletionContributor() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
             val prefix = computePrefix(parameters, resultSet)
 
-            val text = parameters.position.containingFile.text
+            /* val text = parameters.position.containingFile.text
+
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
-            /* System.out.println("")
+            System.out.println("")
             System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
