@@ -18,6 +18,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.L
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LP_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KW_LIST
+import org.vclang.psi.VcElementTypes.LP_KW
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test fixity completion after func 1`() =
@@ -63,16 +64,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\func f{-caret-}", FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test as completion in namespace command`() =
-            checkCompletionVariants("\\import B (lol {-caret-})", AS_KW_LIST)
-
-    fun `test as completion in namespace command 2`() =
-            checkSingleCompletion("\\import B (lol \\{-caret-})", AS_KW_LIST[0])
+            checkKeywordCompletionVariants("\\import B (lol {-caret-})", AS_KW_LIST)
 
     fun `test nsCmd completion in namespace command 1`() =
-            checkCompletionVariants("\\import B (lol) {-caret-}", HIDING_KW_LIST, CompletionCondition.CONTAINS)
-
-    fun `test nsCmd completion in namespace command 2`() =
-            checkSingleCompletion("\\import B (lol) \\{-caret-}", HIDING_KW_LIST[0])
+            checkKeywordCompletionVariants("\\import B (lol) {-caret-}", HIDING_KW_LIST, CompletionCondition.SAME_ELEMENTS)
 
     fun `test nsCmd completion in namespace command 3`() =
             checkKeywordCompletionVariants("\\import B (lol)\n{-caret-}", HIDING_KW_LIST, CompletionCondition.CONTAINS)
@@ -138,15 +133,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkSingleCompletion("\\tru{-caret-}", "\\data")
 
     fun `test completion after truncated 3`() =
-            checkCompletionVariants("\\truncated {-caret-}", DATA_KW_LIST, CompletionCondition.CONTAINS)
+            checkKeywordCompletionVariants("\\truncated {-caret-}", DATA_KW_LIST, CompletionCondition.SAME_ELEMENTS)
 
     fun `test completion after truncated 4`() =
-            checkSingleCompletion("\\truncated \\{-caret-}", DATA_KW_LIST[0])
-
-    fun `test completion after truncated 5`() =
             checkSingleCompletion("\\truncated \\da{-caret-}", DATA_KW_LIST[0])
 
-    fun `test completion after truncated 6`() =
+    fun `test completion after truncated 5`() =
             checkSingleCompletion("\\tru{-caret-}\\func", "\\truncated \\data \\func")
 
     fun `test no keyword completion after instance` () =
@@ -192,28 +184,16 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants("\\func foo => 0 {-caret-}\n", GLOBAL_STATEMENT_KWS + WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN)
 
     fun `test extends completion after class name`() =
-            checkCompletionVariants("\\class Lol {-caret-}", EXTENDS_KW_LIST)
+            checkKeywordCompletionVariants("\\class Lol {-caret-}", EXTENDS_KW_LIST)
 
     fun `test extends completion after class name 2`() =
-            checkSingleCompletion("\\class Lol \\{-caret-}", EXTENDS_KW_LIST[0])
-
-    fun `test extends completion after class name 3`() =
-            checkCompletionVariants("\\class Lol {-caret-}{}", EXTENDS_KW_LIST)
-
-    fun `test extends completion after class name 4`() =
-            checkSingleCompletion("\\class Lol \\{-caret-}{}", EXTENDS_KW_LIST[0])
+            checkKeywordCompletionVariants("\\class Lol {-caret-}{}", EXTENDS_KW_LIST)
 
     fun `test extends completion after class arguments`() =
-            checkCompletionVariants("\\class Lol (n : Nat){-caret-}", EXTENDS_KW_LIST)
+            checkKeywordCompletionVariants("\\class Lol (n : Nat){-caret-}", EXTENDS_KW_LIST)
 
     fun `test extends completion after class arguments 2`() =
-            checkSingleCompletion("\\class Lol (n : Nat)\\{-caret-}", EXTENDS_KW_LIST[0])
-
-    fun `test extends completion after class arguments 3`() =
-            checkCompletionVariants("\\class Lol (n : Nat){-caret-}{}", EXTENDS_KW_LIST)
-
-    fun `test extends completion after class arguments 4`() =
-            checkSingleCompletion("\\class Lol (n : Nat)\\{-caret-}{}", EXTENDS_KW_LIST[0])
+            checkKeywordCompletionVariants("\\class Lol (n : Nat){-caret-}{}", EXTENDS_KW_LIST)
 
     fun `test no extends after class without name`() =
             checkKeywordCompletionVariants("\\class {-caret-}{}", EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN)
@@ -323,14 +303,21 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test levels completion after universe literal 8`() =
             checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (({-caret-}))", LP_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test levels completion after universe literal 9`() = // nothing (even levels)
+    fun `test levels completion after universe literal 9`() =
             checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (\\lp {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
 
-    fun `test levels completionafter universe literal 10`() =
+    fun `test h-levels completion after universe literal`() =
             checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type \\lp {-caret-})", LH_KW_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test levels completionafter universe literal 11`() =
+    fun `test h-levels completion after universe literal 2`() =
             checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type \\lp ({-caret-}))", LH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test h-levels completion after universe literal 3`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type (\\suc \\lp) {-caret-})", LH_KW_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test h-levels completion after universe literal 4`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type (\\suc \\lp) ({-caret-}))", LH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
+
 
     /*fun `test no keywords after new even inside braces`() =
             checkCompletionVariants("\\func lol (a : Nat) => (\\new ({-caret-}))", emptyList(), CompletionCondition.SAME_KEYWORDS)

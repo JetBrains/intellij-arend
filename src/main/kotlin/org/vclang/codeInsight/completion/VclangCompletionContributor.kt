@@ -16,6 +16,7 @@ import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
+import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
@@ -145,6 +146,9 @@ class VclangCompletionContributor: CompletionContributor() {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         }))
+
+        val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
+        extend(CompletionType.BASIC, lpKwAfter, KeywordCompletionProvider(LP_KW_LIST))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
     }
