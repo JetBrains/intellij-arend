@@ -16,6 +16,7 @@ import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
+import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
@@ -99,18 +100,16 @@ class VclangCompletionContributor: CompletionContributor() {
                 result is VcSigmaExpr || result is VcPiExpr
         }
         val noExpressionKwsAfter = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
-        val noExpressionKwsAfter_EvenInBraces = and(ofType(LPAREN), or(afterLeaf(SET), afterLeaf(PROP_KW), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE)))
 
-        val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, f1: Boolean, f2: Boolean ->
+        val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
             genericJointCondition({cP, _, jD ->
+
                 !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
                         !(ofType(RBRACE, WITH_KW).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
                         !(ofType(LAM_KW, LET_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
                         !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
-                        !(withAncestors(PsiErrorElement::class.java, VcTuple::class.java).accepts(cP.position)
-                                && noExpressionKwsAfter_EvenInBraces.accepts(jD.prevElement)) && //Fixme: should also work for double braces & inside level expressions
-                        (f1 || jD.prevElement == null || !bareSigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
-                        (f2 || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
+                        (allowInBareSigmaOrPiExpressions || jD.prevElement == null || !bareSigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
+                        (allowInArgumentExpressionContext || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
             }, basicCompletionProvider)
         }
 
@@ -208,9 +207,8 @@ class VclangCompletionContributor: CompletionContributor() {
                 withGrandParents(VcDefData::class.java, VcClassField::class.java, VcConstructor::class.java))
 
         val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT)
-        val ARGUMENT_EXPRESSION = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java,
-                VcAtomFieldsAcc::class.java, VcAtomArgument::class.java),
-                withAncestors(PsiErrorElement::class.java, VcArgumentAppExpr::class.java))
+        val ARGUMENT_EXPRESSION = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java),
+                withAncestors(PsiErrorElement::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java))
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -316,7 +314,7 @@ class VclangCompletionContributor: CompletionContributor() {
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
-            System.out.println("")
+            /*System.out.println("")
             System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
@@ -326,6 +324,13 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("position.great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.parent?.parent?.text)
             System.out.println("position.great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.text)
             System.out.println("position.great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            System.out.println("position.great-great-great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
             val jointData = elementsOnJoint(parameters.originalFile, parameters.offset)
@@ -335,7 +340,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")
+            System.out.println("")*/
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
