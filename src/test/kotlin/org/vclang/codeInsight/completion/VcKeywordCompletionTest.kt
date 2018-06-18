@@ -12,6 +12,10 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.G
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HIDING_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HU_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IMPORT_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LH_LEVEL_KWS
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LH_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LP_LEVEL_KWS
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LP_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KW_LIST
 
@@ -295,29 +299,38 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test universe keywords as typed tele in data (after param)`() =
             checkKeywordCompletionVariants("\\data \\fix 10 lol-data (a : \\Type) {-caret-}", DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal`() = // TODO: Rewrite these tests so that they would allow only levels keywords (via SAME_KEYWORDS)
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Set {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Set {-caret-})", LP_KW_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 2`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Prop {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 2`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Prop {-caret-})", emptyList(), CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 3`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 3`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type {-caret-})", LP_KW_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 4`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\1-Type {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 4`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\1-Type {-caret-})", LP_KW_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 5`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\oo-Type {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 5`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\oo-Type {-caret-})", LP_KW_LIST, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 6`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type ({-caret-}))", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 6`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type ({-caret-}))", LP_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 7`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type ({-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 7`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type ({-caret-})", LP_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
 
-    fun `test no expression keywords after universe literal 8`() = // only levels
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (({-caret-}))", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test levels completion after universe literal 8`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (({-caret-}))", LP_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test levels completion after universe literal 9`() = // nothing (even levels)
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (\\lp {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun `test levels completionafter universe literal 10`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type \\lp {-caret-})", LH_KW_LIST, CompletionCondition.SAME_KEYWORDS)
+
+    fun `test levels completionafter universe literal 11`() =
+            checkKeywordCompletionVariants("\\func lol (a : Nat) => (\\Type \\lp ({-caret-}))", LH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS)
 
     /*fun `test no keywords after new even inside braces`() =
             checkCompletionVariants("\\func lol (a : Nat) => (\\new ({-caret-}))", emptyList(), CompletionCondition.SAME_KEYWORDS)
@@ -329,10 +342,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkCompletionVariants("\\func lol (a : Nat) => (\\new (({-caret-})))", emptyList(), CompletionCondition.SAME_KEYWORDS)
 
     fun `test no keywords after new even inside double braces 2`() =
-            checkCompletionVariants("\\func lol (a : Nat) => (\\new ((\\{-caret-})))", emptyList(), CompletionCondition.SAME_KEYWORDS)*/
-
-    fun `test no expression keywords after universe literal 9`() = // nothing (even levels)
-            checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Type (\\lp {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+            checkCompletionVariants("\\func lol (a : Nat) => (\\new ((\\{-caret-})))", emptyList(), CompletionCondition.SAME_KEYWORDS)*/ //Deemed too difficult to implement properly
 
     /*fun `test no expression keywords after universe literal 10`() = // only levels
             checkKeywordCompletionVariants("\\func lol (a : Nat) => \\Sigma (\\Set {-caret-})", DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN)*/ //Fixme

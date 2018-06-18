@@ -16,7 +16,6 @@ import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
-import java.util.Collections.singletonList
 
 class VclangCompletionContributor: CompletionContributor() {
 
@@ -155,6 +154,7 @@ class VclangCompletionContributor: CompletionContributor() {
         val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, INSTANCE_KW, OPEN_KW).map {it.toString()}
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
+        val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -166,11 +166,15 @@ class VclangCompletionContributor: CompletionContributor() {
         val TRUNCATED_KW_LIST = listOf(TRUNCATED_KW.toString())
         val NEW_KW_LIST = listOf(NEW_KW.toString())
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
+        val LP_KW_LIST = listOf(LP_KW.toString())
+        val LH_KW_LIST = listOf(LH_KW.toString())
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
+        val LP_LEVEL_KWS = LP_KW_LIST + LEVEL_KWS
+        val LH_LEVEL_KWS = LH_KW_LIST + LEVEL_KWS
 
         const val KEYWORD_PRIORITY = 10.0
 
