@@ -354,15 +354,21 @@ expr ::= arrExpr
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
 }
 
+// private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
+
 arrExpr ::= expr ARROW expr {
     pin = 2
     rightAssociative = true
     mixin = "org.vclang.psi.ext.VcArrExprImplMixin"
 }
 
-newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*] {
+newExpr ::= NEW_KW argumentAppExpr newExprTail
+    | appExpr newExprTail {
+    pin(".*") = 1
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
+
+private newExprTail ::= [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*]
 
 universeExpr ::= universeAppExpr
     | setUniverseAppExpr
@@ -447,22 +453,29 @@ typeAnnotation ::= COLON expr { pin = 1 }
 levelExprLP ::= atomLevelExprLP
     | SUC_KW atomLevelExprLP
     | MAX_KW atomLevelExprLP atomLevelExprLP {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprLPImplMixin"
+    recoverWhile = levelExpr_recover
 }
 
 levelExprLH ::= atomLevelExprLH
     | SUC_KW atomLevelExprLH
     | MAX_KW atomLevelExprLH atomLevelExprLH {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprLHImplMixin"
+    recoverWhile = levelExpr_recover
 }
+
+private levelExpr_recover ::= !RPAREN & statement_recover
 
 atomLevelExprLP ::= LP_KW
     | NUMBER
     | LPAREN levelExprLP RPAREN {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprLPImplMixin"
@@ -471,6 +484,7 @@ atomLevelExprLP ::= LP_KW
 atomLevelExprLH ::= LH_KW
     | NUMBER
     | LPAREN levelExprLH RPAREN {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprLHImplMixin"
@@ -494,6 +508,7 @@ truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExprLP? {
 onlyLevelExprLP ::= atomOnlyLevelExprLP
     | MAX_KW atomLevelExprLP atomLevelExprLP
     | SUC_KW atomLevelExprLP {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcOnlyLevelExprLPImplMixin"
@@ -502,6 +517,7 @@ onlyLevelExprLP ::= atomOnlyLevelExprLP
 onlyLevelExprLH ::= atomOnlyLevelExprLH
     | MAX_KW atomLevelExprLH atomLevelExprLH
     | SUC_KW atomLevelExprLH {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcOnlyLevelExprLHImplMixin"
@@ -528,6 +544,7 @@ atomOnlyLevelExprLH ::= LH_KW
 argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExprLP atomOnlyLevelExprLH?) | atomFieldsAcc) (argument | argumentRecovery)* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
+    name = "defCall"
 }
 
 fieldAcc ::= DOT NUMBER { pin = 1 }
@@ -548,11 +565,13 @@ private tupleExpr ::= expr {
     recoverWhile = tupleExpr_recover
 }
 
-private tupleExpr_recover ::= !(RPAREN | COMMA)
+private tupleExpr_recover ::= !(RPAREN | COMMA) & statement_recover
 
 atomFieldsAcc ::= atom fieldAcc* {
+    pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
+    recoverWhile = argument_recover
 }
 
 argument ::= atomArgument
@@ -593,7 +612,7 @@ postfixArgument ::= POSTFIX {
     mixin = "org.vclang.psi.ext.VcPostfixArgumentImplMixin"
 }
 
-newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+newArg ::= NEW_KW argumentAppExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
     pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
@@ -679,7 +698,9 @@ private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
 private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | LGOAL) & statement_recover
 
-typedExpr ::= identifierOrUnknown+ COLON expr | expr
+typedExpr ::= typedExprNamed | expr
+
+private typedExprNamed ::= identifierOrUnknown+ COLON expr { pin = 2 }
 
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
