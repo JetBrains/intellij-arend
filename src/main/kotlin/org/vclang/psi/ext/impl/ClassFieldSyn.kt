@@ -26,7 +26,7 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 
     override fun getTypeClassReference(): ClassReferable? {
-        val ref = refIdentifier?.referent
+        val ref = refIdentifier.referent
         return (((ref as? UnresolvedReference)?.resolve(scope) ?: ref) as? TypedReferable)?.typeClassReference
     }
 }

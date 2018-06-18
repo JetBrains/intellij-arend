@@ -158,7 +158,7 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-classFieldSyn ::= pipe_def refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn {
+classFieldSyn ::= refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
@@ -251,7 +251,7 @@ private defIdentifier_instance ::= defIdentifier {
 
 private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_recover
 
-private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE classFieldSyn* RBRACE] { pin = 1 }
+private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE <<pipe_separated_sequence classFieldSyn>> RBRACE] { pin = 1 }
 
 functionBody ::= FAT_ARROW expr | elim? functionClauses
 

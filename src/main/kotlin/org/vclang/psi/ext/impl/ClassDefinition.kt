@@ -23,6 +23,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getClassReference() = this
 
+    override fun isRecord(): Boolean = recordKw != null
+
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
         val ref = it.referent
         ((ref as? UnresolvedReference)?.resolve(parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) ?: ref) as? ClassReferable

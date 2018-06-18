@@ -19,6 +19,7 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.resolving.PsiPartialConcreteProvider
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -80,7 +81,13 @@ class VcHighlightingAnnotator : Annotator {
                         holder.createErrorAnnotation(command.textRange, "\\import is allowed only on the top level")
                     }
                 }
-            }.checkGroup(element, (element as? VcCompositeElement)?.scope, element is VcFile)
+
+                override fun expectedClass(level: Error.Level, cause: Any?) {
+                    if (cause is PsiElement) {
+                        holder.createAnnotation(levelToSeverity(level), cause.textRange, "Expected a class")
+                    }
+                }
+            }.checkGroup(element, (element as? VcCompositeElement)?.scope, element is VcFile, PsiPartialConcreteProvider)
             return
         }
 
