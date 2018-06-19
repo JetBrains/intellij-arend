@@ -342,12 +342,12 @@ private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW |
 prec ::= assoc NUMBER
 
 expr ::= arrExpr
-    | caseExpr
     | sigmaExpr
     | piExpr
     | lamExpr
     | letExpr
-    | newExpr {
+    | newExpr
+    | caseExpr {
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
@@ -390,6 +390,7 @@ appExpr ::= universeAppExpr
 caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces {
     pin = 1
     mixin = "org.vclang.psi.ext.VcCaseExprImplMixin"
+    recoverWhile = expr_recover
 }
 
 piExpr ::= PI_KW typeTele+ ARROW expr {

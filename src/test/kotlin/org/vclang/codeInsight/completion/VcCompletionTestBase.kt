@@ -46,8 +46,8 @@ abstract class VcCompletionTestBase : VcTestBase() {
         val errorMessage: String? = when (condition) {
             CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result!!)
             CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result!!.filter { it.startsWith("\\") })
-            CompletionCondition.CONTAINS         -> if (!(result!!.containsAll(variants))) "Expected that $result contains all elements of $variants but ${variants.minus(result)} are not contained" else null
-            CompletionCondition.DOES_NOT_CONTAIN -> if (!result!!.intersect(variants).isEmpty()) "Expected that $result does not contain elements of $variants but there are elements ${result.intersect(variants)} in the intersection" else null}
+            CompletionCondition.CONTAINS         -> if (!(result!!.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
+            CompletionCondition.DOES_NOT_CONTAIN -> if (!result!!.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null}
 
         if (errorMessage != null) throw Exception(errorMessage)
     }

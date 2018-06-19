@@ -5,8 +5,7 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.StandardPatterns.and
-import com.intellij.patterns.StandardPatterns.or
+import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
@@ -16,9 +15,8 @@ import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
-import java.util.Collections.singletonList
 
-class VclangCompletionContributor: CompletionContributor() {
+class VclangCompletionContributor() : CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
@@ -147,8 +145,28 @@ class VclangCompletionContributor: CompletionContributor() {
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         }))
 
-        val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
+        //val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
         //extend(CompletionType.BASIC, lpKwAfter, KeywordCompletionProvider(LP_KW_LIST))
+
+        fun pairingWordCondition (condition: (PsiElement?) -> Boolean, cp: CompletionProvider<CompletionParameters>) = ProviderWithCondition({cP, _ ->
+            var position: PsiElement? = cP.position
+            var exprFound = false
+            while (position != null) {
+                if (!(position.nextSibling == null || position.nextSibling is PsiErrorElement)) break
+                if (condition.invoke(position)) {
+                    exprFound = true
+                    break
+                }
+                position = position.parent
+            }
+            exprFound
+        }, cp)
+
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))),
+                pairingWordCondition({position: PsiElement? -> position is VcLetExpr && position.inKw == null}, KeywordCompletionProvider(IN_KW_LIST)))
+        
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))),
+                pairingWordCondition({position -> position is VcCaseExpr && position.withKw == null}, KeywordCompletionProvider(WITH_KW_LIST)))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
     }
@@ -172,6 +190,8 @@ class VclangCompletionContributor: CompletionContributor() {
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
         val LP_KW_LIST = listOf(LP_KW.toString())
         val LH_KW_LIST = listOf(LH_KW.toString())
+        val IN_KW_LIST = listOf(IN_KW.toString())
+        val WITH_KW_LIST = listOf(WITH_KW.toString())
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
