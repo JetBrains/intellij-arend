@@ -3,7 +3,7 @@ package org.vclang.codeInsight.completion
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.testFramework.UsefulTestCase
+import junit.framework.TestCase
 import org.intellij.lang.annotations.Language
 import org.vclang.VcTestBase
 import org.vclang.fileTreeFromText
@@ -30,26 +30,54 @@ abstract class VcCompletionTestBase : VcTestBase() {
     protected fun checkCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
         InlineFile(code).withCaret()
 
-        var result = myFixture.getCompletionVariants("Main.vc")
+        val result = myFixture.getCompletionVariants("Main.vc")
         assertNotNull(result)
 
-        if (condition == CompletionCondition.SAME_KEYWORDS)
-            result = result?.filter { it.startsWith("\\") }
+        val errorMessage: String? = when (condition) {
+            CompletionCondition.SAME_ELEMENTS    -> if (HashSet(result!!) != HashSet(variants)) "Expected $variants but got $result" else null
+            CompletionCondition.SAME_KEYWORDS    -> if (HashSet(result!!.filter { it.startsWith("\\") }) != HashSet(variants)) "Expected same keywords $variants but got ${result.filter { it.startsWith("\\")}}" else null
+            CompletionCondition.CONTAINS         -> if (!(result!!.containsAll(variants))) "Expected that $result contains all elements of $variants but ${variants.minus(result)} are not contained" else null
+            CompletionCondition.DOES_NOT_CONTAIN -> if (!result!!.intersect(variants).isEmpty()) "Expected that $result does not contain elements of $variants but there are elements ${result.intersect(variants)} in the intersection" else null}
 
-        when (condition) {
-            CompletionCondition.SAME_ELEMENTS, CompletionCondition.SAME_KEYWORDS -> UsefulTestCase.assertSameElements<String>(result!!, variants)
-            CompletionCondition.CONTAINS -> UsefulTestCase.assertContainsElements<String>(result!!, variants)
-            CompletionCondition.DOES_NOT_CONTAIN -> UsefulTestCase.assertDoesntContain<String>(result!!, variants)
-        }
+        if (errorMessage != null) throw Exception(errorMessage)
     }
 
-    protected fun checkKeywordCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS){
-        val code1 = code.replace("{-caret-}", "\\{-caret-}", false)
-        checkCompletionVariants(code, variants, condition)
-        if (variants.size == 1 &&
-                (condition == CompletionCondition.SAME_ELEMENTS || condition == CompletionCondition.SAME_KEYWORDS))
-            checkSingleCompletion(code1, variants[0]) else
-            checkCompletionVariants(code1, variants, condition)
+    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Vclang") vararg code: String){
+        var failed = false
+        var failString = ""
+        var index = 0
+        for (codePiece in code) {
+            System.out.println("*** Testing: $codePiece ***")
+
+            val codePieceWithBackSlash = codePiece.replace("{-caret-}", "\\{-caret-}", false)
+            try {
+                checkCompletionVariants(codePiece, variants, condition)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                System.err.flush()
+                failed = true
+                failString += "$codePiece\n"
+            }
+
+            System.out.println("*** Now proceed to the second test stage -- with backslash ***")
+            try {
+                if (variants.size == 1 &&
+                        (condition == CompletionCondition.SAME_ELEMENTS || condition == CompletionCondition.SAME_KEYWORDS))
+                    checkSingleCompletion(codePieceWithBackSlash, variants[0]) else
+                    checkCompletionVariants(codePieceWithBackSlash, variants, condition)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                System.err.flush()
+                failed = true
+                failString += "$codePieceWithBackSlash\n"
+            }
+            index++
+        }
+
+        if (failed) {
+            System.err.println("\nFailed on:\n $failString")
+            TestCase.fail()
+        }
     }
 
     protected fun doSingleCompletion(

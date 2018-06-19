@@ -148,7 +148,7 @@ class VclangCompletionContributor: CompletionContributor() {
         }))
 
         val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
-        extend(CompletionType.BASIC, lpKwAfter, KeywordCompletionProvider(LP_KW_LIST))
+        //extend(CompletionType.BASIC, lpKwAfter, KeywordCompletionProvider(LP_KW_LIST))
 
         //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
     }
@@ -322,7 +322,7 @@ class VclangCompletionContributor: CompletionContributor() {
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
-            /*System.out.println("")
+            System.out.println("")
             System.out.println("keywords: "+ keywords.toString())
             System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
@@ -348,7 +348,7 @@ class VclangCompletionContributor: CompletionContributor() {
             System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")*/
+            System.out.println("")
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
