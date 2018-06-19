@@ -46,29 +46,24 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test nsCmd completion in namespace command 1`() =
             checkKeywordCompletionVariants(HIDING_KW_LIST, CompletionCondition.SAME_ELEMENTS, "\\import B (lol) {-caret-}")
 
-    fun `test nsCmd completion in namespace command 3`() =
+    fun `test nsCmd completion in namespace command 2`() =
             checkKeywordCompletionVariants(HIDING_KW_LIST, CompletionCondition.CONTAINS, "\\import B (lol)\n{-caret-}")
 
-    fun `test nsCmd completion in namespace command 4`() =
+    fun `test nsCmd completion in namespace command 3`() =
             checkKeywordCompletionVariants(HU_KW_LIST, CompletionCondition.CONTAINS, "\\import B {-caret-}")
 
-    fun `test nsCmd completion in namespace command 5`() =
+    fun `test nsCmd completion in namespace command 4`() =
             checkKeywordCompletionVariants(HU_KW_LIST, CompletionCondition.SAME_ELEMENTS, "\\import B {-caret-}(lol)")
 
-    fun `test nsCmd completion in namespace command 8`() =
-            checkNoCompletion("\\import B {-caret-}\\using (lol)")
+    fun `test nsCmd completion in namespace command 5`() =
+            checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_ELEMENTS,
+                    "\\import B {-caret-}\\using (lol)",
+                    "\\import B \\using (lol) {-caret-} \\hiding (lol)",
+                    "\\import B \\hiding {-caret-} (lol)",
+                    "\\import B \\hiding {-caret-}")
 
-    fun `test nsCmd completion in namespace command 9`() =
-            checkNoCompletion("\\import B \\using (lol) {-caret-} \\hiding (lol)")
-
-    fun `test nsCmd completion in namespace command 10`() =
-            checkNoCompletion("\\import B \\hiding {-caret-} (lol)")
-
-    fun `test nsCmd completion in namespace command 11`() =
-            checkNoCompletion("\\import B \\hiding {-caret-}")
-
-    fun `test nsCmd completion in namespace command 12`() =
-            checkCompletionVariants("\\import {-caret-}", GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN)
+    fun `test nsCmd completion in namespace command 6`() =
+            checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\import {-caret-}")
 
     fun `test root keywords completion 1`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
@@ -195,15 +190,27 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test universe keywords as typed tele in data (after param)`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS, "\\data \\fix 10 lol-data (a : \\Type) {-caret-}")
 
-    fun `test levels completion after universe literal`() =
+    fun `test levels completion after universe literal and inside level expressions`() =
             checkKeywordCompletionVariants(LP_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func lol (a : Nat) => (\\Set {-caret-})",
                     "\\func lol (a : Nat) => (\\Type {-caret-})",
                     "\\func lol (a : Nat) => (\\1-Type {-caret-})",
-                    "\\func lol (a : Nat) => (\\oo-Type {-caret-})")
+                    "\\func lol (a : Nat) => (\\oo-Type {-caret-})",
+                    "\\func lol (a : Nat) => \\Set {-caret-}",
+                    "\\func lol (a : Nat) => \\Type {-caret-}",
+                    "\\func lol (a : Nat) => \\1-Type {-caret-}",
+                    "\\func lol (a : Nat) => \\oo-Type {-caret-}",
+                    "\\func lol (a : Nat) => \\Type (\\suc {-caret-})",
+                    "\\func lol (a : Nat) => \\Type (\\max {-caret-})",
+                    "\\func lol (a : Nat) => \\Type (\\max 1 {-caret-})")
 
     fun `test levels completion after universe literal 2`() =
-            checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,"\\func lol (a : Nat) => (\\Prop {-caret-})")
+            checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
+                    "\\func lol (a : Nat) => (\\Prop {-caret-})",
+                    "\\func lol (a : Nat) => (\\Set \\lp {-caret-})",
+                    "\\func lol (a : Nat) => (\\Set (\\suc \\lp {-caret-}))",
+                    "\\func lol (a : Nat) => (\\Set (\\max 1 \\lp {-caret-}))",
+                    "\\func lol (a : Nat) => (\\Type \\lp (\\max 1 \\lh {-caret-}))")
 
     fun `test levels completion after universe literal 3`() =
             checkKeywordCompletionVariants(LP_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
@@ -214,7 +221,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test h-levels completion after universe literal`() =
             checkKeywordCompletionVariants(LH_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func lol (a : Nat) => (\\Type \\lp {-caret-})",
-                    "\\func lol (a : Nat) => (\\Type (\\suc \\lp) {-caret-})")
+                    "\\func lol (a : Nat) => (\\Type (\\suc \\lp) {-caret-})",
+                    "\\func lol (a : Nat) => \\Type \\lp (\\suc {-caret-})",
+                    "\\func lol (a : Nat) => \\Type \\lp (\\max {-caret-})",
+                    "\\func lol (a : Nat) => \\Type \\lp (\\max 1 {-caret-})")
 
     fun `test h-levels completion after universe literal 2`() =
             checkKeywordCompletionVariants(LH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,

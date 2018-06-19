@@ -33,9 +33,19 @@ abstract class VcCompletionTestBase : VcTestBase() {
         val result = myFixture.getCompletionVariants("Main.vc")
         assertNotNull(result)
 
+        fun symDiff(required: List<String>, actual: List<String>): String? {
+            if (HashSet(required) == HashSet(actual)) return null
+            var resultMessage = ""
+            val rma = required.minus(actual)
+            val amr = actual.minus(required)
+            if (rma.isNotEmpty()) resultMessage += "Completion variants do not contain the expected elements $rma"
+            if (amr.isNotEmpty()) resultMessage += (if (resultMessage.isEmpty())  "" else "; ") + "Unexpected completion variants: $amr"
+            return resultMessage
+        }
+
         val errorMessage: String? = when (condition) {
-            CompletionCondition.SAME_ELEMENTS    -> if (HashSet(result!!) != HashSet(variants)) "Expected $variants but got $result" else null
-            CompletionCondition.SAME_KEYWORDS    -> if (HashSet(result!!.filter { it.startsWith("\\") }) != HashSet(variants)) "Expected same keywords $variants but got ${result.filter { it.startsWith("\\")}}" else null
+            CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result!!)
+            CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result!!.filter { it.startsWith("\\") })
             CompletionCondition.CONTAINS         -> if (!(result!!.containsAll(variants))) "Expected that $result contains all elements of $variants but ${variants.minus(result)} are not contained" else null
             CompletionCondition.DOES_NOT_CONTAIN -> if (!result!!.intersect(variants).isEmpty()) "Expected that $result does not contain elements of $variants but there are elements ${result.intersect(variants)} in the intersection" else null}
 
@@ -45,21 +55,26 @@ abstract class VcCompletionTestBase : VcTestBase() {
     protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Vclang") vararg code: String){
         var failed = false
         var failString = ""
+        var successString = ""
         var index = 0
         for (codePiece in code) {
             System.out.println("*** Testing: $codePiece ***")
-
             val codePieceWithBackSlash = codePiece.replace("{-caret-}", "\\{-caret-}", false)
+            var failedTest = false
             try {
                 checkCompletionVariants(codePiece, variants, condition)
             } catch (e: Exception) {
                 e.printStackTrace()
                 System.err.flush()
-                failed = true
+                failedTest = true
                 failString += "$codePiece\n"
             }
+            System.out.println("*** Testing: $codePieceWithBackSlash ***")
 
-            System.out.println("*** Now proceed to the second test stage -- with backslash ***")
+            if (!failedTest) successString += "$codePiece\n"
+            failed = failed || failedTest
+            failedTest = false
+
             try {
                 if (variants.size == 1 &&
                         (condition == CompletionCondition.SAME_ELEMENTS || condition == CompletionCondition.SAME_KEYWORDS))
@@ -68,14 +83,17 @@ abstract class VcCompletionTestBase : VcTestBase() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 System.err.flush()
-                failed = true
+                failedTest = true
                 failString += "$codePieceWithBackSlash\n"
             }
             index++
+            failed = failed || failedTest
+            if (!failedTest) successString += "$codePieceWithBackSlash\n"
         }
 
         if (failed) {
-            System.err.println("\nFailed on:\n $failString")
+            System.err.println("\nFailed on:\n$failString")
+            System.err.println("\nSucceeded on:\n$successString")
             TestCase.fail()
         }
     }
