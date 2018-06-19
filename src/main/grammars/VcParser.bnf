@@ -354,7 +354,7 @@ expr ::= arrExpr
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
 }
 
-// private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
+private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -383,6 +383,8 @@ appExpr ::= universeAppExpr
     | truncatedUniverseAppExpr
     | argumentAppExpr {
     implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcAppExprImplMixin"
+    recoverWhile = expr_recover
 }
 
 caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces {
