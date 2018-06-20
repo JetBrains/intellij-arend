@@ -5,12 +5,13 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
 import org.vclang.psi.*
 
 
-abstract class VcAtomOnlyLevelExprLPImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomOnlyLevelExprLP {
+abstract class VcAtomOnlyLevelExprImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomOnlyLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
         lpKw?.let { return visitor.visitLP(this, params) }
-        onlyLevelExprLP?.let { return it.accept(visitor, params) }
+        lhKw?.let { return visitor.visitLH(this, params) }
+        onlyLevelExpr?.let { return it.accept(visitor, params) }
         error("Incomplete expression: " + this)
     }
 }

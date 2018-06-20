@@ -1,15 +1,15 @@
 package org.vclang.psi.ext
 
-import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
-import org.vclang.psi.VcLevelExprLH
+import com.intellij.lang.ASTNode
+import org.vclang.psi.VcLevelExpr
 
 
-abstract class VcLevelExprLHImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLevelExprLH {
+abstract class VcLevelExprImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
-        val levelExprs = atomLevelExprLHList
+        val levelExprs = atomLevelExprList
         return when {
             sucKw != null -> visitor.visitSuc(this, levelExprs.firstOrNull(), params)
             maxKw != null -> visitor.visitMax(this, levelExprs.getOrNull(0), levelExprs.getOrNull(1), params)

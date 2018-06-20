@@ -5,18 +5,18 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
 import org.vclang.psi.*
 
 
-abstract class VcOnlyLevelExprLPImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcOnlyLevelExprLP {
+abstract class VcOnlyLevelExprImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcOnlyLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R =
         when {
-            sucKw != null -> visitor.visitSuc(this, atomLevelExprLPList.firstOrNull(), params)
+            sucKw != null -> visitor.visitSuc(this, atomLevelExprList.firstOrNull(), params)
             maxKw != null -> {
-                val levelExprs = atomLevelExprLPList
+                val levelExprs = atomLevelExprList
                 visitor.visitMax(this, levelExprs.getOrNull(0), levelExprs.getOrNull(1), params)
             }
             else -> {
-                val lp = atomOnlyLevelExprLP ?: error("Incomplete expression: " + this)
+                val lp = atomOnlyLevelExpr ?: error("Incomplete expression: " + this)
                 lp.accept(visitor, params)
             }
         }

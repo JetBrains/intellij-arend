@@ -87,8 +87,9 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = (doc.reference as? DataContainer)?.data as? SmartPsiElementPointer<*> ?:
-                (doc.reference as? PsiElement)?.let { SmartPointerManager.createPointer(it) }
+            val data = (doc.reference as? DataContainer)?.data
+            val ref = data as? SmartPsiElementPointer<*> ?:
+                (data as? PsiElement ?: (doc.reference as? PsiElement))?.let { runReadAction { SmartPointerManager.createPointer(it) } }
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {

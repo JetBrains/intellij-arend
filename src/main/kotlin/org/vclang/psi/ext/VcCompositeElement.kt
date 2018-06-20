@@ -56,14 +56,10 @@ fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {
             parent is VcAtomFieldsAcc && parent.fieldAccList.isEmpty() -> parent
             parent is VcArgumentAppExpr && parent.argumentList.isEmpty() -> parent
             parent is VcLongName && parent.refIdentifierList.size == 1 -> parent
-            parent is VcLevelExprLP && parent.sucKw == null && parent.maxKw == null -> parent
-            parent is VcLevelExprLH && parent.sucKw == null && parent.maxKw == null -> parent
-            parent is VcAtomLevelExprLP && parent.lparen != null -> parent
-            parent is VcAtomLevelExprLH && parent.lparen != null -> parent
-            parent is VcOnlyLevelExprLP && parent.sucKw == null && parent.maxKw == null -> parent
-            parent is VcOnlyLevelExprLH && parent.sucKw == null && parent.maxKw == null -> parent
-            parent is VcAtomOnlyLevelExprLP && parent.lparen != null -> parent
-            parent is VcAtomOnlyLevelExprLH && parent.lparen != null -> parent
+            parent is VcLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
+            parent is VcAtomLevelExpr && parent.lparen != null -> parent
+            parent is VcOnlyLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
+            parent is VcAtomOnlyLevelExpr && parent.lparen != null -> parent
             else -> return current
         }
     }

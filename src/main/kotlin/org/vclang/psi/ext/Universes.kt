@@ -29,17 +29,17 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiEl
 
 abstract class VcSetUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSetUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptSet(this, set, atomLevelExprLP, visitor, params)
+        acceptSet(this, set, atomLevelExpr, visitor, params)
 }
 
 abstract class VcTruncatedUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcTruncatedUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptTruncated(this, truncatedUniverse, atomLevelExprLP, visitor, params)
+        acceptTruncated(this, truncatedUniverse, atomLevelExpr, visitor, params)
 }
 
 abstract class VcUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptUniverse(this, universe, atomLevelExprLP, atomLevelExprLH, visitor, params)
+        acceptUniverse(this, universe, atomLevelExprList.getOrNull(0), atomLevelExprList.getOrNull(1), visitor, params)
 }
 
 abstract class VcUniverseAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAtom {

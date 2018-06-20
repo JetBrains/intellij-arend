@@ -453,98 +453,65 @@ private defIdentifier_letClause_recover ::= !(COLON | FAT_ARROW | IN_KW) & nameT
 
 typeAnnotation ::= COLON expr { pin = 1 }
 
-levelExprLP ::= atomLevelExprLP
-    | SUC_KW atomLevelExprLP
-    | MAX_KW atomLevelExprLP atomLevelExprLP {
+levelExpr ::= atomLevelExpr
+    | SUC_KW atomLevelExpr
+    | MAX_KW atomLevelExpr atomLevelExpr {
     pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcLevelExprLPImplMixin"
-    recoverWhile = levelExpr_recover
-}
-
-levelExprLH ::= atomLevelExprLH
-    | SUC_KW atomLevelExprLH
-    | MAX_KW atomLevelExprLH atomLevelExprLH {
-    pin(".*") = 1
-    implements = [ "org.vclang.psi.ext.VcSourceNode"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcLevelExprLHImplMixin"
+    mixin = "org.vclang.psi.ext.VcLevelExprImplMixin"
     recoverWhile = levelExpr_recover
 }
 
 private levelExpr_recover ::= !RPAREN & statement_recover
 
-atomLevelExprLP ::= LP_KW
+atomLevelExpr ::= LP_KW
+    | LH_KW
     | NUMBER
-    | LPAREN levelExprLP RPAREN {
+    | LPAREN levelExpr RPAREN {
     pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcAtomLevelExprLPImplMixin"
+    mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
 }
 
-atomLevelExprLH ::= LH_KW
-    | NUMBER
-    | LPAREN levelExprLH RPAREN {
-    pin(".*") = 1
-    implements = [ "org.vclang.psi.ext.VcSourceNode"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcAtomLevelExprLHImplMixin"
-}
-
-universeAppExpr ::= UNIVERSE [atomLevelExprLP atomLevelExprLH?] {
+universeAppExpr ::= UNIVERSE [atomLevelExpr atomLevelExpr?] {
     pin = 1
     mixin = "org.vclang.psi.ext.VcUniverseAppExprImplMixin"
 }
 
-setUniverseAppExpr ::= SET atomLevelExprLP? {
+setUniverseAppExpr ::= SET atomLevelExpr? {
     pin = 1
     mixin = "org.vclang.psi.ext.VcSetUniverseAppExprImplMixin"
 }
 
-truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExprLP? {
+truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
     pin = 1
     mixin = "org.vclang.psi.ext.VcTruncatedUniverseAppExprImplMixin"
 }
 
-onlyLevelExprLP ::= atomOnlyLevelExprLP
-    | MAX_KW atomLevelExprLP atomLevelExprLP
-    | SUC_KW atomLevelExprLP {
+onlyLevelExpr ::= atomOnlyLevelExpr
+    | MAX_KW atomLevelExpr atomLevelExpr
+    | SUC_KW atomLevelExpr {
     pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcOnlyLevelExprLPImplMixin"
-}
-
-onlyLevelExprLH ::= atomOnlyLevelExprLH
-    | MAX_KW atomLevelExprLH atomLevelExprLH
-    | SUC_KW atomLevelExprLH {
-    pin(".*") = 1
-    implements = [ "org.vclang.psi.ext.VcSourceNode"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcOnlyLevelExprLHImplMixin"
+    mixin = "org.vclang.psi.ext.VcOnlyLevelExprImplMixin"
 }
 
 levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
-private levelsLevels ::= LEVELS_KW (PROP_KW | (atomLevelExprLP | UNDERSCORE) (atomLevelExprLH | UNDERSCORE)) { pin = 1 }
+private levelsLevels ::= LEVELS_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
 
-atomOnlyLevelExprLP ::= LP_KW
-    | LPAREN onlyLevelExprLP RPAREN {
+atomOnlyLevelExpr ::= LP_KW
+    | LH_KW
+    | LPAREN onlyLevelExpr RPAREN {
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprLPImplMixin"
+    mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
 
-atomOnlyLevelExprLH ::= LH_KW
-    | LPAREN onlyLevelExprLH RPAREN {
-    implements = [ "org.vclang.psi.ext.VcSourceNode"
-                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprLHImplMixin"
-}
-
-argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExprLP atomOnlyLevelExprLH?) | atomFieldsAcc) (argument | argumentRecovery)* {
+argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) (argument | argumentRecovery)* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
     name = "defCall"
