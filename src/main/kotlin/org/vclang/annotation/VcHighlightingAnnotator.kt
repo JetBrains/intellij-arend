@@ -4,12 +4,14 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
+import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.NameRenaming
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.group.Group
@@ -35,7 +37,7 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is Group) {
-            object : NameResolvingChecker(true) {
+            object : NameResolvingChecker(true, element is VcFile, PsiPartialConcreteProvider) {
                 override fun definitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
                     annotateDefinitionNamesClash(ref1, level)
                     annotateDefinitionNamesClash(ref2, level)
@@ -87,7 +89,17 @@ class VcHighlightingAnnotator : Annotator {
                         holder.createAnnotation(levelToSeverity(level), cause.textRange, "Expected a class")
                     }
                 }
-            }.checkGroup(element, (element as? VcCompositeElement)?.scope, element is VcFile, PsiPartialConcreteProvider)
+
+                override fun checkDefinition(definition: LocatedReferable?, scope: Scope?) {
+                    if (definition is VcDefClass && definition.fatArrow != null) {
+                        val fieldTele = definition.fieldTeleList.firstOrNull()
+                        if (fieldTele != null) {
+                            holder.createAnnotation(HighlightSeverity.ERROR, TextRange(fieldTele.textRange.startOffset, (definition.fieldTeleList.lastOrNull() ?: fieldTele).textRange.endOffset), "Class synonyms cannot have parameters")
+                        }
+                    }
+                    super.checkDefinition(definition, scope)
+                }
+            }.checkGroup(element, (element as? VcCompositeElement)?.scope)
             return
         }
 
