@@ -29,6 +29,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getLocatedReferableParent() = parent.ancestors.filterIsInstance<LocatedReferable>().firstOrNull()
 
+    override fun getUnderlyingReference(): LocatedReferable? = null
+
     companion object {
         fun calcPrecedence(prec: VcPrec?): Precedence {
             if (prec == null) return Precedence.DEFAULT

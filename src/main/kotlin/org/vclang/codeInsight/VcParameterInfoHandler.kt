@@ -8,8 +8,8 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
@@ -25,10 +25,6 @@ import org.vclang.typing.parseBinOp
 
 class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
     // private var lastAppExpr: VcArgumentAppExpr? = null
-
-    override fun getParameterCloseChars(): String? {
-        return ParameterInfoUtils.DEFAULT_PARAMETER_CLOSE_CHARS
-    }
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         //val types = p?.map { Array(it.referableList.size, {_ -> ConcreteBuilder.convertExpression(it.type).toString()}) }?.toTypedArray()?.flatten()
@@ -90,10 +86,6 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
         if (element is PsiElement) {
             context.showHint(element, element.textRange.startOffset, this)
         }
-    }
-
-    override fun getParametersForDocumentation(p: List<Abstract.Parameter>?, context: ParameterInfoContext?): Array<Any>? {
-        return null
     }
 
     override fun getParametersForLookup(item: LookupElement?, context: ParameterInfoContext?): Array<Any>? {
@@ -203,7 +195,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     }
 
     private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
-        (((referent as? UnresolvedReference)?.resolve(scope) ?: referent) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
+        (ExpressionResolveNameVisitor.resolve(referent, scope) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
 
     private fun expressionToReference(expr: Abstract.Expression): Abstract.Reference? {
         return expr.accept(object : BaseAbstractExpressionVisitor<Void, Abstract.Reference?>(null) {
@@ -333,9 +325,5 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
 
     override fun updateParameterInfo(parameterOwner: Abstract.Reference, context: UpdateParameterInfoContext) {
 
-    }
-
-    override fun tracksParameterIndex(): Boolean {
-        return false
     }
 }

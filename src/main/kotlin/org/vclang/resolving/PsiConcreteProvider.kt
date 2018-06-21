@@ -34,7 +34,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
         var cached = true
         var scope: Scope? = null
-        val result = cache.computeIfAbsent(psiReferable, {
+        val result = cache.computeIfAbsent(psiReferable) {
             cached = false
             if (eventsProcessor != null) {
                 eventsProcessor.onTestStarted(psiReferable)
@@ -57,7 +57,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
                 eventsProcessor?.stopTimer(psiReferable)
                 return@computeIfAbsent def
             }
-        })
+        }
 
         if (result === NullDefinition) {
             return null
@@ -115,6 +115,6 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
 
     override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
-        return if (psiReferable is VcDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
+        return if (psiReferable is VcDefClass && psiReferable.fatArrow == null) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
     }
 }

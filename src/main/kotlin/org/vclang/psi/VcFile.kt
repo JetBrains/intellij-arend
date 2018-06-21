@@ -80,4 +80,6 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun moduleTextRepresentation(): String = name
 
     override fun positionTextRepresentation(): String? = null
+
+    override fun getUnderlyingReference(): LocatedReferable? = null
 }

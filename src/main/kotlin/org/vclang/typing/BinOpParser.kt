@@ -4,7 +4,7 @@ import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.naming.BinOpParser
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.Fixity
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
@@ -14,7 +14,7 @@ import org.vclang.psi.VcExpr
 
 private fun addExpression(expr: Abstract.Expression?, binOpSeq: MutableList<Concrete.BinOpSequenceElem>, fixity: Fixity, isExplicit: Boolean) {
     val ref = expr?.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.ReferenceExpression?>(null) {
-        private fun getResult(data: Any?, referent: Referable) = Concrete.ReferenceExpression(data, (referent as? UnresolvedReference)?.resolve((expr as VcExpr).scope) ?: referent, Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+        private fun getResult(data: Any?, referent: Referable) = Concrete.ReferenceExpression(data, ExpressionResolveNameVisitor.resolve(referent, (expr as VcExpr).scope), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
 
         override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?) = getResult(data, referent)
 

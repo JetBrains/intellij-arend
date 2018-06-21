@@ -2,7 +2,7 @@ package org.vclang.typing
 
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
@@ -18,8 +18,9 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
         isType = false
         var ref: Referable? = referent
         var visited: MutableSet<VcDefFunction>? = null
+        var scope = scope
         while (true) {
-            ref = (ref as? UnresolvedReference)?.resolve(scope) ?: ref
+            ref = ExpressionResolveNameVisitor.resolve(ref, scope)
             if (ref is ClassReferable) {
                 return ref
             }
@@ -41,6 +42,7 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
                 }
             }
             ref = term.accept(this, null)
+            scope = term.scope
         }
     }
 

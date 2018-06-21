@@ -2,8 +2,7 @@ package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
-import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
 import org.vclang.psi.VcAppExpr
@@ -31,17 +30,7 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
                 }
                 ref = atomFieldsAcc.atom.literal?.longName?.referent
             }
-
-            while (ref is RedirectingReferable) {
-                ref = ref.originalReferable
-            }
-            if (ref is UnresolvedReference) {
-                ref = ref.resolve(appExpr.scope.globalSubscope)
-            }
-            while (ref is RedirectingReferable) {
-                ref = ref.originalReferable
-            }
-            return ref as? ClassReferable
+            return ExpressionResolveNameVisitor.resolve(ref, appExpr.scope.globalSubscope) as? ClassReferable
         }
     }
 }

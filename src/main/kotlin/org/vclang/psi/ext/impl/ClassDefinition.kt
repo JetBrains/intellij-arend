@@ -2,15 +2,15 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.reference.*
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcIcons
 import org.vclang.psi.*
+import org.vclang.psi.ext.impl.ReferableAdapter.Companion.calcPrecedence
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -25,10 +25,10 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun isRecord(): Boolean = recordKw != null
 
-    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull {
-        val ref = it.referent
-        ((ref as? UnresolvedReference)?.resolve(parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) ?: ref) as? ClassReferable
-    }
+    private fun resolve(ref: Referable?) =
+        ExpressionResolveNameVisitor.resolve(ref, parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) as? ClassReferable
+
+    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { resolve(it.referent) }
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
@@ -55,6 +55,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getPrecedence() = calcPrecedence(prec)
 
     override fun getUnderlyingClass() = refIdentifier
+
+    override fun getUnderlyingReference() = resolve(underlyingClass?.referent)
 
     override fun getFieldSynonyms(): List<VcClassFieldSyn> = classFieldSynList
 
