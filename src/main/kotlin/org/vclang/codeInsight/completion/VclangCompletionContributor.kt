@@ -106,6 +106,7 @@ class VclangCompletionContributor() : CompletionContributor() {
                         !(ofType(RBRACE, WITH_KW).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
                         !(ofType(LAM_KW, LET_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
                         !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
+                        !(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT).accepts(cP.position)) && //No expression keywords when completing levels in universes
                         (allowInBareSigmaOrPiExpressions || jD.prevElement == null || !bareSigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
                         (allowInArgumentExpressionContext || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
             }, basicCompletionProvider)
@@ -146,7 +147,23 @@ class VclangCompletionContributor() : CompletionContributor() {
         }))
 
         //val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
-        //extend(CompletionType.BASIC, lpKwAfter, KeywordCompletionProvider(LP_KW_LIST))
+        extend(CompletionType.BASIC, LPH_CONTEXT, ProviderWithCondition({ cP, pC ->
+            val pp = cP.position.parent.parent
+            when (pp) {
+                is VcSetUniverseAppExpr, is VcTruncatedUniverseAppExpr ->
+                    pp.children.filterIsInstance<VcAtomLevelExpr>().isEmpty()
+                else -> pp.children.filterIsInstance<VcAtomLevelExpr>().size <= 1
+            }
+        }, KeywordCompletionProvider(LPH_KW_LIST)))
+
+        extend(CompletionType.BASIC, withParent(VcLevelExpr::class.java), ProviderWithCondition({cP, _ ->
+            when (cP.position.parent?.firstChild?.node?.elementType) {
+                MAX_KW, SUC_KW -> true
+                else ->false
+            }
+        }, KeywordCompletionProvider(LPH_KW_LIST)))
+        
+        extend(CompletionType.BASIC, LPH_LEVEL_CONTEXT, KeywordCompletionProvider(LPH_LEVEL_KWS))
 
         fun pairingWordCondition (condition: (PsiElement?) -> Boolean, cp: CompletionProvider<CompletionParameters>) = ProviderWithCondition({cP, _ ->
             var position: PsiElement? = cP.position
@@ -164,11 +181,11 @@ class VclangCompletionContributor() : CompletionContributor() {
 
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))),
                 pairingWordCondition({position: PsiElement? -> position is VcLetExpr && position.inKw == null}, KeywordCompletionProvider(IN_KW_LIST)))
-        
+
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))),
                 pairingWordCondition({position -> position is VcCaseExpr && position.withKw == null}, KeywordCompletionProvider(WITH_KW_LIST)))
 
-        //extend(CompletionType.BASIC, ANY, KeywordCompletionProvider(singletonList(INVALID_KW.toString())))
+        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -188,8 +205,7 @@ class VclangCompletionContributor() : CompletionContributor() {
         val TRUNCATED_KW_LIST = listOf(TRUNCATED_KW.toString())
         val NEW_KW_LIST = listOf(NEW_KW.toString())
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
-        val LP_KW_LIST = listOf(LP_KW.toString())
-        val LH_KW_LIST = listOf(LH_KW.toString())
+        val LPH_KW_LIST = listOf(LP_KW.toString(), LH_KW.toString())
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
 
@@ -197,8 +213,7 @@ class VclangCompletionContributor() : CompletionContributor() {
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
-        val LP_LEVEL_KWS = LP_KW_LIST + LEVEL_KWS
-        val LH_LEVEL_KWS = LH_KW_LIST + LEVEL_KWS
+        val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
 
         const val KEYWORD_PRIORITY = 10.0
 
@@ -237,6 +252,9 @@ class VclangCompletionContributor() : CompletionContributor() {
         val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT)
         val ARGUMENT_EXPRESSION = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java),
                 withAncestors(PsiErrorElement::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java))
+        val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java))
+        val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, VcAtomLevelExpr::class.java)
+                /*,withGreatGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java)*/)
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -313,38 +331,14 @@ class VclangCompletionContributor() : CompletionContributor() {
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
     }
 
-    open class KeywordCompletionProvider(private val keywords : List<String>) : CompletionProvider<CompletionParameters>() {
-
-        open fun insertHandler(keyword: String) : InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
-            val document = insertContext.document
-            document.insertString(insertContext.tailOffset, " ") // add tail whitespace
-            insertContext.commitDocument()
-            insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
-        }
-
-        open fun lookupElement(keyword: String) : LookupElementBuilder = LookupElementBuilder.create(keyword)
-
-        open fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String {
-            var prefix = resultSet.prefixMatcher.prefix
-            val lastInvalidIndex = prefix.mapIndexedNotNull { i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}.lastOrNull()
-            if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
-            val pos = parameters.offset - prefix.length - 1
-            if (pos >= 0 && pos < parameters.originalFile.textLength)
-                prefix = (if (parameters.originalFile.text[pos] == '\\') "\\" else "") + prefix
-            return prefix
-        }
-
-        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
-            val prefix = computePrefix(parameters, resultSet)
-
+    open class LoggerCompletionProvider: CompletionProvider<CompletionParameters>() {
+        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
             val text = parameters.position.containingFile.text
 
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
 
             System.out.println("")
-            System.out.println("keywords: "+ keywords.toString())
-            System.out.println("prefix: $prefix")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position.parent: "+parameters.position.parent?.javaClass + " text: " + parameters.position.parent?.text)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.text)
@@ -369,6 +363,33 @@ class VclangCompletionContributor() : CompletionContributor() {
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
             System.out.println("")
+        }
+    }
+
+    open class KeywordCompletionProvider(private val keywords : List<String>): CompletionProvider<CompletionParameters>() {
+
+        open fun insertHandler(keyword: String) : InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
+            val document = insertContext.document
+            document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+            insertContext.commitDocument()
+            insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
+        }
+
+        open fun lookupElement(keyword: String) : LookupElementBuilder = LookupElementBuilder.create(keyword)
+
+        open fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String {
+            var prefix = resultSet.prefixMatcher.prefix
+            val lastInvalidIndex = prefix.mapIndexedNotNull { i, c -> if (!VcWordScanner.isVclangIdentifierPart(c)) i else null}.lastOrNull()
+            if (lastInvalidIndex != null) prefix = prefix.substring(lastInvalidIndex+1, prefix.length)
+            val pos = parameters.offset - prefix.length - 1
+            if (pos >= 0 && pos < parameters.originalFile.textLength)
+                prefix = (if (parameters.originalFile.text[pos] == '\\') "\\" else "") + prefix
+            return prefix
+        }
+
+        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
+            val prefix = computePrefix(parameters, resultSet)
+            System.out.println("keywords: $keywords; prefix: $prefix ")
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
