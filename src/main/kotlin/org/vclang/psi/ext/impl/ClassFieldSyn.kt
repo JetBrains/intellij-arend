@@ -9,7 +9,6 @@ import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNam
 import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
 import org.vclang.VcIcons
 import org.vclang.psi.VcClassFieldSyn
-import org.vclang.psi.VcDefClass
 import org.vclang.psi.stubs.VcClassFieldSynStub
 import javax.swing.Icon
 
@@ -28,7 +27,7 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 
-    override fun getUnderlyingReference() = ExpressionResolveNameVisitor.resolve(underlyingField.referent, ClassFieldImplScope((parent as? ClassReferable)?.underlyingReference, true)) as? LocatedReferable
+    override fun getUnderlyingReference() = (parent as? ClassReferable)?.underlyingReference?.let { classRef -> ExpressionResolveNameVisitor.resolve(underlyingField.referent, ClassFieldImplScope(classRef, true)) as? LocatedReferable }
 
     override fun getTypeClassReference() = (underlyingReference as? TypedReferable)?.typeClassReference
 }
