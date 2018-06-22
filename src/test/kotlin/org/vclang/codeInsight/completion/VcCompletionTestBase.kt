@@ -75,17 +75,26 @@ abstract class VcCompletionTestBase : VcTestBase() {
             failed = failed || failedTest
             failedTest = false
 
-            try {
-                if (variants.size == 1 &&
-                        (condition == CompletionCondition.SAME_ELEMENTS || condition == CompletionCondition.SAME_KEYWORDS))
-                    checkSingleCompletion(codePieceWithBackSlash, variants[0]) else
-                    checkCompletionVariants(codePieceWithBackSlash, variants, condition)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                System.err.flush()
-                failedTest = true
-                failString += "$codePieceWithBackSlash\n"
+            var succeeded = false
+            if (variants.size == 1 && condition != CompletionCondition.DOES_NOT_CONTAIN) {
+                try {
+                    checkSingleCompletion(codePieceWithBackSlash, variants[0])
+                    succeeded = true
+                } catch (e: Exception) {
+
+                }
             }
+            if (!succeeded) {
+                try {
+                    checkCompletionVariants(codePieceWithBackSlash, variants, condition)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    System.err.flush()
+                    failedTest = true
+                    failString += "$codePieceWithBackSlash\n"
+                }
+            }
+
             index++
             failed = failed || failedTest
             if (!failedTest) successString += "$codePieceWithBackSlash\n"

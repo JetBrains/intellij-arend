@@ -10,6 +10,7 @@ import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
+import com.intellij.util.containers.isNullOrEmpty
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
@@ -180,10 +181,33 @@ class VclangCompletionContributor() : CompletionContributor() {
         }, cp)
 
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))),
-                pairingWordCondition({position: PsiElement? -> position is VcLetExpr && position.inKw == null}, KeywordCompletionProvider(IN_KW_LIST)))
+                pairingWordCondition({ position: PsiElement? -> position is VcLetExpr && position.inKw == null }, KeywordCompletionProvider(IN_KW_LIST)))
 
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))),
-                pairingWordCondition({position -> position is VcCaseExpr && position.withKw == null}, KeywordCompletionProvider(WITH_KW_LIST)))
+                pairingWordCondition({ position -> position is VcCaseExpr && position.withKw == null }, KeywordCompletionProvider(WITH_KW_LIST)))
+
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({cP, _ ->
+            var pos2: PsiElement? = cP.position
+            var exprFound = false
+            while (pos2 != null) {
+                if (pos2.nextSibling is PsiWhiteSpace) {
+                    if ((pos2.nextSibling.nextSibling is VcFunctionBody) && (pos2.parent is VcDefFunction)) {
+                        val fBody = (pos2.parent as VcDefFunction).functionBody
+                        exprFound = fBody == null || fBody.expr == null && fBody.functionClauses?.clauseList.isNullOrEmpty()
+                        break
+                    }
+                    if ((pos2.nextSibling.nextSibling is VcDataBody) && (pos2.parent is VcDefData)) {
+                        val dBody = (pos2.parent as VcDefData).dataBody
+                        exprFound = dBody == null || (dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                        break
+
+                    }
+                }
+                if (pos2.nextSibling == null) pos2 = pos2.parent else break
+            }
+                exprFound}, KeywordCompletionProvider(ELIM_KW_LIST)))
+
+        //TODO: One more \with keyword occurrence
 
         extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
@@ -194,6 +218,7 @@ class VclangCompletionContributor() : CompletionContributor() {
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
+        val LPH_KW_LIST = listOf(LP_KW, LH_KW).map { it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -205,9 +230,9 @@ class VclangCompletionContributor() : CompletionContributor() {
         val TRUNCATED_KW_LIST = listOf(TRUNCATED_KW.toString())
         val NEW_KW_LIST = listOf(NEW_KW.toString())
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
-        val LPH_KW_LIST = listOf(LP_KW.toString(), LH_KW.toString())
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
+        val ELIM_KW_LIST = listOf(ELIM_KW.toString())
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
@@ -240,7 +265,8 @@ class VclangCompletionContributor() : CompletionContributor() {
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
         val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
                                     withParentOrGrandParent(VcFunctionBody::class.java),
-                                    withParentOrGrandParent(VcExpr::class.java))
+                                    withParentOrGrandParent(VcExpr::class.java),
+                                    withAncestors(PsiErrorElement::class.java, VcClause::class.java))
         val FIELD_CONTEXT = withAncestors(VcFieldAcc::class.java, VcAtomFieldsAcc::class.java)
         val TELE_CONTEXT =
                 or(and(withAncestors(PsiErrorElement::class.java, VcTypeTele::class.java),
@@ -255,6 +281,12 @@ class VclangCompletionContributor() : CompletionContributor() {
         val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java))
         val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, VcAtomLevelExpr::class.java)
                 /*,withGreatGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java)*/)
+        val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
+                or(EXPRESSION_CONTEXT, TELE_CONTEXT,
+                        withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java),
+                        withAncestors(PsiErrorElement::class.java, VcNameTele::class.java),
+                        withAncestors(PsiErrorElement::class.java, VcDefData::class.java),
+                        withAncestors(PsiErrorElement::class.java, VcDefFunction::class.java)))
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
