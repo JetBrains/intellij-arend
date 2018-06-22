@@ -14,9 +14,11 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.H
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HU_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IMPORT_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IN_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LEVELS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LPH_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LPH_LEVEL_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.PROP_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WITH_KW_LIST
 
@@ -290,6 +292,35 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\data lol (A : \\Type) | south {-caret-}",
             "\\data lol (a : Nat) {-caret-} \\elim a"
     )
+
+    fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol => lol {-caret-}",
+            "\\func lol (a : Nat) => lol {-caret-} a",
+            "\\func lol (a : Nat) => lol {-caret-} a 1 2")
+
+    fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol => lol \\levels {-caret-}")
+
+    fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol => lol \\levels \\lp {-caret-}",
+            "\\func lol => lol \\lp {-caret-}",
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2")
+
+    fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
+            "\\func lol => lol ({-caret-})",
+            "\\func lol => lol \\levels ({-caret-})",
+            "\\func lol => lol \\lp ({-caret-})")
+
+    fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol => lol \\levels \\lp \\lh {-caret-}",
+            "\\func lol => lol \\lp \\lh {-caret-}",
+            "\\func lol (a : Nat) => lol a {-caret-}")
+
+    fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol (a : Nat) => lol {-caret-} \\levels \\lp",
+            "\\func lol => lol \\levels \\lp {-caret-}",
+            "\\func lol => lol \\lp {-caret-}",
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2")
 
 
 }

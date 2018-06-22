@@ -195,7 +195,7 @@ class VclangCompletionContributor : CompletionContributor() {
                     (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
         }
 
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({cP, pC ->
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({cP, _ ->
             var pos2: PsiElement? = cP.position
             var exprFound = false
             while (pos2 != null) {
@@ -221,6 +221,31 @@ class VclangCompletionContributor : CompletionContributor() {
             }
                 exprFound}, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
 
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
+            val appExpr = cP.position.ancestors.filterIsInstance<VcAtomArgument>().firstOrNull()
+            if (appExpr != null && appExpr.parent is VcArgumentAppExpr) {
+                var counter = 0
+                for (ch in appExpr.parent.children) {
+                    if (ch == appExpr) break
+                    if (ch is VcAtomArgument) counter++
+                }
+                counter < 2
+            } else false
+        }, KeywordCompletionProvider(LPH_KW_LIST)))
+
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
+            val appExpr = cP.position.ancestors.filterIsInstance<VcAtomArgument>().firstOrNull()
+            if (appExpr != null && appExpr.parent is VcArgumentAppExpr) {
+                var counter = 0
+                val argAppExpr = (appExpr.parent as VcArgumentAppExpr)
+                for (ch in appExpr.parent.children) {
+                    if (ch == appExpr) break
+                    if (ch is VcAtomArgument || ch is VcLevelsExpr) counter++
+                }
+                counter == 0 && argAppExpr.levelsExpr?.levelsKw == null
+            } else false
+        }, KeywordCompletionProvider(LEVELS_KW_LIST)))
+
         extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
@@ -245,6 +270,8 @@ class VclangCompletionContributor : CompletionContributor() {
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
+        val LEVELS_KW_LIST = listOf(LEVELS_KW.toString())
+        val PROP_KW_LIST = listOf(PROP_KW.toString())
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
