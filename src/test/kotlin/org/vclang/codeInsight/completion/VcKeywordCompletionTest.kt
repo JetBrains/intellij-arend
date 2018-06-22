@@ -4,7 +4,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.A
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_UNIVERSE_KW
-import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ELIM_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ELIM_WITH_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.EXTENDS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FAKE_NTYPE_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
@@ -38,10 +38,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func foo (n : Nat) \\elim n | {-caret-}zero =>",
-                    "\\func foo (n : Nat) => {-caret-}n ")
-
-    fun `test no fixity completion 2`() =
-            checkCompletionVariants("\\func f{-caret-}", FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN)
+                    "\\func foo (n : Nat) => {-caret-}n ",
+                    "\\func f{-caret-}")
 
     fun `test as completion in namespace command`() =
             checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.SAME_ELEMENTS, "\\import B (lol {-caret-})")
@@ -272,20 +270,26 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case \\case a \\with {-caret-}",
             "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}")
 
-    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) {-caret-}",
             "\\func lol (a : Nat) : Nat {-caret-}",
             "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
-            "\\func lol {-caret-}",
             "\\data lol (a : Nat) {-caret-}",
             "\\data lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
-            "\\data lol {-caret-}")
+            "\\data lol | south (a : Nat) {-caret-}",
+            "\\data lol | south I {-caret-}")
 
-    fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+    fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",
             "\\func lol (a : Nat): {-caret-}",
             "\\func lol (a : Nat) {-caret-} (b : Nat) : \\Type",
-            "\\func lol (a : Nat) : \\Set ({-caret-})")
+            "\\func lol (a : Nat) : \\Set ({-caret-})",
+            "\\func lol {-caret-}", // No elim if there are no arguments
+            "\\func lol (a : Nat) {-caret-} =>", // No elim if already there is a fat arrow
+            "\\data lol {-caret-}",
+            "\\data lol (A : \\Type) | south {-caret-}",
+            "\\data lol (a : Nat) {-caret-} \\elim a"
+    )
 
 
 }

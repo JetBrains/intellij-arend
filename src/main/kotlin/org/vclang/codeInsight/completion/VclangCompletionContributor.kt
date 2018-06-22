@@ -1,6 +1,7 @@
 package org.vclang.codeInsight.completion
 
 import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY_IDENTIFIER_TRIMMED
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
@@ -11,13 +12,14 @@ import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.psi.*
 import org.vclang.psi.VcElementTypes.*
 import org.vclang.psi.ext.impl.DefinitionAdapter
 import org.vclang.search.VcWordScanner
 import java.util.*
 
-class VclangCompletionContributor() : CompletionContributor() {
+class VclangCompletionContributor : CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
@@ -99,15 +101,17 @@ class VclangCompletionContributor() : CompletionContributor() {
                 result is VcSigmaExpr || result is VcPiExpr
         }
         val noExpressionKwsAfter = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
+        val afterElimVar = and(ofType(ID), withAncestors(VcRefIdentifier::class.java, VcElim::class.java))
 
         val expressionFilter = {basicCompletionProvider: CompletionProvider<CompletionParameters>, allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
             genericJointCondition({cP, _, jD ->
 
                 !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
-                        !(ofType(RBRACE, WITH_KW).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
-                        !(ofType(LAM_KW, LET_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
+                        !(ofType(RBRACE).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
+                        !(ofType(LAM_KW, LET_KW, WITH_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
                         !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
                         !(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT).accepts(cP.position)) && //No expression keywords when completing levels in universes
+                        !(afterElimVar.accepts(jD.prevElement)) && //No expression keywords in \elim expression
                         (allowInBareSigmaOrPiExpressions || jD.prevElement == null || !bareSigmaOrPi(jD.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
                         (allowInArgumentExpressionContext || !ARGUMENT_EXPRESSION.accepts(cP.position)) // New expressions & universe expressions are allowed in applications
             }, basicCompletionProvider)
@@ -186,28 +190,36 @@ class VclangCompletionContributor() : CompletionContributor() {
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))),
                 pairingWordCondition({ position -> position is VcCaseExpr && position.withKw == null }, KeywordCompletionProvider(WITH_KW_LIST)))
 
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({cP, _ ->
+        val emptyTeleList = {l : List<Abstract.Parameter> ->
+            l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
+                    (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
+        }
+
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({cP, pC ->
             var pos2: PsiElement? = cP.position
             var exprFound = false
             while (pos2 != null) {
                 if (pos2.nextSibling is PsiWhiteSpace) {
                     if ((pos2.nextSibling.nextSibling is VcFunctionBody) && (pos2.parent is VcDefFunction)) {
                         val fBody = (pos2.parent as VcDefFunction).functionBody
-                        exprFound = fBody == null || fBody.expr == null && fBody.functionClauses?.clauseList.isNullOrEmpty()
+                        exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
+                        exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
                         break
                     }
                     if ((pos2.nextSibling.nextSibling is VcDataBody) && (pos2.parent is VcDefData)) {
                         val dBody = (pos2.parent as VcDefData).dataBody
-                        exprFound = dBody == null || (dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                        exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefData).typeTeleList)
                         break
 
                     }
                 }
+                if (pos2 is VcConstructor && pos2.elim == null) {
+                    exprFound = !emptyTeleList(pos2.typeTeleList)
+                }
                 if (pos2.nextSibling == null) pos2 = pos2.parent else break
             }
-                exprFound}, KeywordCompletionProvider(ELIM_KW_LIST)))
-
-        //TODO: One more \with keyword occurrence
+                exprFound}, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
 
         extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
@@ -219,6 +231,7 @@ class VclangCompletionContributor() : CompletionContributor() {
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
         val LPH_KW_LIST = listOf(LP_KW, LH_KW).map { it.toString() }
+        val ELIM_WITH_KW_LIST = listOf(ELIM_KW, WITH_KW).map{ it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -232,7 +245,6 @@ class VclangCompletionContributor() : CompletionContributor() {
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
-        val ELIM_KW_LIST = listOf(ELIM_KW.toString())
 
         val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
@@ -284,9 +296,7 @@ class VclangCompletionContributor() : CompletionContributor() {
         val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java),
-                        withAncestors(PsiErrorElement::class.java, VcNameTele::class.java),
-                        withAncestors(PsiErrorElement::class.java, VcDefData::class.java),
-                        withAncestors(PsiErrorElement::class.java, VcDefFunction::class.java)))
+                        and(withParent(PsiErrorElement::class.java), withGrandParents(VcNameTele::class.java, VcTypeTele::class.java, VcDefData::class.java, VcDefFunction::class.java))))
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
@@ -369,7 +379,6 @@ class VclangCompletionContributor() : CompletionContributor() {
 
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
-
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position.parent: "+parameters.position.parent?.javaClass + " text: " + parameters.position.parent?.text)
