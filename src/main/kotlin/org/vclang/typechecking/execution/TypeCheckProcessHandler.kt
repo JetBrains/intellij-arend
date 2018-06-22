@@ -22,6 +22,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
+import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
 import com.jetbrains.jetpad.vclang.typechecking.CancellationIndicator
 import com.jetbrains.jetpad.vclang.typechecking.order.Ordering
@@ -89,72 +90,80 @@ class TypeCheckProcessHandler(
             return
         }
 
-        val referableConverter = typeCheckerService.referableConverter
-        val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
-        val collector = CollectingOrderingListener()
-        val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
-        val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
-
-        for (library in libraries) {
-            val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
-            val modules = modulePaths.mapNotNull {
-                val module = library.getModuleGroup(it)
-                if (module == null) {
-                    typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
-                } else if (command.definitionFullName == "") {
-                    DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.moduleScopeProvider))
-                }
-                module
-            }
-
-            if (command.definitionFullName == "") {
-                for (module in modules) {
-                    reportParserErrors(module, module, typecheckingErrorReporter)
-                }
-                ordering.orderModules(modules)
-            } else {
-                val ref = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable
-                if (ref == null) {
-                    if (modules.isNotEmpty()) {
-                        typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath))
-                    }
-                } else {
-                    val tcReferable = referableConverter.toDataLocatedReferable(ref)
-                    val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
-                    if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                        val definition = concreteProvider.getConcrete(ref)
-                        if (definition is Concrete.Definition) {
-                            ordering.orderDefinition(definition)
-                        }
-                        else if (definition != null) error(command.definitionFullName + " is not a definition")
-                    } else {
-                        if (ref is PsiLocatedReferable) {
-                            typecheckingErrorReporter.eventsProcessor.onTestStarted(ref)
-                            typecheckingErrorReporter.eventsProcessor.onTestFinished(ref)
-                        }
-                    }
-                }
-            }
-        }
-
         PooledThreadExecutor.INSTANCE.execute {
-            try {
-                TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
-                try {
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+            val referableConverter = typeCheckerService.referableConverter
+            val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
+            val collector = CollectingOrderingListener()
+            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
 
-                    if (typechecking.typecheckCollected(collector)) {
-                        for (module in typechecking.typecheckedModules) {
-                            val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary ?: continue
-                            if (library.supportsPersisting()) {
-                                runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
+            try {
+                for (library in libraries) {
+                    if (indicator.isCanceled) {
+                        break
+                    }
+
+                    val modulePaths = if (modulePath == null) runReadAction { library.loadedModules } else listOf(modulePath)
+                    val modules = modulePaths.mapNotNull {
+                        val module = runReadAction { library.getModuleGroup(it) }
+                        if (module == null) {
+                            runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
+                        } else if (command.definitionFullName == "") {
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.moduleScopeProvider)) }
+                        }
+                        module
+                    }
+
+                    if (command.definitionFullName == "") {
+                        for (module in modules) {
+                            runReadAction {
+                                reportParserErrors(module, module, typecheckingErrorReporter)
+                            }
+                            orderGroup(module, ordering)
+                        }
+                    } else {
+                        val ref = runReadAction { modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable }
+                        if (ref == null) {
+                            if (modules.isNotEmpty()) {
+                                runReadAction { typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath)) }
+                            }
+                        } else {
+                            val tcReferable = runReadAction { referableConverter.toDataLocatedReferable(ref) }
+                            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                                val definition = concreteProvider.getConcrete(ref)
+                                if (definition is Concrete.Definition) {
+                                    ordering.orderDefinition(definition)
+                                } else if (definition != null) error(command.definitionFullName + " is not a definition")
+                            } else {
+                                if (ref is PsiLocatedReferable) {
+                                    runReadAction {
+                                        typecheckingErrorReporter.eventsProcessor.onTestStarted(ref)
+                                        typecheckingErrorReporter.eventsProcessor.onTestFinished(ref)
+                                    }
+                                }
                             }
                         }
                     }
+                }
 
-                    typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
-                } finally {
-                    TypecheckingOrderingListener.setDefaultCancellationIndicator()
+                if (!indicator.isCanceled) {
+                    TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
+                    try {
+                        val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+
+                        if (typechecking.typecheckCollected(collector)) {
+                            for (module in typechecking.typecheckedModules) {
+                                val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
+                                    ?: continue
+                                if (library.supportsPersisting()) {
+                                    runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
+                                }
+                            }
+                        }
+                    } finally {
+                        TypecheckingOrderingListener.setDefaultCancellationIndicator()
+                    }
                 }
             }
             catch (e: ProcessCanceledException) {}
@@ -162,10 +171,30 @@ class TypeCheckProcessHandler(
                 Logger.getInstance(TypeCheckingService::class.java).error(e)
             }
             finally {
+                typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
                 ApplicationManager.getApplication().executeOnPooledThread {
                     destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
                 }
             }
+        }
+    }
+
+    private fun orderGroup(group: Group, ordering: Ordering) {
+        if (indicator.isCanceled) {
+            return
+        }
+
+        val referable = group.referable
+        val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
+        if (tcReferable == null || ordering.getTypechecked(tcReferable) == null) {
+            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
+        }
+
+        for (subgroup in runReadAction { group.subgroups }) {
+            orderGroup(subgroup, ordering)
+        }
+        for (subgroup in runReadAction { group.dynamicSubgroups }) {
+            orderGroup(subgroup, ordering)
         }
     }
 
@@ -231,4 +260,3 @@ private class DefinitionNotFoundError(definitionName: String, modulePath: Module
     GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
     override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
 }
-

@@ -1,5 +1,6 @@
 package org.vclang.resolving
 
+import com.intellij.openapi.application.runReadAction
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
@@ -34,7 +35,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
         var cached = true
         var scope: Scope? = null
-        val result = cache.computeIfAbsent(psiReferable) {
+        val result = cache.computeIfAbsent(psiReferable) { runReadAction {
             cached = false
             if (eventsProcessor != null) {
                 eventsProcessor.onTestStarted(psiReferable)
@@ -48,16 +49,16 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
                     eventsProcessor.onTestFailure(psiReferable)
                     eventsProcessor.onTestFinished(psiReferable)
                 }
-                return@computeIfAbsent NullDefinition
+                return@runReadAction NullDefinition
             } else {
                 if (def.resolved == Concrete.Resolved.NOT_RESOLVED) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
                     def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
                 }
                 eventsProcessor?.stopTimer(psiReferable)
-                return@computeIfAbsent def
+                return@runReadAction def
             }
-        }
+        } }
 
         if (result === NullDefinition) {
             return null
@@ -67,10 +68,12 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
         }
 
         if (result.relatedDefinition.resolved != Concrete.Resolved.RESOLVED) {
-            if (scope == null) {
-                scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
+            runReadAction {
+                if (scope == null) {
+                    scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
+                }
+                result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, errorReporter), scope)
             }
-            result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, errorReporter), scope)
         }
 
         when (result) {
@@ -99,7 +102,8 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
         }
 
         cache[psiReferable]?.let { return it }
-        psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull()?.let { getConcreteDefinition(it) } ?: return null
+        val concreteRef = runReadAction { psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull() } ?: return null
+        getConcreteDefinition(concreteRef) ?: return null
         return cache[psiReferable]
     }
 
@@ -115,6 +119,11 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
 
     override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
-        return if (psiReferable is VcDefClass && psiReferable.fatArrow == null) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
+        return if (psiReferable is VcDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
+    }
+
+    override fun isRecord(classRef: ClassReferable): Boolean {
+        val psiReferable = PsiLocatedReferable.fromReferable(classRef)
+        return psiReferable is VcDefClass && runReadAction { psiReferable.recordKw != null }
     }
 }
