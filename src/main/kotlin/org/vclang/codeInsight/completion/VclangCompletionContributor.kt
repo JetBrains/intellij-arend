@@ -222,11 +222,17 @@ class VclangCompletionContributor : CompletionContributor() {
                 exprFound}, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
-            val appExpr = cP.position.ancestors.filterIsInstance<VcAtomArgument>().firstOrNull()
-            if (appExpr != null && appExpr.parent is VcArgumentAppExpr) {
-                var counter = 0
-                for (ch in appExpr.parent.children) {
-                    if (ch == appExpr) break
+            val atomFields = cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().firstOrNull()
+            val argumentAppExpr : VcArgumentAppExpr? = when {
+                atomFields != null && atomFields.parent is VcAtomArgument && atomFields.parent.parent is VcArgumentAppExpr -> atomFields.parent.parent!! as VcArgumentAppExpr
+                atomFields != null && atomFields.parent is VcArgumentAppExpr -> atomFields.parent!! as VcArgumentAppExpr
+                else -> null
+            }
+            if (argumentAppExpr != null) {
+                var counter = argumentAppExpr.atomOnlyLevelExprList.size
+                if (argumentAppExpr.levelsExpr != null) counter += argumentAppExpr.levelsExpr!!.atomLevelExprList.size
+                for (ch in argumentAppExpr.children) {
+                    if (ch == atomFields || ch == atomFields!!.parent) break
                     if (ch is VcAtomArgument) counter++
                 }
                 counter < 2
@@ -234,15 +240,20 @@ class VclangCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_KW_LIST)))
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
-            val appExpr = cP.position.ancestors.filterIsInstance<VcAtomArgument>().firstOrNull()
-            if (appExpr != null && appExpr.parent is VcArgumentAppExpr) {
-                var counter = 0
-                val argAppExpr = (appExpr.parent as VcArgumentAppExpr)
-                for (ch in appExpr.parent.children) {
-                    if (ch == appExpr) break
+            val atomFields = cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().firstOrNull()
+            val argumentAppExpr : VcArgumentAppExpr? = when {
+                atomFields != null && atomFields.parent is VcAtomArgument && atomFields.parent.parent is VcArgumentAppExpr -> atomFields.parent.parent!! as VcArgumentAppExpr
+                atomFields != null && atomFields.parent is VcArgumentAppExpr -> atomFields.parent!! as VcArgumentAppExpr
+                else -> null
+            }
+            if (argumentAppExpr != null) {
+                var counter = argumentAppExpr.atomOnlyLevelExprList.size
+                if (argumentAppExpr.levelsExpr != null) counter += argumentAppExpr.levelsExpr!!.atomLevelExprList.size
+                for (ch in argumentAppExpr.children) {
+                    if (ch == atomFields || ch == atomFields!!.parent) break
                     if (ch is VcAtomArgument || ch is VcLevelsExpr) counter++
                 }
-                counter == 0 && argAppExpr.levelsExpr?.levelsKw == null
+                counter == 0 /*&& argumentAppExpr.levelsExpr?.levelsKw == null */ // won't help us much
             } else false
         }, KeywordCompletionProvider(LEVELS_KW_LIST)))
 
