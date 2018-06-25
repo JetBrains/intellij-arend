@@ -23,7 +23,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.W
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WITH_KW_LIST
 
 class VcKeywordCompletionTest : VcCompletionTestBase() {
-    /*fun `test fixity completion`() =
+    fun `test fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.SAME_ELEMENTS,
                     "\\func {-caret-}test => 0",
                     "\\func {-caret-}",
@@ -160,7 +160,6 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test expression keywords`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f => {-caret-}",
-                    "\\func f (a : Nat) => f({-caret-})",
                     "\\func f (a : Nat) => \\let a => 101 \\in {-caret-}",
                     "\\func f (a : Nat) => \\let a => {-caret-}\\in 101",
                     "\\func f (a : Nat) => \\Pi ({-caret-})",
@@ -168,10 +167,17 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}")
 
+    fun `test expression keywords 2`() =
+            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+                    "\\func f (a : Nat) => f({-caret-})")
+
     fun `test only new & universes in application expression or after new expr`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
-                    "\\func f (a : Nat) => f {-caret-}",
                     "\\func lol (a : Nat) => (\\new () {-caret-})")
+
+    fun `test only new & universes in application expression or after new expr 2`() =
+            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+                    "\\func f (a : Nat) => f {-caret-}")
 
     fun `test no keyword completion after with`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with {-caret-}",
@@ -216,12 +222,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test levels completion after universe literal 2`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
-                    "\\func lol (a : Nat) => (\\Prop {-caret-})",
+                    "\\func lol (a : Nat) => (\\Prop {-caret-})" /*,
                     "\\func lol (a : Nat) => (\\Set \\lp {-caret-})",
                     "\\func lol (a : Nat) => (\\Set (\\suc \\lp {-caret-}))",
                     "\\func lol (a : Nat) => (\\Set (\\max 1 \\lp {-caret-}))",
                     "\\func lol (a : Nat) => (\\Type \\lp (\\max 1 \\lh {-caret-}))",
-                    "\\func lol (a : Nat) => (\\Type \\lp \\lh {-caret-})")
+                    "\\func lol (a : Nat) => (\\Type \\lp \\lh {-caret-})"*/)
 
     fun `test levels completion after universe literal 3`() =
             checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
@@ -291,12 +297,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\data lol {-caret-}",
             "\\data lol (A : \\Type) | south {-caret-}",
             "\\data lol (a : Nat) {-caret-} \\elim a"
-    ) */
+    )
 
     fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol {-caret-}",
             "\\func lol (a : Nat) => lol {-caret-} a",
-            "\\func lol (a : Nat) => lol {-caret-} a 1 2")
+            "\\func lol (a : Nat) => lol {-caret-} a 1 2"
+            )
 
     fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol => lol \\levels {-caret-}")
@@ -304,23 +310,27 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
-            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2")
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2"
+            //,"\\func lol => lol \\levels (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
+            )
 
     fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
-            "\\func lol => lol ({-caret-})",
             "\\func lol => lol \\levels ({-caret-})",
+            "\\func lol => lol \\levels \\lp ({-caret-})",
             "\\func lol => lol \\lp ({-caret-})")
 
     fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol => lol \\levels \\lp \\lh {-caret-}",
             "\\func lol => lol \\lp \\lh {-caret-}",
-            "\\func lol (a : Nat) => lol a {-caret-}")
+            "\\func lol (a : Nat) => lol a {-caret-}",
+            "\\func lol => 1 {-caret-}",
+            "\\func lol => 1 ({-caret-})")
 
     fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            //"\\func lol (a : Nat) => lol {-caret-} \\levels \\lp",
             "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
-            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2")
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
+            "\\func lol (a : Nat) => lol ({-caret-})")
 
 
 }

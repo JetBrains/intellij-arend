@@ -150,8 +150,7 @@ class VclangCompletionContributor : CompletionContributor() {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         }))
-
-        //val lpKwAfter = or(afterLeaf(SET), afterLeaf(UNIVERSE), afterLeaf(TRUNCATED_UNIVERSE))
+        
         extend(CompletionType.BASIC, LPH_CONTEXT, ProviderWithCondition({ cP, pC ->
             val pp = cP.position.parent.parent
             when (pp) {
@@ -221,43 +220,59 @@ class VclangCompletionContributor : CompletionContributor() {
             }
                 exprFound}, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
 
-        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
-            val atomFields = cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().firstOrNull()
-            val argumentAppExpr : VcArgumentAppExpr? = when {
-                atomFields != null && atomFields.parent is VcAtomArgument && atomFields.parent.parent is VcArgumentAppExpr -> atomFields.parent.parent!! as VcArgumentAppExpr
-                atomFields != null && atomFields.parent is VcArgumentAppExpr -> atomFields.parent!! as VcArgumentAppExpr
+        val isLiteralApp = { argumentAppExpr: VcArgumentAppExpr ->
+            argumentAppExpr.longName != null ||
+            (argumentAppExpr.children[0] is VcAtomFieldsAcc && (argumentAppExpr.children[0] as VcAtomFieldsAcc).atom.literal?.longName != null)
+        }
+
+        val unifiedLevelCondition = {atomIndex: Int?, forbidLevelExprs: Boolean, threshold: Int -> {cP: CompletionParameters, _: ProcessingContext? ->
+            var anchor: PsiElement? = if (atomIndex != null) cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().toList().getOrNull(atomIndex) else null
+            var argumentAppExpr : VcArgumentAppExpr? = when {
+                anchor != null && anchor.parent is VcAtomArgument && anchor.parent.parent is VcArgumentAppExpr -> anchor.parent.parent!! as VcArgumentAppExpr
+                anchor != null && anchor.parent is VcArgumentAppExpr -> anchor.parent!! as VcArgumentAppExpr
                 else -> null
             }
-            if (argumentAppExpr != null) {
-                var counter = argumentAppExpr.atomOnlyLevelExprList.size
-                if (argumentAppExpr.levelsExpr != null) counter += argumentAppExpr.levelsExpr!!.atomLevelExprList.size
-                for (ch in argumentAppExpr.children) {
-                    if (ch == atomFields || ch == atomFields!!.parent) break
-                    if (ch is VcAtomArgument) counter++
-                }
-                counter < 2
-            } else false
-        }, KeywordCompletionProvider(LPH_KW_LIST)))
-
-        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition({cP, pC ->
-            val atomFields = cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().firstOrNull()
-            val argumentAppExpr : VcArgumentAppExpr? = when {
-                atomFields != null && atomFields.parent is VcAtomArgument && atomFields.parent.parent is VcArgumentAppExpr -> atomFields.parent.parent!! as VcArgumentAppExpr
-                atomFields != null && atomFields.parent is VcArgumentAppExpr -> atomFields.parent!! as VcArgumentAppExpr
-                else -> null
+            if (anchor == null && cP.position.parent?.parent is VcArgumentAppExpr) {
+                anchor = cP.position.parent
+                argumentAppExpr = anchor.parent!! as VcArgumentAppExpr
             }
-            if (argumentAppExpr != null) {
+
+            if (anchor == null && cP.position.parent is VcArgumentAppExpr) {
+                argumentAppExpr = cP.position.parent as VcArgumentAppExpr
+            }
+
+            if (argumentAppExpr != null && anchor != null && isLiteralApp(argumentAppExpr)) {
                 var counter = argumentAppExpr.atomOnlyLevelExprList.size
+                var forbidden = false
                 if (argumentAppExpr.levelsExpr != null) counter += argumentAppExpr.levelsExpr!!.atomLevelExprList.size
                 for (ch in argumentAppExpr.children) {
-                    if (ch == atomFields || ch == atomFields!!.parent) break
-                    if (ch is VcAtomArgument || ch is VcLevelsExpr) counter++
+                    if (ch == anchor || ch == anchor.parent) break
+                    if (ch is VcAtomArgument) forbidden = true
+                    if (ch is VcLevelsExpr) {
+                        if (forbidLevelExprs) forbidden = true
+                        counter += ch.atomLevelExprList.size
+                    }
                 }
-                counter == 0 /*&& argumentAppExpr.levelsExpr?.levelsKw == null */ // won't help us much
-            } else false
-        }, KeywordCompletionProvider(LEVELS_KW_LIST)))
+                counter < threshold && !forbidden
+            } else argumentAppExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+        }}
 
-        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, false, 2), KeywordCompletionProvider(LPH_KW_LIST)))
+
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, true, 1), KeywordCompletionProvider(LEVELS_KW_LIST)))
+
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION_IN_BRACKETS, ProviderWithCondition(unifiedLevelCondition.invoke(1, false, 2), KeywordCompletionProvider(LPH_LEVEL_KWS)))
+
+        extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcArgumentAppExpr::class.java),
+                ProviderWithCondition(unifiedLevelCondition.invoke(null, false, 2), KeywordCompletionProvider(LPH_LEVEL_KWS)))
+
+        extend(CompletionType.BASIC, withParent(VcArgumentAppExpr::class.java), ProviderWithCondition({ cP, _ ->
+            val argumentAppExpr : VcArgumentAppExpr? = cP.position.parent as VcArgumentAppExpr
+            argumentAppExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+        }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
+
+
+        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -329,12 +344,16 @@ class VclangCompletionContributor : CompletionContributor() {
         val ARGUMENT_EXPRESSION = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java),
                 withAncestors(PsiErrorElement::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java))
         val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java))
-        val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, VcAtomLevelExpr::class.java)
-                /*,withGreatGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java)*/)
+        val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, VcAtomLevelExpr::class.java))
         val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java),
                         and(withParent(PsiErrorElement::class.java), withGrandParents(VcNameTele::class.java, VcTypeTele::class.java, VcDefData::class.java, VcDefFunction::class.java))))
+        val ARGUMENT_EXPRESSION_IN_BRACKETS =
+                withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java,
+                        VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcTuple::class.java,
+                        VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java, VcArgumentAppExpr::class.java)
+
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null
