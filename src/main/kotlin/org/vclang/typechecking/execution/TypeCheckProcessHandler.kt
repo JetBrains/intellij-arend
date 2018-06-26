@@ -30,6 +30,7 @@ import com.jetbrains.jetpad.vclang.typechecking.order.listener.CollectingOrderin
 import com.jetbrains.jetpad.vclang.typechecking.order.listener.TypecheckingOrderingListener
 import org.jetbrains.ide.PooledThreadExecutor
 import org.vclang.module.VcRawLibrary
+import org.vclang.psi.VcDefClass
 import org.vclang.psi.VcFile
 import org.vclang.psi.VcStatement
 import org.vclang.psi.ext.PsiLocatedReferable
@@ -122,7 +123,10 @@ class TypeCheckProcessHandler(
                             orderGroup(module, ordering)
                         }
                     } else {
-                        val ref = runReadAction { modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable }
+                        val ref = runReadAction {
+                            val group = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))
+                            if (group is VcDefClass && group.fatArrow != null) null else group?.referable
+                        }
                         if (ref == null) {
                             if (modules.isNotEmpty()) {
                                 runReadAction { typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath)) }

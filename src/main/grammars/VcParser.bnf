@@ -251,7 +251,9 @@ private defIdentifier_instance ::= defIdentifier {
 
 private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_recover
 
-private classBodySyn ::= fat_arrow_def refIdentifier [LBRACE <<pipe_separated_sequence classFieldSyn>> RBRACE] { pin = 1 }
+private classBodySyn ::= fat_arrow_def refIdentifier classBodySynStats? { pin = 1 }
+
+private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
 functionBody ::= FAT_ARROW expr | elim? functionClauses
 

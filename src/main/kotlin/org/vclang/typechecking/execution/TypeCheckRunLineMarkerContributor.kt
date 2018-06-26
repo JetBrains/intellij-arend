@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.Function
 import com.jetbrains.jetpad.vclang.core.definition.Definition
+import org.vclang.psi.VcDefClass
 import org.vclang.psi.VcDefIdentifier
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcElementTypes
@@ -20,6 +21,10 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         }
 
         val parent = (element.parent as? VcDefIdentifier)?.parent as? VcDefinition ?: return null
+        if (parent is VcDefClass && parent.fatArrow != null) {
+            return null
+        }
+
         val service = TypeCheckingService.getInstance(parent.project)
         val state = service.getTypechecked(parent)?.let { it.status() == Definition.TypeCheckingStatus.NO_ERRORS }
         val icon = when (state) {
