@@ -222,12 +222,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test levels completion after universe literal 2`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
-                    "\\func lol (a : Nat) => (\\Prop {-caret-})" /*,
+                    "\\func lol (a : Nat) => (\\Prop {-caret-})" ,
                     "\\func lol (a : Nat) => (\\Set \\lp {-caret-})",
                     "\\func lol (a : Nat) => (\\Set (\\suc \\lp {-caret-}))",
                     "\\func lol (a : Nat) => (\\Set (\\max 1 \\lp {-caret-}))",
                     "\\func lol (a : Nat) => (\\Type \\lp (\\max 1 \\lh {-caret-}))",
-                    "\\func lol (a : Nat) => (\\Type \\lp \\lh {-caret-})"*/)
+                    "\\func lol (a : Nat) => (\\Type \\lp \\lh {-caret-})")
 
     fun `test levels completion after universe literal 3`() =
             checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
@@ -268,7 +268,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case a {-caret-}",
             "\\func lol (a : Nat) => \\case a + 2 {-caret-}",
             "\\func lol (a : Nat) => \\case (a + 2) {-caret-}",
-            "\\func lol (a : Nat) => \\case \\case a {-caret-}")
+            "\\func lol (a : Nat) => \\case \\case a {-caret-}",
+            "\\func lol (a : Nat) => (\\case a + 2 {-caret-})")
 
     fun `test with keyword completion 2`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case \\case a \\with {} {-caret-}")

@@ -173,11 +173,11 @@ class VclangCompletionContributor : CompletionContributor() {
             var position: PsiElement? = cP.position
             var exprFound = false
             while (position != null) {
-                if (!(position.nextSibling == null || position.nextSibling is PsiErrorElement)) break
                 if (condition.invoke(position)) {
                     exprFound = true
                     break
                 }
+                if (!(position.nextSibling == null || position.nextSibling is PsiErrorElement)) break
                 position = position.parent
             }
             exprFound
@@ -305,7 +305,7 @@ class VclangCompletionContributor : CompletionContributor() {
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
 
-        const val KEYWORD_PRIORITY = 10.0
+        const val KEYWORD_PRIORITY = 0.0
 
         private fun afterLeaf(et: IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun ofType(vararg types: IElementType) = or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
