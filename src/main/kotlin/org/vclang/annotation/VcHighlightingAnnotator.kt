@@ -8,6 +8,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
+import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
@@ -15,6 +16,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.NameRenaming
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.group.Group
+import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
@@ -84,9 +86,20 @@ class VcHighlightingAnnotator : Annotator {
                     }
                 }
 
-                override fun expectedClass(level: Error.Level, cause: Any?) {
+                override fun expectedClass(level: Error.Level, message: String, cause: Any?) {
                     if (cause is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), cause.textRange, "Expected a class")
+                        holder.createAnnotation(levelToSeverity(level), cause.textRange, message)
+                    }
+                }
+
+                override fun error(error: LocalError) {
+                    if (error is NotInScopeError) {
+                        return
+                    }
+
+                    val cause = error.cause
+                    if (cause is PsiElement) {
+                        holder.createAnnotation(levelToSeverity(error.level), cause.textRange, error.shortMessage)
                     }
                 }
 

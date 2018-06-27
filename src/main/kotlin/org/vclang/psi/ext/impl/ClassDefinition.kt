@@ -20,7 +20,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getReferable() = this
 
-    override fun getClassReference() = this
+    override fun getClassReference() = if (fatArrow == null) this else underlyingReference
 
     override fun isRecord(): Boolean = recordKw != null
 
@@ -60,8 +60,6 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getUnderlyingReference() = resolve(unresolvedUnderlyingReference?.referent)
 
     override fun getUnresolvedUnderlyingReference(): Reference? = underlyingClass
-
-    override fun getFieldSynonyms(): List<VcClassFieldSyn> = classFieldSynList
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
