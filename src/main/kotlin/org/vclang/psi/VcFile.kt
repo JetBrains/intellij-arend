@@ -6,6 +6,7 @@ import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.prelude.Prelude
@@ -82,4 +83,6 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun positionTextRepresentation(): String? = null
 
     override fun getUnderlyingReference(): LocatedReferable? = null
+
+    override fun getUnresolvedUnderlyingReference(): Reference? = null
 }

@@ -10,7 +10,6 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcIcons
 import org.vclang.psi.*
-import org.vclang.psi.ext.impl.ReferableAdapter.Companion.calcPrecedence
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
@@ -29,6 +28,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
         ExpressionResolveNameVisitor.resolve(ref, parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) as? ClassReferable
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { resolve(it.referent) }
+
+    override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList
 
     override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
 
@@ -56,7 +57,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getUnderlyingClass() = refIdentifier
 
-    override fun getUnderlyingReference() = resolve(underlyingClass?.referent)
+    override fun getUnderlyingReference() = resolve(unresolvedUnderlyingReference?.referent)
+
+    override fun getUnresolvedUnderlyingReference(): Reference? = underlyingClass
 
     override fun getFieldSynonyms(): List<VcClassFieldSyn> = classFieldSynList
 

@@ -2,9 +2,7 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
 import org.vclang.VcIcons
@@ -27,7 +25,9 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 
-    override fun getUnderlyingReference() = (parent as? ClassReferable)?.underlyingReference?.let { classRef -> ExpressionResolveNameVisitor.resolve(underlyingField.referent, ClassFieldImplScope(classRef, true)) as? LocatedReferable }
+    override fun getUnderlyingReference() = (parent as? ClassReferable)?.underlyingReference?.let { classRef -> ExpressionResolveNameVisitor.resolve(unresolvedUnderlyingReference.referent, ClassFieldImplScope(classRef, true)) as? LocatedReferable }
+
+    override fun getUnresolvedUnderlyingReference() = underlyingField
 
     override fun getTypeClassReference() = (underlyingReference as? TypedReferable)?.typeClassReference
 }

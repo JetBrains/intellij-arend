@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.term.Precedence
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcFile
@@ -30,6 +31,8 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override fun getLocatedReferableParent() = parent.ancestors.filterIsInstance<LocatedReferable>().firstOrNull()
 
     override fun getUnderlyingReference(): LocatedReferable? = null
+
+    override fun getUnresolvedUnderlyingReference(): Reference? = null
 
     companion object {
         fun calcPrecedence(prec: VcPrec?): Precedence {
