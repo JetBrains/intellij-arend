@@ -32,8 +32,8 @@ open class VcDefReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceB
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
 }
 
-open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T): VcReferenceImpl<T>(element) {
-    override fun resolve(): PsiElement = super.resolve() ?: element
+open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T, private val onlyResolve: Boolean): VcReferenceImpl<T>(element) {
+    override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
 open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {

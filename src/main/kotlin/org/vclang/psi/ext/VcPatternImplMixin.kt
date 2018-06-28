@@ -15,12 +15,11 @@ abstract class VcPatternImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcPat
     override fun isExplicit(): Boolean = isExplicit(atomPattern)
 
     override fun getHeadReference(): Referable? {
-        val conPattern = patternConstructor ?: return atomPattern?.pattern?.headReference
-        val conName = conPattern.defIdentifier
-        return if (conPattern.atomPatternOrPrefixList.isEmpty()) conName else NamedUnresolvedReference(conName, conName.referenceName)
+        val conName = defIdentifier ?: return atomPattern?.pattern?.headReference
+        return if (atomPatternOrPrefixList.isEmpty()) conName else NamedUnresolvedReference(conName, conName.referenceName)
     }
 
-    override fun getArguments(): List<Abstract.Pattern> = patternConstructor?.atomPatternOrPrefixList ?: atomPattern?.pattern?.arguments ?: emptyList()
+    override fun getArguments(): List<Abstract.Pattern> = atomPattern?.pattern?.arguments ?: atomPatternOrPrefixList
 }
 
 fun isEmpty(atom: VcAtomPattern?): Boolean = when {

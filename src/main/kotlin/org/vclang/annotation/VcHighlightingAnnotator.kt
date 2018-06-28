@@ -9,8 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.NameRenaming
@@ -113,6 +112,37 @@ class VcHighlightingAnnotator : Annotator {
                     super.checkDefinition(definition, scope)
                 }
             }.checkGroup(element, (element as? VcCompositeElement)?.scope)
+            return
+        }
+
+        if (element is VcNewExpr && element.newKw != null || element is VcNewArg) {
+            val argumentAppExpr = (element as? VcNewExpr)?.argumentAppExpr ?: (element as? VcNewArg)?.argumentAppExpr
+            if (argumentAppExpr != null) {
+                val longName = argumentAppExpr.longNameExpr?.longName ?: run {
+                    val atomFieldsAcc = argumentAppExpr.atomFieldsAcc
+                    if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
+                        atomFieldsAcc.atom.literal?.longName
+                    } else {
+                        null
+                    }
+                }
+                if (longName != null) {
+                    val ref = longName.referent
+                    val resolved = (ref as? UnresolvedReference)?.resolve(argumentAppExpr.scope) ?: ref
+                    if (resolved !is VcDefClass && resolved !is UnresolvedReference && resolved !is ErrorReference) {
+                        holder.createErrorAnnotation(longName, "Expected a class")
+                    }
+                }
+            }
+            return
+        }
+
+        if (element is VcPattern) {
+            val defIdentifier = element.defIdentifier ?: return
+            val resolved = element.scope.resolveName(defIdentifier.referenceName)
+            if (resolved != null && (resolved !is GlobalReferable || PsiLocatedReferable.fromReferable(resolved) !is VcConstructor)) {
+                holder.createErrorAnnotation(defIdentifier, "Expected a constructor")
+            }
             return
         }
 

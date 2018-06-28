@@ -7,7 +7,6 @@ import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import org.vclang.psi.*
-import org.vclang.psi.impl.VcAtomPatternOrPrefixImpl
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcPatternDefReferenceImpl
 import org.vclang.resolving.VcReference
@@ -25,11 +24,13 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
 
     override fun textRepresentation(): String = referenceName
 
-    override fun getReference(): VcReference =
-        when (parent) {
-            is VcPatternConstructor, is VcAtomPatternOrPrefix -> VcPatternDefReferenceImpl<VcDefIdentifier>(this)
+    override fun getReference(): VcReference {
+        val parent = parent
+        return when (parent) {
+            is VcPattern, is VcAtomPatternOrPrefix -> VcPatternDefReferenceImpl<VcDefIdentifier>(this, parent is VcPattern && !parent.atomPatternOrPrefixList.isEmpty())
             else -> VcDefReferenceImpl<VcDefIdentifier>(this)
         }
+    }
 
     override fun getTypeClassReference(): ClassReferable? {
         val parent = parent
@@ -57,8 +58,8 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             return LocalSearchScope(parent.parent.parent)
         } else if (parent != null && parent.parent is VcNameTele) {
             return LocalSearchScope(parent.parent.parent)
-        } else if (parent is VcAtomPatternOrPrefixImpl && parent.parent is VcPatternConstructor && parent.parent.parent != null) {
-            return LocalSearchScope(parent.parent.parent.parent) // Pattern variables
+        } else if (parent is VcAtomPatternOrPrefix && parent.parent != null) {
+            return LocalSearchScope(parent.parent.parent) // Pattern variables
         }
         return super.getUseScope()
     }

@@ -319,7 +319,7 @@ pattern ::= atomPattern | patternConstructor {
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
-patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin = 1 }
+private patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin = 1 }
 
 atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
