@@ -39,7 +39,7 @@ BLOCK_COMMENT_END   = -\}
 NUMBER              = [0-9]+
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:a-zA-Z_]
-KEYWORD             = \\{ID}
+KEYWORD             = \\[0-9]*{ID}
 
 ID                  = {START_CHAR} ({START_CHAR} | [0-9'])*
 POSTFIX             = `{ID}

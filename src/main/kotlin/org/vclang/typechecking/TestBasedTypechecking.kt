@@ -27,11 +27,13 @@ class TestBasedTypechecking(
     val typecheckedModules = LinkedHashSet<FullModulePath>()
 
     private fun startTimer(definition: TCReferable) {
-        ((definition as? DataLocatedReferable)?.data as? PsiLocatedReferable)?.let { eventsProcessor.startTimer(it) }
+        val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
+        (runReadAction { psiPtr.element } as? PsiLocatedReferable)?.let { eventsProcessor.startTimer(it) }
     }
 
     private fun stopTimer(definition: TCReferable) {
-        ((definition as? DataLocatedReferable)?.data as? PsiLocatedReferable)?.let { eventsProcessor.stopTimer(it) }
+        val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
+        (runReadAction { psiPtr.element } as? PsiLocatedReferable)?.let { eventsProcessor.stopTimer(it) }
     }
 
     override fun typecheckingUnitStarted(definition: TCReferable) {

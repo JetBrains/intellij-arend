@@ -44,7 +44,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
 
     override fun getVariants(): Array<Any> = element.scope.elements.map {
         val ref = (it as? RedirectingReferable)?.originalReferable ?: it
-        val origRef: Any? = if (ref is DataLocatedReferable) ref.data else ref
+        val origRef: Any? = if (ref is DataLocatedReferable) ref.data.element else ref
         when (origRef) {
             is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
             is ModuleReferable -> {
@@ -65,7 +65,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
         }, this.element)
 
         if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data
+        if (ref is DataLocatedReferable) ref = ref.data.element
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
@@ -93,7 +93,7 @@ open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceI
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data
+        if (ref is DataLocatedReferable) ref = ref.data.element
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()

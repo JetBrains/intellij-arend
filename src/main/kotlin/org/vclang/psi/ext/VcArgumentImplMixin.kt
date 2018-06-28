@@ -71,9 +71,9 @@ abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewAr
     override fun getExpression(): VcExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitClassExt(this, true, appExpr, if (lbrace == null) null else coClauseList, emptyList(), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
+        visitor.visitClassExt(this, true, argumentAppExpr, if (lbrace == null) null else coClauseList, emptyList(), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
-    override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(appExpr)
+    override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(argumentAppExpr)
 }
 
 abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomArgument {

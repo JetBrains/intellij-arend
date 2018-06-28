@@ -232,11 +232,19 @@ defClass ::= (defClassClass | defClassRecord) where? {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-private defClassClass ::= CLASS_KW defClassHeader [classBodySyn | classStats] { pin = 1 }
+private defClassClass ::= CLASS_KW defClassHeader classBody { pin = 1 }
 
-private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
+private defClassRecord ::= RECORD_KW defClassHeader recordBody { pin = 1 }
 
 private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
+
+private classBody ::= classBodySyn | classStats {
+    recoverWhile = statement_recover
+}
+
+private recordBody ::= classStats {
+    recoverWhile = statement_recover
+}
 
 defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
     pin = 1
@@ -255,9 +263,15 @@ private classBodySyn ::= fat_arrow_def refIdentifier classBodySynStats? { pin = 
 
 private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
-functionBody ::= FAT_ARROW expr | elim? functionClauses
+functionBody ::= functionTermBody | elim? functionClauses {
+    recoverWhile = statement_recover
+}
 
-dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)*
+private functionTermBody ::= FAT_ARROW expr { pin = 1 }
+
+dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)* {
+    recoverWhile = statement_recover
+}
 
 private fat_arrow_def_pipe ::= FAT_ARROW {
     recoverWhile = def_pipe_recover
@@ -288,7 +302,7 @@ private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
 
 private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_recover
 
-elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>>
+elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
 
 where ::= WHERE_KW (statementList | statement) { pin = 1 }
 
@@ -339,17 +353,19 @@ private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW |
 prec ::= assoc NUMBER
 
 expr ::= arrExpr
-    | caseExpr
     | sigmaExpr
     | piExpr
     | lamExpr
     | letExpr
-    | newExpr {
+    | newExpr
+    | caseExpr {
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Parameter" ]
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
 }
+
+private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -357,9 +373,13 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.vclang.psi.ext.VcArrExprImplMixin"
 }
 
-newExpr ::= NEW_KW? appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*] {
+newExpr ::= NEW_KW argumentAppExpr newExprTail
+    | appExpr newExprTail {
+    pin(".*") = 1
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
+
+private newExprTail ::= [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*]
 
 universeExpr ::= universeAppExpr
     | setUniverseAppExpr
@@ -374,11 +394,14 @@ appExpr ::= universeAppExpr
     | truncatedUniverseAppExpr
     | argumentAppExpr {
     implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcAppExprImplMixin"
+    recoverWhile = expr_recover
 }
 
 caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces {
     pin = 1
     mixin = "org.vclang.psi.ext.VcCaseExprImplMixin"
+    recoverWhile = expr_recover
 }
 
 piExpr ::= PI_KW typeTele+ ARROW expr {
@@ -386,7 +409,7 @@ piExpr ::= PI_KW typeTele+ ARROW expr {
     mixin = "org.vclang.psi.ext.VcPiExprImplMixin"
 }
 
-sigmaExpr ::= SIGMA_KW typeTele+ {
+sigmaExpr ::= SIGMA_KW typeTele* {
     pin = 1
     mixin = "org.vclang.psi.ext.VcSigmaExprImplMixin"
 }
@@ -404,7 +427,10 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
-coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)*
+coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)* {
+    pin(".*") = 1
+    recoverWhile = statement_recover
+}
 
 private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover
 
@@ -441,15 +467,20 @@ typeAnnotation ::= COLON expr { pin = 1 }
 levelExpr ::= atomLevelExpr
     | SUC_KW atomLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcLevelExprImplMixin"
+    recoverWhile = levelExpr_recover
 }
+
+private levelExpr_recover ::= !RPAREN & statement_recover
 
 atomLevelExpr ::= LP_KW
     | LH_KW
     | NUMBER
     | LPAREN levelExpr RPAREN {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcAtomLevelExprImplMixin"
@@ -473,14 +504,15 @@ truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
 onlyLevelExpr ::= atomOnlyLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr
     | SUC_KW atomLevelExpr {
+    pin(".*") = 1
     implements = [ "org.vclang.psi.ext.VcSourceNode"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.LevelExpression" ]
     mixin = "org.vclang.psi.ext.VcOnlyLevelExprImplMixin"
 }
 
-maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
+levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
-levelsExpr ::= LEVELS_KW (maybeAtomLevelExpr maybeAtomLevelExpr | PROP_KW) | LPAREN levelsExpr RPAREN
+private levelsLevels ::= LEVELS_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
@@ -493,9 +525,10 @@ atomOnlyLevelExpr ::= LP_KW
 argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) (argument | argumentRecovery)* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
+    name = "defCall"
 }
 
-fieldAcc ::= DOT NUMBER
+fieldAcc ::= DOT NUMBER { pin = 1 }
 
 atom ::= literal
     | tuple
@@ -504,14 +537,22 @@ atom ::= literal
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
 }
 
-tuple ::= LPAREN <<comma_separated_sequence expr>> RPAREN {
+tuple ::= LPAREN <<comma_separated_sequence tupleExpr>>? RPAREN {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcTupleImplMixin"
 }
 
+private tupleExpr ::= expr {
+    recoverWhile = tupleExpr_recover
+}
+
+private tupleExpr_recover ::= !(RPAREN | COMMA) & statement_recover
+
 atomFieldsAcc ::= atom fieldAcc* {
+    pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomFieldsAccImplMixin"
+    recoverWhile = argument_recover
 }
 
 argument ::= atomArgument
@@ -552,7 +593,7 @@ postfixArgument ::= POSTFIX {
     mixin = "org.vclang.psi.ext.VcPostfixArgumentImplMixin"
 }
 
-newArg ::= NEW_KW appExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+newArg ::= NEW_KW argumentAppExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
     pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
@@ -638,7 +679,9 @@ private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
 private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | LGOAL) & statement_recover
 
-typedExpr ::= identifierOrUnknown+ COLON expr | expr
+typedExpr ::= typedExprNamed | expr
+
+private typedExprNamed ::= identifierOrUnknown+ COLON expr { pin = 2 }
 
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 

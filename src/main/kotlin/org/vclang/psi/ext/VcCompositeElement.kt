@@ -4,9 +4,7 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.*
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.SourceInfo
@@ -23,14 +21,14 @@ interface VcCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): VcReference?
 }
 
-fun PsiElement.moduleTextRepresentationImpl(): String? = runReadAction { (containingFile as? VcFile)?.name }
+fun PsiElement.moduleTextRepresentationImpl(): String? = (containingFile as? VcFile)?.name
 
-fun PsiElement.positionTextRepresentationImpl(): String? = runReadAction {
-    val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return@runReadAction null) ?: return@runReadAction null
+fun PsiElement.positionTextRepresentationImpl(): String? {
+    val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
     val offset = textOffset
     val line = document.getLineNumber(offset)
     val column = offset - document.getLineStartOffset(line)
-    (line + 1).toString() + ":" + (column + 1).toString()
+    return (line + 1).toString() + ":" + (column + 1).toString()
 }
 
 interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {
@@ -72,12 +70,12 @@ fun getParentSourceNode(sourceNode: VcSourceNode): VcSourceNode? {
     return if (parent is VcFile) null else parent.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()
 }
 
-private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(cause, cause.errorDescription), SourceInfo, DataContainer {
+private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(SmartPointerManager.createPointer(cause), cause.errorDescription), SourceInfo, DataContainer {
     override fun getData(): Any = cause
 
-    override fun moduleTextRepresentation(): String? = (cause as PsiErrorElement).moduleTextRepresentationImpl()
+    override fun moduleTextRepresentation(): String? = runReadAction { (cause as SmartPsiElementPointer<*>).element?.moduleTextRepresentationImpl() }
 
-    override fun positionTextRepresentation(): String? = (cause as PsiErrorElement).positionTextRepresentationImpl()
+    override fun positionTextRepresentation(): String? = runReadAction { (cause as SmartPsiElementPointer<*>).element?.positionTextRepresentationImpl() }
 }
 
 fun getErrorData(element: VcCompositeElement): Abstract.ErrorData? =
@@ -89,9 +87,9 @@ abstract class VcCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node
 
     override fun getReference(): VcReference? = null
 
-    override fun moduleTextRepresentation(): String? = moduleTextRepresentationImpl()
+    override fun moduleTextRepresentation(): String? = runReadAction { moduleTextRepresentationImpl() }
 
-    override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
+    override fun positionTextRepresentation(): String? = runReadAction { positionTextRepresentationImpl() }
 }
 
 abstract class VcSourceNodeImpl(node: ASTNode) : VcCompositeElementImpl(node), VcSourceNode {
@@ -114,9 +112,9 @@ abstract class VcStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElemen
 
     override fun toString(): String = "${javaClass.simpleName}($elementType)"
 
-    override fun moduleTextRepresentation(): String? = moduleTextRepresentationImpl()
+    override fun moduleTextRepresentation(): String? = runReadAction { moduleTextRepresentationImpl() }
 
-    override fun positionTextRepresentation(): String? = positionTextRepresentationImpl()
+    override fun positionTextRepresentation(): String? = runReadAction { positionTextRepresentationImpl() }
 
     override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
 

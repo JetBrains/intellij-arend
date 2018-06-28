@@ -12,6 +12,7 @@ abstract class VcAtomLevelExprImplMixin(node: ASTNode) : VcSourceNodeImpl(node),
         lpKw?.let { return visitor.visitLP(this, params) }
         lhKw?.let { return visitor.visitLH(this, params) }
         number?.text?.toIntOrNull()?.let { return visitor.visitNumber(this, it, params) }
-        return levelExpr?.accept(visitor, params) ?: error("Incomplete expression: " + this)
+        levelExpr?.let { return it.accept(visitor, params) }
+        error("Incomplete expression: " + this)
     }
 }

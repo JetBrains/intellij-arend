@@ -38,10 +38,8 @@ abstract class VcTruncatedUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMi
 }
 
 abstract class VcUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAppExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        val levelExprs = atomLevelExprList
-        return acceptUniverse(this, universe, levelExprs.getOrNull(0), levelExprs.getOrNull(1), visitor, params)
-    }
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+        acceptUniverse(this, universe, atomLevelExprList.getOrNull(0), atomLevelExprList.getOrNull(1), visitor, params)
 }
 
 abstract class VcUniverseAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAtom {

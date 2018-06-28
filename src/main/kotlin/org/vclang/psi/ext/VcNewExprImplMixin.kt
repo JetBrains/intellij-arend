@@ -11,13 +11,15 @@ import org.vclang.psi.VcNewExpr
 
 abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewExpr, Abstract.ClassReferenceHolder {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        if (newKw == null && lbrace == null && argumentList.isEmpty()) {
-            return appExpr.accept(visitor, params)
+        val isNew = newKw != null
+        if (!isNew && lbrace == null && argumentList.isEmpty()) {
+            val expr = appExpr ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
+            return expr.accept(visitor, params)
         }
-        return visitor.visitClassExt(this, newKw != null, appExpr, if (lbrace == null) null else coClauseList, argumentList, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
+        return visitor.visitClassExt(this, isNew, if (isNew) argumentAppExpr else appExpr, if (lbrace == null) null else coClauseList, argumentList, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
     }
 
-    override fun getClassReference(): ClassReferable? = getClassReference(appExpr)
+    override fun getClassReference(): ClassReferable? = getClassReference(appExpr) ?: getClassReference(argumentAppExpr)
 
     companion object {
         fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {
