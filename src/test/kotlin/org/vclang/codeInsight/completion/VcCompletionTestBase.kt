@@ -58,7 +58,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
         var successString = ""
         var index = 0
         for (codePiece in code) {
-            System.out.println("*** Testing: $codePiece ***")
+            //System.out.println("*** Testing: $codePiece ***")
             val codePieceWithBackSlash = codePiece.replace("{-caret-}", "\\{-caret-}", false)
             var failedTest = false
             try {
@@ -69,7 +69,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
                 failedTest = true
                 failString += "$codePiece\n"
             }
-            System.out.println("*** Testing: $codePieceWithBackSlash ***")
+            //System.out.println("*** Testing: $codePieceWithBackSlash ***")
 
             if (!failedTest) successString += "$codePiece\n"
             failed = failed || failedTest

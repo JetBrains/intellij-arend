@@ -328,7 +328,7 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol => 1 ({-caret-})")
 
     fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            // "\\func lol => lol \\levels \\lp {-caret-}", // TODO
+            "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
             "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
             "\\func lol (a : Nat) => lol ({-caret-})")

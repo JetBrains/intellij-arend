@@ -247,14 +247,13 @@ class VclangCompletionContributor : CompletionContributor() {
                 var counter = argumentAppExpr.longNameExpr?.atomOnlyLevelExprList?.size ?: 0
                 var forbidden = false
                 val levelsExpr = argumentAppExpr.longNameExpr?.levelsExpr
-                if (levelsExpr != null) counter += levelsExpr.atomLevelExprList.size
+                if (levelsExpr != null) {
+                    counter += levelsExpr.atomLevelExprList.size
+                    if (forbidLevelExprs) forbidden = true
+                }
                 for (ch in argumentAppExpr.children) {
                     if (ch == anchor || ch == anchor.parent) break
                     if (ch is VcAtomArgument) forbidden = true
-                    if (ch is VcLevelsExpr) {
-                        if (forbidLevelExprs) forbidden = true
-                        counter += ch.atomLevelExprList.size
-                    }
                 }
                 counter < threshold && !forbidden
             } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
