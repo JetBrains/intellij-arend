@@ -32,20 +32,22 @@ open class VcDefReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceB
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
 }
 
-open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T, private val onlyResolve: Boolean): VcReferenceImpl<T>(element) {
+open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T, private val onlyResolve: Boolean): VcReferenceImpl<T>(element, VcConstructor::class.java) {
     override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
-open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
+open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz: Class<*>?): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
     }
 
-    override fun getVariants(): Array<Any> = element.scope.elements.map {
+    override fun getVariants(): Array<Any> = element.scope.elements.mapNotNull {
         val ref = (it as? RedirectingReferable)?.originalReferable ?: it
         val origRef: Any? = if (ref is DataLocatedReferable) ref.data.element else ref
-        when (origRef) {
+        if (clazz != null && !clazz.isInstance(origRef)) {
+            null
+        } else when (origRef) {
             is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
             is ModuleReferable -> {
                 val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
@@ -69,7 +71,10 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
-            is ModuleReferable -> element.module?.findVcFilesAndDirectories(ref.path)?.firstOrNull()
+            is ModuleReferable -> {
+                val list = element.module?.findVcFilesAndDirectories(ref.path) ?: return null
+                list.firstOrNull { it is VcFile } ?: list.firstOrNull()
+            }
             else -> null
         }
     }
@@ -89,7 +94,7 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     oldNameIdentifier.replace(newNameIdentifier)
 }
 
-open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element), PsiPolyVariantReference {
+open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element, null), PsiPolyVariantReference {
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable

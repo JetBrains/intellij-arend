@@ -19,6 +19,6 @@ class PsiInstanceProviderSet(private val concreteProvider: ConcreteProvider) : I
         }
 
         val file = (referable as? VcCompositeElement)?.containingFile as? VcFile ?: return null
-        return if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, null, true)), concreteProvider)) super.get(referable) else null
+        return if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, true)), concreteProvider)) super.get(referable) else null
     }
 }

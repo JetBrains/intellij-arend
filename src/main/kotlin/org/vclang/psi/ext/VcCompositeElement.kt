@@ -13,6 +13,7 @@ import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import org.vclang.module.ModuleScope
 import org.vclang.psi.*
 import org.vclang.resolving.VcReference
 
@@ -38,7 +39,7 @@ interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {
 
 private fun getVcScope(element: VcCompositeElement): Scope {
     val sourceNode = element.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE
-    return ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode)
+    return ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {

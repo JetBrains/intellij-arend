@@ -78,5 +78,5 @@ abstract class VcRefIdentifierImplMixin(node: ASTNode) : VcSourceNodeImpl(node),
 
     override fun getReferent(): Referable = NamedUnresolvedReference(this, referenceName)
 
-    override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this)
+    override fun getReference(): VcReference = VcReferenceImpl<VcRefIdentifier>(this, null)
 }

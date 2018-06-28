@@ -13,6 +13,7 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
@@ -104,12 +105,15 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     }
 
     companion object {
-        fun importQuickFixAllowed(referenceElement : VcReferenceElement) =
+        fun importQuickFixAllowed(referenceElement: VcReferenceElement) =
             referenceElement is VcSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isParentScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
-        fun referenceUnresolved(referenceElement : VcReferenceElement) : Boolean {
+        fun referenceUnresolved(referenceElement: VcReferenceElement): Boolean {
             val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
             return reference.resolve() == null // return false if already imported
         }
+
+        fun getResolved(referenceElement: VcReferenceElement): PsiElement? =
+            if (referenceElement.isValid) referenceElement.reference?.resolve() else null
     }
 }

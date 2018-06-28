@@ -271,7 +271,7 @@ class ResolveRefQuickFix {
                     val fileGroup =  object: Group by currentFile {
                         override fun getSubgroups(): Collection<Group> = emptyList()
                     }
-                    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, null, false)
+                    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
 
                     val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 

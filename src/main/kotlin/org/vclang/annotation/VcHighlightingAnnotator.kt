@@ -5,7 +5,10 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
@@ -27,13 +30,29 @@ import org.vclang.resolving.PsiPartialConcreteProvider
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         if (element is VcReferenceElement) {
-            if (VclangImportHintAction.referenceUnresolved(element)) {
+            val resolved = VclangImportHintAction.getResolved(element)
+            if (resolved == null) {
                 val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
                 annotation.highlightType = ProblemHighlightType.ERROR
 
                 val fix = VclangImportHintAction(element)
                 if (fix.isAvailable(element.project, null, element.containingFile))
                     annotation.registerFix(fix)
+
+                return
+            } else if (resolved is PsiDirectory) {
+                val refList = (element.parent as? VcLongName)?.refIdentifierList
+                if (refList == null || refList.indexOf(element) == refList.size - 1) {
+                    holder.createErrorAnnotation(element, "Unexpected reference to a directory")
+                }
+            } else if (resolved is VcFile) {
+                val longName = element.parent as? VcLongName
+                if (longName == null || longName.parent !is VcStatCmd) {
+                    val refList = longName?.refIdentifierList
+                    if (refList == null || refList.indexOf(element) == refList.size - 1) {
+                        holder.createErrorAnnotation(element, "Unexpected reference to a file")
+                    }
+                }
             }
         }
 
