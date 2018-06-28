@@ -522,10 +522,16 @@ atomOnlyLevelExpr ::= LP_KW
     mixin = "org.vclang.psi.ext.VcAtomOnlyLevelExprImplMixin"
 }
 
-argumentAppExpr ::= (longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) | atomFieldsAcc) (argument | argumentRecovery)* {
+argumentAppExpr ::= (longNameExpr | atomFieldsAcc) (argument | argumentRecovery)* {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcArgumentAppExprImplMixin"
     name = "defCall"
+}
+
+longNameExpr ::= longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) {
+    pin = 2
+    implements = "org.vclang.psi.VcExpr"
+    mixin = "org.vclang.psi.ext.VcLongNameExprImplMixin"
 }
 
 fieldAcc ::= DOT NUMBER { pin = 1 }

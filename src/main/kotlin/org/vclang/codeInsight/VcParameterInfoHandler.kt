@@ -313,7 +313,7 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
     }
 
     private fun extractParametersHolder(appExpr: VcArgumentAppExpr): Abstract.ParametersHolder? {
-        val longName = appExpr.longName ?: appExpr.atomFieldsAcc?.atom?.literal?.longName
+        val longName = appExpr.longNameExpr?.longName ?: appExpr.atomFieldsAcc?.atom?.literal?.longName
         if (longName != null && longName.headReference != null) {
             val ref = longName.refIdentifierList.lastOrNull()?.reference?.resolve()
             if (ref != null && ref is Abstract.ParametersHolder) {

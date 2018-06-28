@@ -24,7 +24,7 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
     companion object {
         fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {
             val argAppExpr = appExpr as? VcArgumentAppExpr ?: return null
-            var ref = argAppExpr.longName?.referent
+            var ref = argAppExpr.longNameExpr?.longName?.referent
             if (ref == null) {
                 val atomFieldsAcc = argAppExpr.atomFieldsAcc ?: return null
                 if (!atomFieldsAcc.fieldAccList.isEmpty()) {

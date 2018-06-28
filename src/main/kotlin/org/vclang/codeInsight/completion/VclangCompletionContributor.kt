@@ -6,6 +6,7 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
+import com.intellij.patterns.PsiElementPattern
 import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
@@ -56,7 +57,7 @@ class VclangCompletionContributor : CompletionContributor() {
                         }))
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.toList().isEmpty() },
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.none() },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
@@ -77,7 +78,7 @@ class VclangCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC,  and(withAncestors(PsiErrorElement::class.java, VcDefClass::class.java), afterLeaf(ID)), KeywordCompletionProvider(EXTENDS_KW_LIST))
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcFieldTele::class.java, VcDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
-                    var nS = parameters.position.parent!!.parent.nextSibling
+                    var nS = parameters.position.parent?.parent?.nextSibling
                     while (nS is PsiWhiteSpace) nS = nS.nextSibling
                     nS !is VcFieldTele
                 }, KeywordCompletionProvider(EXTENDS_KW_LIST)))
@@ -145,7 +146,7 @@ class VclangCompletionContributor : CompletionContributor() {
         }))
 
         extend(CompletionType.BASIC, DATA_OR_EXPRESSION_CONTEXT, ProviderWithCondition({cP, _ ->
-            cP.originalPosition != null && cP.originalPosition!!.text.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?"))
+            cP.originalPosition?.text?.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?")) ?: false
         }, object: KeywordCompletionProvider(listOf("Type")) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
@@ -221,30 +222,32 @@ class VclangCompletionContributor : CompletionContributor() {
                 exprFound}, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
 
         val isLiteralApp = { argumentAppExpr: VcArgumentAppExpr ->
-            argumentAppExpr.longName != null ||
-            (argumentAppExpr.children[0] is VcAtomFieldsAcc && (argumentAppExpr.children[0] as VcAtomFieldsAcc).atom.literal?.longName != null)
+            argumentAppExpr.longNameExpr != null ||
+            ((argumentAppExpr.children[0] as? VcAtomFieldsAcc)?.atom?.literal?.longName != null)
         }
 
         val unifiedLevelCondition = {atomIndex: Int?, forbidLevelExprs: Boolean, threshold: Int -> {cP: CompletionParameters, _: ProcessingContext? ->
-            var anchor: PsiElement? = if (atomIndex != null) cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().toList().getOrNull(atomIndex) else null
-            var argumentAppExpr : VcArgumentAppExpr? = when {
-                anchor != null && anchor.parent is VcAtomArgument && anchor.parent.parent is VcArgumentAppExpr -> anchor.parent.parent!! as VcArgumentAppExpr
-                anchor != null && anchor.parent is VcArgumentAppExpr -> anchor.parent!! as VcArgumentAppExpr
-                else -> null
-            }
-            if (anchor == null && cP.position.parent?.parent is VcArgumentAppExpr) {
+            var anchor: PsiElement? = if (atomIndex != null) cP.position.ancestors.filterIsInstance<VcAtomFieldsAcc>().elementAtOrNull(atomIndex) else null
+            var argumentAppExpr : VcArgumentAppExpr? =
+                (anchor?.parent as? VcAtomArgument)?.parent as? VcArgumentAppExpr ?:
+                anchor?.parent as? VcArgumentAppExpr
+            if (anchor == null) {
                 anchor = cP.position.parent
-                argumentAppExpr = anchor.parent!! as VcArgumentAppExpr
+                argumentAppExpr = anchor?.parent as? VcArgumentAppExpr
+                if (argumentAppExpr == null) {
+                    anchor = null
+                }
             }
 
-            if (anchor == null && cP.position.parent is VcArgumentAppExpr) {
-                argumentAppExpr = cP.position.parent as VcArgumentAppExpr
+            if (anchor == null) {
+                argumentAppExpr = cP.position.parent as? VcArgumentAppExpr
             }
 
             if (argumentAppExpr != null && anchor != null && isLiteralApp(argumentAppExpr)) {
-                var counter = argumentAppExpr.atomOnlyLevelExprList.size
+                var counter = argumentAppExpr.longNameExpr?.atomOnlyLevelExprList?.size ?: 0
                 var forbidden = false
-                if (argumentAppExpr.levelsExpr != null) counter += argumentAppExpr.levelsExpr!!.atomLevelExprList.size
+                val levelsExpr = argumentAppExpr.longNameExpr?.levelsExpr
+                if (levelsExpr != null) counter += levelsExpr.atomLevelExprList.size
                 for (ch in argumentAppExpr.children) {
                     if (ch == anchor || ch == anchor.parent) break
                     if (ch is VcAtomArgument) forbidden = true
@@ -254,7 +257,7 @@ class VclangCompletionContributor : CompletionContributor() {
                     }
                 }
                 counter < threshold && !forbidden
-            } else argumentAppExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+            } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }}
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, false, 2), KeywordCompletionProvider(LPH_KW_LIST)))
@@ -268,7 +271,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, withParent(VcArgumentAppExpr::class.java), ProviderWithCondition({ cP, _ ->
             val argumentAppExpr : VcArgumentAppExpr? = cP.position.parent as VcArgumentAppExpr
-            argumentAppExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
@@ -325,7 +328,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
         val AS_CONTEXT = and(withGrandParent(VcNsId::class.java), withParents(VcRefIdentifier::class.java, PsiErrorElement::class.java))
         val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
-        val ANY = PlatformPatterns.psiElement()!!
+        val ANY: PsiElementPattern.Capture<PsiElement> = PlatformPatterns.psiElement()
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
         val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
@@ -487,7 +490,6 @@ class VclangCompletionContributor : CompletionContributor() {
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
             val prefix = computePrefix(parameters, resultSet)
-            System.out.println("keywords: $keywords; prefix: $prefix ")
 
             val prefixMatcher = object: PlainPrefixMatcher(prefix) {
                 override fun prefixMatches(name: String): Boolean = isStartMatch(name)
