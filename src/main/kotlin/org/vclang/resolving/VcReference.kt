@@ -50,16 +50,17 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz
         if (clazz == null) {
             val parent = element.parent
             val pparent = parent as? VcDefClass ?: (parent as? VcLongName)?.parent
-            if (pparent is VcDefClass || pparent is VcDefInstance) {
+            if (pparent is VcDefClass) {
                 clazz = VcDefClass::class.java
-                notARecord = pparent is VcDefInstance || parent is VcDefClass
+                notARecord = parent is VcDefClass // inside a class synonym
                 notASynonym = parent is VcDefClass
             } else {
                 val atomFieldsAcc = ((pparent as? VcLiteral)?.parent as? VcAtom)?.parent as? VcAtomFieldsAcc
                 val argParent = ((if (atomFieldsAcc == null) (pparent as? VcLongNameExpr)?.parent else
                     if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? VcArgumentAppExpr)?.parent
-                if (argParent is VcNewArg || (argParent as? VcNewExpr)?.newKw != null) {
+                if (argParent is VcDefInstance || argParent is VcNewArg || (argParent as? VcNewExpr)?.newKw != null) {
                     clazz = VcDefClass::class.java
+                    notARecord = argParent is VcDefInstance
                 }
             }
         }

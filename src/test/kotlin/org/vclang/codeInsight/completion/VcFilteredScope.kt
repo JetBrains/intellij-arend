@@ -26,6 +26,17 @@ class VcFilteredScope : VcCompletionTestBase() {
             "\\instance I : {-caret-}",
             listOf("A", "B", "S"))
 
+    fun `test instance with args`() =
+        checkCompletionVariants(
+            "\\class A { | z : Nat }\n" +
+            "\\class B\n" +
+            "\\func f\n" +
+            "\\data D\n" +
+            "\\record R\n" +
+            "\\class S => A\n" +
+            "\\instance I : {-caret-} f D",
+            listOf("A", "B", "S"))
+
     fun `test pattern`() =
         checkCompletionVariants(
             "\\class A { | z : Nat }\n" +

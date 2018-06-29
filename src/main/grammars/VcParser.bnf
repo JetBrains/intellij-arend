@@ -246,7 +246,7 @@ private recordBody ::= classStats {
     recoverWhile = statement_recover
 }
 
-defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON longName coClauses where? {
+defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON argumentAppExpr coClauses where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"

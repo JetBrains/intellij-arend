@@ -108,6 +108,7 @@ class VclangCompletionContributor : CompletionContributor() {
             genericJointCondition({cP, _, jD ->
 
                 !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
+                        !INSTANCE_CONTEXT.accepts(cP.position) && //No keyword completion in instance type
                         !(ofType(RBRACE).accepts(jD.prevElement) && withParent(VcCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
                         !(ofType(LAM_KW, LET_KW, WITH_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
                         !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
@@ -355,6 +356,7 @@ class VclangCompletionContributor : CompletionContributor() {
                 withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java,
                         VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcTuple::class.java,
                         VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java, VcArgumentAppExpr::class.java)
+        val INSTANCE_CONTEXT = withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcDefInstance::class.java)
 
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null

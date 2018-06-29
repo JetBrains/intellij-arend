@@ -10,7 +10,14 @@ import org.vclang.psi.ext.PsiLocatedReferable
 
 
 object PsiPartialConcreteProvider : PartialConcreteProvider {
-    override fun getInstanceClassReference(instance: GlobalReferable): Reference? = (PsiLocatedReferable.fromReferable(instance) as? VcDefInstance)?.longName
+    override fun getInstanceClassReference(instance: GlobalReferable): Reference? = (PsiLocatedReferable.fromReferable(instance) as? VcDefInstance)?.let { getInstanceReference(it) }
 
     override fun isRecord(classRef: ClassReferable): Boolean = (PsiLocatedReferable.fromReferable(classRef) as? VcDefClass)?.recordKw != null
+
+    fun getInstanceReference(instance: VcDefInstance): Reference? =
+        instance.argumentAppExpr?.let { argumentAppExpr ->
+            argumentAppExpr.longNameExpr?.longName ?: argumentAppExpr.atomFieldsAcc?.let { atomFieldsAcc ->
+                if (atomFieldsAcc.fieldAccList.isEmpty()) atomFieldsAcc.atom.literal?.longName else null
+            }
+        }
 }

@@ -9,6 +9,7 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.VcNameTele
 import org.vclang.psi.stubs.VcDefInstanceStub
+import org.vclang.resolving.PsiPartialConcreteProvider
 
 abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInstance, Abstract.InstanceDefinition {
     constructor(node: ASTNode) : super(node)
@@ -17,12 +18,12 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
-    override fun getResultClass(): Abstract.Reference? = longName
+    override fun getResultType(): Abstract.Expression? = argumentAppExpr
 
     override fun getImplementation(): List<Abstract.ClassFieldImpl> = coClauses?.coClauseList ?: emptyList()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R? = visitor.visitInstance(this)
 
     override fun getTypeClassReference(): ClassReferable? =
-        if (parameters.all { !it.isExplicit }) ExpressionResolveNameVisitor.resolve(resultClass?.referent, scope) as? ClassReferable else null
+        if (parameters.all { !it.isExplicit }) ExpressionResolveNameVisitor.resolve(PsiPartialConcreteProvider.getInstanceReference(this)?.referent, scope) as? ClassReferable else null
 }
