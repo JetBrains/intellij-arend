@@ -42,24 +42,47 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz
         return element
     }
 
-    override fun getVariants(): Array<Any> = element.scope.elements.mapNotNull {
-        val ref = (it as? RedirectingReferable)?.originalReferable ?: it
-        val origRef: Any? = if (ref is DataLocatedReferable) ref.data.element else ref
-        if (clazz != null && !clazz.isInstance(origRef)) {
-            null
-        } else when (origRef) {
-            is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
-            is ModuleReferable -> {
-                val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
-                module?.let {
-                    if (it is VcFile)
-                        LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
-                        LookupElementBuilder.createWithIcon(it)
-                } ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+    override fun getVariants(): Array<Any> {
+        var notARecord = false
+        var notASynonym = false
+        var clazz = clazz
+        val element = element
+        if (clazz == null) {
+            val parent = element.parent
+            val pparent = parent as? VcDefClass ?: (parent as? VcLongName)?.parent
+            if (pparent is VcDefClass || pparent is VcDefInstance) {
+                clazz = VcDefClass::class.java
+                notARecord = pparent is VcDefInstance || parent is VcDefClass
+                notASynonym = parent is VcDefClass
+            } else {
+                val atomFieldsAcc = ((pparent as? VcLiteral)?.parent as? VcAtom)?.parent as? VcAtomFieldsAcc
+                val argParent = ((if (atomFieldsAcc == null) (pparent as? VcLongNameExpr)?.parent else
+                    if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? VcArgumentAppExpr)?.parent
+                if (argParent is VcNewArg || (argParent as? VcNewExpr)?.newKw != null) {
+                    clazz = VcDefClass::class.java
+                }
             }
-            else -> LookupElementBuilder.create(ref, ref.textRepresentation())
         }
-    }.toTypedArray()
+
+        return element.scope.elements.mapNotNull {
+            val ref = (it as? RedirectingReferable)?.originalReferable ?: it
+            val origRef: Any? = if (ref is DataLocatedReferable) ref.data.element else ref
+            if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? VcDefClass)?.recordKw != null || notASynonym && (origRef as? VcDefClass)?.fatArrow != null)) {
+                null
+            } else when (origRef) {
+                is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
+                is ModuleReferable -> {
+                    val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
+                    module?.let {
+                        if (it is VcFile)
+                            LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
+                            LookupElementBuilder.createWithIcon(it)
+                    } ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(VcIcons.DIRECTORY)
+                }
+                else -> LookupElementBuilder.create(ref, ref.textRepresentation())
+            }
+        }.toTypedArray()
+    }
 
     override fun resolve(): PsiElement? {
         var ref: Any? = VcResolveCache.resolveCached( { element ->

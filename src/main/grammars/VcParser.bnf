@@ -232,9 +232,9 @@ defClass ::= (defClassClass | defClassRecord) where? {
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
 }
 
-private defClassClass ::= CLASS_KW defClassHeader classBody { pin = 1 }
+private defClassClass ::= CLASS_KW defClassHeader classBody? { pin = 1 }
 
-private defClassRecord ::= RECORD_KW defClassHeader recordBody { pin = 1 }
+private defClassRecord ::= RECORD_KW defClassHeader recordBody? { pin = 1 }
 
 private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
