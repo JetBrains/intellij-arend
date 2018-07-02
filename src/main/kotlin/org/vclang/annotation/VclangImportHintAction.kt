@@ -58,7 +58,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         return "Fix import"
     }
 
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+    override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
 
         if (!referenceUnresolved(referenceElement)) return // already imported or invalid
@@ -66,7 +66,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport()
             if (fixData.isEmpty()) return@runWriteAction
-            val action = VclangAddImportAction(project, editor!!, referenceElement, fixData)
+            val action = VclangAddImportAction(project, editor, referenceElement, fixData)
             action.execute()
         }
 

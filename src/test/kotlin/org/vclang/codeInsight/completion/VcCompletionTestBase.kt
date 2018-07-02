@@ -30,8 +30,7 @@ abstract class VcCompletionTestBase : VcTestBase() {
     protected fun checkCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
         InlineFile(code).withCaret()
 
-        val result = myFixture.getCompletionVariants("Main.vc")
-        assertNotNull(result)
+        val result : List<String> = myFixture.getCompletionVariants("Main.vc") ?: error("Null completion variants")
 
         fun symDiff(required: List<String>, actual: List<String>): String? {
             if (HashSet(required) == HashSet(actual)) return null
@@ -44,10 +43,10 @@ abstract class VcCompletionTestBase : VcTestBase() {
         }
 
         val errorMessage: String? = when (condition) {
-            CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result!!)
-            CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result!!.filter { it.startsWith("\\") })
-            CompletionCondition.CONTAINS         -> if (!(result!!.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
-            CompletionCondition.DOES_NOT_CONTAIN -> if (!result!!.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null}
+            CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result)
+            CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result.filter { it.startsWith("\\") })
+            CompletionCondition.CONTAINS         -> if (!(result.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
+            CompletionCondition.DOES_NOT_CONTAIN -> if (!result.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null}
 
         if (errorMessage != null) throw Exception(errorMessage)
     }

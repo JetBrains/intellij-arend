@@ -39,8 +39,8 @@ class VclangAddImportAction(val project: Project, val editor: Editor, private va
     fun addImport(fixData: ResolveRefFixData) {
         if (!currentElement.isValid) return
 
-        DumbService.getInstance(project).withAlternativeResolveEnabled( {
-            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(editor) }, currentElement.containingFile) })
+        DumbService.getInstance(project).withAlternativeResolveEnabled {
+            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(editor) }, currentElement.containingFile) }
     }
 
     private fun chooseItemAndImport(){
