@@ -7,8 +7,6 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
@@ -29,6 +27,7 @@ import org.vclang.resolving.PsiPartialConcreteProvider
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+        var color: VcHighlightingColors? = null
         if (element is VcReferenceElement) {
             val resolved = VclangImportHintAction.getResolved(element)
             if (resolved == null) {
@@ -52,6 +51,10 @@ class VcHighlightingAnnotator : Annotator {
                     if (refList == null || refList.indexOf(element) == refList.size - 1) {
                         holder.createErrorAnnotation(element, "Unexpected reference to a file")
                     }
+                }
+            } else if (resolved is GlobalReferable) {
+                if (resolved.precedence.isInfix) {
+                    color = VcHighlightingColors.OPERATORS
                 }
             }
         }
@@ -165,20 +168,24 @@ class VcHighlightingAnnotator : Annotator {
             return
         }
 
-        val color = when {
-            element is VcDefIdentifier -> VcHighlightingColors.DECLARATION
-            element is VcInfixArgument || element is VcPostfixArgument -> VcHighlightingColors.OPERATORS
+        when {
+            element is VcDefIdentifier -> color = VcHighlightingColors.DECLARATION
+            element is VcInfixArgument || element is VcPostfixArgument -> color = VcHighlightingColors.OPERATORS
             element is VcRefIdentifier || element is LeafPsiElement && element.node.elementType == VcElementTypes.DOT -> {
-                val parent = element.parent as? VcLongName ?: return
-                if (parent.parent is VcStatCmd) return
-                val refList = parent.refIdentifierList
-                if (!refList.isEmpty() && refList.last() == element) return
-                VcHighlightingColors.LONG_NAME
+                val parent = element.parent as? VcLongName
+                if (parent != null) {
+                    if (parent.parent is VcStatCmd) return
+                    val refList = parent.refIdentifierList
+                    if (refList.isEmpty() || refList.last() != element) {
+                        color = VcHighlightingColors.LONG_NAME
+                    }
+                }
             }
-            else -> return
         }
 
-        holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
+        if (color != null) {
+            holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
+        }
     }
 
     private fun levelToSeverity(level: Error.Level) = when (level) {
