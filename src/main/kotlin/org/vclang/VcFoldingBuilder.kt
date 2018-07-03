@@ -40,26 +40,26 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
             private val descriptors: MutableList<FoldingDescriptor>
     ) : VcVisitor() {
 
-        override fun visitImplicitArgument(o: VcImplicitArgument) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitAtomPattern(o: VcAtomPattern) = foldBetween(o, o.lbrace, o.rbrace)
-
         override fun visitCaseExpr(o: VcCaseExpr) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitFunctionClauses(o: VcFunctionClauses) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitFunctionBody(o: VcFunctionBody) = fold(o)
+
+        override fun visitDataBody(o: VcDataBody) = fold(o)
+
+        override fun visitCoClauses(o: VcCoClauses) = fold(o)
 
         override fun visitConstructor(o: VcConstructor) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitConstructorClause(o: VcConstructorClause) =
-                foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitConstructorClause(o: VcConstructorClause) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitDefClass(o: VcDefClass) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitDefClass(o: VcDefClass) {
+            foldBetween(o, o.lbrace, o.rbrace)
+            foldBetween(o, o.fatArrow, null)
+        }
 
         override fun visitNewExpr(o: VcNewExpr) = foldBetween(o, o.lbrace, o.rbrace)
 
-        override fun visitNameTele(o: VcNameTele) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitTypeTele(o: VcTypeTele) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitNewArg(o: VcNewArg) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitWhere(o: VcWhere) = foldBetween(o, o.lbrace, o.rbrace)
 
@@ -68,13 +68,18 @@ class VcFoldingBuilder : FoldingBuilderEx(), DumbAware {
         }
 
         private fun fold(element: PsiElement) {
-            descriptors += FoldingDescriptor(element.node, element.textRange)
+            val textRange = element.textRange
+            if (!textRange.isEmpty) {
+                descriptors += FoldingDescriptor(element.node, textRange)
+            }
         }
 
         private fun foldBetween(element: PsiElement, left: PsiElement?, right: PsiElement?) {
-            if (left != null && right != null) {
-                val range = TextRange(left.textOffset, right.textOffset + 1)
-                descriptors += FoldingDescriptor(element.node, range)
+            if (left != null) {
+                val range = TextRange(left.textOffset, right?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
+                if (!range.isEmpty) {
+                    descriptors += FoldingDescriptor(element.node, range)
+                }
             }
         }
     }
