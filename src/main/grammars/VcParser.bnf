@@ -172,7 +172,7 @@ private defIdentifier_classFieldSyn ::= defIdentifier {
     recoverWhile = pipe_seq_recover
 }
 
-classImplement ::= longName nameTele* FAT_ARROW expr {
+classImplement ::= coClausePrivate {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
@@ -441,13 +441,18 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= longName nameTele* FAT_ARROW expr {
-    pin = 1
+coClause ::= coClausePrivate {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.VcCoClauseImplMixin"
     recoverWhile = pipe_seq_recover
 }
+
+private coClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
+
+private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 1 }
+
+private coClauseRec ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE { pin = 1 }
 
 letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
