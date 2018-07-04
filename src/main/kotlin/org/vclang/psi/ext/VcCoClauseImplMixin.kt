@@ -1,6 +1,9 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.vclang.psi.VcCoClause
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcNameTele
@@ -16,4 +19,9 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
     override fun getImplementation(): VcExpr? = expr
 
     override fun getRecursiveClassFieldImpls(): List<VcCoClause> = coClauseList
+
+    override fun getClassReference(): ClassReferable? {
+        val longName = longName
+        return (ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope) as? TypedReferable)?.typeClassReference
+    }
 }

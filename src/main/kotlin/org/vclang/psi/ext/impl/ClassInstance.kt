@@ -26,4 +26,6 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun getTypeClassReference(): ClassReferable? =
         if (parameters.all { !it.isExplicit }) ExpressionResolveNameVisitor.resolve(PsiPartialConcreteProvider.getInstanceReference(this)?.referent, scope) as? ClassReferable else null
+
+    override fun getClassReference() = typeClassReference
 }
