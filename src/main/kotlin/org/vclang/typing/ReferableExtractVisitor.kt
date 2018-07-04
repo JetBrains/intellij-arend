@@ -11,11 +11,12 @@ import org.vclang.psi.VcDefFunction
 
 
 class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
-    private var isType = true
+    private enum class Mode { TYPE, EXPRESSION, NONE }
+    private var mode: Mode = Mode.NONE
     private var arguments: Int = 0
 
     private fun findClassReference(referent: Referable?): ClassReferable? {
-        isType = false
+        mode = Mode.EXPRESSION
         var ref: Referable? = referent
         var visited: MutableSet<VcDefFunction>? = null
         var scope = scope
@@ -47,7 +48,7 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
     }
 
     fun findClassReferable(expr: Abstract.Expression): ClassReferable? {
-        isType = true
+        mode = Mode.TYPE
         arguments = 0
         return findClassReference(expr.accept(this, null))
     }
@@ -71,7 +72,7 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
 
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
-        if (isType || body == null) {
+        if (mode != Mode.EXPRESSION || body == null) {
             return null
         }
 
@@ -84,7 +85,7 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
     }
 
     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
-        if (!isType || codomain == null) {
+        if (mode != Mode.TYPE || codomain == null) {
             return null
         }
 

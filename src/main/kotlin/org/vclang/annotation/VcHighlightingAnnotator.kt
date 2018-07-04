@@ -13,7 +13,6 @@ import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
 import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
-import com.jetbrains.jetpad.vclang.term.NameRenaming
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
@@ -61,7 +60,7 @@ class VcHighlightingAnnotator : Annotator {
 
         if (element is Group) {
             object : NameResolvingChecker(true, element is VcFile, PsiPartialConcreteProvider) {
-                override fun definitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
+                override fun onDefinitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
                     annotateDefinitionNamesClash(ref1, level)
                     annotateDefinitionNamesClash(ref2, level)
                 }
@@ -71,7 +70,7 @@ class VcHighlightingAnnotator : Annotator {
                     holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name '${ref.textRepresentation()}'")
                 }
 
-                override fun fieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
+                override fun onFieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
                     if (superClass2 == currentClass) {
                         val psiRef = referableToPsi(ref2) ?: return
                         holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Field '${ref2.textRepresentation()}' is already defined in super class ${superClass1.textRepresentation()}")
@@ -84,7 +83,7 @@ class VcHighlightingAnnotator : Annotator {
                 private fun referableToPsi(ref: LocatedReferable): PsiElement? =
                     (ref as? PsiLocatedReferable)?.children?.firstOrNull { it is VcDefIdentifier } ?: (ref as? PsiElement)
 
-                override fun namespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
+                override fun onNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
                     annotateNamespacesClash(cmd1, cmd2, name, level)
                     annotateNamespacesClash(cmd2, cmd1, name, level)
                 }
@@ -95,25 +94,7 @@ class VcHighlightingAnnotator : Annotator {
                     }
                 }
 
-                override fun namespaceDefinitionNameClash(renaming: NameRenaming, ref: LocatedReferable, level: Error.Level) {
-                    if (renaming is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), renaming.textRange, "Definition '${ref.textRepresentation()}' is not imported since it is defined in this module")
-                    }
-                }
-
-                override fun nonTopLevelImport(command: NamespaceCommand?) {
-                    if (command is PsiElement) {
-                        holder.createErrorAnnotation(command.textRange, "\\import is allowed only on the top level")
-                    }
-                }
-
-                override fun expectedClass(level: Error.Level, message: String, cause: Any?) {
-                    if (cause is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), cause.textRange, message)
-                    }
-                }
-
-                override fun error(error: LocalError) {
+                override fun onError(error: LocalError) {
                     if (error is NotInScopeError) {
                         return
                     }
