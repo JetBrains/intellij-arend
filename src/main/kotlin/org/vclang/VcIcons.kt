@@ -1,8 +1,6 @@
 package org.vclang
 
 import com.intellij.icons.AllIcons
-import org.vclang.psi.*
-import org.vclang.psi.ext.PsiLocatedReferable
 import javax.swing.Icon
 
 object VcIcons {
@@ -20,16 +18,4 @@ object VcIcons {
     val DATA_DEFINITION = AllIcons.Nodes.EjbCmpField!!
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
     val MODULE: Icon = AllIcons.Nodes.JavaModule
-
-    fun getIconFor(definition: PsiLocatedReferable) = when (definition) {
-        is VcDefClass -> VcIcons.CLASS_DEFINITION
-        is VcClassField, is VcFieldDefIdentifier, is VcClassFieldSyn -> VcIcons.CLASS_FIELD
-        is VcConstructor -> VcIcons.CONSTRUCTOR
-        is VcClassImplement -> VcIcons.IMPLEMENTATION
-        is VcDefData -> VcIcons.DATA_DEFINITION
-        is VcDefInstance -> VcIcons.CLASS_INSTANCE
-        is VcDefFunction -> VcIcons.FUNCTION_DEFINITION
-        is VcFile -> VcIcons.MODULE
-        else -> null
-    }
 }

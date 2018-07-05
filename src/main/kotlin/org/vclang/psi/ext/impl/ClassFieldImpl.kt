@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.vclang.VcIcons
 import org.vclang.psi.VcClassImplement
 import org.vclang.psi.VcCoClause
 import org.vclang.psi.VcNameTele
@@ -32,4 +33,6 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
         val longName = longName
         return (ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope) as? TypedReferable)?.typeClassReference
     }
+
+    override fun getIcon(flags: Int) = VcIcons.IMPLEMENTATION
 }

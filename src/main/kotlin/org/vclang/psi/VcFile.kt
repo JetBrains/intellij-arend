@@ -14,6 +14,7 @@ import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
+import org.vclang.VcIcons
 import org.vclang.VcLanguage
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
@@ -84,4 +85,6 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getUnderlyingReference(): LocatedReferable? = null
 
     override fun getUnresolvedUnderlyingReference(): Reference? = null
+
+    override fun getIcon(flags: Int) = VcIcons.MODULE
 }

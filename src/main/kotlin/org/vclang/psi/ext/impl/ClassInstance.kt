@@ -6,10 +6,12 @@ import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
+import org.vclang.VcIcons
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.VcNameTele
 import org.vclang.psi.stubs.VcDefInstanceStub
 import org.vclang.resolving.PsiPartialConcreteProvider
+import javax.swing.Icon
 
 abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInstance, Abstract.InstanceDefinition {
     constructor(node: ASTNode) : super(node)
@@ -28,4 +30,6 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
         if (parameters.all { !it.isExplicit }) ExpressionResolveNameVisitor.resolve(PsiPartialConcreteProvider.getInstanceReference(this)?.referent, scope) as? ClassReferable else null
 
     override fun getClassReference() = typeClassReference
+
+    override fun getIcon(flags: Int): Icon = VcIcons.CLASS_INSTANCE
 }

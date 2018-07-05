@@ -12,9 +12,6 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
-import org.vclang.VcIcons
-import org.vclang.psi.*
-import org.vclang.psi.ext.PsiLocatedReferable
 import javax.swing.Icon
 
 class VclangAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveRefFixData>): QuestionAction {
@@ -54,14 +51,8 @@ class VclangAddImportAction(val project: Project, val editor: Editor, private va
                     return super.getTextFor(value)
                 }
 
-                override fun getIconFor(value: ResolveRefFixData?): Icon? {
-                    if (value != null) {
-                        val icon = VcIcons.getIconFor(value.target)
-                        if (icon != null) return icon
-                    }
-
-                    return super.getIconFor(value)
-                }
+                override fun getIconFor(value: ResolveRefFixData?): Icon? =
+                    value?.target?.getIcon(0) ?: super.getIconFor(value)
 
                 override fun onChosen(selectedValue: ResolveRefFixData?, finalChoice: Boolean): PopupStep<*>? {
                     if (finalChoice && selectedValue != null) {

@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import org.vclang.VcIcons
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcFieldDefIdentifier
 import org.vclang.psi.VcFieldTele
@@ -42,4 +43,6 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun getParameters(): List<Abstract.Parameter> = emptyList()
 
     override fun getResultType(): VcExpr? = (parent as? VcFieldTele)?.expr
+
+    override fun getIcon(flags: Int) = VcIcons.CLASS_FIELD
 }
