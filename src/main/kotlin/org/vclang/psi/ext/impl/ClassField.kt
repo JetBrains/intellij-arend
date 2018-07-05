@@ -1,6 +1,7 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import org.vclang.VcIcons
@@ -32,4 +33,7 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor(scope).findClassReferable(type) else null
     }
+
+    override val psiElementType: PsiElement?
+        get() = resultType
 }

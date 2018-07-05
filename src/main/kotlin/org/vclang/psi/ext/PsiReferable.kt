@@ -14,7 +14,10 @@ import org.vclang.psi.VcPsiFactory
 import org.vclang.psi.childOfType
 import org.vclang.psi.stubs.VcNamedStub
 
-interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable
+interface PsiReferable : VcCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable {
+    val psiElementType: PsiElement?
+        get() = null
+}
 
 class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
 

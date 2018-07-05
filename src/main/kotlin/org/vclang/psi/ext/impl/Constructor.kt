@@ -1,6 +1,7 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
@@ -34,4 +35,7 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
     override fun isVisible(): Boolean = true
 
     override fun getIcon(flags: Int): Icon = VcIcons.CONSTRUCTOR
+
+    override val psiElementType: PsiElement?
+        get() = ancestors.filterIsInstance<VcDefData>().firstOrNull()?.defIdentifier
 }

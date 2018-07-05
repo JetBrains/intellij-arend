@@ -1,6 +1,7 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
@@ -50,6 +51,23 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
 
         return ReferableExtractVisitor(expr.scope).findClassReferable(expr)
     }
+
+    override val psiElementType: PsiElement?
+        get() {
+            val parent = parent
+            return when (parent) {
+                is VcLetClause -> parent.typeAnnotation?.expr
+                is VcIdentifierOrUnknown -> {
+                    val pparent = parent.parent
+                    when (pparent) {
+                        is VcNameTele -> pparent.expr
+                        is VcTypedExpr -> pparent.expr
+                        else -> null
+                    }
+                }
+                else -> null
+            }
+        }
 
     override fun getUseScope(): SearchScope {
         if (parent != null && parent.parent is VcTypedExpr && parent.parent.parent is VcTypeTele) {

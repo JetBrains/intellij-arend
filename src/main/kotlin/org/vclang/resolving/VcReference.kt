@@ -5,6 +5,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.module.util.findVcFilesAndDirectories
@@ -71,7 +73,21 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz
             if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? VcDefClass)?.recordKw != null || notASynonym && (origRef as? VcDefClass)?.fatArrow != null)) {
                 null
             } else when (origRef) {
-                is PsiNamedElement -> LookupElementBuilder.createWithIcon(origRef)
+                is PsiNamedElement -> {
+                    var builder = LookupElementBuilder.createWithIcon(origRef)
+                    val parameters = (origRef as? Abstract.ParametersHolder ?: origRef.parent as? VcLetClause)?.parameters ?: emptyList()
+                    if (!parameters.isEmpty()) {
+                        val stringBuilder = StringBuilder()
+                        for (parameter in parameters) {
+                            if (parameter is PsiElement) {
+                                stringBuilder.append(' ').append(parameter.text)
+                            }
+                        }
+                        builder = builder.withTailText(stringBuilder.toString(), true)
+                    }
+                    (origRef as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.text) }
+                    builder
+                }
                 is ModuleReferable -> {
                     val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
                     module?.let {

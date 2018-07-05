@@ -1,6 +1,7 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
@@ -30,4 +31,7 @@ abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcL
     override fun getParentSourceNode() = org.vclang.psi.ext.getParentSourceNode(this)
 
     override fun getErrorData(): Abstract.ErrorData? = org.vclang.psi.ext.getErrorData(this)
+
+    override val psiElementType: PsiElement?
+        get() = resultType
 }

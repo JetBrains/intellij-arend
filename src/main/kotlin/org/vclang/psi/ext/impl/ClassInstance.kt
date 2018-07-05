@@ -1,12 +1,14 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
+import org.vclang.psi.VcArgumentAppExpr
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.VcNameTele
 import org.vclang.psi.stubs.VcDefInstanceStub
@@ -20,7 +22,7 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
-    override fun getResultType(): Abstract.Expression? = argumentAppExpr
+    override fun getResultType(): VcArgumentAppExpr? = argumentAppExpr
 
     override fun getImplementation(): List<Abstract.ClassFieldImpl> = coClauses?.coClauseList ?: emptyList()
 
@@ -32,4 +34,7 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
     override fun getClassReference() = typeClassReference
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_INSTANCE
+
+    override val psiElementType: PsiElement?
+        get() = resultType
 }

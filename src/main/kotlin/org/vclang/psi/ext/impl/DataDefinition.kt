@@ -1,6 +1,7 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -38,4 +39,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 
     override fun getIcon(flags: Int): Icon = VcIcons.DATA_DEFINITION
+
+    override val psiElementType: PsiElement?
+        get() = universe
 }

@@ -1,6 +1,7 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
@@ -45,4 +46,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun getResultType(): VcExpr? = (parent as? VcFieldTele)?.expr
 
     override fun getIcon(flags: Int) = VcIcons.CLASS_FIELD
+
+    override val psiElementType: PsiElement?
+        get() = (parent as? VcFieldTele)?.expr
 }
