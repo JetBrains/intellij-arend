@@ -34,7 +34,7 @@ class VcStartupActivity : StartupActivity {
         val referableConverter = service.referableConverter
         val concreteProvider = PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
 
         for (module in project.vcModules) {
             service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))

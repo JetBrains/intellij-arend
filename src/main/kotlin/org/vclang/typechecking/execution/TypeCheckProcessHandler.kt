@@ -100,7 +100,7 @@ class TypeCheckProcessHandler(
             val referableConverter = typeCheckerService.referableConverter
             val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
-            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
+            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)
             val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
 
             try {
