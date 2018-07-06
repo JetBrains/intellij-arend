@@ -75,7 +75,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz
             } else when (origRef) {
                 is PsiNamedElement -> {
                     var builder = LookupElementBuilder.createWithIcon(origRef)
-                    val parameters = (origRef as? Abstract.ParametersHolder ?: origRef.parent as? VcLetClause)?.parameters ?: emptyList()
+                    val parameters = (origRef as? Abstract.ParametersHolder)?.parameters ?: emptyList()
                     if (!parameters.isEmpty()) {
                         val stringBuilder = StringBuilder()
                         for (parameter in parameters) {
