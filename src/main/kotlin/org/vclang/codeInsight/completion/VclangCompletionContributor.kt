@@ -497,7 +497,7 @@ class VclangCompletionContributor : CompletionContributor() {
             }
 
             for (keyword in keywords)
-                resultSet.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).bold().withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
+                resultSet.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
         }
     }
 
