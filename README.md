@@ -8,6 +8,7 @@ in [IntelliJ IDEA](http://www.jetbrains.com/idea/) and other IntelliJ-based prod
 ## Clone
 
 ```
+git clone https://github.com/valis/vclang
 git clone https://github.com/mchernyavsky/intellij-vclang.git
 cd intellij-vclang
 ```
