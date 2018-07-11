@@ -6,6 +6,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.AnyPsiChangeListener
 import com.intellij.psi.impl.PsiManagerImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.tree.IElementType
 import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
@@ -110,14 +111,14 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
             val child = event.child
             if (child is PsiErrorElement ||
                 child is PsiWhiteSpace ||
-                child is LeafPsiElement && child.node.elementType == VcElementTypes.BLOCK_COMMENT) {
+                child is LeafPsiElement && isComment(child.node.elementType)) {
                 return
             }
             val oldChild = event.oldChild
             val newChild = event.newChild
             if (oldChild is PsiErrorElement && newChild is PsiErrorElement ||
                 oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
-                oldChild is LeafPsiElement && oldChild.node.elementType == VcElementTypes.BLOCK_COMMENT && newChild is LeafPsiElement && newChild.node.elementType == VcElementTypes.BLOCK_COMMENT) {
+                oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
                 return
             }
 
@@ -144,3 +145,5 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 }
+
+private fun isComment(element: IElementType) = element == VcElementTypes.BLOCK_COMMENT || element == VcElementTypes.LINE_COMMENT
