@@ -21,6 +21,7 @@ import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyColle
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
+import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.resolving.VcReferableConverter
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.error.LogErrorReporter
@@ -80,19 +81,19 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, true)
         }
 
         override fun beforeChildReplacement(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildMovement(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
@@ -100,11 +101,11 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 for (child in event.child.children) invalidateChild(child)
             } else {
                 processChildren(event)
-                processParent(event)
+                processParent(event, true)
             }
         }
 
-        private fun processParent(event: PsiTreeChangeEvent) {
+        private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
             if (event.file !is VcFile) {
                 return
             }
@@ -120,6 +121,23 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
                 oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
                 return
+            }
+
+            if (checkCommentStart) {
+                var node = (child as? VcCompositeElement)?.node ?: child as? LeafPsiElement
+                while (node != null && node !is LeafPsiElement) {
+                    val first = node.firstChildNode
+                    if (first == null || node.lastChildNode != first) {
+                        break
+                    }
+                    node = first
+                }
+                if (node is LeafPsiElement && node.textLength == 1) {
+                    val ch = node.charAt(0)
+                    if (ch == '-' || ch == '{' || ch == '}') {
+                        return
+                    }
+                }
             }
 
             val ancestors = event.parent.ancestors
