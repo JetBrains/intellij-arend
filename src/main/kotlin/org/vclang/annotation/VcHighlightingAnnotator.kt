@@ -22,6 +22,8 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.ext.impl.InstanceAdapter
+import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.PsiPartialConcreteProvider
 
 class VcHighlightingAnnotator : Annotator {
@@ -57,6 +59,8 @@ class VcHighlightingAnnotator : Annotator {
                 }
             }
         }
+
+        if (element is InstanceAdapter) InstanceQuickFix.annotateClassInstance(element, holder)
 
         if (element is Group) {
             object : NameResolvingChecker(true, element is VcFile, PsiPartialConcreteProvider) {
