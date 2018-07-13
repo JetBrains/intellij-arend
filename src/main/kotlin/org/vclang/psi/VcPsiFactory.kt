@@ -48,6 +48,14 @@ class VcPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
     }
 
+    fun createNestedCoClause(name: String): VcCoClauses {
+        val code = buildString {
+            append("\\instance Dummy: Dummy\n")
+            append("| $name { }")
+        }
+        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+    }
+
     private fun createArgument(expr: String): VcArgument =
         ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")
