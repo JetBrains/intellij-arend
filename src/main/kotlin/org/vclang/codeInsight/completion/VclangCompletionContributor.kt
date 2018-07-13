@@ -357,7 +357,8 @@ class VclangCompletionContributor : CompletionContributor() {
                         VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcTuple::class.java,
                         VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java, VcArgumentAppExpr::class.java)
         val INSTANCE_CONTEXT = withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcDefInstance::class.java)
-
+        val GOAL_IN_COPATTERN = VclangCompletionContributor.withAncestors(VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java,
+                VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcCoClause::class.java)
 
         private fun noUsing(cmd: VcStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: VcStatCmd): Boolean = cmd.hidingKw == null

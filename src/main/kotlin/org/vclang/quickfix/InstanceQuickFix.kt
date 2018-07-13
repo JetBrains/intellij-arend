@@ -13,6 +13,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
+import org.vclang.codeInsight.completion.VclangCompletionContributor
 import org.vclang.psi.*
 import org.vclang.psi.ext.impl.InstanceAdapter
 
@@ -22,15 +23,27 @@ interface ExpressionWithCoClauses {
     fun isValid(): Boolean
     fun calculateWhiteSpace(): String
     fun insertFirstCoClause(name: String, factory: VcPsiFactory)
+    fun isError(): Boolean
 }
 
 class InstanceQuickFix {
     companion object {
+        private val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
+        private val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
+        private val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
+        private val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
+
         fun getIndent(str : String, defaultIndent: String, increaseInIndent: String): String {
             var myStr = str
             if (myStr.indexOf('\n') == -1) return defaultIndent
             while (myStr.indexOf('\n') != -1) myStr = myStr.substring(myStr.indexOf('\n')+1)
             return myStr + increaseInIndent
+        }
+
+        fun isEmptyGoal(element: PsiElement): Boolean {
+            val goal: VcGoal? = element.childOfType()
+            return (goal != null) && VclangCompletionContributor.GOAL_IN_COPATTERN.accepts(goal) &&
+                    goal.firstChild.node.elementType == VcElementTypes.LGOAL
         }
 
 
@@ -40,22 +53,34 @@ class InstanceQuickFix {
             val unimplementedFields = fields.minus(implementedFields.asSequence())
             if (unimplementedFields.isNotEmpty()) {
                 val builder = StringBuilder()
-                builder.append("The following fields are not implemented: ")
-                val iterator = unimplementedFields.iterator()
-                do {
-                    builder.append(iterator.next().textRepresentation())
-                    if (iterator.hasNext()) builder.append(", ")
-                } while (iterator.hasNext())
-                val annotation = holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
-                annotation.registerFix(ImplementFieldsQuickFix(expression, unimplementedFields))
+                val actionText = if (expression.isError()) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
+                val annotation = if (expression.isError()) {
+                    builder.append(IMPLEMENT_FIELDS_MSG)
+                    val iterator = unimplementedFields.iterator()
+                    do {
+                        builder.append(iterator.next().textRepresentation())
+                        if (iterator.hasNext()) builder.append(", ")
+                    } while (iterator.hasNext())
+                    holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
+                } else {
+                    holder.createWeakWarningAnnotation(expression.getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                }
+
+                annotation.registerFix(ImplementFieldsQuickFix(expression, unimplementedFields, actionText))
             }
 
             for (coClause in coClauseList) {
                 val referable = ExpressionResolveNameVisitor.resolve(coClause.longName.referent, coClause.longName.scope)
-                if (referable is TypedReferable && coClause.fatArrow == null && coClause.expr == null) {
+                val expr = coClause.expr
+                val fatArrow = coClause.fatArrow
+                val clauseBlock = fatArrow == null && expr == null
+                val emptyGoal = fatArrow != null && expr != null && isEmptyGoal(expr)
+                if (referable is TypedReferable && (clauseBlock || emptyGoal)) {
                     val typeClassReference = referable.typeClassReference
                     if (typeClassReference != null) doAnnotate(object: ExpressionWithCoClauses {
-                        override fun getRangeToReport() = coClause.longName.textRange
+                        override fun isError() = clauseBlock
+
+                        override fun getRangeToReport() = if (emptyGoal && expr != null /* tautologically true*/) expr.textRange else coClause.longName.textRange
 
                         override fun getCoClauseList() = coClause.coClauseList
 
@@ -73,14 +98,18 @@ class InstanceQuickFix {
                             val whitespace = calculateWhiteSpace()
                             var anchor: PsiElement
                             val nestedCoClause = factory.createNestedCoClause("foo").coClauseList.first()
-                            if (coClause.lbrace == null) {
+
+                            if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
+
+                            val lbrace = coClause.lbrace
+                            if (lbrace == null) {
                                 anchor = coClause.longName
                                 anchor.parent.addAfter(nestedCoClause.rbrace!!, anchor)
                                 anchor.parent.addAfter(nestedCoClause.lbrace!!, anchor)
                                 anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
                                 anchor = coClause.longName.nextSibling.nextSibling
                             } else {
-                                anchor = coClause.lbrace!!
+                                anchor = lbrace
                             }
 
                             val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
@@ -101,9 +130,12 @@ class InstanceQuickFix {
             if (classReference != null && instance.coClauses != null) {
 
                 val coClauses = instance.coClauses
-                if (coClauses != null) {
+                val argumentAppExpr = instance.argumentAppExpr
+                if (coClauses != null && argumentAppExpr != null) {
                     doAnnotate(object: ExpressionWithCoClauses {
-                        override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, instance.argumentAppExpr!!.textRange.endOffset)
+                        override fun isError() = true
+
+                        override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)
 
                         override fun getCoClauseList(): List<VcCoClause> = coClauses.coClauseList
 
@@ -130,14 +162,14 @@ class InstanceQuickFix {
     }
 }
 
-class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsToImplement: List<Referable>): IntentionAction {
+class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsToImplement: List<Referable>, val actionText: String): IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "vclang.instance"
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instance.isValid() && fieldsToImplement.isNotEmpty()
 
-    override fun getText() = "Implement missing fields"
+    override fun getText() = actionText
 
     private fun addField(field: Referable, project: Project, whitespace: String) {
         val psiFactory = VcPsiFactory(project)
@@ -167,5 +199,6 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsT
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val whitespace = instance.calculateWhiteSpace()
         for (f in fieldsToImplement) addField(f, project, whitespace)
+        if (editor != null) editor.caretModel.moveToOffset(instance.getCoClauseList().last().textRange.endOffset)
     }
 }
