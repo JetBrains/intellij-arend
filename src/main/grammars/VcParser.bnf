@@ -324,7 +324,7 @@ private patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin 
 atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.Pattern" ]
-    mixin = "org.vclang.psi.ext.VcAtomPatternOrPrefixImplMixin"
+    mixin = "org.vclang.psi.ext.VcPatternImplMixin"
 }
 
 private defIdentifier_pattern ::= defIdentifier {
@@ -333,7 +333,7 @@ private defIdentifier_pattern ::= defIdentifier {
 
 private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | UNDERSCORE) & pattern_recover
 
-atomPattern ::= LPAREN pattern? RPAREN
+atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
     | UNDERSCORE
 
