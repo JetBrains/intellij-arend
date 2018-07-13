@@ -163,6 +163,8 @@ class InstanceQuickFix {
 }
 
 class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsToImplement: List<Referable>, val actionText: String): IntentionAction {
+    private var lastAddedCoClause: VcCoClause? = null
+
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "vclang.instance"
@@ -189,6 +191,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsT
                 else -> whitespace
             }
 
+            lastAddedCoClause = coClause
             anchor.parent.addAfter(coClause, anchor)
             anchor.parent.addAfter(psiFactory.createWhitespace(" "), anchor)
             anchor.parent.addAfter(vBarSample, anchor)
@@ -199,6 +202,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, val fieldsT
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val whitespace = instance.calculateWhiteSpace()
         for (f in fieldsToImplement) addField(f, project, whitespace)
-        if (editor != null) editor.caretModel.moveToOffset(instance.getCoClauseList().last().textRange.endOffset)
+        val lastCC = lastAddedCoClause
+        if (editor != null && lastCC != null) editor.caretModel.moveToOffset(lastCC.textRange.endOffset)
     }
 }
