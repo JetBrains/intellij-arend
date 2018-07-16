@@ -57,11 +57,26 @@ class InstanceQuickFix {
                     goal.firstChild.node.elementType == VcElementTypes.LGOAL
         }
 
+        fun resolveCoClause(coClause: VcCoClause): Referable = ExpressionResolveNameVisitor.resolve(coClause.longName.referent, coClause.longName.scope)
 
         fun doAnnotate(expression: ExpressionWithCoClauses, classReference: ClassReferable, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean){
             val fields = ClassFieldImplScope(classReference, false).elements
-            val implementedFields =  coClauseList.map { ExpressionResolveNameVisitor.resolve(it.longName.referent, it.longName.scope) }.toSet()
+            val implementedFields =  coClauseList.map { resolveCoClause(it) }.toSet()
+            val reverseMap : HashMap<Referable, MutableSet<VcCoClause>> = HashMap()
+            for (coClause in coClauseList) {
+                val ref = resolveCoClause(coClause)
+                val hs : MutableSet<VcCoClause> = reverseMap[ref] ?: HashSet()
+                reverseMap[ref] = hs
+                hs.add(coClause)
+            }
+
+            for (entry in reverseMap.entries) if (entry.value.size > 1) {
+                val msg = "Field ${entry.key.textRepresentation()} is already implemented"
+                for (cc in entry.value) holder.createErrorAnnotation(cc, msg)
+            }
+
             val unimplementedFields = fields.minus(implementedFields.asSequence())
+
             if (unimplementedFields.isNotEmpty() && !onlyCheckFields) {
                 val builder = StringBuilder()
                 val actionText = if (expression.isError()) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
@@ -227,7 +242,11 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
 
     override fun getFamilyName() = "vclang.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instance.isValid() && fieldsToImplement.isNotEmpty()
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
+        if (!instance.isValid() || fieldsToImplement.isEmpty()) return false
+        val implementedFields =  instance.getCoClauseList().map { ExpressionResolveNameVisitor.resolve(it.longName.referent, it.longName.scope) }.toSet()
+        return fieldsToImplement.toSet().minus(implementedFields).isNotEmpty()
+    }
 
     override fun getText() = actionText
 
