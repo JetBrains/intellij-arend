@@ -21,6 +21,7 @@ import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
@@ -61,6 +62,7 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is InstanceAdapter) InstanceQuickFix.annotateClassInstance(element, holder)
+        if (element is VcNewExprImplMixin) InstanceQuickFix.annotateNewExpr(element, holder)
 
         if (element is Group) {
             object : NameResolvingChecker(true, element is VcFile, PsiPartialConcreteProvider) {

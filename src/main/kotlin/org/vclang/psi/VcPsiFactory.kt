@@ -56,6 +56,11 @@ class VcPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
     }
 
+    fun createPairOfBraces(): Pair<PsiElement, PsiElement> {
+        val nestedCoClause = createNestedCoClause("foo").coClauseList.first()
+        return Pair(nestedCoClause.lbrace!!, nestedCoClause.rbrace!!)
+    }
+
     private fun createArgument(expr: String): VcArgument =
         ((createFunction("dummy", emptyList(), expr).expr as VcNewExpr?)?.appExpr as VcArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")
