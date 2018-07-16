@@ -335,6 +335,7 @@ private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | UNDERSCORE) &
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
+    | NUMBER
     | UNDERSCORE
 
 constructor ::= prec? defIdentifier_typeTele typeTele* [elim? clausesWithBraces] {

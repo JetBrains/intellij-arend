@@ -14,6 +14,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
 import com.jetbrains.jetpad.vclang.util.LongName
@@ -21,6 +22,7 @@ import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.VcPatternImplMixin
 import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.ext.impl.InstanceAdapter
@@ -144,6 +146,13 @@ class VcHighlightingAnnotator : Annotator {
                 }
             }
             return
+        }
+
+        if (element is VcPatternImplMixin) {
+            val number = element.number
+            if (number == Concrete.NumberPattern.MAX_VALUE) {
+                element.getAtomPattern()?.let { holder.createErrorAnnotation(it, "Value too big") }
+            }
         }
 
         if (element is VcPattern) {
