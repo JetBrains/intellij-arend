@@ -25,10 +25,10 @@ import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretAfterNextSibling
 interface ExpressionWithCoClauses {
     fun getRangeToReport(): TextRange
     fun getCoClauseList(): List<VcCoClause>
-    fun isValid(): Boolean
     fun calculateWhiteSpace(): String
     fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?)
     fun isError(): Boolean
+    fun getPsiElement(): PsiElement
 }
 
 class InstanceQuickFix {
@@ -112,7 +112,7 @@ class InstanceQuickFix {
 
                         override fun getCoClauseList() = coClause.coClauseList
 
-                        override fun isValid() = coClause.isValid
+                        override fun getPsiElement(): PsiElement = coClause
 
                         override fun calculateWhiteSpace() : String {
                             var anchor = coClause.prevSibling
@@ -168,7 +168,7 @@ class InstanceQuickFix {
 
                         override fun getCoClauseList(): List<VcCoClause> = coClauses.coClauseList
 
-                        override fun isValid() = instance.isValid
+                        override fun getPsiElement() = instance
 
                         override fun calculateWhiteSpace(): String {
                             val defaultWhitespace = "  "
@@ -178,12 +178,17 @@ class InstanceQuickFix {
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
                             val whitespace = calculateWhiteSpace()
-                            val anchor : VcArgumentAppExpr = instance.argumentAppExpr ?: error("Can't find anchor within class instance")
+                            val nodeCoClauses = instance.coClauses
+                            if (nodeCoClauses != null) {
+                                val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
+                                if (nodeCoClauses.prevSibling is PsiWhiteSpace) nodeCoClauses.prevSibling.delete()
+                                nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"+whitespace), nodeCoClauses)
+                                nodeCoClauses.add(sampleCoClause.prevSibling.prevSibling)
+                                nodeCoClauses.add(sampleCoClause.prevSibling)
+                                nodeCoClauses.add(sampleCoClause)
+                                moveCaretAfterNextSibling(editor, nodeCoClauses.lastChild.prevSibling)
 
-                            val sampleCoClauses = factory.createCoClause(name, "{?}")
-                            anchor.parent.addAfter(sampleCoClauses, anchor)
-                            moveCaretAfterNextSibling(editor, anchor)
-                            anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                            }
                         }
                     }, classReference, coClauses.coClauseList, holder, false)
                 }
@@ -202,7 +207,7 @@ class InstanceQuickFix {
 
                         override fun getCoClauseList(): List<VcCoClause> = newExpr.coClauseList
 
-                        override fun isValid() = newExpr.isValid
+                        override fun getPsiElement() = newExpr
 
                         override fun calculateWhiteSpace(): String {
                             val defaultWhitespace = "  "
@@ -244,15 +249,11 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
 
     override fun getFamilyName() = "vclang.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        if (!instance.isValid() || fieldsToImplement.isEmpty()) return false
-        val implementedFields =  instance.getCoClauseList().map { ExpressionResolveNameVisitor.resolve(it.longName.referent, it.longName.scope) }.toSet()
-        return fieldsToImplement.toSet().minus(implementedFields).isNotEmpty()
-    }
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instance.getPsiElement().isValid && !fieldsToImplement.isEmpty()
 
     override fun getText() = actionText
 
-    private fun addField(field: Referable, project: Project, whitespace: String, editor: Editor?, psiFactory: VcPsiFactory) {
+    private fun addField(field: Referable, whitespace: String, editor: Editor?, psiFactory: VcPsiFactory) {
         val coClauses = instance.getCoClauseList()
         if (coClauses.isEmpty()) {
             instance.insertFirstCoClause(field.textRepresentation(), psiFactory, editor)
@@ -266,7 +267,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
             val vBarPreClause = anchor.prevSibling.prevSibling
             val clauseWhitespace = when {
                 vBarPreClause.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(vBarPreClause.prevSibling.text, whitespace, "")
-                coClause.parent.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(coClause.parent.prevSibling.text, whitespace, "")
+                anchor.parent.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(anchor.parent.prevSibling.text, whitespace, "")
                 else -> whitespace
             }
 
@@ -284,7 +285,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val whitespace = instance.calculateWhiteSpace()
         val psiFactory = VcPsiFactory(project)
-        for (f in fieldsToImplement) addField(f, project, whitespace, editor, psiFactory)
+        for (f in fieldsToImplement) addField(f, whitespace, editor, psiFactory)
 
         if (instance.getCoClauseList().isNotEmpty()) { // Add CRLF + indent after the last coclause
             val lastCC = instance.getCoClauseList().last()
