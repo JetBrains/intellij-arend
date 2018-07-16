@@ -1,9 +1,11 @@
 package org.vclang.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.icons.AllIcons
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Iconable
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
@@ -51,15 +53,15 @@ class InstanceQuickFix {
             return myStr + increaseInIndent
         }
 
-        fun isEmptyGoal(element: PsiElement): Boolean {
+        private fun isEmptyGoal(element: PsiElement): Boolean {
             val goal: VcGoal? = element.childOfType()
             return (goal != null) && VclangCompletionContributor.GOAL_IN_COPATTERN.accepts(goal) &&
                     goal.firstChild.node.elementType == VcElementTypes.LGOAL
         }
 
-        fun resolveCoClause(coClause: VcCoClause): Referable = ExpressionResolveNameVisitor.resolve(coClause.longName.referent, coClause.longName.scope)
+        private fun resolveCoClause(coClause: VcCoClause): Referable = ExpressionResolveNameVisitor.resolve(coClause.longName.referent, coClause.longName.scope)
 
-        fun doAnnotate(expression: ExpressionWithCoClauses, classReference: ClassReferable, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean){
+        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: ClassReferable, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean){
             val fields = ClassFieldImplScope(classReference, false).elements
             val implementedFields =  coClauseList.map { resolveCoClause(it) }.toSet()
             val reverseMap : HashMap<Referable, MutableSet<VcCoClause>> = HashMap()
@@ -211,7 +213,7 @@ class InstanceQuickFix {
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
                             val whitespace = calculateWhiteSpace()
                             val lbrace = newExpr.lbrace
-                            var anchor : PsiElement = if (lbrace != null) lbrace else {
+                            val anchor : PsiElement = if (lbrace != null) lbrace else {
                                 val pOB = factory.createPairOfBraces()
                                 argumentAppExpr.parent.addAfter(pOB.second, argumentAppExpr)
                                 argumentAppExpr.parent.addAfter(pOB.first, argumentAppExpr)
@@ -235,7 +237,7 @@ class InstanceQuickFix {
     }
 }
 
-class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val fieldsToImplement: List<Referable>, private val actionText: String): IntentionAction {
+class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val fieldsToImplement: List<Referable>, private val actionText: String): IntentionAction, Iconable {
     private var caretMoved = false
 
     override fun startInWriteAction() = true
@@ -298,4 +300,6 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
         }
 
     }
+
+    override fun getIcon(flags: Int) = if (instance.isError()) null else AllIcons.Actions.IntentionBulb
 }
