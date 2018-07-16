@@ -28,10 +28,10 @@ interface ExpressionWithCoClauses {
 
 class InstanceQuickFix {
     companion object {
-        private val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
-        private val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
-        private val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
-        private val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
+        private const val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
+        private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
+        private const val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
+        private const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
 
         fun getIndent(str : String, defaultIndent: String, increaseInIndent: String): String {
             var myStr = str

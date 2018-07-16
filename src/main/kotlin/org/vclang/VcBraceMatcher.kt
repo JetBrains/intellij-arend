@@ -24,7 +24,8 @@ class VcBraceMatcher : PairedBraceMatcher {
     companion object {
         private val PAIRS = arrayOf(
                 BracePair(LBRACE, RBRACE, true),
-                BracePair(LPAREN, RPAREN, false)
+                BracePair(LPAREN, RPAREN, false),
+                BracePair(LGOAL, RBRACE, false)
         )
 
         private val InsertPairBraceBefore = TokenSet.orSet(
