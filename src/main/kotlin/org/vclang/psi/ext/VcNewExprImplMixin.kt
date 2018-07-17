@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
 import org.vclang.psi.VcAppExpr
 import org.vclang.psi.VcArgumentAppExpr
+import org.vclang.psi.VcCoClause
 import org.vclang.psi.VcNewExpr
 
 abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewExpr, Abstract.ClassReferenceHolder {
@@ -20,6 +21,10 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewE
     }
 
     override fun getClassReference(): ClassReferable? = getClassReference(appExpr) ?: getClassReference(argumentAppExpr)
+
+    override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
+
+    override fun getNumberOfArguments() = argumentAppExpr?.argumentList?.size ?: 0
 
     companion object {
         fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {

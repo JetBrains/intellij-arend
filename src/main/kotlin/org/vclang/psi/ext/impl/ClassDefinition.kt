@@ -2,7 +2,10 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.naming.reference.*
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
+import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -13,7 +16,7 @@ import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
 import javax.swing.Icon
 
-abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass, Abstract.ClassDefinition, Abstract.ClassReferenceHolder {
+abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass, Abstract.ClassDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -52,6 +55,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getClassFields(): List<Abstract.ClassField> = classStatList.mapNotNull { it.classField }
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
+
+    override fun getNumberOfArguments() = 0
 
     override fun getPrecedence() = calcPrecedence(prec)
 

@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.reference.DataContainer
+import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
@@ -16,6 +17,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.module.ModuleScope
 import org.vclang.psi.*
 import org.vclang.resolving.VcReference
+import org.vclang.typechecking.util.ModifiedClassFieldImplScope
 
 interface VcCompositeElement : PsiElement, SourceInfo {
     val scope: Scope
@@ -39,7 +41,14 @@ interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {
 
 private fun getVcScope(element: VcCompositeElement): Scope {
     val sourceNode = element.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE
-    return ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
+    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
+    if (scope is ClassFieldImplScope) {
+        val classRef = scope.classReference
+        if (classRef is VcDefClass) {
+            return ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? Abstract.ClassReferenceHolder)
+        }
+    }
+    return scope
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {

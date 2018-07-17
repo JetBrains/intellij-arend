@@ -74,6 +74,10 @@ abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewAr
         visitor.visitClassExt(this, true, argumentAppExpr, if (lbrace == null) null else coClauseList, emptyList(), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
     override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(argumentAppExpr)
+
+    override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
+
+    override fun getNumberOfArguments() = argumentAppExpr?.argumentList?.size ?: 0
 }
 
 abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomArgument {

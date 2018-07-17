@@ -18,10 +18,12 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
 
     override fun getImplementation(): VcExpr? = expr
 
-    override fun getRecursiveClassFieldImpls(): List<VcCoClause> = coClauseList
+    override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
 
     override fun getClassReference(): ClassReferable? {
         val longName = longName
         return (ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope) as? TypedReferable)?.typeClassReference
     }
+
+    override fun getNumberOfArguments() = 0
 }
