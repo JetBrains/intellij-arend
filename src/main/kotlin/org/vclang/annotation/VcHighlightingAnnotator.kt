@@ -63,7 +63,12 @@ class VcHighlightingAnnotator : Annotator {
             }
         }
 
-        if (element is InstanceAdapter) InstanceQuickFix.annotateClassInstance(element, holder)
+        if (element is VcDefIdentifier) {
+            val parent = element.parent
+            if (parent is InstanceAdapter) {
+                InstanceQuickFix.annotateClassInstance(parent, holder)
+            }
+        }
         if (element is VcNewExprImplMixin) InstanceQuickFix.annotateNewExpr(element, holder)
 
         if (element is Group) {

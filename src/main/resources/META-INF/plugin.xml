@@ -132,6 +132,8 @@
         <annotator language="Vclang"
                    implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
 
+        <!-- <highlightRangeExtension implementation="org.vclang.annotation.VcHighlightRangeExtension"/> -->
+
         <referenceImporter implementation="org.vclang.annotation.VclangReferenceImporter"/>
 
         <!-- Line Marker Providers -->
