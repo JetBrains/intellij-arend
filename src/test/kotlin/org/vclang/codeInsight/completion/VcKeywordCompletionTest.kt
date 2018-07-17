@@ -171,6 +171,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f({-caret-})")
 
+    fun `test expression keywords in teles`() =
+            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
+                    "\\func f (a : {-caret-}) => 0")
+
     fun `test only new & universes in application expression or after new expr`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func lol (a : Nat) => (\\new () {-caret-})")

@@ -153,7 +153,7 @@ class VclangCompletionContributor : CompletionContributor() {
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         }))
 
-        extend(CompletionType.BASIC, LPH_CONTEXT, ProviderWithCondition({ cP, pC ->
+        extend(CompletionType.BASIC, LPH_CONTEXT, ProviderWithCondition({ cP, _ ->
             val pp = cP.position.parent.parent
             when (pp) {
                 is VcSetUniverseAppExpr, is VcTruncatedUniverseAppExpr ->
@@ -334,7 +334,8 @@ class VclangCompletionContributor : CompletionContributor() {
         val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
                                     withParentOrGrandParent(VcFunctionBody::class.java),
                                     withParentOrGrandParent(VcExpr::class.java),
-                                    withAncestors(PsiErrorElement::class.java, VcClause::class.java))
+                                    withAncestors(PsiErrorElement::class.java, VcClause::class.java),
+                                    and(ofType(INVALID_KW), afterLeaf(COLON), withParent(VcNameTele::class.java)))
         val FIELD_CONTEXT = withAncestors(VcFieldAcc::class.java, VcAtomFieldsAcc::class.java)
         val TELE_CONTEXT =
                 or(and(withAncestors(PsiErrorElement::class.java, VcTypeTele::class.java),
@@ -443,6 +444,7 @@ class VclangCompletionContributor : CompletionContributor() {
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
+            System.out.println("position: "+parameters.position.javaClass + " text: " + parameters.position.text)
             System.out.println("position.parent: "+parameters.position.parent?.javaClass + " text: " + parameters.position.parent?.text)
             System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.text)
             System.out.println("position.great-grandparent: "+parameters.position.parent?.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.parent?.text)
