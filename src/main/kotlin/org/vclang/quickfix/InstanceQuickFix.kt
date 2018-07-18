@@ -62,9 +62,9 @@ class InstanceQuickFix {
 
         private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean) {
             val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
-            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields).keys
+            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields)
 
-            annotateClauses(coClauseList, holder, superClassesFields, fields)
+            annotateClauses(coClauseList, holder, superClassesFields, fields.keys)
 
             if (fields.isNotEmpty() && !onlyCheckFields) {
                 val builder = StringBuilder()
@@ -73,7 +73,7 @@ class InstanceQuickFix {
                     builder.append(IMPLEMENT_FIELDS_MSG)
                     val iterator = fields.iterator()
                     do {
-                        builder.append(iterator.next().textRepresentation())
+                        builder.append(iterator.next().key.textRepresentation())
                         if (iterator.hasNext()) builder.append(", ")
                     } while (iterator.hasNext())
                     holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
@@ -81,7 +81,7 @@ class InstanceQuickFix {
                     holder.createWeakWarningAnnotation(expression.getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
                 }
 
-                annotation.registerFix(ImplementFieldsQuickFix(expression, fields, actionText))
+                annotation.registerFix(ImplementFieldsQuickFix(expression, fields.values.mapNotNull { it.firstOrNull() }, actionText))
             }
         }
 

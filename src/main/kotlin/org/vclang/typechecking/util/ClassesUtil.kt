@@ -64,9 +64,22 @@ private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<Vc
         }
     }
 
-    for (field in classDef.fieldReferables) {
-        val underlyingField = field.underlyingReference ?: field
-        result.compute(underlyingField) { _,list -> if (list == null) listOf(field) else list + field }
+    val underlyingClass = classDef.underlyingReference
+    val renamings: Map<LocatedReferable, List<LocatedReferable>> = if (underlyingClass == null) emptyMap() else {
+        val map = HashMap<LocatedReferable, List<LocatedReferable>>()
+        for (field in classDef.fieldReferables) {
+            val underlyingField = field.underlyingReference
+            if (underlyingField != null) {
+                map.compute(underlyingField) { _,list -> if (list == null) listOf(field) else list + field }
+            }
+        }
+        map
+    }
+    for (field in (underlyingClass ?: classDef).fieldReferables) {
+        result.compute(field) { _,list ->
+            val list2 = renamings[field] ?: listOf(field)
+            if (list == null) list2 else list + list2
+        }
     }
 
     if (classDef is ClassDefinitionAdapter) {
