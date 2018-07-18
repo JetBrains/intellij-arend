@@ -33,7 +33,8 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
 
     override fun getClassReference(): ClassReferable? {
         val longName = longName
-        return (ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope) as? TypedReferable)?.typeClassReference
+        val resolved = ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
+        return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
     }
 
     override fun getIcon(flags: Int) = VcIcons.IMPLEMENTATION

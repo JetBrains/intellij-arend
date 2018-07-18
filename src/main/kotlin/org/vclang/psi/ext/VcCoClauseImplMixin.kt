@@ -22,7 +22,8 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
 
     override fun getClassReference(): ClassReferable? {
         val longName = longName
-        return (ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope) as? TypedReferable)?.typeClassReference
+        val resolved = ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
+        return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
     }
 
     override fun getNumberOfArguments() = 0

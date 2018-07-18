@@ -1,6 +1,7 @@
 package org.vclang.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.icons.AllIcons
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.editor.Editor
@@ -59,32 +60,73 @@ class InstanceQuickFix {
             return goal != null && VclangCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
         }
 
-        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: ClassReferable, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean){
-            if (classReference !is VcDefClass) {
-                return
+        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean) {
+            val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
+            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields).keys
+
+            annotateClauses(coClauseList, holder, superClassesFields, fields)
+
+            if (fields.isNotEmpty() && !onlyCheckFields) {
+                val builder = StringBuilder()
+                val actionText = if (expression.isError()) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
+                val annotation = if (expression.isError()) {
+                    builder.append(IMPLEMENT_FIELDS_MSG)
+                    val iterator = fields.iterator()
+                    do {
+                        builder.append(iterator.next().textRepresentation())
+                        if (iterator.hasNext()) builder.append(", ")
+                    } while (iterator.hasNext())
+                    holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
+                } else {
+                    holder.createWeakWarningAnnotation(expression.getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                }
+
+                annotation.registerFix(ImplementFieldsQuickFix(expression, fields, actionText))
             }
+        }
 
-            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments).keys
-
+        private fun annotateClauses(coClauseList: List<VcCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>, fields: MutableSet<LocatedReferable>){
             for (coClause in coClauseList) {
                 val referable = coClause.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
                 val underlyingRef = referable.underlyingReference ?: referable
-                if (underlyingRef is ClassReferable) {
-                    // TODO
+
+                val expr = coClause.expr
+                val fatArrow = coClause.fatArrow
+                val clauseBlock = fatArrow == null
+                val emptyGoal = expr != null && isEmptyGoal(expr)
+
+                if (underlyingRef is VcDefClass) {
+                    val subClauses =
+                        if (fatArrow != null) {
+                            val superClassFields = superClassesFields[underlyingRef]
+                            if (superClassFields != null && !superClassFields.isEmpty()) {
+                                fields.removeAll(superClassFields)
+                                continue
+                            }
+                            emptyList()
+                        } else {
+                            coClause.coClauseList
+                        }
+
+                    if (subClauses.isEmpty()) {
+                        holder.createWeakWarningAnnotation(coClause, "Clause is redundant").highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                        // TODO: Add quick fixes "remove redundant clause" and "implement fields"
+                    } else {
+                        annotateClauses(subClauses, holder, superClassesFields, fields)
+                    }
                     continue
                 }
 
                 if (!fields.remove(underlyingRef)) {
                     holder.createErrorAnnotation(coClause, "Field ${underlyingRef.textRepresentation()} is already implemented")
                 }
+                for (superClassFields in superClassesFields.values) {
+                    superClassFields.remove(underlyingRef)
+                }
 
-                val expr = coClause.expr
-                val fatArrow = coClause.fatArrow
-                val clauseBlock = fatArrow == null && expr == null
-                val emptyGoal = fatArrow != null && expr != null && isEmptyGoal(expr)
                 if (clauseBlock || emptyGoal) {
                     val typeClassReference = underlyingRef.typeClassReference
-                    if (typeClassReference != null) doAnnotate(object: ExpressionWithCoClauses {
+                    if (typeClassReference is VcDefClass) doAnnotate(object : ExpressionWithCoClauses {
                         override fun isError() = clauseBlock
 
                         override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName.textRange
@@ -133,29 +175,11 @@ class InstanceQuickFix {
                     }, typeClassReference, coClause.coClauseList, holder, false)
                 }
             }
-
-            if (fields.isNotEmpty() && !onlyCheckFields) {
-                val builder = StringBuilder()
-                val actionText = if (expression.isError()) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
-                val annotation = if (expression.isError()) {
-                    builder.append(IMPLEMENT_FIELDS_MSG)
-                    val iterator = fields.iterator()
-                    do {
-                        builder.append(iterator.next().textRepresentation())
-                        if (iterator.hasNext()) builder.append(", ")
-                    } while (iterator.hasNext())
-                    holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
-                } else {
-                    holder.createWeakWarningAnnotation(expression.getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
-                }
-
-                annotation.registerFix(ImplementFieldsQuickFix(expression, fields, actionText))
-            }
         }
 
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder) {
             val classReference = instance.classReference
-            if (classReference != null && instance.coClauses != null) {
+            if (classReference is VcDefClass && instance.coClauses != null) {
 
                 val coClauses = instance.coClauses
                 val argumentAppExpr = instance.argumentAppExpr
@@ -198,7 +222,7 @@ class InstanceQuickFix {
 
         fun annotateNewExpr(newExpr: VcNewExprImplMixin, holder: AnnotationHolder) {
             val classReference = newExpr.classReference
-            if (classReference != null) {
+            if (classReference is VcDefClass) {
                 val argumentAppExpr = newExpr.argumentAppExpr
                 if (argumentAppExpr != null) {
                     doAnnotate(object: ExpressionWithCoClauses {
