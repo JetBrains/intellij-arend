@@ -106,7 +106,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
 
     companion object {
         fun importQuickFixAllowed(referenceElement: VcReferenceElement) =
-            referenceElement is VcSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isParentScopeVisible(referenceElement.topmostEquivalentSourceNode)
+            referenceElement is VcSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
         fun referenceUnresolved(referenceElement: VcReferenceElement): Boolean {
             val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
