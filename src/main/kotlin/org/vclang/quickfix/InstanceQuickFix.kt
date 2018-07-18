@@ -20,7 +20,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor
 import org.vclang.psi.*
 import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.impl.InstanceAdapter
-import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretAfterNextSibling
+import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
 import org.vclang.typechecking.util.getNotImplementedFields
 
 interface ExpressionWithCoClauses {
@@ -40,12 +40,11 @@ class InstanceQuickFix {
         private const val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
         private const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
 
-        fun moveCaretAfterNextSibling(editor: Editor?, anchor: PsiElement) {
+        fun moveCaretToTheEnd(editor: Editor?, anchor: PsiElement) {
             if (editor != null) {
-                editor.caretModel.moveToOffset(anchor.nextSibling.textRange.endOffset)
+                editor.caretModel.moveToOffset(anchor.textRange.endOffset)
                 IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
             }
-
         }
 
         fun getIndent(str : String, defaultIndent: String, increaseInIndent: String): String {
@@ -60,11 +59,11 @@ class InstanceQuickFix {
             return goal != null && VclangCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
         }
 
-        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, coClauseList: List<VcCoClause>, holder: AnnotationHolder, onlyCheckFields: Boolean) {
+        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean) {
             val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
             val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields)
 
-            annotateClauses(coClauseList, holder, superClassesFields, fields.keys)
+            annotateClauses(expression.getCoClauseList(), holder, superClassesFields, fields.keys)
 
             if (fields.isNotEmpty() && !onlyCheckFields) {
                 val builder = StringBuilder()
@@ -109,8 +108,35 @@ class InstanceQuickFix {
                         }
 
                     if (subClauses.isEmpty()) {
-                        holder.createWeakWarningAnnotation(coClause, "Clause is redundant").highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                        // TODO: Add quick fixes "remove redundant clause" and "implement fields"
+                        val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
+                        warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                        warningAnnotation.registerFix(object: IntentionAction {
+                            override fun startInWriteAction() = true
+
+                            override fun getFamilyName() = "vclang.instance"
+
+                            override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+
+                            override fun getText() = "Remove redundant clause"
+
+                            override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+                                var startChild: PsiElement = coClause
+                                if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                                if (startChild.prevSibling.node.elementType == VcElementTypes.PIPE) startChild = startChild.prevSibling
+                                if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                                if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
+
+                                coClause.parent.deleteChildRange(startChild, coClause)
+                            }
+                        })
+                        val fieldToImplement = superClassesFields[underlyingRef]
+                        if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
+                            warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
+                                override fun getRangeToReport(): TextRange = coClause.longName.textRange
+
+                                override fun isError() = false
+                            }, fieldToImplement.toSet(), "Implement fields"))
+                        }
                     } else {
                         annotateClauses(subClauses, holder, superClassesFields, fields)
                     }
@@ -126,70 +152,31 @@ class InstanceQuickFix {
 
                 if (clauseBlock || emptyGoal) {
                     val typeClassReference = underlyingRef.typeClassReference
-                    if (typeClassReference is VcDefClass) doAnnotate(object : ExpressionWithCoClauses {
+                    if (typeClassReference is VcDefClass) doAnnotate(object : CoClauseAdapter(coClause) {
                         override fun isError() = clauseBlock
 
                         override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName.textRange
 
-                        override fun getCoClauseList() = coClause.coClauseList
-
-                        override fun getClassReferenceHolder() = coClause
-
-                        override fun getPsiElement(): PsiElement = coClause
-
-                        override fun calculateWhiteSpace() : String {
-                            var anchor = coClause.prevSibling
-                            val defaultIndent = "  "
-                            if (anchor is PsiWhiteSpace) anchor = anchor.prevSibling
-                            return if (anchor.node.elementType == VcElementTypes.PIPE && anchor.prevSibling is PsiWhiteSpace)
-                                getIndent(anchor.prevSibling.text, defaultIndent, " ") else defaultIndent
-                        }
-
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
-                            val whitespace = calculateWhiteSpace()
-                            var anchor: PsiElement
-
                             if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
-
-                            val lbrace = coClause.lbrace
-                            if (lbrace == null) {
-                                anchor = coClause.longName
-                                val pOB = factory.createPairOfBraces()
-                                anchor.parent.addAfter(pOB.second, anchor)
-                                anchor.parent.addAfter(pOB.first, anchor)
-                                anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                                anchor = coClause.longName.nextSibling.nextSibling
-                            } else {
-                                anchor = lbrace
-                            }
-
-                            val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
-                            val vBarSample = sampleCoClause.prevSibling.prevSibling
-                            anchor.parent.addAfter(sampleCoClause, anchor)
-                            moveCaretAfterNextSibling(editor, anchor)
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(vBarSample, anchor)
-
-                            anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                            super.insertFirstCoClause(name, factory, editor)
                         }
-                    }, typeClassReference, coClause.coClauseList, holder, false)
+                    }, typeClassReference, holder, false)
                 }
             }
         }
 
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder) {
             val classReference = instance.classReference
-            if (classReference is VcDefClass && instance.coClauses != null) {
-
-                val coClauses = instance.coClauses
+            if (classReference is VcDefClass) {
                 val argumentAppExpr = instance.argumentAppExpr
-                if (coClauses != null && argumentAppExpr != null) {
+                if (argumentAppExpr != null) {
                     doAnnotate(object: ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)
 
-                        override fun getCoClauseList(): List<VcCoClause> = coClauses.coClauseList
+                        override fun getCoClauseList(): List<VcCoClause> = instance.coClauses?.coClauseList ?: emptyList()
 
                         override fun getClassReferenceHolder() = instance
 
@@ -203,19 +190,16 @@ class InstanceQuickFix {
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
                             val whitespace = calculateWhiteSpace()
-                            val nodeCoClauses = instance.coClauses
-                            if (nodeCoClauses != null) {
-                                val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
-                                if (nodeCoClauses.prevSibling is PsiWhiteSpace) nodeCoClauses.prevSibling.delete()
+                            var nodeCoClauses = instance.coClauses
+                            if (nodeCoClauses == null) {
+                                val sampleCoClause = factory.createCoClause(name, "{?}")
+                                instance.addAfter(sampleCoClause, instance.argumentAppExpr)
+                                nodeCoClauses = instance.coClauses!!
                                 nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"+whitespace), nodeCoClauses)
-                                nodeCoClauses.add(sampleCoClause.prevSibling.prevSibling)
-                                nodeCoClauses.add(sampleCoClause.prevSibling)
-                                nodeCoClauses.add(sampleCoClause)
-                                moveCaretAfterNextSibling(editor, nodeCoClauses.lastChild.prevSibling)
-
+                                moveCaretToTheEnd(editor, nodeCoClauses.lastChild)
                             }
                         }
-                    }, classReference, coClauses.coClauseList, holder, false)
+                    }, classReference, holder, false)
                 }
             }
         }
@@ -259,13 +243,55 @@ class InstanceQuickFix {
                             anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
                             anchor.parent.addAfter(vBarSample, anchor)
 
-                            moveCaretAfterNextSibling(editor, anchor.nextSibling.nextSibling)
+                            moveCaretToTheEnd(editor, anchor.nextSibling.nextSibling.nextSibling)
                             anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
                         }
-                    }, classReference, newExpr.coClauseList, holder, newExpr.newKw == null)
+                    }, classReference, holder, newExpr.newKw == null)
                 }
             }
         }
+    }
+}
+
+abstract class CoClauseAdapter(private val coClause: VcCoClause) : ExpressionWithCoClauses{
+    override fun getCoClauseList() = coClause.coClauseList
+
+    override fun getClassReferenceHolder() = coClause
+
+    override fun getPsiElement(): PsiElement = coClause
+
+    override fun calculateWhiteSpace() : String {
+        var anchor = coClause.prevSibling
+        val defaultIndent = "  "
+        if (anchor is PsiWhiteSpace) anchor = anchor.prevSibling
+        return if (anchor.node.elementType == VcElementTypes.PIPE && anchor.prevSibling is PsiWhiteSpace)
+            InstanceQuickFix.getIndent(anchor.prevSibling.text, defaultIndent, " ") else defaultIndent
+    }
+
+    override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
+        val whitespace = calculateWhiteSpace()
+        var anchor: PsiElement
+
+        val lbrace = coClause.lbrace
+        if (lbrace == null) {
+            anchor = coClause.longName
+            val pOB = factory.createPairOfBraces()
+            anchor.parent.addAfter(pOB.second, anchor)
+            anchor.parent.addAfter(pOB.first, anchor)
+            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+            anchor = coClause.longName.nextSibling.nextSibling
+        } else {
+            anchor = lbrace
+        }
+
+        val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
+        val vBarSample = sampleCoClause.prevSibling.prevSibling
+        anchor.parent.addAfter(sampleCoClause, anchor)
+        moveCaretToTheEnd(editor, anchor.nextSibling)
+        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+        anchor.parent.addAfter(vBarSample, anchor)
+
+        anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
     }
 }
 
@@ -300,7 +326,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
 
             anchor.parent.addAfter(coClause, anchor)
             if (!caretMoved && editor != null) {
-                moveCaretAfterNextSibling(editor, anchor)
+                moveCaretToTheEnd(editor, anchor.nextSibling)
                 caretMoved = true
             }
             anchor.parent.addAfter(psiFactory.createWhitespace(" "), anchor)

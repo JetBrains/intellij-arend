@@ -246,7 +246,7 @@ private recordBody ::= classStats {
     recoverWhile = statement_recover
 }
 
-defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON argumentAppExpr coClauses where? {
+defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON argumentAppExpr coClauses? where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.InstanceAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefInstanceStub"
@@ -428,7 +428,7 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
-coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)* {
+coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)+ {
     pin(".*") = 1
     recoverWhile = statement_recover
 }
