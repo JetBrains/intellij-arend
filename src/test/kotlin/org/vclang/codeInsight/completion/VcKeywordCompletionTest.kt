@@ -79,8 +79,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test root keywords completion 2`() =
             checkKeywordCompletionVariants(STATEMENT_KWS, CompletionCondition.CONTAINS,
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
-                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}")
-
+                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
+                    "\\func foo => 0 \\where {\n{-caret-} }")
 
     fun `test root keywords completion 3`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -125,10 +125,13 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func lol => 0\n{-caret-}",
                     "\\data Lol | lol1 | lol2\n{-caret-}",
                     "\\class Lol {}\n{-caret-}",
-                    "\\func foo => 0 \\where \\func bar => 0\n{-caret-}")
+                    "\\func foo => 0 \\where \\func bar => 0\n{-caret-}",
+                    "\\class foo {-caret-}")
 
     fun `test no where completion after iterated where`() =
-            checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}")
+            checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}",
+                    "\\func foo => 0 \\where \n {-caret-}")
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS + WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")
