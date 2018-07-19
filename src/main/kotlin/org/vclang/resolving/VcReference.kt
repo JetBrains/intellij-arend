@@ -6,7 +6,6 @@ import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.module.util.findVcFilesAndDirectories
@@ -34,11 +33,11 @@ open class VcDefReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceB
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
 }
 
-open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T, private val onlyResolve: Boolean): VcReferenceImpl<T>(element, VcConstructor::class.java) {
+open class VcPatternDefReferenceImpl<T : VcDefIdentifier>(element: T, private val onlyResolve: Boolean): VcReferenceImpl<T>(element) {
     override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
-open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz: Class<*>?): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
+open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), VcReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -47,23 +46,21 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T, private val clazz
     override fun getVariants(): Array<Any> {
         var notARecord = false
         var notASynonym = false
-        var clazz = clazz
+        var clazz: Class<*>? = null
         val element = element
-        if (clazz == null) {
-            val parent = element.parent
-            val pparent = parent as? VcDefClass ?: (parent as? VcLongName)?.parent
-            if (pparent is VcDefClass) {
+        val parent = element.parent
+        val pparent = parent as? VcDefClass ?: (parent as? VcLongName)?.parent
+        if (pparent is VcDefClass) {
+            clazz = VcDefClass::class.java
+            notARecord = parent is VcDefClass // inside a class synonym
+            notASynonym = parent is VcDefClass
+        } else {
+            val atomFieldsAcc = ((pparent as? VcLiteral)?.parent as? VcAtom)?.parent as? VcAtomFieldsAcc
+            val argParent = ((if (atomFieldsAcc == null) (pparent as? VcLongNameExpr)?.parent else
+                if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? VcArgumentAppExpr)?.parent
+            if (argParent is VcDefInstance || argParent is VcNewArg || (argParent as? VcNewExpr)?.newKw != null) {
                 clazz = VcDefClass::class.java
-                notARecord = parent is VcDefClass // inside a class synonym
-                notASynonym = parent is VcDefClass
-            } else {
-                val atomFieldsAcc = ((pparent as? VcLiteral)?.parent as? VcAtom)?.parent as? VcAtomFieldsAcc
-                val argParent = ((if (atomFieldsAcc == null) (pparent as? VcLongNameExpr)?.parent else
-                    if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? VcArgumentAppExpr)?.parent
-                if (argParent is VcDefInstance || argParent is VcNewArg || (argParent as? VcNewExpr)?.newKw != null) {
-                    clazz = VcDefClass::class.java
-                    notARecord = argParent is VcDefInstance
-                }
+                notARecord = argParent is VcDefInstance
             }
         }
 
@@ -134,7 +131,7 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     oldNameIdentifier.replace(newNameIdentifier)
 }
 
-open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element, null), PsiPolyVariantReference {
+open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceImpl<T>(element), PsiPolyVariantReference {
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable

@@ -20,11 +20,7 @@ import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.psi.ext.VcCompositeElement
-import org.vclang.psi.ext.VcPatternImplMixin
-import org.vclang.psi.ext.VcNewExprImplMixin
-import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.ext.*
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.PsiPartialConcreteProvider
@@ -157,14 +153,6 @@ class VcHighlightingAnnotator : Annotator {
             val number = element.number
             if (number == Concrete.NumberPattern.MAX_VALUE) {
                 element.getAtomPattern()?.let { holder.createErrorAnnotation(it, "Value too big") }
-            }
-        }
-
-        if (element is VcPattern) {
-            val defIdentifier = element.defIdentifier ?: return
-            val resolved = element.scope.resolveName(defIdentifier.referenceName)
-            if (resolved != null && (resolved !is GlobalReferable || PsiLocatedReferable.fromReferable(resolved) !is VcConstructor)) {
-                holder.createErrorAnnotation(defIdentifier, "Expected a constructor")
             }
             return
         }

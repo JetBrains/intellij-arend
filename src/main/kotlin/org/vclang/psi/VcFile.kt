@@ -5,6 +5,7 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
@@ -42,6 +43,8 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     }
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
+
+    override fun getKind() = GlobalReferable.Kind.OTHER
 
     override val scope: Scope
         get() = ScopeFactory.forGroup(this, moduleScopeProvider)

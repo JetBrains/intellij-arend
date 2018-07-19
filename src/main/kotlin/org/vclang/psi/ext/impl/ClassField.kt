@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import org.vclang.VcIcons
 import org.vclang.psi.VcClassField
 import org.vclang.psi.VcExpr
@@ -16,6 +17,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun getKind() = GlobalReferable.Kind.FIELD
 
     override fun getPrecedence() = calcPrecedence(prec)
 

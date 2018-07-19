@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcIcons
@@ -19,6 +20,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcClassFieldParamStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun getKind() = GlobalReferable.Kind.FIELD
 
     override val referenceNameElement
         get() = this

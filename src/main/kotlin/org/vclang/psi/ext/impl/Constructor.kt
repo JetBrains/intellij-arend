@@ -3,6 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -15,6 +16,8 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override fun getKind() = GlobalReferable.Kind.CONSTRUCTOR
 
     override fun getData() = this
 

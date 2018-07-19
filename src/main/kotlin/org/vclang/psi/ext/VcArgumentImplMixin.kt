@@ -37,7 +37,7 @@ abstract class VcInfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node), 
     override val referenceName: String
         get() = infix.text.removeSurrounding("`")
 
-    override fun getReference(): VcReference = VcReferenceImpl(this, null)
+    override fun getReference(): VcReference = VcReferenceImpl(this)
 }
 
 abstract class VcPostfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node), VcPostfixArgument, VcReferenceElement {
@@ -58,7 +58,7 @@ abstract class VcPostfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node)
     override val referenceName: String
         get() = postfix.text.removePrefix("`")
 
-    override fun getReference(): VcReference = VcReferenceImpl(this, null)
+    override fun getReference(): VcReference = VcReferenceImpl(this)
 }
 
 abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewArg, Abstract.ClassReferenceHolder {

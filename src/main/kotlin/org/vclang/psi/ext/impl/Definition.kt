@@ -25,8 +25,6 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
-    override fun isTypecheckable() = true
-
     open fun getWhere(): VcWhere? = null
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =

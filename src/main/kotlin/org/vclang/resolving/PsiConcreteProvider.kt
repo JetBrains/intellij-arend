@@ -25,7 +25,7 @@ import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 
-private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, true)) {
+private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
