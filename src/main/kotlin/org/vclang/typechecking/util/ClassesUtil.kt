@@ -37,9 +37,10 @@ fun getNotImplementedFields(classDef: VcDefClass, classRefHolder: Abstract.Class
             (fieldImpl as? PsiElement)?.let {
                 val resolved = PsiTreeUtil.getChildOfType(it, VcLongName::class.java)?.refIdentifierList?.lastOrNull()?.reference?.resolve()
                 if (resolved is LocatedReferable) {
-                    result.remove(resolved.underlyingReference ?: resolved)
+                    val field = resolved.underlyingReference ?: resolved
+                    result.remove(field)
                     for (fields in superClassesFields.values) {
-                        fields.remove(resolved)
+                        fields.remove(field)
                     }
                 }
             }
@@ -57,7 +58,14 @@ private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<Vc
     for (superClass in classDef.superClassReferences) {
         if (superClass is VcDefClass) {
             val superClassMap = getNotImplementedFields(superClass, visited, superClassesFields)
-            superClassesFields[superClass] = superClassMap.keys
+            superClassesFields.compute(superClass) { _,oldFields ->
+                if (oldFields == null) {
+                    superClassMap.keys
+                } else {
+                    oldFields.retainAll(superClassMap.keys)
+                    oldFields
+                }
+            }
             for (entry in superClassMap) {
                 result.compute(entry.key) { _,list -> if (list == null) entry.value else list + entry.value }
             }
@@ -89,9 +97,16 @@ private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<Vc
                 val superClassFields = superClassesFields.remove(resolved)
                 if (superClassFields != null) {
                     result.keys.removeAll(superClassFields)
+                    for (fields in superClassesFields.values) {
+                        fields.removeAll(superClassFields)
+                    }
                 }
             } else if (resolved is LocatedReferable) {
-                result.remove(resolved.underlyingReference ?: resolved)
+                val field = resolved.underlyingReference ?: resolved
+                result.remove(field)
+                for (fields in superClassesFields.values) {
+                    fields.remove(field)
+                }
             }
         }
     }

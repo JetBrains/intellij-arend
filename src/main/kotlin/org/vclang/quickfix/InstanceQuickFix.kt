@@ -85,61 +85,13 @@ class InstanceQuickFix {
         }
 
         private fun annotateClauses(coClauseList: List<VcCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>, fields: MutableSet<LocatedReferable>){
+            val classClauses = ArrayList<Pair<VcDefClass,VcCoClause>>()
             for (coClause in coClauseList) {
                 val referable = coClause.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
                 val underlyingRef = referable.underlyingReference ?: referable
 
-                val expr = coClause.expr
-                val fatArrow = coClause.fatArrow
-                val clauseBlock = fatArrow == null
-                val emptyGoal = expr != null && isEmptyGoal(expr)
-
                 if (underlyingRef is VcDefClass) {
-                    val subClauses =
-                        if (fatArrow != null) {
-                            val superClassFields = superClassesFields[underlyingRef]
-                            if (superClassFields != null && !superClassFields.isEmpty()) {
-                                fields.removeAll(superClassFields)
-                                continue
-                            }
-                            emptyList()
-                        } else {
-                            coClause.coClauseList
-                        }
-
-                    if (subClauses.isEmpty()) {
-                        val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
-                        warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                        warningAnnotation.registerFix(object: IntentionAction {
-                            override fun startInWriteAction() = true
-
-                            override fun getFamilyName() = "vclang.instance"
-
-                            override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
-
-                            override fun getText() = "Remove redundant clause"
-
-                            override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-                                var startChild: PsiElement = coClause
-                                if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-                                if (startChild.prevSibling.node.elementType == VcElementTypes.PIPE) startChild = startChild.prevSibling
-                                if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-                                if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
-
-                                coClause.parent.deleteChildRange(startChild, coClause)
-                            }
-                        })
-                        val fieldToImplement = superClassesFields[underlyingRef]
-                        if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
-                            warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
-                                override fun getRangeToReport(): TextRange = coClause.longName.textRange
-
-                                override fun isError() = false
-                            }, fieldToImplement.toSet(), "Implement fields"))
-                        }
-                    } else {
-                        annotateClauses(subClauses, holder, superClassesFields, fields)
-                    }
+                    classClauses.add(Pair(underlyingRef,coClause))
                     continue
                 }
 
@@ -149,6 +101,11 @@ class InstanceQuickFix {
                 for (superClassFields in superClassesFields.values) {
                     superClassFields.remove(underlyingRef)
                 }
+
+                val expr = coClause.expr
+                val fatArrow = coClause.fatArrow
+                val clauseBlock = fatArrow == null
+                val emptyGoal = expr != null && isEmptyGoal(expr)
 
                 if (clauseBlock || emptyGoal) {
                     val typeClassReference = underlyingRef.typeClassReference
@@ -162,6 +119,54 @@ class InstanceQuickFix {
                             super.insertFirstCoClause(name, factory, editor)
                         }
                     }, typeClassReference, holder, false)
+                }
+            }
+
+            for ((underlyingRef,coClause) in classClauses) {
+                val subClauses =
+                    if (coClause.fatArrow != null) {
+                        val superClassFields = superClassesFields[underlyingRef]
+                        if (superClassFields != null && !superClassFields.isEmpty()) {
+                            fields.removeAll(superClassFields)
+                            continue
+                        }
+                        emptyList()
+                    } else {
+                        coClause.coClauseList
+                    }
+
+                if (subClauses.isEmpty()) {
+                    val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
+                    warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                    warningAnnotation.registerFix(object: IntentionAction {
+                        override fun startInWriteAction() = true
+
+                        override fun getFamilyName() = "vclang.instance"
+
+                        override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+
+                        override fun getText() = "Remove redundant clause"
+
+                        override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+                            var startChild: PsiElement = coClause
+                            if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                            if (startChild.prevSibling.node.elementType == VcElementTypes.PIPE) startChild = startChild.prevSibling
+                            if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                            if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
+
+                            coClause.parent.deleteChildRange(startChild, coClause)
+                        }
+                    })
+                    val fieldToImplement = superClassesFields[underlyingRef]
+                    if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
+                        warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
+                            override fun getRangeToReport(): TextRange = coClause.longName.textRange
+
+                            override fun isError() = false
+                        }, fieldToImplement.toSet(), "Implement fields"))
+                    }
+                } else {
+                    annotateClauses(subClauses, holder, superClassesFields, fields)
                 }
             }
         }
@@ -254,7 +259,7 @@ class InstanceQuickFix {
 }
 
 abstract class CoClauseAdapter(private val coClause: VcCoClause) : ExpressionWithCoClauses{
-    override fun getCoClauseList() = coClause.coClauseList
+    override fun getCoClauseList(): List<VcCoClause> = coClause.coClauseList
 
     override fun getClassReferenceHolder() = coClause
 
