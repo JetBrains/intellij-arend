@@ -17,7 +17,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.module.ModuleScope
 import org.vclang.psi.*
 import org.vclang.resolving.VcReference
-import org.vclang.typechecking.util.ModifiedClassFieldImplScope
+import org.vclang.typing.ModifiedClassFieldImplScope
 
 interface VcCompositeElement : PsiElement, SourceInfo {
     val scope: Scope

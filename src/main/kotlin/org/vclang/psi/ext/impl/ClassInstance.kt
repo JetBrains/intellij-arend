@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
@@ -13,7 +12,7 @@ import org.vclang.psi.VcCoClause
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.VcNameTele
 import org.vclang.psi.stubs.VcDefInstanceStub
-import org.vclang.resolving.PsiPartialConcreteProvider
+import org.vclang.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
 abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInstance, Abstract.InstanceDefinition {
@@ -31,8 +30,10 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R? = visitor.visitInstance(this)
 
-    override fun getTypeClassReference(): ClassReferable? =
-        if (parameters.all { !it.isExplicit }) ExpressionResolveNameVisitor.resolve(PsiPartialConcreteProvider.getInstanceReference(this)?.referent, scope) as? ClassReferable else null
+    override fun getTypeClassReference(): ClassReferable? {
+        val type = resultType ?: return null
+        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor(scope).findClassReferable(type) else null
+    }
 
     override fun getClassReference() = typeClassReference
 

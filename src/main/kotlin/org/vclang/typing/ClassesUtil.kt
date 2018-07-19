@@ -1,4 +1,4 @@
-package org.vclang.typechecking.util
+package org.vclang.typing
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -31,7 +31,8 @@ fun getNotImplementedFields(classDef: VcDefClass, numberOfFieldsToSkip: Int, sup
 }
 
 fun getNotImplementedFields(classDef: VcDefClass, classRefHolder: Abstract.ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>): HashMap<LocatedReferable, List<LocatedReferable>> {
-    val result = getNotImplementedFields(classDef, classRefHolder?.numberOfArguments ?: 0, superClassesFields)
+    val result = getNotImplementedFields(classDef, classRefHolder?.numberOfArguments
+        ?: 0, superClassesFields)
     if (classRefHolder != null) {
         for (fieldImpl in classRefHolder.classFieldImpls) {
             (fieldImpl as? PsiElement)?.let {

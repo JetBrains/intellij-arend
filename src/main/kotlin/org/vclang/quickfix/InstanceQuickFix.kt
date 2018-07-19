@@ -21,7 +21,7 @@ import org.vclang.psi.*
 import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
-import org.vclang.typechecking.util.getNotImplementedFields
+import org.vclang.typing.getNotImplementedFields
 
 interface ExpressionWithCoClauses {
     fun getRangeToReport(): TextRange
