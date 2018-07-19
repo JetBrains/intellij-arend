@@ -42,7 +42,7 @@ interface VcSourceNode: VcCompositeElement, Abstract.SourceNode {
 private fun getVcScope(element: VcCompositeElement): Scope {
     val sourceNode = element.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE
     val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? VcFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
-    if (scope is ClassFieldImplScope) {
+    if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is VcDefClass) {
             return ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? Abstract.ClassReferenceHolder)
