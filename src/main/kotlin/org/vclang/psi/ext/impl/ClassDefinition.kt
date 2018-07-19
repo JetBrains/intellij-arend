@@ -10,6 +10,7 @@ import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNam
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
+import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcIcons
 import org.vclang.psi.*
@@ -34,7 +35,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList
 
-    override fun getDynamicSubgroups(): List<Group> = classStatList.mapNotNull { it.definition }
+    override fun getDynamicSubgroups(): List<ChildGroup> = classStatList.mapNotNull { it.definition ?: it.defModule as ChildGroup? }
 
     private inline val parameterFields: List<VcFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
 

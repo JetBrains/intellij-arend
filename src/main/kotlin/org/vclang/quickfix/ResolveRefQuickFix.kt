@@ -273,7 +273,7 @@ class ResolveRefQuickFix {
                     }
                     val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
 
-                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
                     var suitableImport: VcStatCmd? = null
                     val aliases = HashMap<List<String>, HashSet<String>>()

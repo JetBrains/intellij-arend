@@ -34,7 +34,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<VcDefinition> = getWhere()?.statementList?.mapNotNull { it.definition } ?: emptyList()
+    override fun getSubgroups(): List<ChildGroup> = getWhere()?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
 
     override fun getNamespaceCommands(): List<VcStatCmd> = getWhere()?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 

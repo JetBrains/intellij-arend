@@ -71,7 +71,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<VcDefinition> = children.mapNotNull { (it as? VcStatement)?.definition }
+    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { (it as? VcStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
 
     override fun getNamespaceCommands(): List<VcStatCmd> = children.mapNotNull { (it as? VcStatement)?.statCmd }
 

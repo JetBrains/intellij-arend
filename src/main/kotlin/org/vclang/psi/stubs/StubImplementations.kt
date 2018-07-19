@@ -44,6 +44,7 @@ fun factory(name: String): VcStubElementType<*, *> = when (name) {
     "CONSTRUCTOR" -> VcConstructorStub.Type
     "DEF_DATA" -> VcDefDataStub.Type
     "DEF_FUNCTION" -> VcDefFunctionStub.Type
+    "DEF_MODULE" -> VcDefModuleStub.Type
     else -> error("Unknown element $name")
 }
 
@@ -275,5 +276,31 @@ class VcDefFunctionStub(
         ): VcDefFunctionStub = VcDefFunctionStub(parentStub, this, psi.name)
 
         override fun indexStub(stub: VcDefFunctionStub, sink: IndexSink) = sink.indexFunction(stub)
+    }
+}
+
+class VcDefModuleStub(
+    parent: StubElement<*>?,
+    elementType: IStubElementType<*, *>,
+    name: String?
+) : VcStub<VcDefModule>(parent, elementType, name) {
+
+    object Type : VcStubElementType<VcDefModuleStub, VcDefModule>("DEF_MODULE") {
+
+        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
+            VcDefModuleStub(parentStub, this, dataStream.readName()?.string)
+
+        override fun serialize(stub: VcDefModuleStub, dataStream: StubOutputStream) =
+            with(dataStream) { writeName(stub.name) }
+
+        override fun createPsi(stub: VcDefModuleStub): VcDefModule =
+            VcDefModuleImpl(stub, this)
+
+        override fun createStub(
+            psi: VcDefModule,
+            parentStub: StubElement<*>?
+        ): VcDefModuleStub = VcDefModuleStub(parentStub, this, psi.name)
+
+        override fun indexStub(stub: VcDefModuleStub, sink: IndexSink) = sink.indexModule(stub)
     }
 }

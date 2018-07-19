@@ -51,6 +51,11 @@ fun IndexSink.indexFunction(stub: VcDefFunctionStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexModule(stub: VcDefModuleStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 private fun IndexSink.indexNamedStub(stub: VcNamedStub) {
     stub.name?.let { occurrence(VcNamedElementIndex.KEY, it) }
 }

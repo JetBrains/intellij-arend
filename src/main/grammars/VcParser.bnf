@@ -37,6 +37,7 @@
         HIDING_KW           = '\hiding'
         USING_KW            = '\using'
         AS_KW               = '\as'
+        MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
@@ -86,11 +87,11 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | FUNCTION_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-statement ::= statCmd | definition | statement_recovery
+statement ::= statCmd | definition | defModule | statement_recovery
 
 private statement_recovery ::= statement_recover {
     recoverWhile = statement_recover
@@ -142,7 +143,7 @@ private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
 private classStats ::= LBRACE classStat* RBRACE { pin = 1 }
 
-classStat ::= classFieldOrImplement | definition { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | definition | defModule { recoverWhile = classStat_recover }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
@@ -188,6 +189,20 @@ definition ::= defFunction
     implements = [ "org.vclang.psi.ext.PsiConcreteReferable"
                    "com.jetbrains.jetpad.vclang.term.group.ChildGroup" ]
     mixin = "org.vclang.psi.ext.impl.DefinitionAdapter"
+}
+
+defModule ::= moduleHeader where? {
+    pin = 1
+    implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
+                   "com.jetbrains.jetpad.vclang.term.group.ChildGroup" ]
+    mixin = "org.vclang.psi.ext.impl.VcDefModuleMixin"
+    stubClass = "org.vclang.psi.stubs.VcDefModuleStub"
+    elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
+}
+
+private moduleHeader ::= MODULE_KW defIdentifier {
+    pin = 1
+    recoverWhile = statement_recover
 }
 
 defFunction ::= FUNCTION_KW prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
