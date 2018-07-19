@@ -37,6 +37,7 @@ BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
 NUMBER              = [0-9]+
+NEGATIVE_NUMBER     = -[0-9]+
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:a-zA-Z_]
 KEYWORD             = \\[0-9]*{ID}
@@ -108,6 +109,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {KEYWORD}               { return INVALID_KW; }
 
     {NUMBER}                { return NUMBER; }
+    {NEGATIVE_NUMBER}       { return NEGATIVE_NUMBER; }
 
     {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }

@@ -151,7 +151,7 @@ class VcHighlightingAnnotator : Annotator {
 
         if (element is VcPatternImplMixin) {
             val number = element.number
-            if (number == Concrete.NumberPattern.MAX_VALUE) {
+            if (number == Concrete.NumberPattern.MAX_VALUE || number == -Concrete.NumberPattern.MAX_VALUE) {
                 element.getAtomPattern()?.let { holder.createErrorAnnotation(it, "Value too big") }
             }
             return

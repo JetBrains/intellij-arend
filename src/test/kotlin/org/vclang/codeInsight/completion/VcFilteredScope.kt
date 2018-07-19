@@ -1,7 +1,7 @@
 package org.vclang.codeInsight.completion
 
 
-private val preludeConstructors = listOf("inP", "inS", "left", "path", "right", "suc", "truncP", "truncS", "zero")
+private val preludeConstructors = listOf("inP", "inS", "left", "path", "right", "suc", "truncP", "truncS", "zero", "neg", "pos")
 
 class VcFilteredScope : VcCompletionTestBase() {
     fun `test super classes`() =

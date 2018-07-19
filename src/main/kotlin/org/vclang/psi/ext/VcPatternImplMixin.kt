@@ -31,15 +31,19 @@ abstract class VcPatternImplMixin(node: ASTNode) : VcSourceNodeImpl(node), Abstr
 
     override fun getNumber(): Int? {
         val atom = getAtomPattern() ?: return null
-        val number = atom.number
+        val number = atom.number ?: atom.negativeNumber
         if (number != null) {
             val text = number.text
             val len = text.length
-            if (len >= 10) {
-                return Concrete.NumberPattern.MAX_VALUE
+            if (len >= 9) {
+                return if (text[0] == '-') -Concrete.NumberPattern.MAX_VALUE else Concrete.NumberPattern.MAX_VALUE
             }
             val value = text.toInt()
-            return if (value > Concrete.NumberPattern.MAX_VALUE) Concrete.NumberPattern.MAX_VALUE else value
+            return when {
+                value > Concrete.NumberPattern.MAX_VALUE -> Concrete.NumberPattern.MAX_VALUE
+                value < -Concrete.NumberPattern.MAX_VALUE -> -Concrete.NumberPattern.MAX_VALUE
+                else -> value
+            }
         }
         val patterns = atom.patternList
         return if (patterns.size == 1) patterns.first().number else null

@@ -336,6 +336,7 @@ private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | UNDERSCORE) &
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
     | NUMBER
+    | NEGATIVE_NUMBER
     | UNDERSCORE
 
 constructor ::= prec? defIdentifier_typeTele typeTele* [elim? clausesWithBraces] {
@@ -544,6 +545,7 @@ fieldAcc ::= DOT NUMBER { pin = 1 }
 
 atom ::= literal
     | tuple
+    | NEGATIVE_NUMBER
     | NUMBER {
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcAtomImplMixin"
