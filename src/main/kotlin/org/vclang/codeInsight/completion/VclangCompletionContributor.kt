@@ -61,27 +61,32 @@ class VclangCompletionContributor : CompletionContributor() {
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST)
-        ) { jD: JointData ->
+        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST), true)
+        { jD: JointData ->
             var anc = jD.prevElement
             while (anc != null && anc !is VcStatement) anc = anc.parent
-            var flag = false
             if (anc is VcStatement) {
-                val da = anc.definition
-                if (da is DefinitionAdapter<*>) {
-                    val where =  da.getWhere()
-                    if (where == null || (where.lbrace == null && where.rbrace == null)) flag = true
-                }
-            }
-            flag})
+                val da: VcDefinition? = anc.definition
+                val dm: VcDefModule? = anc.defModule
+                (when {
+                    da is DefinitionAdapter<*> -> da.getWhere() == null
+                    dm != null -> dm.where == null
+                    else -> false
+                })
+            } else false})
 
-        extend(CompletionType.BASIC,  and(withAncestors(PsiErrorElement::class.java, VcDefClass::class.java), afterLeaf(ID)), KeywordCompletionProvider(EXTENDS_KW_LIST))
+        val noExtendsCondition = ProviderWithCondition({cP, _ ->
+            val dC = cP.position.ancestors.filterIsInstance<VcDefClass>().firstOrNull()
+            if (dC != null) dC.extendsKw == null else false
+        }, KeywordCompletionProvider(EXTENDS_KW_LIST))
+
+        extend(CompletionType.BASIC,  and(withAncestors(PsiErrorElement::class.java, VcDefClass::class.java), afterLeaf(ID)), noExtendsCondition)
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, VcFieldTele::class.java, VcDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
                     var nS = parameters.position.parent?.parent?.nextSibling
                     while (nS is PsiWhiteSpace) nS = nS.nextSibling
                     nS !is VcFieldTele
-                }, KeywordCompletionProvider(EXTENDS_KW_LIST)))
+                }, noExtendsCondition))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(COLON)), KeywordCompletionProvider(DATA_UNIVERSE_KW))
 
@@ -171,25 +176,28 @@ class VclangCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, LPH_LEVEL_CONTEXT, KeywordCompletionProvider(LPH_LEVEL_KWS))
 
-        fun pairingWordCondition (condition: (PsiElement?) -> Boolean, cp: CompletionProvider<CompletionParameters>) = ProviderWithCondition({cP, _ ->
-            var position: PsiElement? = cP.position
+        fun pairingWordCondition (condition: (PsiElement?) -> Boolean, position: PsiElement): Boolean {
+            var pos: PsiElement? = position
             var exprFound = false
-            while (position != null) {
-                if (condition.invoke(position)) {
+            while (pos != null) {
+                if (condition.invoke(pos)) {
                     exprFound = true
                     break
                 }
-                if (!(position.nextSibling == null || position.nextSibling is PsiErrorElement)) break
-                position = position.parent
+                if (!(pos.nextSibling == null || pos.nextSibling is PsiErrorElement)) break
+                pos = pos.parent
             }
-            exprFound
-        }, cp)
+            return exprFound
+        }
 
-        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))),
-                pairingWordCondition({ position: PsiElement? -> position is VcLetExpr && position.inKw == null }, KeywordCompletionProvider(IN_KW_LIST)))
+        val pairingInCondition = {pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is VcLetExpr && position.inKw == null }, pos)}
+        val pairingWithCondition = {pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is VcCaseExpr && position.withKw == null }, pos)}
 
-        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))),
-                pairingWordCondition({ position -> position is VcCaseExpr && position.withKw == null }, KeywordCompletionProvider(WITH_KW_LIST)))
+        fun pairingWordProvider (condition: (PsiElement) -> Boolean, cp: CompletionProvider<CompletionParameters>) = ProviderWithCondition({ cP, _ -> condition(cP.position)}, cp)
+
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))), pairingWordProvider(pairingInCondition, KeywordCompletionProvider(IN_KW_LIST)))
+
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))), pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
 
         val emptyTeleList = {l : List<Abstract.Parameter> ->
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
@@ -330,6 +338,9 @@ class VclangCompletionContributor : CompletionContributor() {
         val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, VcStatCmd::class.java)
         val ANY: PsiElementPattern.Capture<PsiElement> = PlatformPatterns.psiElement()
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
+        val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java)),
+                not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
+                afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW))))
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
         val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
                                     withParentOrGrandParent(VcFunctionBody::class.java),
@@ -425,12 +436,14 @@ class VclangCompletionContributor : CompletionContributor() {
                 ProviderWithCondition({ parameters, context -> condition(parameters, context, elementsOnJoint(parameters.originalFile, parameters.offset)) }, completionProvider)
 
 
-        private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>,
+        private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>, noCrlfRequired: Boolean = false,
                                                      additionalCondition: (JointData) -> Boolean = {_: JointData -> true}): CompletionProvider<CompletionParameters> =
                 genericJointCondition({_, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementClass, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementClass, jointData.prevElement)
-                    jointData.delimeterBeforeCaret && additionalCondition(jointData) && ancestorsNE.intersect(ancestorsPE).isEmpty() }, completionProvider)
+                    val insideCurlyBraces = jointData.prevElement?.node?.elementType == LBRACE && jointData.nextElement?.node?.elementType == RBRACE
+                    (jointData.delimeterBeforeCaret || noCrlfRequired)
+                            && additionalCondition(jointData) && (ancestorsNE.intersect(ancestorsPE).isEmpty() || insideCurlyBraces) }, completionProvider)
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
