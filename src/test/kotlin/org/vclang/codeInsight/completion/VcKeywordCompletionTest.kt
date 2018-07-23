@@ -131,7 +131,9 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no where completion after iterated where`() =
             checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}",
-                    "\\func foo => 0 \\where \n {-caret-}")
+                    "\\func foo => 0 \\where \n {-caret-}",
+                    "\\instance Foo {-caret-}" /* \\where not allowed in incomplete instance */,
+                    "\\func foo => \\case {-caret-}" /* where not allowed after case keyword */)
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")

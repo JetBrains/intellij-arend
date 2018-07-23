@@ -197,11 +197,21 @@ class InstanceQuickFix {
                             val whitespace = calculateWhiteSpace()
                             var nodeCoClauses = instance.coClauses
                             if (nodeCoClauses == null) {
-                                val sampleCoClause = factory.createCoClause(name, "{?}")
-                                instance.addAfter(sampleCoClause, instance.argumentAppExpr)
+                                val sampleCoClauses = factory.createCoClause(name, "{?}")
+                                instance.addAfter(sampleCoClauses, instance.argumentAppExpr)
                                 nodeCoClauses = instance.coClauses!!
                                 nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"+whitespace), nodeCoClauses)
                                 moveCaretToTheEnd(editor, nodeCoClauses.lastChild)
+                            } else if (nodeCoClauses.lbrace != null) {
+                                val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
+                                val anchor = nodeCoClauses.lbrace
+                                nodeCoClauses.addAfter(sampleCoClause, anchor)
+                                nodeCoClauses.addAfter(factory.createWhitespace(" "), anchor)
+                                nodeCoClauses.addAfter(sampleCoClause.prevSibling.prevSibling, anchor) //PIPE
+                                nodeCoClauses.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                                val caretAnchor = instance.coClauses?.coClauseList?.first()
+                                if (caretAnchor != null)
+                                    moveCaretToTheEnd(editor, caretAnchor)
                             }
                         }
                     }, classReference, holder, false)

@@ -195,9 +195,9 @@ class VclangCompletionContributor : CompletionContributor() {
 
         fun pairingWordProvider (condition: (PsiElement) -> Boolean, cp: CompletionProvider<CompletionParameters>) = ProviderWithCondition({ cP, _ -> condition(cP.position)}, cp)
 
-        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(IN_KW))), pairingWordProvider(pairingInCondition, KeywordCompletionProvider(IN_KW_LIST)))
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW)))), pairingWordProvider(pairingInCondition, KeywordCompletionProvider(IN_KW_LIST)))
 
-        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(afterLeaf(WITH_KW))), pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
+        extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW)))), pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
 
         val emptyTeleList = {l : List<Abstract.Parameter> ->
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
@@ -283,7 +283,7 @@ class VclangCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -340,7 +340,11 @@ class VclangCompletionContributor : CompletionContributor() {
         val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, VcRefIdentifier::class.java)
         val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java)),
                 not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
-                afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW))))
+                afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
+                afterLeaf(CASE_KW), afterLeaf(LET_KW))),
+                not(withAncestors(PsiErrorElement::class.java, VcDefInstance::class.java)), // don't allow \where in incomplete instance expressions
+                not(withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java, VcDefInstance::class.java))
+        )
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, VcDefData::class.java, VcStatement::class.java)
         val EXPRESSION_CONTEXT = or(withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java),
                                     withParentOrGrandParent(VcFunctionBody::class.java),
