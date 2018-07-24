@@ -78,6 +78,8 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             return LocalSearchScope(parent.parent.parent)
         } else if (parent is VcAtomPatternOrPrefix && parent.parent != null) {
             return LocalSearchScope(parent.parent.parent) // Pattern variables
+        } else if (parent is VcPattern) {
+            return LocalSearchScope(parent.parent)
         }
         return super.getUseScope()
     }
