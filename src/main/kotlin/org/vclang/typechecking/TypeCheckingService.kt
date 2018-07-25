@@ -11,6 +11,7 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.LocatingModuleScopeProvider
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
@@ -19,9 +20,13 @@ import com.jetbrains.jetpad.vclang.typechecking.SimpleTypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
-import org.vclang.psi.*
+import org.vclang.psi.VcDefinition
+import org.vclang.psi.VcElementTypes
+import org.vclang.psi.VcFile
+import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.impl.DataDefinitionAdapter
 import org.vclang.resolving.VcReferableConverter
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.error.LogErrorReporter
@@ -75,6 +80,16 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         simpleReferableConverter.remove(referable)?.let {
             for (ref in dependencyListener.update(it)) {
                 PsiLocatedReferable.fromReferable(ref)?.let { simpleReferableConverter.remove(it) }
+            }
+        }
+
+        if (referable is ClassReferable) {
+            for (field in referable.fieldReferables) {
+                simpleReferableConverter.remove(field)
+            }
+        } else if (referable is DataDefinitionAdapter) {
+            for (constructor in referable.constructors) {
+                simpleReferableConverter.remove(constructor)
             }
         }
     }
