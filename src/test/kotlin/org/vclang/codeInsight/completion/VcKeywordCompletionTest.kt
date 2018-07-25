@@ -1,6 +1,7 @@
 package org.vclang.codeInsight.completion
 
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.AS_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.COERCE_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_UNIVERSE_KW
@@ -8,7 +9,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.E
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.EXTENDS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FAKE_NTYPE_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
-import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.STATEMENT_KWS
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LOCAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.GLOBAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HIDING_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HU_KW_LIST
@@ -76,10 +77,16 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}")
 
     fun `test root keywords completion 2`() =
-            checkKeywordCompletionVariants(STATEMENT_KWS, CompletionCondition.CONTAINS,
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
-                    "\\func foo => 0 \\where {\n{-caret-} }")
+                    "\\func foo => 0 \\where {\n{-caret-} }",
+                    "\\class Foo { | A : Nat\n {-caret-} }",
+                    "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }")
+
+    fun `test no root keywords completion`() =
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }")
 
     fun `test root keywords completion 3`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -89,6 +96,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             checkKeywordCompletionVariants(IMPORT_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}")
+
+    fun `test no coerce in global context`() =
+            checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+                    "{-caret-}")
 
     fun `test root completion in empty context`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.CONTAINS, "{-caret-}")
@@ -133,7 +144,11 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}",
                     "\\func foo => 0 \\where \n {-caret-}",
                     "\\instance Foo {-caret-}" /* \\where not allowed in incomplete instance */,
-                    "\\func foo => \\case {-caret-}" /* where not allowed after case keyword */)
+                    "\\func foo => \\case {-caret-}" /* where not allowed after case keyword */,
+                    "\\func lol => Foo { {-caret-} }",
+                    "\\func lol => Foo { | {-caret-} }",
+                    "\\func lol => 0 \\where {-caret-}" /* duplicate of where not allowed */,
+                    "\\class Foo { | A : Nat {-caret-}}")
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")

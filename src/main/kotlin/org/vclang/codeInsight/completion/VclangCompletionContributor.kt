@@ -39,11 +39,14 @@ class VclangCompletionContributor : CompletionContributor() {
                 ProviderWithCondition({parameters, _ -> noHiding(parameters.position.parent.parent.parent as VcStatCmd)},
                         KeywordCompletionProvider(HIDING_KW_LIST)))
 
+        val statementCondition = {psi: PsiElement -> psi is VcStatement || psi is VcClassStat}
+
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
-                onJointOfStatementsCondition(VcStatement::class.java,
+                onJointOfStatementsCondition(statementCondition,
                         KeywordCompletionProvider(STATEMENT_WT_KWS)))
+
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
-                onJointOfStatementsCondition(VcStatement::class.java,
+                onJointOfStatementsCondition(statementCondition,
                         object: KeywordCompletionProvider(TRUNCATED_KW_LIST){
                             override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler {insertContext, _ ->
                                 val document = insertContext.document
@@ -56,18 +59,22 @@ class VclangCompletionContributor : CompletionContributor() {
                                     LookupElementBuilder.create(keyword).withPresentableText("\\truncated \\data")
                         }))
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere }.none() },
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere || it is VcDefClass }.none() },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere || it is VcDefClass }.toSet().isNotEmpty() },
+                        KeywordCompletionProvider(COERCE_KW_LIST))))
+
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
-        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(VcStatement::class.java, KeywordCompletionProvider(WHERE_KW_LIST), true)
+        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true)
         { jD: JointData ->
             var anc = jD.prevElement
-            while (anc != null && anc !is VcStatement) anc = anc.parent
-            if (anc is VcStatement) {
-                val da: VcDefinition? = anc.definition
-                val dm: VcDefModule? = anc.defModule
+            while (anc != null && anc !is VcDefinition && anc !is VcDefModule && anc !is VcClassStat) anc = anc.parent
+            if (anc!= null) {
+                val da: VcDefinition? = anc as? VcDefinition /* TODO: create WhereHolder concept */
+                val dm: VcDefModule? = anc as? VcDefModule
                 (when {
                     da is DefinitionAdapter<*> -> da.getWhere() == null
                     dm != null -> dm.where == null
@@ -288,7 +295,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
-        val STATEMENT_WT_KWS = listOf(FUNCTION_KW, COERCE_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map {it.toString()}
+        val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map {it.toString()}
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
@@ -309,9 +316,10 @@ class VclangCompletionContributor : CompletionContributor() {
         val WITH_KW_LIST = listOf(WITH_KW.toString())
         val LEVELS_KW_LIST = listOf(LEVELS_KW.toString())
         val PROP_KW_LIST = listOf(PROP_KW.toString())
+        val COERCE_KW_LIST = listOf(COERCE_KW.toString())
 
-        val STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
-        val GLOBAL_STATEMENT_KWS = STATEMENT_KWS + IMPORT_KW_LIST
+        val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + COERCE_KW_LIST
+        val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
@@ -341,7 +349,7 @@ class VclangCompletionContributor : CompletionContributor() {
         val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java)),
                 not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
                 afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
-                afterLeaf(CASE_KW), afterLeaf(LET_KW))),
+                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW))),
                 not(withAncestors(PsiErrorElement::class.java, VcDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java, VcDefInstance::class.java))
         )
@@ -425,13 +433,13 @@ class VclangCompletionContributor : CompletionContributor() {
             return JointData(prevElement, delimiterBeforeCaret, nextElement)
         }
 
-        private fun <T> ancestorsUntil(c: Class<T>, element: PsiElement?): HashSet<PsiElement> {
-            val ancestors = HashSet<PsiElement>()
+        private fun ancestorsUntil(condition: (PsiElement) -> Boolean, element: PsiElement?): List<PsiElement> {
+            val ancestors = ArrayList<PsiElement>()
             var elem: PsiElement? = element
             if (elem != null) ancestors.add(elem)
-            while (elem != null && !c.isInstance(elem)) {
+            while (elem != null && !condition.invoke(elem)) {
                 elem = elem.parent
-                ancestors.add(elem)
+                if (elem != null) ancestors.add(elem)
             }
             return ancestors
         }
@@ -440,14 +448,27 @@ class VclangCompletionContributor : CompletionContributor() {
                 ProviderWithCondition({ parameters, context -> condition(parameters, context, elementsOnJoint(parameters.originalFile, parameters.offset)) }, completionProvider)
 
 
-        private fun <T> onJointOfStatementsCondition(statementClass: Class<T>, completionProvider: CompletionProvider<CompletionParameters>, noCrlfRequired: Boolean = false,
+        private fun parentIsStatementHolder(p : PsiElement?) = p?.parent is VcWhere || p?.parent is VcDefClass
+
+        private fun onJointOfStatementsCondition(statementCondition: (PsiElement) -> Boolean, completionProvider: CompletionProvider<CompletionParameters>, noCrlfRequired: Boolean = false,
                                                      additionalCondition: (JointData) -> Boolean = {_: JointData -> true}): CompletionProvider<CompletionParameters> =
                 genericJointCondition({_, _, jointData ->
-                    val ancestorsNE = ancestorsUntil(statementClass, jointData.nextElement)
-                    val ancestorsPE = ancestorsUntil(statementClass, jointData.prevElement)
-                    val insideCurlyBraces = jointData.prevElement?.node?.elementType == LBRACE && jointData.nextElement?.node?.elementType == RBRACE
-                    (jointData.delimeterBeforeCaret || noCrlfRequired)
-                            && additionalCondition(jointData) && (ancestorsNE.intersect(ancestorsPE).isEmpty() || insideCurlyBraces) }, completionProvider)
+                    val ancestorsNE = ancestorsUntil(statementCondition, jointData.nextElement)
+                    val ancestorsPE = ancestorsUntil(statementCondition, jointData.prevElement)
+                    val leftSideOk = (jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) || ancestorsPE.isEmpty()
+                    val rightSideOk = (jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) || ancestorsNE.isEmpty()
+                    val leftStatement = ancestorsPE.lastOrNull()
+                    val rightStatement = ancestorsNE.lastOrNull()
+                    val isInsideClassFields = leftStatement is VcClassStat && rightStatement is VcClassStat &&
+                            leftStatement.definition == null && rightStatement.definition == null
+
+                    val correctStatements = (leftSideOk || rightSideOk ||
+                            leftStatement != null && rightStatement != null && !isInsideClassFields &&
+                            ancestorsNE.intersect(ancestorsPE).isEmpty() &&
+                            statementCondition.invoke(leftStatement) && statementCondition.invoke(rightStatement) &&
+                            ancestorsNE.last().parent == ancestorsPE.last().parent)
+
+                    (jointData.delimeterBeforeCaret || noCrlfRequired) && additionalCondition(jointData) && correctStatements }, completionProvider)
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
