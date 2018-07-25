@@ -132,4 +132,9 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     }
 
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is VcDefInstance
+
+    override fun isCoerce(ref: GlobalReferable): Boolean {
+        val psiReferable = PsiLocatedReferable.fromReferable(ref)
+        return psiReferable is VcDefFunction && runReadAction { psiReferable.coerceKw != null }
+    }
 }

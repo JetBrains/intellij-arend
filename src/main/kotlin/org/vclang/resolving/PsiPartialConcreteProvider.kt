@@ -5,6 +5,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.PartialConcreteProvider
 import org.vclang.psi.VcDefClass
+import org.vclang.psi.VcDefFunction
 import org.vclang.psi.VcDefInstance
 import org.vclang.psi.ext.PsiLocatedReferable
 
@@ -21,4 +22,6 @@ object PsiPartialConcreteProvider : PartialConcreteProvider {
         }
 
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is VcDefInstance
+
+    override fun isCoerce(ref: GlobalReferable) = (PsiLocatedReferable.fromReferable(ref) as? VcDefFunction)?.coerceKw != null
 }

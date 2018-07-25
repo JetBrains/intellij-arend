@@ -39,6 +39,7 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
+        COERCE_KW           = '\coerce'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
         RIGHT_ASSOC_KW      = '\fixr'
@@ -87,7 +88,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | COERCE_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -205,7 +206,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= FUNCTION_KW prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
+defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
     pin = 1
     mixin = "org.vclang.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefFunctionStub"

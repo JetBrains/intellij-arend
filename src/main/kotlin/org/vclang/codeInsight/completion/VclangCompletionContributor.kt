@@ -288,7 +288,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
-        val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map {it.toString()}
+        val STATEMENT_WT_KWS = listOf(FUNCTION_KW, COERCE_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map {it.toString()}
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
@@ -328,7 +328,7 @@ class VclangCompletionContributor : CompletionContributor() {
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
-        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), afterLeaf(AS_KW),
+        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), afterLeaf(AS_KW),
                 and(afterLeaf(PIPE), withGrandParents(VcConstructor::class.java, VcDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(VcConstructor::class.java, VcConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(VcClassField::class.java, VcClassStat::class.java)), //class field
@@ -364,7 +364,7 @@ class VclangCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java))
         val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(VcSetUniverseAppExpr::class.java, VcUniverseAppExpr::class.java, VcTruncatedUniverseAppExpr::class.java))
         val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, VcAtomLevelExpr::class.java))
-        val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
+        val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(VcDefIdentifier::class.java, VcIdentifierOrUnknown::class.java, VcNameTele::class.java),
                         and(withParent(PsiErrorElement::class.java), withGrandParents(VcNameTele::class.java, VcTypeTele::class.java, VcDefData::class.java, VcDefFunction::class.java))))

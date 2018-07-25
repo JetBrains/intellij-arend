@@ -30,6 +30,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
+    override fun isCoerce() = coerceKw != null
+
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
     override fun getIcon(flags: Int): Icon = VcIcons.FUNCTION_DEFINITION
