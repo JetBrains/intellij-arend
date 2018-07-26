@@ -87,7 +87,7 @@ class InstanceQuickFix {
         private fun annotateClauses(coClauseList: List<VcCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>, fields: MutableSet<LocatedReferable>){
             val classClauses = ArrayList<Pair<VcDefClass,VcCoClause>>()
             for (coClause in coClauseList) {
-                val referable = coClause.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
+                val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
                 val underlyingRef = referable.underlyingReference ?: referable
 
                 if (underlyingRef is VcDefClass) {
@@ -112,7 +112,7 @@ class InstanceQuickFix {
                     if (typeClassReference is VcDefClass) doAnnotate(object : CoClauseAdapter(coClause) {
                         override fun isError() = clauseBlock
 
-                        override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName.textRange
+                        override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName?.textRange ?: coClause.textRange
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
                             if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
@@ -160,7 +160,7 @@ class InstanceQuickFix {
                     val fieldToImplement = superClassesFields[underlyingRef]
                     if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
                         warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
-                            override fun getRangeToReport(): TextRange = coClause.longName.textRange
+                            override fun getRangeToReport(): TextRange = coClause.longName?.textRange ?: coClause.textRange
 
                             override fun isError() = false
                         }, fieldToImplement.toSet(), "Implement fields"))
@@ -289,12 +289,12 @@ abstract class CoClauseAdapter(private val coClause: VcCoClause) : ExpressionWit
 
         val lbrace = coClause.lbrace
         if (lbrace == null) {
-            anchor = coClause.longName
+            anchor = coClause.longName!!
             val pOB = factory.createPairOfBraces()
             anchor.parent.addAfter(pOB.second, anchor)
             anchor.parent.addAfter(pOB.first, anchor)
             anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-            anchor = coClause.longName.nextSibling.nextSibling
+            anchor = anchor.nextSibling.nextSibling
         } else {
             anchor = lbrace
         }

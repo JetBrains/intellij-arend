@@ -397,7 +397,11 @@ newExpr ::= NEW_KW argumentAppExpr newExprTail
     mixin = "org.vclang.psi.ext.VcNewExprImplMixin"
 }
 
-private newExprTail ::= [LBRACE <<pipe_separated_sequence coClause>>? RBRACE (argument | argumentRecovery)*]
+private coClauseSequence ::= coClause* /* <<pipe_separated_sequence coClause>>? */ {
+    recoverWhile = statement_recover
+}
+
+private newExprTail ::= [LBRACE coClauseSequence RBRACE (argument | argumentRecovery)*]
 
 universeExpr ::= universeAppExpr
     | setUniverseAppExpr
@@ -445,7 +449,7 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 functionClauses ::= clausesWithBraces | (PIPE clause)*
 private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
 
-coClauses ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE | (PIPE coClause)+ {
+coClauses ::= LBRACE coClauseSequence RBRACE | coClause+ {
     pin(".*") = 1
     recoverWhile = statement_recover
 }
@@ -459,7 +463,8 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= coClausePrivate {
+coClause ::= PIPE coClausePrivate {
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.vclang.psi.ext.VcCoClauseImplMixin"
@@ -470,7 +475,7 @@ private coClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
 
 private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 1 }
 
-private coClauseRec ::= LBRACE <<pipe_separated_sequence coClause>>? RBRACE { pin = 1 }
+private coClauseRec ::= LBRACE coClauseSequence RBRACE { pin = 1 }
 
 letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1
@@ -623,7 +628,7 @@ postfixArgument ::= POSTFIX {
     mixin = "org.vclang.psi.ext.VcPostfixArgumentImplMixin"
 }
 
-newArg ::= NEW_KW argumentAppExpr [LBRACE <<pipe_separated_sequence coClause>>? RBRACE] {
+newArg ::= NEW_KW argumentAppExpr [LBRACE coClauseSequence RBRACE] {
     pin = 1
     implements = "org.vclang.psi.VcExpr"
     mixin = "org.vclang.psi.ext.VcNewArgImplMixin"
@@ -746,4 +751,6 @@ refIdentifier ::= ID {
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 
-private meta pipe_separated_sequence ::= pipe_def? <<p>> (pipe_def <<p>>)*
+private meta piped ::= pipe_def <<p>> { pin = 1 }
+
+private meta pipe_separated_sequence ::= pipe_def? <<p>> (<<piped <<p>> >>)*

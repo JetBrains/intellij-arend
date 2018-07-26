@@ -12,7 +12,7 @@ import org.vclang.psi.VcNameTele
 abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCoClause {
     override fun getData() = this
 
-    override fun getImplementedField() = longName.referent
+    override fun getImplementedField() = longName?.referent
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
@@ -21,7 +21,7 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
     override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
 
     override fun getClassReference(): ClassReferable? {
-        val longName = longName
+        val longName = longName ?: return null
         val resolved = ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
         return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
     }
