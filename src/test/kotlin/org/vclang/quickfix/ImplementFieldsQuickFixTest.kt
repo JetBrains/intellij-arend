@@ -16,8 +16,8 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 | B : Nat
                 }
                 \instance Bar : Foo
-                 | A => {?}{-caret-}
-                 | B => {?}
+                  | A => {?}{-caret-}
+                  | B => {?}
             """)
 
     fun `test adding copatterns in instance 2`() = simpleQuickFixTest("Implement",
@@ -33,26 +33,27 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 | A : Nat
                 }
                 \instance Bar : Foo {
-                 | A => {?}{-caret-}
-                 }
+                  | A => {?}{-caret-}
+                  }
             """)
 
     fun `test adding implementation for a field`() = simpleQuickFixTest("Replace",
             """
                 --! A.vc
-                \class Foo (A : Nat)
+                \class Foo (A B : Nat)
                 \class Bar { f : Foo }
                 \instance FooBar : Bar {
                   | f => {?}{-caret-}
                   }
             """,
             """
-                \class Foo (A : Nat)
+                \class Foo (A B : Nat)
                 \class Bar { f : Foo }
                 \instance FooBar : Bar {
                   | f {
-                   | A => {?}{-caret-}
-                   }
+                    | A => {?}{-caret-}
+                    | B => {?}
+                    }
                   }
             """)
 
@@ -60,14 +61,15 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """
                --! A.vc
                \class Foo (A : Nat)
-               \class Bar { f : Foo }
+               \class Bar { | f : Foo | B : Nat }
                \func lol => \new Bar{-caret-}
             """,
             """
                \class Foo (A : Nat)
-               \class Bar { f : Foo }
+               \class Bar { | f : Foo | B : Nat }
                \func lol => \new Bar {
                  | f => {?}{-caret-}
+                 | B => {?}
                  }
             """
             )

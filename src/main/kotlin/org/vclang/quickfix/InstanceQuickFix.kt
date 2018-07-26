@@ -20,6 +20,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor
 import org.vclang.psi.*
 import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.impl.InstanceAdapter
+import org.vclang.quickfix.InstanceQuickFix.Companion.INCREASE_IN_INDENT
 import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
 import org.vclang.typing.getNotImplementedFields
 
@@ -39,6 +40,7 @@ class InstanceQuickFix {
         private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
         private const val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
         private const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
+        const val INCREASE_IN_INDENT  = "  "
 
         fun moveCaretToTheEnd(editor: Editor?, anchor: PsiElement) {
             if (editor != null) {
@@ -150,8 +152,6 @@ class InstanceQuickFix {
                         override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
                             var startChild: PsiElement = coClause
                             if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-                            if (startChild.prevSibling.node.elementType == VcElementTypes.PIPE) startChild = startChild.prevSibling
-                            if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
                             if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
 
                             coClause.parent.deleteChildRange(startChild, coClause)
@@ -188,9 +188,9 @@ class InstanceQuickFix {
                         override fun getPsiElement() = instance
 
                         override fun calculateWhiteSpace(): String {
-                            val defaultWhitespace = "  "
+                            val defaultWhitespace = INCREASE_IN_INDENT
                             return if (instance.parent is VcStatement && instance.parent.prevSibling is PsiWhiteSpace)
-                                getIndent(instance.parent.prevSibling.text, defaultWhitespace, " ") else defaultWhitespace
+                                getIndent(instance.parent.prevSibling.text, defaultWhitespace, INCREASE_IN_INDENT) else defaultWhitespace
                         }
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
@@ -206,8 +206,6 @@ class InstanceQuickFix {
                                 val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
                                 val anchor = nodeCoClauses.lbrace
                                 nodeCoClauses.addAfter(sampleCoClause, anchor)
-                                nodeCoClauses.addAfter(factory.createWhitespace(" "), anchor)
-                                nodeCoClauses.addAfter(sampleCoClause.prevSibling.prevSibling, anchor) //PIPE
                                 nodeCoClauses.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
                                 val caretAnchor = instance.coClauses?.coClauseList?.first()
                                 if (caretAnchor != null)
@@ -238,7 +236,7 @@ class InstanceQuickFix {
                         override fun calculateWhiteSpace(): String {
                             val defaultWhitespace = "  "
                             return if (newExpr.prevSibling is PsiWhiteSpace)
-                                getIndent(newExpr.prevSibling.text, defaultWhitespace, " ") else defaultWhitespace
+                                getIndent(newExpr.prevSibling.text, defaultWhitespace, INCREASE_IN_INDENT) else defaultWhitespace
                         }
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
@@ -248,17 +246,14 @@ class InstanceQuickFix {
                                 val pOB = factory.createPairOfBraces()
                                 argumentAppExpr.parent.addAfter(pOB.second, argumentAppExpr)
                                 argumentAppExpr.parent.addAfter(pOB.first, argumentAppExpr)
-                                argumentAppExpr.parent.addAfter(factory.createWhitespace(" "), argumentAppExpr)
+                                argumentAppExpr.parent.addAfter(factory.createWhitespace(" "), argumentAppExpr) //separator between name and lbrace
                                 argumentAppExpr.nextSibling.nextSibling
                             }
 
                             val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
-                            val vBarSample = sampleCoClause.prevSibling.prevSibling
                             anchor.parent.addAfter(sampleCoClause, anchor)
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(vBarSample, anchor)
 
-                            moveCaretToTheEnd(editor, anchor.nextSibling.nextSibling.nextSibling)
+                            moveCaretToTheEnd(editor, anchor.nextSibling)
                             anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
                         }
                     }, classReference, holder, newExpr.newKw == null)
@@ -276,11 +271,9 @@ abstract class CoClauseAdapter(private val coClause: VcCoClause) : ExpressionWit
     override fun getPsiElement(): PsiElement = coClause
 
     override fun calculateWhiteSpace() : String {
-        var anchor = coClause.prevSibling
+        val anchor = coClause.prevSibling
         val defaultIndent = "  "
-        if (anchor is PsiWhiteSpace) anchor = anchor.prevSibling
-        return if (anchor.node.elementType == VcElementTypes.PIPE && anchor.prevSibling is PsiWhiteSpace)
-            InstanceQuickFix.getIndent(anchor.prevSibling.text, defaultIndent, " ") else defaultIndent
+        return if (anchor is PsiWhiteSpace) InstanceQuickFix.getIndent(anchor.text, defaultIndent, INCREASE_IN_INDENT) else defaultIndent
     }
 
     override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
@@ -293,20 +286,17 @@ abstract class CoClauseAdapter(private val coClause: VcCoClause) : ExpressionWit
             val pOB = factory.createPairOfBraces()
             anchor.parent.addAfter(pOB.second, anchor)
             anchor.parent.addAfter(pOB.first, anchor)
-            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+            anchor.parent.addAfter(factory.createWhitespace(" "), anchor) //separator between lbrace and coClause name
             anchor = anchor.nextSibling.nextSibling
         } else {
             anchor = lbrace
         }
 
         val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
-        val vBarSample = sampleCoClause.prevSibling.prevSibling
         anchor.parent.addAfter(sampleCoClause, anchor)
         moveCaretToTheEnd(editor, anchor.nextSibling)
-        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-        anchor.parent.addAfter(vBarSample, anchor)
 
-        anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+        anchor.parent.addAfter(factory.createWhitespace("\n$whitespace"), anchor)
     }
 }
 
@@ -331,10 +321,8 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
 
             val sampleCoClauses = psiFactory.createCoClause(field.textRepresentation(), "{?}")
             val coClause = sampleCoClauses.coClauseList.first()!!
-            val vBarSample = coClause.prevSibling.prevSibling
-            val vBarPreClause = anchor.prevSibling.prevSibling
             val clauseWhitespace = when {
-                vBarPreClause.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(vBarPreClause.prevSibling.text, whitespace, "")
+                anchor.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(anchor.prevSibling.text, whitespace, "")
                 anchor.parent.prevSibling is PsiWhiteSpace -> InstanceQuickFix.getIndent(anchor.parent.prevSibling.text, whitespace, "")
                 else -> whitespace
             }
@@ -344,8 +332,6 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
                 moveCaretToTheEnd(editor, anchor.nextSibling)
                 caretMoved = true
             }
-            anchor.parent.addAfter(psiFactory.createWhitespace(" "), anchor)
-            anchor.parent.addAfter(vBarSample, anchor)
             anchor.parent.addAfter(psiFactory.createWhitespace("\n"+clauseWhitespace), anchor)
         }
     }
