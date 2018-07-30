@@ -68,7 +68,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
-        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true)
+        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true, false)
         { jD: JointData ->
             var anc = jD.prevElement
             while (anc != null && anc !is VcDefinition && anc !is VcDefModule && anc !is VcClassStat) anc = anc.parent
@@ -448,19 +448,24 @@ class VclangCompletionContributor : CompletionContributor() {
                 ProviderWithCondition({ parameters, context -> condition(parameters, context, elementsOnJoint(parameters.originalFile, parameters.offset)) }, completionProvider)
 
 
-        private fun parentIsStatementHolder(p : PsiElement?) = p?.parent is VcWhere || p?.parent is VcDefClass
+        private fun parentIsStatementHolder(p : PsiElement?) = when (p?.parent) {
+            is VcWhere -> true
+            is VcDefClass -> (p.parent as VcDefClass).fatArrow == null
+            else -> false
+        }
 
-        private fun onJointOfStatementsCondition(statementCondition: (PsiElement) -> Boolean, completionProvider: CompletionProvider<CompletionParameters>, noCrlfRequired: Boolean = false,
+        private fun onJointOfStatementsCondition(statementCondition: (PsiElement) -> Boolean, completionProvider: CompletionProvider<CompletionParameters>,
+                                                 noCrlfRequired: Boolean = false, allowInsideBraces: Boolean = true,
                                                      additionalCondition: (JointData) -> Boolean = {_: JointData -> true}): CompletionProvider<CompletionParameters> =
                 genericJointCondition({_, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementCondition, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementCondition, jointData.prevElement)
-                    val leftSideOk = (jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) || ancestorsPE.isEmpty()
-                    val rightSideOk = (jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) || ancestorsNE.isEmpty()
+                    val leftSideOk = (allowInsideBraces && jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) || ancestorsPE.isEmpty()
+                    val rightSideOk = (allowInsideBraces && jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) || ancestorsNE.isEmpty()
                     val leftStatement = ancestorsPE.lastOrNull()
                     val rightStatement = ancestorsNE.lastOrNull()
-                    val isInsideClassFields = leftStatement is VcClassStat && rightStatement is VcClassStat &&
-                            leftStatement.definition == null && rightStatement.definition == null
+                    val isInsideClassFields = (leftStatement is VcClassStat && leftStatement.definition == null) &&
+                                              rightStatement is VcClassStat && rightStatement.definition == null
 
                     val correctStatements = (leftSideOk || rightSideOk ||
                             leftStatement != null && rightStatement != null && !isInsideClassFields &&

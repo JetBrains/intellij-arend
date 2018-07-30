@@ -86,7 +86,12 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test no root keywords completion`() =
             checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
-                    "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }")
+                    "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
+                    //"\\class Foo {\n {-caret-} \n | A : Nat }", //TODO: Fixme
+                    "\\class Foo => Foo' {\n {-caret-} }", /* no statements in completion for class rename */
+                    "\\class Foo => Foo' {\n {-caret-} | A => A' }",
+                    "\\class Foo => Foo' {| A => A'\n {-caret-} }"
+                    )
 
     fun `test root keywords completion 3`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -148,7 +153,9 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func lol => Foo { {-caret-} }",
                     "\\func lol => Foo { | {-caret-} }",
                     "\\func lol => 0 \\where {-caret-}" /* duplicate of where not allowed */,
-                    "\\class Foo { | A : Nat {-caret-}}")
+                    "\\class Foo { | A : Nat {-caret-}}",
+                    "\\class Foo => Lol { {-caret-} }",
+                    "\\class Foo { {-caret-} }")
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")
