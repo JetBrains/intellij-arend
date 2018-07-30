@@ -16,3 +16,11 @@ WHITE_SPACE         = \s+
 
 %%
 
+<YYINITIAL> {
+    {WHITE_SPACE}           { return WHITE_SPACE; }
+    "dependencies"          { return DEPS; }
+    "sourcesDir"            { return SOURCE; }
+    "binariesDir"           { return BINARY; }
+    "modules"               { return MODULES; }
+    ":"                     { return COLON; }
+}
