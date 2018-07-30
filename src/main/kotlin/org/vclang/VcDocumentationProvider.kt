@@ -2,54 +2,65 @@ package org.vclang
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiElement
-import com.jetbrains.jetpad.vclang.naming.reference.converter.IdReferableConverter
-import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
-import com.jetbrains.jetpad.vclang.term.abs.ConcreteBuilder
-import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrintVisitor
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.psi.ext.VcLetClauseImplMixin
-import org.vclang.psi.ext.impl.*
+import org.vclang.psi.ext.PsiReferable
+
+
+private fun toHTML(s : String?): String? = s?.replace("&", "&amp")?.replace("<", "&lt")?.replace(">", "&gt")
 
 class VcDocumentationProvider : AbstractDocumentationProvider() {
-
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) =
-        when (element) {
-            is PsiLocatedReferable -> buildString {
+        if (element is PsiReferable) {
+            buildString {
                 getType(element)?.let { append("<b>$it</b> ") }
                 append(toHTML(element.textRepresentation()))
-                append(when (element) {
-                    is FunctionDefinitionAdapter -> printHeader(element.parameters, element.resultType)
-                    is ClassFieldAdapter -> printHeader(element.parameters, element.resultType)
-                    is ClassDefinitionAdapter -> printHeader(if (element.fieldTele == null) listOf() else listOf(element.fieldTele!!), null)
-                    is ConstructorAdapter -> printHeader(element.parameters, null)
-                    is DataDefinitionAdapter -> printHeader(element.parameters, null)
-                    else -> ""
-                })
-                element.getContainingFile().originalFile.let {
-                    append(" <i>defined in</i> ")
-                    append((it as? VcFile)?.fullName ?: it.name)
+                append(printHeader((element as? Abstract.ParametersHolder)?.parameters ?: emptyList(), element.psiElementType))
+                if (element is PsiLocatedReferable) {
+                    val file = element.containingFile.originalFile
+                    if (file != originalElement?.containingFile?.originalFile) {
+                        append(" defined in ")
+                        append((file as? VcFile)?.fullName ?: file.name)
+                    }
                 }
             }
-            is VcLetClauseImplMixin -> buildString {
-                append("<b> var </b>")
-                append(element.name)
-                append(printHeader(element.parameters, element.resultType))
-            }
-            else -> null
+        } else {
+            null
         }
 
-    private fun printHeader(parameters : List<Abstract.Parameter>, resultType : Abstract.Expression?) =
+    private fun printHeader(parameters: List<Abstract.Parameter>, resultType: PsiElement?) =
         toHTML(buildString {
-            append (printParameters(parameters))
+            for (parameter in parameters) {
+                if (parameter is PsiElement) {
+                    append(' ')
+                    append(parameter.text)
+                }
+            }
             if (resultType != null) {
                 append(" : ")
-                append(printExpression(resultType))
+                append(resultType.text)
             }
         })
 
-    private fun printParameters(parameters: List<Abstract.Parameter>): String? {
+    override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?): String? =
+        generateDoc(element, originalElement)
+
+    private fun getType(element: PsiElement): String? = when (element) {
+        is VcDefClass -> if (element.fatArrow == null) "class" else "class synonym"
+        is VcClassField, is VcFieldDefIdentifier -> "field"
+        is VcClassFieldSyn -> "field synonym"
+        is VcDefInstance -> "instance"
+        is VcClassImplement -> "implementation"
+        is VcDefData -> "data"
+        is VcConstructor -> "data cons"
+        is VcDefFunction -> "func"
+        is VcLetClause -> "let"
+        is VcDefIdentifier -> if (element.parent is VcLetClause) "let" else "var"
+        else -> null
+    }
+
+    /*  private fun printParameters(parameters: List<Abstract.Parameter>): String? {
         val list = ConcreteBuilder.convertParams(IdReferableConverter.INSTANCE, parameters)
         return if (list != null && list.isNotEmpty()) {
             val builder = StringBuilder()
@@ -70,7 +81,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         } else ""
     }
 
-    /* fun getConstructorInfo (element : VcConstructor) : String? {
+    fun getConstructorInfo (element : VcConstructor) : String? {
         val reporter = ListErrorReporter()
         val concreteElement = element.computeConcrete(reporter)
         val builder = StringBuilder()
@@ -106,24 +117,4 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         }
         return builder.toString()
     } */
-
-    override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?): String? =
-            generateDoc(element, originalElement)
-
-    private fun getType(element: PsiElement): String? = when (element) {
-        is VcDefClass -> if (element.fatArrow == null) "class" else "class synonym"
-        is VcClassField -> "class field"
-        is VcClassFieldSyn -> "class field synonym"
-        is VcDefInstance -> "class instance"
-        is VcClassImplement -> "implementation"
-        is VcDefData -> "data"
-        is VcConstructor -> "constructor"
-        is VcDefFunction -> "function"
-        else -> null
-    }
-
-    companion object {
-        fun toHTML (s : String?) : String? = s?.replace("&", "&amp")?.replace("<", "&lt")?.replace(">", "&gt")
-    }
-
 }

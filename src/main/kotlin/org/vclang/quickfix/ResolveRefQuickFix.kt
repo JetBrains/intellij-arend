@@ -76,7 +76,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
         return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
     }
 
-    private fun executeId(id : String) {
+    private fun addId(id : String) {
         if (statCmd.nsCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
@@ -100,26 +100,26 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
 
                 if (nsId != null) {
                     val comma = nsId.prevSibling //we will need the comma only once
-                    val needsBraces = anchor == null
 
-                    if (needsBraces) {
-                        anchor = using.usingKw!!
+                    if (anchor == null) {
+                        anchor = using.usingKw ?: error("Can't find anchor within namespace command")
                         anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
                         anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
                         anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
                     }
 
-                    if (!needsCommaBefore && !nsIds.isEmpty()) {
-                        anchor!!.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
-                    }
+                    if (anchor != null) {
+                        if (!needsCommaBefore && !nsIds.isEmpty()) {
+                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                            anchor.parent.addAfter(comma, anchor)
+                        }
 
-                    anchor!!.parent.addAfter(nsId, anchor)
-                    if (needsCommaBefore) {
-                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
+                        anchor.parent.addAfter(nsId, anchor)
+                        if (needsCommaBefore) {
+                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                            anchor.parent.addAfter(comma, anchor)
+                        }
                     }
-
                 }
             }
         }
@@ -127,7 +127,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
 
     override fun execute(editor: Editor?) {
         for (id in idList)
-            executeId(id)
+            addId(id)
     }
 }
 
@@ -271,9 +271,9 @@ class ResolveRefQuickFix {
                     val fileGroup =  object: Group by currentFile {
                         override fun getSubgroups(): Collection<Group> = emptyList()
                     }
-                    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, null, false)
+                    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
 
-                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.name) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+                    val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
                     var suitableImport: VcStatCmd? = null
                     val aliases = HashMap<List<String>, HashSet<String>>()
@@ -299,24 +299,22 @@ class ResolveRefQuickFix {
                                         val originalName = fName[0]
                                         if (refIdentifier.refIdentifier.text == originalName) {
                                             val defIdentifier = refIdentifier.defIdentifier
-                                            aliases[fName]?.add(if (defIdentifier != null) defIdentifier.name!! else originalName)
+                                            aliases[fName]?.add(defIdentifier?.textRepresentation() ?: originalName)
                                         }
                                     }
                                 }
 
                                 if (nsUsing.usingKw != null)
-                                    fullNames.filter { aliases[it]!!.isEmpty() && !defaultNameHiddenFNames.contains(it) }.forEach { aliases[it]!!.add(it[0]) }
-                            } else {
-                                fullNames.filter { !defaultNameHiddenFNames.contains(it) }.forEach { aliases[it]!!.add(it[0]) }
-                            }
-
+                                    aliases.entries.filter { it.component2().isEmpty() && !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
+                            } else
+                                aliases.entries.filter { !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
                         }
                     }
 
                     fullNames.clear()
 
-                    for (fName in aliases.keys) {
-                        for (alias in aliases[fName]!!) {
+                    for ((fName, aliases2) in aliases.entries) {
+                        for (alias in aliases2) {
                             val fName2 = ArrayList<String>()
                             fName2.addAll(fName)
                             fName2.removeAt(0)
@@ -399,7 +397,7 @@ class ResolveRefQuickFix {
                                 val oldName = nsId.refIdentifier.referenceName
                                 val defIdentifier = nsId.defIdentifier
                                 if (defIdentifier != null)
-                                    renamings[oldName] = defIdentifier.name!!
+                                    renamings[oldName] = defIdentifier.textRepresentation()
                                 else renamings[oldName] = oldName
                             }
                         }

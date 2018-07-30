@@ -37,9 +37,10 @@ BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
 NUMBER              = [0-9]+
+NEGATIVE_NUMBER     = -[0-9]+
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\];:a-zA-Z_]
-KEYWORD             = \\{ID}
+KEYWORD             = \\[0-9]*{ID}
 
 ID                  = {START_CHAR} ({START_CHAR} | [0-9'])*
 POSTFIX             = `{ID}
@@ -71,7 +72,9 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\hiding"              { return HIDING_KW; }
     "\\using"               { return USING_KW; }
     "\\as"                  { return AS_KW; }
+    "\\module"              { return MODULE_KW; }
     "\\func"                { return FUNCTION_KW; }
+    "\\coerce"              { return COERCE_KW; }
     "\\infix"               { return INFIX_NON_KW; }
     "\\infixl"              { return INFIX_LEFT_KW; }
     "\\infixr"              { return INFIX_RIGHT_KW; }
@@ -91,9 +94,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\case"                { return CASE_KW; }
     "\\data"                { return DATA_KW; }
     "\\class"               { return CLASS_KW; }
+    "\\record"              { return RECORD_KW; }
     "\\extends"             { return EXTENDS_KW; }
-    "\\on"                  { return ON_KW; }
-    "\\by"                  { return BY_KW; }
     "\\instance"            { return INSTANCE_KW; }
     "\\truncated"           { return TRUNCATED_KW; }
     "\\lp"                  { return LP_KW; }
@@ -109,6 +111,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {KEYWORD}               { return INVALID_KW; }
 
     {NUMBER}                { return NUMBER; }
+    {NEGATIVE_NUMBER}       { return NEGATIVE_NUMBER; }
 
     {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }
@@ -120,6 +123,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
                                 commentDepth = 0;
                                 commentStart = getTokenStart();
                             }
+    {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
 }
 
 <BLOCK_COMMENT_INNER> {

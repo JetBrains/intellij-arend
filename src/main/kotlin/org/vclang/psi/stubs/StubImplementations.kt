@@ -13,7 +13,7 @@ class VcFileStub(file: VcFile?) : PsiFileStubImpl<VcFile>(file) {
 
     override fun getType(): Type = Type
 
-    object Type : IStubFileElementType<VcFileStub>(VcLanguage) {
+    object Type : IStubFileElementType<VcFileStub>(VcLanguage.INSTANCE) {
 
         override fun getStubVersion(): Int = 1
 
@@ -44,6 +44,7 @@ fun factory(name: String): VcStubElementType<*, *> = when (name) {
     "CONSTRUCTOR" -> VcConstructorStub.Type
     "DEF_DATA" -> VcDefDataStub.Type
     "DEF_FUNCTION" -> VcDefFunctionStub.Type
+    "DEF_MODULE" -> VcDefModuleStub.Type
     else -> error("Unknown element $name")
 }
 
@@ -165,7 +166,7 @@ class VcClassImplementStub(
         override fun createStub(
                 psi: VcClassImplement,
                 parentStub: StubElement<*>?
-        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.refIdentifier.text)
+        ): VcClassImplementStub = VcClassImplementStub(parentStub, this, psi.longName.refIdentifierList.lastOrNull()?.referenceName)
 
         override fun indexStub(stub: VcClassImplementStub, sink: IndexSink) =
                 sink.indexClassImplement(stub)
@@ -275,5 +276,31 @@ class VcDefFunctionStub(
         ): VcDefFunctionStub = VcDefFunctionStub(parentStub, this, psi.name)
 
         override fun indexStub(stub: VcDefFunctionStub, sink: IndexSink) = sink.indexFunction(stub)
+    }
+}
+
+class VcDefModuleStub(
+    parent: StubElement<*>?,
+    elementType: IStubElementType<*, *>,
+    name: String?
+) : VcStub<VcDefModule>(parent, elementType, name) {
+
+    object Type : VcStubElementType<VcDefModuleStub, VcDefModule>("DEF_MODULE") {
+
+        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
+            VcDefModuleStub(parentStub, this, dataStream.readName()?.string)
+
+        override fun serialize(stub: VcDefModuleStub, dataStream: StubOutputStream) =
+            with(dataStream) { writeName(stub.name) }
+
+        override fun createPsi(stub: VcDefModuleStub): VcDefModule =
+            VcDefModuleImpl(stub, this)
+
+        override fun createStub(
+            psi: VcDefModule,
+            parentStub: StubElement<*>?
+        ): VcDefModuleStub = VcDefModuleStub(parentStub, this, psi.name)
+
+        override fun indexStub(stub: VcDefModuleStub, sink: IndexSink) = sink.indexModule(stub)
     }
 }

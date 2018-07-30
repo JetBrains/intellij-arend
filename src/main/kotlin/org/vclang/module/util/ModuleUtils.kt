@@ -1,5 +1,6 @@
 package org.vclang.module.util
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -67,7 +68,8 @@ fun Module.findVcFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystem
     return emptyList()
 }
 
-fun Module.findVcFiles(modulePath: ModulePath): List<VcFile> = findVcFilesAndDirectories(modulePath).filterIsInstance<VcFile>()
+fun Module.findVcFiles(modulePath: ModulePath): List<VcFile> =
+    runReadAction { findVcFilesAndDirectories(modulePath) }.filterIsInstance<VcFile>()
 
 val Module.isVcModule: Boolean
     get() {

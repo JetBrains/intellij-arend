@@ -3,7 +3,7 @@ package org.vclang.codeInsight.completion
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.testFramework.UsefulTestCase
+import junit.framework.TestCase
 import org.intellij.lang.annotations.Language
 import org.vclang.VcTestBase
 import org.vclang.fileTreeFromText
@@ -12,7 +12,7 @@ import org.vclang.replaceCaretMarker
 
 abstract class VcCompletionTestBase : VcTestBase() {
 
-    protected fun checkSingleCompletion(target: String, @Language("Vclang") code: String) {
+    protected fun checkSingleCompletion(@Language("Vclang") code: String, target: String) {
         InlineFile(code).withCaret()
         executeSoloCompletion()
 
@@ -25,18 +25,84 @@ abstract class VcCompletionTestBase : VcTestBase() {
         }
     }
 
-    enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, DOES_NOT_CONTAIN}
+    enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN}
 
     protected fun checkCompletionVariants(@Language("Vclang") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
         InlineFile(code).withCaret()
 
-        val result = myFixture.getCompletionVariants("Main.vc")
-        assertNotNull(result)
+        val result : List<String> = myFixture.getCompletionVariants("Main.vc") ?: error("Null completion variants")
 
-        when (condition) {
-            CompletionCondition.SAME_ELEMENTS -> UsefulTestCase.assertSameElements<String>(result!!, variants)
-            CompletionCondition.CONTAINS -> UsefulTestCase.assertContainsElements<String>(result!!, variants)
-            CompletionCondition.DOES_NOT_CONTAIN -> UsefulTestCase.assertDoesntContain<String>(result!!, variants)
+        fun symDiff(required: List<String>, actual: List<String>): String? {
+            if (HashSet(required) == HashSet(actual)) return null
+            var resultMessage = ""
+            val rma = required.minus(actual)
+            val amr = actual.minus(required)
+            if (rma.isNotEmpty()) resultMessage += "Completion variants do not contain the expected elements $rma"
+            if (amr.isNotEmpty()) resultMessage += (if (resultMessage.isEmpty())  "" else "; ") + "Unexpected completion variants: $amr"
+            return resultMessage
+        }
+
+        val errorMessage: String? = when (condition) {
+            CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result)
+            CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result.filter { it.startsWith("\\") })
+            CompletionCondition.CONTAINS         -> if (!(result.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
+            CompletionCondition.DOES_NOT_CONTAIN -> if (!result.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null}
+
+        if (errorMessage != null) throw Exception(errorMessage)
+    }
+
+    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Vclang") vararg code: String){
+        var failed = false
+        var failString = ""
+        var successString = ""
+        var index = 0
+        for (codePiece in code) {
+            //System.out.println("*** Testing: $codePiece ***")
+            val codePieceWithBackSlash = codePiece.replace("{-caret-}", "\\{-caret-}", false)
+            var failedTest = false
+            try {
+                checkCompletionVariants(codePiece, variants, condition)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                System.err.flush()
+                failedTest = true
+                failString += "$codePiece\n"
+            }
+            //System.out.println("*** Testing: $codePieceWithBackSlash ***")
+
+            if (!failedTest) successString += "$codePiece\n"
+            failed = failed || failedTest
+            failedTest = false
+
+            var succeeded = false
+            if (variants.size == 1 && condition != CompletionCondition.DOES_NOT_CONTAIN) {
+                try {
+                    checkSingleCompletion(codePieceWithBackSlash, variants[0])
+                    succeeded = true
+                } catch (e: Exception) {
+
+                }
+            }
+            if (!succeeded) {
+                try {
+                    checkCompletionVariants(codePieceWithBackSlash, variants, condition)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    System.err.flush()
+                    failedTest = true
+                    failString += "$codePieceWithBackSlash\n"
+                }
+            }
+
+            index++
+            failed = failed || failedTest
+            if (!failedTest) successString += "$codePieceWithBackSlash\n"
+        }
+
+        if (failed) {
+            System.err.println("\nFailed on:\n$failString")
+            System.err.println("\nSucceeded on:\n$successString")
+            TestCase.fail()
         }
     }
 

@@ -20,11 +20,8 @@ interface ProxyAction {
     fun runAction(p : SMTestProxy)
 }
 
-class TypecheckingEventsProcessor(
-    project: Project,
-    private val typeCheckingRootNode: SMTestProxy.SMRootTestProxy,
-    typeCheckingFrameworkName: String
-) : GeneralTestEventsProcessor(project, typeCheckingFrameworkName) {
+class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTestProxy.SMRootTestProxy, typeCheckingFrameworkName: String)
+    : GeneralTestEventsProcessor(project, typeCheckingFrameworkName, typeCheckingRootNode) {
     private val definitionToProxy = mutableMapOf<PsiLocatedReferable, DefinitionProxy>()
     private val fileToProxy = mutableMapOf<ModulePath, DefinitionProxy>()
     private val deferredActions = mutableMapOf<LocatedReferable, MutableList<ProxyAction>>()
@@ -41,8 +38,8 @@ class TypecheckingEventsProcessor(
 
     override fun onStartTesting() {
         addToInvokeLater {
-            typeCheckingRootNode.setStarted()
-            fireOnTestingStarted(typeCheckingRootNode)
+            myTestsRootProxy.setStarted()
+            fireOnTestingStarted(myTestsRootProxy)
         }
     }
 
@@ -53,16 +50,16 @@ class TypecheckingEventsProcessor(
 
             val isTreeNotComplete = !GeneralTestEventsProcessor.isTreeComplete(
                 definitionToProxy.keys,
-                typeCheckingRootNode
+                myTestsRootProxy
             )
             if (isTreeNotComplete) {
-                typeCheckingRootNode.setTerminated()
+                myTestsRootProxy.setTerminated()
                 //definitionToProxy.clear()
             }
 
             //fileToProxy.clear()
-            typeCheckingRootNode.setFinished()
-            fireOnTestingFinished(typeCheckingRootNode)
+            myTestsRootProxy.setFinished()
+            fireOnTestingFinished(myTestsRootProxy)
         }
         stopEventProcessing()
     }
@@ -70,7 +67,7 @@ class TypecheckingEventsProcessor(
     fun onSuiteStarted(modulePath: ModulePath) {
         addToInvokeLater {
             if (!fileToProxy.containsKey(modulePath)) {
-                val parentSuite = typeCheckingRootNode
+                val parentSuite = myTestsRootProxy
                 val newSuite = DefinitionProxy(
                         modulePath.toString(),
                         true,
@@ -79,7 +76,7 @@ class TypecheckingEventsProcessor(
                         null
                 )
                 parentSuite.addChild(newSuite)
-                fileToProxy.put(modulePath, newSuite)
+                fileToProxy[modulePath] = newSuite
 
                 if (!isTypeCheckingFinished) {
                     newSuite.setSuiteStarted()
@@ -117,6 +114,11 @@ class TypecheckingEventsProcessor(
                     onTestFinished(ref)
                 }
             }
+            for (entry in definitionToProxy) {
+                testsDuration[entry.key]?.let { entry.value.setDuration(it) }
+                entry.value.setFinished()
+                fireOnTestFinished(entry.value)
+            }
             for (suite in fileToProxy.values) {
                 suite.setFinished()
                 fireOnSuiteFinished(suite)
@@ -141,10 +143,10 @@ class TypecheckingEventsProcessor(
                     if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
                 }
 
-                val parentSuite = modulePath?.let { fileToProxy[it] } ?: typeCheckingRootNode
+                val parentSuite = modulePath?.let { fileToProxy[it] } ?: myTestsRootProxy
                 val proxy = DefinitionProxy(fullName, false, null, true, ref)
                 parentSuite.addChild(proxy)
-                definitionToProxy.put(ref, proxy)
+                definitionToProxy[ref] = proxy
 
                 val da = deferredActions.remove(ref)
                 if (da != null) for (a in da) a.runAction(proxy)
@@ -170,10 +172,9 @@ class TypecheckingEventsProcessor(
 
     fun onTestFinished(ref: PsiLocatedReferable) {
         addToInvokeLater {
-            val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
+            val proxy = definitionToProxy.remove(ref) ?: return@addToInvokeLater
             testsDuration[ref]?.let { proxy.setDuration(it) }
             proxy.setFinished()
-            definitionToProxy.remove(ref)
             fireOnTestFinished(proxy)
         }
     }
@@ -189,7 +190,7 @@ class TypecheckingEventsProcessor(
 
     override fun onTestsReporterAttached() {
         addToInvokeLater {
-            GeneralTestEventsProcessor.fireOnTestsReporterAttached(typeCheckingRootNode)
+            GeneralTestEventsProcessor.fireOnTestsReporterAttached(myTestsRootProxy)
         }
     }
 
@@ -215,10 +216,7 @@ class TypecheckingEventsProcessor(
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }
@@ -229,17 +227,14 @@ class TypecheckingEventsProcessor(
             if (p != null) {
                 action.runAction(p)
             } else {
-                var actions = deferredActions[ref]
-                if (actions == null) actions = mutableListOf()
-                actions.add(action)
-                deferredActions[ref] = actions
+                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
             }
         })
     }
 
     fun executeProxyAction(action: ProxyAction) {
         synchronized(this, {
-            action.runAction(typeCheckingRootNode)
+            action.runAction(myTestsRootProxy)
         })
     }
 

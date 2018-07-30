@@ -11,8 +11,8 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.2.5'
-    id 'org.jetbrains.kotlin.jvm' version '1.1.4'
+    id 'org.jetbrains.intellij' version '0.3.1'
+    id 'org.jetbrains.kotlin.jvm' version '1.2.50'
 }
 
 import org.jetbrains.grammarkit.tasks.GenerateLexer
@@ -29,7 +29,6 @@ idea {
 
 apply plugin: 'org.jetbrains.intellij'
 intellij {
-    version ideaVersion
     updateSinceUntilBuild = false
     instrumentCode = false
 }
@@ -42,8 +41,8 @@ targetCompatibility = '1.8'
 
 compileKotlin {
     kotlinOptions {
-        languageVersion = '1.1'
-        apiVersion = '1.1'
+        languageVersion = '1.2'
+        apiVersion = '1.2'
     }
 }
 
@@ -51,6 +50,12 @@ tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
 sourceSets {
     main {
         java.srcDirs += 'src/gen'
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
@@ -120,6 +125,10 @@ task generateVcParser(type: GenerateParser) {
 
 compileKotlin.dependsOn generateVcLexer, generateVcParser
 compileTestKotlin.dependsOn generateVcLexer, generateVcParser
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.3'
+}
 
 // Prelude stuff
 

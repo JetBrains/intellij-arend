@@ -5,7 +5,7 @@ import com.jetbrains.jetpad.vclang.util.FileUtils
 
 import javax.swing.Icon
 
-object VcFileType : LanguageFileType(VcLanguage) {
+object VcFileType : LanguageFileType(VcLanguage.INSTANCE) {
     override fun getName(): String = "Vclang"
 
     override fun getDescription(): String = "Vclang files"

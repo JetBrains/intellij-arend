@@ -7,16 +7,8 @@ import org.vclang.psi.VcArgumentAppExpr
 
 abstract class VcArgumentAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcArgumentAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        atomFieldsAcc?.let { return visitor.visitBinOpSequence(this, it, argumentList, params) }
-        longName?.let { name ->
-            val levels = generateSequence(levelsExpr) { it.levelsExpr }.lastOrNull()
-            levels?.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, params) }
-            levels?.maybeAtomLevelExprList?.let { if (it.size == 2) {
-                return visitor.visitReference(name, name.referent, it[0].atomLevelExpr, it[1].atomLevelExpr, params)
-            } }
-            val levelExprList = atomOnlyLevelExprList
-            return visitor.visitReference(name, name.referent, levelExprList.getOrNull(0), levelExprList.getOrNull(1), params)
-        }
-        error("Incomplete expression: " + this)
+        val expr = atomFieldsAcc ?: longNameExpr ?: error("Incomplete expression: " + this)
+        val args = argumentList
+        return if (args.isEmpty()) expr.accept(visitor, params) else visitor.visitBinOpSequence(this, expr, args, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
     }
 }

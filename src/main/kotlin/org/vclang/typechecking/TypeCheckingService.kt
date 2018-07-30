@@ -5,45 +5,33 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.AnyPsiChangeListener
 import com.intellij.psi.impl.PsiManagerImpl
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.tree.IElementType
 import com.jetbrains.jetpad.vclang.core.definition.Definition
-import com.jetbrains.jetpad.vclang.error.GeneralError
-import com.jetbrains.jetpad.vclang.library.Library
 import com.jetbrains.jetpad.vclang.library.LibraryManager
-import com.jetbrains.jetpad.vclang.library.error.LibraryError
-import com.jetbrains.jetpad.vclang.library.error.ModuleInSeveralLibrariesError
-import com.jetbrains.jetpad.vclang.module.ModulePath
-import com.jetbrains.jetpad.vclang.module.error.ModuleNotFoundError
 import com.jetbrains.jetpad.vclang.module.scopeprovider.EmptyModuleScopeProvider
 import com.jetbrains.jetpad.vclang.module.scopeprovider.LocatingModuleScopeProvider
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.converter.ReferableConverter
 import com.jetbrains.jetpad.vclang.naming.reference.converter.SimpleReferableConverter
-import com.jetbrains.jetpad.vclang.naming.resolving.visitor.DefinitionResolveNameVisitor
-import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
-import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.prettyprint.PrettyPrinterConfig
-import com.jetbrains.jetpad.vclang.typechecking.CancellationIndicator
 import com.jetbrains.jetpad.vclang.typechecking.SimpleTypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import com.jetbrains.jetpad.vclang.typechecking.Typechecking
-import com.jetbrains.jetpad.vclang.typechecking.order.DependencyCollector
-import com.jetbrains.jetpad.vclang.typechecking.order.DependencyListener
-import org.vclang.module.VcRawLibrary
-import org.vclang.psi.*
+import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyCollector
+import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
+import org.vclang.psi.VcDefinition
+import org.vclang.psi.VcElementTypes
+import org.vclang.psi.VcFile
+import org.vclang.psi.ancestors
 import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.impl.DataDefinitionAdapter
 import org.vclang.resolving.VcReferableConverter
 import org.vclang.resolving.VcResolveCache
 import org.vclang.typechecking.error.LogErrorReporter
-import org.vclang.typechecking.error.ParserError
-import org.vclang.typechecking.error.TypecheckingErrorReporter
-import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 interface TypeCheckingService {
-    var eventsProcessor: TypecheckingEventsProcessor?
-
     val libraryManager: LibraryManager
 
     val typecheckerState: TypecheckerState
@@ -53,8 +41,6 @@ interface TypeCheckingService {
     val referableConverter: ReferableConverter
 
     fun getTypechecked(definition: VcDefinition): Definition?
-
-    fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator)
 
     fun updateDefinition(referable: LocatedReferable)
 
@@ -67,16 +53,10 @@ interface TypeCheckingService {
 }
 
 class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
-    override var eventsProcessor: TypecheckingEventsProcessor?
-        get() = typecheckingErrorReporter.eventsProcessor
-        set(value) {
-            typecheckingErrorReporter.eventsProcessor = value
-        }
-
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
-    private val typecheckingErrorReporter = TypecheckingErrorReporter(PrettyPrinterConfig.DEFAULT)
-    override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, typecheckingErrorReporter, LogErrorReporter(PrettyPrinterConfig.DEFAULT))
+    private val libraryErrorReporter = LogErrorReporter(PrettyPrinterConfig.DEFAULT)
+    override val libraryManager = LibraryManager(VcLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
     override val referableConverter: ReferableConverter
@@ -96,174 +76,39 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
     override fun getTypechecked(definition: VcDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
-    override fun typeCheck(libraryName: String, modulePath: ModulePath?, definitionFullName: String, cancellationIndicator: CancellationIndicator) {
-        Typechecking.CANCELLATION_INDICATOR = cancellationIndicator
-        try {
-            val eventsProcessor = eventsProcessor!!
-            if (modulePath != null) {
-                eventsProcessor.onSuiteStarted(modulePath)
-            }
-
-            if (definitionFullName != "" && modulePath == null) {
-                libraryManager.typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName))
-                eventsProcessor.onSuitesFinished()
-                return
-            }
-
-            val libraries = if (libraryName == "" && modulePath == null) libraryManager.registeredLibraries.filterIsInstance<VcRawLibrary>() else {
-                val library = if (libraryName != "") libraryManager.getRegisteredLibrary(libraryName) else findLibrary(modulePath!!)
-                if (library == null) {
-                    if (libraryName != "") {
-                        libraryManager.typecheckingErrorReporter.report(LibraryError.notFound(libraryName))
-                    }
-                    eventsProcessor.onSuitesFinished()
-                    return
-                }
-                if (library !is VcRawLibrary) {
-                    libraryManager.typecheckingErrorReporter.report(LibraryError.incorrectLibrary(libraryName))
-                    eventsProcessor.onSuitesFinished()
-                    return
-                }
-                listOf(library)
-            }
-
-            val referableConverter = referableConverter
-            val concreteProvider = PsiConcreteProvider(referableConverter, typecheckingErrorReporter, eventsProcessor)
-            val typeChecking = TestBasedTypechecking(eventsProcessor, typecheckerState, concreteProvider, typecheckingErrorReporter, dependencyListener, referableConverter)
-
-            var computationFinished = true
-
-            for (library in libraries) {
-                if (!library.needsTypechecking()) continue
-
-                val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
-                val modules = modulePaths.mapNotNull {
-                    val module = library.getModuleGroup(it)
-                    if (module == null) {
-                        libraryManager.typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
-                    } else if (definitionFullName == "") {
-                        DefinitionResolveNameVisitor(typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, libraryManager.moduleScopeProvider), concreteProvider)
-                    }
-                    module
-                }
-
-                if (definitionFullName == "") {
-                    concreteProvider.isResolving = true
-                    for (module in modules) {
-                        reportParserErrors(module, module)
-                    }
-                    computationFinished = typeChecking.typecheckModules(modules) && computationFinished
-                } else {
-                    val ref = modules.firstOrNull()?.findGroupByFullName(definitionFullName.split('.'))?.referable
-                    if (ref == null) {
-                        if (modules.isNotEmpty()) {
-                            libraryManager.typecheckingErrorReporter.report(DefinitionNotFoundError(definitionFullName, modulePath))
-                        }
-                    } else {
-                        val tcReferable = referableConverter.toDataLocatedReferable(ref)
-                        val typechecked = typecheckerState.getTypechecked(tcReferable)
-                        if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-                            concreteProvider.isResolving = true
-                            val definition = concreteProvider.getConcrete(ref)
-                            if (definition is Concrete.Definition) computationFinished = typeChecking.typecheckDefinitions(listOf(definition)) && computationFinished
-                            else if (definition != null) error(definitionFullName + " is not a definition")
-                        } else {
-                            if (ref is PsiLocatedReferable) {
-                                eventsProcessor.onTestStarted(ref)
-                                typeChecking.typecheckingBodyFinished(tcReferable, typechecked)
-                            }
-                        }
-                    }
-                }
-
-                if (library.supportsPersisting()) {
-                    for (updatedModule in typeChecking.typecheckedModules) {
-                        library.persistModule(updatedModule, referableConverter, libraryManager.libraryErrorReporter)
-                    }
-                }
-            }
-
-            if (computationFinished)
-                eventsProcessor.onSuitesFinished()
-
-        } finally {
-            Typechecking.setDefaultCancellationIndicator()
-        }
-    }
-
-    private fun reportParserErrors(group: PsiElement, module: VcFile) {
-        for (child in group.children) {
-            when (child) {
-                is PsiErrorElement -> {
-                    val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(child, group as? PsiLocatedReferable ?: ModuleReferable(modulePath)))
-                    if (group is PsiLocatedReferable) {
-                        eventsProcessor!!.onTestFailure(group)
-                    } else {
-                        eventsProcessor!!.onSuiteFailure(modulePath)
-                    }
-                }
-                is VcStatement -> child.definition?.let { reportParserErrors(it, module) }
-            }
-        }
-    }
-
-    private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
-        GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
-        override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
-    }
-
-    private fun findLibrary(modulePath: ModulePath): Library? {
-        var library: Library? = null
-        var libraries: MutableList<Library>? = null
-        for (lib in libraryManager.registeredLibraries) {
-            if (lib.containsModule(modulePath)) {
-                if (library == null) {
-                    library = lib
-                } else {
-                    if (libraries == null) {
-                        libraries = ArrayList()
-                        libraries.add(library)
-                    }
-                    libraries.add(lib)
-                }
-            }
-        }
-
-        if (libraries != null) {
-            libraryManager.typecheckingErrorReporter.report(ModuleInSeveralLibrariesError(modulePath, libraries))
-        }
-
-        if (library == null) {
-            libraryManager.typecheckingErrorReporter.report(ModuleNotFoundError(modulePath))
-        }
-
-        return library
-    }
-
     override fun updateDefinition(referable: LocatedReferable) {
         simpleReferableConverter.remove(referable)?.let {
             for (ref in dependencyListener.update(it)) {
                 PsiLocatedReferable.fromReferable(ref)?.let { simpleReferableConverter.remove(it) }
             }
         }
+
+        if (referable is ClassReferable) {
+            for (field in referable.fieldReferables) {
+                simpleReferableConverter.remove(field)
+            }
+        } else if (referable is DataDefinitionAdapter) {
+            for (constructor in referable.constructors) {
+                simpleReferableConverter.remove(constructor)
+            }
+        }
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, true)
         }
 
         override fun beforeChildReplacement(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildMovement(event: PsiTreeChangeEvent) {
-            processParent(event)
+            processParent(event, false)
         }
 
         override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
@@ -271,13 +116,43 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 for (child in event.child.children) invalidateChild(child)
             } else {
                 processChildren(event)
-                processParent(event)
+                processParent(event, true)
             }
         }
 
-        private fun processParent(event: PsiTreeChangeEvent) {
-            if (event.file !is VcFile || event.child is PsiErrorElement || event.child is PsiWhiteSpace || event.oldChild is PsiErrorElement && event.newChild is PsiErrorElement || event.oldChild is PsiWhiteSpace && event.newChild is PsiWhiteSpace) {
+        private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
+            if (event.file !is VcFile) {
                 return
+            }
+            val child = event.child
+            if (child is PsiErrorElement ||
+                child is PsiWhiteSpace ||
+                child is LeafPsiElement && isComment(child.node.elementType)) {
+                return
+            }
+            val oldChild = event.oldChild
+            val newChild = event.newChild
+            if (oldChild is PsiErrorElement && newChild is PsiErrorElement ||
+                oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
+                oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+                return
+            }
+
+            if (checkCommentStart) {
+                var node = (child as? VcCompositeElement)?.node ?: child as? LeafPsiElement
+                while (node != null && node !is LeafPsiElement) {
+                    val first = node.firstChildNode
+                    if (first == null || node.lastChildNode != first) {
+                        break
+                    }
+                    node = first
+                }
+                if (node is LeafPsiElement && node.textLength == 1) {
+                    val ch = node.charAt(0)
+                    if (ch == '-' || ch == '{' || ch == '}') {
+                        return
+                    }
+                }
             }
 
             val ancestors = event.parent.ancestors
@@ -303,3 +178,5 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         }
     }
 }
+
+private fun isComment(element: IElementType) = element == VcElementTypes.BLOCK_COMMENT || element == VcElementTypes.LINE_COMMENT

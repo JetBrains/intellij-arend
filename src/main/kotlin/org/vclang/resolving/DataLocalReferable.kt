@@ -7,5 +7,5 @@ import com.jetbrains.jetpad.vclang.naming.reference.LocalReferable
 
 
 class DataLocalReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, name: String) : LocalReferable(name), DataContainer {
-    override fun getData(): PsiElement? = psiElementPointer.element
+    override fun getData(): SmartPsiElementPointer<PsiElement> = psiElementPointer
 }

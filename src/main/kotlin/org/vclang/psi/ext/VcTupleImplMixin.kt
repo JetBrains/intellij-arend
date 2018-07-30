@@ -6,6 +6,6 @@ import org.vclang.psi.VcTuple
 
 abstract class VcTupleImplMixin(node: ASTNode) : VcExprImplMixin(node), VcTuple {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        return visitor.visitTuple(this, exprList, params)
+        return visitor.visitTuple(this, exprList, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
     }
 }

@@ -23,6 +23,7 @@ import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.isVcModule
 import org.vclang.resolving.PsiConcreteProvider
+import org.vclang.typechecking.PsiInstanceProviderSet
 import org.vclang.typechecking.TypeCheckingService
 import java.nio.file.Paths
 
@@ -40,8 +41,8 @@ class VcStartupActivity : StartupActivity {
         service.libraryManager.loadLibrary(preludeLibrary)
         val referableConverter = service.referableConverter
         val concreteProvider = PsiConcreteProvider(referableConverter, DummyErrorReporter.INSTANCE, null)
-        preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.typecheckingErrorReporter)
-        preludeLibrary.typecheck(Prelude.PreludeTypechecking(service.typecheckerState, concreteProvider))
+        preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.libraryErrorReporter)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
 
         for (module in project.vcModules) {
             service.libraryManager.loadLibrary(VcRawLibrary(module, service.typecheckerState))

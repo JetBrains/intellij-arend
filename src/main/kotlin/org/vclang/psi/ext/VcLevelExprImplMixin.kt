@@ -1,7 +1,7 @@
 package org.vclang.psi.ext
 
-import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.term.abs.AbstractLevelExpressionVisitor
+import com.intellij.lang.ASTNode
 import org.vclang.psi.VcLevelExpr
 
 

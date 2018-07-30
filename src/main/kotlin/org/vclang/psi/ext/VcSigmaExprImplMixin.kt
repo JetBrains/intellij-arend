@@ -8,7 +8,7 @@ import org.vclang.psi.VcTypeTele
 
 abstract class VcSigmaExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcSigmaExpr, Abstract.ParametersHolder {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitSigma(this, typeTeleList, params)
+        visitor.visitSigma(this, typeTeleList, if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
 
     override fun getParameters(): List<VcTypeTele> = typeTeleList
 }

@@ -5,7 +5,9 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.jetbrains.jetpad.vclang.module.ModulePath
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Reference
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.prelude.Prelude
@@ -13,14 +15,14 @@ import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
+import org.vclang.VcIcons
 import org.vclang.VcLanguage
-import org.vclang.module.ModuleScope
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage), VcCompositeElement, PsiLocatedReferable, ChildGroup {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage.INSTANCE), VcCompositeElement, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath
         get() {
             val fileName = viewProvider.virtualFile.path
@@ -42,8 +44,10 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getStub(): VcFileStub? = super.getStub() as VcFileStub?
 
+    override fun getKind() = GlobalReferable.Kind.OTHER
+
     override val scope: Scope
-        get() = ScopeFactory.forGroup(this, moduleScopeProvider, module?.let { ModuleScope(it) })
+        get() = ScopeFactory.forGroup(this, moduleScopeProvider)
 
     override fun getLocation() = modulePath
 
@@ -67,7 +71,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<VcDefinition> = children.mapNotNull { (it as? VcStatement)?.definition }
+    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { (it as? VcStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
 
     override fun getNamespaceCommands(): List<VcStatCmd> = children.mapNotNull { (it as? VcStatement)?.statCmd }
 
@@ -80,4 +84,10 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun moduleTextRepresentation(): String = name
 
     override fun positionTextRepresentation(): String? = null
+
+    override fun getUnderlyingReference(): LocatedReferable? = null
+
+    override fun getUnresolvedUnderlyingReference(): Reference? = null
+
+    override fun getIcon(flags: Int) = VcIcons.MODULE
 }

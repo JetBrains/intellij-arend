@@ -18,55 +18,30 @@ import javax.swing.JTree
 
 
 class VcClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
-    override fun getQualifiedName(psiElement: PsiElement?): String {
-        if (psiElement is VcDefClass) {
-            return psiElement.name ?: ""
-        }
-        return ""
-    }
+    override fun getQualifiedName(psiElement: PsiElement?): String = (psiElement as? VcDefClass)?.name ?: ""
 
-    override fun isInterface(psiElement: PsiElement?): Boolean {
-        return true
-    }
+    override fun isInterface(psiElement: PsiElement) = true
 
-    override fun createLegendPanel(): JPanel? {
-        return null
-    }
+    override fun createLegendPanel(): JPanel? = null
 
-    override fun canBeDeleted(psiElement: PsiElement?): Boolean {
-        return true
-    }
+    override fun canBeDeleted(psiElement: PsiElement?) = true
 
-    override fun isApplicableElement(element: PsiElement): Boolean {
-        return element is VcDefClass
-    }
+    override fun isApplicableElement(element: PsiElement) = element is VcDefClass
 
-    override fun getComparator(): Comparator<NodeDescriptor<Any>>? {
-        return if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) {
-            AlphaComparator.INSTANCE
-        } else {
-            SourceComparator.INSTANCE
-        }
-    }
+    override fun getComparator(): Comparator<NodeDescriptor<Any>>? =
+        if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.INSTANCE else SourceComparator.INSTANCE
 
-    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor): PsiElement? {
-        if (descriptor is VcHierarchyNodeDescriptor) {
-            return descriptor.psiElement
-        }
-        return null
-    }
+    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) = (descriptor as? VcHierarchyNodeDescriptor)?.psiElement
 
     override fun createTrees(trees: MutableMap<String, JTree>) {
-        trees.put(SUBTYPES_HIERARCHY_TYPE, createTree(false))
-        trees.put(SUPERTYPES_HIERARCHY_TYPE, createTree(false))
+        trees[SUBTYPES_HIERARCHY_TYPE] = createTree(false)
+        trees[SUPERTYPES_HIERARCHY_TYPE] = createTree(false)
     }
 
-    override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? {
-        if (type == SUBTYPES_HIERARCHY_TYPE) {
-            return VcSubClassTreeStructure(myProject, psiElement)
-        } else if (type == SUPERTYPES_HIERARCHY_TYPE) {
-            return VcSuperClassTreeStructure(myProject, psiElement)
+    override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? =
+        when (type) {
+            SUBTYPES_HIERARCHY_TYPE -> VcSubClassTreeStructure(myProject, psiElement)
+            SUPERTYPES_HIERARCHY_TYPE -> VcSuperClassTreeStructure(myProject, psiElement)
+            else -> null
         }
-        return null
-    }
 }

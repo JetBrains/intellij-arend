@@ -125,10 +125,14 @@
 
         <completion.contributor language="Vclang" implementationClass="org.vclang.codeInsight.completion.VclangCompletionContributor"/>
 
+        <completion.confidence language="Vclang" implementationClass="org.vclang.codeInsight.completion.VcCompletionConfidence" id="vcCompletion" />
+
         <!-- Annotation -->
 
         <annotator language="Vclang"
                    implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
+
+        <!-- <highlightRangeExtension implementation="org.vclang.annotation.VcHighlightRangeExtension"/> -->
 
         <referenceImporter implementation="org.vclang.annotation.VclangReferenceImporter"/>
 

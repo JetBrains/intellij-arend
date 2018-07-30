@@ -7,7 +7,7 @@ import org.vclang.search.VcWordScanner
 
 class VclangCharFilter : CharFilter() {
     override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): CharFilter.Result? =
-        if (lookup.psiFile?.language?.isKindOf(VcLanguage) == true) {
+        if (lookup.psiFile?.language?.isKindOf(VcLanguage.INSTANCE) == true) {
             if (VcWordScanner.isVclangIdentifierPart(c)) {
                 Result.ADD_TO_PREFIX
             } else when (c) {

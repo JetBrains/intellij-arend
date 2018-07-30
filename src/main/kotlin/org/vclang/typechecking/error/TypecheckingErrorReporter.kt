@@ -6,8 +6,11 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.ide.util.EditSourceUtil
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.error.GeneralError
@@ -26,9 +29,7 @@ private fun levelToContentType(level: Error.Level): ConsoleViewContentType = whe
     Error.Level.INFO -> NORMAL_OUTPUT
 }
 
-class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : ErrorReporter {
-    var eventsProcessor: TypecheckingEventsProcessor? = null
-
+class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
     override fun report(error: GeneralError) {
         val proxyAction = object : ProxyAction {
             override fun runAction(p: SMTestProxy) {
@@ -37,7 +38,6 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         }
 
         var reported = false
-        val eventsProcessor = eventsProcessor!!
         error.affectedDefinitions.mapNotNull {
             val ref = PsiLocatedReferable.fromReferable(it)
             if (ref is PsiLocatedReferable || it is ModuleReferable) {
@@ -87,7 +87,9 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val ref = ((doc.reference as? DataContainer)?.data ?: doc.reference) as? PsiElement
+            val data = (doc.reference as? DataContainer)?.data
+            val ref = data as? SmartPsiElementPointer<*> ?:
+                (data as? PsiElement ?: (doc.reference as? PsiElement))?.let { runReadAction { SmartPointerManager.createPointer(it) } }
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {
@@ -117,9 +119,10 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig) : Err
         private fun printNewLine() = printText(CompositePrintable.NEW_LINE)
     }
 
-    private class PsiHyperlinkInfo(private val sourceElement: PsiElement) : HyperlinkInfo {
+    private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
         override fun navigate(project: Project?) {
-            val descriptor = EditSourceUtil.getDescriptor(sourceElement)
+            val psi = runReadAction { sourceElement.element } ?: return
+            val descriptor = EditSourceUtil.getDescriptor(psi)
             if (descriptor != null && descriptor.canNavigate()) {
                 descriptor.navigate(true)
             }

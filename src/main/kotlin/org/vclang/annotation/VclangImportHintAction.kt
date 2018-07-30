@@ -13,14 +13,15 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
-import org.vclang.psi.VcLongName
-import org.vclang.psi.VcNsId
+import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.quickfix.ResolveRefFixData
 import org.vclang.quickfix.ResolveRefQuickFix
@@ -57,7 +58,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         return "Fix import"
     }
 
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+    override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
 
         if (!referenceUnresolved(referenceElement)) return // already imported or invalid
@@ -65,7 +66,7 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport()
             if (fixData.isEmpty()) return@runWriteAction
-            val action = VclangAddImportAction(project, editor!!, referenceElement, fixData)
+            val action = VclangAddImportAction(project, editor, referenceElement, fixData)
             action.execute()
         }
 
@@ -94,7 +95,9 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
         if (allowPopup) {
             val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
-                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textOffset, referenceElement.textRange.endOffset, action)
+                var endOffset = referenceElement.textRange.endOffset
+                if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
+                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN
         }
@@ -102,23 +105,15 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     }
 
     companion object {
-        fun importQuickFixAllowed(referenceElement : VcReferenceElement) : Boolean {
-            if (!referenceUnresolved(referenceElement)) return false
+        fun importQuickFixAllowed(referenceElement: VcReferenceElement) =
+            referenceElement is VcSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
-            val parent = referenceElement.parent
-            if (parent is VcLongName && referenceElement.prevSibling != null) return false // we resolve only first identifiers in longNames
-            if (parent is VcNsId) return false // do not resolve identifiers in using/hiding lists in namespace commands
-
-            return true
+        fun referenceUnresolved(referenceElement: VcReferenceElement): Boolean {
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
+            return reference.resolve() == null // return false if already imported
         }
 
-        fun referenceUnresolved(referenceElement : VcReferenceElement) : Boolean {
-            val reference = referenceElement.reference
-
-            if (!referenceElement.isValid || reference == null) return false //reference element is invalid
-            val psiElement = reference.resolve()
-
-            return psiElement == null // return false if already imported
-        }
+        fun getResolved(referenceElement: VcReferenceElement): PsiElement? =
+            if (referenceElement.isValid) referenceElement.reference?.resolve() else null
     }
 }

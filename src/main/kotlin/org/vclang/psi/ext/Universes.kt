@@ -9,10 +9,10 @@ import org.vclang.psi.*
 
 
 private fun <P : Any?, R : Any?> acceptSet(data: Any, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, params)
+    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, if (visitor.visitErrors() && setElem is VcCompositeElement) org.vclang.psi.ext.getErrorData(setElem) else null, params)
 
 private fun <P : Any?, R : Any?> acceptUniverse(data: Any, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, params)
+    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, if (visitor.visitErrors() && universeElem is VcCompositeElement) org.vclang.psi.ext.getErrorData(universeElem) else null, params)
 
 private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val uniText = truncatedElem.text
@@ -23,7 +23,7 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiEl
         else                             -> null
     }
     val pLevelNum = if (hLevelNum != null) uniText.substring(index + "-Type".length).toIntOrNull() else null
-    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, params)
+    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, if (visitor.visitErrors() && truncatedElem is VcCompositeElement) org.vclang.psi.ext.getErrorData(truncatedElem) else null, params)
 }
 
 
@@ -38,10 +38,8 @@ abstract class VcTruncatedUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMi
 }
 
 abstract class VcUniverseAppExprImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAppExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        val levelExprs = atomLevelExprList
-        return acceptUniverse(this, universe, levelExprs.getOrNull(0), levelExprs.getOrNull(1), visitor, params)
-    }
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+        acceptUniverse(this, universe, atomLevelExprList.getOrNull(0), atomLevelExprList.getOrNull(1), visitor, params)
 }
 
 abstract class VcUniverseAtomImplMixin(node: ASTNode) : VcExprImplMixin(node), VcUniverseAtom {
