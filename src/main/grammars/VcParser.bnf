@@ -98,7 +98,7 @@ private statement_recovery ::= statement_recover {
     recoverWhile = statement_recover
 }
 
-statCmd ::= nsCmd ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
+statCmd ::= (OPEN_KW | IMPORT_KW) ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.NamespaceCommandHolder" ]
@@ -110,8 +110,6 @@ private ns_longName ::= longName {
 }
 
 private ns_longName_recover ::= !(USING_KW | LPAREN | HIDING_KW) & statement_recover
-
-nsCmd ::= OPEN_KW | IMPORT_KW
 
 nsUsing ::= nsUsingUsing | nsUsingParams {
   recoverWhile = nsUsing_recover
@@ -195,6 +193,7 @@ definition ::= defFunction
 defModule ::= moduleHeader where? {
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.SourceNode"
                    "com.jetbrains.jetpad.vclang.term.group.ChildGroup" ]
     mixin = "org.vclang.psi.ext.impl.VcDefModuleMixin"
     stubClass = "org.vclang.psi.stubs.VcDefModuleStub"

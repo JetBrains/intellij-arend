@@ -1,8 +1,12 @@
 package org.vclang.resolving
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
+import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.reference.*
+import org.vclang.psi.ext.moduleTextRepresentationImpl
+import org.vclang.psi.ext.positionTextRepresentationImpl
 
 
 open class DataLocatedReferable(
@@ -10,9 +14,13 @@ open class DataLocatedReferable(
     referable: LocatedReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?)
-    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), DataContainer {
+    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), DataContainer, SourceInfo {
 
     override fun getData(): SmartPsiElementPointer<PsiElement> = psiElementPointer
+
+    override fun moduleTextRepresentation(): String? = runReadAction { psiElementPointer.element?.moduleTextRepresentationImpl() }
+
+    override fun positionTextRepresentation(): String? = runReadAction { psiElementPointer.element?.positionTextRepresentationImpl() }
 }
 
 class FieldDataLocatedReferable(

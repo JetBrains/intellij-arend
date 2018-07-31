@@ -12,17 +12,18 @@ import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.Precedence
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.group.ChildGroup
 import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.VcLanguage
 import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.psi.ext.VcCompositeElement
+import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
 
-class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage.INSTANCE), VcCompositeElement, PsiLocatedReferable, ChildGroup {
+class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage.INSTANCE), VcSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath
         get() {
             val fileName = viewProvider.virtualFile.path
@@ -88,6 +89,12 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     override fun getUnderlyingReference(): LocatedReferable? = null
 
     override fun getUnresolvedUnderlyingReference(): Reference? = null
+
+    override fun getTopmostEquivalentSourceNode() = this
+
+    override fun getParentSourceNode(): VcSourceNode? = null
+
+    override fun getErrorData(): Abstract.ErrorData? = null
 
     override fun getIcon(flags: Int) = VcIcons.MODULE
 }

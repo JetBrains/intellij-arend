@@ -77,7 +77,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {
 
 fun getParentSourceNode(sourceNode: VcSourceNode): VcSourceNode? {
     val parent = sourceNode.topmostEquivalentSourceNode.parent
-    return if (parent is VcFile) null else parent.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()
+    return parent as? VcFile ?: parent.ancestors.filterIsInstance<VcSourceNode>().firstOrNull()
 }
 
 private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(SmartPointerManager.createPointer(cause), cause.errorDescription), SourceInfo, DataContainer {

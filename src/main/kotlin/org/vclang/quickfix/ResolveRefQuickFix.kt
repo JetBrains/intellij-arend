@@ -41,7 +41,7 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
         var anchor = currentFile.children[0]
         var after = false
 
-        val currFileCommands = currentFile.namespaceCommands.filter { it.nsCmd.importKw != null }
+        val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
         if (currFileCommands.isNotEmpty()) {
             val name = LongName(currFileCommands[0].path).toString()
             anchor = currFileCommands[0].parent
@@ -77,7 +77,7 @@ class AddIdToUsingAction(private val statCmd: VcStatCmd, private val idList: Lis
     }
 
     private fun addId(id : String) {
-        if (statCmd.nsCmd.importKw != null) {
+        if (statCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
             if (using != null) {
@@ -282,7 +282,7 @@ class ResolveRefQuickFix {
                         aliases[fName] = HashSet()
                     }
 
-                    for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.nsCmd.importKw != null) {
+                    for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
                         val fileIdent = namespaceCommand.longName?.refIdentifierList?.last()
                         if (fileIdent?.reference?.resolve() == targetFile) {
                             suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
@@ -377,7 +377,7 @@ class ResolveRefQuickFix {
                         statements = psi.namespaceCommands
 
                     if (statements != null)
-                        namespaceCommands.add(0, statements.filter { it.nsCmd.openKw != null })
+                        namespaceCommands.add(0, statements.filter { it.openKw != null })
 
                     psi = psi.parent
                 }

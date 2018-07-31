@@ -13,9 +13,8 @@ import org.vclang.psi.ancestors
 
 abstract class VcStatCmdImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
-        val cmd = nsCmd
-        if (cmd.importKw != null) return NamespaceCommand.Kind.IMPORT
-        if (cmd.openKw != null) return NamespaceCommand.Kind.OPEN
+        if (importKw != null) return NamespaceCommand.Kind.IMPORT
+        if (openKw != null) return NamespaceCommand.Kind.OPEN
         error("Incorrect expression: namespace command")
     }
 

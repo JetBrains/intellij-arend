@@ -12,15 +12,19 @@ import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
 import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
-import com.jetbrains.jetpad.vclang.naming.scope.Scope
+import com.jetbrains.jetpad.vclang.naming.scope.NamespaceCommandNamespace
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
-import org.vclang.psi.ext.*
+import org.vclang.psi.ext.PsiLocatedReferable
+import org.vclang.psi.ext.VcNewExprImplMixin
+import org.vclang.psi.ext.VcPatternImplMixin
+import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.PsiPartialConcreteProvider
@@ -28,110 +32,53 @@ import org.vclang.resolving.PsiPartialConcreteProvider
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         var color: VcHighlightingColors? = null
-        if (element is VcReferenceElement) {
+        val resolved = if (element is VcReferenceElement) {
             val resolved = VclangImportHintAction.getResolved(element)
-            if (resolved == null) {
-                val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
-                annotation.highlightType = ProblemHighlightType.ERROR
+            when (resolved) {
+                null -> {
+                    val annotation = holder.createErrorAnnotation(element, "Unresolved reference")
+                    annotation.highlightType = ProblemHighlightType.ERROR
 
-                val fix = VclangImportHintAction(element)
-                if (fix.isAvailable(element.project, null, element.containingFile))
-                    annotation.registerFix(fix)
+                    val fix = VclangImportHintAction(element)
+                    if (fix.isAvailable(element.project, null, element.containingFile))
+                        annotation.registerFix(fix)
 
-                return
-            } else if (resolved is PsiDirectory) {
-                val refList = (element.parent as? VcLongName)?.refIdentifierList
-                if (refList == null || refList.indexOf(element) == refList.size - 1) {
-                    holder.createErrorAnnotation(element, "Unexpected reference to a directory")
+                    return
                 }
-            } else if (resolved is VcFile) {
-                val longName = element.parent as? VcLongName
-                if (longName == null || longName.parent !is VcStatCmd) {
-                    val refList = longName?.refIdentifierList
+                is PsiDirectory -> {
+                    val refList = (element.parent as? VcLongName)?.refIdentifierList
                     if (refList == null || refList.indexOf(element) == refList.size - 1) {
-                        holder.createErrorAnnotation(element, "Unexpected reference to a file")
+                        holder.createErrorAnnotation(element, "Unexpected reference to a directory")
                     }
+                    return
                 }
-            } else if (resolved is GlobalReferable) {
-                if (resolved.precedence.isInfix) {
-                    color = VcHighlightingColors.OPERATORS
-                }
-            }
-        }
-
-        if (element is VcDefIdentifier) {
-            val parent = element.parent
-            if (parent is InstanceAdapter) {
-                InstanceQuickFix.annotateClassInstance(parent, holder)
-            }
-        }
-        if (element is VcNewExprImplMixin) InstanceQuickFix.annotateNewExpr(element, holder)
-
-        if (element is Group) {
-            object : NameResolvingChecker(true, element is VcFile, PsiPartialConcreteProvider) {
-                override fun onDefinitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
-                    annotateDefinitionNamesClash(ref1, level)
-                    annotateDefinitionNamesClash(ref2, level)
-                }
-
-                private fun annotateDefinitionNamesClash(ref: LocatedReferable, level: Error.Level) {
-                    val psiRef = referableToPsi(ref) ?: return
-                    holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Duplicate definition name '${ref.textRepresentation()}'")
-                }
-
-                override fun onFieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
-                    if (superClass2 == currentClass) {
-                        val psiRef = referableToPsi(ref2) ?: return
-                        holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Field '${ref2.textRepresentation()}' is already defined in super class ${superClass1.textRepresentation()}")
-                    } else {
-                        val psiRef = referableToPsi(currentClass) ?: return
-                        holder.createAnnotation(levelToSeverity(level), psiRef.textRange, "Field '${ref2.textRepresentation()}' is defined in super classes ${superClass1.textRepresentation()} and ${superClass2.textRepresentation()}")
-                    }
-                }
-
-                private fun referableToPsi(ref: LocatedReferable): PsiElement? =
-                    (ref as? PsiLocatedReferable)?.children?.firstOrNull { it is VcDefIdentifier } ?: (ref as? PsiElement)
-
-                override fun onNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
-                    annotateNamespacesClash(cmd1, cmd2, name, level)
-                    annotateNamespacesClash(cmd2, cmd1, name, level)
-                }
-
-                private fun annotateNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
-                    if (cmd1 is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '$name' is imported from ${LongName(cmd2.path)}")
-                    }
-                }
-
-                override fun onError(error: LocalError) {
-                    if (error is NotInScopeError) {
-                        return
-                    }
-
-                    val cause = error.cause
-                    if (cause is PsiElement) {
-                        holder.createAnnotation(levelToSeverity(error.level), cause.textRange, error.shortMessage)
-                    }
-                }
-
-                override fun checkDefinition(definition: LocatedReferable?, scope: Scope?) {
-                    if (definition is VcDefClass && definition.fatArrow != null) {
-                        val fieldTele = definition.fieldTeleList.firstOrNull()
-                        if (fieldTele != null) {
-                            holder.createAnnotation(HighlightSeverity.ERROR, TextRange(fieldTele.textRange.startOffset, (definition.fieldTeleList.lastOrNull() ?: fieldTele).textRange.endOffset), "Class synonyms cannot have parameters")
+                is VcFile -> {
+                    val longName = element.parent as? VcLongName
+                    if (longName == null || longName.parent !is VcStatCmd) {
+                        val refList = longName?.refIdentifierList
+                        if (refList == null || refList.indexOf(element) == refList.size - 1) {
+                            holder.createErrorAnnotation(element, "Unexpected reference to a file")
                         }
                     }
-                    super.checkDefinition(definition, scope)
+                    return
                 }
-            }.checkGroup(element, (element as? VcCompositeElement)?.scope)
-            return
-        }
+                is GlobalReferable -> {
+                    if (resolved.precedence.isInfix) {
+                        color = VcHighlightingColors.OPERATORS
+                    }
+                }
+            }
+            resolved
+        } else null
 
-        if (element is VcNewExpr && element.newKw != null || element is VcNewArg) {
-            val argumentAppExpr = (element as? VcNewExpr)?.argumentAppExpr ?: (element as? VcNewArg)?.argumentAppExpr
-            if (argumentAppExpr != null) {
-                val longName = argumentAppExpr.longNameExpr?.longName ?: run {
-                    val atomFieldsAcc = argumentAppExpr.atomFieldsAcc
+        if (element is VcArgumentAppExpr) {
+            val pElement = element.parent
+            if (pElement is VcNewExprImplMixin) {
+                InstanceQuickFix.annotateNewExpr(pElement, holder)
+            }
+            if (pElement is VcNewExpr && pElement.newKw != null || pElement is VcNewArg) {
+                val longName = element.longNameExpr?.longName ?: run {
+                    val atomFieldsAcc = element.atomFieldsAcc
                     if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
                         atomFieldsAcc.atom.literal?.longName
                     } else {
@@ -140,8 +87,8 @@ class VcHighlightingAnnotator : Annotator {
                 }
                 if (longName != null) {
                     val ref = longName.referent
-                    val resolved = (ref as? UnresolvedReference)?.resolve(argumentAppExpr.scope) ?: ref
-                    if (resolved !is VcDefClass && resolved !is UnresolvedReference && resolved !is ErrorReference) {
+                    val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
+                    if (resolvedRef !is VcDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
                     }
                 }
@@ -175,6 +122,235 @@ class VcHighlightingAnnotator : Annotator {
         if (color != null) {
             holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
         }
+
+        val nameResolvingChecker = object : NameResolvingChecker(false, false, PsiPartialConcreteProvider) {
+            override fun onDefinitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
+                holder.createAnnotation(levelToSeverity(level), element.textRange, "Duplicate definition name '${ref2.textRepresentation()}'")
+            }
+
+            override fun onFieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
+                holder.createAnnotation(levelToSeverity(level), element.textRange, "Field is already defined in super class '${superClass1.textRepresentation()}'")
+            }
+
+            public override fun onNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
+                annotateNamespacesClash(cmd1, cmd2, name, level)
+                annotateNamespacesClash(cmd2, cmd1, name, level)
+            }
+
+            fun annotateNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
+                if (cmd1 is PsiElement) {
+                    holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '$name' is imported from ${LongName(cmd2.path)}")
+                }
+            }
+
+            override fun onError(error: LocalError) {
+                if (error is NotInScopeError) {
+                    return
+                }
+
+                val cause = error.cause
+                if (cause is PsiElement) {
+                    holder.createAnnotation(levelToSeverity(error.level), ((cause as? VcDefFunction)?.defIdentifier ?: cause).textRange, error.shortMessage)
+                }
+            }
+        }
+
+        if (element is VcStatCmd) {
+            var defined: MutableSet<String>? = null
+            if (element.nsUsing?.nsIdList?.isEmpty() == false) {
+                defined = (element.parentSourceNode as? Group)?.let { collectDefined(it) }
+            }
+            nameResolvingChecker.checkNamespaceCommand(element, defined)
+
+            val nsCommands = (element.parentSourceNode as? Group)?.namespaceCommands ?: emptyList()
+            if (nsCommands.size <= 1) {
+                return
+            }
+
+            val scope = element.scope
+            val commandNames = NamespaceCommandNamespace.resolveNamespace(scope, element).elements.map { it.textRepresentation() }.toSet()
+            if (commandNames.isEmpty()) {
+                return
+            }
+
+            for (cmd in nsCommands) {
+                if (cmd == element) {
+                    continue
+                }
+                for (other in NamespaceCommandNamespace.resolveNamespace(scope, cmd).elements) {
+                    val otherName = other.textRepresentation()
+                    if (commandNames.contains(otherName)) {
+                        if (defined == null) {
+                            defined = (element.parentSourceNode as? Group)?.let { collectDefined(it) }
+                        }
+                        if (defined == null || !defined.contains(otherName)) {
+                            nameResolvingChecker.annotateNamespacesClash(element, cmd, otherName, Error.Level.WARNING)
+                        }
+                    }
+                }
+            }
+
+            return
+        }
+
+        if (element is VcFieldTele) {
+            val definition = element.parent
+            if (definition is VcDefClass && definition.fatArrow != null && definition.fieldTeleList.firstOrNull() == element) {
+                holder.createAnnotation(HighlightSeverity.ERROR, TextRange(element.textRange.startOffset, (definition.fieldTeleList.lastOrNull() ?: element).textRange.endOffset), "Class synonyms cannot have parameters")
+            }
+            return
+        }
+
+        if (element is VcRefIdentifier && element.parent is VcDefClass && resolved != null) {
+            when {
+                resolved !is VcDefClass -> "Expected a class"
+                resolved.recordKw != null -> "Expected a class, got a record"
+                resolved.refIdentifier != null -> "Expected a class, got a class synonym"
+                else -> null
+            }?.let { msg -> holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, msg) }
+            return
+        }
+
+        if (element is VcLongName) {
+            val parent = element.parent
+            if (parent is VcDefClass) {
+                val superClass = element.refIdentifierList.lastOrNull()?.reference?.resolve()
+                if (superClass != null) {
+                    if (superClass !is VcDefClass) {
+                        holder.createErrorAnnotation(element, "Expected a class")
+                    } else if (parent.fatArrow != null) {
+                        nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.refIdentifier?.reference?.resolve() as? ClassReferable, element)
+                    }
+                }
+            }
+            return
+        }
+
+        if (element is LeafPsiElement) {
+            when (element.node.elementType) {
+                VcElementTypes.COERCE_KW -> {
+                    if (element.parent?.parent is VcFile) {
+                        holder.createErrorAnnotation(element as PsiElement, "\\coerce is not allowed on the top level")
+                    }
+                    return
+                }
+                VcElementTypes.IMPORT_KW -> {
+                    if ((element.parent as? Abstract.NamespaceCommandHolder)?.parentSourceNode !is VcFile) {
+                        holder.createErrorAnnotation(element as PsiElement, "\\import is allowed only on the top level")
+                    }
+                    return
+                }
+            }
+        }
+
+        if (element is VcDefIdentifier) {
+            val definition = element.parent as? PsiLocatedReferable ?: return
+
+            if (definition is Abstract.ReferableDefinition && (definition is Abstract.ClassField || definition is Abstract.ClassFieldSynonym)) {
+                val fieldRef = definition.referable
+                if (fieldRef != null) {
+                    val classRef = (definition.parentSourceNode as? Abstract.ClassDefinition)?.referable
+                    nameResolvingChecker.checkField(fieldRef, NameResolvingChecker.collectClassFields(classRef), classRef)
+                }
+            }
+
+            if (definition is InstanceAdapter) {
+                InstanceQuickFix.annotateClassInstance(definition, holder)
+            }
+
+            fun checkReference(oldRef: LocatedReferable?, newRef: LocatedReferable, parentRef: LocatedReferable?): Boolean {
+                if (oldRef == null || oldRef == newRef) {
+                    return true
+                }
+                val newName = newRef.textRepresentation()
+                if (newName.isEmpty() || newName == "_" || newName != oldRef.textRepresentation()) {
+                    return true
+                }
+                return nameResolvingChecker.checkReference(oldRef, newRef, parentRef)
+            }
+
+            fun checkDuplicateDefinitions(parent: Abstract.ReferableDefinition, internal: Boolean) {
+                val pparent = parent.parentSourceNode
+                if (pparent is Group) {
+                    val parentRef = if (internal) pparent.referable else null
+                    for (ref in pparent.constructors) {
+                        if (!checkReference(ref.referable, definition, parentRef)) return
+                    }
+                    for (ref in pparent.fields) {
+                        if (!checkReference(ref.referable, definition, parentRef)) return
+                    }
+
+                    for (subgroup in pparent.subgroups) {
+                        if (!checkReference(subgroup.referable, definition, parentRef)) return
+                        if (internal) {
+                            for (ref in subgroup.constructors) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                            for (ref in subgroup.fields) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                        }
+                    }
+                    for (subgroup in pparent.dynamicSubgroups) {
+                        if (!checkReference(subgroup.referable, definition, parentRef)) return
+                        if (internal) {
+                            for (ref in subgroup.constructors) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                            for (ref in subgroup.fields) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (definition is Abstract.ReferableDefinition) {
+                checkDuplicateDefinitions(definition, false)
+
+                val parent = definition.parent
+                if (definition !is Abstract.Definition && parent is Abstract.Definition) {
+                    checkDuplicateDefinitions(parent, true)
+                }
+            }
+        }
+    }
+
+    private fun collectDefined(group: Group): HashSet<String> {
+        val result = HashSet<String>()
+        for (subgroup in group.subgroups) {
+            result.add(subgroup.referable.textRepresentation())
+            for (ref in subgroup.constructors) {
+                if (ref.isVisible) {
+                    result.add(ref.referable.textRepresentation())
+                }
+            }
+            for (ref in subgroup.fields) {
+                if (ref.isVisible) {
+                    result.add(ref.referable.textRepresentation())
+                }
+            }
+        }
+        for (subgroup in group.dynamicSubgroups) {
+            result.add(subgroup.referable.textRepresentation())
+            for (ref in subgroup.constructors) {
+                if (ref.isVisible) {
+                    result.add(ref.referable.textRepresentation())
+                }
+            }
+            for (ref in subgroup.fields) {
+                if (ref.isVisible) {
+                    result.add(ref.referable.textRepresentation())
+                }
+            }
+        }
+        for (ref in group.constructors) {
+            result.add(ref.referable.textRepresentation())
+        }
+        for (ref in group.fields) {
+            result.add(ref.referable.textRepresentation())
+        }
+        return result
     }
 
     private fun levelToSeverity(level: Error.Level) = when (level) {

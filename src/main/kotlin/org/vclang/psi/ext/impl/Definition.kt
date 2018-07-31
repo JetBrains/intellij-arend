@@ -40,7 +40,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
 
     override fun getConstructors(): List<VcConstructor> = emptyList()
 
-    override fun getDynamicSubgroups(): List<Group> = emptyList()
+    override fun getDynamicSubgroups(): List<ChildGroup> = emptyList()
 
     override fun getFields(): List<Group.InternalReferable> = emptyList()
 
