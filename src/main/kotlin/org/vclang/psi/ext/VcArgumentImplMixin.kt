@@ -1,7 +1,6 @@
 package org.vclang.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.NamedUnresolvedReference
 import com.jetbrains.jetpad.vclang.term.Fixity
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -61,23 +60,10 @@ abstract class VcPostfixArgumentImplMixin(node: ASTNode) : VcExprImplMixin(node)
     override fun getReference(): VcReference = VcReferenceImpl(this)
 }
 
-abstract class VcNewArgImplMixin(node: ASTNode) : VcExprImplMixin(node), VcNewArg, Abstract.ClassReferenceHolder {
-    override fun isExplicit(): Boolean = true
-
-    override fun getData() = this
-
+abstract class VcNewArgImplMixin(node: ASTNode) : VcNewExprImplMixin(node), VcNewArg, Abstract.ClassReferenceHolder {
     override fun getFixity(): Fixity = Fixity.NONFIX
 
     override fun getExpression(): VcExpr = this
-
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitClassExt(this, true, argumentAppExpr, if (lbrace == null) null else coClauseList, emptyList(), if (visitor.visitErrors()) org.vclang.psi.ext.getErrorData(this) else null, params)
-
-    override fun getClassReference(): ClassReferable? = VcNewExprImplMixin.getClassReference(argumentAppExpr)
-
-    override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
-
-    override fun getNumberOfArguments() = argumentAppExpr?.argumentList?.size ?: 0
 }
 
 abstract class VcAtomArgumentImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcAtomArgument {

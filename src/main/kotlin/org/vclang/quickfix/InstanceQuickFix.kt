@@ -220,14 +220,14 @@ class InstanceQuickFix {
         fun annotateNewExpr(newExpr: VcNewExprImplMixin, holder: AnnotationHolder) {
             val classReference = newExpr.classReference
             if (classReference is VcDefClass) {
-                val argumentAppExpr = newExpr.argumentAppExpr
+                val argumentAppExpr = newExpr.getArgumentAppExpr()
                 if (argumentAppExpr != null) {
                     doAnnotate(object: ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = argumentAppExpr.textRange
 
-                        override fun getCoClauseList(): List<VcCoClause> = newExpr.coClauseList
+                        override fun getCoClauseList(): List<VcCoClause> = newExpr.getCoClauseList()
 
                         override fun getClassReferenceHolder() = newExpr
 
@@ -241,7 +241,7 @@ class InstanceQuickFix {
 
                         override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
                             val whitespace = calculateWhiteSpace()
-                            val lbrace = newExpr.lbrace
+                            val lbrace = newExpr.getLbrace()
                             val anchor : PsiElement = if (lbrace != null) lbrace else {
                                 val pOB = factory.createPairOfBraces()
                                 argumentAppExpr.parent.addAfter(pOB.second, argumentAppExpr)
@@ -256,7 +256,7 @@ class InstanceQuickFix {
                             moveCaretToTheEnd(editor, anchor.nextSibling)
                             anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
                         }
-                    }, classReference, holder, newExpr.newKw == null)
+                    }, classReference, holder, newExpr.getNewKw() == null)
                 }
             }
         }
