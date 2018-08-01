@@ -173,7 +173,7 @@ class InstanceQuickFix {
 
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder) {
             val classReference = instance.classReference
-            if (classReference is VcDefClass) {
+            if (classReference is VcDefClass && classReference.recordKw == null) {
                 val argumentAppExpr = instance.argumentAppExpr
                 if (argumentAppExpr != null) {
                     doAnnotate(object: ExpressionWithCoClauses {

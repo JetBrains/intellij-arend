@@ -76,7 +76,7 @@ class VcHighlightingAnnotator : Annotator {
             if (pElement is VcNewExprImplMixin) {
                 InstanceQuickFix.annotateNewExpr(pElement, holder)
             }
-            if (pElement is VcNewExpr && pElement.newKw != null || pElement is VcNewArg) {
+            if (pElement is VcNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is VcNewArg || pElement is VcDefInstance) {
                 val longName = element.longNameExpr?.longName ?: run {
                     val atomFieldsAcc = element.atomFieldsAcc
                     if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
@@ -90,6 +90,9 @@ class VcHighlightingAnnotator : Annotator {
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
                     if (resolvedRef !is VcDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
+                    }
+                    if (pElement is VcDefInstance && resolvedRef is VcDefClass && resolvedRef.recordKw != null) {
+                        holder.createErrorAnnotation(longName, "Expected a class, got a record")
                     }
                 }
             }
@@ -205,7 +208,7 @@ class VcHighlightingAnnotator : Annotator {
             when {
                 resolved !is VcDefClass -> "Expected a class"
                 resolved.recordKw != null -> "Expected a class, got a record"
-                resolved.refIdentifier != null -> "Expected a class, got a class synonym"
+                resolved.fatArrow != null -> "Expected a class, got a class synonym"
                 else -> null
             }?.let { msg -> holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, msg) }
             return
@@ -213,14 +216,19 @@ class VcHighlightingAnnotator : Annotator {
 
         if (element is VcLongName) {
             val parent = element.parent
-            if (parent is VcDefClass) {
-                val superClass = element.refIdentifierList.lastOrNull()?.reference?.resolve()
-                if (superClass != null) {
-                    if (superClass !is VcDefClass) {
-                        holder.createErrorAnnotation(element, "Expected a class")
-                    } else if (parent.fatArrow != null) {
-                        nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.refIdentifier?.reference?.resolve() as? ClassReferable, element)
+            when (parent) {
+                is VcDefClass -> {
+                    val superClass = element.refIdentifierList.lastOrNull()?.reference?.resolve()
+                    if (superClass != null) {
+                        if (superClass !is VcDefClass) {
+                            holder.createErrorAnnotation(element, "Expected a class")
+                        } else if (parent.fatArrow != null) {
+                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.refIdentifier?.reference?.resolve() as? ClassReferable, element)
+                        }
                     }
+                }
+                is Abstract.ClassFieldImpl -> if ((parent is VcCoClause && parent.lbrace != null || parent is VcClassImplement && parent.lbrace != null) && parent.classReference == null) {
+                    holder.createErrorAnnotation(element, "Expected either a class or a field which has a class as its type")
                 }
             }
             return
