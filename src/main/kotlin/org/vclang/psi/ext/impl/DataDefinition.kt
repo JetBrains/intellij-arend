@@ -3,6 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
@@ -35,6 +36,11 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
     }
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
+
+    override fun getCoercingFunctions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+        val def = it.definition
+        if (def is VcDefFunction && def.coerceKw != null) def else null
+    } ?: emptyList()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 

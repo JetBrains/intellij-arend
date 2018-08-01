@@ -67,6 +67,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getUnresolvedUnderlyingReference(): Reference? = underlyingClass
 
+    override fun getCoercingFunctions(): List<LocatedReferable> =
+        (dynamicSubgroups + subgroups).mapNotNull { if (it is VcDefFunction && it.coerceKw != null) it else null }
+
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_DEFINITION
