@@ -12,6 +12,7 @@ import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
 import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.NamespaceCommandNamespace
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -28,6 +29,7 @@ import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.PsiPartialConcreteProvider
+import org.vclang.typing.ReferableExtractVisitor
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -242,8 +244,11 @@ class VcHighlightingAnnotator : Annotator {
         if (element is LeafPsiElement) {
             when (element.node.elementType) {
                 VcElementTypes.COERCE_KW -> {
-                    if (element.parent?.parent is VcFile) {
+                    val parent = (element.parent as? VcDefFunction)?.parentGroup
+                    if (parent is VcFile) {
                         holder.createErrorAnnotation(element as PsiElement, "\\coerce is not allowed on the top level")
+                    } else if (parent !is VcDefData && parent !is VcDefClass) {
+                        holder.createErrorAnnotation(element as PsiElement, "\\coerce is allowed only in \\where block of \\data and \\class")
                     }
                     return
                 }
@@ -269,6 +274,21 @@ class VcHighlightingAnnotator : Annotator {
 
             if (definition is InstanceAdapter) {
                 InstanceQuickFix.annotateClassInstance(definition, holder)
+            } else if (definition is VcDefFunction && definition.coerceKw != null) {
+                val lastParam = definition.nameTeleList.lastOrNull()
+                if (lastParam == null) {
+                    holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
+                } else {
+                    val paramExpr = lastParam.expr
+                    val parentDef = definition.parentGroup
+                    if (paramExpr != null && parentDef != null) {
+                        val visitor = ReferableExtractVisitor()
+                        val scope = definition.scope
+                        if ((ExpressionResolveNameVisitor.resolve(paramExpr.accept(visitor, null), scope) == parentDef) == (ExpressionResolveNameVisitor.resolve(definition.expr?.accept(visitor, null), scope) == parentDef)) {
+                            holder.createErrorAnnotation(element, "Either the last parameter or the result type (but not both) of \\coerce must be the parent definition")
+                        }
+                    }
+                }
             }
 
             fun checkReference(oldRef: LocatedReferable?, newRef: LocatedReferable, parentRef: LocatedReferable?): Boolean {

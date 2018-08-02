@@ -49,7 +49,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             else -> null
         } ?: return null
 
-        return ReferableExtractVisitor(expr.scope).findClassReferable(expr)
+        return ReferableExtractVisitor().findClassReferable(expr)
     }
 
     override val psiElementType: PsiElement?

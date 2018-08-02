@@ -38,7 +38,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor(scope).findClassReferable(type) else null
+        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
     override val psiElementType: PsiElement?

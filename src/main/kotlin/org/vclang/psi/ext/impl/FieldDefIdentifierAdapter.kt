@@ -42,7 +42,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun isVisible() = false
 
     override fun getTypeClassReference(): ClassReferable? =
-        resultType?.let { ReferableExtractVisitor(scope).findClassReferable(it) }
+        resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
     override fun getParameters(): List<Abstract.Parameter> = emptyList()
 
