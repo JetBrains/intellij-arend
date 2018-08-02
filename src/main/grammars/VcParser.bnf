@@ -648,7 +648,7 @@ literal ::= longName
     mixin = "org.vclang.psi.ext.VcLiteralImplMixin"
 }
 
-goal ::= LGOAL defIdentifier_goal? [LBRACE expr RBRACE] RBRACE {
+goal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE {
     pin = 1
     implements = "org.vclang.psi.ext.PsiReferable"
     mixin = "org.vclang.psi.ext.PsiReferableImpl"
@@ -658,7 +658,7 @@ private defIdentifier_goal ::= defIdentifier {
     recoverWhile = defIdentifier_goal_recover
 }
 
-private defIdentifier_goal_recover ::= !(LBRACE | RBRACE) & statement_recover
+private defIdentifier_goal_recover ::= !(LPAREN | RBRACE) & statement_recover
 
 universeAtom ::= SET
     | UNIVERSE

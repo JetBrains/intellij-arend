@@ -71,6 +71,11 @@ class VcHighlightingAnnotator : Annotator {
             resolved
         } else null
 
+        if (element is VcGoal) {
+            holder.createWarningAnnotation(element, "goal")
+            return
+        }
+
         if (element is VcArgumentAppExpr) {
             val pElement = element.parent
             if (pElement is VcNewExprImplMixin) {
@@ -364,7 +369,7 @@ class VcHighlightingAnnotator : Annotator {
     private fun levelToSeverity(level: Error.Level) = when (level) {
         Error.Level.ERROR -> HighlightSeverity.ERROR
         Error.Level.WARNING -> HighlightSeverity.WARNING
-        Error.Level.GOAL -> HighlightSeverity.WEAK_WARNING
+        Error.Level.GOAL -> HighlightSeverity.WARNING
         Error.Level.INFO -> HighlightSeverity.INFORMATION
     }
 }
