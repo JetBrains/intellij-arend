@@ -62,8 +62,11 @@ class VclangCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere || it is VcDefClass }.none() },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
+
+        val coerceAdmissibleAncestors = or(and(ofTypeK(VcWhere::class.java), withParents(VcDefData::class.java, VcDefClass::class.java)), ofTypeK(VcDefClass::class.java))
+
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere || it is VcDefClass }.toSet().isNotEmpty() },
+                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { coerceAdmissibleAncestors.accepts(it) }.toSet().isNotEmpty() },
                         KeywordCompletionProvider(COERCE_KW_LIST))))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
@@ -318,8 +321,9 @@ class VclangCompletionContributor : CompletionContributor() {
         val PROP_KW_LIST = listOf(PROP_KW.toString())
         val COERCE_KW_LIST = listOf(COERCE_KW.toString())
 
-        val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + COERCE_KW_LIST
+        val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
+        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + COERCE_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
@@ -328,6 +332,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
         private fun afterLeaf(et: IElementType) = PlatformPatterns.psiElement().afterLeaf(PlatformPatterns.psiElement(et))
         private fun ofType(vararg types: IElementType) = or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
+        private fun <T : PsiElement> ofTypeK(vararg types: Class<T>) = or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
         private fun <T : PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withGrandParent(et: Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
         private fun <T : PsiElement> withParentOrGrandParent(et: Class<T>) = or(withParent(et), withGrandParent(et))

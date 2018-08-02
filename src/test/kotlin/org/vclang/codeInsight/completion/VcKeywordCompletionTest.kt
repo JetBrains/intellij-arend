@@ -1,5 +1,6 @@
 package org.vclang.codeInsight.completion
 
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.AS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.COERCE_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_KW_LIST
@@ -76,22 +77,31 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\import B \\hiding (a)\n{-caret-}\\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
                     "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}")
 
-    fun `test root keywords completion 2`() =
-            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
-                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
-                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
-                    "\\func foo => 0 \\where {\n{-caret-} }",
+    private val kwSuite1 =
+            arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
+            "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
+            "\\func foo => 0 \\where {\n{-caret-} }",
+            "\\coerce Lol => 101 \\where {\n {-caret-} }")
+
+    fun `test local statement keywords completion in func where block`() =
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS, *kwSuite1)
+
+    fun `test local statement keywords completion in func where block 2`() =
+            checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuite1)
+
+    fun `test local statement keywords in data and class`() =
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + COERCE_KW_LIST, CompletionCondition.CONTAINS,
                     "\\class Foo { | A : Nat\n {-caret-} }",
-                    "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }")
+                    "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }",
+                    "\\data Lol \\where {\n {-caret-} }")
 
     fun `test no root keywords completion`() =
-            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
+            checkKeywordCompletionVariants(ALL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
                     //"\\class Foo {\n {-caret-} \n | A : Nat }", //TODO: Fixme
                     "\\class Foo => Foo' {\n {-caret-} }", /* no statements in completion for class rename */
                     "\\class Foo => Foo' {\n {-caret-} | A => A' }",
-                    "\\class Foo => Foo' {| A => A'\n {-caret-} }"
-                    )
+                    "\\class Foo => Foo' {| A => A'\n {-caret-} }")
 
     fun `test root keywords completion 3`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
