@@ -31,7 +31,9 @@ import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.DataLocatedReferable
 import org.vclang.resolving.PsiPartialConcreteProvider
+import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
+import org.vclang.typing.TypecheckingVisitor
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -75,15 +77,12 @@ class VcHighlightingAnnotator : Annotator {
             resolved
         } else null
 
-        if (element is VcGoal) {
-            holder.createWarningAnnotation(element, "goal")
-            return
-        }
-
         if (element is VcArgumentAppExpr) {
             val pElement = element.parent
             if (pElement is VcNewExprImplMixin) {
-                InstanceQuickFix.annotateNewExpr(pElement, holder)
+                if (InstanceQuickFix.annotateNewExpr(pElement, holder)) {
+                    return
+                }
             }
             if (pElement is VcNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is VcNewArg || pElement is VcDefInstance) {
                 val longName = element.longNameExpr?.longName ?: run {
@@ -99,13 +98,14 @@ class VcHighlightingAnnotator : Annotator {
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
                     if (resolvedRef !is VcDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
+                        return
                     }
                     if (pElement is VcDefInstance && resolvedRef is VcDefClass && resolvedRef.recordKw != null) {
                         holder.createErrorAnnotation(longName, "Expected a class, got a record")
+                        return
                     }
                 }
             }
-            return
         }
 
         if (element is VcPatternImplMixin) {
@@ -387,15 +387,17 @@ class VcHighlightingAnnotator : Annotator {
                     } else if (parent !is VcDefData && parent !is VcDefClass) {
                         holder.createErrorAnnotation(element as PsiElement, "\\coerce is allowed only in \\where block of \\data and \\class")
                     }
-                    return
                 }
-                VcElementTypes.IMPORT_KW -> {
+                VcElementTypes.IMPORT_KW ->
                     if ((element.parent as? Abstract.NamespaceCommandHolder)?.parentSourceNode !is VcFile) {
                         holder.createErrorAnnotation(element as PsiElement, "\\import is allowed only on the top level")
                     }
-                    return
-                }
             }
+            return
+        }
+
+        if (element is VcExpr && element.topmostEquivalentSourceNode == element) {
+            element.accept(TypecheckingVisitor(element, holder), ExpectedTypeVisitor(element, holder).getExpectedType())
         }
     }
 
