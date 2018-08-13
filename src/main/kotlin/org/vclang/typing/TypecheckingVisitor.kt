@@ -16,10 +16,6 @@ import java.math.BigInteger
 class TypecheckingVisitor(private val element: VcCompositeElement, private val holder: AnnotationHolder) : AbstractExpressionVisitor<Any,Unit> {
     override fun visitErrors() = false
 
-    override fun visitApp(data: Any?, expr: Abstract.Expression, arguments: Collection<Abstract.Argument>, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
-    }
-
     override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
         if (level1 != null || level2 != null) {
             checkIsGlobal(referent)
@@ -54,7 +50,8 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
     override fun visitInferHole(data: Any?, errorData: Abstract.ErrorData?, expectedType: Any?) {}
 
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        holder.createAnnotation(HighlightSeverity.WARNING, element.textRange, "Goal", "Goal" + if (expectedType != null) "<br>Expected type: " + (if (expectedType is PsiElement) expectedType.text else expectedType.toString()) else "")
+        val expectedTypeString = if (expectedType == null) "" else "Expected type: " + (if (expectedType is PsiElement) expectedType.text else expectedType.toString())
+        holder.createAnnotation(HighlightSeverity.WARNING, element.textRange, if (expectedTypeString != "") expectedTypeString else "Goal", "Goal" + if (expectedTypeString != "") "<br>$expectedTypeString" else "")
     }
 
     override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, expectedType: Any?) {

@@ -10,6 +10,7 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefDataStub
+import org.vclang.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
 abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefData, Abstract.DataDefinition {
@@ -41,6 +42,10 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
         val def = it.definition
         if (def is VcDefFunction && def.coerceKw != null) def else null
     } ?: emptyList()
+
+    override fun getParameterType(index: Int): Any? = ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.Universe, index)
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, ExpectedTypeVisitor.Universe)
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 

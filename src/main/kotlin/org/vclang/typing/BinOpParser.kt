@@ -2,7 +2,6 @@ package org.vclang.typing
 
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.naming.BinOpParser
-import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.Fixity
@@ -28,12 +27,7 @@ private fun addExpression(expr: Abstract.Expression?, binOpSeq: MutableList<Conc
         override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = getResult(data, referent)
     }, null)
 
-    val referable = when (ref) {
-        is Concrete.ReferenceExpression -> ref.referent
-        is Concrete.AppExpression -> (ref.function as? Concrete.ReferenceExpression)?.referent
-        else -> null
-    }
-    if (ref != null && referable is GlobalReferable) {
+    if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) {
         binOpSeq.add(Concrete.BinOpSequenceElem(ref, fixity, isExplicit))
     } else {
         binOpSeq.add(Concrete.BinOpSequenceElem(Concrete.HoleExpression(expr), fixity, isExplicit))

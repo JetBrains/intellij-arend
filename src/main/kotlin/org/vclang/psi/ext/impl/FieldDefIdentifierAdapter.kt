@@ -14,6 +14,7 @@ import org.vclang.psi.VcFieldTele
 import org.vclang.psi.stubs.VcClassFieldParamStub
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcReference
+import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
 
 abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStub>, VcFieldDefIdentifier {
@@ -43,6 +44,10 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
 
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
+
+    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(resultType, index)
+
+    override fun getTypeOf() = resultType
 
     override fun getParameters(): List<Abstract.Parameter> = emptyList()
 

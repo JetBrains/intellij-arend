@@ -9,10 +9,6 @@ import java.math.BigInteger
 class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
     override fun visitErrors() = false
 
-    override fun visitApp(data: Any?, expr: Abstract.Expression, arguments: Collection<Abstract.Argument>, errorData: Abstract.ErrorData?, params: Void?): Any? {
-        TODO("not implemented")
-    }
-
     override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
         TODO("not implemented")
     }

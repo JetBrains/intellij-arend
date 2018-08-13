@@ -54,11 +54,6 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
         return findClassReference(expr.accept(this, null), expr.scope)
     }
 
-    override fun visitApp(data: Any?, expr: Abstract.Expression, args: Collection<Abstract.Argument>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
-        arguments += args.sumBy { if (it.isExplicit) 1 else 0 }
-        return expr.accept(this, null)
-    }
-
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
         var expr = parseBinOp(left, sequence)
         if (expr is Concrete.AppExpression) {

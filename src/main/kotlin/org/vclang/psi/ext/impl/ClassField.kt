@@ -10,6 +10,7 @@ import org.vclang.psi.VcClassField
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcTypeTele
 import org.vclang.psi.stubs.VcClassFieldStub
+import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
@@ -36,6 +37,10 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
+
+    override fun getParameterType(index: Int): Any? = ExpectedTypeVisitor.getParameterType(parameters, resultType, index)
+
+    override fun getTypeOf(): Any? = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

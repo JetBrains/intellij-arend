@@ -36,5 +36,9 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
 
     override fun getTypeClassReference() = (underlyingReference as? TypedReferable)?.typeClassReference
 
+    override fun getParameterType(index: Int) = (underlyingReference as? TypedReferable)?.getParameterType(index)
+
+    override fun getTypeOf() = (underlyingReference as? TypedReferable)?.typeOf
+
     override fun isFieldSynonym() = true
 }

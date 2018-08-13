@@ -10,6 +10,7 @@ import org.vclang.psi.VcExpr
 import org.vclang.psi.VcLetClause
 import org.vclang.psi.VcLetExpr
 import org.vclang.psi.VcNameTele
+import org.vclang.typing.ExpectedTypeVisitor
 
 
 abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcLetClause, VcSourceNode {
@@ -25,6 +26,10 @@ abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcL
         if (parent is VcLetExpr) return LocalSearchScope(parent)
         return super.getUseScope()
     }
+
+    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, resultType, index)
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
     override fun getTopmostEquivalentSourceNode() = org.vclang.psi.ext.getTopmostEquivalentSourceNode(this)
 
