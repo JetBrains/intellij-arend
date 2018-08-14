@@ -31,7 +31,5 @@ abstract class VcDefModuleMixin : ReferableAdapter<VcDefModuleStub>, VcDefModule
 
     override fun getFields(): List<Group.InternalReferable> = emptyList()
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.TooManyArgumentsError
-
-    override fun getTypeOf(): Any? = ExpectedTypeVisitor.NotAnExpressionError
+    override fun getParameterType(index: Int) = ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), 0)
 }

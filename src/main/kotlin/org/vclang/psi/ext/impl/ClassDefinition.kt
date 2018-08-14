@@ -71,7 +71,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getParameterType(index: Int): Any? {
         val fields = if (superClasses.isEmpty()) fieldReferables else ClassFieldImplScope(this, false).elements
-        return if (index < fields.size) (fields.toList()[index] as? TypedReferable)?.typeOf else ExpectedTypeVisitor.TooManyArgumentsError
+        return if (index < fields.size) (fields.toList()[index] as? TypedReferable)?.typeOf else ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
     }
 
     override fun getTypeOf() = ExpectedTypeVisitor.Universe

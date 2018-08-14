@@ -397,7 +397,12 @@ class VcHighlightingAnnotator : Annotator {
         }
 
         if (element is VcExpr && element.topmostEquivalentSourceNode == element) {
-            element.accept(TypecheckingVisitor(element, holder), ExpectedTypeVisitor(element, holder).getExpectedType())
+            var expectedType = ExpectedTypeVisitor(element, holder).getExpectedType()
+            if (expectedType is ExpectedTypeVisitor.Error) {
+                expectedType.createErrorAnnotation(element, holder)
+                expectedType = null
+            }
+            element.accept(TypecheckingVisitor(element, holder), expectedType)
         }
     }
 

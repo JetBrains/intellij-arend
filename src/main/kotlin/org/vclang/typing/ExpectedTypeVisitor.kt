@@ -1,6 +1,7 @@
 package org.vclang.typing
 
 import com.intellij.lang.annotation.AnnotationHolder
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -17,6 +18,13 @@ import java.math.BigInteger
 
 
 class ExpectedTypeVisitor(private val element: VcExpr, private val holder: AnnotationHolder?) : AbstractExpressionVisitor<Void,Any>, AbstractDefinitionVisitor<Any> {
+    object InferHoleExpression : Abstract.SourceNodeImpl(), Abstract.Expression {
+        override fun getData() = this
+
+        override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+            visitor.visitInferHole(this, null, params)
+    }
+
     class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
         override fun getData() = this
 
@@ -36,10 +44,6 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString() = "a pi type"
     }
 
-    class Pi(private val args: Int) {
-        override fun toString() = "a pi type with " + args + (if (args == 1) " parameter" else " parameters")
-    }
-
     class Sigma(private val projections: Collection<Int>) {
         override fun toString(): String {
             val fields = projections.first()
@@ -51,7 +55,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString(): String = (expr as? VcExpr)?.text ?: expr.toString()
     }
 
-    class Definition(private val def: VcDefinition) {
+    class Definition(val def: VcDefinition) {
         override fun toString() = def.textRepresentation()
     }
 
@@ -68,18 +72,25 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString() = "a universe"
     }
 
-    interface Error
+    interface Error {
+        fun createErrorAnnotation(element: PsiElement, holder: AnnotationHolder)
+    }
 
-    object TooManyArgumentsError : Error {
+    class TooManyArgumentsError(private val def: String?, private val numberOfParameters: Int) : Error {
+        override fun createErrorAnnotation(element: PsiElement, holder: AnnotationHolder) {
+            val msg = when {
+                def == null -> ""
+                numberOfParameters == 0 -> "$def does not have parameters"
+                else -> def + " has only " + numberOfParameters + if (numberOfParameters == 1) " parameter" else " parameters"
+            }
+            holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, toString() + if (msg == "") "" else "; $msg", toString() + if (msg == "") "" else "<br>$msg")
+        }
+
         override fun toString() = "Too many arguments"
     }
 
-    object NotAnExpressionError : Error {
-        override fun toString() = "Not an expression"
-    }
-
     companion object {
-        fun getParameterType(parameters: Collection<Abstract.Parameter>, expr: Any?, index: Int): Any? {
+        fun getParameterType(parameters: Collection<Abstract.Parameter>, expr: Any?, index: Int, defName: String): Any? {
             var indexVar = index
             for (parameter in parameters) {
                 indexVar -= parameter.referableList.size
@@ -88,13 +99,14 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                 }
             }
             return when (expr) {
-                is Abstract.Expression -> getParameterType(expr, indexVar)
-                TooManyArgumentsError -> TooManyArgumentsError
+                is Abstract.Expression -> getParameterType(expr, indexVar, defName)
+                is TooManyArgumentsError -> expr
                 else -> null
             }
         }
 
-        fun getParameterType(expr: Abstract.Expression?, index: Int): Any? {
+        fun getParameterType(expr: Abstract.Expression?, index: Int, defName: String): Any? {
+            var totalNumberOfParameters = 0
             var result: Any? = null
             var indexVar = index
             var exprVar = expr
@@ -102,7 +114,9 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                 val kind = exprVar.accept(object : GetKindVisitor() {
                     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
                         for (parameter in parameters) {
-                            indexVar -= parameter.referableList.size
+                            val size = parameter.referableList.size
+                            totalNumberOfParameters += size
+                            indexVar -= size
                             if (indexVar < 0) {
                                 result = parameter.type
                                 break
@@ -116,7 +130,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                     return result
                 }
                 if (kind != GetKindVisitor.Kind.PI) {
-                    return if (kind.isWHNF()) TooManyArgumentsError else null
+                    return if (kind.isWHNF()) TooManyArgumentsError(defName, totalNumberOfParameters) else null
                 }
             }
             return result
@@ -306,12 +320,12 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Any? {
         val appExpr = findElement(parseBinOp(left, sequence)) ?: return null
         if (appExpr.function.data == element) {
-            return Pi(appExpr.arguments.size)
+            return null
         }
 
         val ref = (appExpr.function as? Concrete.ReferenceExpression)?.referent as? TypedReferable ?: return null
         val index = appExpr.arguments.indexOfFirst { it.expression.data == element }
-        return if (index < 0) null else ref.getParameterType(index)
+        return if (index < 0) null else ref.getParameterType(index) // TODO: Take into account implicit parameters.
     }
 
     override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
@@ -320,7 +334,8 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == expression) Sigma(fieldAccs) else null
 
-    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = null
+    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
+        if (element == baseClass) null else visitBinOpSequence(data, InferHoleExpression, sequence, errorData, params)
 
     override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == expression) (data as? VcExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } else null

@@ -1,12 +1,14 @@
 package org.vclang.typing
 
 import com.jetbrains.jetpad.vclang.naming.reference.ErrorReference
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import java.math.BigInteger
 
@@ -19,6 +21,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         TUPLE { override fun isWHNF() = true },
         SIGMA { override fun isWHNF() = true },
         CLASS_EXT { override fun isWHNF() = true },
+        NEW { override fun isWHNF() = true },
         CONSTRUCTOR { override fun isWHNF() = true }, // maybe with arguments
         DATA { override fun isWHNF() = true }, // maybe with arguments
         CLASS { override fun isWHNF() = true }, // maybe with arguments
@@ -29,9 +32,8 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         open fun isWHNF(): Boolean = false
     }
 
-    private fun getReferenceKind(data: Any?, referent: Referable): Kind {
-        val ref = (data as? VcCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(referent, it) } ?: referent
-        return when (ref) {
+    open fun getReferenceKind(ref: Referable) =
+        when (ref) {
             is UnresolvedReference, is ErrorReference -> Kind.UNRESOLVED_REFERENCE
             is Abstract.ClassField -> Kind.FIELD
             is Abstract.ClassFieldSynonym -> Kind.FIELD_SYN
@@ -42,6 +44,10 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
             is Abstract.InstanceDefinition -> Kind.INSTANCE
             else -> Kind.REFERENCE
         }
+
+    private fun getReferenceKind(data: Any?, referent: Referable) : Kind {
+        val ref = (data as? VcCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(referent, it) } ?: referent
+        return getReferenceKind(if (ref is GlobalReferable) PsiLocatedReferable.fromReferable(ref) ?: ref else ref)
     }
 
     override fun visitErrors() = false
@@ -52,7 +58,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.UNIVERSE
     override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, params: Void?) = Kind.TUPLE
     override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = Kind.SIGMA
-    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = Kind.CLASS_EXT
+    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = if (isNew) Kind.NEW else Kind.CLASS_EXT
     override fun visitInferHole(data: Any?, errorData: Abstract.ErrorData?, params: Void?) = Kind.HOLE
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.GOAL
     override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) = Kind.CASE

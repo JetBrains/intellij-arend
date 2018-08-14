@@ -45,7 +45,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(resultType, index)
+    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(resultType, index, name)
 
     override fun getTypeOf() = resultType
 

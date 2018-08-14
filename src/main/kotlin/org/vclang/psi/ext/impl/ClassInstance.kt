@@ -36,7 +36,7 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, resultType, index)
+    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, resultType, index, textRepresentation())
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
