@@ -39,7 +39,10 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun isVisible(): Boolean = true
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), index, textRepresentation())
+    override fun getParameterType(params: List<Boolean>): Any? {
+        val parameters = (ancestors.filterIsInstance<VcDefData>().firstOrNull()?.typeTeleList?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
+        return ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), params, textRepresentation())
+    }
 
     private class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(), Abstract.Expression {
         override fun getData() = this

@@ -27,7 +27,7 @@ abstract class VcLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), VcL
         return super.getUseScope()
     }
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, resultType, index, textRepresentation())
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 

@@ -5,16 +5,20 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
+import com.jetbrains.jetpad.vclang.typechecking.error.local.ArgInferenceError
 import org.vclang.psi.*
 import org.vclang.psi.ext.VcCoClauseImplMixin
 import org.vclang.psi.ext.impl.ClassFieldImplAdapter
+import org.vclang.psi.ext.impl.DefinitionAdapter
 import java.math.BigInteger
+import java.util.*
 
 
 class ExpectedTypeVisitor(private val element: VcExpr, private val holder: AnnotationHolder?) : AbstractExpressionVisitor<Void,Any>, AbstractDefinitionVisitor<Any> {
@@ -89,51 +93,166 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString() = "Too many arguments"
     }
 
+    class ImplicitArgumentError(private val def: String, private val argNumber: Int) : Error {
+        override fun createErrorAnnotation(element: PsiElement, holder: AnnotationHolder) {
+            holder.createErrorAnnotation(element, toString())
+        }
+
+        override fun toString() = ArgInferenceError.ordinal(argNumber) + " argument to " + def + " must be explicit"
+    }
+
     companion object {
-        fun getParameterType(parameters: Collection<Abstract.Parameter>, expr: Any?, index: Int, defName: String): Any? {
-            var indexVar = index
+        open class GetKindDefVisitor : GetKindVisitor() {
+            var def: VcDefinition? = null
+
+            override fun getReferenceKind(ref: Referable): GetKindVisitor.Kind {
+                if (ref is VcDefinition) {
+                    def = ref
+                }
+                return super.getReferenceKind(ref)
+            }
+
+            override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Kind {
+                if (!isNew && baseClass != null) {
+                    baseClass.accept(this, null)
+                }
+                return if (isNew) Kind.NEW else Kind.CLASS_EXT
+            }
+        }
+
+        enum class CoerceType {
+            UNIVERSE { override fun toGetKind() = GetKindVisitor.Kind.UNIVERSE },
+            PI { override fun toGetKind() = GetKindVisitor.Kind.PI },
+            SIGMA { override fun toGetKind() = GetKindVisitor.Kind.SIGMA },
+            ANY;
+
+            open fun toGetKind(): GetKindVisitor.Kind? = null
+        }
+
+        fun hasCoerce(def: VcDefinition?, fromOther: Boolean, coerceType: CoerceType): Boolean {
+            if (def == null) {
+                return false
+            }
+
+            if (!fromOther && def is VcDefClass) {
+                val visited = HashSet<ClassReferable>()
+                val toVisit = ArrayDeque<ClassReferable>()
+                toVisit.add(def)
+                while (!toVisit.isEmpty()) {
+                    val cur = toVisit.pop()
+                    if (!visited.add(cur)) {
+                        continue
+                    }
+                    if (cur is Abstract.ClassDefinition) {
+                        val param = cur.parameters.firstOrNull { it.isExplicit }
+                        if (param != null) {
+                            if (coerceType == CoerceType.ANY) {
+                                return true
+                            }
+                            val type = param.type ?: break
+                            val visitor = GetKindDefVisitor()
+                            val kind = type.accept(visitor, null)
+                            if (coerceType.toGetKind() == kind || !kind.isWHNF() || visitor.def != null) {
+                                return true
+                            } else {
+                                break
+                            }
+                        }
+                    }
+                    toVisit.addAll(cur.superClassReferences)
+                }
+            }
+
+            val stats = (def as? DefinitionAdapter<*>)?.getWhere()?.statementList ?: return false
+            for (stat in stats) {
+                val statDef = stat.definition
+                if (statDef is VcDefFunction && statDef.coerceKw != null) {
+                    if (coerceType == CoerceType.ANY) {
+                        return true
+                    }
+                    val type = if (fromOther) {
+                        statDef.nameTeleList.lastOrNull()?.type ?: continue
+                    } else {
+                        statDef.expr ?: return true
+                    }
+                    val visitor = GetKindDefVisitor()
+                    val kind = type.accept(visitor, null)
+                    if (coerceType.toGetKind() == kind || !kind.isWHNF() || visitor.def != null) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        fun getParameterType(parameters: Collection<Abstract.Parameter>, expr: Any?, paramExplicitness: List<Boolean>, defName: String): Any? {
+            var i = 0
             for (parameter in parameters) {
-                indexVar -= parameter.referableList.size
-                if (indexVar < 0) {
-                    return parameter.type
+                val isExplicit = parameter.isExplicit
+                val size = parameter.referableList.size
+                for (j in 0 until size) {
+                    when {
+                        isExplicit == paramExplicitness[i] ->
+                            if (i == paramExplicitness.size - 1) {
+                                return parameter.type
+                            } else {
+                                i++
+                            }
+                        isExplicit -> return if (i == paramExplicitness.size - 1) ImplicitArgumentError(defName, i + 1) else null
+                    }
                 }
             }
             return when (expr) {
-                is Abstract.Expression -> getParameterType(expr, indexVar, defName)
-                is TooManyArgumentsError -> expr
+                is Abstract.Expression -> getParameterType(expr, paramExplicitness, i, defName)
+                is Error -> expr
                 else -> null
             }
         }
 
-        fun getParameterType(expr: Abstract.Expression?, index: Int, defName: String): Any? {
-            var totalNumberOfParameters = 0
+        fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, defName: String) =
+            getParameterType(expr, paramExplicitness, 0, defName)
+
+        private fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, startIndex: Int, defName: String): Any? {
             var result: Any? = null
-            var indexVar = index
+            var i = startIndex
             var exprVar = expr
-            while (exprVar != null) {
-                val kind = exprVar.accept(object : GetKindVisitor() {
-                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
-                        for (parameter in parameters) {
-                            val size = parameter.referableList.size
-                            totalNumberOfParameters += size
-                            indexVar -= size
-                            if (indexVar < 0) {
-                                result = parameter.type
-                                break
+            var isDone = false
+
+            val visitor = object : GetKindDefVisitor() {
+                override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
+                    for (parameter in parameters) {
+                        val isExplicit = parameter.isExplicit
+                        val size = parameter.referableList.size
+                        for (j in 0 until size) {
+                            if (isExplicit == paramExplicitness[i]) {
+                                if (i == paramExplicitness.size - 1) {
+                                    result = parameter.type
+                                    isDone = true
+                                    return Kind.PI
+                                } else {
+                                    i++
+                                }
+                            } else if (isExplicit) {
+                                result = if (i == paramExplicitness.size - 1) ImplicitArgumentError(defName, i + 1) else null
+                                isDone = true
+                                return Kind.PI
                             }
                         }
-                        exprVar = codomain
-                        return Kind.PI
                     }
-                }, null)
-                if (result != null) {
+                    exprVar = codomain
+                    return Kind.PI
+                }
+            }
+
+            while (true) {
+                val kind = exprVar?.accept(visitor, null) ?: return result
+                if (isDone) {
                     return result
                 }
                 if (kind != GetKindVisitor.Kind.PI) {
-                    return if (kind.isWHNF()) TooManyArgumentsError(defName, totalNumberOfParameters) else null
+                    return if (kind.isWHNF() && !hasCoerce(visitor.def, false, CoerceType.PI)) TooManyArgumentsError(defName, i) else null
                 }
             }
-            return result
         }
 
         fun getTypeOf(parameters: Collection<Abstract.Parameter>, expr: Abstract.Expression?): Abstract.Expression? =
@@ -324,8 +443,9 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         }
 
         val ref = (appExpr.function as? Concrete.ReferenceExpression)?.referent as? TypedReferable ?: return null
-        val index = appExpr.arguments.indexOfFirst { it.expression.data == element }
-        return if (index < 0) null else ref.getParameterType(index) // TODO: Take into account implicit parameters.
+        val args = appExpr.arguments
+        val index = args.indexOfFirst { it.expression.data == element }
+        return if (index < 0) null else ref.getParameterType(args.take(index + 1).map { it.isExplicit })
     }
 
     override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =

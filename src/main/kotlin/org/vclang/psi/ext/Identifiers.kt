@@ -37,7 +37,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
     override fun getTypeClassReference(): ClassReferable? =
         typeOf?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getParameterType(index: Int): Any? = ExpectedTypeVisitor.getParameterType(typeOf, index, name)
+    override fun getParameterType(params: List<Boolean>): Any? = ExpectedTypeVisitor.getParameterType(typeOf, params, name)
 
     override fun getTypeOf(): VcExpr? {
         val parent = parent

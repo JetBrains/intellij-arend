@@ -43,7 +43,8 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<VcDefDataStub>, VcDefDa
         if (def is VcDefFunction && def.coerceKw != null) def else null
     } ?: emptyList()
 
-    override fun getParameterType(index: Int): Any? = ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.Universe, index, textRepresentation())
+    override fun getParameterType(params: List<Boolean>) =
+        ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.Universe, params, textRepresentation())
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, ExpectedTypeVisitor.Universe)
 

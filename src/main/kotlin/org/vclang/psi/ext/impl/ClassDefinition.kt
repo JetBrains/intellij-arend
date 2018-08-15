@@ -69,7 +69,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
     override fun getCoercingFunctions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if (it is VcDefFunction && it.coerceKw != null) it else null }
 
-    override fun getParameterType(index: Int): Any? {
+    override fun getParameterType(params: List<Boolean>): Any? {
+        val index = params.size - 1
         val fields = if (superClasses.isEmpty()) fieldReferables else ClassFieldImplScope(this, false).elements
         return if (index < fields.size) (fields.toList()[index] as? TypedReferable)?.typeOf else ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
     }

@@ -42,7 +42,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(index: Int) = ExpectedTypeVisitor.getParameterType(parameters, resultType, index, textRepresentation())
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 

@@ -27,7 +27,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         CLASS { override fun isWHNF() = true }, // maybe with arguments
         REFERENCE { override fun isWHNF() = true }, // maybe with arguments
         CONSTRUCTOR_WITH_CONDITIONS, // maybe with arguments
-        APP, HOLE, GOAL, CASE, PROJ, LET, NUMBER, UNRESOLVED_REFERENCE, FIELD, FIELD_SYN, FUNCTION, INSTANCE;
+        APP, HOLE, GOAL, CASE, PROJ, LET, LET_CLAUSE, NUMBER, UNRESOLVED_REFERENCE, FIELD, FIELD_SYN, FUNCTION, INSTANCE;
 
         open fun isWHNF(): Boolean = false
     }
@@ -42,6 +42,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
             is Abstract.ClassDefinition -> Kind.CLASS
             is Abstract.FunctionDefinition -> Kind.FUNCTION
             is Abstract.InstanceDefinition -> Kind.INSTANCE
+            is Abstract.LetClause -> Kind.LET_CLAUSE
             else -> Kind.REFERENCE
         }
 
