@@ -55,21 +55,28 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, "Expected type: $expectedType", "Type mismatch<br>Expected type: $expectedType<br>Actual type: $actualType")
     }
 
+    private fun getKind(type: Any?, visitor: GetKindVisitor) = when (type) {
+        is Abstract.Expression -> type.accept(visitor, null)
+        is ExpectedTypeVisitor.Substituted -> {
+            val kind = type.expr.accept(visitor, null)
+            if (kind === GetKindVisitor.Kind.REFERENCE) GetKindVisitor.Kind.APP else kind
+        }
+        else -> null
+    }
+
+    private fun compareExpr(expr1: Abstract.Expression, isSubst1: Boolean, expr2: Abstract.Expression, isSubst2: Boolean, isLess: Boolean) {
+        // TODO: Compare expressions
+    }
+
     private fun compare(actualType: Abstract.Expression, expectedType: Any) {
-        if (expectedType is Abstract.Expression || expectedType is ExpectedTypeVisitor.Substituted) {
-            // TODO: Compare expressions
+        val expr = expectedType as? Abstract.Expression ?: (expectedType as? ExpectedTypeVisitor.Substituted)?.expr
+        if (expr != null) {
+            compareExpr(actualType, false, expr, expectedType is ExpectedTypeVisitor.Substituted, true)
             return
         }
 
         val visitor = ExpectedTypeVisitor.GetKindDefVisitor()
-        val expectedKind = when (expectedType) {
-            is Abstract.Expression -> expectedType.accept(visitor, null)
-            is ExpectedTypeVisitor.Substituted -> {
-                val kind = expectedType.expr.accept(visitor, null)
-                if (kind === GetKindVisitor.Kind.REFERENCE) GetKindVisitor.Kind.APP else kind
-            }
-            else -> null
-        }
+        val expectedKind = getKind(expectedType, visitor)
         if (expectedKind != null && !expectedKind.isWHNF()) {
             return
         }
@@ -111,13 +118,19 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         }
     }
 
-    private fun checkReference(data: Any?, referent: Referable, expectedType: Any?) {
-        if (expectedType == null) {
+    private fun checkReference(data: Any?, referent: Referable, expectedType: Any?, withLevels: Boolean) {
+        if (expectedType == null && !withLevels) {
             return
         }
 
         val expr = resolveReference(data, referent) ?: return
         val ref = (expr as? Concrete.ReferenceExpression ?: ((expr as? Concrete.AppExpression)?.function as? Concrete.ReferenceExpression))?.referent as? TypedReferable ?: return
+        if (withLevels && ref !is ErrorReference && ref !is GlobalReferable) {
+            holder.createErrorAnnotation(element, "Levels are allowed only after definitions")
+        }
+        if (expectedType == null) {
+            return
+        }
         val actualType = ref.typeOf ?: return
 
         if (expr is Concrete.AppExpression) {
@@ -128,35 +141,65 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         compare(actualType, expectedType)
     }
 
-    override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        if (level1 != null || level2 != null) {
-            checkIsGlobal(referent)
-        }
-        checkReference(data, referent, expectedType)
-    }
+    override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, expectedType: Any?) =
+        checkReference(data, referent, expectedType, level1 != null || level2 != null)
 
-    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        checkIsGlobal(referent)
-        checkReference(data, referent, expectedType)
-    }
-
-    private fun checkIsGlobal(referent: Referable) {
-        val ref = ExpressionResolveNameVisitor.resolve(referent, element.scope)
-        if (ref !is ErrorReference && ref !is GlobalReferable) {
-            holder.createErrorAnnotation(element, "Levels are allowed only after definitions")
-        }
-    }
+    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, expectedType: Any?) =
+        checkReference(data, referent, expectedType, true)
 
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
+        if (expectedType == null) {
+            return
+        }
+
+        var expectedExpr = expectedType as? Abstract.Expression ?: (expectedType as? ExpectedTypeVisitor.Substituted)?.expr
+        if (expectedExpr == null) {
+            typeMismatchFull(toString(expectedType), "a pi type")
+            return
+        }
+
+        var currentNumberOfParameters = 0
+        val visitor = object : ExpectedTypeVisitor.GetKindDefVisitor() {
+            override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
+                currentNumberOfParameters += parameters.sumBy { it.referableList.size }
+                expectedExpr = codomain
+                return Kind.PI
+            }
+        }
+
+        val expectedNumberOfParameters = parameters.sumBy { it.referableList.size }
+        while (currentNumberOfParameters < expectedNumberOfParameters) {
+            val kind = expectedExpr?.accept(visitor, null)
+            if (kind == null || !kind.isWHNF() || kind == GetKindVisitor.Kind.REFERENCE && expectedType is ExpectedTypeVisitor.Substituted || hasCoerce(visitor.def, true, ExpectedTypeVisitor.CoerceType.PI)) {
+                return
+            }
+            if (kind != GetKindVisitor.Kind.PI) {
+                typeMismatchFull(toString(expectedType), "a pi type with " + expectedNumberOfParameters + if (expectedNumberOfParameters == 1) " parameter" else " parameters")
+                return
+            }
+        }
+    }
+
+    private fun checkIsUniverse(expectedType: Any?) {
+        if (expectedType == null || expectedType == ExpectedTypeVisitor.Universe) {
+            return
+        }
+
+        val visitor = ExpectedTypeVisitor.GetKindDefVisitor()
+        val kind = getKind(expectedType, visitor)
+        if (kind == GetKindVisitor.Kind.UNIVERSE || kind != null && !kind.isWHNF() || hasCoerce(visitor.def, true, ExpectedTypeVisitor.CoerceType.UNIVERSE)) {
+            return
+        }
+
+        typeMismatchFull(toString(expectedType), "a universe")
     }
 
     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
+        checkIsUniverse(expectedType)
     }
 
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
+        checkIsUniverse(expectedType)
     }
 
     override fun visitInferHole(data: Any?, errorData: Abstract.ErrorData?, expectedType: Any?) {}
@@ -167,11 +210,35 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
     }
 
     override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
+        if (expectedType == null) {
+            return
+        }
+
+        if (expectedType is ExpectedTypeVisitor.Sigma) {
+            if (fields.size < expectedType.projection) {
+                typeMismatchFull(expectedType.toString(), ExpectedTypeVisitor.Sigma.toString(fields.size))
+            }
+            return
+        }
+
+        val visitor = object : ExpectedTypeVisitor.GetKindDefVisitor() {
+            override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?): Kind {
+                if (parameters.sumBy { it.referableList.size } != fields.size) {
+                    typeMismatchFull(toString(expectedType), ExpectedTypeVisitor.Sigma.toString(fields.size))
+                }
+                return Kind.SIGMA
+            }
+        }
+        val kind = getKind(expectedType, visitor)
+        if (kind == GetKindVisitor.Kind.SIGMA || kind != null && !kind.isWHNF() || hasCoerce(visitor.def, true, ExpectedTypeVisitor.CoerceType.SIGMA)) {
+            return
+        }
+
+        typeMismatchFull(toString(expectedType), "a sigma type")
     }
 
     override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, expectedType: Any?) {
-        // TODO: Check expected type
+        checkIsUniverse(expectedType)
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, expectedType: Any?) {

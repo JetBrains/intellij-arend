@@ -57,10 +57,11 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString() = "a pi type"
     }
 
-    class Sigma(private val projections: Collection<Int>) {
-        override fun toString(): String {
-            val fields = projections.first()
-            return "a sigma type with " + fields + (if (fields == 1) " parameter" else " parameters")
+    class Sigma(val projection: Int) {
+        override fun toString() = toString(projection)
+
+        companion object {
+            fun toString(p: Int) = "a sigma type with " + p + (if (p == 1) " parameter" else " parameters")
         }
     }
 
@@ -139,7 +140,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
 
     companion object {
         fun hasCoerce(def: VcDefinition?, fromOther: Boolean, coerceType: CoerceType): Boolean {
-            if (def == null) {
+            if (def == null || def !is VcDefClass && def !is VcDefData) {
                 return false
             }
 
@@ -196,46 +197,51 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
 
         fun getParameterType(parameters: Collection<Abstract.Parameter>, expr: Any?, paramExplicitness: List<Boolean>, defName: String): Any? {
             var i = 0
+            var isSubstituted = false
             for (parameter in parameters) {
                 val isExplicit = parameter.isExplicit
-                val size = parameter.referableList.size
-                for (j in 0 until size) {
+                for (ref in parameter.referableList) {
                     when {
                         isExplicit == paramExplicitness[i] ->
                             if (i == paramExplicitness.size - 1) {
-                                return parameter.type
+                                val type = parameter.type
+                                return if (isSubstituted && type != null) Substituted(type) else type
                             } else {
                                 i++
                             }
                         isExplicit -> return if (i == paramExplicitness.size - 1) ImplicitArgumentError(defName, i + 1) else null
                     }
+                    if (!isSubstituted && ref != null) {
+                        isSubstituted = true
+                    }
                 }
             }
             return when (expr) {
-                is Abstract.Expression -> getParameterType(expr, paramExplicitness, i, defName)
+                is Abstract.Expression -> getParameterType(expr, paramExplicitness, i, defName, isSubstituted)
                 is Error -> expr
                 else -> null
             }
         }
 
         fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, defName: String) =
-            getParameterType(expr, paramExplicitness, 0, defName)
+            getParameterType(expr, paramExplicitness, 0, defName, false)
 
-        private fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, startIndex: Int, defName: String): Any? {
+        private fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, startIndex: Int, defName: String, isSubst: Boolean): Any? {
             var result: Any? = null
             var i = startIndex
             var exprVar = expr
             var isDone = false
+            var isSubstituted = isSubst
 
             val visitor = object : GetKindDefVisitor() {
                 override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
                     for (parameter in parameters) {
                         val isExplicit = parameter.isExplicit
-                        val size = parameter.referableList.size
-                        for (j in 0 until size) {
+                        for (ref in parameter.referableList) {
                             if (isExplicit == paramExplicitness[i]) {
                                 if (i == paramExplicitness.size - 1) {
-                                    result = parameter.type
+                                    val type = parameter.type
+                                    result = if (isSubstituted && type != null) Substituted(type) else type
                                     isDone = true
                                     return Kind.PI
                                 } else {
@@ -245,6 +251,9 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                                 result = if (i == paramExplicitness.size - 1) ImplicitArgumentError(defName, i + 1) else null
                                 isDone = true
                                 return Kind.PI
+                            }
+                            if (!isSubstituted && ref != null) {
+                                isSubstituted = true
                             }
                         }
                     }
@@ -259,7 +268,11 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                     return result
                 }
                 if (kind != GetKindVisitor.Kind.PI) {
-                    return if (kind.isWHNF() && !hasCoerce(visitor.def, false, CoerceType.PI)) TooManyArgumentsError(defName, i) else null
+                    return if (!kind.isWHNF() || isSubstituted && kind == GetKindVisitor.Kind.REFERENCE || hasCoerce(visitor.def, false, CoerceType.PI)) {
+                        null
+                    } else {
+                        TooManyArgumentsError(defName, i)
+                    }
                 }
             }
         }
@@ -364,7 +377,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                 }
             }
             is Abstract.LetClause -> {
-                val resultType = reduceParameters(PsiTreeUtil.getChildrenOfTypeAsList(parent as? PsiElement, VcNameTele::class.java), parent.resultType, holder)
+                val resultType = parent.resultType
                 when {
                     resultType == element -> Universe
                     parent.term == element -> resultType
@@ -461,7 +474,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         if (expressions.contains(element)) Data else null
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, errorData: Abstract.ErrorData?, params: Void?) =
-        if (element == expression) Sigma(fieldAccs) else null
+        if (element == expression) Sigma(fieldAccs.first()) else null
 
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == baseClass) null else visitBinOpSequence(data, InferHoleExpression, sequence, errorData, params)
