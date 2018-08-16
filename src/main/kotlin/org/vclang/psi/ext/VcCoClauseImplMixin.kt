@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
-import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.vclang.psi.VcCoClause
 import org.vclang.psi.VcExpr
 import org.vclang.psi.VcNameTele
@@ -15,11 +14,7 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
 
     override fun getImplementedField() = longName?.referent
 
-    fun getResolvedImplementedField(): Referable? {
-        val longName = longName ?: return null
-        return ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
-        // return longName.reference?.resolve()
-    }
+    fun getResolvedImplementedField() = longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? Referable
 
     override fun getParameters(): List<VcNameTele> = nameTeleList
 

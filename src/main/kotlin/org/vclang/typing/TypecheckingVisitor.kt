@@ -11,8 +11,10 @@ import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNam
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractExpressionVisitor
+import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.psi.VcDefClass
 import org.vclang.psi.VcDefData
+import org.vclang.psi.VcLongName
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.typing.ExpectedTypeVisitor.Companion.hasCoerce
@@ -20,6 +22,27 @@ import java.math.BigInteger
 
 
 class TypecheckingVisitor(private val element: VcCompositeElement, private val holder: AnnotationHolder) : AbstractExpressionVisitor<Any,Unit> {
+    companion object {
+        fun resolveReference(data: Any?, referent: Referable) =
+            if (data is VcCompositeElement) {
+                if (data !is VcLongName || data.refIdentifierList.size <= 1) {
+                    Concrete.ReferenceExpression(data, data.reference?.resolve() as? Referable ?: ErrorReference(data, null, referent.textRepresentation()), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+                } else {
+                    val refExpr = Concrete.ReferenceExpression(data, referent, Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+                    val arg = ExpressionResolveNameVisitor.resolve(refExpr, data.scope)
+                    (refExpr.referent as? GlobalReferable)?.let {
+                        val psiRef = PsiLocatedReferable.fromReferable(it)
+                        if (psiRef != null) {
+                            refExpr.referent = psiRef
+                        }
+                    }
+                    if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
+                }
+            } else {
+                null
+            }
+    }
+
     override fun visitErrors() = false
 
     private fun toString(any: Any) = if (any is PsiElement) any.text else any.toString()
@@ -32,37 +55,34 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, "Expected type: $expectedType", "Type mismatch<br>Expected type: $expectedType<br>Actual type: $actualType")
     }
 
-    private fun getKind(type: Any, visitor: GetKindVisitor) =
-        when (type) {
-            is Abstract.Expression -> type.accept(visitor, null)
-            is ExpectedTypeVisitor.Substituted -> {
-                val kind = type.expr.accept(visitor, null)
-                if (kind === GetKindVisitor.Kind.REFERENCE) GetKindVisitor.Kind.APP else kind
-            }
-            else -> null
-        }
-
-    private fun compare(actualType: Any, expectedType: Any) {
-        if ((expectedType is Abstract.Expression || expectedType is ExpectedTypeVisitor.Substituted) && (actualType is Abstract.Expression || actualType is ExpectedTypeVisitor.Substituted)) {
+    private fun compare(actualType: Abstract.Expression, expectedType: Any) {
+        if (expectedType is Abstract.Expression || expectedType is ExpectedTypeVisitor.Substituted) {
             // TODO: Compare expressions
             return
         }
 
-        val visitor = ExpectedTypeVisitor.Companion.GetKindDefVisitor()
-        val expectedKind = getKind(expectedType, visitor)
+        val visitor = ExpectedTypeVisitor.GetKindDefVisitor()
+        val expectedKind = when (expectedType) {
+            is Abstract.Expression -> expectedType.accept(visitor, null)
+            is ExpectedTypeVisitor.Substituted -> {
+                val kind = expectedType.expr.accept(visitor, null)
+                if (kind === GetKindVisitor.Kind.REFERENCE) GetKindVisitor.Kind.APP else kind
+            }
+            else -> null
+        }
         if (expectedKind != null && !expectedKind.isWHNF()) {
             return
         }
         val expectedDef = visitor.def
-        val actualKind = getKind(actualType, visitor)
-        if (actualKind != null && !actualKind.isWHNF()) {
+        val actualKind = actualType.accept(visitor, null)
+        if (!actualKind.isWHNF()) {
             return
         }
         val actualDef = visitor.def
 
         if (expectedKind != null) {
             if (actualType == ExpectedTypeVisitor.Universe && expectedKind != GetKindVisitor.Kind.UNIVERSE && expectedKind.isWHNF() &&
-                (expectedKind != GetKindVisitor.Kind.DATA && expectedKind != GetKindVisitor.Kind.CLASS && expectedKind != GetKindVisitor.Kind.CLASS_EXT || expectedDef == null || !hasCoerce(expectedDef, true, ExpectedTypeVisitor.Companion.CoerceType.UNIVERSE))) {
+                (expectedKind != GetKindVisitor.Kind.DATA && expectedKind != GetKindVisitor.Kind.CLASS && expectedKind != GetKindVisitor.Kind.CLASS_EXT || expectedDef == null || !hasCoerce(expectedDef, true, ExpectedTypeVisitor.CoerceType.UNIVERSE))) {
                     typeMismatchFull(toString(expectedType), "a universe")
             }
             return
@@ -70,38 +90,38 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
 
         when (expectedType) {
             ExpectedTypeVisitor.Universe ->
-                if (actualKind != GetKindVisitor.Kind.UNIVERSE && actualType !== ExpectedTypeVisitor.Universe &&
-                    (actualKind != GetKindVisitor.Kind.DATA && actualKind != GetKindVisitor.Kind.CLASS && actualKind != GetKindVisitor.Kind.CLASS_EXT || actualDef == null || !hasCoerce(actualDef, false, ExpectedTypeVisitor.Companion.CoerceType.UNIVERSE))) {
+                if (actualKind != GetKindVisitor.Kind.UNIVERSE && actualType != ExpectedTypeVisitor.Universe &&
+                    (actualKind != GetKindVisitor.Kind.DATA && actualKind != GetKindVisitor.Kind.CLASS && actualKind != GetKindVisitor.Kind.CLASS_EXT || actualDef == null || !hasCoerce(actualDef, false, ExpectedTypeVisitor.CoerceType.UNIVERSE))) {
                         typeMismatch("a universe", toString(actualType))
                 }
             ExpectedTypeVisitor.Data ->
-                if (actualKind !== GetKindVisitor.Kind.DATA) {
+                if (actualKind != GetKindVisitor.Kind.DATA) {
                     typeMismatch("a data", toString(actualType))
                 }
             is ExpectedTypeVisitor.Definition ->
-                if (!(expectedType.def is VcDefData && actualKind === GetKindVisitor.Kind.DATA || expectedKind is VcDefClass && (actualKind === GetKindVisitor.Kind.CLASS || actualKind === GetKindVisitor.Kind.CLASS_EXT))) {
+                if (!(expectedType.def is VcDefData && actualDef == expectedType.def || expectedType.def is VcDefClass && actualDef is VcDefClass && actualDef.isSubClassOf(expectedType.def))) {
                     typeMismatch(expectedType.def.textRepresentation(), toString(actualType))
                 }
             is ExpectedTypeVisitor.Sigma -> {
-                if (actualKind == null || actualKind != GetKindVisitor.Kind.SIGMA && actualKind.isWHNF() &&
-                    (actualKind != GetKindVisitor.Kind.DATA && actualKind != GetKindVisitor.Kind.CLASS && actualKind != GetKindVisitor.Kind.CLASS_EXT || actualDef == null || !hasCoerce(actualDef, false, ExpectedTypeVisitor.Companion.CoerceType.SIGMA))) {
+                if (actualKind != GetKindVisitor.Kind.SIGMA && actualKind.isWHNF() &&
+                    (actualKind != GetKindVisitor.Kind.DATA && actualKind != GetKindVisitor.Kind.CLASS && actualKind != GetKindVisitor.Kind.CLASS_EXT || actualDef == null || !hasCoerce(actualDef, false, ExpectedTypeVisitor.CoerceType.SIGMA))) {
                     typeMismatch("a sigma type", toString(actualType))
                 }
             }
         }
     }
 
-    private fun checkReference(referent: Referable, expectedType: Any?) {
-        if (referent !is TypedReferable) {
-            return
-        }
-
+    private fun checkReference(data: Any?, referent: Referable, expectedType: Any?) {
         if (expectedType == null) {
             return
         }
-        val actualType = referent.typeOf ?: return
-        if (actualType is ExpectedTypeVisitor.Error) {
-            holder.createErrorAnnotation(element, toString(actualType))
+
+        val expr = resolveReference(data, referent) ?: return
+        val ref = (expr as? Concrete.ReferenceExpression ?: ((expr as? Concrete.AppExpression)?.function as? Concrete.ReferenceExpression))?.referent as? TypedReferable ?: return
+        val actualType = ref.typeOf ?: return
+
+        if (expr is Concrete.AppExpression) {
+            // TODO: drop one parameter in actualType
             return
         }
 
@@ -112,12 +132,12 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         if (level1 != null || level2 != null) {
             checkIsGlobal(referent)
         }
-        checkReference(referent, expectedType)
+        checkReference(data, referent, expectedType)
     }
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, expectedType: Any?) {
         checkIsGlobal(referent)
-        checkReference(referent, expectedType)
+        checkReference(data, referent, expectedType)
     }
 
     private fun checkIsGlobal(referent: Referable) {
@@ -187,7 +207,7 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
                 else -> null
             }
             if (expr != null) {
-                val visitor = ExpectedTypeVisitor.Companion.GetKindDefVisitor()
+                val visitor = ExpectedTypeVisitor.GetKindDefVisitor()
                 kind = expr.accept(visitor, null)
                 if (kind === GetKindVisitor.Kind.REFERENCE && expectedType is ExpectedTypeVisitor.Substituted) {
                     kind = GetKindVisitor.Kind.APP

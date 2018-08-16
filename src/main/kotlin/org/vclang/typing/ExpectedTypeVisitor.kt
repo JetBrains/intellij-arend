@@ -29,7 +29,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
             visitor.visitInferHole(this, null, params)
     }
 
-    class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
+    class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable?>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
         override fun getData() = this
 
         override fun isExplicit() = isExplicit
@@ -37,6 +37,15 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun getReferableList() = referables
 
         override fun getType() = type
+    }
+
+    class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(), Abstract.Expression {
+        override fun getData() = this
+
+        override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+            visitor.visitReference(this, referable, null, null, null, params)
+
+        override fun toString() = referable.textRepresentation()
     }
 
     class PiImpl(private val parameters: Collection<Abstract.Parameter>, private val codomain: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Expression {
@@ -101,34 +110,34 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         override fun toString() = ArgInferenceError.ordinal(argNumber) + " argument to " + def + " must be explicit"
     }
 
+    open class GetKindDefVisitor : GetKindVisitor() {
+        var def: VcDefinition? = null
+
+        override fun getReferenceKind(ref: Referable): GetKindVisitor.Kind {
+            if (ref is VcDefinition) {
+                def = ref
+            }
+            return super.getReferenceKind(ref)
+        }
+
+        override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Kind {
+            if (!isNew && baseClass != null) {
+                baseClass.accept(this, null)
+            }
+            return if (isNew) Kind.NEW else Kind.CLASS_EXT
+        }
+    }
+
+    enum class CoerceType {
+        UNIVERSE { override fun toGetKind() = GetKindVisitor.Kind.UNIVERSE },
+        PI { override fun toGetKind() = GetKindVisitor.Kind.PI },
+        SIGMA { override fun toGetKind() = GetKindVisitor.Kind.SIGMA },
+        ANY;
+
+        open fun toGetKind(): GetKindVisitor.Kind? = null
+    }
+
     companion object {
-        open class GetKindDefVisitor : GetKindVisitor() {
-            var def: VcDefinition? = null
-
-            override fun getReferenceKind(ref: Referable): GetKindVisitor.Kind {
-                if (ref is VcDefinition) {
-                    def = ref
-                }
-                return super.getReferenceKind(ref)
-            }
-
-            override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Kind {
-                if (!isNew && baseClass != null) {
-                    baseClass.accept(this, null)
-                }
-                return if (isNew) Kind.NEW else Kind.CLASS_EXT
-            }
-        }
-
-        enum class CoerceType {
-            UNIVERSE { override fun toGetKind() = GetKindVisitor.Kind.UNIVERSE },
-            PI { override fun toGetKind() = GetKindVisitor.Kind.PI },
-            SIGMA { override fun toGetKind() = GetKindVisitor.Kind.SIGMA },
-            ANY;
-
-            open fun toGetKind(): GetKindVisitor.Kind? = null
-        }
-
         fun hasCoerce(def: VcDefinition?, fromOther: Boolean, coerceType: CoerceType): Boolean {
             if (def == null) {
                 return false

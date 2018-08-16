@@ -8,9 +8,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.term.Precedence
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcIcons
-import org.vclang.psi.VcExpr
-import org.vclang.psi.VcFieldDefIdentifier
-import org.vclang.psi.VcFieldTele
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcClassFieldParamStub
 import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcReference
@@ -45,7 +43,12 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(resultType, params, name)
+    override fun getParameterType(params: List<Boolean>) =
+        when {
+            params[0] -> ExpectedTypeVisitor.getParameterType(resultType, params, name)
+            params.size == 1 -> ancestors.filterIsInstance<VcDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
+            else -> ExpectedTypeVisitor.getParameterType(resultType, params.drop(1), name)
+        }
 
     override fun getTypeOf() = resultType
 

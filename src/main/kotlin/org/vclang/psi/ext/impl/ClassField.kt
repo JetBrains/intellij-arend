@@ -6,9 +6,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import org.vclang.VcIcons
-import org.vclang.psi.VcClassField
-import org.vclang.psi.VcExpr
-import org.vclang.psi.VcTypeTele
+import org.vclang.psi.*
 import org.vclang.psi.stubs.VcClassFieldStub
 import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
@@ -38,9 +36,14 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+    override fun getParameterType(params: List<Boolean>) =
+        when {
+            params[0] -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+            params.size == 1 -> ancestors.filterIsInstance<VcDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
+            else -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params.drop(1), textRepresentation())
+        }
 
-    override fun getTypeOf(): Any? = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType
