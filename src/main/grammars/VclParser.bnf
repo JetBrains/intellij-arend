@@ -1,18 +1,15 @@
 {
     parserClass = "org.vclang.lang.parser.VclParser"
 
-    implements = 'org.vclang.psi.ext.VcCompositeElement'
-    extends = 'org.vclang.psi.ext.VcCompositeElementImpl'
+    elementTypeHolderClass = "org.vclang.vclpsi.VclElementTypes"
 
-    elementTypeHolderClass = "org.vclang.psi.VclElementTypes"
-
-    elementTypeClass = "org.vclang.psi.VcCompositeElementType"
-    tokenTypeClass = "org.vclang.psi.VcTokenType"
+    elementTypeClass = "org.vclang.vclpsi.VclElementType"
+    tokenTypeClass = "org.vclang.vclpsi.VclTokenType"
 
     psiClassPrefix = "Vcl"
     psiImplClassSuffix = "Impl"
-    psiPackage = "org.vclang.VclPsi"
-    psiImplPackage = "org.vclang.VclPsi.impl"
+    psiPackage = "org.vclang.vclpsi"
+    psiImplPackage = "org.vclang.vclpsi.impl"
 
     generateTokenAccessors = true
 
@@ -28,9 +25,9 @@
 
 statements ::= statement*
 
-statement ::= deps | source | binary | modules
+statement ::= deps_st | source_st | binary_st | modules_st
 
-deps ::= DEPS COLON LIBNAME*
-source ::= SOURCE COLON DIRNAME
-binary ::= BINARY COLON DIRNAME
-modules ::= MODULES COLON MODNAME*
+deps_st ::= DEPS COLON LIBNAME*
+source_st ::= SOURCE COLON DIRNAME
+binary_st ::= BINARY COLON DIRNAME
+modules_st ::= MODULES COLON MODNAME*

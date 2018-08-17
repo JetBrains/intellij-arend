@@ -1,7 +1,8 @@
 package org.vclang.lang.lexer;
 
-import static org.vclang.psi.VclElementTypes.*;
-import com.intellij.lexer.FlexLexer;
+import com.intellij.psi.tree.IElementType;
+import static com.intellij.psi.TokenType.WHITE_SPACE;
+import static org.vclang.vclpsi.VclElementTypes.*;
 %%
 
 %public
@@ -14,6 +15,12 @@ import com.intellij.lexer.FlexLexer;
 EOL                 = \R
 WHITE_SPACE         = \s+
 
+START_CHAR          = [a-zA-Z_]
+ID = {START_CHAR}({START_CHAR} | [0-9'])*
+MODNAME = {ID}(.{ID})*
+DIRNAME = ([\w]\: (\\\\|\\))? ([a-zA-Z0-9\.\-\_\\]+) | (\/)? ([a-zA-Z0-9\.\-\_\/]+)
+LIBNAME = {START_CHAR}({START_CHAR} | [0-9'] | \-)*
+
 %%
 
 <YYINITIAL> {
@@ -23,4 +30,7 @@ WHITE_SPACE         = \s+
     "binariesDir"           { return BINARY; }
     "modules"               { return MODULES; }
     ":"                     { return COLON; }
+    {MODNAME}               { return MODNAME; }
+    {DIRNAME}               { return DIRNAME; }
+    {LIBNAME}               { return LIBNAME; }
 }

@@ -123,7 +123,26 @@ task generateVcParser(type: GenerateParser) {
     purgeOldFiles = true
 }
 
-compileKotlin.dependsOn generateVcLexer, generateVcParser
+task generateVclLexer(type: GenerateLexer) {
+    description 'Generates lexer'
+    group 'Source'
+    source 'src/main/grammars/VclLexer.flex'
+    targetDir 'src/gen/org/vclang/lang/lexer'
+    targetClass '_VclLexer'
+    purgeOldFiles = true
+}
+
+task generateVclParser(type: GenerateParser) {
+    description 'Generates parser'
+    group 'Source'
+    source 'src/main/grammars/VclParser.bnf'
+    targetRoot = 'src/gen'
+    pathToParser '/org/vclang/lang/parser/VclParser.java'
+    pathToPsiRoot '/org/vclang/vclpsi'
+    purgeOldFiles = true
+}
+
+compileKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
 compileTestKotlin.dependsOn generateVcLexer, generateVcParser
 
 task wrapper(type: Wrapper) {
