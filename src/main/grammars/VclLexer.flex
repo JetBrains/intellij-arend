@@ -3,6 +3,8 @@ package org.vclang.lang.lexer;
 import com.intellij.psi.tree.IElementType;
 import static com.intellij.psi.TokenType.WHITE_SPACE;
 import static org.vclang.vclpsi.VclElementTypes.*;
+import com.intellij.lexer.FlexLexer;
+
 %%
 
 %public
@@ -20,6 +22,7 @@ ID = {START_CHAR}({START_CHAR} | [0-9'])*
 MODNAME = {ID}(.{ID})*
 DIRNAME = ([\w]\: (\\\\|\\))? ([a-zA-Z0-9\.\-\_\\]+) | (\/)? ([a-zA-Z0-9\.\-\_\/]+)
 LIBNAME = {START_CHAR}({START_CHAR} | [0-9'] | \-)*
+
 
 %%
 

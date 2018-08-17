@@ -10,7 +10,6 @@
     psiImplClassSuffix = "Impl"
     psiPackage = "org.vclang.vclpsi"
     psiImplPackage = "org.vclang.vclpsi.impl"
-
     generateTokenAccessors = true
 
     tokens = [
