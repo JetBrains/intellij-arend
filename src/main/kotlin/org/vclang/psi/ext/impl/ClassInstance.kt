@@ -27,7 +27,7 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun getClassFieldImpls(): List<VcCoClause> = coClauses?.coClauseList ?: emptyList()
 
-    override fun getNumberOfArguments() = argumentAppExpr?.argumentList?.size ?: 0
+    override fun getArgumentsExplicitness() = argumentAppExpr?.argumentList?.map { it.isExplicit } ?: emptyList()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R? = visitor.visitInstance(this)
 

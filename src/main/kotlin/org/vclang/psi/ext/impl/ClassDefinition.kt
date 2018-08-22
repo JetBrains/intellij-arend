@@ -56,7 +56,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
 
-    override fun getNumberOfArguments() = 0
+    override fun getArgumentsExplicitness() = emptyList<Boolean>()
 
     override fun getPrecedence() = calcPrecedence(prec)
 

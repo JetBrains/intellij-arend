@@ -36,7 +36,7 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
 
     override fun getClassFieldImpls(): List<VcCoClause> = coClauseList
 
-    override fun getNumberOfArguments() = 0
+    override fun getArgumentsExplicitness() = emptyList<Boolean>()
 
     override fun getClassReference(): ClassReferable? {
         val resolved = getResolvedImplementedField()

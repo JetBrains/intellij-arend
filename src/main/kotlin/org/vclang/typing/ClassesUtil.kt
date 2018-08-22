@@ -3,6 +3,7 @@ package org.vclang.typing
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.FieldReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
@@ -12,27 +13,38 @@ import org.vclang.psi.VcLongName
 import org.vclang.psi.ext.impl.ClassDefinitionAdapter
 
 
-fun getNotImplementedFields(classDef: VcDefClass, numberOfFieldsToSkip: Int, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>): HashMap<LocatedReferable, List<LocatedReferable>> {
+fun getNotImplementedFields(classDef: VcDefClass, argumentsExplicitness: List<Boolean>, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
     val result = getNotImplementedFields(classDef, HashSet(), superClassesFields)
-    if (numberOfFieldsToSkip != 0) {
+    if (!argumentsExplicitness.isEmpty()) {
         val it = result.iterator()
-        for (i in 1..numberOfFieldsToSkip) {
-            if (!it.hasNext()) {
-                break
-            }
+        var i = 0
+        while (it.hasNext() && i < argumentsExplicitness.size) {
             val field = it.next().key
+            val isExplicit = field.isExplicitField
+            if (isExplicit) {
+                while (!argumentsExplicitness[i] && i < argumentsExplicitness.size) {
+                    i++
+                }
+                if (i == argumentsExplicitness.size) {
+                    break
+                }
+            }
+
             for (fields in superClassesFields.values) {
                 fields.remove(field)
             }
             it.remove()
+
+            if (isExplicit == argumentsExplicitness[i]) {
+                i++
+            }
         }
     }
     return result
 }
 
-fun getNotImplementedFields(classDef: VcDefClass, classRefHolder: Abstract.ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>): HashMap<LocatedReferable, List<LocatedReferable>> {
-    val result = getNotImplementedFields(classDef, classRefHolder?.numberOfArguments
-        ?: 0, superClassesFields)
+fun getNotImplementedFields(classDef: VcDefClass, classRefHolder: Abstract.ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
+    val result = getNotImplementedFields(classDef, classRefHolder?.argumentsExplicitness ?: emptyList(), superClassesFields)
     if (classRefHolder != null) {
         for (fieldImpl in classRefHolder.classFieldImpls) {
             (fieldImpl as? PsiElement)?.let {
@@ -50,12 +62,12 @@ fun getNotImplementedFields(classDef: VcDefClass, classRefHolder: Abstract.Class
     return result
 }
 
-private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<VcDefClass>, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>): HashMap<LocatedReferable, List<LocatedReferable>> {
+private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<VcDefClass>, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
     if (!visited.add(classDef)) {
         return HashMap()
     }
 
-    val result = LinkedHashMap<LocatedReferable, List<LocatedReferable>>()
+    val result = LinkedHashMap<FieldReferable, List<LocatedReferable>>()
     for (superClass in classDef.superClassReferences) {
         if (superClass is VcDefClass) {
             val superClassMap = getNotImplementedFields(superClass, visited, superClassesFields)
@@ -117,7 +129,7 @@ private fun getNotImplementedFields(classDef: VcDefClass, visited: MutableSet<Vc
 
 class ModifiedClassFieldImplScope(referable: VcDefClass, private val classRefHolder: Abstract.ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
     override fun getElements(): List<Referable> {
-        val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
+        val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val fields = getNotImplementedFields(classReference as VcDefClass, classRefHolder, superClassesFields).values.flatten()
         return fields + superClassesFields.mapNotNull { entry -> if (entry.value.isEmpty()) null else entry.key }
     }

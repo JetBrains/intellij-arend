@@ -11,7 +11,7 @@ import org.vclang.psi.VcTypeTele
 abstract class VcNameTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcNameTele {
     override fun getData() = this
 
-    override fun isExplicit(): Boolean = lbrace == null
+    override fun isExplicit() = lbrace == null
 
     override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
 
@@ -21,7 +21,7 @@ abstract class VcNameTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcNam
 abstract class VcTypeTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcTypeTele {
     override fun getData() = this
 
-    override fun isExplicit(): Boolean = lbrace == null
+    override fun isExplicit() = lbrace == null
 
     override fun getReferableList(): List<Referable?> {
         val list = typedExpr?.identifierOrUnknownList?.map { it.defIdentifier } ?: listOf(null)
@@ -34,7 +34,7 @@ abstract class VcTypeTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcTyp
 abstract class VcFieldTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcFieldTele {
     override fun getData() = this
 
-    override fun isExplicit() = true
+    override fun isExplicit() = lbrace == null
 
     override fun getReferableList(): List<Referable> = fieldDefIdentifierList
 

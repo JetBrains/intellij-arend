@@ -37,7 +37,7 @@ abstract class VcNewExprImplMixin(node: ASTNode) : VcExprImplMixin(node), Abstra
 
     override fun getClassFieldImpls(): List<VcCoClause> = getCoClauseList()
 
-    override fun getNumberOfArguments() = getArgumentAppExpr()?.argumentList?.size ?: 0
+    override fun getArgumentsExplicitness() = getArgumentAppExpr()?.argumentList?.map { it.isExplicit } ?: emptyList()
 
     companion object {
         fun getClassReference(appExpr: VcAppExpr?): ClassReferable? {
