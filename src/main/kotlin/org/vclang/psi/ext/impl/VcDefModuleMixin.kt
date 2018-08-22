@@ -9,6 +9,7 @@ import org.vclang.psi.VcDefModule
 import org.vclang.psi.VcStatCmd
 import org.vclang.psi.ancestors
 import org.vclang.psi.stubs.VcDefModuleStub
+import org.vclang.typing.ExpectedTypeVisitor
 
 
 abstract class VcDefModuleMixin : ReferableAdapter<VcDefModuleStub>, VcDefModule {
@@ -29,4 +30,6 @@ abstract class VcDefModuleMixin : ReferableAdapter<VcDefModuleStub>, VcDefModule
     override fun getDynamicSubgroups(): List<Group> = emptyList()
 
     override fun getFields(): List<Group.InternalReferable> = emptyList()
+
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), 0)
 }

@@ -12,6 +12,7 @@ import org.vclang.resolving.VcDefReferenceImpl
 import org.vclang.resolving.VcPatternDefReferenceImpl
 import org.vclang.resolving.VcReference
 import org.vclang.resolving.VcReferenceImpl
+import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
 
 abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), VcDefIdentifier {
@@ -33,9 +34,14 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
         }
     }
 
-    override fun getTypeClassReference(): ClassReferable? {
+    override fun getTypeClassReference(): ClassReferable? =
+        typeOf?.let { ReferableExtractVisitor().findClassReferable(it) }
+
+    override fun getParameterType(params: List<Boolean>): Any? = ExpectedTypeVisitor.getParameterType(typeOf, params, name)
+
+    override fun getTypeOf(): VcExpr? {
         val parent = parent
-        val expr = when (parent) {
+        return when (parent) {
             is VcIdentifierOrUnknown -> {
                 val pparent = parent.parent
                 when (pparent) {
@@ -47,9 +53,7 @@ abstract class VcDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node),
             is VcFieldDefIdentifier -> (parent.parent as? VcFieldTele)?.expr
             is VcLetClause -> parent.typeAnnotation?.expr
             else -> null
-        } ?: return null
-
-        return ReferableExtractVisitor(expr.scope).findClassReferable(expr)
+        }
     }
 
     override val psiElementType: PsiElement?

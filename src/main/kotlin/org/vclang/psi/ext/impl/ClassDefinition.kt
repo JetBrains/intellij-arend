@@ -2,11 +2,9 @@ package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
-import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
-import com.jetbrains.jetpad.vclang.naming.reference.Referable
-import com.jetbrains.jetpad.vclang.naming.reference.Reference
+import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
+import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
@@ -15,6 +13,7 @@ import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
+import org.vclang.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
 abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass, Abstract.ClassDefinition {
@@ -69,6 +68,14 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getCoercingFunctions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if (it is VcDefFunction && it.coerceKw != null) it else null }
+
+    override fun getParameterType(params: List<Boolean>): Any? {
+        val index = params.size - 1
+        val fields = if (superClasses.isEmpty()) fieldReferables else ClassFieldImplScope(this, false).elements
+        return if (index < fields.size) (fields.toList()[index] as? TypedReferable)?.typeOf else ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
+    }
+
+    override fun getTypeOf() = ExpectedTypeVisitor.Universe
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 

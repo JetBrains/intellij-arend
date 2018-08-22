@@ -23,8 +23,10 @@ abstract class VcTypeTeleImplMixin(node: ASTNode): VcSourceNodeImpl(node), VcTyp
 
     override fun isExplicit(): Boolean = lbrace == null
 
-    override fun getReferableList(): List<Referable?> =
-        typedExpr?.identifierOrUnknownList?.map { it.defIdentifier } ?: listOf(null)
+    override fun getReferableList(): List<Referable?> {
+        val list = typedExpr?.identifierOrUnknownList?.map { it.defIdentifier } ?: listOf(null)
+        return if (list.isEmpty()) listOf(null) else list
+    }
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
 }

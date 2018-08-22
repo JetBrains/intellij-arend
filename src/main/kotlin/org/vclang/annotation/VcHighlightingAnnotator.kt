@@ -12,9 +12,11 @@ import com.jetbrains.jetpad.vclang.error.Error
 import com.jetbrains.jetpad.vclang.naming.error.NotInScopeError
 import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.NameResolvingChecker
+import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import com.jetbrains.jetpad.vclang.naming.scope.NamespaceCommandNamespace
 import com.jetbrains.jetpad.vclang.term.NamespaceCommand
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
+import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
@@ -27,7 +29,11 @@ import org.vclang.psi.ext.VcPatternImplMixin
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
+import org.vclang.resolving.DataLocatedReferable
 import org.vclang.resolving.PsiPartialConcreteProvider
+import org.vclang.typing.ExpectedTypeVisitor
+import org.vclang.typing.ReferableExtractVisitor
+import org.vclang.typing.TypecheckingVisitor
 
 class VcHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -71,15 +77,12 @@ class VcHighlightingAnnotator : Annotator {
             resolved
         } else null
 
-        if (element is VcGoal) {
-            holder.createWarningAnnotation(element, "goal")
-            return
-        }
-
         if (element is VcArgumentAppExpr) {
             val pElement = element.parent
             if (pElement is VcNewExprImplMixin) {
-                InstanceQuickFix.annotateNewExpr(pElement, holder)
+                if (InstanceQuickFix.annotateNewExpr(pElement, holder)) {
+                    return
+                }
             }
             if (pElement is VcNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is VcNewArg || pElement is VcDefInstance) {
                 val longName = element.longNameExpr?.longName ?: run {
@@ -95,13 +98,14 @@ class VcHighlightingAnnotator : Annotator {
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
                     if (resolvedRef !is VcDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
+                        return
                     }
                     if (pElement is VcDefInstance && resolvedRef is VcDefClass && resolvedRef.recordKw != null) {
                         holder.createErrorAnnotation(longName, "Expected a class, got a record")
+                        return
                     }
                 }
             }
-            return
         }
 
         if (element is VcPatternImplMixin) {
@@ -127,17 +131,15 @@ class VcHighlightingAnnotator : Annotator {
             }
         }
 
-        if (color != null) {
-            holder.createInfoAnnotation(element, null).textAttributes = color.textAttributesKey
-        }
-
         val nameResolvingChecker = object : NameResolvingChecker(false, false, PsiPartialConcreteProvider) {
             override fun onDefinitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
                 holder.createAnnotation(levelToSeverity(level), element.textRange, "Duplicate definition name '${ref2.textRepresentation()}'")
+                color = null
             }
 
             override fun onFieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
                 holder.createAnnotation(levelToSeverity(level), element.textRange, "Field is already defined in super class '${superClass1.textRepresentation()}'")
+                color = null
             }
 
             public override fun onNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
@@ -161,6 +163,143 @@ class VcHighlightingAnnotator : Annotator {
                     holder.createAnnotation(levelToSeverity(error.level), ((cause as? VcDefFunction)?.defIdentifier ?: cause).textRange, error.shortMessage)
                 }
             }
+        }
+
+        if (element is VcDefIdentifier) {
+            val definition = element.parent as? PsiLocatedReferable ?: return
+
+            if (definition is Abstract.ReferableDefinition && (definition is Abstract.ClassField || definition is Abstract.ClassFieldSynonym)) {
+                val fieldRef = definition.referable
+                if (fieldRef != null) {
+                    val classRef = (definition.parentSourceNode as? Abstract.ClassDefinition)?.referable
+                    nameResolvingChecker.checkField(fieldRef, NameResolvingChecker.collectClassFields(classRef), classRef)
+                }
+            }
+
+            if (definition is InstanceAdapter) {
+                if (InstanceQuickFix.annotateClassInstance(definition, holder)) {
+                    color = null
+                }
+            } else if (definition is VcDefFunction && definition.coerceKw != null) {
+                val lastParam = definition.nameTeleList.lastOrNull()
+                if (lastParam == null) {
+                    holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
+                    color = null
+                } else {
+                    val visitor = ReferableExtractVisitor()
+                    val scope = definition.scope
+                    val parentDef = definition.parentGroup
+                    val isParamDef = ExpressionResolveNameVisitor.resolve(lastParam.expr?.accept(visitor, null), scope) == parentDef
+
+                    val defType = definition.expr
+                    var resultDef = if (defType != null) {
+                        ExpressionResolveNameVisitor.resolve(defType.accept(visitor, null), scope)
+                    } else {
+                        val term = definition.functionBody?.expr
+                        if (term is VcNewExpr && term.newKw != null) {
+                            ExpressionResolveNameVisitor.resolve(term.argumentAppExpr?.accept(visitor, null), scope)
+                        } else {
+                            (ExpressionResolveNameVisitor.resolve(term?.accept(visitor, null), scope) as? VcConstructor)?.ancestors?.filterIsInstance<VcDefData>()?.firstOrNull()
+                        }
+                    }
+                    if (resultDef is DataLocatedReferable) {
+                        resultDef = PsiLocatedReferable.fromReferable(resultDef)
+                    }
+
+                    val ok = if (isParamDef) {
+                        resultDef != parentDef
+                    } else {
+                        if (resultDef == parentDef) {
+                            true
+                        } else if (resultDef != null) {
+                            resultDef !is VcDefData && resultDef !is VcDefClass
+                        } else {
+                            if (defType != null) {
+                                defType.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
+                                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = false
+                                }, null)
+                            } else {
+                                definition.functionBody?.expr?.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
+                                    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = false
+                                    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = false
+                                }, null) ?: true
+                            }
+                        }
+                    }
+
+                    if (!ok) {
+                        holder.createErrorAnnotation(element, "Either the last parameter or the result type (but not both) of \\coerce must be the parent definition")
+                        color = null
+                    }
+                }
+            }
+
+            fun checkReference(oldRef: LocatedReferable?, newRef: LocatedReferable, parentRef: LocatedReferable?): Boolean {
+                if (oldRef == null || oldRef == newRef) {
+                    return true
+                }
+                val newName = newRef.textRepresentation()
+                if (newName.isEmpty() || newName == "_" || newName != oldRef.textRepresentation()) {
+                    return true
+                }
+                return nameResolvingChecker.checkReference(oldRef, newRef, parentRef)
+            }
+
+            fun checkDuplicateDefinitions(parent: Abstract.ReferableDefinition, internal: Boolean) {
+                val pparent = parent.parentSourceNode
+                if (pparent is Group) {
+                    val parentRef = if (internal) pparent.referable else null
+                    for (ref in pparent.constructors) {
+                        if (!checkReference(ref.referable, definition, parentRef)) return
+                    }
+                    for (ref in pparent.fields) {
+                        if (!checkReference(ref.referable, definition, parentRef)) return
+                    }
+
+                    for (subgroup in pparent.subgroups) {
+                        if (!checkReference(subgroup.referable, definition, parentRef)) return
+                        if (internal) {
+                            for (ref in subgroup.constructors) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                            for (ref in subgroup.fields) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                        }
+                    }
+                    for (subgroup in pparent.dynamicSubgroups) {
+                        if (!checkReference(subgroup.referable, definition, parentRef)) return
+                        if (internal) {
+                            for (ref in subgroup.constructors) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                            for (ref in subgroup.fields) {
+                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (definition is Abstract.ReferableDefinition) {
+                checkDuplicateDefinitions(definition, false)
+
+                val parent = definition.parent
+                if (definition !is Abstract.Definition && parent is Abstract.Definition) {
+                    checkDuplicateDefinitions(parent, true)
+                }
+            }
+        }
+
+        val colorCopy = color
+        if (colorCopy != null) {
+            holder.createInfoAnnotation(element, null).textAttributes = colorCopy.textAttributesKey
         }
 
         if (element is VcStatCmd) {
@@ -242,90 +381,28 @@ class VcHighlightingAnnotator : Annotator {
         if (element is LeafPsiElement) {
             when (element.node.elementType) {
                 VcElementTypes.COERCE_KW -> {
-                    if (element.parent?.parent is VcFile) {
+                    val parent = (element.parent as? VcDefFunction)?.parentGroup
+                    if (parent is VcFile) {
                         holder.createErrorAnnotation(element as PsiElement, "\\coerce is not allowed on the top level")
+                    } else if (parent !is VcDefData && parent !is VcDefClass) {
+                        holder.createErrorAnnotation(element as PsiElement, "\\coerce is allowed only in \\where block of \\data and \\class")
                     }
-                    return
                 }
-                VcElementTypes.IMPORT_KW -> {
+                VcElementTypes.IMPORT_KW ->
                     if ((element.parent as? Abstract.NamespaceCommandHolder)?.parentSourceNode !is VcFile) {
                         holder.createErrorAnnotation(element as PsiElement, "\\import is allowed only on the top level")
                     }
-                    return
-                }
             }
+            return
         }
 
-        if (element is VcDefIdentifier) {
-            val definition = element.parent as? PsiLocatedReferable ?: return
-
-            if (definition is Abstract.ReferableDefinition && (definition is Abstract.ClassField || definition is Abstract.ClassFieldSynonym)) {
-                val fieldRef = definition.referable
-                if (fieldRef != null) {
-                    val classRef = (definition.parentSourceNode as? Abstract.ClassDefinition)?.referable
-                    nameResolvingChecker.checkField(fieldRef, NameResolvingChecker.collectClassFields(classRef), classRef)
-                }
+        if (element is VcExpr && element.topmostEquivalentSourceNode == element) {
+            var expectedType = ExpectedTypeVisitor(element, holder).getExpectedType()
+            if (expectedType is ExpectedTypeVisitor.Error) {
+                expectedType.createErrorAnnotation(element, holder)
+                expectedType = null
             }
-
-            if (definition is InstanceAdapter) {
-                InstanceQuickFix.annotateClassInstance(definition, holder)
-            }
-
-            fun checkReference(oldRef: LocatedReferable?, newRef: LocatedReferable, parentRef: LocatedReferable?): Boolean {
-                if (oldRef == null || oldRef == newRef) {
-                    return true
-                }
-                val newName = newRef.textRepresentation()
-                if (newName.isEmpty() || newName == "_" || newName != oldRef.textRepresentation()) {
-                    return true
-                }
-                return nameResolvingChecker.checkReference(oldRef, newRef, parentRef)
-            }
-
-            fun checkDuplicateDefinitions(parent: Abstract.ReferableDefinition, internal: Boolean) {
-                val pparent = parent.parentSourceNode
-                if (pparent is Group) {
-                    val parentRef = if (internal) pparent.referable else null
-                    for (ref in pparent.constructors) {
-                        if (!checkReference(ref.referable, definition, parentRef)) return
-                    }
-                    for (ref in pparent.fields) {
-                        if (!checkReference(ref.referable, definition, parentRef)) return
-                    }
-
-                    for (subgroup in pparent.subgroups) {
-                        if (!checkReference(subgroup.referable, definition, parentRef)) return
-                        if (internal) {
-                            for (ref in subgroup.constructors) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                            for (ref in subgroup.fields) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                        }
-                    }
-                    for (subgroup in pparent.dynamicSubgroups) {
-                        if (!checkReference(subgroup.referable, definition, parentRef)) return
-                        if (internal) {
-                            for (ref in subgroup.constructors) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                            for (ref in subgroup.fields) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (definition is Abstract.ReferableDefinition) {
-                checkDuplicateDefinitions(definition, false)
-
-                val parent = definition.parent
-                if (definition !is Abstract.Definition && parent is Abstract.Definition) {
-                    checkDuplicateDefinitions(parent, true)
-                }
-            }
+            element.accept(TypecheckingVisitor(element, holder), expectedType)
         }
     }
 

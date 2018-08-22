@@ -207,23 +207,11 @@ class VcParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abst
         }, null)
     }
 
-    private fun locateArg(arg: VcExpr, appExpr: VcExpr): Pair<Int, Abstract.Reference>? {
-        return appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
-            override fun visitApp(data: Any?, expr: Abstract.Expression, arguments: MutableCollection<out Abstract.Argument>, errorData: Abstract.ErrorData?, params: Void?): Pair<Int, Abstract.Reference>? {
-                val argExplicitness = mutableListOf<Boolean>()
-                for (arg_ in arguments) {
-                    argExplicitness.add(arg_.isExplicit)
-                    if (arg_ == arg) break
-                }
-
-                val reference = expressionToReference(expr) ?: return null
-                return (reference.referent as? Abstract.ParametersHolder)?.let { Pair(findParamIndex(it, argExplicitness), reference) }
-            }
-
+    private fun locateArg(arg: VcExpr, appExpr: VcExpr) =
+        appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Pair<Int, Abstract.Reference>? =
                 findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
         }, null)
-    }
 
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
         var absNode = fixedFindElement(file, offset)?.let { PsiTreeUtil.findFirstParent(it, {x -> x is Abstract.SourceNode}) as? Abstract.SourceNode } ?: return null

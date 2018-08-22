@@ -1,7 +1,6 @@
 package org.vclang.psi.ext.impl
 
 import com.intellij.lang.ASTNode
-import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
@@ -10,6 +9,7 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcConstructorStub
+import org.vclang.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
 abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConstructor {
@@ -37,8 +37,15 @@ abstract class ConstructorAdapter : ReferableAdapter<VcConstructorStub>, VcConst
 
     override fun isVisible(): Boolean = true
 
+    override fun getParameterType(params: List<Boolean>): Any? {
+        val parameters = (ancestors.filterIsInstance<VcDefData>().firstOrNull()?.typeTeleList?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
+        return ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), params, textRepresentation())
+    }
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, ancestors.filterIsInstance<VcDefData>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) })
+
     override fun getIcon(flags: Int): Icon = VcIcons.CONSTRUCTOR
 
-    override val psiElementType: PsiElement?
+    override val psiElementType: VcDefIdentifier?
         get() = ancestors.filterIsInstance<VcDefData>().firstOrNull()?.defIdentifier
 }

@@ -8,18 +8,19 @@ import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.BaseAbstractExpressionVisitor
 import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import org.vclang.psi.VcDefFunction
+import org.vclang.psi.VcExpr
 
 
-class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
+class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
     private enum class Mode { TYPE, EXPRESSION, NONE }
     private var mode: Mode = Mode.NONE
     private var arguments: Int = 0
 
-    private fun findClassReference(referent: Referable?): ClassReferable? {
+    private fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
         mode = Mode.EXPRESSION
         var ref: Referable? = referent
         var visited: MutableSet<VcDefFunction>? = null
-        var scope = scope
+        var scope = originalScope
         while (true) {
             ref = ExpressionResolveNameVisitor.resolve(ref, scope)
             if (ref is ClassReferable) {
@@ -47,15 +48,10 @@ class ReferableExtractVisitor(private val scope: Scope) : BaseAbstractExpression
         }
     }
 
-    fun findClassReferable(expr: Abstract.Expression): ClassReferable? {
+    fun findClassReferable(expr: VcExpr): ClassReferable? {
         mode = Mode.TYPE
         arguments = 0
-        return findClassReference(expr.accept(this, null))
-    }
-
-    override fun visitApp(data: Any?, expr: Abstract.Expression, args: Collection<Abstract.Argument>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
-        arguments += args.sumBy { if (it.isExplicit) 1 else 0 }
-        return expr.accept(this, null)
+        return findClassReference(expr.accept(this, null), expr.scope)
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {

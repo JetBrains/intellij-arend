@@ -10,6 +10,7 @@ import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
 import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefFunctionStub
+import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
@@ -38,8 +39,12 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor(scope).findClassReferable(type) else null
+        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
+
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

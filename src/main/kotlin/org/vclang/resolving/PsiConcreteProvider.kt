@@ -16,10 +16,7 @@ import com.jetbrains.jetpad.vclang.term.concrete.Concrete
 import com.jetbrains.jetpad.vclang.term.concrete.ConcreteDefinitionVisitor
 import com.jetbrains.jetpad.vclang.typechecking.error.ProxyError
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
-import org.vclang.psi.VcDefClass
-import org.vclang.psi.VcDefFunction
-import org.vclang.psi.VcDefInstance
-import org.vclang.psi.ancestors
+import org.vclang.psi.*
 import org.vclang.psi.ext.PsiConcreteReferable
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
@@ -124,6 +121,11 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
         return if (psiReferable is VcDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
+    }
+
+    override fun getConcreteData(referable: GlobalReferable): Concrete.DataDefinition? {
+        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        return if (psiReferable is VcDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
     }
 
     override fun isRecord(classRef: ClassReferable): Boolean {

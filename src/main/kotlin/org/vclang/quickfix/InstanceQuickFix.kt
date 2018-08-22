@@ -61,7 +61,7 @@ class InstanceQuickFix {
             return goal != null && VclangCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
         }
 
-        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean) {
+        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean): Boolean {
             val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
             val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields)
 
@@ -83,6 +83,9 @@ class InstanceQuickFix {
                 }
 
                 annotation.registerFix(ImplementFieldsQuickFix(expression, fields.values.mapNotNull { it.firstOrNull() }, actionText))
+                return true
+            } else {
+                return false
             }
         }
 
@@ -171,12 +174,12 @@ class InstanceQuickFix {
             }
         }
 
-        fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder) {
+        fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder): Boolean {
             val classReference = instance.classReference
             if (classReference is VcDefClass && classReference.recordKw == null) {
                 val argumentAppExpr = instance.argumentAppExpr
                 if (argumentAppExpr != null) {
-                    doAnnotate(object: ExpressionWithCoClauses {
+                    return doAnnotate(object: ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)
@@ -215,14 +218,15 @@ class InstanceQuickFix {
                     }, classReference, holder, false)
                 }
             }
+            return false
         }
 
-        fun annotateNewExpr(newExpr: VcNewExprImplMixin, holder: AnnotationHolder) {
+        fun annotateNewExpr(newExpr: VcNewExprImplMixin, holder: AnnotationHolder): Boolean {
             val classReference = newExpr.classReference
             if (classReference is VcDefClass) {
                 val argumentAppExpr = newExpr.getArgumentAppExpr()
                 if (argumentAppExpr != null) {
-                    doAnnotate(object: ExpressionWithCoClauses {
+                    return doAnnotate(object: ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = argumentAppExpr.textRange
@@ -259,6 +263,7 @@ class InstanceQuickFix {
                     }, classReference, holder, newExpr.getNewKw() == null)
                 }
             }
+            return false
         }
     }
 }

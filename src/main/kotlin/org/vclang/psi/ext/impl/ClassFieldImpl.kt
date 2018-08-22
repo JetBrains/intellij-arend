@@ -3,6 +3,7 @@ package org.vclang.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.reference.TypedReferable
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.vclang.VcIcons
@@ -23,6 +24,12 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
 
     override fun getImplementedField() = longName.referent
 
+    fun getResolvedImplementedField(): Referable? {
+        val longName = longName
+        return ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
+        // return longName.reference?.resolve()
+    }
+
     override fun getParameters(): List<VcNameTele> = nameTeleList
 
     override fun getImplementation() = expr
@@ -32,8 +39,7 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<VcClassImplementS
     override fun getNumberOfArguments() = 0
 
     override fun getClassReference(): ClassReferable? {
-        val longName = longName
-        val resolved = ExpressionResolveNameVisitor.resolve(longName.referent, longName.scope)
+        val resolved = getResolvedImplementedField()
         return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
     }
 
