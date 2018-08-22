@@ -74,13 +74,6 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         }
 
         val reference = ((expr as? Concrete.AppExpression)?.function as? Concrete.ReferenceExpression)?.referent
-        return when (reference) {
-            null -> Kind.APP
-            is Abstract.DataDefinition -> Kind.DATA
-            is Abstract.Constructor -> if (reference.clauses.isEmpty()) Kind.CONSTRUCTOR else Kind.CONSTRUCTOR_WITH_CONDITIONS
-            is Abstract.ClassDefinition -> Kind.CLASS
-            is Abstract.ReferableDefinition -> Kind.APP
-            else -> Kind.REFERENCE
-        }
+        return if (reference == null) Kind.APP else getReferenceKind(reference)
     }
 }
