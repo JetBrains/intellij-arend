@@ -48,10 +48,10 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                         }
                         result.fieldReferables.clear()
                         for (ref in referable.fieldReferables) {
-                            if (ref is LocatedReferable && ref is PsiReferable) {
-                                cache.computeIfAbsent(ref) { state.computeIfAbsent(ref) {
+                            if (ref is FieldReferable && ref is PsiReferable) {
+                                (cache.computeIfAbsent(ref) { state.computeIfAbsent(ref) {
                                     FieldDataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable, (ref.underlyingReference as? PsiElement)?.let { cache[it] })
-                                } }?.let { result.fieldReferables.add(it) }
+                                } } as? TCFieldReferable)?.let { result.fieldReferables.add(it) }
                             }
                         }
                         result.filledIn = true

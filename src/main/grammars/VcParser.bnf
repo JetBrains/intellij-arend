@@ -152,6 +152,7 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     pin = 4
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
@@ -162,6 +163,7 @@ classFieldSyn ::= refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn 
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldSynonym" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldSynStub"
@@ -723,6 +725,7 @@ fieldDefIdentifier ::= defIdentifier {
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldParamStub"

@@ -43,8 +43,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
-    override fun getFieldReferables(): List<LocatedReferable> =
-        (parameterFields as List<LocatedReferable>) +
+    override fun getFieldReferables(): List<FieldReferable> =
+        (parameterFields as List<FieldReferable>) +
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 

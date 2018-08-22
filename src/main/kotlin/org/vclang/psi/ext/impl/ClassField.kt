@@ -31,6 +31,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<VcClassFieldStub>, VcClassFi
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_FIELD
 
+    override fun isExplicitField() = true
+
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null

@@ -40,6 +40,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<VcClassFieldParamStu
 
     override fun isVisible() = false
 
+    override fun isExplicitField() = (parent as? VcFieldTele)?.isExplicit ?: true
+
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
