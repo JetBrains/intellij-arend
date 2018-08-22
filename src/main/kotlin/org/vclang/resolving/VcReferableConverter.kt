@@ -34,7 +34,7 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                         val locatedParent = referable.locatedReferableParent
                         val parent = if (locatedParent is VcFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
                         when (referable) {
-                            is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), null)
+                            is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
                             is VcClassField, is VcFieldDefIdentifier -> cache[referable]
                             else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                         }
@@ -52,6 +52,12 @@ class VcReferableConverter(private val project: Project, private val state: Simp
                                 (cache.computeIfAbsent(ref) { state.computeIfAbsent(ref) {
                                     FieldDataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable, (ref.underlyingReference as? PsiElement)?.let { cache[it] })
                                 } } as? TCFieldReferable)?.let { result.fieldReferables.add(it) }
+                            }
+                        }
+                        result.implementedFields.clear()
+                        for (ref in referable.implementedFields) {
+                            if (ref is PsiReferable) {
+                                cache[ref]?.let { result.implementedFields.add(it)  }
                             }
                         }
                         result.filledIn = true

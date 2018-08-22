@@ -46,14 +46,16 @@ class ClassDataLocatedReferable(
     parent: LocatedReferable?,
     val superClassReferences: MutableList<TCClassReferable>,
     val fieldReferables: MutableList<TCFieldReferable>,
+    val implementedFields: MutableList<TCReferable>,
     var underlyingClass: TCClassReferable?)
     : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
-
     var filledIn = false
 
     override fun getSuperClassReferences(): Collection<TCClassReferable> = superClassReferences
 
     override fun getFieldReferables(): Collection<TCFieldReferable> = fieldReferables
+
+    override fun getImplementedFields(): Collection<TCReferable> = implementedFields
 
     override fun getUnderlyingReference() = underlyingClass
 

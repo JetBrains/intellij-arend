@@ -13,6 +13,8 @@ import org.vclang.psi.VcLongName
 import org.vclang.psi.ext.impl.ClassDefinitionAdapter
 
 
+fun getNotImplementedFields(classDef: VcDefClass) = getNotImplementedFields(classDef, HashSet(), HashMap()).keys
+
 fun getNotImplementedFields(classDef: VcDefClass, argumentsExplicitness: List<Boolean>, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
     val result = getNotImplementedFields(classDef, HashSet(), superClassesFields)
     if (!argumentsExplicitness.isEmpty()) {
