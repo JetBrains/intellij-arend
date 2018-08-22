@@ -47,7 +47,7 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
         val headerPath = Paths.get(FileUtil.toSystemDependentName(module.moduleFilePath)).resolveSibling(name + FileUtils.LIBRARY_EXTENSION)
         val headerUrl = VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL,
                 headerPath.toString())
-        val headerVirtFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
+        var headerVirtFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
         if (headerVirtFile == null) {
             val appendString = {acc:String, s:String ->
                 if ("$acc $s".length - "$acc $s".lastIndexOf("\n") > MAX_HEADER_LINE_LENGTH) "$acc\n $s" else "$acc $s"
@@ -57,11 +57,13 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
                     {acc, m -> appendString(acc, m.toString())}) + "\n" +
                     "\n" + BINARY + COLON + " " + VclFile.getDefaultBinPath(module)?.toString()
             File(headerPath.toString()).printWriter().use { out -> out.print(templateStr) }
-        } else if (headerVirtFile.fileType == VclFileType) {
-            headerFile = (PsiManager.getInstance(module.project).findFile(headerVirtFile) as VclFile).let{
-                SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it)
-            }
+            headerVirtFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
         }
+        //else if (headerVirtFile.fileType == VclFileType) {
+        headerFile = headerVirtFile?.let {  (PsiManager.getInstance(module.project).findFile(it) as VclFile)}?.let{
+            SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it)
+        }
+        //}
         return LibraryHeader(loadedModules, headerFile?.element?.dependencies ?: emptyList())
     }
 

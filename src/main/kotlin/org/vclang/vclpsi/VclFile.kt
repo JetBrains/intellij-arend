@@ -19,6 +19,7 @@ import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.VclFileType
 import org.vclang.VclLanguage
 import org.vclang.module.util.getVcFiles
+import org.vclang.module.util.roots
 import org.vclang.psi.VcFile
 import org.vclang.psi.module
 import java.nio.file.Path
@@ -31,11 +32,14 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
         fun getDefaultBinPath(module: Module): Path? {
             return module.moduleFilePath.let {Paths.get(FileUtil.toSystemDependentName(it)).resolveSibling(".output")}
         }
+        fun getDefaultSrcPath(module: Module?): Path? {
+            return module?.roots?.firstOrNull()?.name?.let { Paths.get(FileUtil.toSystemDependentName(it)) }
+        }
     }
 
     val sourcesDirPath: Path?
         get() {
-            var path: Path? = null
+            var path: Path? = getDefaultSrcPath(module)
             PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
                 override fun visitSourceSt(sourceSt: VclSourceSt) {
                     path = sourceSt.node.getChildren(TokenSet.create(VclElementTypes.DIRNAME)).firstOrNull()?.text.let {
@@ -90,8 +94,7 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
         }
 
     fun findVcFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystemItem> {
-        val dir = sourcesDir ?: parent?.virtualFile ?: return emptyList()
-        var dirs = listOf(dir)
+        var dirs = sourcesDir?.let{listOf(it)} ?: module?.roots?.asList() ?: return emptyList()
         val path = modulePath.toList()
         val psiManager = PsiManager.getInstance(project)
         for ((i, name) in path.withIndex()) {
