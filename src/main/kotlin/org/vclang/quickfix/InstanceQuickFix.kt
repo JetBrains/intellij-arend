@@ -23,7 +23,6 @@ import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix.Companion.INCREASE_IN_INDENT
 import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
-import org.vclang.typing.getNotImplementedFields
 
 interface ExpressionWithCoClauses {
     fun getRangeToReport(): TextRange
@@ -64,7 +63,7 @@ class InstanceQuickFix {
 
         private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean): Boolean {
             val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
-            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().argumentsExplicitness, superClassesFields)
+            val fields = ClassReferable.Helper.getNotImplementedFields(classReference, expression.getClassReferenceHolder().argumentsExplicitness, superClassesFields)
 
             annotateClauses(expression.getCoClauseList(), holder, superClassesFields, fields.keys)
 

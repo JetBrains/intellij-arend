@@ -13,7 +13,6 @@ import org.vclang.VcIcons
 import org.vclang.psi.*
 import org.vclang.psi.stubs.VcDefClassStub
 import org.vclang.typing.ExpectedTypeVisitor
-import org.vclang.typing.getNotImplementedFields
 import javax.swing.Icon
 
 abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDefClass, Abstract.ClassDefinition {
@@ -73,7 +72,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
         (dynamicSubgroups + subgroups).mapNotNull { if (it is VcDefFunction && it.coerceKw != null) it else null }
 
     override fun getParameterType(params: List<Boolean>): Any? {
-        val fields = getNotImplementedFields(this)
+        val fields = ClassReferable.Helper.getNotImplementedFields(this)
         val it = fields.iterator()
         var i = 0
         while (it.hasNext()) {
