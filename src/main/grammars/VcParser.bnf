@@ -578,8 +578,12 @@ tuple ::= LPAREN <<comma_separated_sequence tupleExpr>>? RPAREN {
     mixin = "org.vclang.psi.ext.VcTupleImplMixin"
 }
 
-private tupleExpr ::= expr {
+tupleExpr ::= expr [COLON expr] {
+    pin = 1
     recoverWhile = tupleExpr_recover
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression" ]
+    mixin = "org.vclang.psi.ext.VcTupleExprImplMixin"
 }
 
 private tupleExpr_recover ::= !(RPAREN | COMMA) & statement_recover

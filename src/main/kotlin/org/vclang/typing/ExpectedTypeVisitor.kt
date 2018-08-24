@@ -484,6 +484,13 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = null
 
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?) =
+        when (element) {
+            expr -> type
+            type -> Universe
+            else -> null
+        }
+
     override fun visitFunction(def: Abstract.FunctionDefinition): Any? {
         val resultType = def.resultType
         return when (element) {

@@ -68,4 +68,8 @@ class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?): Any? {
         TODO("not implemented")
     }
+
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?): Any {
+        TODO("not implemented")
+    }
 }

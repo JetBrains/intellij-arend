@@ -296,4 +296,10 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
             typeMismatchFull(toString(expectedType), if (number >= BigInteger.ZERO) Prelude.NAT.name else Prelude.INT.name)
         }
     }
+
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, expectedType: Any?) {
+        if (expectedType != null) {
+            compare(type, expectedType)
+        }
+    }
 }
