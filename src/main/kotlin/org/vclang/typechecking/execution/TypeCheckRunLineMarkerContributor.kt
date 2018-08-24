@@ -35,7 +35,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         return Info(
                 icon,
-                Function { "Type check ${parent.fullName}" },
+                Function { "Typecheck ${parent.fullName}" },
                 *ExecutorAction.getActions(1)
         )
     }
