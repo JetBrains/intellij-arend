@@ -39,7 +39,7 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
 
     val sourcesDirPath: Path?
         get() {
-            var path: Path? = getDefaultSrcPath(module)
+            var path: Path? = null //getDefaultSrcPath(module)
             PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
                 override fun visitSourceSt(sourceSt: VclSourceSt) {
                     path = sourceSt.node.getChildren(TokenSet.create(VclElementTypes.DIRNAME)).firstOrNull()?.text.let {
@@ -76,7 +76,7 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
             PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
                 override fun visitModulesSt(modulesSt: VclModulesSt) {
                     val modPaths = modulesSt.node.getChildren(TokenSet.create(VclElementTypes.MODNAME)).map { it.text }
-                    modules = modules.filter { modPaths.contains(it.toString()) }
+                    modules = modules.filter { modPaths.contains(it.modulePath.toString()) }
                 }
             }); true }
             return modules.map { it.modulePath }

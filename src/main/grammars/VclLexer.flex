@@ -19,7 +19,7 @@ WHITE_SPACE         = \s+
 
 START_CHAR          = [a-zA-Z_]
 ID = {START_CHAR}({START_CHAR} | [0-9'])*
-MODNAME = {ID}(.{ID})*
+MODNAME = {ID}(\.{ID})*
 DIRNAME = ([\w]\: (\\\\|\\))? ([a-zA-Z0-9\.\-\_\\]+) | (\/)? ([a-zA-Z0-9\.\-\_\/]+)
 LIBNAME = {START_CHAR}({START_CHAR} | [0-9'] | \-)*
 

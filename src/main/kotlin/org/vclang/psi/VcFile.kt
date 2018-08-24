@@ -18,16 +18,19 @@ import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.VcLanguage
+import org.vclang.module.VcRawLibrary
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.VcFileStub
 import org.vclang.resolving.VcReference
+import org.vclang.typechecking.TypeCheckingService
 
 class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLanguage.INSTANCE), VcSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath
         get() {
             val fileName = viewProvider.virtualFile.path
-            val root = (sourceRoot ?: contentRoot)?.path
+            val library = TypeCheckingService.getInstance(project).libraryManager.getRegisteredLibrary(libraryName)
+            val root = ((library as? VcRawLibrary)?.getHeaderFile()?.sourcesDir ?: sourceRoot ?: contentRoot)?.path
             val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
             val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
             return ModulePath(fullName.split('.'))
@@ -37,7 +40,10 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
         get() = modulePath.toString()
 
     val libraryName
-        get() = module?.name ?: if (modulePath == Prelude.MODULE_PATH) "prelude" else null
+        get() = module?.name ?:
+        //if (modulePath == Prelude.MODULE_PATH)
+        if (name == "Prelude.vc")
+            "prelude" else null
 
     override fun setName(name: String): PsiElement {
         return super.setName(if (name.endsWith('.' + VcFileType.defaultExtension)) name else name + '.' + VcFileType.defaultExtension)

@@ -1,6 +1,11 @@
 package org.vclang.module
 
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.openapi.roots.OrderRootType
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -23,7 +28,9 @@ import org.vclang.typechecking.TypeCheckingService
 import java.nio.file.Paths
 import org.vclang.vclpsi.VclElementTypes.*
 import org.vclang.module.util.getVcFiles
+import org.vclang.vcModules
 import java.io.File
+import java.nio.file.Path
 
 
 class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
@@ -38,7 +45,7 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun getName() = module.name
 
     override fun getModuleGroup(modulePath: ModulePath) =
-            headerFile?.element?.findVcFiles(modulePath)?.firstOrNull { loadedModules.contains(it.modulePath) }
+            headerFile?.element?.findVcFiles(modulePath)?.firstOrNull  { loadedModules.contains(it.modulePath) }
 
     override fun getBinarySource(modulePath: ModulePath) =
             headerFile?.element?.binariesDirPath.let {GZIPStreamBinarySource(FileBinarySource(it, modulePath))}
@@ -63,6 +70,28 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
         headerFile = headerVirtFile?.let {  (PsiManager.getInstance(module.project).findFile(it) as VclFile)}?.let{
             SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it)
         }
+
+        /* TODO: implement this properly
+        val deps = getHeaderFile()?.dependencies
+        if (deps != null) {
+            for (dep in deps) {
+                WriteAction.run<Exception> {
+                    val table = LibraryTablesRegistrar.getInstance().getLibraryTable(module.project)
+                    val tableModel = table.modifiableModel
+                    val library = tableModel.createLibrary(dep.name)
+
+                    val pathUrl = VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL, Paths.get("").toString())
+                    val file = VirtualFileManager.getInstance().findFileByUrl(pathUrl)
+                    if (file != null) {
+                        val libraryModel = library.modifiableModel
+                        libraryModel.addRoot(file, OrderRootType.CLASSES)
+                        libraryModel.commit()
+                        tableModel.commit()
+                        ModuleRootModificationUtil.addDependency(module.project.vcModules.elementAt(0), library)
+                    }
+                }
+            }
+        }*/
         //}
         return LibraryHeader(loadedModules, headerFile?.element?.dependencies ?: emptyList())
     }
