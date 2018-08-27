@@ -21,6 +21,7 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.L
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LPH_LEVEL_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.PROP_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.RETURN_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WHERE_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.WITH_KW_LIST
 
@@ -316,10 +317,23 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case a + 2 {-caret-}",
             "\\func lol (a : Nat) => \\case (a + 2) {-caret-}",
             "\\func lol (a : Nat) => \\case \\case a {-caret-}",
-            "\\func lol (a : Nat) => (\\case a + 2 {-caret-})")
+            "\\func lol (a : Nat) => (\\case a + 2 {-caret-})",
+            "\\func lol (a : Nat) => \\case \\case a \\with {} {-caret-}"
+            //, "\\func lol (a : Nat) => \\case a {-caret-} {}" //Fixme
+    )
 
-    fun `test with keyword completion 2`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol (a : Nat) => \\case \\case a \\with {} {-caret-}")
+    fun `test as keyword completion`() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol (a : Nat) => \\case a {-caret-}",
+            "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}",
+            "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}\\return Nat \\with {}")
+
+    fun `test return keyword completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol (a : Nat) => \\case a {-caret-}",
+            "\\func lol (a : Nat) => \\case a \\as a1 {-caret-}\\with {}",
+            "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}")
+
+    fun `test return keyword completion 2`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}")
 
     fun `test absence of with keyword completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-} \\with {}",

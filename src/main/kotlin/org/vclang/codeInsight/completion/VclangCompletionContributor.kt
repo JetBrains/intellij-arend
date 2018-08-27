@@ -293,7 +293,7 @@ class VclangCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -320,6 +320,7 @@ class VclangCompletionContributor : CompletionContributor() {
         val LEVELS_KW_LIST = listOf(LEVELS_KW.toString())
         val PROP_KW_LIST = listOf(PROP_KW.toString())
         val COERCE_KW_LIST = listOf(COERCE_KW.toString())
+        val RETURN_KW_LIST = listOf(RETURN_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
@@ -493,9 +494,9 @@ class VclangCompletionContributor : CompletionContributor() {
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position: "+parameters.position.javaClass + " text: " + parameters.position.text)
-            var i = 1
-            var pp = parameters.position.parent
-            while (i < 14 && pp != null) {
+            var i = 0
+            var pp: PsiElement? = parameters.position
+            while (i < 13 && pp != null) {
                 System.out.format("position.parent(%2d): %-40s text: %-50s\n",i, pp.javaClass.simpleName, pp.text)
                 pp = pp.parent
                 i++
@@ -510,6 +511,7 @@ class VclangCompletionContributor : CompletionContributor() {
             System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
             if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: "+(parameters.position.parent as PsiErrorElement).errorDescription)
             System.out.println("")
+            System.out.flush()
         }
     }
 
