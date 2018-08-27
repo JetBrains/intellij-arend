@@ -246,7 +246,7 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         // TODO: Check expected type
     }
 
-    override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
+    override fun visitCase(data: Any?, caseArsg: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
         // TODO: Try to infer the type of expressions and check that constructors in clauses have correct types.
         //       If cannot infer the type, check that constructors have the same type.
     }

@@ -125,7 +125,7 @@ class VcHighlightingAnnotator : Annotator {
                         }
                     }
                     is VcConstructor -> checkPattern(element, parent.elim, parent.typeTeleList, clause.patternList, holder)
-                    is VcCaseExpr -> checkPattern(element, parent.exprList.size, clause.patternList, holder)
+                    is VcCaseExpr -> checkPattern(element, parent.caseArgList.size, clause.patternList, holder)
                 }
             } else {
                 val conClause = element.parent as? VcConstructorClause
