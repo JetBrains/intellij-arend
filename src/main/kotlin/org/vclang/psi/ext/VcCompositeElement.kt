@@ -61,7 +61,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: VcSourceNode): VcSourceNode {
         current = when {
             parent is VcLiteral -> parent
             parent is VcAtom -> parent
-            parent is VcTuple && parent.exprList.size == 1 -> parent
+            parent is VcTuple && parent.tupleExprList.size == 1 && parent.tupleExprList[0].exprList.size == 1 -> parent
             parent is VcNewExpr && parent.newKw == null && parent.lbrace == null && parent.argumentList.isEmpty() -> parent
             parent is VcAtomFieldsAcc && parent.fieldAccList.isEmpty() -> parent
             parent is VcArgumentAppExpr && parent.argumentList.isEmpty() -> parent

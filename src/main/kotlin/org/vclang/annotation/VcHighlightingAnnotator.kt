@@ -23,10 +23,7 @@ import com.jetbrains.jetpad.vclang.typechecking.error.local.LocalError
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.highlight.VcHighlightingColors
 import org.vclang.psi.*
-import org.vclang.psi.ext.PsiLocatedReferable
-import org.vclang.psi.ext.VcNewExprImplMixin
-import org.vclang.psi.ext.VcPatternImplMixin
-import org.vclang.psi.ext.VcReferenceElement
+import org.vclang.psi.ext.*
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix
 import org.vclang.resolving.DataLocatedReferable
@@ -104,6 +101,38 @@ class VcHighlightingAnnotator : Annotator {
                         holder.createErrorAnnotation(longName, "Expected a class, got a record")
                         return
                     }
+                }
+            }
+        }
+
+        if (element is VcAtomPatternOrPrefix) {
+            val parentPattern = element.parent as? VcPattern ?: return
+            val def = parentPattern.defIdentifier?.reference?.resolve() as? VcConstructor ?: return
+            checkPattern(element, def.typeTeleList, parentPattern.atomPatternOrPrefixList, holder)
+            return
+        }
+
+        if (element is VcPattern) {
+            val clause = element.parent as? VcClause
+            if (clause != null) {
+                val parent = clause.parent
+                when (parent) {
+                    is VcFunctionClauses -> {
+                        val body = parent.parent as? VcFunctionBody
+                        val func = body?.parent as? VcDefFunction
+                        if (func != null) {
+                            checkPattern(element, body.elim, func.nameTeleList, clause.patternList, holder)
+                        }
+                    }
+                    is VcConstructor -> checkPattern(element, parent.elim, parent.typeTeleList, clause.patternList, holder)
+                    is VcCaseExpr -> checkPattern(element, parent.caseArgList.size, clause.patternList, holder)
+                }
+            } else {
+                val conClause = element.parent as? VcConstructorClause
+                val dataBody = conClause?.parent as? VcDataBody
+                val typeTele = (dataBody?.parent as? VcDefData)?.typeTeleList
+                if (typeTele != null) {
+                    checkPattern(element, dataBody.elim, typeTele, conClause.patternList, holder)
                 }
             }
         }
@@ -403,6 +432,100 @@ class VcHighlightingAnnotator : Annotator {
                 expectedType = null
             }
             element.accept(TypecheckingVisitor(element, holder), expectedType)
+        }
+    }
+
+    private fun checkPattern(pattern: VcCompositeElement, elim: VcElim?, teleList: List<Abstract.Parameter>, patternList: List<Abstract.Pattern>, holder: AnnotationHolder) {
+        if (elim == null || elim.withKw != null) {
+            checkPattern(pattern, teleList, patternList, holder)
+        } else {
+            checkPattern(pattern, elim.refIdentifierList.size, patternList, holder)
+        }
+    }
+
+    private fun checkPattern(element: VcCompositeElement, teleList: List<Abstract.Parameter>, patternList: List<Abstract.Pattern>, holder: AnnotationHolder) {
+        if (patternList.isEmpty()) {
+            return
+        }
+
+        var i = 0
+        var j = 0
+        var refListSize = teleList.firstOrNull()?.referableList?.size ?: 0
+        for (pattern in patternList) {
+            val isExplicit = pattern.isExplicit
+            if (isExplicit) {
+                if (i < teleList.size && !teleList[i].isExplicit) {
+                    i++
+                    while (i < teleList.size && !teleList[i].isExplicit) {
+                        i++
+                    }
+                    if (i < teleList.size) {
+                        j = 0
+                        refListSize = teleList[i].referableList.size
+                    }
+                }
+            }
+
+            while (j >= refListSize) {
+                i++
+                if (i >= teleList.size) {
+                    break
+                }
+                j = 0
+                refListSize = teleList[i].referableList.size
+            }
+            if (i >= teleList.size) {
+                if (pattern == element) {
+                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected " + teleList.sumBy { it.referableList.size })
+                }
+                return
+            }
+
+            if (isExplicit == teleList[i].isExplicit) {
+                j++
+                while (j >= refListSize) {
+                    i++
+                    if (i >= teleList.size) {
+                        break
+                    }
+                    j = 0
+                    refListSize = teleList[i].referableList.size
+                }
+            } else {
+                if (pattern == element) {
+                    holder.createErrorAnnotation(element, "Expected an explicit pattern")
+                    return
+                }
+            }
+        }
+
+        if (i < teleList.size && element == patternList[patternList.size - 1]) {
+            while (i < teleList.size) {
+                if (teleList[i].isExplicit) {
+                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected " + teleList.sumBy { it.referableList.size })
+                    return
+                }
+                i++
+            }
+        }
+    }
+
+    private fun checkPattern(element: VcCompositeElement, numberOfPatterns: Int, patternList: List<Abstract.Pattern>, holder: AnnotationHolder) {
+        if (numberOfPatterns == 0) {
+            return
+        }
+        for (i in 0 until patternList.size) {
+            if (element == patternList[i]) {
+                if (!patternList[i].isExplicit) {
+                    holder.createErrorAnnotation(element, "Expected an explicit pattern")
+                }
+                if (i == numberOfPatterns) {
+                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected $numberOfPatterns")
+                } else if (i == patternList.size - 1 && numberOfPatterns > patternList.size) {
+                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected $numberOfPatterns")
+                }
+                return
+            }
         }
     }
 

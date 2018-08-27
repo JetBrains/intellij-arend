@@ -34,6 +34,8 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<VcClassFieldSynStub>, VcC
 
     override fun getUnresolvedUnderlyingReference() = underlyingField
 
+    override fun isExplicitField() = true
+
     override fun getTypeClassReference() = (underlyingReference as? TypedReferable)?.typeClassReference
 
     override fun getParameterType(params: List<Boolean>) = (underlyingReference as? TypedReferable)?.getParameterType(params)

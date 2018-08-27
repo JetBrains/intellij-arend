@@ -17,7 +17,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
+import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
+import com.jetbrains.jetpad.vclang.prelude.Prelude
+import com.jetbrains.jetpad.vclang.term.group.Group
+import org.vclang.module.VcPreludeLibrary
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcReferenceElement
@@ -25,6 +29,7 @@ import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.index.VcDefinitionIndex
 import org.vclang.quickfix.ResolveRefFixData
 import org.vclang.quickfix.ResolveRefQuickFix
+import org.vclang.typechecking.TypeCheckingService
 
 enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
 
@@ -46,9 +51,24 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
     private fun getItemsToImport() : List<ResolveRefFixData> {
         if (importQuickFixAllowed(referenceElement)) {
             val project = referenceElement.project
-            val indexedDefinitions : List<PsiLocatedReferable> = StubIndex.getElements(VcDefinitionIndex.KEY, referenceElement.referenceName, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
+            val name = referenceElement.referenceName
 
-            return indexedDefinitions.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
+            val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+            val preludeLibrary = libraryManager.getRegisteredLibrary("prelude")
+            val preludeItems = HashSet<Referable>()
+            if (preludeLibrary is VcPreludeLibrary) {
+                val moduleGroup = preludeLibrary.getModuleGroup(Prelude.MODULE_PATH)
+                if (moduleGroup != null) {
+                    iterateOverGroup(moduleGroup, { referable: Referable ->
+                        referable is PsiLocatedReferable && referable.name == referenceElement.referenceName
+                    }, preludeItems)
+                }
+            }
+
+            val items = StubIndex.getElements(VcDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
+                    union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
+
+            return items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
         }
 
         return emptyList()
@@ -115,5 +135,12 @@ class VclangImportHintAction(private val referenceElement: VcReferenceElement) :
 
         fun getResolved(referenceElement: VcReferenceElement): PsiElement? =
             if (referenceElement.isValid) referenceElement.reference?.resolve() else null
+
+        fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
+            for (sg in group.subgroups) {
+                if (sg is Referable && predicate.invoke(sg)) target.add(sg)
+                iterateOverGroup(sg, predicate, target)
+            }
+        }
     }
 }

@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.jetbrains.jetpad.vclang.naming.reference.*
 import com.jetbrains.jetpad.vclang.naming.resolving.visitor.ExpressionResolveNameVisitor
-import com.jetbrains.jetpad.vclang.naming.scope.ClassFieldImplScope
 import com.jetbrains.jetpad.vclang.naming.scope.ScopeFactory
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import com.jetbrains.jetpad.vclang.term.abs.AbstractDefinitionVisitor
@@ -43,10 +42,13 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
 
-    override fun getFieldReferables(): List<LocatedReferable> =
-        (parameterFields as List<LocatedReferable>) +
+    override fun getFieldReferables(): List<FieldReferable> =
+        (parameterFields as List<FieldReferable>) +
             classStatList.mapNotNull { it.classField } +
             classFieldSynList
+
+    override fun getImplementedFields(): List<LocatedReferable> =
+        classFieldImpls.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
     override fun getParameters(): List<Abstract.Parameter> = fieldTeleList
 
@@ -56,7 +58,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
 
     override fun getClassFieldImpls(): List<VcClassImplement> = classStatList.mapNotNull { it.classImplement }
 
-    override fun getNumberOfArguments() = 0
+    override fun getArgumentsExplicitness() = emptyList<Boolean>()
 
     override fun getPrecedence() = calcPrecedence(prec)
 
@@ -70,9 +72,21 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<VcDefClassStub>, VcDef
         (dynamicSubgroups + subgroups).mapNotNull { if (it is VcDefFunction && it.coerceKw != null) it else null }
 
     override fun getParameterType(params: List<Boolean>): Any? {
-        val index = params.size - 1
-        val fields = if (superClasses.isEmpty()) fieldReferables else ClassFieldImplScope(this, false).elements
-        return if (index < fields.size) (fields.toList()[index] as? TypedReferable)?.typeOf else ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
+        val fields = ClassReferable.Helper.getNotImplementedFields(this)
+        val it = fields.iterator()
+        var i = 0
+        while (it.hasNext()) {
+            val field = it.next()
+            if (field.isExplicitField == params[i]) {
+                i++
+                if (i == params.size) {
+                    return field.typeOf
+                }
+            } else if (!params[i]) {
+                return if (i == params.size - 1) ExpectedTypeVisitor.ImplicitArgumentError(textRepresentation(), params.size) else null
+            }
+        }
+        return ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
     }
 
     override fun getTypeOf() = ExpectedTypeVisitor.Universe

@@ -62,10 +62,11 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = if (isNew) Kind.NEW else Kind.CLASS_EXT
     override fun visitInferHole(data: Any?, errorData: Abstract.ErrorData?, params: Void?) = Kind.HOLE
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.GOAL
-    override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) = Kind.CASE
+    override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) = Kind.CASE
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, errorData: Abstract.ErrorData?, params: Void?) = Kind.PROJ
     override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.LET
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = Kind.NUMBER
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?): Kind = expr.accept(this, null)
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Kind {
         val expr = parseBinOp(left, sequence)
@@ -74,13 +75,6 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         }
 
         val reference = ((expr as? Concrete.AppExpression)?.function as? Concrete.ReferenceExpression)?.referent
-        return when (reference) {
-            null -> Kind.APP
-            is Abstract.DataDefinition -> Kind.DATA
-            is Abstract.Constructor -> if (reference.clauses.isEmpty()) Kind.CONSTRUCTOR else Kind.CONSTRUCTOR_WITH_CONDITIONS
-            is Abstract.ClassDefinition -> Kind.CLASS
-            is Abstract.ReferableDefinition -> Kind.APP
-            else -> Kind.REFERENCE
-        }
+        return if (reference == null) Kind.APP else getReferenceKind(reference)
     }
 }

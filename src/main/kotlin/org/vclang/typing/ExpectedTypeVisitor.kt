@@ -385,6 +385,11 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
                 }
             }
             is Abstract.ClassField -> Universe
+            is Abstract.CaseArgument -> when (element) {
+                parent.expression -> Data
+                parent.type -> Universe
+                else -> null
+            }
             else -> null
         }
     }
@@ -470,8 +475,8 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         return if (index < 0) null else ref.getParameterType(args.take(index + 1).map { it.isExplicit })
     }
 
-    override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
-        if (expressions.contains(element)) Data else null
+    override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
+        if (element == resultType) Universe else null
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == expression) Sigma(fieldAccs.first()) else null
@@ -483,6 +488,13 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
         if (element == expression) (data as? VcExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } else null
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = null
+
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?) =
+        when (element) {
+            expr -> type
+            type -> Universe
+            else -> null
+        }
 
     override fun visitFunction(def: Abstract.FunctionDefinition): Any? {
         val resultType = def.resultType

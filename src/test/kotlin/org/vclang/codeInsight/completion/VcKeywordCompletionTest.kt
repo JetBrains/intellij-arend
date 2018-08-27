@@ -10,13 +10,13 @@ import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.E
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.EXTENDS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FAKE_NTYPE_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.FIXITY_KWS
-import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LOCAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.GLOBAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HIDING_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.HU_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IMPORT_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.IN_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LEVELS_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LOCAL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LPH_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.LPH_LEVEL_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.NEW_KW_LIST
@@ -203,7 +203,6 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func f (a : Nat) => \\Sigma ({-caret-})",
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}")
-
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f({-caret-})")

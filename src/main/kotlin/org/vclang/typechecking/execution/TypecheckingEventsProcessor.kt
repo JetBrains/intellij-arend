@@ -29,16 +29,17 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     private val testsDuration = mutableMapOf<PsiLocatedReferable, Long>()
 
     fun startTimer(ref: PsiLocatedReferable) {
-        testsDuration.compute(ref, { _, time -> System.currentTimeMillis() + (time ?: 0) })
+        testsDuration.compute(ref) { _, time -> System.currentTimeMillis() + (time ?: 0) }
     }
 
     fun stopTimer(ref: PsiLocatedReferable) {
-        testsDuration.compute(ref, { _, time -> time?.let { System.currentTimeMillis() - it } })
+        testsDuration.compute(ref) { _, time -> time?.let { System.currentTimeMillis() - it } }
     }
 
     override fun onStartTesting() {
         addToInvokeLater {
             myTestsRootProxy.setStarted()
+            myTestsRootProxy.presentation = "Typechecking Results"
             fireOnTestingStarted(myTestsRootProxy)
         }
     }
@@ -133,13 +134,13 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
     fun onTestStarted(ref: PsiLocatedReferable) {
         addToInvokeLater {
-            synchronized(this@TypecheckingEventsProcessor, {
+            synchronized(this@TypecheckingEventsProcessor) {
                 val modulePath = (ref.containingFile as? VcFile)?.modulePath
                 if (modulePath != null) onSuiteStarted(modulePath)
 
                 val fullName = ref.fullName
                 if (definitionToProxy.containsKey(ref)) {
-                    logProblem("Type checking [$fullName] has been already started")
+                    logProblem("Typechecking [$fullName] has been already started")
                     if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
                 }
 
@@ -158,7 +159,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
                 }
 
                 fireOnTestStarted(proxy)
-            })
+            }
         }
     }
 
@@ -211,31 +212,31 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
     // Allows executing/scheduling actions for proxies which need not even exist at the time this routine is invoked
     fun executeProxyAction(ref: PsiLocatedReferable, action: ProxyAction) {
-        synchronized(this, {
+        synchronized(this) {
             val p = definitionToProxy[ref]
             if (p != null) {
                 action.runAction(p)
             } else {
-                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
+                deferredActions.computeIfAbsent(ref) { mutableListOf() }.add(action)
             }
-        })
+        }
     }
 
     fun executeProxyAction(ref: ModuleReferable, action: ProxyAction) {
-        synchronized(this, {
+        synchronized(this) {
             val p = fileToProxy[ref.path]
             if (p != null) {
                 action.runAction(p)
             } else {
-                deferredActions.computeIfAbsent(ref, { mutableListOf() }).add(action)
+                deferredActions.computeIfAbsent(ref) { mutableListOf() }.add(action)
             }
-        })
+        }
     }
 
     fun executeProxyAction(action: ProxyAction) {
-        synchronized(this, {
+        synchronized(this) {
             action.runAction(myTestsRootProxy)
-        })
+        }
     }
 
 

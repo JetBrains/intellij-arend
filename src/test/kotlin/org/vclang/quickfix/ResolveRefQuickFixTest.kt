@@ -573,6 +573,15 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
+    fun `test importing nontop-level items from prelude`() = simpleImportFixTest(
+            """
+               --! A.vc
+               \func lol => fromNat{-caret-}
+            """,
+            """
+               \func lol => Int.fromNat
+            """)
+
     /* fun `test strange behavior of vclang import commands`() = simpleImportFixTest(
             """
                 --! A.vc

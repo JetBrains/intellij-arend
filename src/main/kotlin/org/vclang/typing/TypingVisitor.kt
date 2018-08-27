@@ -49,7 +49,7 @@ class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
         TODO("not implemented")
     }
 
-    override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?): Any? {
+    override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?): Any? {
         TODO("not implemented")
     }
 
@@ -66,6 +66,10 @@ class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
     }
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?): Any? {
+        TODO("not implemented")
+    }
+
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?): Any {
         TODO("not implemented")
     }
 }

@@ -13,6 +13,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
+import com.jetbrains.jetpad.vclang.naming.reference.FieldReferable
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
@@ -22,7 +23,6 @@ import org.vclang.psi.ext.VcNewExprImplMixin
 import org.vclang.psi.ext.impl.InstanceAdapter
 import org.vclang.quickfix.InstanceQuickFix.Companion.INCREASE_IN_INDENT
 import org.vclang.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
-import org.vclang.typing.getNotImplementedFields
 
 interface ExpressionWithCoClauses {
     fun getRangeToReport(): TextRange
@@ -62,8 +62,8 @@ class InstanceQuickFix {
         }
 
         private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: VcDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean): Boolean {
-            val superClassesFields = HashMap<ClassReferable, MutableSet<LocatedReferable>>()
-            val fields = getNotImplementedFields(classReference, expression.getClassReferenceHolder().numberOfArguments, superClassesFields)
+            val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
+            val fields = ClassReferable.Helper.getNotImplementedFields(classReference, expression.getClassReferenceHolder().argumentsExplicitness, superClassesFields)
 
             annotateClauses(expression.getCoClauseList(), holder, superClassesFields, fields.keys)
 
@@ -89,7 +89,7 @@ class InstanceQuickFix {
             }
         }
 
-        private fun annotateClauses(coClauseList: List<VcCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<LocatedReferable>>, fields: MutableSet<LocatedReferable>){
+        private fun annotateClauses(coClauseList: List<VcCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>){
             val classClauses = ArrayList<Pair<VcDefClass,VcCoClause>>()
             for (coClause in coClauseList) {
                 val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue

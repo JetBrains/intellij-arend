@@ -57,6 +57,7 @@
         LET_KW              = '\let'
         IN_KW               = '\in'
         CASE_KW             = '\case'
+        RETURN_KW           = '\return'
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
         RECORD_KW           = '\record'
@@ -152,6 +153,7 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     pin = 4
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldStub"
@@ -162,6 +164,7 @@ classFieldSyn ::= refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn 
     pin = 1
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassFieldSynonym" ]
     mixin = "org.vclang.psi.ext.impl.ClassFieldSynAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldSynStub"
@@ -382,7 +385,7 @@ expr ::= arrExpr
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
 }
 
-private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
+private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -419,11 +422,41 @@ appExpr ::= universeAppExpr
     recoverWhile = expr_recover
 }
 
-caseExpr ::= CASE_KW <<comma_separated_sequence expr>> WITH_KW clausesWithBraces {
+caseExpr ::= CASE_KW <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_KW clausesWithBraces {
     pin = 1
     mixin = "org.vclang.psi.ext.VcCaseExprImplMixin"
     recoverWhile = expr_recover
 }
+
+private returnCaseExpr ::= RETURN_KW expr {
+    pin = 1
+    recoverWhile = returnCaseExpr_recover
+}
+
+private returnCaseExpr_recover ::= !WITH_KW & expr_recover
+
+caseArg ::= caseArgExprAs [COLON expr] {
+    pin = 1
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.CaseArgument" ]
+    mixin = "org.vclang.psi.ext.VcCaseArgImplMixin"
+    recoverWhile = caseArg_recover
+}
+
+private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
+
+private caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier] {
+    pin = 1
+    recoverWhile = caseArgExprAs_recover
+}
+
+private caseArgExprAs_recover ::= !COLON & expr_recover
+
+private caseArgExpr ::= expr {
+    recoverWhile = caseArgExpr_recover
+}
+
+private caseArgExpr_recover ::= !(AS_KW | COLON) & expr_recover
 
 piExpr ::= PI_KW typeTele+ ARROW expr {
     pin = 1
@@ -576,8 +609,12 @@ tuple ::= LPAREN <<comma_separated_sequence tupleExpr>>? RPAREN {
     mixin = "org.vclang.psi.ext.VcTupleImplMixin"
 }
 
-private tupleExpr ::= expr {
+tupleExpr ::= expr [COLON expr] {
+    pin = 1
     recoverWhile = tupleExpr_recover
+    implements = [ "org.vclang.psi.ext.VcCompositeElement"
+                   "com.jetbrains.jetpad.vclang.term.abs.Abstract.Expression" ]
+    mixin = "org.vclang.psi.ext.VcTupleExprImplMixin"
 }
 
 private tupleExpr_recover ::= !(RPAREN | COMMA) & statement_recover
@@ -605,7 +642,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX) & typeTele_recover
+private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.vclang.psi.ext.VcCompositeElement"
@@ -723,6 +760,7 @@ fieldDefIdentifier ::= defIdentifier {
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.ClassField"
+                   "com.jetbrains.jetpad.vclang.naming.reference.FieldReferable"
                    "org.vclang.psi.ext.VcReferenceElement" ]
     mixin = "org.vclang.psi.ext.impl.FieldDefIdentifierAdapter"
     stubClass = "org.vclang.psi.stubs.VcClassFieldParamStub"

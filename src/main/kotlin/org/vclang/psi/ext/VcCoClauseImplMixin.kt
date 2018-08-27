@@ -27,5 +27,5 @@ abstract class VcCoClauseImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcCo
         return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
     }
 
-    override fun getNumberOfArguments() = 0
+    override fun getArgumentsExplicitness() = emptyList<Boolean>()
 }

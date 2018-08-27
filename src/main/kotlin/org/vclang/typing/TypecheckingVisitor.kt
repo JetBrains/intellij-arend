@@ -107,6 +107,7 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
                 }
             is ExpectedTypeVisitor.Definition ->
                 if (!(expectedType.def is VcDefData && actualDef == expectedType.def || expectedType.def is VcDefClass && actualDef is VcDefClass && actualDef.isSubClassOf(expectedType.def))) {
+                    System.out.println("expectedType: " + expectedType + ", actualKind: " + actualKind + ", actualDef: " + actualDef + ", " + actualDef?.textRepresentation())
                     typeMismatch(expectedType.def.textRepresentation(), toString(actualType))
                 }
             is ExpectedTypeVisitor.Sigma -> {
@@ -245,7 +246,7 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         // TODO: Check expected type
     }
 
-    override fun visitCase(data: Any?, expressions: Collection<Abstract.Expression>, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
+    override fun visitCase(data: Any?, caseArsg: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
         // TODO: Try to infer the type of expressions and check that constructors in clauses have correct types.
         //       If cannot infer the type, check that constructors have the same type.
     }
@@ -293,6 +294,12 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
 
         if (!ok) {
             typeMismatchFull(toString(expectedType), if (number >= BigInteger.ZERO) Prelude.NAT.name else Prelude.INT.name)
+        }
+    }
+
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, expectedType: Any?) {
+        if (expectedType != null) {
+            compare(type, expectedType)
         }
     }
 }
