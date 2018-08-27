@@ -433,7 +433,7 @@ private returnCaseExpr ::= RETURN_KW expr {
     recoverWhile = returnCaseExpr_recover
 }
 
-private returnCaseExpr_recover ::= !WITH_KW & statement_recover
+private returnCaseExpr_recover ::= !WITH_KW & expr_recover
 
 caseArg ::= caseArgExprAs [COLON expr] {
     pin = 1
@@ -443,20 +443,20 @@ caseArg ::= caseArgExprAs [COLON expr] {
     recoverWhile = caseArg_recover
 }
 
-private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & statement_recover
+private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
 
 private caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier] {
     pin = 1
     recoverWhile = caseArgExprAs_recover
 }
 
-private caseArgExprAs_recover ::= !COLON & caseArg_recover
+private caseArgExprAs_recover ::= !COLON & expr_recover
 
 private caseArgExpr ::= expr {
     recoverWhile = caseArgExpr_recover
 }
 
-private caseArgExpr_recover ::= !(AS_KW | COLON) & caseArg_recover
+private caseArgExpr_recover ::= !(AS_KW | COLON) & expr_recover
 
 piExpr ::= PI_KW typeTele+ ARROW expr {
     pin = 1
