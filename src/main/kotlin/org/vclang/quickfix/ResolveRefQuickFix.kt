@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.util.containers.isNullOrEmpty
+import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.*
@@ -323,6 +324,10 @@ class ResolveRefQuickFix {
                         }
                     }
 
+                    if (targetFile.libraryName == "prelude" && targetFile.containingDirectory == null)
+                        fullNames.add(fullName) // items from prelude are visible in any context
+
+
                     if (fullNames.isEmpty()) { // target definition is inaccessible in current context
                         modifyingImportsNeeded = true
 
@@ -458,10 +463,9 @@ class ResolveRefQuickFix {
                         referable = referable.originalReferable
                     }
 
-                    if (referable == target) {
+                    if (referable == target || //general case
+                            referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target) //needed for correct import of items from prelude
                         newBlock[fName] = currentBlock[fName]
-                    }
-
                 }
 
                 currentBlock = newBlock
