@@ -383,7 +383,7 @@ class VclangCompletionContributor : CompletionContributor() {
                         and(withParent(PsiErrorElement::class.java), withGrandParents(VcNameTele::class.java, VcTypeTele::class.java, VcDefData::class.java, VcDefFunction::class.java))))
         val ARGUMENT_EXPRESSION_IN_BRACKETS =
                 withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java,
-                        VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcTuple::class.java,
+                        VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcNewExpr::class.java, VcTupleExpr::class.java, VcTuple::class.java,
                         VcAtom::class.java, VcAtomFieldsAcc::class.java, VcAtomArgument::class.java, VcArgumentAppExpr::class.java)
         val INSTANCE_CONTEXT = withAncestors(VcRefIdentifier::class.java, VcLongName::class.java, VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java, VcArgumentAppExpr::class.java, VcDefInstance::class.java)
         val GOAL_IN_COPATTERN = VclangCompletionContributor.withAncestors(VcLiteral::class.java, VcAtom::class.java, VcAtomFieldsAcc::class.java,
@@ -493,19 +493,13 @@ class VclangCompletionContributor : CompletionContributor() {
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
             System.out.println("position: "+parameters.position.javaClass + " text: " + parameters.position.text)
-            System.out.println("position.parent: "+parameters.position.parent?.javaClass + " text: " + parameters.position.parent?.text)
-            System.out.println("position.grandparent: "+parameters.position.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.text)
-            System.out.println("position.great-grandparent: "+parameters.position.parent?.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.javaClass + " text: " + parameters.position.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
-            System.out.println("position.great-great-great-great-great-great-great-great-great-great-great-grandparent: "+parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.javaClass+ " text: " + parameters.position.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.parent?.text)
+            var i = 1
+            var pp = parameters.position.parent
+            while (i < 14 && pp != null) {
+                System.out.format("position.parent(%2d): %-40s text: %-50s\n",i, pp.javaClass.simpleName, pp.text)
+                pp = pp.parent
+                i++
+            }
             System.out.println("originalPosition.parent: "+parameters.originalPosition?.parent?.javaClass)
             System.out.println("originalPosition.grandparent: "+parameters.originalPosition?.parent?.parent?.javaClass)
             val jointData = elementsOnJoint(parameters.originalFile, parameters.offset)

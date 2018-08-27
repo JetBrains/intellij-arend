@@ -203,12 +203,9 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\func f (a : Nat) => \\Sigma ({-caret-})",
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}")
-
-    /* TODO
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f({-caret-})")
-    */
 
     fun `test expression keywords in teles`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
@@ -367,12 +364,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             //,"\\func lol => lol \\levels (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
             )
 
-    /* TODO
     fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
             "\\func lol => lol \\levels ({-caret-})",
             "\\func lol => lol \\levels \\lp ({-caret-})",
             "\\func lol => lol \\lp ({-caret-})")
-    */
 
     fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol => lol \\levels \\lp \\lh {-caret-}",
