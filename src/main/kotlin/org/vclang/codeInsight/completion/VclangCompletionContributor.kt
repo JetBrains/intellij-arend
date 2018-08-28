@@ -24,6 +24,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
+
         extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(VcClassFieldSyn::class.java),
                 KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
         extend(CompletionType.BASIC, AS_CONTEXT, ProviderWithCondition({ parameters, _ -> (parameters.position.parent.parent as VcNsId).asKw == null },
@@ -221,7 +222,7 @@ class VclangCompletionContributor : CompletionContributor() {
             pairingWordCondition({ position: PsiElement? ->
                 if (position is VcCaseArg) {
                     val pp = position.parent as? VcCaseExpr
-                    pp != null && pp.caseArgList.lastOrNull() == position
+                    pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
                 } else false
             }, pos)
         }
@@ -322,7 +323,7 @@ class VclangCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -371,7 +372,7 @@ class VclangCompletionContributor : CompletionContributor() {
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
-        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), afterLeaf(AS_KW),
+        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(VcNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(VcConstructor::class.java, VcDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(VcConstructor::class.java, VcConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(VcClassField::class.java, VcClassStat::class.java)), //class field

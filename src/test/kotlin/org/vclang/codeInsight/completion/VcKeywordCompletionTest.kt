@@ -43,7 +43,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func foo (n : Nat) \\elim n | {-caret-}zero =>",
-                    "\\func foo (n : Nat) => {-caret-}n ")
+                    "\\func foo (n : Nat) => {-caret-}n ",
+                    "\\func lol (a : Nat) => \\case a \\as {-caret-} \\with { }")
 
     fun `test as completion in namespace command`() =
             checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.SAME_ELEMENTS, "\\import B (lol {-caret-})")
@@ -340,7 +341,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}")
 
     fun `test absence of return completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}")
+            "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}",
+            "\\func lol (a : Nat) => \\case a {-caret-} \\return Nat {}")
 
     fun `test absence of with completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-} \\with {}",
