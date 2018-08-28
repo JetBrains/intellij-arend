@@ -344,12 +344,14 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
 
     fun `test absence of return completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}",
-            "\\func lol (a : Nat) => \\case a {-caret-} \\return Nat {}")
+            "\\func lol (a : Nat) => \\case a {-caret-} \\return Nat {}",
+            "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
     fun `test absence of with completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-} \\with {}",
             "\\func lol (a : Nat) => \\case \\case a \\with {-caret-}",
-            "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}")
+            "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}",
+            "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
     fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) {-caret-}",

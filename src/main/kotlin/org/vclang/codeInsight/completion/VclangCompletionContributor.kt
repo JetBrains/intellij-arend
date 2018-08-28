@@ -214,7 +214,9 @@ class VclangCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW)))), pairingWordProvider(pairingInCondition, KeywordCompletionProvider(IN_KW_LIST)))
 
-        extend(CompletionType.BASIC, and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW)))), pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
+        val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
+
+        extend(CompletionType.BASIC, caseContext, pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
 
         val asCondition1 = { position: PsiElement? -> position is VcCaseArg && position.asKw == null }
         val asCondition2 = { position: PsiElement? ->
@@ -238,8 +240,8 @@ class VclangCompletionContributor : CompletionContributor() {
             }, pos)
         }
 
-        extend(CompletionType.BASIC, CASE_CONTEXT, pairingWordProvider(argEndCondition, KeywordCompletionProvider(AS_KW_LIST)))
-        extend(CompletionType.BASIC, CASE_CONTEXT, pairingWordProvider(returnCondition, KeywordCompletionProvider(RETURN_KW_LIST)))
+        extend(CompletionType.BASIC, caseContext, pairingWordProvider(argEndCondition, KeywordCompletionProvider(AS_KW_LIST)))
+        extend(CompletionType.BASIC, caseContext, pairingWordProvider(returnCondition, KeywordCompletionProvider(RETURN_KW_LIST)))
 
         val emptyTeleList = { l: List<Abstract.Parameter> ->
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
