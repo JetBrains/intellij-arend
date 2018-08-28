@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.intellij.lang.annotations.Language
 import org.vclang.psi.parentOfType
 
@@ -77,7 +78,7 @@ class FileTree(private val rootDirectory: Entry.Directory) {
 
     fun assertEquals(baseDir: VirtualFile) {
         fun go(expected: Entry.Directory, actual: VirtualFile) {
-            val actualChildren = actual.children.associateBy { it.name }
+            val actualChildren = actual.children.filter { it.extension != FileUtils.LIBRARY_EXTENSION.drop(1) }.associateBy { it.name }
             check(expected.children.keys == actualChildren.keys) {
                 "Mismatch in directory ${actual.path}\n" +
                         "Expected: ${expected.children.keys}\n" +

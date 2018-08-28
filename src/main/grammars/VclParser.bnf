@@ -18,15 +18,36 @@
         BINARY = "binariesDir"
         MODULES = "modules"
         COLON = ":"
+        ID = "ID"
+
+        BLOCK_COMMENT_START = '{-'
+        BLOCK_COMMENT_END   = '-}'
+        LINE_COMMENT        = "regexp:--[^\r\n]*"
+        BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
     ]
 
 }
 
-statements ::= statement*
+statements ::= (!<<eof>> statement)*
 
-statement ::= deps_st | source_st | binary_st | modules_st
+statement ::= depsStat | sourceStat | binaryStat | modulesStat
 
-deps_st ::= DEPS COLON LIBNAME*
-source_st ::= SOURCE COLON DIRNAME
-binary_st ::= BINARY COLON DIRNAME
-modules_st ::= MODULES COLON MODNAME*
+depsStat ::= DEPS COLON libName* {
+    pin = 1
+}
+
+sourceStat ::= SOURCE COLON DIRECTORY_NAME {
+    pin = 1
+}
+
+binaryStat ::= BINARY COLON DIRECTORY_NAME {
+    pin = 1
+}
+
+modulesStat ::= MODULES COLON modName* {
+    pin = 1
+}
+
+libName ::= LIBRARY_NAME
+
+modName ::= MODULE_NAME

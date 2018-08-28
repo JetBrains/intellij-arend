@@ -3,14 +3,13 @@ package org.vclang.quickfix
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.intellij.util.containers.isNullOrEmpty
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
-import org.vclang.module.util.findVcFilesAndDirectories
+import org.vclang.module.util.vclFile
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
@@ -23,14 +22,9 @@ interface ResolveRefFixAction {
 }
 
 class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
-    override fun toString(): String {
-        return "Import file " + importFile.fullName
-    }
+    override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid(): Boolean {
-        return !currentFile.module?.findVcFilesAndDirectories(importFile.modulePath).isNullOrEmpty()
-    }
-
+    override fun isValid() = currentFile.module?.vclFile?.findVcFile(importFile.modulePath) == importFile
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName

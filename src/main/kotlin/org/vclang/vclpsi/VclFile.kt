@@ -1,7 +1,6 @@
 package org.vclang.vclpsi
 
 import com.intellij.extapi.psi.PsiFileBase
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.io.FileUtil
@@ -11,90 +10,71 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
-import com.intellij.psi.tree.TokenSet
-import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.jetpad.vclang.library.LibraryDependency
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.VclFileType
 import org.vclang.VclLanguage
-import org.vclang.module.util.getVcFiles
-import org.vclang.module.util.roots
+import org.vclang.module.util.defaultRoot
 import org.vclang.psi.VcFile
 import org.vclang.psi.module
-import java.nio.file.Path
 import java.nio.file.Paths
 
 class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLanguage.INSTANCE) {
     override fun getFileType(): FileType = VclFileType
 
-    companion object {
-        fun getDefaultBinPath(module: Module): Path? {
-            return module.moduleFilePath.let {Paths.get(FileUtil.toSystemDependentName(it)).resolveSibling(".output")}
+    private val Module.defaultBinDir: String
+        get() = Paths.get(FileUtil.toSystemDependentName(moduleFilePath)).resolveSibling(".output").toString()
+
+    val sourcesDir: String?
+        get() {
+            val root = module?.defaultRoot?.path
+            val dir = children.filterIsInstance<VclStatement>().mapNotNull { it.sourceStat }.firstOrNull()?.directoryName?.text ?: return root
+            return when {
+                root != null -> Paths.get(root).resolve(dir).toString()
+                Paths.get(dir).isAbsolute -> dir
+                else -> null
+            }
         }
-        fun getDefaultSrcPath(module: Module?): Path? {
-            return module?.roots?.firstOrNull()?.name?.let { Paths.get(FileUtil.toSystemDependentName(it)) }
+
+    val binariesDir: String?
+        get() = children.filterIsInstance<VclStatement>().mapNotNull { it.binaryStat }.firstOrNull()?.directoryName?.text ?: module?.defaultBinDir
+
+    val sourcesDirFile: VirtualFile?
+        get() {
+            val root = module?.defaultRoot
+            val stat = children.filterIsInstance<VclStatement>().map { it.sourceStat }.firstOrNull() ?: return root
+            val dir = stat.directoryName?.text ?: return null
+            val path = when {
+                root != null -> Paths.get(root.path).resolve(dir).toString()
+                Paths.get(dir).isAbsolute -> dir
+                else -> return null
+            }
+            return VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(path)
         }
+
+    fun containsModule(modulePath: ModulePath): Boolean {
+        val moduleStr = modulePath.toString()
+        var found = false
+        return children.any {
+            val moduleStat = (it as? VclStatement)?.modulesStat
+            if (moduleStat != null) {
+                found = true
+                moduleStat.modNameList.any { it.moduleName.text == moduleStr }
+            } else {
+                false
+            }
+        } || !found && findVcFile(modulePath) != null
     }
 
-    val sourcesDirPath: Path?
-        get() {
-            var path: Path? = null //getDefaultSrcPath(module)
-            PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
-                override fun visitSourceSt(sourceSt: VclSourceSt) {
-                    path = sourceSt.node.getChildren(TokenSet.create(VclElementTypes.DIRNAME)).firstOrNull()?.text.let {
-                        Paths.get(it)
-                    }
-                }
-            }); true }
-            return path
-        }
-
-    val binariesDirPath: Path?
-        get() {
-            var path: Path? = null
-            PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
-                override fun visitBinarySt(binarySt: VclBinarySt) {
-                    path = binarySt.node.getChildren(TokenSet.create(VclElementTypes.DIRNAME)).firstOrNull()?.text.let {
-                        Paths.get(it)
-                    }
-                }
-            }); true }
-            return path ?: module?.let { getDefaultBinPath(it) }
-        }
-
-    val sourcesDir: VirtualFile?
-        get() {
-            val url = sourcesDirPath?.let { VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL,
-                    it.toString()) } ?: return null
-            return VirtualFileManager.getInstance().findFileByUrl(url)
-        }
-
     val libModules: List<ModulePath>
-        get() {
-            var modules = module?.getVcFiles(sourcesDir) ?: emptyList()
-            PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
-                override fun visitModulesSt(modulesSt: VclModulesSt) {
-                    val modPaths = modulesSt.node.getChildren(TokenSet.create(VclElementTypes.MODNAME)).map { it.text }
-                    modules = modules.filter { modPaths.contains(it.modulePath.toString()) }
-                }
-            }); true }
-            return modules.map { it.modulePath }
-        }
+        get() = children.flatMap { (it as? VclStatement)?.modulesStat?.modNameList?.map { ModulePath.fromString(it.moduleName.text) } ?: emptyList() }
 
     val dependencies: List<LibraryDependency>
-        get() {
-            var deps = emptyList<LibraryDependency>()
-            PsiTreeUtil.processElements(this) { it.accept(object: VclVisitor() {
-                override fun visitDepsSt(depsSt: VclDepsSt) {
-                    deps = depsSt.node.getChildren(TokenSet.create(VclElementTypes.LIBNAME)).map { LibraryDependency(it.text) }
-                }
-            }); true }
-            return deps
-        }
+        get() = children.flatMap { (it as? VclStatement)?.depsStat?.libNameList?.map { LibraryDependency(it.text) } ?: emptyList() }
 
     fun findVcFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystemItem> {
-        var dirs = sourcesDir?.let{listOf(it)} ?: module?.roots?.asList() ?: return emptyList()
+        var dirs = sourcesDirFile?.let { listOf(it) } ?: return emptyList()
         val path = modulePath.toList()
         val psiManager = PsiManager.getInstance(project)
         for ((i, name) in path.withIndex()) {
@@ -115,6 +95,6 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
         return emptyList()
     }
 
-    fun findVcFiles(modulePath: ModulePath): List<VcFile> =
-            runReadAction { findVcFilesAndDirectories(modulePath) }.filterIsInstance<VcFile>()
+    fun findVcFile(modulePath: ModulePath): VcFile? =
+        findVcFilesAndDirectories(modulePath).filterIsInstance<VcFile>().firstOrNull()
 }

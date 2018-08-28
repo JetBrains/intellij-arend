@@ -15,10 +15,12 @@ import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.IStubFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.VclLanguage
-import org.vclang.vclpsi.VclElementTypes
-import org.vclang.vclpsi.VclFile
 import org.vclang.lang.lexer.VclLexer
 import org.vclang.lang.parser.VclParser
+import org.vclang.vclpsi.VclElementTypes
+import org.vclang.vclpsi.VclElementTypes.BLOCK_COMMENT
+import org.vclang.vclpsi.VclElementTypes.LINE_COMMENT
+import org.vclang.vclpsi.VclFile
 import java.io.Reader
 
 class VclParserDefinition : ParserDefinition {
@@ -34,7 +36,7 @@ class VclParserDefinition : ParserDefinition {
 
     override fun createElement(node: ASTNode?): PsiElement = VclElementTypes.Factory.createElement(node)
 
-    override fun getCommentTokens(): TokenSet = TokenSet.EMPTY
+    override fun getCommentTokens() = TokenSet.create(LINE_COMMENT, BLOCK_COMMENT)
 
     class VclFileStub(file: VclFile?) : PsiFileStubImpl<VclFile>(file) {
 

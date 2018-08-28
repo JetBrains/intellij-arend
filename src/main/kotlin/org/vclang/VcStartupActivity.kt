@@ -4,19 +4,13 @@ import com.intellij.ProjectTopics
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
-import com.intellij.openapi.roots.ModuleRootModificationUtil
-import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.startup.StartupActivity
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import org.vclang.module.VcPreludeLibrary
@@ -25,7 +19,6 @@ import org.vclang.module.util.isVcModule
 import org.vclang.resolving.PsiConcreteProvider
 import org.vclang.typechecking.PsiInstanceProviderSet
 import org.vclang.typechecking.TypeCheckingService
-import java.nio.file.Paths
 
 
 class VcStartupActivity : StartupActivity {
@@ -65,20 +58,5 @@ class VcStartupActivity : StartupActivity {
                 service.libraryManager.unload()
             }
         })
-
-        WriteAction.run<Exception> {
-            val table = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
-            val tableModel = table.modifiableModel
-            val library = tableModel.createLibrary("test")
-            val pathUrl = VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL, Paths.get(ProjectRootManager.getInstance(project).contentRoots[0].path).resolve("..//vclang.jar").toString())
-            val file = VirtualFileManager.getInstance().findFileByUrl(pathUrl)
-            if (file != null) {
-                val libraryModel = library.modifiableModel
-                libraryModel.addRoot(file, OrderRootType.CLASSES)
-                libraryModel.commit()
-                tableModel.commit()
-                ModuleRootModificationUtil.addDependency(project.vcModules.elementAt(0), library)
-            }
-        }
     }
 }

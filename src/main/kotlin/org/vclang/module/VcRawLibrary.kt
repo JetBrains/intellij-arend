@@ -1,15 +1,6 @@
 package org.vclang.module
 
-import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.roots.ModuleRootModificationUtil
-import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiManager
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
@@ -21,55 +12,37 @@ import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
 import com.jetbrains.jetpad.vclang.source.FileBinarySource
 import com.jetbrains.jetpad.vclang.source.GZIPStreamBinarySource
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import com.jetbrains.jetpad.vclang.util.FileUtils
-import org.vclang.VclFileType
-import org.vclang.vclpsi.*
+import org.vclang.module.util.vclFile
 import org.vclang.typechecking.TypeCheckingService
+import org.vclang.vclpsi.VclFile
 import java.nio.file.Paths
-import org.vclang.vclpsi.VclElementTypes.*
-import org.vclang.module.util.getVcFiles
-import org.vclang.vcModules
-import java.io.File
-import java.nio.file.Path
 
 
 class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
-    private var headerFile: SmartPsiElementPointer<VclFile>? = null
+    private var headerFilePtr: SmartPsiElementPointer<VclFile>? = null
 
-    companion object {
-        const val MAX_HEADER_LINE_LENGTH = 100
-    }
-
-    fun getHeaderFile(): VclFile? = headerFile?.element
+    val headerFile: VclFile?
+        get() = headerFilePtr?.element
 
     override fun getName() = module.name
 
-    override fun getModuleGroup(modulePath: ModulePath) =
-            headerFile?.element?.findVcFiles(modulePath)?.firstOrNull  { loadedModules.contains(it.modulePath) }
-
-    override fun getBinarySource(modulePath: ModulePath) =
-            headerFile?.element?.binariesDirPath.let {GZIPStreamBinarySource(FileBinarySource(it, modulePath))}
+    override fun getModuleGroup(modulePath: ModulePath) = headerFilePtr?.element?.findVcFile(modulePath)
 
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
-        val headerPath = Paths.get(FileUtil.toSystemDependentName(module.moduleFilePath)).resolveSibling(name + FileUtils.LIBRARY_EXTENSION)
-        val headerUrl = VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL,
-                headerPath.toString())
-        var headerVirtFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
-        if (headerVirtFile == null) {
+        // TODO: Do not create a header file here
+        /*
+        if (headerVirtualFile == null) {
             val appendString = {acc:String, s:String ->
                 if ("$acc $s".length - "$acc $s".lastIndexOf("\n") > MAX_HEADER_LINE_LENGTH) "$acc\n $s" else "$acc $s"
             }
 
-            val templateStr = loadedModules.fold(MODULES.toString() + COLON,
-                    {acc, m -> appendString(acc, m.toString())}) + "\n" +
-                    "\n" + BINARY + COLON + " " + VclFile.getDefaultBinPath(module)?.toString()
+            val templateStr = loadedModules.fold(MODULES.toString() + COLON) { acc, m -> appendString(acc, m.toString())} + "\n\n" + BINARY + COLON + " " + module.defaultBinDir
             File(headerPath.toString()).printWriter().use { out -> out.print(templateStr) }
-            headerVirtFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
+            headerVirtualFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
         }
-        //else if (headerVirtFile.fileType == VclFileType) {
-        headerFile = headerVirtFile?.let {  (PsiManager.getInstance(module.project).findFile(it) as VclFile)}?.let{
-            SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it)
-        }
+        */
+        //else if (headerVirtualFile.fileType == VclFileType) {
+        headerFilePtr = module.vclFile?.let { SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it) }
 
         /* TODO: implement this properly
         val deps = getHeaderFile()?.dependencies
@@ -93,7 +66,7 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
             }
         }*/
         //}
-        return LibraryHeader(loadedModules, headerFile?.element?.dependencies ?: emptyList())
+        return LibraryHeader(loadedModules, headerFilePtr?.element?.dependencies ?: emptyList())
     }
 
     override fun load(libraryManager: LibraryManager?): Boolean {
@@ -103,12 +76,15 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
         return true
     }
 
-    override fun getLoadedModules() = headerFile?.element?.libModules ?: module.getVcFiles(module.moduleFile?.parent).map { it.modulePath }
+    override fun getLoadedModules() = headerFilePtr?.element?.libModules ?: emptyList()
 
-    override fun getRawSource(modulePath: ModulePath) =  headerFile?.element?.findVcFiles(modulePath)?.firstOrNull()?.let { VcRawSource(it) }
-    // module.findVcFiles(modulePath).firstOrNull()?.let { VcRawSource(it) }
+    override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findVcFile(modulePath)?.let { VcRawSource(it) } ?: VcFakeRawSource(modulePath)
 
-    override fun needsTypechecking(): Boolean = true
+    override fun getBinarySource(modulePath: ModulePath) = headerFilePtr?.element?.binariesDir?.let { GZIPStreamBinarySource(FileBinarySource(Paths.get(it), modulePath)) }
+
+    override fun containsModule(modulePath: ModulePath) = headerFilePtr?.element?.containsModule(modulePath) == true
+
+    override fun needsTypechecking() = true
 
     override fun unloadDefinition(referable: LocatedReferable) {
         TypeCheckingService.getInstance(module.project).updateDefinition(referable)
