@@ -77,7 +77,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
                     "\\import B \\func foo => 0\n {-caret-}\\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
                     "\\import B \\func foo => 0 \\data bar | foobar\n {-caret-}\\func f => 0 \\where { \\func g => 1 } ",
                     "\\import B \\hiding (a)\n{-caret-}\\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
-                    "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}")
+                    "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}",
+                    "\\class A {}\n {-caret-}")
 
     private val kwSuite1 =
             arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
@@ -112,7 +113,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test no import in completion 1`() =
             checkKeywordCompletionVariants(IMPORT_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
-                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}")
+                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
+                    "\\class A {\n {-caret-} }")
 
     fun `test no coerce in global context`() =
             checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,

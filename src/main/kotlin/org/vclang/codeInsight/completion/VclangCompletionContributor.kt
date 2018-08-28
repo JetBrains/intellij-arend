@@ -61,7 +61,12 @@ class VclangCompletionContributor : CompletionContributor() {
                         }))
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { it is VcWhere || it is VcDefClass }.none() },
+                ProviderWithCondition({ parameters, _ ->
+                    val pp = parameters.position
+                    val ppp = pp.parent
+                    pp.ancestors.filter { it is VcWhere || it is VcDefClass }.none() ||
+                            (ppp is PsiErrorElement && ppp.parent is VcDefClass && ppp.nextSibling == null)
+                },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
 
         val coerceAdmissibleAncestors = or(and(ofTypeK(VcWhere::class.java), withParents(VcDefData::class.java, VcDefClass::class.java)), ofTypeK(VcDefClass::class.java))
