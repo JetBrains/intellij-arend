@@ -318,24 +318,31 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case (a + 2) {-caret-}",
             "\\func lol (a : Nat) => \\case \\case a {-caret-}",
             "\\func lol (a : Nat) => (\\case a + 2 {-caret-})",
-            "\\func lol (a : Nat) => \\case \\case a \\with {} {-caret-}"
+            "\\func lol (a : Nat) => \\case \\case a \\with {} {-caret-}",
+            "\\func lol (a : Nat) => \\case a \\as a' {-caret-}",
+            "\\func lol (a : Nat) => \\case a \\as a' : Nat {-caret-}"
             //, "\\func lol (a : Nat) => \\case a {-caret-} {}" //Fixme
     )
 
     fun `test as keyword completion`() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\case a {-caret-}",
             "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}",
-            "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}\\return Nat \\with {}")
+            "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}\\return Nat \\with {}",
+            "\\func lol (a : Nat) => \\case a {-caret-}: Nat")
+
+    fun `test absence of as completion`() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol (a : Nat) => \\case a \\as a' : Nat {-caret-}",
+            "\\func lol (a : Nat) => \\case a \\as a' {-caret-}")
 
     fun `test return keyword completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\case a {-caret-}",
             "\\func lol (a : Nat) => \\case a \\as a1 {-caret-}\\with {}",
             "\\func lol (a : Nat) => \\case a \\as a1, b {-caret-}")
 
-    fun `test return keyword completion 2`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+    fun `test absence of return completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-}, b \\with {}")
 
-    fun `test absence of with keyword completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+    fun `test absence of with completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a {-caret-} \\with {}",
             "\\func lol (a : Nat) => \\case \\case a \\with {-caret-}",
             "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}")
