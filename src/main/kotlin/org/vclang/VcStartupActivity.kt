@@ -1,15 +1,11 @@
 package org.vclang
 
 import com.intellij.ProjectTopics
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.startup.StartupActivity
 import com.jetbrains.jetpad.vclang.error.DummyErrorReporter
 import com.jetbrains.jetpad.vclang.prelude.Prelude
@@ -23,10 +19,6 @@ import org.vclang.typechecking.TypeCheckingService
 
 class VcStartupActivity : StartupActivity {
     override fun runActivity(project: Project) {
-        if (ProjectRootManager.getInstance(project).contentSourceRoots.isEmpty()) {
-            Notifications.Bus.notify(Notification("","No source roots detected!", "", NotificationType.ERROR), project)
-        }
-
         val service = TypeCheckingService.getInstance(project)
 
         // TODO[references]: Load typechecked prelude library from resources

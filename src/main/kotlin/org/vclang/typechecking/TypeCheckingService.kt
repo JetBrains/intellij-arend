@@ -76,7 +76,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 VcResolveCache.clearCache()
             }
         })
-        VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener())
+        VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
     }
 
     override fun getTypechecked(definition: VcDefinition) =

@@ -82,16 +82,12 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
         return prelude != null && super.load(libraryManager)
     }
 
-    override fun unload() {
-        throw IllegalStateException("prelude cannot be unloaded")
-    }
-
     override fun unloadGroup(group: Group) {
-        throw IllegalStateException("prelude cannot be unloaded")
+
     }
 
     override fun unloadDefinition(referable: LocatedReferable) {
-        throw IllegalStateException("prelude cannot be unloaded")
+
     }
 
     fun resolveNames(referableConverter: ReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
