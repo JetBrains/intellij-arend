@@ -1,7 +1,9 @@
 package org.vclang.typechecking
 
 import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.*
 import com.intellij.psi.*
 import com.intellij.psi.impl.AnyPsiChangeListener
 import com.intellij.psi.impl.PsiManagerImpl
@@ -20,6 +22,9 @@ import com.jetbrains.jetpad.vclang.typechecking.SimpleTypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
+import com.jetbrains.jetpad.vclang.util.FileUtils
+import org.vclang.module.VcRawLibrary
+import org.vclang.module.util.defaultRoot
 import org.vclang.psi.VcDefinition
 import org.vclang.psi.VcElementTypes
 import org.vclang.psi.VcFile
@@ -71,6 +76,7 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
                 VcResolveCache.clearCache()
             }
         })
+        VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener())
     }
 
     override fun getTypechecked(definition: VcDefinition) =
@@ -90,6 +96,49 @@ class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingServic
         } else if (referable is DataDefinitionAdapter) {
             for (constructor in referable.constructors) {
                 simpleReferableConverter.remove(constructor)
+            }
+        }
+    }
+
+    private inner class MyVirtualFileListener : VirtualFileListener {
+        override fun beforeFileDeletion(event: VirtualFileEvent) {
+            process(event, event.fileName, event.parent, null)
+        }
+
+        override fun fileCreated(event: VirtualFileEvent) {
+            process(event, event.fileName, null, event.parent)
+        }
+
+        private fun process(event: VirtualFileEvent, fileName: String, oldParent: VirtualFile?, newParent: VirtualFile?) {
+            if (oldParent == null && newParent == null) {
+                return
+            }
+            if (fileName.endsWith(FileUtils.LIBRARY_EXTENSION)) {
+                val module = ModuleUtil.findModuleForFile(event.file, project) ?: return
+                if (fileName == module.name + FileUtils.LIBRARY_EXTENSION) {
+                    val root = module.defaultRoot
+                    if (root != null && root == oldParent) {
+                        libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
+                    }
+                    if (root != null && root == newParent) {
+                        libraryManager.loadLibrary(VcRawLibrary(module, typecheckerState))
+                    }
+                }
+            }
+        }
+
+        override fun fileMoved(event: VirtualFileMoveEvent) {
+            process(event, event.fileName, event.oldParent, event.newParent)
+        }
+
+        override fun fileCopied(event: VirtualFileCopyEvent) {
+            process(event, event.fileName, null, event.parent)
+        }
+
+        override fun propertyChanged(event: VirtualFilePropertyEvent) {
+            if (event.propertyName == VirtualFile.PROP_NAME) {
+                process(event, event.oldValue as String, event.parent, null)
+                process(event, event.newValue as String, null, event.parent)
             }
         }
     }
