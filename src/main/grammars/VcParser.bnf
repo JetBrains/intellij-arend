@@ -287,9 +287,11 @@ functionBody ::= functionTermBody | elim? functionClauses {
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 
-dataBody ::= elim constructorClause* | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)* {
+dataBody ::= elim constructorClauses | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)* {
     recoverWhile = statement_recover
 }
+
+private constructorClauses ::= LBRACE constructorClause* RBRACE | constructorClause* { pin(".*") = 1 }
 
 private fat_arrow_def_pipe ::= FAT_ARROW {
     recoverWhile = def_pipe_recover
