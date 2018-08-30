@@ -35,19 +35,16 @@ class VcModuleWizardStep(
                 val projectRoot = contentEntry.file ?: return
 
                 // TODO: createChildDirectory???
-                (VcConstants.ProjectLayout.sources + VcConstants.ProjectLayout.tests)
-                        .filter { projectRoot.findChild(it) == null }
-                        .forEach { projectRoot.createChildDirectory(null, it) }
+                VcConstants.ProjectLayout.sources
+                    .filter { projectRoot.findChild(it) == null }
+                    .forEach { projectRoot.createChildDirectory(null, it) }
 
                 fun makeVfsUrl(dirName: String): String = FileUtil.join(projectRoot.url, dirName)
 
                 VcConstants.ProjectLayout.sources.forEach {
                     contentEntry.addSourceFolder(makeVfsUrl(it), false)
                 }
-                VcConstants.ProjectLayout.tests.forEach {
-                    contentEntry.addSourceFolder(makeVfsUrl(it), true)
-                }
-                contentEntry.addExcludeFolder(makeVfsUrl(VcConstants.ProjectLayout.cache))
+                contentEntry.addExcludeFolder(makeVfsUrl(VcConstants.ProjectLayout.output))
             }
         }
     }

@@ -1,10 +1,12 @@
 package org.vclang
 
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -12,6 +14,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
+import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.intellij.lang.annotations.Language
 import org.vclang.module.VcRawLibrary
 import org.vclang.psi.parentOfType
@@ -27,6 +30,23 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
 
     override fun getTestDataPath(): String = "${VcTestCase.testResourcesPath}/$dataPath"
 
+    override fun setUp() {
+        super.setUp()
+
+        val root = ModuleRootManager.getInstance(myModule).contentEntries.firstOrNull()?.file
+        if (root != null) {
+            val name = myModule.name + FileUtils.LIBRARY_EXTENSION
+            if (root.findChild(name) == null) {
+                runWriteAction { root.createChildData(root, name) }
+            }
+        }
+
+        val service = TypeCheckingService.getInstance(myModule.project)
+        val library = VcRawLibrary(myModule, service.typecheckerState)
+        service.libraryManager.unloadLibrary(library)
+        service.libraryManager.loadLibrary(library)
+    }
+
     override fun runTest() {
         val projectDescriptor = projectDescriptor
         val reason = (projectDescriptor as? VclangProjectDescriptorBase)?.skipTestReason
@@ -39,7 +59,7 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
     }
 
     protected val fileName: String
-        get() = "$testName.vc"
+        get() = testName + FileUtils.EXTENSION
 
     private val testName: String
         get() = camelOrWordsToSnake(getTestName(true))
@@ -90,23 +110,14 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
         ) {
             super.configureModule(module, model, contentEntry)
 
-            val service = TypeCheckingService.getInstance(module.project)
-            val library = VcRawLibrary(module, service.typecheckerState)
-            service.libraryManager.loadLibrary(library)
-
             skipTestReason ?: return
-            val libraries = LibraryTablesRegistrar.getInstance()
-                    .getLibraryTable(module.project).libraries
-            libraries.forEach { model.addLibraryEntry(it) }
+            LibraryTablesRegistrar.getInstance().getLibraryTable(module.project).libraries.forEach { model.addLibraryEntry(it) }
         }
     }
 
     protected object DefaultDescriptor : VclangProjectDescriptorBase()
 
-    inner class InlineFile(
-            private @Language("Vclang") val code: String,
-            name: String = "Main.vc"
-    ) {
+    inner class InlineFile(@Language("Vclang") private val code: String, name: String = "Main.vc") {
         private val hasCaretMarker = "{-caret-}" in code
 
         init {

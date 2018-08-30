@@ -46,6 +46,9 @@
         <lang.parserDefinition language="Vclang"
                                implementationClass="org.vclang.parser.VcParserDefinition"/>
 
+        <lang.parserDefinition language="LibLang"
+                               implementationClass="org.vclang.parser.VclParserDefinition"/>
+
         <!-- Name Validator -->
 
         <lang.namesValidator language="Vclang" implementationClass="org.vclang.refactoring.VcNamesValidator"/>
@@ -54,6 +57,9 @@
 
         <lang.syntaxHighlighterFactory language="Vclang"
                                        implementationClass="org.vclang.highlight.VcSyntaxHighlighterFactory"/>
+
+        <lang.syntaxHighlighterFactory language="LibLang"
+                                       implementationClass="org.vclang.vclhighlight.VclSyntaxHighlighterFactory"/>
 
         <!-- Commenter -->
 

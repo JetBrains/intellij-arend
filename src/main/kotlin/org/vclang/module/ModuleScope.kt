@@ -8,7 +8,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.EmptyScope
 import com.jetbrains.jetpad.vclang.naming.scope.Scope
 import com.jetbrains.jetpad.vclang.util.FileUtils
-import org.vclang.module.util.roots
+import org.vclang.module.util.vclFile
 import org.vclang.psi.VcFile
 import org.vclang.psi.ext.PsiModuleReferable
 
@@ -19,7 +19,7 @@ class ModuleScope private constructor(private val module: Module, private val ro
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
         val psiManager = PsiManager.getInstance(module.project)
-        for (root in rootDirs ?: module.roots.asList()) {
+        for (root in rootDirs ?: module.vclFile?.sourcesDirFile?.let { listOf(it) } ?: emptyList()) {
             for (file in root.children) {
                 if (file.isDirectory) {
                     val name = file.name
@@ -38,7 +38,7 @@ class ModuleScope private constructor(private val module: Module, private val ro
     }
 
     override fun resolveNamespace(name: String): Scope {
-        val newRootDirs = (rootDirs ?: module.roots.asList()).mapNotNull { root ->
+        val newRootDirs = (rootDirs ?: module.vclFile?.sourcesDirFile?.let { listOf(it) } ?: emptyList()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {
                     return@mapNotNull if (file.isDirectory) file else null
