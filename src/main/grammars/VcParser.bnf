@@ -1,5 +1,5 @@
 {
-    parserClass = "org.vclang.lang.parser.VcParser"
+    parserClass = "org.vclang.parser.VcParser"
 
     implements = 'org.vclang.psi.ext.VcCompositeElement'
     extends = 'org.vclang.psi.ext.VcCompositeElementImpl'

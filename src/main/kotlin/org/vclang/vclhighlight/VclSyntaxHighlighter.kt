@@ -7,14 +7,14 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import org.vclang.highlight.VcHighlightingColors
-import org.vclang.lang.lexer.VclLexer
+import org.vclang.lexer.VclLexer
 import org.vclang.vclpsi.VclElementTypes
 import java.io.Reader
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 
 class VclSyntaxHighlighter : SyntaxHighlighterBase() {
     override fun getTokenHighlights(tokenType: IElementType?): Array<TextAttributesKey> =
-        pack(map(tokenType)?.textAttributesKey)
+            pack(map(tokenType)?.textAttributesKey)
 
     override fun getHighlightingLexer(): Lexer = FlexAdapter(VclLexer(null as Reader?))
 

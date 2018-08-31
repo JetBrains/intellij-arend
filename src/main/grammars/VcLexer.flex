@@ -1,4 +1,4 @@
-package org.vclang.lang.lexer;
+package org.vclang.lexer;
 
 import com.intellij.lexer.FlexLexer;
 import com.intellij.psi.tree.IElementType;
@@ -10,13 +10,13 @@ import static org.vclang.psi.VcElementTypes.*;
 %%
 
 %{
-    public _VcLexer() {
+    public VcLexer() {
         this((java.io.Reader)null);
     }
 %}
 
 %public
-%class _VcLexer
+%class VcLexer
 %implements FlexLexer
 %function advance
 %type IElementType

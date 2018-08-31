@@ -15,8 +15,7 @@ import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.IStubFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.vclang.VclLanguage
-import org.vclang.lang.lexer.VclLexer
-import org.vclang.lang.parser.VclParser
+import org.vclang.lexer.VclLexer
 import org.vclang.vclpsi.VclElementTypes
 import org.vclang.vclpsi.VclElementTypes.BLOCK_COMMENT
 import org.vclang.vclpsi.VclElementTypes.LINE_COMMENT

@@ -1,4 +1,4 @@
-package org.vclang.lang.lexer;
+package org.vclang.lexer;
 
 import com.intellij.psi.tree.IElementType;
 import static com.intellij.psi.TokenType.BAD_CHARACTER;
