@@ -8,8 +8,8 @@ in [IntelliJ IDEA](http://www.jetbrains.com/idea/) and other IntelliJ-based prod
 ## Clone
 
 ```
-git clone https://github.com/valis/vclang
-git clone https://github.com/mchernyavsky/intellij-vclang.git
+git clone https://github.com/JetBrains/vclang
+git clone https://github.com/JetBrains/intellij-vclang.git
 cd intellij-vclang
 ```
 
@@ -49,5 +49,5 @@ A Program Structure Interface (PSI) tree viewer.
 The project is configured to build and run tests with Travis CI, which you can enable in your forks.
 
 <!-- Badges -->
-[travis-build-status]: https://travis-ci.org/mchernyavsky/intellij-vclang?branch=dev
-[travis-build-status-svg]: https://travis-ci.org/mchernyavsky/intellij-vclang.svg?branch=dev
+[travis-build-status]: https://travis-ci.org/JetBrains/intellij-vclang?branch=dev
+[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-vclang.svg?branch=dev
