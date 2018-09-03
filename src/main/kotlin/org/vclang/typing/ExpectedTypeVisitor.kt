@@ -350,6 +350,7 @@ class ExpectedTypeVisitor(private val element: VcExpr, private val holder: Annot
             is Abstract.Expression -> parent.accept(this, null)
             is Abstract.Definition -> parent.accept(this)
             is Abstract.Parameter -> Universe
+            is Abstract.Constructor -> if (element == parent.resultType) Universe else null
             is Abstract.FunctionClause -> {
                 val pparent = parent.topmostEquivalentSourceNode.parentSourceNode
                 when (pparent) {

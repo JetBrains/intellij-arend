@@ -364,7 +364,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_typeTele typeTele* [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier_typeTele typeTele* [COLON expr] [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.vclang.psi.ext.PsiLocatedReferable"
                    "com.jetbrains.jetpad.vclang.term.group.Group.InternalReferable"
@@ -502,6 +502,7 @@ coClauses ::= LBRACE coClauseSequence RBRACE | coClause+ {
 private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover
 
 clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
+    pin = 1
     implements = [ "org.vclang.psi.ext.VcCompositeElement"
                    "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionClause" ]
     mixin = "org.vclang.psi.ext.VcClauseImplMixin"
