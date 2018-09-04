@@ -30,25 +30,33 @@ private fun levelToContentType(level: Error.Level): ConsoleViewContentType = whe
 }
 
 class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
+    private val errorList = ArrayList<GeneralError>()
+
     override fun report(error: GeneralError) {
-        val proxyAction = object : ProxyAction {
-            override fun runAction(p: SMTestProxy) {
-                DocConsolePrinter(p, error).print()
-            }
-        }
+        errorList.add(error)
+    }
 
-        var reported = false
-        error.affectedDefinitions.mapNotNull {
-            val ref = PsiLocatedReferable.fromReferable(it)
-            if (ref is PsiLocatedReferable || it is ModuleReferable) {
-                reported = true
-                if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref.typecheckable, proxyAction)
-                if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+    fun flush() {
+        for (error in errorList) {
+            val proxyAction = object : ProxyAction {
+                override fun runAction(p: SMTestProxy) {
+                    DocConsolePrinter(p, error).print()
+                }
             }
-        }
 
-        if (!reported) {
-            eventsProcessor.executeProxyAction(proxyAction)
+            var reported = false
+            error.affectedDefinitions.mapNotNull {
+                val ref = PsiLocatedReferable.fromReferable(it)
+                if (ref is PsiLocatedReferable || it is ModuleReferable) {
+                    reported = true
+                    if (ref is PsiLocatedReferable) eventsProcessor.executeProxyAction(ref.typecheckable, proxyAction)
+                    if (it is ModuleReferable) eventsProcessor.executeProxyAction(it, proxyAction)
+                }
+            }
+
+            if (!reported) {
+                eventsProcessor.executeProxyAction(proxyAction)
+            }
         }
     }
 

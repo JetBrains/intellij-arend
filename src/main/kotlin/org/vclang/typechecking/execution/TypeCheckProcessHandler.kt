@@ -172,6 +172,7 @@ class TypeCheckProcessHandler(
                         }
                     } finally {
                         TypecheckingOrderingListener.setDefaultCancellationIndicator()
+                        typecheckingErrorReporter.flush()
                     }
                 }
             }
