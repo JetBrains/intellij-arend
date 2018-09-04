@@ -1,16 +1,20 @@
 package org.vclang.resolving
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.jetbrains.jetpad.vclang.error.SourceInfo
 import com.jetbrains.jetpad.vclang.naming.reference.*
+import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.moduleTextRepresentationImpl
 import org.vclang.psi.ext.positionTextRepresentationImpl
+import org.vclang.typechecking.TypeCheckingService
 
 
 open class DataLocatedReferable(
-    private val psiElementPointer: SmartPsiElementPointer<PsiElement>,
+    private var psiElementPointer: SmartPsiElementPointer<PsiElement>,
     referable: LocatedReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?)
@@ -21,6 +25,14 @@ open class DataLocatedReferable(
     override fun moduleTextRepresentation(): String? = runReadAction { psiElementPointer.element?.moduleTextRepresentationImpl() }
 
     override fun positionTextRepresentation(): String? = runReadAction { psiElementPointer.element?.positionTextRepresentationImpl() }
+
+    fun fixPointer(project: Project) = runReadAction {
+        val psiRef = LocatedReferable.Helper.resolveReferable(this, TypeCheckingService.getInstance(project).libraryManager.moduleScopeProvider) as? PsiLocatedReferable
+        if (psiRef != null) {
+            psiElementPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(psiRef)
+        }
+        psiRef
+    }
 }
 
 class FieldDataLocatedReferable(

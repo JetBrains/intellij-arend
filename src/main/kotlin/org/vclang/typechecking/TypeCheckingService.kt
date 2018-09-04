@@ -45,6 +45,8 @@ interface TypeCheckingService {
 
     val referableConverter: ReferableConverter
 
+    val project: Project
+
     fun getTypechecked(definition: VcDefinition): Definition?
 
     fun updateDefinition(referable: LocatedReferable)
@@ -57,7 +59,7 @@ interface TypeCheckingService {
     }
 }
 
-class TypeCheckingServiceImpl(private val project: Project) : TypeCheckingService {
+class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingService {
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = LogErrorReporter(PrettyPrinterConfig.DEFAULT)

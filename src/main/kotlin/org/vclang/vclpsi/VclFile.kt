@@ -4,6 +4,7 @@ import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.FileViewProvider
@@ -71,7 +72,22 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
     }
 
     val libModules: List<ModulePath>
-        get() = children.flatMap { (it as? VclStatement)?.modulesStat?.modNameList?.map { ModulePath.fromString(it.moduleName.text) } ?: emptyList() }
+        get() {
+            val result = children.flatMap { (it as? VclStatement)?.modulesStat?.modNameList?.map { ModulePath.fromString(it.moduleName.text) } ?: emptyList() }
+            return if (!result.isEmpty()) result else sourcesDirFile?.let { getVcFiles(it).map { it.modulePath } } ?: emptyList()
+        }
+
+    private fun getVcFiles(root: VirtualFile): List<VcFile> {
+        val result = ArrayList<VcFile>()
+        val psiManager = PsiManager.getInstance(project)
+        VfsUtilCore.iterateChildrenRecursively(root, null) { file ->
+            if (file.name.endsWith(FileUtils.EXTENSION)) {
+                (psiManager.findFile(file) as? VcFile)?.let { result.add(it) }
+            }
+            return@iterateChildrenRecursively true
+        }
+        return result
+    }
 
     val dependencies: List<LibraryDependency>
         get() = children.flatMap { (it as? VclStatement)?.depsStat?.libNameList?.map { LibraryDependency(it.text) } ?: emptyList() }

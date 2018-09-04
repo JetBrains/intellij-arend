@@ -9,6 +9,7 @@ import com.jetbrains.jetpad.vclang.library.LibraryManager
 import com.jetbrains.jetpad.vclang.library.SourceLibrary
 import com.jetbrains.jetpad.vclang.module.ModulePath
 import com.jetbrains.jetpad.vclang.naming.reference.LocatedReferable
+import com.jetbrains.jetpad.vclang.source.BinarySource
 import com.jetbrains.jetpad.vclang.source.FileBinarySource
 import com.jetbrains.jetpad.vclang.source.GZIPStreamBinarySource
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
@@ -79,7 +80,9 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
 
     override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findVcFile(modulePath)?.let { VcRawSource(it) } ?: VcFakeRawSource(modulePath)
 
-    override fun getBinarySource(modulePath: ModulePath) = headerFilePtr?.element?.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
+    override fun getBinarySource(modulePath: ModulePath): BinarySource? {
+        return headerFilePtr?.element?.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
+    }
 
     override fun containsModule(modulePath: ModulePath) = headerFilePtr?.element?.containsModule(modulePath) == true
 

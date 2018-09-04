@@ -5,8 +5,8 @@ import com.jetbrains.jetpad.vclang.core.definition.Definition
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.reference.TCReferable
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import com.jetbrains.jetpad.vclang.typechecking.order.listener.TypecheckingOrderingListener
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
+import com.jetbrains.jetpad.vclang.typechecking.order.listener.TypecheckingOrderingListener
 import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteProvider
 import org.vclang.psi.VcFile
 import org.vclang.psi.ext.PsiLocatedReferable
@@ -45,7 +45,12 @@ class TestBasedTypechecking(
 
         val ref = PsiLocatedReferable.fromReferable(referable) ?: return
         if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
-            definition.setStatus(if (definition.status().headerIsOK()) Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED else Definition.TypeCheckingStatus.HEADER_NEEDS_TYPE_CHECKING)
+            val status = when {
+                !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_NEEDS_TYPE_CHECKING
+                definition.status() == Definition.TypeCheckingStatus.HAS_WARNINGS || definition.status() == Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS
+                else -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_ERRORS
+            }
+            definition.setStatus(status)
             eventsProcessor.onTestFailure(ref)
         }
         eventsProcessor.onTestFinished(ref)

@@ -1,6 +1,7 @@
 package org.vclang.resolving
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.project.Project
 import com.jetbrains.jetpad.vclang.error.ErrorReporter
 import com.jetbrains.jetpad.vclang.naming.error.ReferenceError
 import com.jetbrains.jetpad.vclang.naming.reference.ClassReferable
@@ -19,6 +20,7 @@ import com.jetbrains.jetpad.vclang.typechecking.typecheckable.provider.ConcreteP
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiConcreteReferable
 import org.vclang.psi.ext.PsiLocatedReferable
+import org.vclang.typechecking.TypeCheckingService
 import org.vclang.typechecking.execution.TypecheckingEventsProcessor
 
 
@@ -26,7 +28,7 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precede
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
-class PsiConcreteProvider(private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
+class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.ReferableDefinition> = HashMap()
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
@@ -92,10 +94,19 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     }
 
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
-        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        var psiReferable = PsiLocatedReferable.fromReferable(referable)
         if (psiReferable == null) {
-            errorReporter.report(ProxyError(referable, ReferenceError(if (referable is DataLocatedReferable) "Reference is invalid. Try to typecheck this definition again" else "Unknown type of reference", referable)))
-            return null
+            if (referable is DataLocatedReferable) {
+                psiReferable = referable.fixPointer(project)
+                if (psiReferable == null) {
+                    TypeCheckingService.getInstance(project).updateDefinition(referable)
+                    errorReporter.report(ProxyError(referable, ReferenceError("Reference is invalid. Try to typecheck the definition again", referable)))
+                    return null
+                }
+            } else {
+                errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
+                return null
+            }
         }
 
         if (psiReferable is PsiConcreteReferable) {

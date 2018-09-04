@@ -26,11 +26,12 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         }
 
         val service = TypeCheckingService.getInstance(parent.project)
-        val state = service.getTypechecked(parent)?.let { it.status() == Definition.TypeCheckingStatus.NO_ERRORS }
+        val state = service.getTypechecked(parent)?.status()
         val icon = when (state) {
-            true -> AllIcons.RunConfigurations.TestState.Green2
-            false -> AllIcons.RunConfigurations.TestState.Red2
+            Definition.TypeCheckingStatus.NO_ERRORS -> AllIcons.RunConfigurations.TestState.Green2
+            Definition.TypeCheckingStatus.HAS_WARNINGS, Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
             null -> AllIcons.RunConfigurations.TestState.Run
+            else -> AllIcons.RunConfigurations.TestState.Red2
         }
 
         return Info(

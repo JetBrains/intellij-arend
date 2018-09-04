@@ -40,7 +40,10 @@ abstract class InstanceAdapter : DefinitionAdapter<VcDefInstanceStub>, VcDefInst
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
-    override fun getClassReference() = typeClassReference
+    override fun getClassReference(): ClassReferable? {
+        val type = resultType ?: return null
+        return ReferableExtractVisitor().findClassReferable(type)
+    }
 
     override fun getIcon(flags: Int): Icon = VcIcons.CLASS_INSTANCE
 
