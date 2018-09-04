@@ -58,6 +58,7 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
                 eventsProcessor.executeProxyAction(proxyAction)
             }
         }
+        errorList.clear()
     }
 
     private inner class DocConsolePrinter(
