@@ -480,8 +480,14 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
     mixin = "org.vclang.psi.ext.VcLetExprImplMixin"
 }
 
-functionClauses ::= clausesWithBraces | (PIPE clause)*
-private clausesWithBraces ::= LBRACE [pipe_def? clause] (pipe_def clause)* RBRACE { pin = 1 }
+functionClauses ::= clausesWithBraces | (pipe_pattern clause)*
+private clausesWithBraces ::= LBRACE [pipe_pattern? clause] (pipe_pattern clause)* RBRACE { pin = 1 }
+
+private pipe_pattern ::= PIPE {
+    recoverWhile = pipe_pattern_recover
+}
+
+private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE) & statement_recover
 
 coClauses ::= LBRACE coClauseSequence RBRACE | coClause+ {
     pin(".*") = 1
