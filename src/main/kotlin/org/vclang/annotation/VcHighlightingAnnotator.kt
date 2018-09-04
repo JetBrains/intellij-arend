@@ -476,7 +476,7 @@ class VcHighlightingAnnotator : Annotator {
             }
             if (i >= teleList.size) {
                 if (pattern == element) {
-                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected " + teleList.sumBy { it.referableList.size })
+                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected " + teleList.sumBy { it.referableList.size } + " (including implicit)")
                 }
                 return
             }

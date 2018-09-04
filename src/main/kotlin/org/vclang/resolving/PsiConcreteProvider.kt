@@ -94,7 +94,7 @@ class PsiConcreteProvider(private val referableConverter: ReferableConverter, pr
     override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
         if (psiReferable == null) {
-            errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
+            errorReporter.report(ProxyError(referable, ReferenceError(if (referable is DataLocatedReferable) "Reference is invalid. Try to typecheck this definition again" else "Unknown type of reference", referable)))
             return null
         }
 

@@ -2,7 +2,6 @@ package org.vclang.vclpsi
 
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -18,13 +17,14 @@ import org.vclang.VclLanguage
 import org.vclang.module.util.defaultRoot
 import org.vclang.psi.VcFile
 import org.vclang.psi.module
+import java.nio.file.Path
 import java.nio.file.Paths
 
 class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLanguage.INSTANCE) {
     override fun getFileType(): FileType = VclFileType
 
-    private val Module.defaultBinDir: String
-        get() = Paths.get(FileUtil.toSystemDependentName(moduleFilePath)).resolveSibling(".output").toString()
+    private val moduleBasePath: Path?
+        get() = module?.let { Paths.get(FileUtil.toSystemDependentName(it.moduleFilePath)) }
 
     val sourcesDir: String?
         get() {
@@ -37,8 +37,11 @@ class VclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VclLan
             }
         }
 
-    val binariesDir: String?
-        get() = children.filterIsInstance<VclStatement>().mapNotNull { it.binaryStat }.firstOrNull()?.directoryName?.text ?: module?.defaultBinDir
+    val binariesPath: Path?
+        get() {
+            val path = Paths.get(children.filterIsInstance<VclStatement>().mapNotNull { it.binaryStat }.firstOrNull()?.directoryName?.text ?: ".output")
+            return if (path.isAbsolute) path else moduleBasePath?.resolveSibling(path)
+        }
 
     val sourcesDirFile: VirtualFile?
         get() {
