@@ -11,7 +11,7 @@ branches:
     - travis
 
 install:
-  - git clone https://github.com/valis/vclang.git ../vclang
+  - git clone https://github.com/JetBrains/vclang.git ../vclang
 
 script: ./gradlew check -x :vclang:check -Pkotlin.incremental=false -Dkotlin.daemon.jvm.options=-Xmx1024m
 
