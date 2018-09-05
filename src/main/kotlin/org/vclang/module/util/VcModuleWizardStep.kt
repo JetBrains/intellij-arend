@@ -8,13 +8,18 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.ui.layout.panel
-import org.vclang.VcConstants
+import com.jetbrains.jetpad.vclang.util.FileUtils
 import javax.swing.JComponent
 
 class VcModuleWizardStep(
         private val context: WizardContext,
         private val projectDescriptor: ProjectDescriptor? = null
 ) : ModuleWizardStep() {
+    // TODO: Add config steps instead of the constant
+    private companion object {
+        private const val SOURCE_DIR = "src"
+        private const val OUTPUT_DIR = ".output"
+    }
 
     override fun getComponent(): JComponent = panel {}
 
@@ -34,17 +39,14 @@ class VcModuleWizardStep(
             if (contentEntry != null) {
                 val projectRoot = contentEntry.file ?: return
 
-                // TODO: createChildDirectory???
-                VcConstants.ProjectLayout.sources
-                    .filter { projectRoot.findChild(it) == null }
-                    .forEach { projectRoot.createChildDirectory(null, it) }
+                 if (projectRoot.findChild(SOURCE_DIR) == null) {
+                     projectRoot.createChildDirectory(null, SOURCE_DIR)
+                 }
 
-                fun makeVfsUrl(dirName: String): String = FileUtil.join(projectRoot.url, dirName)
-
-                VcConstants.ProjectLayout.sources.forEach {
-                    contentEntry.addSourceFolder(makeVfsUrl(it), false)
-                }
-                contentEntry.addExcludeFolder(makeVfsUrl(VcConstants.ProjectLayout.output))
+                val vclFile = projectRoot.createChildData(projectRoot, module.name + FileUtils.LIBRARY_EXTENSION)
+                vclFile.setBinaryContent("sourcesDir: $SOURCE_DIR".toByteArray())
+                contentEntry.addSourceFolder(FileUtil.join(projectRoot.url, SOURCE_DIR), false)
+                contentEntry.addExcludeFolder(FileUtil.join(projectRoot.url, OUTPUT_DIR))
             }
         }
     }

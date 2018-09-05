@@ -16,7 +16,7 @@ class VcModuleType : VcModuleTypeBase(ID) {
     override fun getName(): String = "Vclang"
 
     companion object {
-        private val ID = "VCLANG_MODULE"
+        private const val ID = "VCLANG_MODULE"
 
         val INSTANCE: VcModuleType by lazy {
             ModuleTypeManager.getInstance().findByID(ID) as VcModuleType

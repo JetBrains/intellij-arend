@@ -6,6 +6,7 @@ import javax.swing.Icon
 object VcIcons {
     val VCLANG: Icon = AllIcons.Nodes.AnonymousClass
     val VCLANG_FILE: Icon = AllIcons.FileTypes.Idl
+    val VCLANG_LIB_FILE: Icon = AllIcons.FileTypes.WsdlFile
     val DIRECTORY: Icon = AllIcons.Nodes.Package
 
     // Source code elements

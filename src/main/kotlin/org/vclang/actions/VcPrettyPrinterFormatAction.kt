@@ -31,7 +31,7 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
         try {
             ApplicationManager.getApplication().saveAll()
 
-            val formattedText = prettyPrint(psiFile)
+            val formattedText = prettyPrint(psiFile) ?: return
 
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return
             CommandProcessor.getInstance().executeCommand(
@@ -73,8 +73,8 @@ class VcPrettyPrinterFormatAction : AnAction(), DumbAware {
         private val NOTIFICATION_TITLE = "Reformat code with PrettyPrinter"
         private val LOG = Logger.getInstance(VcPrettyPrinterFormatAction::class.java)
 
-        private fun prettyPrint(module: VcFile): String {
-            return "Pretty printing is not implemented yet"
+        private fun prettyPrint(module: VcFile): String? {
+            return null
             /* TODO[pretty]
             val builder = StringBuilder()
             val visitor = ToTextVisitor(builder, 0)

@@ -11,5 +11,5 @@ object VclFileType : LanguageFileType(VclLanguage.INSTANCE) {
 
     override fun getDescription(): String = "Library header"
 
-    override fun getIcon(): Icon? = VcIcons.VCLANG_FILE
+    override fun getIcon(): Icon? = VcIcons.VCLANG_LIB_FILE
 }
