@@ -11,7 +11,7 @@ class VcModuleType : VcModuleTypeBase(ID) {
 
     override fun createModuleBuilder(): VcModuleBuilder = VcModuleBuilder()
 
-    override fun getDescription(): String = "Vclang module"
+    override fun getDescription(): String = "Vclang library"
 
     override fun getName(): String = "Vclang"
 

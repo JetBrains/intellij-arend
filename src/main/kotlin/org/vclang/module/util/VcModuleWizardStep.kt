@@ -32,6 +32,8 @@ class VcModuleWizardStep(
         }
     }
 
+    override fun isStepVisible() = false
+
     private object ConfigurationUpdater : ModuleConfigurationUpdater() {
         override fun update(module: Module, rootModel: ModifiableRootModel) {
             rootModel.inheritSdk()
@@ -43,8 +45,11 @@ class VcModuleWizardStep(
                      projectRoot.createChildDirectory(null, SOURCE_DIR)
                  }
 
-                val vclFile = projectRoot.createChildData(projectRoot, module.name + FileUtils.LIBRARY_EXTENSION)
-                vclFile.setBinaryContent("sourcesDir: $SOURCE_DIR".toByteArray())
+                val vclFileName = module.name + FileUtils.LIBRARY_EXTENSION
+                if (projectRoot.findChild(vclFileName) == null) {
+                    val vclFile = projectRoot.createChildData(projectRoot, vclFileName)
+                    vclFile.setBinaryContent("sourcesDir: $SOURCE_DIR".toByteArray())
+                }
                 contentEntry.addSourceFolder(FileUtil.join(projectRoot.url, SOURCE_DIR), false)
                 contentEntry.addExcludeFolder(FileUtil.join(projectRoot.url, OUTPUT_DIR))
             }

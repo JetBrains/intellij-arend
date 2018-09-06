@@ -128,7 +128,7 @@ task generateVclLexer(type: GenerateLexer) {
     group 'Source'
     source 'src/main/grammars/VclLexer.flex'
     targetDir 'src/gen/org/vclang/lang/lexer'
-    targetClass '_VclLexer'
+    targetClass 'VclLexer'
     purgeOldFiles = true
 }
 
@@ -143,7 +143,7 @@ task generateVclParser(type: GenerateParser) {
 }
 
 compileKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
-compileTestKotlin.dependsOn generateVcLexer, generateVcParser
+compileTestKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.3'
