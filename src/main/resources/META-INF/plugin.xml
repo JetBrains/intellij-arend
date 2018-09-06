@@ -1,11 +1,11 @@
 <idea-plugin>
-    <id>org.vclang.lang</id>
-    <name>Vclang</name>
+    <id>com.jetbrans.arend.ide</id>
+    <name>Arend</name>
     <version>0.0.1</version>
-    <vendor url="https://github.com/mchernyavsky/intellij-vclang"/>
+    <vendor url="https://github.com/JetBrains/intellij-arend"/>
 
     <description><![CDATA[
-      Vclang language support
+      Arend language support
     ]]></description>
 
     <change-notes><![CDATA[
@@ -26,185 +26,193 @@
 
         <!-- Module -->
 
-        <moduleType id="VCLANG_MODULE" implementationClass="org.vclang.module.VcModuleType"/>
-        <moduleBuilder builderClass="org.vclang.module.util.VcModuleBuilder"/>
+        <moduleType id="AREND_MODULE" implementationClass="com.jetbrains.arend.ide.module.ArdModuleType"/>
+        <moduleBuilder builderClass="com.jetbrains.arend.ide.module.util.ArdModuleBuilder"/>
         <projectStructureDetector
-                implementation="org.vclang.module.util.VcProjectStructureDetector"/>
+                implementation="com.jetbrains.arend.ide.module.util.ArdProjectStructureDetector"/>
 
         <!-- Startup -->
 
-        <postStartupActivity implementation="org.vclang.VcStartupActivity"/>
+        <postStartupActivity implementation="com.jetbrains.arend.ide.ArdStartupActivity"/>
 
-        <!-- Vclang -->
+        <!-- Arend -->
 
         <!-- File-type Factory -->
 
-        <fileTypeFactory implementation="org.vclang.VcFileTypeFactory"/>
+        <fileTypeFactory implementation="com.jetbrains.arend.ide.ArdFileTypeFactory"/>
 
         <!-- Parser -->
 
-        <lang.parserDefinition language="Vclang"
-                               implementationClass="org.vclang.parser.VcParserDefinition"/>
+        <lang.parserDefinition language="Arend"
+                               implementationClass="com.jetbrains.arend.ide.parser.ArdParserDefinition"/>
 
         <lang.parserDefinition language="LibLang"
-                               implementationClass="org.vclang.parser.VclParserDefinition"/>
+                               implementationClass="com.jetbrains.arend.ide.parser.ArdlParserDefinition"/>
 
         <!-- Name Validator -->
 
-        <lang.namesValidator language="Vclang" implementationClass="org.vclang.refactoring.VcNamesValidator"/>
+        <lang.namesValidator language="Arend"
+                             implementationClass="com.jetbrains.arend.ide.refactoring.ArdNamesValidator"/>
 
         <!-- Syntax Highlighter -->
 
-        <lang.syntaxHighlighterFactory language="Vclang"
-                                       implementationClass="org.vclang.highlight.VcSyntaxHighlighterFactory"/>
+        <lang.syntaxHighlighterFactory language="Arend"
+                                       implementationClass="com.jetbrains.arend.ide.highlight.ArdSyntaxHighlighterFactory"/>
 
         <lang.syntaxHighlighterFactory language="LibLang"
-                                       implementationClass="org.vclang.vclhighlight.VclSyntaxHighlighterFactory"/>
+                                       implementationClass="com.jetbrains.arend.ide.ardlhighlight.ArdlSyntaxHighlighterFactory"/>
 
         <!-- Commenter -->
 
-        <lang.commenter language="Vclang" implementationClass="org.vclang.commenter.VcCommenter"/>
+        <lang.commenter language="Arend" implementationClass="com.jetbrains.arend.ide.commenter.ArdCommenter"/>
 
         <!-- Matchers -->
 
-        <lang.braceMatcher language="Vclang" implementationClass="org.vclang.VcBraceMatcher"/>
+        <lang.braceMatcher language="Arend" implementationClass="com.jetbrains.arend.ide.ArdBraceMatcher"/>
 
         <!-- Documentation -->
 
-        <lang.documentationProvider language="Vclang"
-                                    implementationClass="org.vclang.VcDocumentationProvider"/>
+        <lang.documentationProvider language="Arend"
+                                    implementationClass="com.jetbrains.arend.ide.ArdDocumentationProvider"/>
 
-        <lang.implementationTextSelectioner language="Vclang"
-                                            implementationClass="org.vclang.VcImplementationTextSelectioner"/>
+        <lang.implementationTextSelectioner language="Arend"
+                                            implementationClass="com.jetbrains.arend.ide.ArdImplementationTextSelectioner"/>
 
         <!-- Structure View -->
 
-        <lang.psiStructureViewFactory language="Vclang"
-                                      implementationClass="org.vclang.structure.VcPsiStructureViewFactory"/>
+        <lang.psiStructureViewFactory language="Arend"
+                                      implementationClass="com.jetbrains.arend.ide.structure.ArdPsiStructureViewFactory"/>
 
         <!-- Hierarchy -->
 
-        <callHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.call.VcCallHierarchyProvider"/>
-        <typeHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.clazz.VcClassHierarchyProvider"/>
+        <callHierarchyProvider language="Arend"
+                               implementationClass="com.jetbrains.arend.ide.hierarchy.call.ArdCallHierarchyProvider"/>
+        <typeHierarchyProvider language="Arend"
+                               implementationClass="com.jetbrains.arend.ide.hierarchy.clazz.ArdClassHierarchyProvider"/>
 
         <!-- Usages Provider -->
 
-        <referencesSearch implementation="org.vclang.search.VcCustomSearcher"/>
+        <referencesSearch implementation="com.jetbrains.arend.ide.search.ArdCustomSearcher"/>
 
-        <lang.findUsagesProvider language="Vclang"
-                                 implementationClass="org.vclang.search.VcFindUsagesProvider"/>
+        <lang.findUsagesProvider language="Arend"
+                                 implementationClass="com.jetbrains.arend.ide.search.ArdFindUsagesProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefClassGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdDefClassGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefDataGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdDefDataGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefFunctionGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdDefFunctionGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassFieldSynGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdClassFieldSynGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcConstructorGroupingRuleProvider"/>
+                implementation="com.jetbrains.arend.ide.search.ArdConstructorGroupingRuleProvider"/>
 
         <!-- Navigation -->
 
-        <gotoClassContributor implementation="org.vclang.navigation.VcClassNavigationContributor"/>
+        <gotoClassContributor implementation="com.jetbrains.arend.ide.navigation.ArdClassNavigationContributor"/>
         <gotoSymbolContributor
-                implementation="org.vclang.navigation.VcSymbolNavigationContributor"/>
+                implementation="com.jetbrains.arend.ide.navigation.ArdSymbolNavigationContributor"/>
 
         <!-- Hints -->
 
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefClass"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefData"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefInstance"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefFunction"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
+        <declarationRangeHandler key="com.jetbrains.arend.ide.lang.core.psi.ArdDefClass"
+                                 implementationClass="com.jetbrains.arend.ide.codeInsight.ArdDeclarationRangeHandler"/>
+        <declarationRangeHandler key="com.jetbrains.arend.ide.lang.core.psi.ArdDefData"
+                                 implementationClass="com.jetbrains.arend.ide.codeInsight.ArdDeclarationRangeHandler"/>
+        <declarationRangeHandler key="com.jetbrains.arend.ide.lang.core.psi.ArdDefInstance"
+                                 implementationClass="com.jetbrains.arend.ide.codeInsight.ArdDeclarationRangeHandler"/>
+        <declarationRangeHandler key="com.jetbrains.arend.ide.lang.core.psi.ArdDefFunction"
+                                 implementationClass="com.jetbrains.arend.ide.codeInsight.ArdDeclarationRangeHandler"/>
 
         <!-- Code Insight -->
 
-        <codeInsight.parameterInfo language="Vclang" implementationClass="org.vclang.codeInsight.VcParameterInfoHandler"/>
+        <codeInsight.parameterInfo language="Arend"
+                                   implementationClass="com.jetbrains.arend.ide.codeInsight.ArdParameterInfoHandler"/>
 
-        <completion.contributor language="Vclang" implementationClass="org.vclang.codeInsight.completion.VclangCompletionContributor"/>
+        <completion.contributor language="Arend"
+                                implementationClass="com.jetbrains.arend.ide.codeInsight.completion.ArdCompletionContributor"/>
 
-        <completion.confidence language="Vclang" implementationClass="org.vclang.codeInsight.completion.VcCompletionConfidence" id="vcCompletion" />
+        <completion.confidence language="Arend"
+                               implementationClass="com.jetbrains.arend.ide.codeInsight.completion.ArdCompletionConfidence"
+                               id="vcCompletion"/>
 
         <!-- Annotation -->
 
-        <annotator language="Vclang"
-                   implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
+        <annotator language="Arend"
+                   implementationClass="com.jetbrains.arend.ide.annotation.ArdHighlightingAnnotator"/>
 
-        <!-- <highlightRangeExtension implementation="org.vclang.annotation.VcHighlightRangeExtension"/> -->
+        <!-- <highlightRangeExtension implementation="com.jetbrains.arend.ide.annotation.ArdHighlightRangeExtensionn"/> -->
 
-        <referenceImporter implementation="org.vclang.annotation.VclangReferenceImporter"/>
+        <referenceImporter implementation="com.jetbrains.arend.ide.annotation.ArdReferenceImporter"/>
 
         <!-- Line Marker Providers -->
 
-        <runLineMarkerContributor language="Vclang"
-                                  implementationClass="org.vclang.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
+        <runLineMarkerContributor language="Arend"
+                                  implementationClass="com.jetbrains.arend.ide.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
         <!-- Color Settings -->
 
-        <colorSettingsPage implementation="org.vclang.editor.VcColorSettingsPage"/>
+        <colorSettingsPage implementation="com.jetbrains.arend.ide.editor.ArdColorSettingsPage"/>
 
         <!-- Folding -->
 
-        <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.VcFoldingBuilder"/>
+        <lang.foldingBuilder language="Arend" implementationClass="com.jetbrains.arend.ide.ArdFoldingBuilder"/>
 
         <!-- Refactoring -->
 
-        <renameInputValidator implementation="org.vclang.refactoring.VcRenameInputValidator"/>
-        <lang.refactoringSupport language="Vclang" implementationClass="org.vclang.refactoring.VcRefactoringSupportProvider"/>
+        <renameInputValidator implementation="com.jetbrains.arend.ide.refactoring.ArdRenameInputValidator"/>
+        <lang.refactoringSupport language="Arend"
+                                 implementationClass="com.jetbrains.arend.ide.refactoring.ArdRefactoringSupportProvider"/>
 
         <!-- Run Configurations -->
 
-        <programRunner implementation="org.vclang.typechecking.execution.TypeCheckRunner"/>
+        <programRunner implementation="com.jetbrains.arend.ide.typechecking.execution.TypeCheckRunner"/>
         <configurationType
-                implementation="org.vclang.typechecking.execution.configurations.TypeCheckConfigurationType"/>
+                implementation="com.jetbrains.arend.ide.typechecking.execution.configurations.TypeCheckConfigurationType"/>
         <runConfigurationProducer
-                implementation="org.vclang.typechecking.execution.TypeCheckRunConfigurationProducer"/>
+                implementation="com.jetbrains.arend.ide.typechecking.execution.TypeCheckRunConfigurationProducer"/>
 
         <!-- Indices -->
 
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcNamedElementIndex"/>
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcDefinitionIndex"/>
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcGotoClassIndex"/>
+        <stubIndex implementation="com.jetbrains.arend.ide.psi.stubs.index.ArdNamedElementIndex"/>
+        <stubIndex implementation="com.jetbrains.arend.ide.psi.stubs.index.ArdDefinitionIndex"/>
+        <stubIndex implementation="com.jetbrains.arend.ide.psi.stubs.index.ArdGotoClassIndex"/>
 
-        <stubElementTypeHolder class="org.vclang.psi.VcElementTypes"/>
+        <stubElementTypeHolder class="com.jetbrains.arend.ide.psi.ArdElementTypes"/>
 
         <!-- Lookup Filters -->
 
-        <lookup.charFilter implementation="org.vclang.codeInsight.VclangCharFilter"/>
+        <lookup.charFilter implementation="com.jetbrains.arend.ide.codeInsight.ArdCharFilter"/>
 
         <!-- Highlight Filter -->
 
-        <problemFileHighlightFilter implementation="org.vclang.highlight.VcProblemHighlightFilter"/>
+        <problemFileHighlightFilter implementation="com.jetbrains.arend.ide.highlight.ArdProblemHighlightFilter"/>
 
         <!-- Services -->
 
-        <projectService serviceInterface="org.vclang.typechecking.TypeCheckingService"
-                        serviceImplementation="org.vclang.typechecking.TypeCheckingServiceImpl"/>
+        <projectService serviceInterface="com.jetbrains.arend.ide.typechecking.TypeCheckingService"
+                        serviceImplementation="com.jetbrains.arend.ide.typechecking.TypeCheckingServiceImpl"/>
 
     </extensions>
 
     <actions>
 
-        <action id="VcFormatVclang.PrettyPrinterFormat"
-                class="org.vclang.actions.VcPrettyPrinterFormatAction"
+        <action id="ArdFormatArend.PrettyPrinterFormat"
+                class="com.jetbrains.arend.ide.actions.ArdPrettyPrinterFormatAction"
                 text="Reformat code with PrettyPrinter"
                 description="Format current file with PrettyPrinter">
             <add-to-group group-id="CodeFormatGroup" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
         </action>
 
-        <action id="Vclang.NewVclangFile"
-                class="org.vclang.actions.VcCreateFileAction"
-                text="Vclang File"
-                description="Create new Vclang file">
+        <action id="Arend.NewArendFile"
+                class="com.jetbrains.arend.ide.actions.ArdCreateFileAction"
+                text="Arend File"
+                description="Create new Arend file">
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
 

@@ -11,8 +11,8 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.3.1'
-    id 'org.jetbrains.kotlin.jvm' version '1.2.50'
+    id 'org.jetbrains.intellij' version '0.3.7'
+    id 'org.jetbrains.kotlin.jvm' version '1.2.61'
 }
 
 import org.jetbrains.grammarkit.tasks.GenerateLexer
@@ -104,46 +104,46 @@ dependencies {
     testCompile 'org.assertj:assertj-core:3.2.0'
 }
 
-task generateVcLexer(type: GenerateLexer) {
+task generateArdLexer(type: GenerateLexer) {
     description 'Generates lexer'
     group 'Source'
-    source 'src/main/grammars/VcLexer.flex'
-    targetDir 'src/gen/org/vclang/lang/lexer'
-    targetClass '_VcLexer'
+    source 'src/main/grammars/ArdLexer.flex'
+    targetDir 'src/gen/com/jetbrains/arend/ide/lexer'
+    targetClass 'ArdLexer'
     purgeOldFiles = true
 }
 
-task generateVcParser(type: GenerateParser) {
+task generateArdParser(type: GenerateParser) {
     description 'Generates parser'
     group 'Source'
-    source 'src/main/grammars/VcParser.bnf'
+    source 'src/main/grammars/ArdParser.bnf'
     targetRoot = 'src/gen'
-    pathToParser '/org/vclang/lang/parser/VcParser.java'
-    pathToPsiRoot '/org/vclang/psi'
+    pathToParser '/com/jetbrains/arend/ide/parser/ArdParser.java'
+    pathToPsiRoot '/com/jetbrains/arend/ide/psi'
     purgeOldFiles = true
 }
 
-task generateVclLexer(type: GenerateLexer) {
+task generateArdlLexer(type: GenerateLexer) {
     description 'Generates lexer'
     group 'Source'
-    source 'src/main/grammars/VclLexer.flex'
-    targetDir 'src/gen/org/vclang/lang/lexer'
-    targetClass 'VclLexer'
+    source 'src/main/grammars/ArdlLexer.flex'
+    targetDir 'src/gen/com/jetbrains/arend/ide/lexer'
+    targetClass 'ArdlLexer'
     purgeOldFiles = true
 }
 
-task generateVclParser(type: GenerateParser) {
+task generateArdlParser(type: GenerateParser) {
     description 'Generates parser'
     group 'Source'
-    source 'src/main/grammars/VclParser.bnf'
+    source 'src/main/grammars/ArdlParser.bnf'
     targetRoot = 'src/gen'
-    pathToParser '/org/vclang/lang/parser/VclParser.java'
-    pathToPsiRoot '/org/vclang/vclpsi'
+    pathToParser '/com/jetbrains/arend/ide/parser/ArdlParser.java'
+    pathToPsiRoot '/com/jetbrains/arend/ide/vclpsi'
     purgeOldFiles = true
 }
 
-compileKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
-compileTestKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
+compileKotlin.dependsOn generateArdLexer, generateArdParser, generateArdlLexer, generateArdlParser
+compileTestKotlin.dependsOn generateArdLexer, generateArdParser, generateArdlLexer, generateArdlParser
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.3'

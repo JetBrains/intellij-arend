@@ -1,0 +1,53 @@
+{
+    parserClass = "com.jetbrains.arend.ide.parser.ArdlParser"
+
+    elementTypeHolderClass = "com.jetbrains.arend.ide.ardlpsi.ArdlElementTypes"
+
+    elementTypeClass = "com.jetbrains.arend.ide.ardlpsi.ArdlElementType"
+    tokenTypeClass = "com.jetbrains.arend.ide.ardlpsi.ArdlTokenType"
+
+    psiClassPrefix = "Ardl"
+    psiImplClassSuffix = "Impl"
+    psiPackage = "com.jetbrains.arend.ide.ardlpsi"
+    psiImplPackage = "com.jetbrains.arend.ide.ardlpsi.impl"
+    generateTokenAccessors = true
+
+    tokens = [
+        DEPS = "dependencies"
+        SOURCE = "sourcesDir"
+        BINARY = "binariesDir"
+        MODULES = "modules"
+        COLON = ":"
+        ID = "ID"
+
+        BLOCK_COMMENT_START = '{-'
+        BLOCK_COMMENT_END   = '-}'
+        LINE_COMMENT        = "regexp:--[^\r\n]*"
+        BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
+    ]
+
+}
+
+statements ::= (!<<eof>> statement)*
+
+statement ::= depsStat | sourceStat | binaryStat | modulesStat
+
+depsStat ::= DEPS COLON libName* {
+    pin = 1
+}
+
+sourceStat ::= SOURCE COLON DIRECTORY_NAME {
+    pin = 1
+}
+
+binaryStat ::= BINARY COLON DIRECTORY_NAME {
+    pin = 1
+}
+
+modulesStat ::= MODULES COLON modName* {
+    pin = 1
+}
+
+libName ::= LIBRARY_NAME
+
+modName ::= MODULE_NAME
