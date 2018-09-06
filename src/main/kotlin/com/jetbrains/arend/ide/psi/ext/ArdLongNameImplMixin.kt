@@ -1,0 +1,24 @@
+package com.jetbrains.arend.ide.psi.ext
+
+import com.intellij.lang.ASTNode
+import com.jetbrains.arend.ide.psi.ArdLongName
+import com.jetbrains.jetpad.vclang.naming.reference.LongUnresolvedReference
+import com.jetbrains.jetpad.vclang.naming.reference.UnresolvedReference
+import com.jetbrains.jetpad.vclang.term.abs.Abstract
+
+
+abstract class ArdLongNameImplMixin(node: ASTNode) : ArdSourceNodeImpl(node), ArdLongName {
+    override fun getData() = this
+
+    override fun getReferent(): UnresolvedReference =
+            LongUnresolvedReference.make(this, refIdentifierList.map { it.referenceName })
+
+    override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]
+
+    override fun getTailReferences(): List<Abstract.Reference> {
+        val refs = refIdentifierList
+        return refs.subList(1, refs.size)
+    }
+
+    override fun getReference() = refIdentifierList.lastOrNull()?.reference
+}
