@@ -46,7 +46,7 @@ class VcStartupActivity : StartupActivity {
         })
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
-            override fun projectClosed(project: Project?) {
+            override fun projectClosed(project: Project) {
                 service.libraryManager.unload()
             }
         })

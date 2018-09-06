@@ -46,6 +46,15 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>,
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
+    override fun getClassReference(): ClassReferable? {
+        val type = resultType ?: return null
+        return ReferableExtractVisitor().findClassReferable(type)
+    }
+
+    override fun getClassFieldImpls(): List<VcCoClause> = functionBody?.coClauses?.coClauseList ?: emptyList()
+
+    override fun getArgumentsExplicitness() = (resultType as? VcNewExpr)?.argumentAppExpr?.argumentList?.map { it.isExplicit } ?: emptyList()
+
     override val psiElementType: PsiElement?
         get() = resultType
 }

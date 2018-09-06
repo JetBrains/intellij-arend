@@ -434,7 +434,7 @@ class VclangCompletionContributor : CompletionContributor() {
 
 
         class ProviderWithCondition(private val condition: (CompletionParameters, ProcessingContext?) -> Boolean, private val completionProvider: CompletionProvider<CompletionParameters>) : CompletionProvider<CompletionParameters>() {
-            override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
+            override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
                 if (condition(parameters, context))
                     completionProvider.addCompletionVariants(parameters, context, result)
             }
@@ -525,7 +525,7 @@ class VclangCompletionContributor : CompletionContributor() {
     }
 
     open class LoggerCompletionProvider : CompletionProvider<CompletionParameters>() {
-        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
+        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
             val text = parameters.position.containingFile.text
 
             val mn = Math.max(0, parameters.position.node.startOffset - 15)
@@ -575,7 +575,7 @@ class VclangCompletionContributor : CompletionContributor() {
             return prefix
         }
 
-        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, resultSet: CompletionResultSet) {
+        override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
             val prefix = computePrefix(parameters, resultSet)
 
             val prefixMatcher = object : PlainPrefixMatcher(prefix) {

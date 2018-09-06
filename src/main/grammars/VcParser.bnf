@@ -49,6 +49,7 @@
         PROP_KW             = '\Prop'
         WHERE_KW            = '\where'
         WITH_KW             = '\with'
+        COWITH_KW           = '\cowith'
         ELIM_KW             = '\elim'
         NEW_KW              = '\new'
         PI_KW               = '\Pi'
@@ -219,7 +220,7 @@ private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
 }
 
-private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
+private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
 defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody where? {
     pin = 1
@@ -281,7 +282,10 @@ private classBodySyn ::= fat_arrow_def refIdentifier classBodySynStats? { pin = 
 
 private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
-functionBody ::= functionTermBody | elim? functionClauses {
+functionBody ::= functionTermBody
+    | COWITH_KW coClauses
+    | elim? functionClauses {
+    pin(".*") = 1
     recoverWhile = statement_recover
 }
 
@@ -387,7 +391,7 @@ expr ::= arrExpr
     mixin = "org.vclang.psi.ext.VcExprImplMixin"
 }
 
-private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
+private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -650,7 +654,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.vclang.psi.ext.VcCompositeElement"
@@ -727,7 +731,7 @@ private nameTeleImplicit ::= LBRACE identifierOrUnknown [identifierOrUnknown* CO
 
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
-private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | ELIM_KW) & statement_recover
+private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | COWITH_KW | ELIM_KW) & statement_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit {
         implements = [ "org.vclang.psi.ext.VcCompositeElement"
