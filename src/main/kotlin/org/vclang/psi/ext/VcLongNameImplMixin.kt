@@ -19,6 +19,4 @@ abstract class VcLongNameImplMixin(node: ASTNode) : VcSourceNodeImpl(node), VcLo
         val refs = refIdentifierList
         return refs.subList(1, refs.size)
     }
-
-    override fun getReference() = refIdentifierList.lastOrNull()?.reference
 }
