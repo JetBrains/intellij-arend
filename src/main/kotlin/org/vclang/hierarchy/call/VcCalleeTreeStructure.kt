@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement
 import org.vclang.hierarchy.VcHierarchyNodeDescriptor
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcReferenceElement
-import org.vclang.resolving.VcReference
 
 class VcCalleeTreeStructure(project: Project, baseNode: PsiElement) :
         HierarchyTreeStructure(project, VcHierarchyNodeDescriptor(project, null, baseNode, true)) {
@@ -26,11 +25,9 @@ class VcCalleeTreeStructure(project: Project, baseNode: PsiElement) :
         for (child in children) {
             visit(child, callees, root)
             if (child is VcReferenceElement && root.name != child.referenceName) {
-                if (child.reference != null) {
-                    val ref = (child.reference as VcReference).resolve()
-                    if (ref != null && ref is PsiLocatedReferable) {
-                        callees.add(ref)
-                    }
+                val ref = child.reference?.resolve()
+                if (ref is PsiLocatedReferable) {
+                    callees.add(ref)
                 }
             }
         }

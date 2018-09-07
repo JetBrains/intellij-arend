@@ -209,13 +209,8 @@ class ResolveRefFixData(val target: PsiLocatedReferable,
 class ResolveRefQuickFix {
     companion object {
 
-        fun statCmdName(statCmd : VcStatCmd) : String {
-            val file = statCmd.longName?.refIdentifierList?.last()?.reference?.resolve()
-            if (file is VcFile) {
-                return file.fullName
-            }
-            return "???"
-        }
+        fun statCmdName(statCmd : VcStatCmd) =
+            (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? VcFile)?.fullName ?: "???"
 
         fun getDecision(target: PsiLocatedReferable, element: VcReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile
@@ -278,8 +273,7 @@ class ResolveRefQuickFix {
                     }
 
                     for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-                        val fileIdent = namespaceCommand.longName?.refIdentifierList?.last()
-                        if (fileIdent?.reference?.resolve() == targetFile) {
+                        if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                             suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
                             val nsUsing = namespaceCommand.nsUsing

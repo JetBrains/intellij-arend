@@ -26,7 +26,7 @@ class TypecheckingVisitor(private val element: VcCompositeElement, private val h
         fun resolveReference(data: Any?, referent: Referable) =
             if (data is VcCompositeElement) {
                 if (data !is VcLongName || data.refIdentifierList.size <= 1) {
-                    Concrete.ReferenceExpression(data, data.reference?.resolve() as? Referable ?: ErrorReference(data, null, referent.textRepresentation()), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+                    Concrete.ReferenceExpression(data, ((data as? VcLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, null, referent.textRepresentation()), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
                 } else {
                     val refExpr = Concrete.ReferenceExpression(data, referent, Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
                     val arg = ExpressionResolveNameVisitor.resolve(refExpr, data.scope)
