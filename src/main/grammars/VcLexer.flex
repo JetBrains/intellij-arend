@@ -30,9 +30,9 @@ import static org.vclang.psi.VcElementTypes.*;
 %state BLOCK_COMMENT_INNER
 
 EOL                 = \R
-WHITE_SPACE         = \s+
+WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = --(.*|{EOL})
+LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
