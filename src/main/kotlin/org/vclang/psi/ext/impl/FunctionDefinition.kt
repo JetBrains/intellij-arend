@@ -14,7 +14,7 @@ import org.vclang.typing.ExpectedTypeVisitor
 import org.vclang.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
-abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>, VcDefFunction, Abstract.FunctionDefinition {
+abstract class FunctionDefinitionAdapter : DefinitionAdapter<VcDefFunctionStub>, VcDefFunction {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: VcDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

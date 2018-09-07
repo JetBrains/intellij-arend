@@ -3,6 +3,7 @@ package org.vclang.codeInsight.completion
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.AS_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.COERCE_KW_LIST
+import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.COWITH_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_KW_LIST
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
 import org.vclang.codeInsight.completion.VclangCompletionContributor.Companion.DATA_UNIVERSE_KW
@@ -353,16 +354,18 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}",
             "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
-    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) {-caret-}",
             "\\func lol (a : Nat) : Nat {-caret-}",
-            "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
+            "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}")
+
+    fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\data lol (a : Nat) {-caret-}",
             "\\data lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\data lol | south (a : Nat) {-caret-}",
             "\\data lol | south I {-caret-}")
 
-    fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+    fun `test elim completion 3`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",
             "\\func lol (a : Nat): {-caret-}",
             "\\func lol (a : Nat) {-caret-} (b : Nat) : \\Type",

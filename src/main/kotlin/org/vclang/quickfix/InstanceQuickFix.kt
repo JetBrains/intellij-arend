@@ -174,6 +174,58 @@ class InstanceQuickFix {
             }
         }
 
+        fun annotateFunctionDefinitionWithCoWith(functionDefinition: VcDefFunction, holder: AnnotationHolder): Boolean {
+            val classReference = functionDefinition.classReference
+            val coWithKw = functionDefinition.functionBody?.cowithKw
+            if (classReference is VcDefClass && coWithKw != null) {
+                return doAnnotate(object: ExpressionWithCoClauses {
+                    override fun getRangeToReport() = TextRange(functionDefinition.textRange.startOffset, coWithKw.textRange.endOffset)
+
+                    override fun getClassReferenceHolder() = functionDefinition
+
+                    override fun getPsiElement(): PsiElement = functionDefinition
+
+                    override fun getCoClauseList(): List<VcCoClause> = functionDefinition.functionBody?.coClauses?.coClauseList ?: emptyList()
+
+                    override fun calculateWhiteSpace(): String {
+                        val defaultWhitespace = INCREASE_IN_INDENT
+                        return if (functionDefinition.parent is VcStatement && functionDefinition.parent.prevSibling is PsiWhiteSpace)
+                            getIndent(functionDefinition.parent.prevSibling.text, defaultWhitespace, INCREASE_IN_INDENT) else defaultWhitespace
+                    }
+
+                    override fun insertFirstCoClause(name: String, factory: VcPsiFactory, editor: Editor?) {
+                        val whitespace = calculateWhiteSpace()
+                        var nodeCoClauses = functionDefinition.functionBody?.coClauses
+                        if (nodeCoClauses == null) {
+                            val sampleCoClauses = factory.createCoClause(name, "{?}")
+                            val functionBody = functionDefinition.functionBody!!
+                            val pOB = factory.createPairOfBraces()
+                            functionBody.addAfter(sampleCoClauses, coWithKw)
+                            nodeCoClauses = functionDefinition.functionBody?.coClauses!!
+                            val firstCoClause = nodeCoClauses.coClauseList.first()
+                            nodeCoClauses.addBefore(factory.createWhitespace(" "), firstCoClause)
+                            nodeCoClauses.addBefore(pOB.first, firstCoClause)
+                            nodeCoClauses.addBefore(factory.createWhitespace("\n"+whitespace), firstCoClause) // add first clause and crlf
+                            nodeCoClauses.addAfter(pOB.second, firstCoClause)
+                            moveCaretToTheEnd(editor, nodeCoClauses.coClauseList.last())
+                        } else if (nodeCoClauses.lbrace != null) {
+                            val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
+                            val anchor = nodeCoClauses.lbrace
+                            nodeCoClauses.addAfter(sampleCoClause, anchor)
+                            nodeCoClauses.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                            val caretAnchor = functionDefinition.functionBody?.coClauses?.coClauseList?.first()
+                            if (caretAnchor != null)
+                                moveCaretToTheEnd(editor, caretAnchor)
+                        }
+                    }
+
+                    override fun isError() = true
+
+                }, classReference, holder, false)
+            }
+            return false
+        }
+
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder): Boolean {
             val classReference = instance.classReference
             if (classReference is VcDefClass && classReference.recordKw == null) {

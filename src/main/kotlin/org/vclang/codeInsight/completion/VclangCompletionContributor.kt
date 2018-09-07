@@ -247,8 +247,7 @@ class VclangCompletionContributor : CompletionContributor() {
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
                     (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
         }
-
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition({ cP, _ ->
+        val elimCondition = {functionsOnly: Boolean -> { cP: CompletionParameters, _: ProcessingContext? ->
             var pos2: PsiElement? = cP.position
             var exprFound = false
             while (pos2 != null) {
@@ -259,7 +258,7 @@ class VclangCompletionContributor : CompletionContributor() {
                         exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
                         break
                     }
-                    if ((pos2.nextSibling.nextSibling is VcDataBody) && (pos2.parent is VcDefData)) {
+                    if ((pos2.nextSibling.nextSibling is VcDataBody) && (pos2.parent is VcDefData) &&!functionsOnly) {
                         val dBody = (pos2.parent as VcDefData).dataBody
                         exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
                         exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefData).typeTeleList)
@@ -273,7 +272,10 @@ class VclangCompletionContributor : CompletionContributor() {
                 if (pos2.nextSibling == null) pos2 = pos2.parent else break
             }
             exprFound
-        }, KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
+        }}
+
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST)))
 
         val isLiteralApp = { argumentAppExpr: VcArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
@@ -358,6 +360,7 @@ class VclangCompletionContributor : CompletionContributor() {
         val PROP_KW_LIST = listOf(PROP_KW.toString())
         val COERCE_KW_LIST = listOf(COERCE_KW.toString())
         val RETURN_KW_LIST = listOf(RETURN_KW.toString())
+        val COWITH_KW_LIST = listOf(COWITH_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST

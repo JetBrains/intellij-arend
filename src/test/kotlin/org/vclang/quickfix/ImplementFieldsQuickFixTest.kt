@@ -74,6 +74,23 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """
             )
 
+    fun `test adding implementation of cowith expression`() = simpleQuickFixTest("Implement",
+            """
+               --! A.vc
+               \class Foo (A : Nat)
+               \class Bar { | f : Foo | B : Nat }
+               \func lol : Bar \cowith{-caret-}
+            """,
+            """
+               \class Foo (A : Nat)
+               \class Bar { | f : Foo | B : Nat }
+               \func lol : Bar \cowith {
+                 | f => {?}{-caret-}
+                 | B => {?}
+                 }
+            """)
+
+
     fun `test removing redundant clause`() = simpleQuickFixTest("Remove",
             """
                 --! A.vc

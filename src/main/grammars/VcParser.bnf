@@ -211,6 +211,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
 
 defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
     pin = 1
+    implements = "com.jetbrains.jetpad.vclang.term.abs.Abstract.FunctionDefinition"
     mixin = "org.vclang.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.vclang.psi.stubs.VcDefFunctionStub"
     elementTypeFactory = "org.vclang.psi.stubs.StubImplementationsKt.factory"
@@ -283,7 +284,7 @@ private classBodySyn ::= fat_arrow_def refIdentifier classBodySynStats? { pin = 
 private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
 functionBody ::= functionTermBody
-    | COWITH_KW coClauses
+    | COWITH_KW coClauses?
     | elim? functionClauses {
     pin(".*") = 1
     recoverWhile = statement_recover

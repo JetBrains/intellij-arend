@@ -209,7 +209,9 @@ class VcHighlightingAnnotator : Annotator {
                 if (InstanceQuickFix.annotateClassInstance(definition, holder)) {
                     color = null
                 }
-            } else if (definition is VcDefFunction && definition.coerceKw != null) {
+            } else if (definition is VcDefFunction)
+                InstanceQuickFix.annotateFunctionDefinitionWithCoWith(definition, holder)
+             else if (definition is VcDefFunction && definition.coerceKw != null) {
                 val lastParam = definition.nameTeleList.lastOrNull()
                 if (lastParam == null) {
                     holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
