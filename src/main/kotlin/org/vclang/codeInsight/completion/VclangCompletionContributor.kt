@@ -252,13 +252,16 @@ class VclangCompletionContributor : CompletionContributor() {
             var exprFound = false
             while (pos2 != null) {
                 if (pos2.nextSibling is PsiWhiteSpace) {
-                    if ((pos2.nextSibling.nextSibling is VcFunctionBody) && (pos2.parent is VcDefFunction)) {
+                    var body = pos2.nextSibling
+                    while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
+
+                    if ((body is VcFunctionBody) && (pos2.parent is VcDefFunction)) {
                         val fBody = (pos2.parent as VcDefFunction).functionBody
                         exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
                         exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
                         break
                     }
-                    if ((pos2.nextSibling.nextSibling is VcDataBody) && (pos2.parent is VcDefData) &&!functionsOnly) {
+                    if ((body is VcDataBody) && (pos2.parent is VcDefData) &&!functionsOnly) {
                         val dBody = (pos2.parent as VcDefData).dataBody
                         exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
                         exprFound = exprFound && !emptyTeleList((pos2.parent as VcDefData).typeTeleList)
@@ -579,6 +582,7 @@ class VclangCompletionContributor : CompletionContributor() {
         }
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
+            if (ofTypeK(PsiComment::class.java).accepts(parameters.position)) return // Prevents showing kw completions in comments
             val prefix = computePrefix(parameters, resultSet)
 
             val prefixMatcher = object : PlainPrefixMatcher(prefix) {

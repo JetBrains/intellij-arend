@@ -357,7 +357,8 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
     fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) {-caret-}",
             "\\func lol (a : Nat) : Nat {-caret-}",
-            "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}")
+            "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
+            "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n")
 
     fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\data lol (a : Nat) {-caret-}",
@@ -411,6 +412,10 @@ class VcKeywordCompletionTest : VcCompletionTestBase() {
             "\\func lol => lol \\lp {-caret-}",
             "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
             "\\func lol (a : Nat) => lol ({-caret-})")
+
+    fun `test absence of completion in comments`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
+            "\\func f (x : Bool) : Bool\n | true => {?}  -- {-caret-} \n | false => {?}\n",
+            "\\data -- {-caret-} \n  D")
 
 
 }
