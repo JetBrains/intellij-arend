@@ -29,7 +29,7 @@ import com.intellij.lexer.FlexLexer;
 EOL                 = \R
 WHITE_SPACE         = \s+
 
-LINE_COMMENT        = --(.*|{EOL})
+LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 

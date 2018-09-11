@@ -32,7 +32,7 @@ import static org.vclang.psi.VcElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}
+LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
