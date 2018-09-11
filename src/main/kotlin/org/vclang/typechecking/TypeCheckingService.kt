@@ -23,6 +23,7 @@ import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyCollector
 import com.jetbrains.jetpad.vclang.typechecking.order.dependency.DependencyListener
 import com.jetbrains.jetpad.vclang.util.FileUtils
+import org.vclang.module.VcPreludeLibrary
 import org.vclang.module.VcRawLibrary
 import org.vclang.module.util.defaultRoot
 import org.vclang.psi.VcDefinition
@@ -46,6 +47,8 @@ interface TypeCheckingService {
     val referableConverter: ReferableConverter
 
     val project: Project
+
+    val prelude: VcFile?
 
     fun getTypechecked(definition: VcDefinition): Definition?
 
@@ -80,6 +83,16 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         })
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
     }
+
+    override val prelude: VcFile?
+        get() {
+            for (library in libraryManager.registeredLibraries) {
+                if (library is VcPreludeLibrary) {
+                    return library.prelude
+                }
+            }
+            return null
+        }
 
     override fun getTypechecked(definition: VcDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }

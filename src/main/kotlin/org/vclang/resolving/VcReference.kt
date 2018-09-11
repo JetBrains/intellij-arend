@@ -5,6 +5,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.jetbrains.jetpad.vclang.naming.reference.ModuleReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
+import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcFileType
 import org.vclang.VcIcons
@@ -15,6 +16,7 @@ import org.vclang.psi.ext.PsiReferable
 import org.vclang.psi.ext.VcCompositeElement
 import org.vclang.psi.ext.VcReferenceElement
 import org.vclang.refactoring.VcNamesValidator
+import org.vclang.typechecking.TypeCheckingService
 
 interface VcReference : PsiReference {
     override fun getElement(): VcCompositeElement
@@ -109,8 +111,12 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             is ModuleReferable -> {
-                val list = element.module?.vclFile?.findVcFilesAndDirectories(ref.path) ?: return null
-                list.firstOrNull { it is VcFile } ?: list.firstOrNull()
+                if (ref.path == Prelude.MODULE_PATH) {
+                    TypeCheckingService.getInstance(element.project).prelude
+                } else {
+                    val list = element.module?.vclFile?.findVcFilesAndDirectories(ref.path) ?: return null
+                    list.firstOrNull { it is VcFile } ?: list.firstOrNull()
+                }
             }
             else -> null
         }
@@ -139,7 +145,12 @@ open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceI
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
-            is ModuleReferable -> element.module?.vclFile?.findVcFilesAndDirectories(ref.path)?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
+            is ModuleReferable ->
+                if (ref.path == Prelude.MODULE_PATH) {
+                    TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
+                } else {
+                    element.module?.vclFile?.findVcFilesAndDirectories(ref.path)
+                }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()
         }
     }

@@ -28,7 +28,8 @@ import java.nio.file.Paths
 
 
 class VcPreludeLibrary(private val project: Project, typecheckerState: TypecheckerState?) : BaseLibrary(typecheckerState) {
-    private var prelude: VcFile? = null
+    var prelude: VcFile? = null
+        private set
     private var isTypechecked: Boolean = false
     private var scope: Scope? = null
 
