@@ -54,6 +54,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import A
+
                 \func d => a
             """)
 
@@ -64,6 +65,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import A
+
                 \func d => a.b
             """)
 
@@ -174,6 +176,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import A
                 \import C
                 \import D
+
                 \func d => g
             """)
 
@@ -218,6 +221,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
                 \import A \using (b \as b')
                 \import E (e)
+
                 \func d => e
             """)
 
@@ -234,6 +238,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
                 \import A (b \as b')
                 \import E
+
                 \func d => e
             """)
 
@@ -373,6 +378,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import F
+
                 \func test => 1 * 1
             """)
 
@@ -383,6 +389,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import F
+
                 \func test => 1 + 1
             """)
 
@@ -393,6 +400,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import D
+                
                 \func test => 1 `++` 1
             """)
 
@@ -590,6 +598,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import Prelude
+
                 \func Int => 0
                 \func lol => Prelude.Int.fromNat
             """)

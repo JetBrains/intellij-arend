@@ -1,6 +1,7 @@
 package org.vclang.quickfix
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
@@ -26,6 +27,12 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
     override fun toString() = "Import file " + importFile.fullName
 
     override fun isValid() = currentFile.module?.vclFile?.findVcFile(importFile.modulePath) == importFile || ResolveRefQuickFix.isPrelude(importFile)
+
+    private fun calculateWhiteSpace(statement: PsiElement): String {
+        var s = statement.nextSibling
+        while (s is PsiWhiteSpace || s is PsiComment) s = s.nextSibling
+        return if (s is VcStatement && s.statCmd == null) "\n" else ""
+    }
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
@@ -56,11 +63,13 @@ class ImportFileAction(private val importFile: VcFile, private val currentFile: 
 
         if (anchor.parent == currentFile) {
             if (after) {
-                currentFile.addAfter(commandStatement, anchor)
+                val insertedCommand = currentFile.addAfter(commandStatement, anchor)
                 currentFile.addAfter(factory.createWhitespace("\n"), anchor)
+                val s = calculateWhiteSpace(insertedCommand)
+                if (s != "") currentFile.addAfter(factory.createWhitespace(s), insertedCommand)
             } else {
                 val insertedCommand = currentFile.addBefore(commandStatement, anchor)
-                currentFile.addAfter(factory.createWhitespace("\n"), insertedCommand)
+                currentFile.addAfter(factory.createWhitespace("\n"+calculateWhiteSpace(insertedCommand)), insertedCommand)
             }
         }
     }
