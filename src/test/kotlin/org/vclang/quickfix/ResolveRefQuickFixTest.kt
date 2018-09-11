@@ -582,6 +582,32 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                \func lol => Int.fromNat
             """)
 
+    fun `test importing nontop-level items from prelude with obstructed scopes`() = simpleImportFixTest(
+            """
+                --! A.vc
+                \func Int => 0
+                \func lol => fromNat{-caret-}
+            """,
+            """
+                \import Prelude
+                \func Int => 0
+                \func lol => Prelude.Int.fromNat
+            """)
+
+    fun `test importing nontop-level items from partially imported prelude`() = simpleImportFixTest(
+            """
+                --! A.vc
+                \import Prelude(I)
+                \func Int => 0
+                \func lol => fromNat{-caret-}
+            """,
+            """
+                \import Prelude(I)
+                \func Int => 0
+                \func lol => Prelude.Int.fromNat
+            """
+    )
+
     /* fun `test strange behavior of vclang import commands`() = simpleImportFixTest(
             """
                 --! A.vc

@@ -7,6 +7,7 @@ import com.jetbrains.jetpad.vclang.naming.reference.GlobalReferable
 import com.jetbrains.jetpad.vclang.naming.reference.RedirectingReferable
 import com.jetbrains.jetpad.vclang.naming.reference.Referable
 import com.jetbrains.jetpad.vclang.naming.scope.*
+import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
 import org.vclang.module.util.vclFile
@@ -24,7 +25,7 @@ interface ResolveRefFixAction {
 class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid() = currentFile.module?.vclFile?.findVcFile(importFile.modulePath) == importFile
+    override fun isValid() = currentFile.module?.vclFile?.findVcFile(importFile.modulePath) == importFile || ResolveRefQuickFix.isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.fullName
@@ -212,6 +213,8 @@ class ResolveRefQuickFix {
         fun statCmdName(statCmd : VcStatCmd) =
             (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? VcFile)?.fullName ?: "???"
 
+        fun isPrelude(file: VcFile) = file.fullName == Prelude.MODULE_PATH.toString() && file.containingDirectory == null
+
         fun getDecision(target: PsiLocatedReferable, element: VcReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile
             val currentFile = element.containingFile
@@ -272,7 +275,13 @@ class ResolveRefQuickFix {
                         aliases[fName] = HashSet()
                     }
 
+                    var preludeImportedManually = false
+
                     for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
+                        val isImportPrelude = namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
+
+                        if (isImportPrelude) preludeImportedManually = true
+
                         if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                             suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
@@ -312,8 +321,10 @@ class ResolveRefQuickFix {
                         }
                     }
 
-                    if (targetFile.libraryName == "prelude" && targetFile.containingDirectory == null)
+                    if (isPrelude(targetFile) && !preludeImportedManually) {
                         fullNames.add(fullName) // items from prelude are visible in any context
+                        fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
+                    }
 
 
                     if (fullNames.isEmpty()) { // target definition is inaccessible in current context
