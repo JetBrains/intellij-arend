@@ -12,7 +12,7 @@ buildscript {
 
 plugins {
     id 'org.jetbrains.intellij' version '0.3.1'
-    id 'org.jetbrains.kotlin.jvm' version '1.2.50'
+    id 'org.jetbrains.kotlin.jvm' version '1.2.61'
 }
 
 import org.jetbrains.grammarkit.tasks.GenerateLexer
@@ -29,6 +29,7 @@ idea {
 
 apply plugin: 'org.jetbrains.intellij'
 intellij {
+    version ideaVersion
     updateSinceUntilBuild = false
     instrumentCode = false
 }
@@ -102,6 +103,7 @@ dependencies {
     compile project(':vclang')
     testCompile 'junit:junit:4.+'
     testCompile 'org.assertj:assertj-core:3.2.0'
+    compile "org.jetbrains.kotlin:kotlin-stdlib"
 }
 
 task generateVcLexer(type: GenerateLexer) {
