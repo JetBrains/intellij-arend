@@ -377,7 +377,7 @@ constructor ::= prec? defIdentifier_typeTele typeTele* [elim? clausesWithBraces]
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
-prec ::= assoc NUMBER
+prec ::= assoc NUMBER { pin = 1 }
 
 expr ::= arrExpr
     | sigmaExpr

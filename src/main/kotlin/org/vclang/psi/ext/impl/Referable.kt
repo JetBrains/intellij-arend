@@ -41,7 +41,7 @@ where StubT : VcNamedStub, StubT : StubElement<*> {
                 prec.nonAssocKw != null || prec.infixNonKw != null -> Precedence.Associativity.NON_ASSOC
                 else -> return Precedence.DEFAULT
             }
-            return Precedence(assoc, prec.number.text.toByteOrNull() ?: Byte.MAX_VALUE, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
+            return Precedence(assoc, prec.number?.text?.toByteOrNull() ?: 10, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

@@ -74,6 +74,14 @@ class VcHighlightingAnnotator : Annotator {
             resolved
         } else null
 
+        if (element is VcPrec) {
+            val prec = (element.number ?: return).text.toByteOrNull() ?: 10
+            if (prec < 1 || prec > 9) {
+                holder.createErrorAnnotation(element, "The priority must be between 1 and 9")
+            }
+            return
+        }
+
         if (element is VcArgumentAppExpr) {
             val pElement = element.parent
             if (pElement is VcNewExprImplMixin) {
