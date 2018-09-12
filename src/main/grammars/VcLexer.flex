@@ -32,7 +32,8 @@ import static org.vclang.psi.VcElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
+// LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
+LINE_COMMENT        = -- (.*|{EOL})
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
@@ -106,6 +107,14 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\levels"              { return LEVELS_KW; }
     "\\max"                 { return MAX_KW; }
 
+    {LINE_COMMENT}          { return LINE_COMMENT; }
+    {BLOCK_COMMENT_START}   {
+                                yybegin(BLOCK_COMMENT_INNER);
+                                commentDepth = 0;
+                                commentStart = getTokenStart();
+                            }
+    {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
+
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
     {TRUNCATED_UNIVERSE}    { return TRUNCATED_UNIVERSE; }
@@ -118,14 +127,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }
     {ID}                    { return ID; }
-
-    {LINE_COMMENT}          { return LINE_COMMENT; }
-    {BLOCK_COMMENT_START}   {
-                                yybegin(BLOCK_COMMENT_INNER);
-                                commentDepth = 0;
-                                commentStart = getTokenStart();
-                            }
-    {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
 }
 
 <BLOCK_COMMENT_INNER> {
