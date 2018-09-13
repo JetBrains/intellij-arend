@@ -10,7 +10,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
-import org.vclang.lang.parser.VcParser
 import org.vclang.lexer.VcLexerAdapter
 import org.vclang.psi.VC_COMMENTS
 import org.vclang.psi.VC_WHITE_SPACES

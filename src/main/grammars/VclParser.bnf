@@ -1,5 +1,5 @@
 {
-    parserClass = "org.vclang.lang.parser.VclParser"
+    parserClass = "org.vclang.parser.VclParser"
 
     elementTypeHolderClass = "org.vclang.vclpsi.VclElementTypes"
 

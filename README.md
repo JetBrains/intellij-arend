@@ -26,7 +26,7 @@ Common tasks are
     `build/distributions` which can be installed into IntelliJ IDEA via `Install
     plugin from disk` action found in **File | Settings | Plugins**.
 
-  - `./gradlew runIdea` — run a development IDE with the plugin installed.
+  - `./gradlew runIde` — run a development IDE with the plugin installed.
 
   - `./gradlew test` — run all tests.
 
