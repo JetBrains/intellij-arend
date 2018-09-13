@@ -6,12 +6,11 @@ buildscript {
     }
     dependencies {
         classpath "com.github.hurricup:gradle-grammar-kit-plugin:2017.1.1"
-        classpath "gradle.plugin.org.jetbrains:gradle-intellij-plugin:0.1.10"
     }
 }
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.3.1'
+    id 'org.jetbrains.intellij' version '0.3.9'
     id 'org.jetbrains.kotlin.jvm' version '1.2.61'
 }
 
@@ -146,10 +145,6 @@ task generateVclParser(type: GenerateParser) {
 
 compileKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
 compileTestKotlin.dependsOn generateVcLexer, generateVcParser, generateVclLexer, generateVclParser
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.3'
-}
 
 // Prelude stuff
 

@@ -2,7 +2,7 @@
     <id>org.vclang.lang</id>
     <name>Vclang</name>
     <version>0.0.1</version>
-    <vendor url="https://github.com/mchernyavsky/intellij-vclang"/>
+    <vendor url="https://github.com/JetBrains/intellij-vclang"/>
 
     <description><![CDATA[
       Vclang language support

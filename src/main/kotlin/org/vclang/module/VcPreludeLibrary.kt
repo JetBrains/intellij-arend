@@ -23,8 +23,6 @@ import com.jetbrains.jetpad.vclang.util.FileUtils
 import org.vclang.VcLanguage
 import org.vclang.psi.VcFile
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
 
 
 class VcPreludeLibrary(private val project: Project, typecheckerState: TypecheckerState?) : BaseLibrary(typecheckerState) {
@@ -73,7 +71,7 @@ class VcPreludeLibrary(private val project: Project, typecheckerState: Typecheck
         if (prelude == null) {
             synchronized(VcPreludeLibrary::class.java) {
                 if (prelude == null) {
-                    val text = String(Files.readAllBytes(Paths.get(VcPreludeLibrary::class.java.getResource("/lib").toURI()).resolve(Paths.get("Prelude" + FileUtils.EXTENSION))), StandardCharsets.UTF_8)
+                    val text = String(VcPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION).readBytes(), StandardCharsets.UTF_8)
                     prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, VcLanguage.INSTANCE, text) as? VcFile
                     prelude?.virtualFile?.isWritable = false
                 }
