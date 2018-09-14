@@ -9,7 +9,8 @@ import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.abs.Abstract
 import org.vclang.VcFileType
 import org.vclang.VcIcons
-import org.vclang.module.util.vclFile
+import org.vclang.module.util.findVcFilesAndDirectories
+import org.vclang.module.util.libraryConfig
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiModuleReferable
 import org.vclang.psi.ext.PsiReferable
@@ -88,7 +89,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
                     builder
                 }
                 is ModuleReferable -> {
-                    val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.vclFile?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
+                    val module = if (origRef is PsiModuleReferable) (origRef.modules.firstOrNull()) else element.module?.libraryConfig?.findVcFilesAndDirectories(origRef.path)?.firstOrNull()
                     module?.let {
                         if (it is VcFile)
                             LookupElementBuilder.create(it, it.textRepresentation()).withIcon(VcIcons.MODULE) else
@@ -114,7 +115,7 @@ open class VcReferenceImpl<T : VcReferenceElement>(element: T): PsiReferenceBase
                 if (ref.path == Prelude.MODULE_PATH) {
                     TypeCheckingService.getInstance(element.project).prelude
                 } else {
-                    val list = element.module?.vclFile?.findVcFilesAndDirectories(ref.path) ?: return null
+                    val list = element.module?.libraryConfig?.findVcFilesAndDirectories(ref.path) ?: return null
                     list.firstOrNull { it is VcFile } ?: list.firstOrNull()
                 }
             }
@@ -149,7 +150,7 @@ open class VcPolyReferenceImpl<T : VcReferenceElement>(element: T): VcReferenceI
                 if (ref.path == Prelude.MODULE_PATH) {
                     TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
                 } else {
-                    element.module?.vclFile?.findVcFilesAndDirectories(ref.path)
+                    element.module?.libraryConfig?.findVcFilesAndDirectories(ref.path)
                 }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()
         }

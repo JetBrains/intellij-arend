@@ -18,7 +18,7 @@ import com.jetbrains.jetpad.vclang.term.group.Group
 import org.vclang.VcFileType
 import org.vclang.VcIcons
 import org.vclang.VcLanguage
-import org.vclang.module.util.vclFile
+import org.vclang.module.util.sourcesDir
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.VcSourceNode
 import org.vclang.psi.stubs.VcFileStub
@@ -28,7 +28,7 @@ class VcFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, VcLangu
     val modulePath: ModulePath
         get() {
             val fileName = viewProvider.virtualFile.path
-            val root = module?.vclFile?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
+            val root = module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
             val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
             val fullName = shortFileName.removePrefix("/").removeSuffix('.' + VcFileType.defaultExtension).replace('/', '.')
             return ModulePath(fullName.split('.'))

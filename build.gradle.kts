@@ -34,7 +34,7 @@ tasks.withType<KotlinCompile> {
         languageVersion = "1.2"
         apiVersion = "1.2"
     }
-    dependsOn("generateVcLexer", "generateVcParser", "generateVclLexer", "generateVclParser")
+    dependsOn("generateVcLexer", "generateVcParser")
 }
 
 java.sourceSets {
@@ -54,6 +54,7 @@ intellij {
     pluginName = "intellij-vclang"
     updateSinceUntilBuild = true
     instrumentCode = false
+    setPlugins("yaml")
 }
 
 task<GenerateLexer>("generateVcLexer") {
@@ -72,25 +73,6 @@ task<GenerateParser>("generateVcParser") {
     targetRoot = "src/gen"
     pathToParser = "/org/vclang/parser/VcParser.java"
     pathToPsiRoot = "/org/vclang/psi"
-    purgeOldFiles = true
-}
-
-task<GenerateLexer>("generateVclLexer") {
-    description = "Generates lib lexer"
-    group = "Source"
-    source = "src/main/grammars/VclLexer.flex"
-    targetDir = "src/gen/org/vclang/lexer"
-    targetClass = "VclLexer"
-    purgeOldFiles = true
-}
-
-task<GenerateParser>("generateVclParser") {
-    description = "Generates lib parser"
-    group = "Source"
-    source = "src/main/grammars/VclParser.bnf"
-    targetRoot = "src/gen"
-    pathToParser = "/org/vclang/parser/VclParser.java"
-    pathToPsiRoot = "/org/vclang/vclpsi"
     purgeOldFiles = true
 }
 

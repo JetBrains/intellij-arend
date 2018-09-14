@@ -78,7 +78,7 @@ class FileTree(private val rootDirectory: Entry.Directory) {
 
     fun assertEquals(baseDir: VirtualFile) {
         fun go(expected: Entry.Directory, actual: VirtualFile) {
-            val actualChildren = actual.children.filter { it.extension != FileUtils.LIBRARY_EXTENSION.drop(1) }.associateBy { it.name }
+            val actualChildren = actual.children.filter { it.name != FileUtils.LIBRARY_CONFIG_FILE }.associateBy { it.name }
             check(expected.children.keys == actualChildren.keys) {
                 "Mismatch in directory ${actual.path}\n" +
                         "Expected: ${expected.children.keys}\n" +

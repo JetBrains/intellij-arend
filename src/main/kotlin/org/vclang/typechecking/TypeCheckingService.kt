@@ -128,16 +128,14 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             if (oldParent == null && newParent == null) {
                 return
             }
-            if (fileName.endsWith(FileUtils.LIBRARY_EXTENSION)) {
+            if (fileName == FileUtils.LIBRARY_CONFIG_FILE) {
                 val module = ModuleUtil.findModuleForFile(event.file, project) ?: return
-                if (fileName == module.name + FileUtils.LIBRARY_EXTENSION) {
-                    val root = module.defaultRoot
-                    if (root != null && root == oldParent) {
-                        libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
-                    }
-                    if (root != null && root == newParent) {
-                        libraryManager.loadLibrary(VcRawLibrary(module, typecheckerState))
-                    }
+                val root = module.defaultRoot
+                if (root != null && root == oldParent) {
+                    libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
+                }
+                if (root != null && root == newParent) {
+                    libraryManager.loadLibrary(VcRawLibrary(module, typecheckerState))
                 }
             }
         }

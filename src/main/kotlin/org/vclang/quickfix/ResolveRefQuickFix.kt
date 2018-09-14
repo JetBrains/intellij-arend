@@ -11,7 +11,8 @@ import com.jetbrains.jetpad.vclang.naming.scope.*
 import com.jetbrains.jetpad.vclang.prelude.Prelude
 import com.jetbrains.jetpad.vclang.term.group.Group
 import com.jetbrains.jetpad.vclang.util.LongName
-import org.vclang.module.util.vclFile
+import org.vclang.module.util.findVcFile
+import org.vclang.module.util.libraryConfig
 import org.vclang.psi.*
 import org.vclang.psi.ext.PsiLocatedReferable
 import org.vclang.psi.ext.PsiReferable
@@ -26,7 +27,7 @@ interface ResolveRefFixAction {
 class ImportFileAction(private val importFile: VcFile, private val currentFile: VcFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid() = currentFile.module?.vclFile?.findVcFile(importFile.modulePath) == importFile || ResolveRefQuickFix.isPrelude(importFile)
+    override fun isValid() = currentFile.module?.libraryConfig?.findVcFile(importFile.modulePath) == importFile || ResolveRefQuickFix.isPrelude(importFile)
 
     private fun calculateWhiteSpace(statement: PsiElement): String {
         var s = statement.nextSibling

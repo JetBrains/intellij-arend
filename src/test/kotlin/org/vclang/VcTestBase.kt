@@ -35,9 +35,8 @@ abstract class VcTestBase : LightPlatformCodeInsightFixtureTestCase(), VcTestCas
 
         val root = ModuleRootManager.getInstance(myModule).contentEntries.firstOrNull()?.file
         if (root != null) {
-            val name = myModule.name + FileUtils.LIBRARY_EXTENSION
-            if (root.findChild(name) == null) {
-                runWriteAction { root.createChildData(root, name) }
+            if (root.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
+                runWriteAction { root.createChildData(root, FileUtils.LIBRARY_CONFIG_FILE) }
             }
         }
 

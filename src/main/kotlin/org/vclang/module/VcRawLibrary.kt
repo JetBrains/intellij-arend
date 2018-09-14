@@ -13,15 +13,15 @@ import com.jetbrains.jetpad.vclang.source.BinarySource
 import com.jetbrains.jetpad.vclang.source.FileBinarySource
 import com.jetbrains.jetpad.vclang.source.GZIPStreamBinarySource
 import com.jetbrains.jetpad.vclang.typechecking.TypecheckerState
-import org.vclang.module.util.vclFile
+import org.jetbrains.yaml.psi.YAMLFile
+import org.vclang.module.util.*
 import org.vclang.typechecking.TypeCheckingService
-import org.vclang.vclpsi.VclFile
 
 
 class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
-    private var headerFilePtr: SmartPsiElementPointer<VclFile>? = null
+    private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? = null
 
-    val headerFile: VclFile?
+    val headerFile: YAMLFile?
         get() = headerFilePtr?.element
 
     override fun getName() = module.name
@@ -42,7 +42,7 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
         }
         */
         //else if (headerVirtualFile.fileType == VclFileType) {
-        headerFilePtr = module.vclFile?.let { SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it) }
+        headerFilePtr = module.libraryConfig?.let { SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it) }
 
         /* TODO: implement this properly
         val deps = getHeaderFile()?.dependencies
@@ -81,7 +81,7 @@ class VcRawLibrary(private val module: Module, typecheckerState: TypecheckerStat
     override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findVcFile(modulePath)?.let { VcRawSource(it) } ?: VcFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? {
-        return headerFilePtr?.element?.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
+        return headerFilePtr?.element?.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
     }
 
     override fun containsModule(modulePath: ModulePath) = headerFilePtr?.element?.containsModule(modulePath) == true

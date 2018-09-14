@@ -45,9 +45,8 @@ class VcModuleWizardStep(
                      projectRoot.createChildDirectory(null, SOURCE_DIR)
                  }
 
-                val vclFileName = module.name + FileUtils.LIBRARY_EXTENSION
-                if (projectRoot.findChild(vclFileName) == null) {
-                    val vclFile = projectRoot.createChildData(projectRoot, vclFileName)
+                if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
+                    val vclFile = projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE)
                     vclFile.setBinaryContent("sourcesDir: $SOURCE_DIR".toByteArray())
                 }
                 contentEntry.addSourceFolder(FileUtil.join(projectRoot.url, SOURCE_DIR), false)
