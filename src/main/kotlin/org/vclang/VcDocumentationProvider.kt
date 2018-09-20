@@ -53,7 +53,7 @@ class VcDocumentationProvider : AbstractDocumentationProvider() {
         is VcDefInstance -> "instance"
         is VcClassImplement -> "implementation"
         is VcDefData -> "data"
-        is VcConstructor -> "data cons"
+        is VcConstructor -> "data constructor"
         is VcDefFunction -> "func"
         is VcLetClause -> "let"
         is VcDefIdentifier -> if (element.parent is VcLetClause) "let" else "var"
