@@ -364,7 +364,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_typeTele typeTele* [COLON expr] [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier_constructor typeTele* [COLON expr] [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.term.group.Group.InternalReferable"
@@ -374,6 +374,12 @@ constructor ::= prec? defIdentifier_typeTele typeTele* [COLON expr] [elim? claus
     stubClass = "org.arend.psi.stubs.ArendConstructorStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private defIdentifier_constructor ::= defIdentifier {
+    recoverWhile = defIdentifier_constructor_recover
+}
+
+private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
