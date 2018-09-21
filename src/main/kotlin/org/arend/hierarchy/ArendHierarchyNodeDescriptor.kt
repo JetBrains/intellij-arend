@@ -10,7 +10,7 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                                    element: PsiElement, isBase: Boolean) : HierarchyNodeDescriptor(project, parent, element, isBase) {
     //fun getReferenceElement() : PsiGlobalReferable? {
     //    return (psiElement as ArendReferenceElement).reference?.resolve() as PsiGlobalReferable
-   // }
+    // }
     override fun update(): Boolean {
         val oldText = myHighlightedText
 

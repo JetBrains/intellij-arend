@@ -31,10 +31,10 @@ open class ArendWordScanner : VersionedWordsScanner() {
     companion object {
 
         fun isArendIdentifierPart(c: Char): Boolean =
-            isArendIdentifierStart(c) || c in '0'..'9' || c == '\''
+                isArendIdentifierStart(c) || c in '0'..'9' || c == '\''
 
         fun isArendIdentifierStart(c: Char): Boolean =
-            c in 'a'..'z' || c in 'A'..'Z' || c in "_~!@#$%^&*-+=<>?/|[];:"
+                c in 'a'..'z' || c in 'A'..'Z' || c in "_~!@#$%^&*-+=<>?/|[];:"
 
         protected fun stripWords(
                 processor: Processor<WordOccurrence>,

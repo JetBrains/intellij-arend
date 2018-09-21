@@ -23,7 +23,7 @@ class ArendNamesValidator : NamesValidator {
         fun isPostfixName(name: String): Boolean = getLexerType(name) == ArendElementTypes.POSTFIX && !containsComment(name)
 
         private fun containsComment(name: String): Boolean = name.contains("--")
-        fun getLexerType (text : String): IElementType? {
+        fun getLexerType(text: String): IElementType? {
             val lexer = ArendLexerAdapter()
             lexer.start(text)
             return if (lexer.tokenEnd == text.length) lexer.tokenType else null

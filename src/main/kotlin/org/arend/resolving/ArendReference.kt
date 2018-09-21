@@ -3,20 +3,20 @@ package org.arend.resolving
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
-import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.RedirectingReferable
-import org.arend.prelude.Prelude
-import org.arend.term.abs.Abstract
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.module.util.findArendFilesAndDirectories
 import org.arend.module.util.libraryConfig
+import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.reference.RedirectingReferable
+import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.PsiModuleReferable
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiModuleReferable
+import org.arend.psi.ext.PsiReferable
 import org.arend.refactoring.ArendNamesValidator
+import org.arend.term.abs.Abstract
 import org.arend.typechecking.TypeCheckingService
 
 interface ArendReference : PsiReference {
@@ -25,7 +25,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -36,11 +36,11 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiRefe
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
 }
 
-open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, private val onlyResolve: Boolean): ArendReferenceImpl<T>(element) {
+open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, private val onlyResolve: Boolean) : ArendReferenceImpl<T>(element) {
     override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T) : PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -94,7 +94,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                         if (it is ArendFile)
                             LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.MODULE) else
                             LookupElementBuilder.createWithIcon(it)
-                    } ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
+                    }
+                            ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
                 }
                 else -> LookupElementBuilder.create(ref, ref.textRepresentation())
             }
@@ -102,7 +103,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
     }
 
     override fun resolve(): PsiElement? {
-        var ref: Any? = ArendResolveCache.resolveCached( { element ->
+        var ref: Any? = ArendResolveCache.resolveCached({ element ->
             element.scope.resolveName(element.referenceName)
         }, this.element)
 
@@ -138,7 +139,7 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     oldNameIdentifier.replace(newNameIdentifier)
 }
 
-open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendReferenceImpl<T>(element), PsiPolyVariantReference {
+open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T) : ArendReferenceImpl<T>(element), PsiPolyVariantReference {
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable

@@ -72,7 +72,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                  | B => {?}
                  }
             """
-            )
+    )
 
     fun `test adding implementation of cowith expression`() = simpleQuickFixTest("Implement",
             """

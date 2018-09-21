@@ -2,13 +2,13 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 import org.arend.psi.ArendConstructor
 import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendStatCmd
 import org.arend.psi.ancestors
 import org.arend.psi.stubs.ArendDefModuleStub
+import org.arend.term.group.ChildGroup
+import org.arend.term.group.Group
 import org.arend.typing.ExpectedTypeVisitor
 
 
@@ -21,9 +21,12 @@ abstract class ArendDefModuleMixin : ReferableAdapter<ArendDefModuleStub>, Arend
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
+    override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull {
+        it.definition ?: it.defModule as ChildGroup?
+    } ?: emptyList()
 
-    override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
+    override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd }
+            ?: emptyList()
 
     override fun getConstructors(): List<ArendConstructor> = emptyList()
 

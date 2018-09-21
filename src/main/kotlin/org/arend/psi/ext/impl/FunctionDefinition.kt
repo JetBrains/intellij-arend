@@ -3,12 +3,12 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
-import org.arend.naming.reference.ClassReferable
-import org.arend.term.Precedence
-import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.ArendIcons
+import org.arend.naming.reference.ClassReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefFunctionStub
+import org.arend.term.Precedence
+import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
@@ -24,7 +24,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getTerm(): ArendExpr? = functionBody?.expr
 
-    override fun getEliminatedExpressions(): List<ArendRefIdentifier> = functionBody?.elim?.refIdentifierList ?: emptyList()
+    override fun getEliminatedExpressions(): List<ArendRefIdentifier> = functionBody?.elim?.refIdentifierList
+            ?: emptyList()
 
     override fun getClauses(): List<ArendClause> = functionBody?.functionClauses?.clauseList ?: emptyList()
 
@@ -52,7 +53,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauses?.coClauseList ?: emptyList()
 
-    override fun getArgumentsExplicitness() = (resultType as? ArendNewExpr)?.argumentAppExpr?.argumentList?.map { it.isExplicit } ?: emptyList()
+    override fun getArgumentsExplicitness() = (resultType as? ArendNewExpr)?.argumentAppExpr?.argumentList?.map { it.isExplicit }
+            ?: emptyList()
 
     override val psiElementType: PsiElement?
         get() = resultType

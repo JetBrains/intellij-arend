@@ -20,13 +20,15 @@ val PsiElement.module: Module?
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.libraryManager?.moduleScopeProvider
-        ?: EmptyModuleScopeProvider.INSTANCE
+            ?: EmptyModuleScopeProvider.INSTANCE
 
 val PsiElement.sourceRoot: VirtualFile?
     get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }
 
 val PsiElement.contentRoot: VirtualFile?
-    get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(it) ?: it.parent }
+    get() = containingFile?.virtualFile?.let {
+        ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(it) ?: it.parent
+    }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
         strict: Boolean = true,
@@ -38,4 +40,5 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
 fun Group.findGroupByFullName(fullName: List<String>): Group? =
-    if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] } ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
+        if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
+                ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))

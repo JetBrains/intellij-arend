@@ -18,8 +18,7 @@ class ArendColorSettingsPage : ColorSettingsPage {
 
     override fun getDemoText(): String = DEMO_TEXT
 
-    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>?
-            = null
+    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>? = null
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> = DESCRIPTORS
 
@@ -34,14 +33,14 @@ class ArendColorSettingsPage : ColorSettingsPage {
 
         // TODO: update demo text
         private const val DEMO_TEXT =
-            "\\import Data.Bool\n" +
-            "\n" +
-            "\\class Semigroup {\n" +
-            "  \\field X : \\Type0\n" +
-            "  \\field op : X -> X -> X\n" +
-            "  \\field assoc : \\Pi (x y z : X) -> op (op x y) z = op x (op y z)\n" +
-            "}\n" +
-            "\n" +
-            "\\func xor-semigroup => \\new Semigroup { X => Bool | op => xor | assoc => {?} }"
+                "\\import Data.Bool\n" +
+                        "\n" +
+                        "\\class Semigroup {\n" +
+                        "  \\field X : \\Type0\n" +
+                        "  \\field op : X -> X -> X\n" +
+                        "  \\field assoc : \\Pi (x y z : X) -> op (op x y) z = op x (op y z)\n" +
+                        "}\n" +
+                        "\n" +
+                        "\\func xor-semigroup => \\new Semigroup { X => Bool | op => xor | assoc => {?} }"
     }
 }

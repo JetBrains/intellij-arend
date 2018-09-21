@@ -11,29 +11,29 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
 import org.arend.library.LibraryManager
+import org.arend.module.ArendPreludeLibrary
+import org.arend.module.ArendRawLibrary
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.LocatingModuleScopeProvider
+import org.arend.module.util.defaultRoot
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.reference.converter.SimpleReferableConverter
-import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.order.dependency.DependencyCollector
-import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.util.FileUtils
-import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ArendRawLibrary
-import org.arend.module.util.defaultRoot
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LogErrorReporter
+import org.arend.typechecking.order.dependency.DependencyCollector
+import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.util.FileUtils
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -93,7 +93,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
 
     override fun getTypechecked(definition: ArendDefinition) =
-        simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
+            simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     override fun updateDefinition(referable: LocatedReferable) {
         simpleReferableConverter.remove(referable)?.let {
@@ -155,7 +155,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-         override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
+        override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
             processParent(event, false)
         }
 
@@ -186,15 +186,15 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
             val child = event.child
             if (child is PsiErrorElement ||
-                child is PsiWhiteSpace ||
-                child is LeafPsiElement && isComment(child.node.elementType)) {
+                    child is PsiWhiteSpace ||
+                    child is LeafPsiElement && isComment(child.node.elementType)) {
                 return
             }
             val oldChild = event.oldChild
             val newChild = event.newChild
             if (oldChild is PsiErrorElement && newChild is PsiErrorElement ||
-                oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
-                oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+                    oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
+                    oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
                 return
             }
 
@@ -220,7 +220,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             updateDefinition(definition)
         }
 
-        private fun invalidateChild(element : PsiElement) {
+        private fun invalidateChild(element: PsiElement) {
             element.accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement?) {
                     super.visitElement(element)

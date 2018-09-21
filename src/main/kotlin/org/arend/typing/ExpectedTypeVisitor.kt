@@ -9,24 +9,24 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCoClauseImplMixin
+import org.arend.psi.ext.impl.ClassFieldImplAdapter
+import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.ArgInferenceError
-import org.arend.psi.ext.ArendCoClauseImplMixin
-import org.arend.psi.ext.impl.ClassFieldImplAdapter
-import org.arend.psi.ext.impl.DefinitionAdapter
 import java.math.BigInteger
 import java.util.*
 
 
-class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: AnnotationHolder?) : AbstractExpressionVisitor<Void,Any>, AbstractDefinitionVisitor<Any> {
+class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: AnnotationHolder?) : AbstractExpressionVisitor<Void, Any>, AbstractDefinitionVisitor<Any> {
     object InferHoleExpression : Abstract.SourceNodeImpl(), Abstract.Expression {
         override fun getData() = this
 
         override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-            visitor.visitInferHole(this, null, params)
+                visitor.visitInferHole(this, null, params)
     }
 
     class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable?>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
@@ -43,7 +43,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         override fun getData() = this
 
         override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-            visitor.visitReference(this, referable, null, null, null, params)
+                visitor.visitReference(this, referable, null, null, null, params)
 
         override fun toString() = referable.textRepresentation()
     }
@@ -52,7 +52,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         override fun getData() = this
 
         override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-            visitor.visitPi(this, parameters, codomain, null, params)
+                visitor.visitPi(this, parameters, codomain, null, params)
 
         override fun toString() = "a pi type"
     }
@@ -81,7 +81,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         override fun getData() = this
 
         override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-            visitor.visitUniverse(this, null, null, null, null, null, params)
+                visitor.visitUniverse(this, null, null, null, null, null, params)
 
         override fun toString() = "a universe"
     }
@@ -130,9 +130,15 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     }
 
     enum class CoerceType {
-        UNIVERSE { override fun toGetKind() = GetKindVisitor.Kind.UNIVERSE },
-        PI { override fun toGetKind() = GetKindVisitor.Kind.PI },
-        SIGMA { override fun toGetKind() = GetKindVisitor.Kind.SIGMA },
+        UNIVERSE {
+            override fun toGetKind() = GetKindVisitor.Kind.UNIVERSE
+        },
+        PI {
+            override fun toGetKind() = GetKindVisitor.Kind.PI
+        },
+        SIGMA {
+            override fun toGetKind() = GetKindVisitor.Kind.SIGMA
+        },
         ANY;
 
         open fun toGetKind(): GetKindVisitor.Kind? = null
@@ -224,7 +230,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         }
 
         fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, defName: String) =
-            getParameterType(expr, paramExplicitness, 0, defName, false)
+                getParameterType(expr, paramExplicitness, 0, defName, false)
 
         private fun getParameterType(expr: Abstract.Expression?, paramExplicitness: List<Boolean>, startIndex: Int, defName: String, isSubst: Boolean): Any? {
             var result: Any? = null
@@ -278,7 +284,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         }
 
         fun getTypeOf(parameters: Collection<Abstract.Parameter>, expr: Abstract.Expression?): Abstract.Expression? =
-            if (parameters.isEmpty()) expr else PiImpl(parameters, expr)
+                if (parameters.isEmpty()) expr else PiImpl(parameters, expr)
     }
 
     private fun dropParameters(parameters: Collection<Abstract.Parameter>, drop: Int): Collection<Abstract.Parameter> {
@@ -301,38 +307,38 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     }
 
     private fun reduceParameters(parameters: Collection<Abstract.Parameter>, type: Abstract.Expression?, holder: AnnotationHolder?): Abstract.Expression? =
-        if (parameters.isEmpty()) {
-            type
-        } else {
-            var requiredParameters = parameters.sumBy { it.referableList.size }
-            var currentType = type
+            if (parameters.isEmpty()) {
+                type
+            } else {
+                var requiredParameters = parameters.sumBy { it.referableList.size }
+                var currentType = type
 
-            while (currentType != null && requiredParameters > 0) {
-                val kind = currentType.accept(object : GetKindVisitor() {
-                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
-                        val availableParameters = parameters.sumBy { it.referableList.size }
-                        if (availableParameters <= requiredParameters) {
-                            requiredParameters -= availableParameters
-                            currentType = codomain
-                        } else {
-                            requiredParameters = 0
-                            currentType = ExpectedTypeVisitor.PiImpl(dropParameters(parameters, requiredParameters), codomain)
+                while (currentType != null && requiredParameters > 0) {
+                    val kind = currentType.accept(object : GetKindVisitor() {
+                        override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
+                            val availableParameters = parameters.sumBy { it.referableList.size }
+                            if (availableParameters <= requiredParameters) {
+                                requiredParameters -= availableParameters
+                                currentType = codomain
+                            } else {
+                                requiredParameters = 0
+                                currentType = ExpectedTypeVisitor.PiImpl(dropParameters(parameters, requiredParameters), codomain)
+                            }
+                            return Kind.PI
                         }
-                        return Kind.PI
-                    }
-                }, null)
+                    }, null)
 
-                if (kind != GetKindVisitor.Kind.PI) {
-                    if (holder != null && kind.isWHNF()) {
-                        holder.createErrorAnnotation(TextRange((parameters.first() as ArendNameTele).textRange.startOffset, (parameters.last() as ArendNameTele).textRange.endOffset), "Too many parameters")
+                    if (kind != GetKindVisitor.Kind.PI) {
+                        if (holder != null && kind.isWHNF()) {
+                            holder.createErrorAnnotation(TextRange((parameters.first() as ArendNameTele).textRange.startOffset, (parameters.last() as ArendNameTele).textRange.endOffset), "Too many parameters")
+                        }
+                        currentType = null
+                        break
                     }
-                    currentType = null
-                    break
                 }
-            }
 
-            currentType
-        }
+                currentType
+            }
 
     fun getExpectedType(): Any? {
         var parent: Abstract.SourceNode = element.topmostEquivalentSourceNode.parentSourceNode ?: return null
@@ -407,7 +413,8 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         }
 
         val expectedType = (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } ?: return null
-        val expectedTypeExpr = expectedType as? Abstract.Expression ?: (expectedType as? Substituted)?.expr ?: return null
+        val expectedTypeExpr = expectedType as? Abstract.Expression ?: (expectedType as? Substituted)?.expr
+        ?: return null
         val result = reduceParameters(parameters, expectedTypeExpr, null) ?: return null
         return if (expectedType is Substituted) Substituted(result) else result
     }
@@ -419,7 +426,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     override fun visitInferHole(data: Any?, errorData: Abstract.ErrorData?, params: Void?) = null
 
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
-        (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() }
+            (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() }
 
     override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, params: Void?): Any? {
         val originalIndex = fields.indexOf(element)
@@ -428,7 +435,8 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
             return null
         }
 
-        val sigmaExpr = (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } as? ArendSigmaExpr ?: return null
+        val sigmaExpr = (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } as? ArendSigmaExpr
+                ?: return null
         if (sigmaExpr.typeTeleList.sumBy { it.referableList.size } != fields.size) {
             return null
         }
@@ -477,25 +485,25 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     }
 
     override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
-        if (element == resultType) Universe else null
+            if (element == resultType) Universe else null
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, errorData: Abstract.ErrorData?, params: Void?) =
-        if (element == expression) Sigma(fieldAccs.first()) else null
+            if (element == expression) Sigma(fieldAccs.first()) else null
 
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
-        if (element == baseClass) null else visitBinOpSequence(data, InferHoleExpression, sequence, errorData, params)
+            if (element == baseClass) null else visitBinOpSequence(data, InferHoleExpression, sequence, errorData, params)
 
     override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
-        if (element == expression) (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } else null
+            if (element == expression) (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } else null
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = null
 
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?) =
-        when (element) {
-            expr -> type
-            type -> Universe
-            else -> null
-        }
+            when (element) {
+                expr -> type
+                type -> Universe
+                else -> null
+            }
 
     override fun visitFunction(def: Abstract.FunctionDefinition): Any? {
         val resultType = def.resultType

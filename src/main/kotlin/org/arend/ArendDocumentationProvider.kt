@@ -2,35 +2,35 @@ package org.arend
 
 import com.google.common.html.HtmlEscapers
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil.createHyperlink
-import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.lang.documentation.AbstractDocumentationProvider
+import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.PsiElement
-import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
+import org.arend.term.abs.Abstract
 
 
 private fun String.htmlEscape(): String = HtmlEscapers.htmlEscaper().escape(this)
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?): String? =
-        generateDoc(element, originalElement)
+            generateDoc(element, originalElement)
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) =
-        if (element !is PsiReferable) {
-            null
-        } else {
-            buildString {
-                wrap(DEFINITION_START, DEFINITION_END) {
-                    generateDefinition(element)
-                }
+            if (element !is PsiReferable) {
+                null
+            } else {
+                buildString {
+                    wrap(DEFINITION_START, DEFINITION_END) {
+                        generateDefinition(element)
+                    }
 
-                wrap(CONTENT_START, CONTENT_END) {
-                    generateContent(element, originalElement)
+                    wrap(CONTENT_START, CONTENT_END) {
+                        generateContent(element, originalElement)
+                    }
                 }
             }
-        }
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
         wrapTag("b") {
@@ -42,22 +42,22 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun getParametersList(element: PsiReferable) =
-        buildString {
-            val parameters: List<Abstract.Parameter> =
-                (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()
+            buildString {
+                val parameters: List<Abstract.Parameter> =
+                        (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()
 
-            for (parameter in parameters) {
-                if (parameter is PsiElement) {
-                    append(" ${parameter.text}")
+                for (parameter in parameters) {
+                    if (parameter is PsiElement) {
+                        append(" ${parameter.text}")
+                    }
                 }
             }
-        }
 
     private fun getResultType(element: PsiReferable) =
-        buildString {
-            val resultType = element.psiElementType
-            resultType?.let { append(" : ${it.text}") }
-        }
+            buildString {
+                val resultType = element.psiElementType
+                resultType?.let { append(" : ${it.text}") }
+            }
 
     fun StringBuilder.generateContent(element: PsiElement, originalElement: PsiElement?) {
         wrapTag("em") {
@@ -65,13 +65,13 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         getSourceFileName(element, originalElement)
-            ?.run(String::htmlEscape)
-            ?.let { fileName ->
-                StringBuilder().also {
-                    createHyperlink(it, fileName, fileName, false)
-                    append(", defined in $it")
+                ?.run(String::htmlEscape)
+                ?.let { fileName ->
+                    StringBuilder().also {
+                        createHyperlink(it, fileName, fileName, false)
+                        append(", defined in $it")
+                    }
                 }
-            }
     }
 
     private fun getType(element: PsiElement): String? = when (element) {

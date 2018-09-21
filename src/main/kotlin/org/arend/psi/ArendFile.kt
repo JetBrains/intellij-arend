@@ -5,24 +5,24 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import org.arend.ArendFileType
+import org.arend.ArendIcons
+import org.arend.ArendLanguage
 import org.arend.module.ModulePath
+import org.arend.module.util.sourcesDir
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.stubs.ArendFileStub
+import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
-import org.arend.ArendFileType
-import org.arend.ArendIcons
-import org.arend.ArendLanguage
-import org.arend.module.util.sourcesDir
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendSourceNode
-import org.arend.psi.stubs.ArendFileStub
-import org.arend.resolving.ArendReference
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath
@@ -41,7 +41,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = module?.name ?: if (name == "Prelude.ard") "prelude" else null
 
     override fun setName(name: String): PsiElement =
-        super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
+            super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
 
     override fun getStub(): ArendFileStub? = super.getStub() as ArendFileStub?
 
@@ -72,7 +72,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { (it as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
+    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull {
+        (it as? ArendStatement)?.let {
+            it.definition ?: it.defModule as ChildGroup?
+        }
+    }
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
 

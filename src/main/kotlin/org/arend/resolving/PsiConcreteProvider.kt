@@ -12,16 +12,16 @@ import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.term.Precedence
-import org.arend.term.concrete.Concrete
-import org.arend.term.concrete.ConcreteDefinitionVisitor
-import org.arend.typechecking.error.ProxyError
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.Precedence
+import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
 private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {
@@ -34,34 +34,36 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
         var cached = true
         var scope: Scope? = null
-        val result = cache.computeIfAbsent(psiReferable) { runReadAction {
-            if (psiReferable is ArendDefClass && psiReferable.fatArrow != null) {
-                return@runReadAction NullDefinition
-            }
+        val result = cache.computeIfAbsent(psiReferable) {
+            runReadAction {
+                if (psiReferable is ArendDefClass && psiReferable.fatArrow != null) {
+                    return@runReadAction NullDefinition
+                }
 
-            cached = false
-            if (eventsProcessor != null) {
-                eventsProcessor.onTestStarted(psiReferable)
-                eventsProcessor.startTimer(psiReferable)
-            }
-
-            val def = psiReferable.computeConcrete(referableConverter, errorReporter)
-            if (def == null) {
+                cached = false
                 if (eventsProcessor != null) {
-                    eventsProcessor.stopTimer(psiReferable)
-                    eventsProcessor.onTestFailure(psiReferable)
-                    eventsProcessor.onTestFinished(psiReferable)
+                    eventsProcessor.onTestStarted(psiReferable)
+                    eventsProcessor.startTimer(psiReferable)
                 }
-                return@runReadAction NullDefinition
-            } else {
-                if (def.resolved == Concrete.Resolved.NOT_RESOLVED) {
-                    scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
-                    def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
+
+                val def = psiReferable.computeConcrete(referableConverter, errorReporter)
+                if (def == null) {
+                    if (eventsProcessor != null) {
+                        eventsProcessor.stopTimer(psiReferable)
+                        eventsProcessor.onTestFailure(psiReferable)
+                        eventsProcessor.onTestFinished(psiReferable)
+                    }
+                    return@runReadAction NullDefinition
+                } else {
+                    if (def.resolved == Concrete.Resolved.NOT_RESOLVED) {
+                        scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
+                        def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
+                    }
+                    eventsProcessor?.stopTimer(psiReferable)
+                    return@runReadAction def
                 }
-                eventsProcessor?.stopTimer(psiReferable)
-                return@runReadAction def
             }
-        } }
+        }
 
         if (result === NullDefinition) {
             return null
@@ -114,7 +116,8 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         }
 
         cache[psiReferable]?.let { return it }
-        val concreteRef = runReadAction { psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull() } ?: return null
+        val concreteRef = runReadAction { psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull() }
+                ?: return null
         getConcreteDefinition(concreteRef) ?: return null
         return cache[psiReferable]
     }

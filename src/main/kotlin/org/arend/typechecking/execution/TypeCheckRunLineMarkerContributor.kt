@@ -7,7 +7,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.Function
 import org.arend.core.definition.Definition
-import org.arend.psi.*
+import org.arend.psi.ArendDefClass
+import org.arend.psi.ArendDefIdentifier
+import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.fullName
 import org.arend.typechecking.TypeCheckingService
 

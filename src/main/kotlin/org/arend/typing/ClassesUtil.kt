@@ -7,12 +7,13 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendLongName
+import org.arend.term.abs.Abstract
 
 
 private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Abstract.ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
-    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefHolder?.argumentsExplicitness ?: emptyList(), superClassesFields)
+    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefHolder?.argumentsExplicitness
+            ?: emptyList(), superClassesFields)
     if (classRefHolder != null) {
         for (fieldImpl in classRefHolder.classFieldImpls) {
             (fieldImpl as? PsiElement)?.let {

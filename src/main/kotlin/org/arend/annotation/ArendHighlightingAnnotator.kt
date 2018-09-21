@@ -9,28 +9,28 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.error.Error
+import org.arend.highlight.ArendHighlightingColors
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.NameResolvingChecker
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.NamespaceCommandNamespace
-import org.arend.term.NamespaceCommand
-import org.arend.term.abs.Abstract
-import org.arend.term.abs.BaseAbstractExpressionVisitor
-import org.arend.term.concrete.Concrete
-import org.arend.term.group.Group
-import org.arend.typechecking.error.local.LocalError
-import org.arend.util.LongName
-import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.quickfix.InstanceQuickFix
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiPartialConcreteProvider
+import org.arend.term.NamespaceCommand
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.BaseAbstractExpressionVisitor
+import org.arend.term.concrete.Concrete
+import org.arend.term.group.Group
+import org.arend.typechecking.error.local.LocalError
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import org.arend.typing.TypecheckingVisitor
+import org.arend.util.LongName
 
 class ArendHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -197,7 +197,8 @@ class ArendHighlightingAnnotator : Annotator {
 
                 val cause = error.cause
                 if (cause is PsiElement) {
-                    holder.createAnnotation(levelToSeverity(error.level), ((cause as? ArendDefFunction)?.defIdentifier ?: cause).textRange, error.shortMessage)
+                    holder.createAnnotation(levelToSeverity(error.level), ((cause as? ArendDefFunction)?.defIdentifier
+                            ?: cause).textRange, error.shortMessage)
                 }
             }
         }
@@ -219,7 +220,7 @@ class ArendHighlightingAnnotator : Annotator {
                 }
             } else if (definition is ArendDefFunction)
                 InstanceQuickFix.annotateFunctionDefinitionWithCoWith(definition, holder)
-             else if (definition is ArendDefFunction && definition.coerceKw != null) {
+            else if (definition is ArendDefFunction && definition.coerceKw != null) {
                 val lastParam = definition.nameTeleList.lastOrNull()
                 if (lastParam == null) {
                     holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
@@ -254,13 +255,13 @@ class ArendHighlightingAnnotator : Annotator {
                             resultDef !is ArendDefData && resultDef !is ArendDefClass
                         } else {
                             if (defType != null) {
-                                defType.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
+                                defType.accept(object : BaseAbstractExpressionVisitor<Void, Boolean>(true) {
                                     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
                                     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
                                     override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = false
                                 }, null)
                             } else {
-                                definition.functionBody?.expr?.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
+                                definition.functionBody?.expr?.accept(object : BaseAbstractExpressionVisitor<Void, Boolean>(true) {
                                     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
                                     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
                                     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
@@ -382,7 +383,8 @@ class ArendHighlightingAnnotator : Annotator {
         if (element is ArendFieldTele) {
             val definition = element.parent
             if (definition is ArendDefClass && definition.fatArrow != null && definition.fieldTeleList.firstOrNull() == element) {
-                holder.createAnnotation(HighlightSeverity.ERROR, TextRange(element.textRange.startOffset, (definition.fieldTeleList.lastOrNull() ?: element).textRange.endOffset), "Class synonyms cannot have parameters")
+                holder.createAnnotation(HighlightSeverity.ERROR, TextRange(element.textRange.startOffset, (definition.fieldTeleList.lastOrNull()
+                        ?: element).textRange.endOffset), "Class synonyms cannot have parameters")
             }
             return
         }
@@ -486,7 +488,8 @@ class ArendHighlightingAnnotator : Annotator {
             }
             if (i >= teleList.size) {
                 if (pattern == element) {
-                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected " + teleList.sumBy { it.referableList.size } + " (including implicit)")
+                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement
+                            ?: element).textRange.endOffset), "Too many patterns. Expected " + teleList.sumBy { it.referableList.size } + " (including implicit)")
                 }
                 return
             }
@@ -512,7 +515,8 @@ class ArendHighlightingAnnotator : Annotator {
         if (i < teleList.size && element == patternList[patternList.size - 1]) {
             while (i < teleList.size) {
                 if (teleList[i].isExplicit) {
-                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected " + teleList.sumBy { it.referableList.size })
+                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement
+                            ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected " + teleList.sumBy { it.referableList.size })
                     return
                 }
                 i++
@@ -530,9 +534,11 @@ class ArendHighlightingAnnotator : Annotator {
                     holder.createErrorAnnotation(element, "Expected an explicit pattern")
                 }
                 if (i == numberOfPatterns) {
-                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement ?: element).textRange.endOffset), "Too many patterns. Expected $numberOfPatterns")
+                    holder.createErrorAnnotation(TextRange(element.textRange.startOffset, (patternList.lastOrNull() as? PsiElement
+                            ?: element).textRange.endOffset), "Too many patterns. Expected $numberOfPatterns")
                 } else if (i == patternList.size - 1 && numberOfPatterns > patternList.size) {
-                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected $numberOfPatterns")
+                    holder.createErrorAnnotation(TextRange((patternList.firstOrNull() as? PsiElement
+                            ?: element).textRange.startOffset, element.textRange.endOffset), "Not enough patterns. Expected $numberOfPatterns")
                 }
                 return
             }

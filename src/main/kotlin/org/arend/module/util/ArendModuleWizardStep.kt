@@ -41,9 +41,9 @@ class ArendModuleWizardStep(
             if (contentEntry != null) {
                 val projectRoot = contentEntry.file ?: return
 
-                 if (projectRoot.findChild(SOURCE_DIR) == null) {
-                     projectRoot.createChildDirectory(null, SOURCE_DIR)
-                 }
+                if (projectRoot.findChild(SOURCE_DIR) == null) {
+                    projectRoot.createChildDirectory(null, SOURCE_DIR)
+                }
 
                 if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
                     val configFile = projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE)

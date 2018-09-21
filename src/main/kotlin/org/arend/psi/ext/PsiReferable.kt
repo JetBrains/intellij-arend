@@ -2,7 +2,10 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
-import com.intellij.psi.*
+import com.intellij.psi.NavigatablePsiElement
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFileSystemItem
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.module.ModulePath
@@ -19,7 +22,7 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
         get() = null
 }
 
-class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
+class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath) : ModuleReferable(modulePath)
 
 abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node), PsiReferable {
 
@@ -42,7 +45,7 @@ abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node)
 }
 
 abstract class PsiStubbedReferableImpl<StubT> : ArendStubbedElementImpl<StubT>, PsiReferable
-where StubT : ArendNamedStub, StubT : StubElement<*> {
+        where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)
 

@@ -35,7 +35,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     }
 
     override fun getTypeClassReference(): ClassReferable? =
-        typeOf?.let { ReferableExtractVisitor().findClassReferable(it) }
+            typeOf?.let { ReferableExtractVisitor().findClassReferable(it) }
 
     override fun getParameterType(params: List<Boolean>): Any? = ExpectedTypeVisitor.getParameterType(typeOf, params, name)
 

@@ -1,7 +1,7 @@
 package org.arend.refactoring
 
-import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
+import org.intellij.lang.annotations.Language
 
 class RenameTest : ArendTestBase() {
 

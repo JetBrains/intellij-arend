@@ -10,20 +10,20 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.GlobalSearchScope
 
 class DefinitionProxy(
-    definitionName: String,
-    isSuite: Boolean,
-    locationUrl: String?,
-    preservePresentableName: Boolean = true,
-    psi: PsiElement?) : SMTestProxy(definitionName, isSuite, locationUrl, preservePresentableName) {
+        definitionName: String,
+        isSuite: Boolean,
+        locationUrl: String?,
+        preservePresentableName: Boolean = true,
+        psi: PsiElement?) : SMTestProxy(definitionName, isSuite, locationUrl, preservePresentableName) {
 
     private val psiPointer: SmartPsiElementPointer<PsiElement>? =
-        if (psi == null) {
-            null
-        } else {
-            val file = psi.containingFile
-            SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(psi, file)
-        }
+            if (psi == null) {
+                null
+            } else {
+                val file = psi.containingFile
+                SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(psi, file)
+            }
 
     override fun getLocation(project: Project, searchScope: GlobalSearchScope): Location<*>? =
-        psiPointer?.element?.let { PsiLocation(it) }
+            psiPointer?.element?.let { PsiLocation(it) }
 }

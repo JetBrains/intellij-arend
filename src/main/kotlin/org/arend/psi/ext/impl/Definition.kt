@@ -7,17 +7,17 @@ import org.arend.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
+import org.arend.psi.*
+import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
-import org.arend.psi.*
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.stubs.ArendNamedStub
 
 abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ChildGroup, Abstract.Definition, PsiConcreteReferable
-where StubT : ArendNamedStub, StubT : StubElement<*> {
+        where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -28,15 +28,18 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     open fun getWhere(): ArendWhere? = null
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
-        ConcreteBuilder.convert(referableConverter, this, errorReporter)
+            ConcreteBuilder.convert(referableConverter, this, errorReporter)
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ChildGroup> = getWhere()?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
+    override fun getSubgroups(): List<ChildGroup> = getWhere()?.statementList?.mapNotNull {
+        it.definition ?: it.defModule as ChildGroup?
+    } ?: emptyList()
 
-    override fun getNamespaceCommands(): List<ArendStatCmd> = getWhere()?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
+    override fun getNamespaceCommands(): List<ArendStatCmd> = getWhere()?.statementList?.mapNotNull { it.statCmd }
+            ?: emptyList()
 
     override fun getConstructors(): List<ArendConstructor> = emptyList()
 

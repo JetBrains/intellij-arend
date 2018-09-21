@@ -13,11 +13,11 @@ import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
-import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.search.ArendWordScanner
+import org.arend.term.abs.Abstract
 import java.util.*
 
 class ArendCompletionContributor : CompletionContributor() {
@@ -247,35 +247,37 @@ class ArendCompletionContributor : CompletionContributor() {
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
                     (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
         }
-        val elimCondition = {functionsOnly: Boolean -> { cP: CompletionParameters, _: ProcessingContext? ->
-            var pos2: PsiElement? = cP.position
-            var exprFound = false
-            while (pos2 != null) {
-                if (pos2.nextSibling is PsiWhiteSpace) {
-                    var body = pos2.nextSibling
-                    while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
+        val elimCondition = { functionsOnly: Boolean ->
+            { cP: CompletionParameters, _: ProcessingContext? ->
+                var pos2: PsiElement? = cP.position
+                var exprFound = false
+                while (pos2 != null) {
+                    if (pos2.nextSibling is PsiWhiteSpace) {
+                        var body = pos2.nextSibling
+                        while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
 
-                    if ((body is ArendFunctionBody) && (pos2.parent is ArendDefFunction)) {
-                        val fBody = (pos2.parent as ArendDefFunction).functionBody
-                        exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
-                        exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
-                        break
-                    }
-                    if ((body is ArendDataBody) && (pos2.parent is ArendDefData) &&!functionsOnly) {
-                        val dBody = (pos2.parent as ArendDefData).dataBody
-                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
-                        exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefData).typeTeleList)
-                        break
+                        if ((body is ArendFunctionBody) && (pos2.parent is ArendDefFunction)) {
+                            val fBody = (pos2.parent as ArendDefFunction).functionBody
+                            exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
+                            exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
+                            break
+                        }
+                        if ((body is ArendDataBody) && (pos2.parent is ArendDefData) && !functionsOnly) {
+                            val dBody = (pos2.parent as ArendDefData).dataBody
+                            exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                            exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefData).typeTeleList)
+                            break
 
+                        }
                     }
+                    if (pos2 is ArendConstructor && pos2.elim == null) {
+                        exprFound = !emptyTeleList(pos2.typeTeleList)
+                    }
+                    if (pos2.nextSibling == null) pos2 = pos2.parent else break
                 }
-                if (pos2 is ArendConstructor && pos2.elim == null) {
-                    exprFound = !emptyTeleList(pos2.typeTeleList)
-                }
-                if (pos2.nextSibling == null) pos2 = pos2.parent else break
+                exprFound
             }
-            exprFound
-        }}
+        }
 
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST)))

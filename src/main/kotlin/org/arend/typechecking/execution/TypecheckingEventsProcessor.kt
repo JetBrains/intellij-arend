@@ -17,7 +17,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.fullName
 
 interface ProxyAction {
-    fun runAction(p : SMTestProxy)
+    fun runAction(p: SMTestProxy)
 }
 
 class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTestProxy.SMRootTestProxy, typeCheckingFrameworkName: String)
@@ -50,8 +50,8 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             isTypeCheckingFinished = true
 
             val isTreeNotComplete = !GeneralTestEventsProcessor.isTreeComplete(
-                definitionToProxy.keys,
-                myTestsRootProxy
+                    definitionToProxy.keys,
+                    myTestsRootProxy
             )
             if (isTreeNotComplete) {
                 myTestsRootProxy.setTerminated()
@@ -187,7 +187,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     }
 
     override fun onTestsCountInSuite(count: Int) =
-        addToInvokeLater { fireOnTestsCountInSuite(count) }
+            addToInvokeLater { fireOnTestsCountInSuite(count) }
 
     override fun onTestsReporterAttached() {
         addToInvokeLater {
@@ -241,29 +241,29 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
 
     override fun onSuiteStarted(suiteStartedEvent: TestSuiteStartedEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onSuiteFinished(suiteFinishedEvent: TestSuiteFinishedEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onTestStarted(typeCheckingStartedEvent: TestStartedEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onTestFailure(typeCheckingFailedEvent: TestFailedEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onTestFinished(typeCheckingFinishedEvent: TestFinishedEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onTestIgnored(typeCheckingIgnoredEvent: TestIgnoredEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun onTestOutput(typeCheckingOutputEvent: TestOutputEvent) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun setLocator(locator: SMTestLocator) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 
     override fun setPrinterProvider(printerProvider: TestProxyPrinterProvider) =
-        throw UnsupportedOperationException()
+            throw UnsupportedOperationException()
 }

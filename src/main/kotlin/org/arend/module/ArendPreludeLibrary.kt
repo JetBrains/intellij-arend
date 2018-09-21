@@ -2,6 +2,7 @@ package org.arend.module
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
+import org.arend.ArendLanguage
 import org.arend.error.ErrorReporter
 import org.arend.library.BaseLibrary
 import org.arend.library.LibraryManager
@@ -14,13 +15,12 @@ import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
+import org.arend.psi.ArendFile
 import org.arend.term.group.Group
 import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.util.FileUtils
-import org.arend.ArendLanguage
-import org.arend.psi.ArendFile
 import java.nio.charset.StandardCharsets
 
 

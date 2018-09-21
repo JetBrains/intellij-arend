@@ -5,7 +5,7 @@ import com.intellij.openapi.command.WriteCommandAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
-        """
+            """
             --! A.ard
             \func a => 0 \where
                 \func b => 0 \where
@@ -15,7 +15,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
         """
 
     private val fileC =
-        """
+            """
             --! C.ard
             \func f => 0 \where
               \func f => 1 \where
@@ -23,14 +23,14 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
         """
 
     private val fileD =
-        """
+            """
             --! D.ard
             \func g => 0
             \func \infixl 6 ++ (a b : Nat) => a
         """
 
     private val fileE =
-        """
+            """
             --! E.ard
             \func a => 0
             \func e => 0
@@ -135,7 +135,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => e
             """)
 
-    fun `test that adding library import preserves alphabetic order 1` () = simpleImportFixTest(fileA+fileC+fileD+
+    fun `test that adding library import preserves alphabetic order 1`() = simpleImportFixTest(fileA + fileC + fileD +
             """
                 --! B.ard
                 \import A
@@ -151,7 +151,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => f
             """)
 
-    fun `test that adding library import preserves alphabetic order 2` () = simpleImportFixTest(fileA+fileC+fileD+
+    fun `test that adding library import preserves alphabetic order 2`() = simpleImportFixTest(fileA + fileC + fileD +
             """
                 --! B.ard
                 \import C
@@ -165,7 +165,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => a.b.c
             """)
 
-    fun `test that adding library import preserves alphabetic order 3` () = simpleImportFixTest(fileA+fileC+fileD+
+    fun `test that adding library import preserves alphabetic order 3`() = simpleImportFixTest(fileA + fileC + fileD +
             """
                 --! B.ard
                 \import A
@@ -288,7 +288,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    private fun testB2 (prefix : String, s : String) =
+    private fun testB2(prefix: String, s: String) =
             """
                 $prefix\import A (a \as a')
                 \import A (a \as a'')
@@ -299,7 +299,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 }
             """
 
-    private fun testB3(s : String) =
+    private fun testB3(s: String) =
             simpleImportFixTest(fileA + testB2("                --! B.ard\n                ", "{-caret-}c"), testB2("", s))
 
     fun `test that only the smallest (wrt to lexicographic order) renaming option is shown to the user`() = testB3("b'.c")
@@ -638,12 +638,13 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func a => f
             """) */
 
-    fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
+    fun `test that AddIdToUsingId works in the situation when there is a broken using command`() = simpleActionTest(
             "\\import A \\using {-caret-}",
             "\\import A \\using (a, b, z)") { file ->
         val cmd = file.namespaceCommands.first()
         val action = AddIdToUsingAction(cmd, listOf("a", "z", "b"))
-        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file)
+    }
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =
             checkNoImport("\\func bar => 0\n\\class A {}\n\\func f => \\new A {| bar{-caret-} => 1}")

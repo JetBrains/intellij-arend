@@ -62,18 +62,18 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     private fun createArgument(expr: String): ArendArgument =
-        ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
-            ?: error("Failed to create expression: `$expr`")
+            ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
+                    ?: error("Failed to create expression: `$expr`")
 
     fun createLiteral(expr: String): ArendLiteral =
-        ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
-            ?: error("Failed to create literal: `$expr`")
+            ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
+                    ?: error("Failed to create literal: `$expr`")
 
     private fun createStatCmd(name: String): ArendStatCmd =
-        createFromText("\\open X \\hiding ($name)")?.childOfType()
-            ?: error("Failed to create stat cmd: `$name`")
+            createFromText("\\open X \\hiding ($name)")?.childOfType()
+                    ?: error("Failed to create stat cmd: `$name`")
 
-    fun createImportCommand(command : String): ArendStatement {
+    fun createImportCommand(command: String): ArendStatement {
         val commands = createFromText("\\import $command")?.namespaceCommands
         if (commands != null && commands.size == 1) {
             return commands[0].parent as ArendStatement
@@ -82,7 +82,7 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     fun createFromText(code: String): ArendFile? =
-        PsiFileFactory.getInstance(project).createFileFromText("DUMMY.ard", ArendFileType, code) as? ArendFile
+            PsiFileFactory.getInstance(project).createFileFromText("DUMMY.ard", ArendFileType, code) as? ArendFile
 
     fun createWhitespace(symbol: String): PsiElement {
         return PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)

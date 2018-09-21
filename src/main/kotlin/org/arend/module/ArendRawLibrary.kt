@@ -7,17 +7,17 @@ import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
+import org.arend.module.util.*
 import org.arend.naming.reference.LocatedReferable
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 import org.jetbrains.yaml.psi.YAMLFile
-import org.arend.module.util.*
-import org.arend.typechecking.TypeCheckingService
 
 
-class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
+class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerState) : SourceLibrary(typecheckerState) {
     private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? = null
 
     val headerFile: YAMLFile?
@@ -77,7 +77,8 @@ class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerS
 
     override fun getLoadedModules() = headerFilePtr?.element?.libModules ?: emptyList()
 
-    override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
+    override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findArendFile(modulePath)?.let { ArendRawSource(it) }
+            ?: ArendFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? {
         return headerFilePtr?.element?.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }

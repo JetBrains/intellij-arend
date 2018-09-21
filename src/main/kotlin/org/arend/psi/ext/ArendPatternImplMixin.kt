@@ -3,11 +3,11 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
-import org.arend.term.concrete.Concrete
 import org.arend.psi.ArendAtomPattern
 import org.arend.psi.ArendAtomPatternOrPrefix
 import org.arend.psi.ArendDefIdentifier
+import org.arend.term.abs.Abstract
+import org.arend.term.concrete.Concrete
 
 abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Pattern {
     override fun getData(): Any? = this

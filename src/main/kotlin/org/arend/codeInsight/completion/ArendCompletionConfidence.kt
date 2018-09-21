@@ -10,5 +10,5 @@ import org.arend.psi.ArendElementTypes
 
 class ArendCompletionConfidence : CompletionConfidence() {
     override fun shouldSkipAutopopup(contextElement: PsiElement, psiFile: PsiFile, offset: Int): ThreeState =
-        if (contextElement is LeafPsiElement && contextElement.elementType == ArendElementTypes.NUMBER) ThreeState.YES else ThreeState.UNSURE
+            if (contextElement is LeafPsiElement && contextElement.elementType == ArendElementTypes.NUMBER) ThreeState.YES else ThreeState.UNSURE
 }

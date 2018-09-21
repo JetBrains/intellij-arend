@@ -1,8 +1,8 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.psi.ArendAtomFieldsAcc
+import org.arend.term.abs.AbstractExpressionVisitor
 
 
 abstract class ArendAtomFieldsAccImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendAtomFieldsAcc {

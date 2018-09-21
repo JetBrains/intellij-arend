@@ -26,9 +26,9 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
 
     override fun applyEditorTo(configuration: TypeCheckConfiguration) {
         configuration.arendTypeCheckCommand = TypeCheckCommand(
-            libraryComponent.text,
-            modulePathComponent.text,
-            definitionNameComponent.text
+                libraryComponent.text,
+                modulePathComponent.text,
+                definitionNameComponent.text
         )
     }
 

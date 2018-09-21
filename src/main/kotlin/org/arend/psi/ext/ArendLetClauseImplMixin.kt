@@ -5,11 +5,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLetClause
 import org.arend.psi.ArendLetExpr
 import org.arend.psi.ArendNameTele
+import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 
 

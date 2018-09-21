@@ -4,15 +4,16 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendExpr
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendExpr
 
 
 class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
     private enum class Mode { TYPE, EXPRESSION, NONE }
+
     private var mode: Mode = Mode.NONE
     private var arguments: Int = 0
 
@@ -95,5 +96,5 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
     }
 
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? =
-        if (isNew || !sequence.isEmpty() || baseClass == null) null else baseClass.accept(this, null)
+            if (isNew || !sequence.isEmpty() || baseClass == null) null else baseClass.accept(this, null)
 }

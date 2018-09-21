@@ -5,7 +5,6 @@ import com.intellij.lang.PairedBraceMatcher
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import org.arend.psi.ArendElementTypes.LGOAL
 import org.arend.psi.AREND_COMMENTS
 import org.arend.psi.AREND_WHITE_SPACES
 import org.arend.psi.ArendElementTypes.*

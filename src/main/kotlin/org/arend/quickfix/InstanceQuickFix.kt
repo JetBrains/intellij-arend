@@ -12,17 +12,17 @@ import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
+import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
-import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.quickfix.InstanceQuickFix.Companion.INCREASE_IN_INDENT
 import org.arend.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
+import org.arend.term.abs.Abstract
 
 interface ExpressionWithCoClauses {
     fun getRangeToReport(): TextRange
@@ -40,7 +40,7 @@ class InstanceQuickFix {
         private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
         private const val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
         private const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
-        const val INCREASE_IN_INDENT  = "  "
+        const val INCREASE_IN_INDENT = "  "
 
         fun moveCaretToTheEnd(editor: Editor?, anchor: PsiElement) {
             if (editor != null) {
@@ -49,10 +49,10 @@ class InstanceQuickFix {
             }
         }
 
-        fun getIndent(str : String, defaultIndent: String, increaseInIndent: String): String {
+        fun getIndent(str: String, defaultIndent: String, increaseInIndent: String): String {
             var myStr = str
             if (myStr.indexOf('\n') == -1) return defaultIndent
-            while (myStr.indexOf('\n') != -1) myStr = myStr.substring(myStr.indexOf('\n')+1)
+            while (myStr.indexOf('\n') != -1) myStr = myStr.substring(myStr.indexOf('\n') + 1)
             return myStr + increaseInIndent
         }
 
@@ -89,14 +89,15 @@ class InstanceQuickFix {
             }
         }
 
-        private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>){
-            val classClauses = ArrayList<Pair<ArendDefClass,ArendCoClause>>()
+        private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>) {
+            val classClauses = ArrayList<Pair<ArendDefClass, ArendCoClause>>()
             for (coClause in coClauseList) {
-                val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
+                val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
+                        ?: continue
                 val underlyingRef = referable.underlyingReference ?: referable
 
                 if (underlyingRef is ArendDefClass) {
-                    classClauses.add(Pair(underlyingRef,coClause))
+                    classClauses.add(Pair(underlyingRef, coClause))
                     continue
                 }
 
@@ -117,7 +118,8 @@ class InstanceQuickFix {
                     if (typeClassReference is ArendDefClass) doAnnotate(object : CoClauseAdapter(coClause) {
                         override fun isError() = clauseBlock
 
-                        override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName?.textRange ?: coClause.textRange
+                        override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName?.textRange
+                                ?: coClause.textRange
 
                         override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
                             if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
@@ -127,23 +129,23 @@ class InstanceQuickFix {
                 }
             }
 
-            for ((underlyingRef,coClause) in classClauses) {
+            for ((underlyingRef, coClause) in classClauses) {
                 val subClauses =
-                    if (coClause.fatArrow != null) {
-                        val superClassFields = superClassesFields[underlyingRef]
-                        if (superClassFields != null && !superClassFields.isEmpty()) {
-                            fields.removeAll(superClassFields)
-                            continue
+                        if (coClause.fatArrow != null) {
+                            val superClassFields = superClassesFields[underlyingRef]
+                            if (superClassFields != null && !superClassFields.isEmpty()) {
+                                fields.removeAll(superClassFields)
+                                continue
+                            }
+                            emptyList()
+                        } else {
+                            coClause.coClauseList
                         }
-                        emptyList()
-                    } else {
-                        coClause.coClauseList
-                    }
 
                 if (subClauses.isEmpty()) {
                     val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
                     warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    warningAnnotation.registerFix(object: IntentionAction {
+                    warningAnnotation.registerFix(object : IntentionAction {
                         override fun startInWriteAction() = true
 
                         override fun getFamilyName() = "arend.instance"
@@ -162,8 +164,9 @@ class InstanceQuickFix {
                     })
                     val fieldToImplement = superClassesFields[underlyingRef]
                     if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
-                        warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
-                            override fun getRangeToReport(): TextRange = coClause.longName?.textRange ?: coClause.textRange
+                        warningAnnotation.registerFix(ImplementFieldsQuickFix(object : CoClauseAdapter(coClause) {
+                            override fun getRangeToReport(): TextRange = coClause.longName?.textRange
+                                    ?: coClause.textRange
 
                             override fun isError() = false
                         }, fieldToImplement.toSet(), "Implement fields"))
@@ -178,14 +181,15 @@ class InstanceQuickFix {
             val classReference = functionDefinition.classReference
             val coWithKw = functionDefinition.functionBody?.cowithKw
             if (classReference is ArendDefClass && coWithKw != null) {
-                return doAnnotate(object: ExpressionWithCoClauses {
+                return doAnnotate(object : ExpressionWithCoClauses {
                     override fun getRangeToReport() = TextRange(functionDefinition.textRange.startOffset, coWithKw.textRange.endOffset)
 
                     override fun getClassReferenceHolder() = functionDefinition
 
                     override fun getPsiElement(): PsiElement = functionDefinition
 
-                    override fun getCoClauseList(): List<ArendCoClause> = functionDefinition.functionBody?.coClauses?.coClauseList ?: emptyList()
+                    override fun getCoClauseList(): List<ArendCoClause> = functionDefinition.functionBody?.coClauses?.coClauseList
+                            ?: emptyList()
 
                     override fun calculateWhiteSpace(): String {
                         val defaultWhitespace = INCREASE_IN_INDENT
@@ -205,14 +209,14 @@ class InstanceQuickFix {
                             val firstCoClause = nodeCoClauses.coClauseList.first()
                             nodeCoClauses.addBefore(factory.createWhitespace(" "), firstCoClause)
                             nodeCoClauses.addBefore(pOB.first, firstCoClause)
-                            nodeCoClauses.addBefore(factory.createWhitespace("\n"+whitespace), firstCoClause) // add first clause and crlf
+                            nodeCoClauses.addBefore(factory.createWhitespace("\n" + whitespace), firstCoClause) // add first clause and crlf
                             nodeCoClauses.addAfter(pOB.second, firstCoClause)
                             moveCaretToTheEnd(editor, nodeCoClauses.coClauseList.last())
                         } else if (nodeCoClauses.lbrace != null) {
                             val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
                             val anchor = nodeCoClauses.lbrace
                             nodeCoClauses.addAfter(sampleCoClause, anchor)
-                            nodeCoClauses.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                            nodeCoClauses.addAfter(factory.createWhitespace("\n" + whitespace), anchor)
                             val caretAnchor = functionDefinition.functionBody?.coClauses?.coClauseList?.first()
                             if (caretAnchor != null)
                                 moveCaretToTheEnd(editor, caretAnchor)
@@ -231,12 +235,13 @@ class InstanceQuickFix {
             if (classReference is ArendDefClass && classReference.recordKw == null) {
                 val argumentAppExpr = instance.argumentAppExpr
                 if (argumentAppExpr != null) {
-                    return doAnnotate(object: ExpressionWithCoClauses {
+                    return doAnnotate(object : ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)
 
-                        override fun getCoClauseList(): List<ArendCoClause> = instance.coClauses?.coClauseList ?: emptyList()
+                        override fun getCoClauseList(): List<ArendCoClause> = instance.coClauses?.coClauseList
+                                ?: emptyList()
 
                         override fun getClassReferenceHolder() = instance
 
@@ -255,13 +260,13 @@ class InstanceQuickFix {
                                 val sampleCoClauses = factory.createCoClause(name, "{?}")
                                 instance.addAfter(sampleCoClauses, instance.argumentAppExpr)
                                 nodeCoClauses = instance.coClauses!!
-                                nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"+whitespace), nodeCoClauses)
+                                nodeCoClauses.parent.addBefore(factory.createWhitespace("\n" + whitespace), nodeCoClauses)
                                 moveCaretToTheEnd(editor, nodeCoClauses.lastChild)
                             } else if (nodeCoClauses.lbrace != null) {
                                 val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
                                 val anchor = nodeCoClauses.lbrace
                                 nodeCoClauses.addAfter(sampleCoClause, anchor)
-                                nodeCoClauses.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                                nodeCoClauses.addAfter(factory.createWhitespace("\n" + whitespace), anchor)
                                 val caretAnchor = instance.coClauses?.coClauseList?.first()
                                 if (caretAnchor != null)
                                     moveCaretToTheEnd(editor, caretAnchor)
@@ -278,7 +283,7 @@ class InstanceQuickFix {
             if (classReference is ArendDefClass) {
                 val argumentAppExpr = newExpr.getArgumentAppExpr()
                 if (argumentAppExpr != null) {
-                    return doAnnotate(object: ExpressionWithCoClauses {
+                    return doAnnotate(object : ExpressionWithCoClauses {
                         override fun isError() = true
 
                         override fun getRangeToReport(): TextRange = argumentAppExpr.textRange
@@ -298,7 +303,7 @@ class InstanceQuickFix {
                         override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
                             val whitespace = calculateWhiteSpace()
                             val lbrace = newExpr.getLbrace()
-                            val anchor : PsiElement = if (lbrace != null) lbrace else {
+                            val anchor: PsiElement = if (lbrace != null) lbrace else {
                                 val pOB = factory.createPairOfBraces()
                                 argumentAppExpr.parent.addAfter(pOB.second, argumentAppExpr)
                                 argumentAppExpr.parent.addAfter(pOB.first, argumentAppExpr)
@@ -310,7 +315,7 @@ class InstanceQuickFix {
                             anchor.parent.addAfter(sampleCoClause, anchor)
 
                             moveCaretToTheEnd(editor, anchor.nextSibling)
-                            anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
+                            anchor.parent.addAfter(factory.createWhitespace("\n" + whitespace), anchor)
                         }
                     }, classReference, holder, newExpr.getNewKw() == null)
                 }
@@ -320,14 +325,14 @@ class InstanceQuickFix {
     }
 }
 
-abstract class CoClauseAdapter(private val coClause: ArendCoClause) : ExpressionWithCoClauses{
+abstract class CoClauseAdapter(private val coClause: ArendCoClause) : ExpressionWithCoClauses {
     override fun getCoClauseList(): List<ArendCoClause> = coClause.coClauseList
 
     override fun getClassReferenceHolder() = coClause
 
     override fun getPsiElement(): PsiElement = coClause
 
-    override fun calculateWhiteSpace() : String {
+    override fun calculateWhiteSpace(): String {
         val anchor = coClause.prevSibling
         val defaultIndent = "  "
         return if (anchor is PsiWhiteSpace) InstanceQuickFix.getIndent(anchor.text, defaultIndent, INCREASE_IN_INDENT) else defaultIndent
@@ -357,7 +362,7 @@ abstract class CoClauseAdapter(private val coClause: ArendCoClause) : Expression
     }
 }
 
-class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val fieldsToImplement: Collection<Referable>, private val actionText: String): IntentionAction, Iconable {
+class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val fieldsToImplement: Collection<Referable>, private val actionText: String) : IntentionAction, Iconable {
     private var caretMoved = false
 
     override fun startInWriteAction() = true
@@ -389,7 +394,7 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
                 moveCaretToTheEnd(editor, anchor.nextSibling)
                 caretMoved = true
             }
-            anchor.parent.addAfter(psiFactory.createWhitespace("\n"+clauseWhitespace), anchor)
+            anchor.parent.addAfter(psiFactory.createWhitespace("\n" + clauseWhitespace), anchor)
         }
     }
 
@@ -402,12 +407,12 @@ class ImplementFieldsQuickFix(val instance: ExpressionWithCoClauses, private val
             val lastCC = instance.getCoClauseList().last()
             if (lastCC.nextSibling != null &&
                     lastCC.nextSibling.node.elementType == ArendElementTypes.RBRACE) {
-                lastCC.parent.addAfter(psiFactory.createWhitespace("\n"+whitespace), lastCC)
+                lastCC.parent.addAfter(psiFactory.createWhitespace("\n" + whitespace), lastCC)
             } else if (lastCC.nextSibling != null &&
                     lastCC.nextSibling.node is PsiWhiteSpace && !lastCC.nextSibling.text.contains('\n') &&
                     (lastCC.nextSibling.text.length < whitespace.length)) {
                 lastCC.nextSibling.delete()
-                lastCC.parent.addAfter(psiFactory.createWhitespace("\n"+whitespace), lastCC)
+                lastCC.parent.addAfter(psiFactory.createWhitespace("\n" + whitespace), lastCC)
             }
         }
 

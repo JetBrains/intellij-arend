@@ -5,8 +5,8 @@ import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiLocatedReferable
 
 class ArendCalleeTreeStructure(project: Project, baseNode: PsiElement) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {

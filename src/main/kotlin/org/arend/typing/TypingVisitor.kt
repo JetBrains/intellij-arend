@@ -6,7 +6,7 @@ import org.arend.term.abs.AbstractExpressionVisitor
 import java.math.BigInteger
 
 
-class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
+class TypingVisitor : AbstractExpressionVisitor<Void, Any> {
     override fun visitErrors() = false
 
     override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
