@@ -2,13 +2,13 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TypedReferable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.ArendIcons
 import org.arend.psi.ArendClassFieldSyn
 import org.arend.psi.stubs.ArendClassFieldSynStub
 import javax.swing.Icon

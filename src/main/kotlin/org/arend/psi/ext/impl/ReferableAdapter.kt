@@ -5,7 +5,6 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
-import org.arend.term.Precedence
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
@@ -13,6 +12,7 @@ import org.arend.psi.ancestors
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.stubs.ArendNamedStub
+import org.arend.term.Precedence
 
 abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {

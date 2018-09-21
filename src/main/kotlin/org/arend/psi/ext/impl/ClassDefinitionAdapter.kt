@@ -2,16 +2,16 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
+import org.arend.psi.*
+import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
-import org.arend.ArendIcons
-import org.arend.psi.*
-import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 

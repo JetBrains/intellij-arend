@@ -199,7 +199,7 @@ defModule ::= moduleHeader where? {
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.term.abs.Abstract.SourceNode"
                    "org.arend.term.group.ChildGroup" ]
-    mixin = "org.arend.psi.ext.impl.ArendDefModuleMixin"
+    mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }

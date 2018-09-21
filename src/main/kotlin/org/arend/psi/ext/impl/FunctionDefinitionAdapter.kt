@@ -3,12 +3,12 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
-import org.arend.naming.reference.ClassReferable
-import org.arend.term.Precedence
-import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.ArendIcons
+import org.arend.naming.reference.ClassReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefFunctionStub
+import org.arend.term.Precedence
+import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon

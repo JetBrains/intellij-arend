@@ -3,13 +3,13 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.LocatedReferable
+import org.arend.psi.*
+import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.ArendIcons
-import org.arend.psi.*
-import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 

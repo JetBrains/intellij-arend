@@ -2,17 +2,17 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
-import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 import org.arend.psi.ArendConstructor
 import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendStatCmd
 import org.arend.psi.ancestors
 import org.arend.psi.stubs.ArendDefModuleStub
+import org.arend.term.group.ChildGroup
+import org.arend.term.group.Group
 import org.arend.typing.ExpectedTypeVisitor
 
 
-abstract class ArendDefModuleMixin : ReferableAdapter<ArendDefModuleStub>, ArendDefModule {
+abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefModule {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefModuleStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
