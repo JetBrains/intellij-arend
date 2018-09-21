@@ -11,19 +11,19 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
-import org.arend.term.abs.Abstract
-import org.arend.term.abs.BaseAbstractExpressionVisitor
-import org.arend.term.abs.ConcreteBuilder
-import org.arend.term.concrete.Concrete
 import org.arend.psi.ArendArgument
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendTypeTele
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.BaseAbstractExpressionVisitor
+import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 
-class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
+class ArendParameterInfoHandler : ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
     // private var lastAppExpr: ArendArgumentAppExpr? = null
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
@@ -32,7 +32,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         // val params = ConcreteBuilder.convertParams(p)
         var curOffset = 0
         var text = ""
-        var hlStart = -1; var hlEnd = -1
+        var hlStart = -1
+        var hlEnd = -1
         var ind = 0
         for (pm in p) {
             // val tele = if (pm is Concrete.TelescopeParameter) Array(pm.referableList.size, {_ -> pm.type}) else arrayOf(pm)
@@ -41,9 +42,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             if (!vars.isEmpty()) {
 
 //                vars.mapTo(nameTypeList) {
- //                   Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
+                //                   Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
 
-                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
+                vars.mapTo(nameTypeList) {
+                    Pair(it?.textRepresentation()
+                            ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString())
+                }
             } else {
                 nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
             }
@@ -71,7 +75,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         val offset = adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
-        val referable = ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
+        val referable = ref?.referent?.let { resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
 
         if (referable is Abstract.ParametersHolder && !referable.parameters.isEmpty()) {
             context.itemsToShow = arrayOf((referable as Abstract.ParametersHolder).parameters)
@@ -135,7 +139,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             }
         }
         var paramIndex = 0
-        loop@for (p in 0 until func.parameters.size) {
+        loop@ for (p in 0 until func.parameters.size) {
             for (v in func.parameters[p].referableList) {
                 if (numExplicitsBefore == 0) {
                     if ((argIsExplicit && func.parameters[p].isExplicit) ||
@@ -169,7 +173,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             val funcRes = findArgInParsedBinopSeq(arg, expr.function, curArgInd, curFunc)
             if (funcRes != null) return funcRes
             var func = (expr.function as? Concrete.ReferenceExpression)?.data as? Abstract.Reference
-            var funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
+            var funcReferable = func?.referent?.let { resolveIfNeeded(it, arg.scope) }
             val argExplicitness = mutableListOf<Boolean>()
 
             if (funcReferable !is Abstract.ParametersHolder) {
@@ -180,7 +184,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             for (argument in expr.arguments) {
                 argExplicitness.add(argument.isExplicit)
                 val argRes = findArgInParsedBinopSeq(arg, argument.expression,
-                    funcReferable?.let{ findParamIndex(it as Abstract.ParametersHolder, argExplicitness)} ?: -1, func)
+                        funcReferable?.let { findParamIndex(it as Abstract.ParametersHolder, argExplicitness) }
+                                ?: -1, func)
                 if (argRes != null) return argRes
             }
         } else if (expr is Concrete.LamExpression) {
@@ -191,26 +196,27 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
-        (ExpressionResolveNameVisitor.resolve(referent, scope) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
+            (ExpressionResolveNameVisitor.resolve(referent, scope) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
 
     private fun expressionToReference(expr: Abstract.Expression): Abstract.Reference? {
         return expr.accept(object : BaseAbstractExpressionVisitor<Void, Abstract.Reference?>(null) {
             override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Abstract.Reference? =
-                data as? Abstract.Reference
+                    data as? Abstract.Reference
 
             override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Abstract.Reference? =
-                data as? Abstract.Reference
+                    data as? Abstract.Reference
         }, null)
     }
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
-        appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Pair<Int, Abstract.Reference>? =
-                findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
-        }, null)
+            appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
+                override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Pair<Int, Abstract.Reference>? =
+                        findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
+            }, null)
 
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
-        var absNode = fixedFindElement(file, offset)?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
+        var absNode = fixedFindElement(file, offset)?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode }
+                ?: return null
         var absNodeParent = absNode.parentSourceNode ?: return null
         /*
         val mbJumpToExternalAppExpr = lbl_@{arg:ArendArgument?, appExpr:ArendArgumentAppExpr ->
@@ -266,7 +272,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             val argLoc = arg.expression?.let { locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
             if (argLoc == null && absNodeParent.parentSourceNode?.parentSourceNode is ArendArgument) {
                 arg = absNodeParent.parentSourceNode?.parentSourceNode as ArendArgument
-                return arg.expression?.let{ locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
+                return arg.expression?.let { locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
             }
             return argLoc
         } else if (absNodeParent is ArendArgumentAppExpr) {

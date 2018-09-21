@@ -14,11 +14,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
-import org.arend.util.FileUtils
-import org.intellij.lang.annotations.Language
 import org.arend.module.ArendRawLibrary
 import org.arend.psi.parentOfType
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
+import org.intellij.lang.annotations.Language
 
 abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendTestCase {
 

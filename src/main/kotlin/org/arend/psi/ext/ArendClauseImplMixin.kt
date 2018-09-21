@@ -1,8 +1,8 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendClause
+import org.arend.term.abs.Abstract
 
 
 abstract class ArendClauseImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendClause {

@@ -7,14 +7,14 @@ import org.arend.search.ArendWordScanner
 
 class ArendCharFilter : CharFilter() {
     override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): CharFilter.Result? =
-        if (lookup.psiFile?.language?.isKindOf(ArendLanguage.INSTANCE) == true) {
-            if (ArendWordScanner.isArendIdentifierPart(c)) {
-                Result.ADD_TO_PREFIX
-            } else when (c) {
-                '.', ',', ' ', '(' -> Result.SELECT_ITEM_AND_FINISH_LOOKUP
-                else -> Result.HIDE_LOOKUP
+            if (lookup.psiFile?.language?.isKindOf(ArendLanguage.INSTANCE) == true) {
+                if (ArendWordScanner.isArendIdentifierPart(c)) {
+                    Result.ADD_TO_PREFIX
+                } else when (c) {
+                    '.', ',', ' ', '(' -> Result.SELECT_ITEM_AND_FINISH_LOOKUP
+                    else -> Result.HIDE_LOOKUP
+                }
+            } else {
+                null
             }
-        } else {
-            null
-        }
 }

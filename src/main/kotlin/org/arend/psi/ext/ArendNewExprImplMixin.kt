@@ -4,12 +4,12 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.term.abs.Abstract
-import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.psi.ArendAppExpr
 import org.arend.psi.ArendArgument
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendCoClause
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractExpressionVisitor
 
 abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), Abstract.ClassReferenceHolder {
     abstract fun getNewKw(): PsiElement?
@@ -27,13 +27,15 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val isNew = getNewKw() != null
         if (!isNew && getLbrace() == null && getArgumentList().isEmpty()) {
-            val expr = getAppExpr() ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+            val expr = getAppExpr()
+                    ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
             return expr.accept(visitor, params)
         }
         return visitor.visitClassExt(this, isNew, if (isNew) getArgumentAppExpr() else getAppExpr(), if (getLbrace() == null) null else getCoClauseList(), getArgumentList(), if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
     }
 
-    override fun getClassReference(): ClassReferable? = getClassReference(getAppExpr()) ?: getClassReference(getArgumentAppExpr())
+    override fun getClassReference(): ClassReferable? = getClassReference(getAppExpr())
+            ?: getClassReference(getArgumentAppExpr())
 
     override fun getClassFieldImpls(): List<ArendCoClause> = getCoClauseList()
 

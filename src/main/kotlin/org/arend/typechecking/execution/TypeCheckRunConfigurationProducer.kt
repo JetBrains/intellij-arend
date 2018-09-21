@@ -11,13 +11,13 @@ import org.arend.psi.parentOfType
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
 import org.arend.typechecking.execution.configurations.TypeCheckConfigurationType
 
-class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfiguration>(TypeCheckConfigurationType()) {
+class TypeCheckRunConfigurationProducer : RunConfigurationProducer<TypeCheckConfiguration>(TypeCheckConfigurationType()) {
 
     override fun isConfigurationFromContext(configuration: TypeCheckConfiguration, context: ConfigurationContext): Boolean {
         val myConfiguration = configurationFromContext(context, null) ?: return false
         return configuration.configurationModule.module == context.module &&
-               configuration.name == myConfiguration.name &&
-               configuration.arendTypeCheckCommand == myConfiguration.command
+                configuration.name == myConfiguration.name &&
+                configuration.arendTypeCheckCommand == myConfiguration.command
     }
 
     override fun setupConfigurationFromContext(configuration: TypeCheckConfiguration, context: ConfigurationContext, sourceElement: Ref<PsiElement>): Boolean {

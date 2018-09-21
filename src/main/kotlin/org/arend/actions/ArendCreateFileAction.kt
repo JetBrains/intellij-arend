@@ -8,7 +8,7 @@ import com.intellij.psi.PsiDirectory
 import org.arend.ArendIcons
 
 class ArendCreateFileAction : CreateFileFromTemplateAction(CAPTION, "", ArendIcons.AREND_FILE),
-                           DumbAware {
+        DumbAware {
 
     override fun getActionName(
             directory: PsiDirectory?,

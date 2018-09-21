@@ -3,9 +3,9 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.ArendIcons
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.typing.ExpectedTypeVisitor
@@ -39,11 +39,11 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
     }
 
     override fun getParameterType(params: List<Boolean>) =
-        when {
-            params[0] -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
-            params.size == 1 -> ancestors.filterIsInstance<ArendDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
-            else -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params.drop(1), textRepresentation())
-        }
+            when {
+                params[0] -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+                params.size == 1 -> ancestors.filterIsInstance<ArendDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
+                else -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params.drop(1), textRepresentation())
+            }
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 

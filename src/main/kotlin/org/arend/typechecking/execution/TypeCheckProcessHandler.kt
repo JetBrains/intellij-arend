@@ -16,38 +16,38 @@ import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
-import org.arend.term.concrete.Concrete
-import org.arend.term.group.Group
-import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.CancellationIndicator
-import org.arend.typechecking.order.Ordering
-import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.jetbrains.ide.PooledThreadExecutor
-import org.arend.module.ArendRawLibrary
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.findGroupByFullName
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.concrete.Concrete
+import org.arend.term.group.Group
+import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.CancellationIndicator
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
+import org.arend.typechecking.order.Ordering
+import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
+import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
 
 class TypeCheckProcessHandler(
-    private val typeCheckerService: TypeCheckingService,
-    private val command: TypeCheckCommand
+        private val typeCheckerService: TypeCheckingService,
+        private val command: TypeCheckCommand
 ) : ProcessHandler() {
     var eventsProcessor: TypecheckingEventsProcessor? = null
     private val indicator: ProgressIndicator = ProgressIndicatorBase()
@@ -164,7 +164,7 @@ class TypeCheckProcessHandler(
                         if (typechecking.typecheckCollected(collector)) {
                             for (module in typechecking.typecheckedModules) {
                                 val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
-                                    ?: continue
+                                        ?: continue
                                 if (library.supportsPersisting()) {
                                     runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
                                 }
@@ -175,12 +175,10 @@ class TypeCheckProcessHandler(
                         typecheckingErrorReporter.flush()
                     }
                 }
-            }
-            catch (e: ProcessCanceledException) {}
-            catch (e: Exception) {
+            } catch (e: ProcessCanceledException) {
+            } catch (e: Exception) {
                 Logger.getInstance(TypeCheckingService::class.java).error(e)
-            }
-            finally {
+            } finally {
                 typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
                 ApplicationManager.getApplication().executeOnPooledThread {
                     destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
@@ -213,7 +211,8 @@ class TypeCheckProcessHandler(
             when (child) {
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable ?: ModuleReferable(modulePath), child.errorDescription))
+                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable
+                            ?: ModuleReferable(modulePath), child.errorDescription))
                     if (group is PsiLocatedReferable) {
                         typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
                     } else {
@@ -267,6 +266,6 @@ class TypeCheckProcessHandler(
 }
 
 private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
-    GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
+        GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
     override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
 }

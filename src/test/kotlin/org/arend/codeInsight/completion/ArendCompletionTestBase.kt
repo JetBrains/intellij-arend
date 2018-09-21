@@ -4,11 +4,11 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import junit.framework.TestCase
-import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
 import org.arend.hasCaretMarker
 import org.arend.replaceCaretMarker
+import org.intellij.lang.annotations.Language
 
 abstract class ArendCompletionTestBase : ArendTestBase() {
 
@@ -25,12 +25,12 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         }
     }
 
-    enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN}
+    enum class CompletionCondition { CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN }
 
     protected fun checkCompletionVariants(@Language("Arend") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
         InlineFile(code).withCaret()
 
-        val result : List<String> = myFixture.getCompletionVariants("Main.ard") ?: error("Null completion variants")
+        val result: List<String> = myFixture.getCompletionVariants("Main.ard") ?: error("Null completion variants")
 
         fun symDiff(required: List<String>, actual: List<String>): String? {
             if (HashSet(required) == HashSet(actual)) return null
@@ -38,20 +38,21 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
             val rma = required.minus(actual)
             val amr = actual.minus(required)
             if (rma.isNotEmpty()) resultMessage += "Completion variants do not contain the expected elements $rma"
-            if (amr.isNotEmpty()) resultMessage += (if (resultMessage.isEmpty())  "" else "; ") + "Unexpected completion variants: $amr"
+            if (amr.isNotEmpty()) resultMessage += (if (resultMessage.isEmpty()) "" else "; ") + "Unexpected completion variants: $amr"
             return resultMessage
         }
 
         val errorMessage: String? = when (condition) {
-            CompletionCondition.SAME_ELEMENTS    -> symDiff(variants, result)
-            CompletionCondition.SAME_KEYWORDS    -> symDiff(variants, result.filter { it.startsWith("\\") })
-            CompletionCondition.CONTAINS         -> if (!(result.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
-            CompletionCondition.DOES_NOT_CONTAIN -> if (!result.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null}
+            CompletionCondition.SAME_ELEMENTS -> symDiff(variants, result)
+            CompletionCondition.SAME_KEYWORDS -> symDiff(variants, result.filter { it.startsWith("\\") })
+            CompletionCondition.CONTAINS -> if (!(result.containsAll(variants))) "Completion variants do not contain the expected elements ${variants.minus(result)}" else null
+            CompletionCondition.DOES_NOT_CONTAIN -> if (!result.intersect(variants).isEmpty()) "Unexpected completion variants ${result.intersect(variants)}" else null
+        }
 
         if (errorMessage != null) throw Exception(errorMessage)
     }
 
-    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Arend") vararg code: String){
+    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Arend") vararg code: String) {
         var failed = false
         var failString = ""
         var successString = ""

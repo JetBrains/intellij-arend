@@ -101,23 +101,23 @@ class ArendClassFieldStub(
 }
 
 class ArendClassFieldParamStub(
-    parent: StubElement<*>?,
-    elementType: IStubElementType<*, *>,
-    name: String?
+        parent: StubElement<*>?,
+        elementType: IStubElementType<*, *>,
+        name: String?
 ) : ArendStub<ArendFieldDefIdentifier>(parent, elementType, name) {
 
     object Type : ArendStubElementType<ArendClassFieldParamStub, ArendFieldDefIdentifier>("FIELD_DEF_IDENTIFIER") {
 
         override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
-            ArendClassFieldParamStub(parentStub, this, dataStream.readName()?.string)
+                ArendClassFieldParamStub(parentStub, this, dataStream.readName()?.string)
 
         override fun serialize(stub: ArendClassFieldParamStub, dataStream: StubOutputStream) =
-            with(dataStream) { writeName(stub.name) }
+                with(dataStream) { writeName(stub.name) }
 
         override fun createPsi(stub: ArendClassFieldParamStub): ArendFieldDefIdentifier = ArendFieldDefIdentifierImpl(stub, this)
 
         override fun createStub(psi: ArendFieldDefIdentifier, parentStub: StubElement<*>?): ArendClassFieldParamStub =
-            ArendClassFieldParamStub(parentStub, this, psi.textRepresentation())
+                ArendClassFieldParamStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: ArendClassFieldParamStub, sink: IndexSink) = sink.indexClassFieldParam(stub)
     }
@@ -280,25 +280,25 @@ class ArendDefFunctionStub(
 }
 
 class ArendDefModuleStub(
-    parent: StubElement<*>?,
-    elementType: IStubElementType<*, *>,
-    name: String?
+        parent: StubElement<*>?,
+        elementType: IStubElementType<*, *>,
+        name: String?
 ) : ArendStub<ArendDefModule>(parent, elementType, name) {
 
     object Type : ArendStubElementType<ArendDefModuleStub, ArendDefModule>("DEF_MODULE") {
 
         override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
-            ArendDefModuleStub(parentStub, this, dataStream.readName()?.string)
+                ArendDefModuleStub(parentStub, this, dataStream.readName()?.string)
 
         override fun serialize(stub: ArendDefModuleStub, dataStream: StubOutputStream) =
-            with(dataStream) { writeName(stub.name) }
+                with(dataStream) { writeName(stub.name) }
 
         override fun createPsi(stub: ArendDefModuleStub): ArendDefModule =
-            ArendDefModuleImpl(stub, this)
+                ArendDefModuleImpl(stub, this)
 
         override fun createStub(
-            psi: ArendDefModule,
-            parentStub: StubElement<*>?
+                psi: ArendDefModule,
+                parentStub: StubElement<*>?
         ): ArendDefModuleStub = ArendDefModuleStub(parentStub, this, psi.name)
 
         override fun indexStub(stub: ArendDefModuleStub, sink: IndexSink) = sink.indexModule(stub)

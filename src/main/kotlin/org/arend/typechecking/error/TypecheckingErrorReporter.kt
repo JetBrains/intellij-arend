@@ -17,8 +17,8 @@ import org.arend.error.GeneralError
 import org.arend.error.doc.*
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -66,8 +66,8 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
     }
 
     private inner class DocConsolePrinter(
-        private val proxy: SMTestProxy,
-        private val error: GeneralError
+            private val proxy: SMTestProxy,
+            private val error: GeneralError
     ) : LineDocVisitor() {
         private val contentType = levelToContentType(error.level)
         private val stringBuilder = StringBuilder()
@@ -101,8 +101,8 @@ class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val e
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
             val data = (doc.reference as? DataContainer)?.data
-            val ref = data as? SmartPsiElementPointer<*> ?:
-                (data as? PsiElement ?: (doc.reference as? PsiElement))?.let { runReadAction { SmartPointerManager.createPointer(it) } }
+            val ref = data as? SmartPsiElementPointer<*> ?: (data as? PsiElement
+                    ?: (doc.reference as? PsiElement))?.let { runReadAction { SmartPointerManager.createPointer(it) } }
             if (ref == null) {
                 printText(doc.reference.textRepresentation())
             } else {

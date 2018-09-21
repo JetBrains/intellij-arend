@@ -8,15 +8,15 @@ import com.intellij.psi.*
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.error.SourceInfo
+import org.arend.module.ModuleScope
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
-import org.arend.term.abs.Abstract
-import org.arend.module.ModuleScope
 import org.arend.psi.*
 import org.arend.resolving.ArendReference
+import org.arend.term.abs.Abstract
 import org.arend.typing.ModifiedClassFieldImplScope
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
@@ -34,14 +34,17 @@ fun PsiElement.positionTextRepresentationImpl(): String? {
     return (line + 1).toString() + ":" + (column + 1).toString()
 }
 
-interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
+interface ArendSourceNode : ArendCompositeElement, Abstract.SourceNode {
     override fun getTopmostEquivalentSourceNode(): ArendSourceNode
     override fun getParentSourceNode(): ArendSourceNode?
 }
 
 private fun getArendScope(element: ArendCompositeElement): Scope {
-    val sourceNode = element.ancestors.filterIsInstance<ArendSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
-    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
+    val sourceNode = element.ancestors.filterIsInstance<ArendSourceNode>().firstOrNull()?.topmostEquivalentSourceNode
+            ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope
+            ?: (sourceNode.containingFile as? ArendFile)?.scope
+            ?: EmptyScope.INSTANCE, sourceNode, sourceNode.module?.let { ModuleScope(it) })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is ArendDefClass) {
@@ -89,9 +92,9 @@ private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(S
 }
 
 fun getErrorData(element: ArendCompositeElement): Abstract.ErrorData? =
-    element.children.filterIsInstance<PsiErrorElement>().firstOrNull()?.let { SourceInfoErrorData(it) }
+        element.children.filterIsInstance<PsiErrorElement>().firstOrNull()?.let { SourceInfoErrorData(it) }
 
-abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement  {
+abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement {
     override val scope
         get() = getArendScope(this)
 

@@ -3,13 +3,13 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
+import org.arend.psi.ArendNsId
+import org.arend.psi.ArendStatCmd
+import org.arend.psi.ancestors
 import org.arend.term.ChildNamespaceCommand
 import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
-import org.arend.psi.ArendNsId
-import org.arend.psi.ArendStatCmd
-import org.arend.psi.ancestors
 
 abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
@@ -18,7 +18,8 @@ abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
         error("Incorrect expression: namespace command")
     }
 
-    override fun getPath(): List<String> = longName?.let { it.refIdentifierList.map { it.referenceName } } ?: emptyList()
+    override fun getPath(): List<String> = longName?.let { it.refIdentifierList.map { it.referenceName } }
+            ?: emptyList()
 
     override fun isUsing(): Boolean {
         val using = nsUsing

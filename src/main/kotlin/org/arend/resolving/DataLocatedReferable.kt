@@ -14,10 +14,10 @@ import org.arend.typechecking.TypeCheckingService
 
 
 open class DataLocatedReferable(
-    private var psiElementPointer: SmartPsiElementPointer<PsiElement>,
-    referable: LocatedReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?)
+        private var psiElementPointer: SmartPsiElementPointer<PsiElement>,
+        referable: LocatedReferable,
+        parent: LocatedReferable?,
+        typeClassReference: TCClassReferable?)
     : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), DataContainer, SourceInfo {
 
     override fun getData(): SmartPsiElementPointer<PsiElement> = psiElementPointer
@@ -36,11 +36,11 @@ open class DataLocatedReferable(
 }
 
 class FieldDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>,
-    referable: FieldReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?,
-    private val underlyingField: TCReferable?)
+        psiElementPointer: SmartPsiElementPointer<PsiElement>,
+        referable: FieldReferable,
+        parent: LocatedReferable?,
+        typeClassReference: TCClassReferable?,
+        private val underlyingField: TCReferable?)
     : DataLocatedReferable(psiElementPointer, referable, parent, typeClassReference), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
@@ -53,13 +53,13 @@ class FieldDataLocatedReferable(
 }
 
 class ClassDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>,
-    referable: LocatedReferable,
-    parent: LocatedReferable?,
-    val superClassReferences: MutableList<TCClassReferable>,
-    val fieldReferables: MutableList<TCFieldReferable>,
-    val implementedFields: MutableList<TCReferable>,
-    var underlyingClass: TCClassReferable?)
+        psiElementPointer: SmartPsiElementPointer<PsiElement>,
+        referable: LocatedReferable,
+        parent: LocatedReferable?,
+        val superClassReferences: MutableList<TCClassReferable>,
+        val fieldReferables: MutableList<TCFieldReferable>,
+        val implementedFields: MutableList<TCReferable>,
+        var underlyingClass: TCClassReferable?)
     : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
     var filledIn = false
 

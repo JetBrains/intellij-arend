@@ -9,10 +9,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
-import org.jdom.Element
+import org.arend.arendModules
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckRunConfigurationEditor
-import org.arend.arendModules
+import org.jdom.Element
 
 class TypeCheckConfiguration(
         project: Project,
@@ -22,8 +22,8 @@ class TypeCheckConfiguration(
         name,
         TypeCheckRunConfigurationModule(project),
         factory
-    ),
-    RunConfigurationWithSuppressedDefaultDebugAction {
+),
+        RunConfigurationWithSuppressedDefaultDebugAction {
 
     @get: com.intellij.util.xmlb.annotations.Transient
     @set: com.intellij.util.xmlb.annotations.Transient
@@ -63,7 +63,7 @@ class TypeCheckConfiguration(
 
 @Tag(value = "parameters")
 data class SerializableTypeCheckCommand(
-    var library: String = "",
-    var modulePath: String = "",
-    var definitionFullName: String = ""
+        var library: String = "",
+        var modulePath: String = "",
+        var definitionFullName: String = ""
 )

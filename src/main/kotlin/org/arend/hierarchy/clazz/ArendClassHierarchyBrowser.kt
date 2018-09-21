@@ -16,7 +16,6 @@ import javax.swing.JPanel
 import javax.swing.JTree
 
 
-
 class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
     override fun getQualifiedName(psiElement: PsiElement?): String = (psiElement as? ArendDefClass)?.name ?: ""
 
@@ -29,7 +28,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     override fun isApplicableElement(element: PsiElement) = element is ArendDefClass
 
     override fun getComparator(): Comparator<NodeDescriptor<Any>>? =
-        if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.INSTANCE else SourceComparator.INSTANCE
+            if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.INSTANCE else SourceComparator.INSTANCE
 
     override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) = (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 
@@ -39,9 +38,9 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     }
 
     override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? =
-        when (type) {
-            SUBTYPES_HIERARCHY_TYPE -> ArendSubClassTreeStructure(myProject, psiElement)
-            SUPERTYPES_HIERARCHY_TYPE -> ArendSuperClassTreeStructure(myProject, psiElement)
-            else -> null
-        }
+            when (type) {
+                SUBTYPES_HIERARCHY_TYPE -> ArendSubClassTreeStructure(myProject, psiElement)
+                SUPERTYPES_HIERARCHY_TYPE -> ArendSuperClassTreeStructure(myProject, psiElement)
+                else -> null
+            }
 }

@@ -13,8 +13,8 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.util.Processor
 import com.intellij.util.Processors
 import com.intellij.util.indexing.FileBasedIndex
-import org.arend.naming.reference.GlobalReferable
 import gnu.trove.THashSet
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendFile
 import java.util.*
 
@@ -34,8 +34,8 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                 fileBasedIndex.getFilesWithKey(IdIndex.NAME, Collections.singleton(indexEntry), Processors.cancelableCollectProcessor(fileSet), scope)
 
                 fileSet.mapNotNull { PsiManager.getInstance(project).findFile(it) }
-                    .filter { it is ArendFile }
-                    .forEach { parameters.optimizer.searchWord(name, LocalSearchScope(it), true, elementToSearch) }
+                        .filter { it is ArendFile }
+                        .forEach { parameters.optimizer.searchWord(name, LocalSearchScope(it), true, elementToSearch) }
             }
     }
 

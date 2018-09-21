@@ -5,9 +5,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import org.arend.psi.parentOfType
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
-import org.arend.psi.parentOfType
 
 fun fileTree(builder: FileTreeBuilder.() -> Unit): FileTree =
         FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory())
@@ -169,8 +169,7 @@ private fun findElementInFile(file: PsiFile, marker: String): PsiElement {
     val makerColumn = markerOffset - doc.getLineStartOffset(markerLine)
     val elementOffset = doc.getLineStartOffset(markerLine - 1) + makerColumn
 
-    return file.findElementAt(elementOffset) ?:
-            error { "No element found, offset = $elementOffset" }
+    return file.findElementAt(elementOffset) ?: error { "No element found, offset = $elementOffset" }
 }
 
 fun replaceCaretMarker(text: String): String = text.replace("{-caret-}", "<caret>")

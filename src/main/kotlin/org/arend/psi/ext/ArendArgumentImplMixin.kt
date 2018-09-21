@@ -3,11 +3,11 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.psi.*
+import org.arend.resolving.ArendReference
+import org.arend.resolving.ArendReferenceImpl
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.resolving.ArendReference
-import org.arend.resolving.ArendReferenceImpl
 
 
 abstract class ArendImplicitArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendImplicitArgument {
@@ -28,7 +28,7 @@ abstract class ArendInfixArgumentImplMixin(node: ASTNode) : ArendExprImplMixin(n
     override fun getExpression(): ArendExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+            visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
 
     override val referenceNameElement
         get() = this
@@ -49,7 +49,7 @@ abstract class ArendPostfixArgumentImplMixin(node: ASTNode) : ArendExprImplMixin
     override fun getExpression(): ArendExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+            visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
 
     override val referenceNameElement
         get() = this

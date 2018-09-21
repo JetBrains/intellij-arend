@@ -1,8 +1,8 @@
 package org.arend.psi.ext
 
-import org.arend.term.abs.AbstractLevelExpressionVisitor
 import com.intellij.lang.ASTNode
 import org.arend.psi.ArendLevelExpr
+import org.arend.term.abs.AbstractLevelExpressionVisitor
 
 
 abstract class ArendLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendLevelExpr {

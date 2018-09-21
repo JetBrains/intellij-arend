@@ -5,13 +5,13 @@ import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ScopeFactory
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.moduleScopeProvider
 import org.arend.typechecking.instance.provider.InstanceProvider
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
-import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.moduleScopeProvider
 
 
 class PsiInstanceProviderSet(private val concreteProvider: ConcreteProvider, private val referableConverter: ReferableConverter) : InstanceProviderSet() {

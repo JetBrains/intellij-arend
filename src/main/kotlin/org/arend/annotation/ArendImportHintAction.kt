@@ -17,21 +17,21 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
+import org.arend.module.ArendPreludeLibrary
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
-import org.arend.term.group.Group
-import org.arend.module.ArendPreludeLibrary
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.quickfix.ResolveRefFixData
 import org.arend.quickfix.ResolveRefQuickFix
+import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 
-enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
+enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
 class ArendImportHintAction(private val referenceElement: ArendReferenceElement) : HintAction, HighPriorityAction {
 
@@ -48,7 +48,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         return this.getItemsToImport().isNotEmpty()
     }
 
-    private fun getItemsToImport() : List<ResolveRefFixData> {
+    private fun getItemsToImport(): List<ResolveRefFixData> {
         if (importQuickFixAllowed(referenceElement)) {
             val project = referenceElement.project
             val name = referenceElement.referenceName
@@ -65,8 +65,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 }
             }
 
-            val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
-                    union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
+            val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
 
             return items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
         }
@@ -92,7 +91,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     }
 
-    fun doFix(editor: Editor, allowPopup : Boolean) : Result {
+    fun doFix(editor: Editor, allowPopup: Boolean): Result {
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val fixData = getItemsToImport()
         if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
@@ -126,15 +125,16 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     companion object {
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) =
-            referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
+                referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
-            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null)
+                    ?: return false // reference element is invalid
             return reference.resolve() == null // return false if already imported
         }
 
         fun getResolved(referenceElement: ArendReferenceElement): PsiElement? =
-            if (referenceElement.isValid) referenceElement.reference?.resolve() else null
+                if (referenceElement.isValid) referenceElement.reference?.resolve() else null
 
         fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
             for (sg in group.subgroups) {

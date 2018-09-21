@@ -9,8 +9,8 @@ import org.arend.psi.ext.PsiReferable
 
 class ArendRenameInputValidator : RenameInputValidator {
     override fun getPattern(): ElementPattern<out PsiElement> =
-        PlatformPatterns.psiElement(PsiReferable::class.java)
+            PlatformPatterns.psiElement(PsiReferable::class.java)
 
     override fun isInputValid(newName: String, element: PsiElement, context: ProcessingContext) =
-        ArendNamesValidator.isPrefixName(newName)
+            ArendNamesValidator.isPrefixName(newName)
 }

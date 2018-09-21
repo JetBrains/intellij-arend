@@ -5,27 +5,49 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendCompositeElement
 import java.math.BigInteger
 
 
 open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind> {
     enum class Kind {
-        LAMBDA { override fun isWHNF() = true },
-        PI { override fun isWHNF() = true },
-        UNIVERSE { override fun isWHNF() = true },
-        TUPLE { override fun isWHNF() = true },
-        SIGMA { override fun isWHNF() = true },
-        CLASS_EXT { override fun isWHNF() = true },
-        NEW { override fun isWHNF() = true },
-        CONSTRUCTOR { override fun isWHNF() = true }, // maybe with arguments
-        DATA { override fun isWHNF() = true }, // maybe with arguments
-        CLASS { override fun isWHNF() = true }, // maybe with arguments
-        REFERENCE { override fun isWHNF() = true }, // maybe with arguments
+        LAMBDA {
+            override fun isWHNF() = true
+        },
+        PI {
+            override fun isWHNF() = true
+        },
+        UNIVERSE {
+            override fun isWHNF() = true
+        },
+        TUPLE {
+            override fun isWHNF() = true
+        },
+        SIGMA {
+            override fun isWHNF() = true
+        },
+        CLASS_EXT {
+            override fun isWHNF() = true
+        },
+        NEW {
+            override fun isWHNF() = true
+        },
+        CONSTRUCTOR {
+            override fun isWHNF() = true
+        }, // maybe with arguments
+        DATA {
+            override fun isWHNF() = true
+        }, // maybe with arguments
+        CLASS {
+            override fun isWHNF() = true
+        }, // maybe with arguments
+        REFERENCE {
+            override fun isWHNF() = true
+        }, // maybe with arguments
         CONSTRUCTOR_WITH_CONDITIONS, // maybe with arguments
         APP, HOLE, GOAL, CASE, PROJ, LET, LET_CLAUSE, NUMBER, UNRESOLVED_REFERENCE, FIELD, FIELD_SYN, FUNCTION, INSTANCE;
 
@@ -33,21 +55,22 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
     }
 
     open fun getReferenceKind(ref: Referable) =
-        when (ref) {
-            is UnresolvedReference, is ErrorReference -> Kind.UNRESOLVED_REFERENCE
-            is Abstract.ClassField -> Kind.FIELD
-            is Abstract.ClassFieldSynonym -> Kind.FIELD_SYN
-            is Abstract.Constructor -> if (ref.clauses.isEmpty()) Kind.CONSTRUCTOR else Kind.CONSTRUCTOR_WITH_CONDITIONS
-            is Abstract.DataDefinition -> Kind.DATA
-            is Abstract.ClassDefinition -> Kind.CLASS
-            is Abstract.FunctionDefinition -> Kind.FUNCTION
-            is Abstract.InstanceDefinition -> Kind.INSTANCE
-            is Abstract.LetClause -> Kind.LET_CLAUSE
-            else -> Kind.REFERENCE
-        }
+            when (ref) {
+                is UnresolvedReference, is ErrorReference -> Kind.UNRESOLVED_REFERENCE
+                is Abstract.ClassField -> Kind.FIELD
+                is Abstract.ClassFieldSynonym -> Kind.FIELD_SYN
+                is Abstract.Constructor -> if (ref.clauses.isEmpty()) Kind.CONSTRUCTOR else Kind.CONSTRUCTOR_WITH_CONDITIONS
+                is Abstract.DataDefinition -> Kind.DATA
+                is Abstract.ClassDefinition -> Kind.CLASS
+                is Abstract.FunctionDefinition -> Kind.FUNCTION
+                is Abstract.InstanceDefinition -> Kind.INSTANCE
+                is Abstract.LetClause -> Kind.LET_CLAUSE
+                else -> Kind.REFERENCE
+            }
 
-    private fun getReferenceKind(data: Any?, referent: Referable) : Kind {
-        val ref = (data as? ArendCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(referent, it) } ?: referent
+    private fun getReferenceKind(data: Any?, referent: Referable): Kind {
+        val ref = (data as? ArendCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(referent, it) }
+                ?: referent
         return getReferenceKind(if (ref is GlobalReferable) PsiLocatedReferable.fromReferable(ref) ?: ref else ref)
     }
 

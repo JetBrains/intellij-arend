@@ -8,13 +8,13 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.editor.Editor
 import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
-import org.arend.term.group.Group
 import org.arend.navigation.getPresentationForStructure
 import org.arend.psi.*
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ClassDefinitionAdapter
 import org.arend.psi.ext.impl.DataDefinitionAdapter
+import org.arend.term.group.Group
 
 class ArendStructureViewModel(editor: Editor?, file: ArendFile)
     : StructureViewModelBase(file, editor, ArendStructureViewElement(file)),

@@ -8,10 +8,10 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.startup.StartupActivity
 import org.arend.error.DummyErrorReporter
-import org.arend.prelude.Prelude
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.util.isArendModule
+import org.arend.prelude.Prelude
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService

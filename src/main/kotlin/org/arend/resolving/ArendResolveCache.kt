@@ -7,12 +7,12 @@ import java.util.concurrent.ConcurrentMap
 
 class ArendResolveCache {
     companion object {
-        private val map : ConcurrentMap<ArendReferenceElement, Referable> =
+        private val map: ConcurrentMap<ArendReferenceElement, Referable> =
                 ContainerUtil.createConcurrentWeakKeySoftValueMap(100, 0.75f,
                         Runtime.getRuntime().availableProcessors(), ContainerUtil.canonicalStrategy())
 
 
-        fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable? {
+        fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
             var result = map[ref]
 
             if (result == null) {

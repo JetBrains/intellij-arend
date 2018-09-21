@@ -16,59 +16,63 @@ class ArendReferableConverter(private val project: Project, private val state: S
     private val cache = HashMap<PsiElement, TCReferable?>()
 
     override fun toDataReferable(referable: Referable?): Referable? =
-        if (referable is PsiElement) DataLocalReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.textRepresentation())
-        else referable
+            if (referable is PsiElement) DataLocalReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.textRepresentation())
+            else referable
 
     override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
-        when (referable) {
-            is ArendFile -> null
-            is PsiReferable -> {
-                if (referable is ArendClassField || referable is ArendFieldDefIdentifier) {
-                    cache.computeIfAbsent(referable) { state[referable] } ?: run {
-                        toDataLocatedReferable(referable.locatedReferableParent)
-                        cache[referable]
-                    }
-                } else {
-                    val result = cache.computeIfAbsent(referable) { state.computeIfAbsent(referable) {
-                        val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable)
-                        val locatedParent = referable.locatedReferableParent
-                        val parent = if (locatedParent is ArendFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
-                        when (referable) {
-                            is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
-                            is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
-                            else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+            when (referable) {
+                is ArendFile -> null
+                is PsiReferable -> {
+                    if (referable is ArendClassField || referable is ArendFieldDefIdentifier) {
+                        cache.computeIfAbsent(referable) { state[referable] } ?: run {
+                            toDataLocatedReferable(referable.locatedReferableParent)
+                            cache[referable]
                         }
-                    } }
-
-                    if (referable is ClassReferable && result is ClassDataLocatedReferable && !result.filledIn) {
-                        result.underlyingClass = toDataLocatedReferable(referable.underlyingReference) as? TCClassReferable
-                        result.superClassReferences.clear()
-                        for (ref in referable.superClassReferences) {
-                            (toDataLocatedReferable(ref) as? TCClassReferable)?.let { result.superClassReferences.add(it) }
-                        }
-                        result.fieldReferables.clear()
-                        for (ref in referable.fieldReferables) {
-                            if (ref is FieldReferable && ref is PsiReferable) {
-                                (cache.computeIfAbsent(ref) { state.computeIfAbsent(ref) {
-                                    FieldDataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable, (ref.underlyingReference as? PsiElement)?.let { cache[it] })
-                                } } as? TCFieldReferable)?.let { result.fieldReferables.add(it) }
+                    } else {
+                        val result = cache.computeIfAbsent(referable) {
+                            state.computeIfAbsent(referable) {
+                                val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable)
+                                val locatedParent = referable.locatedReferableParent
+                                val parent = if (locatedParent is ArendFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
+                                when (referable) {
+                                    is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
+                                    is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
+                                    else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                                }
                             }
                         }
-                        result.implementedFields.clear()
-                        for (ref in referable.implementedFields) {
-                            if (ref is PsiReferable) {
-                                cache[ref]?.let { result.implementedFields.add(it)  }
-                            }
-                        }
-                        result.filledIn = true
-                    }
 
-                    result
+                        if (referable is ClassReferable && result is ClassDataLocatedReferable && !result.filledIn) {
+                            result.underlyingClass = toDataLocatedReferable(referable.underlyingReference) as? TCClassReferable
+                            result.superClassReferences.clear()
+                            for (ref in referable.superClassReferences) {
+                                (toDataLocatedReferable(ref) as? TCClassReferable)?.let { result.superClassReferences.add(it) }
+                            }
+                            result.fieldReferables.clear()
+                            for (ref in referable.fieldReferables) {
+                                if (ref is FieldReferable && ref is PsiReferable) {
+                                    (cache.computeIfAbsent(ref) {
+                                        state.computeIfAbsent(ref) {
+                                            FieldDataLocatedReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(ref), ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable, (ref.underlyingReference as? PsiElement)?.let { cache[it] })
+                                        }
+                                    } as? TCFieldReferable)?.let { result.fieldReferables.add(it) }
+                                }
+                            }
+                            result.implementedFields.clear()
+                            for (ref in referable.implementedFields) {
+                                if (ref is PsiReferable) {
+                                    cache[ref]?.let { result.implementedFields.add(it) }
+                                }
+                            }
+                            result.filledIn = true
+                        }
+
+                        result
+                    }
                 }
+                is TCReferable -> referable
+                else -> null
             }
-            is TCReferable -> referable
-            else -> null
-        }
 
     /*
     private fun fillInClass(classRef: ClassReferable, tcClassRef: ClassDataLocatedReferable) {
