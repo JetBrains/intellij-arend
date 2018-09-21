@@ -1,11 +1,11 @@
 <idea-plugin>
-    <id>org.vclang.lang</id>
-    <name>Vclang</name>
+    <id>org.arend.lang</id>
+    <name>Arend</name>
     <version>0.0.1</version>
-    <vendor url="https://github.com/JetBrains/intellij-vclang"/>
+    <vendor url="https://github.com/JetBrains/intellij-arend"/>
 
     <description><![CDATA[
-      Vclang language support
+      Arend language support
     ]]></description>
 
     <change-notes><![CDATA[
@@ -24,179 +24,179 @@
 
         <!-- Module -->
 
-        <moduleType id="VCLANG_MODULE" implementationClass="org.vclang.module.VcModuleType"/>
-        <moduleBuilder builderClass="org.vclang.module.util.VcModuleBuilder"/>
+        <moduleType id="AREND_MODULE" implementationClass="org.arend.module.ArendModuleType"/>
+        <moduleBuilder builderClass="org.arend.module.util.ArendModuleBuilder"/>
         <projectStructureDetector
-                implementation="org.vclang.module.util.VcProjectStructureDetector"/>
+                implementation="org.arend.module.util.ArendProjectStructureDetector"/>
 
         <!-- Startup -->
 
-        <postStartupActivity implementation="org.vclang.VcStartupActivity"/>
+        <postStartupActivity implementation="org.arend.ArendStartupActivity"/>
 
-        <!-- Vclang -->
+        <!-- Arend -->
 
         <!-- File-type Factory -->
 
-        <fileTypeFactory implementation="org.vclang.VcFileTypeFactory"/>
+        <fileTypeFactory implementation="org.arend.ArendFileTypeFactory"/>
 
         <!-- Parser -->
 
-        <lang.parserDefinition language="Vclang"
-                               implementationClass="org.vclang.parser.VcParserDefinition"/>
+        <lang.parserDefinition language="Arend"
+                               implementationClass="org.arend.parser.ArendParserDefinition"/>
 
         <!-- Name Validator -->
 
-        <lang.namesValidator language="Vclang" implementationClass="org.vclang.refactoring.VcNamesValidator"/>
+        <lang.namesValidator language="Arend" implementationClass="org.arend.refactoring.ArendNamesValidator"/>
 
         <!-- Syntax Highlighter -->
 
-        <lang.syntaxHighlighterFactory language="Vclang"
-                                       implementationClass="org.vclang.highlight.VcSyntaxHighlighterFactory"/>
+        <lang.syntaxHighlighterFactory language="Arend"
+                                       implementationClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
 
         <!-- Commenter -->
 
-        <lang.commenter language="Vclang" implementationClass="org.vclang.commenter.VcCommenter"/>
+        <lang.commenter language="Arend" implementationClass="org.arend.commenter.ArendCommenter"/>
 
         <!-- Matchers -->
 
-        <lang.braceMatcher language="Vclang" implementationClass="org.vclang.VcBraceMatcher"/>
+        <lang.braceMatcher language="Arend" implementationClass="org.arend.ArendBraceMatcher"/>
 
         <!-- Documentation -->
 
-        <lang.documentationProvider language="Vclang"
-                                    implementationClass="org.vclang.VcDocumentationProvider"/>
+        <lang.documentationProvider language="Arend"
+                                    implementationClass="org.arend.ArendDocumentationProvider"/>
 
-        <lang.implementationTextSelectioner language="Vclang"
-                                            implementationClass="org.vclang.VcImplementationTextSelectioner"/>
+        <lang.implementationTextSelectioner language="Arend"
+                                            implementationClass="org.arend.ArendImplementationTextSelectioner"/>
 
         <!-- Structure View -->
 
-        <lang.psiStructureViewFactory language="Vclang"
-                                      implementationClass="org.vclang.structure.VcPsiStructureViewFactory"/>
+        <lang.psiStructureViewFactory language="Arend"
+                                      implementationClass="org.arend.structure.ArendPsiStructureViewFactory"/>
 
         <!-- Hierarchy -->
 
-        <callHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.call.VcCallHierarchyProvider"/>
-        <typeHierarchyProvider language="Vclang" implementationClass="org.vclang.hierarchy.clazz.VcClassHierarchyProvider"/>
+        <callHierarchyProvider language="Arend" implementationClass="org.arend.hierarchy.call.ArendCallHierarchyProvider"/>
+        <typeHierarchyProvider language="Arend" implementationClass="org.arend.hierarchy.clazz.ArendClassHierarchyProvider"/>
 
         <!-- Usages Provider -->
 
-        <referencesSearch implementation="org.vclang.search.VcCustomSearcher"/>
+        <referencesSearch implementation="org.arend.search.ArendCustomSearcher"/>
 
-        <lang.findUsagesProvider language="Vclang"
-                                 implementationClass="org.vclang.search.VcFindUsagesProvider"/>
+        <lang.findUsagesProvider language="Arend"
+                                 implementationClass="org.arend.search.ArendFindUsagesProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefClassGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendDefClassGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefDataGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendDefDataGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefFunctionGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendDefFunctionGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassFieldGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcClassFieldSynGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendClassFieldSynGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcDefInstanceGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.vclang.search.VcConstructorGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendConstructorGroupingRuleProvider"/>
 
         <!-- Navigation -->
 
-        <gotoClassContributor implementation="org.vclang.navigation.VcClassNavigationContributor"/>
+        <gotoClassContributor implementation="org.arend.navigation.ArendClassNavigationContributor"/>
         <gotoSymbolContributor
-                implementation="org.vclang.navigation.VcSymbolNavigationContributor"/>
+                implementation="org.arend.navigation.ArendSymbolNavigationContributor"/>
 
         <!-- Hints -->
 
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefClass"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefData"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefInstance"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
-        <declarationRangeHandler key="org.vclang.lang.core.psi.VcDefFunction"
-                                 implementationClass="org.vclang.codeInsight.VcDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefClass"
+                                 implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefData"
+                                 implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefInstance"
+                                 implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
+        <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefFunction"
+                                 implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
 
         <!-- Code Insight -->
 
-        <codeInsight.parameterInfo language="Vclang" implementationClass="org.vclang.codeInsight.VcParameterInfoHandler"/>
+        <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
 
-        <completion.contributor language="Vclang" implementationClass="org.vclang.codeInsight.completion.VclangCompletionContributor"/>
+        <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionContributor"/>
 
-        <completion.confidence language="Vclang" implementationClass="org.vclang.codeInsight.completion.VcCompletionConfidence" id="vcCompletion" />
+        <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
         <!-- Annotation -->
 
-        <annotator language="Vclang"
-                   implementationClass="org.vclang.annotation.VcHighlightingAnnotator"/>
+        <annotator language="Arend"
+                   implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
 
-        <!-- <highlightRangeExtension implementation="org.vclang.annotation.VcHighlightRangeExtension"/> -->
+        <!-- <highlightRangeExtension implementation="org.arendannotation.ArendHighlightRangeExtension"/> -->
 
-        <referenceImporter implementation="org.vclang.annotation.VclangReferenceImporter"/>
+        <referenceImporter implementation="org.arend.annotation.ArendReferenceImporter"/>
 
         <!-- Line Marker Providers -->
 
-        <runLineMarkerContributor language="Vclang"
-                                  implementationClass="org.vclang.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
+        <runLineMarkerContributor language="Arend"
+                                  implementationClass="org.arend.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
         <!-- Color Settings -->
 
-        <colorSettingsPage implementation="org.vclang.editor.VcColorSettingsPage"/>
+        <colorSettingsPage implementation="org.arend.editor.ArendColorSettingsPage"/>
 
         <!-- Folding -->
 
-        <lang.foldingBuilder language="Vclang" implementationClass="org.vclang.VcFoldingBuilder"/>
+        <lang.foldingBuilder language="Arend" implementationClass="org.arend.ArendFoldingBuilder"/>
 
         <!-- Refactoring -->
 
-        <renameInputValidator implementation="org.vclang.refactoring.VcRenameInputValidator"/>
-        <lang.refactoringSupport language="Vclang" implementationClass="org.vclang.refactoring.VcRefactoringSupportProvider"/>
+        <renameInputValidator implementation="org.arend.refactoring.ArendRenameInputValidator"/>
+        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
 
         <!-- Run Configurations -->
 
-        <programRunner implementation="org.vclang.typechecking.execution.TypeCheckRunner"/>
+        <programRunner implementation="org.arend.typechecking.execution.TypeCheckRunner"/>
         <configurationType
-                implementation="org.vclang.typechecking.execution.configurations.TypeCheckConfigurationType"/>
+                implementation="org.arend.typechecking.execution.configurations.TypeCheckConfigurationType"/>
         <runConfigurationProducer
-                implementation="org.vclang.typechecking.execution.TypeCheckRunConfigurationProducer"/>
+                implementation="org.arend.typechecking.execution.TypeCheckRunConfigurationProducer"/>
 
         <!-- Indices -->
 
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcNamedElementIndex"/>
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcDefinitionIndex"/>
-        <stubIndex implementation="org.vclang.psi.stubs.index.VcGotoClassIndex"/>
+        <stubIndex implementation="org.arend.psi.stubs.index.ArendNamedElementIndex"/>
+        <stubIndex implementation="org.arend.psi.stubs.index.ArendDefinitionIndex"/>
+        <stubIndex implementation="org.arend.psi.stubs.index.ArendGotoClassIndex"/>
 
-        <stubElementTypeHolder class="org.vclang.psi.VcElementTypes"/>
+        <stubElementTypeHolder class="org.arend.psi.ArendElementTypes"/>
 
         <!-- Lookup Filters -->
 
-        <lookup.charFilter implementation="org.vclang.codeInsight.VclangCharFilter"/>
+        <lookup.charFilter implementation="org.arend.codeInsight.ArendCharFilter"/>
 
         <!-- Highlight Filter -->
 
-        <problemFileHighlightFilter implementation="org.vclang.highlight.VcProblemHighlightFilter"/>
+        <problemFileHighlightFilter implementation="org.arend.highlight.ArendProblemHighlightFilter"/>
 
         <!-- Services -->
 
-        <projectService serviceInterface="org.vclang.typechecking.TypeCheckingService"
-                        serviceImplementation="org.vclang.typechecking.TypeCheckingServiceImpl"/>
+        <projectService serviceInterface="org.arend.typechecking.TypeCheckingService"
+                        serviceImplementation="org.arend.typechecking.TypeCheckingServiceImpl"/>
 
     </extensions>
 
     <actions>
 
-        <action id="VcFormatVclang.PrettyPrinterFormat"
-                class="org.vclang.actions.VcPrettyPrinterFormatAction"
+        <action id="Arend.PrettyPrinterFormat"
+                class="org.arend.actions.ArendPrettyPrinterFormatAction"
                 text="Reformat code with PrettyPrinter"
                 description="Format current file with PrettyPrinter">
             <add-to-group group-id="CodeFormatGroup" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
         </action>
 
-        <action id="Vclang.NewVclangFile"
-                class="org.vclang.actions.VcCreateFileAction"
-                text="Vclang File"
-                description="Create new Vclang file">
+        <action id="Arend.NewArendFile"
+                class="org.arend.actions.ArendCreateFileAction"
+                text="Arend File"
+                description="Create new Arend file">
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
 

@@ -1,17 +1,17 @@
-# Vclang plugin for IntelliJ IDEA
+# Arend plugin for IntelliJ IDEA
 
 [![JetBrains incubator project](http://jb.gg/badges/incubator.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![Build Status][travis-build-status-svg]][travis-build-status] 
 
-Plugin that implements [Vclang](https://github.com/JetBrains/vclang) support 
+Plugin that implements [Arend](https://github.com/JetBrains/Arend) support 
 in [IntelliJ IDEA](http://www.jetbrains.com/idea/) and other IntelliJ-based products.
 
 ## Clone
 
 ```
-git clone https://github.com/JetBrains/vclang
-git clone https://github.com/JetBrains/intellij-vclang.git
-cd intellij-vclang
+git clone https://github.com/JetBrains/Arend
+git clone https://github.com/JetBrains/intellij-arend.git
+cd intellij-arend
 ```
 
 ## Building
@@ -50,5 +50,5 @@ A Program Structure Interface (PSI) tree viewer.
 The project is configured to build and run tests with Travis CI, which you can enable in your forks.
 
 <!-- Badges -->
-[travis-build-status]: https://travis-ci.org/JetBrains/intellij-vclang?branch=dev
-[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-vclang.svg?branch=dev
+[travis-build-status]: https://travis-ci.org/JetBrains/intellij-arend?branch=dev
+[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-arend.svg?branch=dev

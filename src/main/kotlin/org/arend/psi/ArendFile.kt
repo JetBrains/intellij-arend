@@ -1,0 +1,100 @@
+package org.arend.psi
+
+import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.psi.FileViewProvider
+import com.intellij.psi.PsiElement
+import org.arend.module.ModulePath
+import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Reference
+import org.arend.naming.scope.Scope
+import org.arend.naming.scope.ScopeFactory
+import org.arend.term.Precedence
+import org.arend.term.abs.Abstract
+import org.arend.term.group.ChildGroup
+import org.arend.term.group.Group
+import org.arend.ArendFileType
+import org.arend.ArendIcons
+import org.arend.ArendLanguage
+import org.arend.module.util.sourcesDir
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.stubs.ArendFileStub
+import org.arend.resolving.ArendReference
+
+class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
+    val modulePath: ModulePath
+        get() {
+            val fileName = viewProvider.virtualFile.path
+            val root = module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
+            val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
+            val fullName = shortFileName.removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
+            return ModulePath(fullName.split('.'))
+        }
+
+    val fullName
+        get() = modulePath.toString()
+
+    val libraryName
+        get() = module?.name ?: if (name == "Prelude.ard") "prelude" else null
+
+    override fun setName(name: String): PsiElement =
+        super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
+
+    override fun getStub(): ArendFileStub? = super.getStub() as ArendFileStub?
+
+    override fun getKind() = GlobalReferable.Kind.OTHER
+
+    override val scope: Scope
+        get() = ScopeFactory.forGroup(this, moduleScopeProvider)
+
+    override fun getLocation() = modulePath
+
+    override fun getTypecheckable(): PsiLocatedReferable = this
+
+    override fun getLocatedReferableParent(): LocatedReferable? = null
+
+    override fun getGroupScope() = scope
+
+    override fun getNameIdentifier(): PsiElement? = null
+
+    override fun getReference(): ArendReference? = null
+
+    override fun getFileType(): FileType = ArendFileType
+
+    override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.defaultExtension)
+
+    override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getParentGroup(): ChildGroup? = null
+
+    override fun getReferable(): PsiLocatedReferable = this
+
+    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { (it as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
+
+    override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
+
+    override fun getConstructors(): List<Group.InternalReferable> = emptyList()
+
+    override fun getDynamicSubgroups(): List<Group> = emptyList()
+
+    override fun getFields(): List<Group.InternalReferable> = emptyList()
+
+    override fun moduleTextRepresentation(): String = name
+
+    override fun positionTextRepresentation(): String? = null
+
+    override fun getUnderlyingReference(): LocatedReferable? = null
+
+    override fun getUnresolvedUnderlyingReference(): Reference? = null
+
+    override fun getTopmostEquivalentSourceNode() = this
+
+    override fun getParentSourceNode(): ArendSourceNode? = null
+
+    override fun getErrorData(): Abstract.ErrorData? = null
+
+    override fun getIcon(flags: Int) = ArendIcons.MODULE
+}

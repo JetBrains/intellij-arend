@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compile(project(":vclang"))
+    compile(project(":Arend"))
     compileOnly(kotlin("stdlib-jdk8"))
 }
 
@@ -34,7 +34,7 @@ tasks.withType<KotlinCompile> {
         languageVersion = "1.2"
         apiVersion = "1.2"
     }
-    dependsOn("generateVcLexer", "generateVcParser")
+    dependsOn("generateArendLexer", "generateArendParser")
 }
 
 java.sourceSets {
@@ -51,28 +51,28 @@ idea {
 
 intellij {
     version = "2018.2"
-    pluginName = "intellij-vclang"
+    pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
     setPlugins("yaml")
 }
 
-task<GenerateLexer>("generateVcLexer") {
+task<GenerateLexer>("generateArendLexer") {
     description = "Generates lexer"
     group = "Source"
-    source = "src/main/grammars/VcLexer.flex"
-    targetDir = "src/gen/org/vclang/lexer"
-    targetClass = "VcLexer"
+    source = "src/main/grammars/ArendLexer.flex"
+    targetDir = "src/gen/org/arend/lexer"
+    targetClass = "ArendLexer"
     purgeOldFiles = true
 }
 
-task<GenerateParser>("generateVcParser") {
+task<GenerateParser>("generateArendParser") {
     description = "Generates parser"
     group = "Source"
-    source = "src/main/grammars/VcParser.bnf"
+    source = "src/main/grammars/ArendParser.bnf"
     targetRoot = "src/gen"
-    pathToParser = "/org/vclang/parser/VcParser.java"
-    pathToPsiRoot = "/org/vclang/psi"
+    pathToParser = "/org/arend/parser/ArendParser.java"
+    pathToPsiRoot = "/org/arend/psi"
     purgeOldFiles = true
 }
 
@@ -94,10 +94,10 @@ afterEvaluate {
 }
 
 task<Copy>("prelude") {
-    from(project(":vclang").file("lib/Prelude.vc"))
-    from(project(":vclang").file("${project(":vclang").buildDir}/classes/main/lib/Prelude.vcc"))
+    from(project(":Arend").file("lib/Prelude.ard"))
+    from(project(":Arend").file("${project(":Arend").buildDir}/classes/main/lib/Prelude.arc"))
     into("src/main/resources/lib")
-    dependsOn(project(":vclang").relativeProjectPath(":prelude"))
+    dependsOn(project(":Arend").relativeProjectPath(":prelude"))
 }
 
 tasks.withType<Wrapper> {

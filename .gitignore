@@ -24,8 +24,8 @@ hs_err_pid*
 # Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
 
-# Vclang
-!lib/vclang-*.jar
+# Arend
+!lib/arend-*.jar
 
 # Intellij
 *.iml

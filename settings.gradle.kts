@@ -1,3 +1,3 @@
-rootProject.name = "intellij-vclang"
+rootProject.name = "intellij-arend"
 
-includeFlat("vclang")
+includeFlat("Arend")
