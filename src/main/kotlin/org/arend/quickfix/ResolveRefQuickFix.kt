@@ -4,19 +4,19 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import org.arend.module.util.findArendFile
+import org.arend.module.util.libraryConfig
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
-import org.arend.term.group.Group
-import org.arend.util.LongName
-import org.arend.module.util.findArendFile
-import org.arend.module.util.libraryConfig
 import org.arend.psi.*
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.ArendReferenceElement
+import org.arend.term.group.Group
+import org.arend.util.LongName
 import java.util.Collections.singletonList
 
 interface ResolveRefFixAction {
@@ -472,8 +472,7 @@ class ResolveRefQuickFix {
                         referable = referable.originalReferable
                     }
 
-                    if (referable == target || //general case
-                            referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target) //needed for correct import of items from prelude
+                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
                         newBlock[fName] = currentBlock[fName]
                 }
 

@@ -9,14 +9,14 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.prelude.Prelude
-import org.arend.term.abs.Abstract
-import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.term.concrete.Concrete
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefData
 import org.arend.psi.ArendLongName
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractExpressionVisitor
+import org.arend.term.concrete.Concrete
 import org.arend.typing.ExpectedTypeVisitor.Companion.hasCoerce
 import java.math.BigInteger
 
@@ -285,13 +285,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
             }
         }
 
-        val ok = if (def == null) {
-            kind != null && !kind.isWHNF()
-        } else {
-            def == PsiLocatedReferable.fromReferable(Prelude.INT.referable) || number >= BigInteger.ZERO && def == PsiLocatedReferable.fromReferable(Prelude.NAT.referable)
-        }
-
-        if (!ok) {
+        if (def == null && (kind == null || kind.isWHNF())) {
             typeMismatchFull(toString(expectedType), if (number >= BigInteger.ZERO) Prelude.NAT.name else Prelude.INT.name)
         }
     }

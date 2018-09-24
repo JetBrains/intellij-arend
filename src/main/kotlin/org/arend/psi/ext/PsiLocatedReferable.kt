@@ -16,6 +16,8 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
             val psiPtr = (referable as? DataLocatedReferable)?.data ?: return referable as? PsiLocatedReferable
             return runReadAction { psiPtr.element } as? PsiLocatedReferable
         }
+
+        // fun fromReferable(referable: Referable) = (referable as? GlobalReferable)?.let { fromReferable(it) } ?: referable
     }
 }
 

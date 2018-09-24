@@ -3,20 +3,20 @@ package org.arend.resolving
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
-import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.RedirectingReferable
-import org.arend.prelude.Prelude
-import org.arend.term.abs.Abstract
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.module.util.findArendFilesAndDirectories
 import org.arend.module.util.libraryConfig
+import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.reference.RedirectingReferable
+import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.PsiModuleReferable
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiModuleReferable
+import org.arend.psi.ext.PsiReferable
 import org.arend.refactoring.ArendNamesValidator
+import org.arend.term.abs.Abstract
 import org.arend.typechecking.TypeCheckingService
 
 interface ArendReference : PsiReference {
@@ -69,7 +69,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
 
         return element.scope.elements.mapNotNull {
             val ref = (it as? RedirectingReferable)?.originalReferable ?: it
-            val origRef: Any? = if (ref is DataLocatedReferable) ref.data.element else ref
+            val origRef: Any? = if (ref is DataLocatedReferable) ref.data?.element else ref
             if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? ArendDefClass)?.recordKw != null || notASynonym && (origRef as? ArendDefClass)?.fatArrow != null)) {
                 null
             } else when (origRef) {
@@ -107,7 +107,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
         }, this.element)
 
         if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data.element
+        if (ref is DataLocatedReferable) ref = ref.data?.element
         return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
@@ -142,7 +142,7 @@ open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendR
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         var ref: Any? = element.scope.resolveName(element.referenceName)
         if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data.element
+        if (ref is DataLocatedReferable) ref = ref.data?.element
         return when (ref) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()

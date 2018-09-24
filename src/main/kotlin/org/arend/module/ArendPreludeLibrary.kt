@@ -2,25 +2,25 @@ package org.arend.module
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
+import org.arend.ArendLanguage
 import org.arend.error.ErrorReporter
 import org.arend.library.BaseLibrary
 import org.arend.library.LibraryManager
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.resolving.ArendReferableConverter
 import org.arend.term.group.Group
 import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.util.FileUtils
-import org.arend.ArendLanguage
-import org.arend.psi.ArendFile
 import java.nio.charset.StandardCharsets
 
 
@@ -47,16 +47,11 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
     override fun orderModules(ordering: Ordering): Boolean {
         if (isTypechecked) return true
 
-        if (Prelude.INTERVAL == null) {
+        if (!Prelude.isInitialized()) {
             synchronized(ArendPreludeLibrary::class.java) {
-                if (Prelude.INTERVAL == null) {
-                    return if (super.orderModules(ordering)) {
-                        isTypechecked = true
-                        Prelude.initialize(scope ?: return false, typecheckerState)
-                        true
-                    } else {
-                        false
-                    }
+                if (!Prelude.isInitialized()) {
+                    isTypechecked = super.orderModules(ordering)
+                    return isTypechecked
                 }
             }
         }
@@ -88,10 +83,20 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
 
     }
 
-    fun resolveNames(referableConverter: ReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
+    fun resolveNames(referableConverter: ArendReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
-        scope = CachingScope.make(ConvertingScope(referableConverter, LexicalScope.opened(preludeFile)))
+        scope = CachingScope.make(LexicalScope.opened(preludeFile))
+        if (Prelude.isInitialized()) {
+            Prelude.forEach {
+                val fullName = ArrayList<String>(2)
+                LocatedReferable.Helper.getLocation(it.referable, fullName)
+                val psiRef = Scope.Utils.resolveName(scope, fullName)
+                if (psiRef is PsiLocatedReferable) {
+                    referableConverter.putIfAbsent(psiRef, it.referable)
+                }
+            }
+        }
         DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope)
     }
 }

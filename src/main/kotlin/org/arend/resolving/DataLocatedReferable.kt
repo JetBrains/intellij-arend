@@ -14,29 +14,30 @@ import org.arend.typechecking.TypeCheckingService
 
 
 open class DataLocatedReferable(
-    private var psiElementPointer: SmartPsiElementPointer<PsiElement>,
+    private var psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: LocatedReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?)
     : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), DataContainer, SourceInfo {
 
-    override fun getData(): SmartPsiElementPointer<PsiElement> = psiElementPointer
+    override fun getData() = psiElementPointer
 
-    override fun moduleTextRepresentation(): String? = runReadAction { psiElementPointer.element?.moduleTextRepresentationImpl() }
+    override fun moduleTextRepresentation(): String? = psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } }
 
-    override fun positionTextRepresentation(): String? = runReadAction { psiElementPointer.element?.positionTextRepresentationImpl() }
+    override fun positionTextRepresentation(): String? = psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
 
-    fun fixPointer(project: Project) = runReadAction {
-        val psiRef = LocatedReferable.Helper.resolveReferable(this, TypeCheckingService.getInstance(project).libraryManager.moduleScopeProvider) as? PsiLocatedReferable
-        if (psiRef != null) {
-            psiElementPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(psiRef)
+    fun fixPointer(project: Project) =
+        runReadAction {
+            val psiRef = LocatedReferable.Helper.resolveReferable(this, TypeCheckingService.getInstance(project).libraryManager.moduleScopeProvider) as? PsiLocatedReferable
+            if (psiElementPointer != null && psiRef != null) {
+                psiElementPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(psiRef)
+            }
+            psiRef
         }
-        psiRef
-    }
 }
 
 class FieldDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>,
+    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: FieldReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?,
@@ -53,7 +54,7 @@ class FieldDataLocatedReferable(
 }
 
 class ClassDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>,
+    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: LocatedReferable,
     parent: LocatedReferable?,
     val superClassReferences: MutableList<TCClassReferable>,

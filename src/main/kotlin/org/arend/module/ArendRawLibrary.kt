@@ -7,14 +7,14 @@ import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
+import org.arend.module.util.*
 import org.arend.naming.reference.LocatedReferable
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 import org.jetbrains.yaml.psi.YAMLFile
-import org.arend.module.util.*
-import org.arend.typechecking.TypeCheckingService
 
 
 class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
@@ -91,7 +91,7 @@ class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerS
         TypeCheckingService.getInstance(module.project).updateDefinition(referable)
     }
 
-    override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).referableConverter
+    override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).newReferableConverter(true)
 
     override fun getDependencyListener() = TypeCheckingService.getInstance(module.project).dependencyListener
 }

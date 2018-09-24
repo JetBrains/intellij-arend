@@ -8,10 +8,10 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.startup.StartupActivity
 import org.arend.error.DummyErrorReporter
-import org.arend.prelude.Prelude
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.util.isArendModule
+import org.arend.prelude.Prelude
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
@@ -21,10 +21,9 @@ class ArendStartupActivity : StartupActivity {
     override fun runActivity(project: Project) {
         val service = TypeCheckingService.getInstance(project)
 
-        // TODO[references]: Load typechecked prelude library from resources
         val preludeLibrary = ArendPreludeLibrary(project, service.typecheckerState)
         service.libraryManager.loadLibrary(preludeLibrary)
-        val referableConverter = service.referableConverter
+        val referableConverter = service.newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.libraryErrorReporter)
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)

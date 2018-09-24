@@ -16,32 +16,32 @@ import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
-import org.arend.term.concrete.Concrete
-import org.arend.term.group.Group
-import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.CancellationIndicator
-import org.arend.typechecking.order.Ordering
-import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.jetbrains.ide.PooledThreadExecutor
-import org.arend.module.ArendRawLibrary
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.findGroupByFullName
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.concrete.Concrete
+import org.arend.term.group.Group
+import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.CancellationIndicator
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
+import org.arend.typechecking.order.Ordering
+import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
+import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
 
@@ -97,7 +97,7 @@ class TypeCheckProcessHandler(
         }
 
         PooledThreadExecutor.INSTANCE.execute {
-            val referableConverter = typeCheckerService.referableConverter
+            val referableConverter = typeCheckerService.newReferableConverter(true)
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
             val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)

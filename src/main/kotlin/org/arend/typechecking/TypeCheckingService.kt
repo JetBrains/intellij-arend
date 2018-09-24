@@ -11,29 +11,29 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
 import org.arend.library.LibraryManager
-import org.arend.module.scopeprovider.EmptyModuleScopeProvider
-import org.arend.module.scopeprovider.LocatingModuleScopeProvider
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.converter.ReferableConverter
-import org.arend.naming.reference.converter.SimpleReferableConverter
-import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.order.dependency.DependencyCollector
-import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.util.FileUtils
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
+import org.arend.module.scopeprovider.EmptyModuleScopeProvider
+import org.arend.module.scopeprovider.LocatingModuleScopeProvider
 import org.arend.module.util.defaultRoot
+import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCReferable
+import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LogErrorReporter
+import org.arend.typechecking.order.dependency.DependencyCollector
+import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.util.FileUtils
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -42,11 +42,11 @@ interface TypeCheckingService {
 
     val dependencyListener: DependencyListener
 
-    val referableConverter: ReferableConverter
-
     val project: Project
 
     val prelude: ArendFile?
+
+    fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
     fun getTypechecked(definition: ArendDefinition): Definition?
 
@@ -67,8 +67,9 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override val libraryManager = LibraryManager(ArendLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
-    override val referableConverter: ReferableConverter
-        get() = ArendReferableConverter(project, simpleReferableConverter)
+
+    override fun newReferableConverter(withPsiReferences: Boolean) =
+        ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
     init {
         libraryManager.moduleScopeProvider = LocatingModuleScopeProvider(libraryManager)
@@ -95,13 +96,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun getTypechecked(definition: ArendDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
-    override fun updateDefinition(referable: LocatedReferable) {
-        simpleReferableConverter.remove(referable)?.let {
-            for (ref in dependencyListener.update(it)) {
-                PsiLocatedReferable.fromReferable(ref)?.let { simpleReferableConverter.remove(it) }
-            }
-        }
-
+    private fun removeDefinition(referable: LocatedReferable): TCReferable? {
+        val tcReferable = simpleReferableConverter.remove(referable)
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
                 simpleReferableConverter.remove(field)
@@ -110,6 +106,14 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             for (constructor in referable.constructors) {
                 simpleReferableConverter.remove(constructor)
             }
+        }
+        return tcReferable
+    }
+
+    override fun updateDefinition(referable: LocatedReferable) {
+        val tcReferable = removeDefinition(referable) ?: return
+        for (ref in dependencyListener.update(tcReferable)) {
+            PsiLocatedReferable.fromReferable(ref)?.let { removeDefinition(it) }
         }
     }
 
