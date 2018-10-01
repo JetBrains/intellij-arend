@@ -142,7 +142,7 @@ private ns_refIdentifier ::= refIdentifier {
 
 private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
-private classStats ::= LBRACE classStat* RBRACE { pin = 1 }
+private classStats ::= LBRACE classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
 
 classStat ::= classFieldOrImplement | definition | defModule { recoverWhile = classStat_recover }
 
@@ -252,9 +252,9 @@ defClass ::= (defClassClass | defClassRecord) where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-private defClassClass ::= CLASS_KW defClassHeader classBody? { pin = 1 }
+private defClassClass ::= CLASS_KW defClassHeader classBody { pin = 1 }
 
-private defClassRecord ::= RECORD_KW defClassHeader recordBody? { pin = 1 }
+private defClassRecord ::= RECORD_KW defClassHeader recordBody { pin = 1 }
 
 private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
@@ -752,7 +752,7 @@ private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin
 
 private fieldTeleImplicit ::= LBRACE fieldDefIdentifier+ COLON expr RBRACE { pin = 2 }
 
-private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN) & statement_recover
+private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
 
 typeTele ::= literal
     | universeAtom
