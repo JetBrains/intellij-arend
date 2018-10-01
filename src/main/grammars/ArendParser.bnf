@@ -356,7 +356,7 @@ private defIdentifier_pattern ::= defIdentifier {
     recoverWhile = defIdentifier_pattern_recover
 }
 
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | UNDERSCORE) & pattern_recover
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE) & pattern_recover
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
