@@ -7,9 +7,14 @@ import com.intellij.ide.util.projectWizard.importSources.DetectedProjectRoot
 import com.intellij.ide.util.projectWizard.importSources.DetectedSourceRoot
 import com.intellij.ide.util.projectWizard.importSources.ProjectFromSourcesBuilder
 import com.intellij.ide.util.projectWizard.importSources.ProjectStructureDetector
-import org.arend.ArendFileType
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiManager
 import org.arend.module.ArendModuleType
+import org.arend.util.FileUtils
+import org.jetbrains.yaml.psi.YAMLFile
 import java.io.File
+import java.util.ArrayList
 import javax.swing.Icon
 
 class ArendProjectStructureDetector : ProjectStructureDetector() {
@@ -20,15 +25,13 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             base: File,
             result: MutableList<DetectedProjectRoot>
     ): DirectoryProcessingResult {
-        val containsArendFile = dir
-                .walk()
-                .any { it.extension == ArendFileType.defaultExtension }
-        if (containsArendFile) {
+        val containsConfigFile = dir.listFiles().any { it.name == FileUtils.LIBRARY_CONFIG_FILE }
+        if (containsConfigFile) {
             result.add(object : DetectedProjectRoot(dir) {
                 override fun getRootTypeName(): String = "Arend"
             })
         }
-        return DirectoryProcessingResult.SKIP_CHILDREN
+        return DirectoryProcessingResult.PROCESS_CHILDREN
     }
 
     override fun setupProjectStructure(
@@ -36,19 +39,16 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             projectDescriptor: ProjectDescriptor,
             builder: ProjectFromSourcesBuilder
     ) {
-        val root = roots.singleOrNull()
-        if (root == null
-                || builder.hasRootsFromOtherDetectors(this)
-                || projectDescriptor.modules.isNotEmpty()) {
-            return
+        projectDescriptor.modules = ArrayList()
+        for (root in roots) {
+            val moduleDescriptor = ModuleDescriptor(
+                    root.directory,
+                    ArendModuleType.INSTANCE,
+                    emptyList<DetectedSourceRoot>()
+            )
+            moduleDescriptor.addConfigurationUpdater(ConfigurationUpdater)
+            projectDescriptor.modules.add(moduleDescriptor)
         }
-
-        val moduleDescriptor = ModuleDescriptor(
-                root.directory,
-                ArendModuleType.INSTANCE,
-                emptyList<DetectedSourceRoot>()
-        )
-        projectDescriptor.modules = listOf(moduleDescriptor)
     }
 
     override fun createWizardSteps(
@@ -56,4 +56,17 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             projectDescriptor: ProjectDescriptor,
             stepIcon: Icon?
     ): List<ModuleWizardStep> = listOf(ArendModuleWizardStep(builder.context, projectDescriptor))
+
+    private object ConfigurationUpdater : ArendModuleConfigurationUpdater() {
+        override fun sourceDir(moduleRoot: VirtualFile, project: Project): String {
+            val virtualFile = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return super.sourceDir(moduleRoot, project)
+            return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.sourcesDirProp ?: super.sourceDir(moduleRoot, project)
+        }
+
+        override fun outputDir(moduleRoot: VirtualFile, project: Project): String {
+            val virtualFile = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return super.outputDir(moduleRoot, project)
+            return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.outputPath?.toString() ?: super.outputDir(moduleRoot, project)
+        }
+
+    }
 }
