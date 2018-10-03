@@ -40,11 +40,13 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getFields(): List<Group.InternalReferable> =
         (parameterFields as List<Group.InternalReferable> ) +
             classStatList.mapNotNull { it.classField } +
+            classFieldList +
             classFieldSynList
 
     override fun getFieldReferables(): List<FieldReferable> =
         (parameterFields as List<FieldReferable>) +
             classStatList.mapNotNull { it.classField } +
+            classFieldList +
             classFieldSynList
 
     override fun getImplementedFields(): List<LocatedReferable> =
@@ -54,9 +56,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getSuperClasses(): List<ArendLongName> = longNameList
 
-    override fun getClassFields(): List<Abstract.ClassField> = classStatList.mapNotNull { it.classField }
+    override fun getClassFields(): List<Abstract.ClassField> = classStatList.mapNotNull { it.classField } + classFieldList
 
-    override fun getClassFieldImpls(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement }
+    override fun getClassFieldImpls(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
 
     override fun getArgumentsExplicitness() = emptyList<Boolean>()
 

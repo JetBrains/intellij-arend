@@ -42,16 +42,20 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                         cache[referable]
                     }
                 } else {
-                    val result = cache.computeIfAbsent(referable) { state.computeIfAbsent(referable) {
-                        val pointer = project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(referable) }
-                        val locatedParent = referable.locatedReferableParent
-                        val parent = if (locatedParent is ArendFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
-                        when (referable) {
-                            is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
-                            is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
-                            else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                    val result = cache.computeIfAbsent(referable) {
+                        val result = state.computeIfAbsent(referable) {
+                            val pointer = project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(referable) }
+                            val locatedParent = referable.locatedReferableParent
+                            val parent = if (locatedParent is ArendFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
+                            when (referable) {
+                                is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
+                                is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
+                                else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
+                            }
                         }
-                    } }
+                        (result as? ClassDataLocatedReferable)?.filledIn = false // If the result was in state, then we need to put the fields to cache again.
+                        result
+                    }
 
                     if (referable is ClassReferable && result is ClassDataLocatedReferable && !result.filledIn) {
                         result.underlyingClass = toDataLocatedReferable(referable.underlyingReference) as? TCClassReferable
