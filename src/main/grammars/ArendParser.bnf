@@ -414,7 +414,7 @@ newExpr ::= NEW_KW argumentAppExpr newExprTail
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
 }
 
-private coClauseSequence ::= coClause* /* <<pipe_separated_sequence coClause>>? */ {
+private coClauseSequence ::= coClauseReg* {
     recoverWhile = statement_recover
 }
 
@@ -502,7 +502,7 @@ private pipe_pattern ::= PIPE {
 
 private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE) & statement_recover
 
-coClauses ::= LBRACE coClauseSequence RBRACE | coClause+ {
+coClauses ::= LBRACE coClauseSequence RBRACE | coClauseReg+ {
     pin(".*") = 1
     recoverWhile = statement_recover
 }
@@ -522,14 +522,23 @@ coClause ::= PIPE coClausePrivate {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.ClassFieldImpl" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
+}
+
+private coClauseReg ::= coClause {
     recoverWhile = pipe_seq_recover
 }
+
+private coClauseImp ::= coClause {
+    recoverWhile = co_clause_imp_recover
+}
+
+private co_clause_imp_recover ::= !(PIPE | RBRACE | ID | UNDERSCORE) & statement_recover
 
 private coClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
 
 private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 1 }
 
-private coClauseRec ::= LBRACE coClauseSequence RBRACE { pin = 1 }
+private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
 letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
     pin = 1

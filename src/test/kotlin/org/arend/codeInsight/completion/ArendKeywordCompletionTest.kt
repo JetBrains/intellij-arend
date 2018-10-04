@@ -246,9 +246,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => (\\let {-caret-})",
                     "\\func lol (a : Nat) => (\\lam {-caret-})")
 
-    fun `test no keywords in class extenstions after pipe`() =
+    /* TODO
+    fun `test no keywords in class extensions after pipe`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
                     "\\func foo => Bar {| {-caret-} }")
+    */
 
     fun `test universe keywords as typed tele in data (after param)`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.CONTAINS, "\\data \\fix 10 lol-data (a : \\Type) {-caret-}")
