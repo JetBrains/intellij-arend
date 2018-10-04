@@ -279,7 +279,9 @@ private defIdentifier_instance ::= defIdentifier {
 
 private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_recover
 
-private classBodySyn ::= fat_arrow_def refIdentifier classBodySynStats? { pin = 1 }
+private classBodySyn ::= fat_arrow_def classSynRef classBodySynStats? { pin = 1 }
+
+classSynRef ::= longName
 
 private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 

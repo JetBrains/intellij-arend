@@ -405,7 +405,7 @@ class ArendHighlightingAnnotator : Annotator {
                         if (superClass !is ArendDefClass) {
                             holder.createErrorAnnotation(element, "Expected a class")
                         } else if (parent.fatArrow != null) {
-                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.refIdentifier?.reference?.resolve() as? ClassReferable, element)
+                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.classSynRef?.longName?.reference?.resolve() as? ClassReferable, element)
                         }
                     }
                 }

@@ -52,11 +52,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
         var clazz: Class<*>? = null
         val element = element
         val parent = element.parent
-        val pparent = parent as? ArendDefClass ?: (parent as? ArendLongName)?.parent
-        if (pparent is ArendDefClass) {
+        val pparent = (parent as? ArendLongName)?.parent
+        if (pparent is ArendDefClass || pparent is ArendClassSynRef) {
             clazz = ArendDefClass::class.java
-            notARecord = parent is ArendDefClass // inside a class synonym
-            notASynonym = parent is ArendDefClass
+            notARecord = pparent is ArendClassSynRef // inside a class synonym
+            notASynonym = pparent is ArendClassSynRef
         } else {
             val atomFieldsAcc = ((pparent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = ((if (atomFieldsAcc == null) (pparent as? ArendLongNameExpr)?.parent else

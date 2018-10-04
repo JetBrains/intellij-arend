@@ -64,7 +64,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getPrecedence() = calcPrecedence(prec)
 
-    override fun getUnderlyingClass() = refIdentifier
+    override fun getUnderlyingClass() = classSynRef?.longName
 
     override fun getUnderlyingReference() = resolve(unresolvedUnderlyingReference?.referent)
 
