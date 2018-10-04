@@ -403,11 +403,12 @@ class ArendCompletionContributor : CompletionContributor() {
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java))
         )
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
-        val EXPRESSION_CONTEXT = or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
+        val EXPRESSION_CONTEXT = and(or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
                 withParentOrGrandParent(ArendFunctionBody::class.java),
                 withParentOrGrandParent(ArendExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
-                and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)))
+                and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
+                not(afterLeaf(PIPE))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
         val FIELD_CONTEXT = withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)
         val TELE_CONTEXT =
