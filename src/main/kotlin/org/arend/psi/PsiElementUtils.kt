@@ -4,8 +4,10 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
@@ -39,3 +41,8 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
 
 fun Group.findGroupByFullName(fullName: List<String>): Group? =
     if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] } ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
+
+val PsiElement.parentsWithSelf: Sequence<PsiElement>
+    get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
+
+fun TextRange.containsInside(offset: Int): Boolean = offset in (startOffset + 1)..(endOffset - 1)

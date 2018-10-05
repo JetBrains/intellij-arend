@@ -130,6 +130,12 @@
         <annotator language="Arend"
                    implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
 
+        <!-- Intention Actions -->
+        <intentionAction>
+            <className>org.arend.quickfix.ImplementFieldsIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
         <!-- <highlightRangeExtension implementation="org.arendannotation.ArendHighlightRangeExtension"/> -->
 
         <referenceImporter implementation="org.arend.annotation.ArendReferenceImporter"/>
