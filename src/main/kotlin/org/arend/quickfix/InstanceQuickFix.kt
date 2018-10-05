@@ -22,28 +22,151 @@ import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.impl.InstanceAdapter
-import org.arend.quickfix.InstanceQuickFix.Companion.IMPLEMENT_MISSING_FIELDS
-import org.arend.quickfix.InstanceQuickFix.Companion.INCREASE_IN_INDENT
-import org.arend.quickfix.InstanceQuickFix.Companion.moveCaretToTheEnd
+import org.arend.quickfix.ExpressionWithCoClauses.Companion.IMPLEMENT_MISSING_FIELDS
+import org.arend.quickfix.ExpressionWithCoClauses.Companion.moveCaretToTheEnd
 
 
-interface ExpressionWithCoClauses {
-    fun getRangeToReport(): TextRange
-    fun getClassReferenceHolder(): Abstract.ClassReferenceHolder
-    fun getCoClauseList(): List<ArendCoClause>
-    fun calculateWhiteSpace(): String
-    fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?)
-    fun isError(): Int
-    fun getPsiElement(): PsiElement
-}
+abstract class ExpressionWithCoClauses {
+    abstract fun getRangeToReport(): TextRange
+    abstract fun getClassReferenceHolder(): Abstract.ClassReferenceHolder
+    abstract fun getCoClauseList(): List<ArendCoClause>
+    abstract fun calculateWhiteSpace(): String
+    abstract fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?)
+    abstract fun isError(): Int
+    abstract fun getPsiElement(): PsiElement
+    open fun suppressCheckingExpression(): Boolean = false
+    open fun classReference(): ClassReferable? = getClassReferenceHolder().classReference
 
-class InstanceQuickFix {
+    private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>) {
+        val classClauses = ArrayList<Pair<ArendDefClass, ArendCoClause>>()
+        for (coClause in coClauseList) {
+            val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
+                    ?: continue
+            val underlyingRef = referable.underlyingReference ?: referable
+
+            if (underlyingRef is ArendDefClass) {
+                classClauses.add(Pair(underlyingRef, coClause))
+                continue
+            }
+
+            if (!fields.remove(underlyingRef)) {
+                holder.createErrorAnnotation(coClause, "Field ${underlyingRef.textRepresentation()} is already implemented")
+            }
+            for (superClassFields in superClassesFields.values) {
+                superClassFields.remove(underlyingRef)
+            }
+
+            val expr = coClause.expr
+            val fatArrow = coClause.fatArrow
+            val clauseBlock = fatArrow == null
+            val emptyGoal = expr != null && isEmptyGoal(expr)
+
+            if (clauseBlock || emptyGoal) {
+                val typeClassReference = underlyingRef.typeClassReference
+                if (typeClassReference is ArendDefClass) (object : CoClauseAdapter(coClause) {
+                    override fun isError() = if (clauseBlock) 1 else 0
+
+                    override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName?.textRange
+                            ?: coClause.textRange
+
+                    override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
+                        if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
+                        super.insertFirstCoClause(name, factory, editor)
+                    }
+
+                    override fun classReference(): ClassReferable? = typeClassReference
+                }).doAnnotate(holder)
+            }
+        }
+
+        for ((underlyingRef, coClause) in classClauses) {
+            val subClauses = if (coClause.fatArrow != null) {
+                val superClassFields = superClassesFields[underlyingRef]
+                if (superClassFields != null && !superClassFields.isEmpty()) {
+                    fields.removeAll(superClassFields)
+                    continue
+                }
+                emptyList()
+            } else {
+                coClause.coClauseList
+            }
+
+            if (subClauses.isEmpty()) {
+                val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
+                warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                warningAnnotation.registerFix(object : IntentionAction {
+                    override fun startInWriteAction() = true
+
+                    override fun getFamilyName() = "arend.instance"
+
+                    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+
+                    override fun getText() = "Remove redundant clause"
+
+                    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+                        var startChild: PsiElement = coClause
+                        if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                        if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
+
+                        coClause.parent.deleteChildRange(startChild, coClause)
+                    }
+                })
+                val fieldToImplement = superClassesFields[underlyingRef]
+                if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
+                    warningAnnotation.registerFix(ImplementFieldsQuickFix(object : CoClauseAdapter(coClause) {
+                        override fun getRangeToReport(): TextRange = coClause.longName?.textRange ?: coClause.textRange
+
+                        override fun isError() = 0
+                    }, fieldToImplement.toSet(), "Implement fields"))
+                }
+            } else {
+                annotateClauses(subClauses, holder, superClassesFields, fields)
+            }
+        }
+    }
+
+    fun doAnnotate(holder: AnnotationHolder): Boolean {
+        val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
+        val classReference: ClassReferable? = getClassReferenceHolder().classReference
+        val fields = ClassReferable.Helper.getNotImplementedFields(classReference, getClassReferenceHolder().argumentsExplicitness, superClassesFields)
+
+        annotateClauses(getCoClauseList(), holder, superClassesFields, fields.keys)
+
+        if (fields.isNotEmpty() && !suppressCheckingExpression()) {
+            val builder = StringBuilder()
+            val actionText = if (isError() == 1) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
+            val annotation = when {
+                isError() == 1 -> {
+                    builder.append(IMPLEMENT_FIELDS_MSG)
+                    val iterator = fields.iterator()
+                    do {
+                        builder.append(iterator.next().key.textRepresentation())
+                        if (iterator.hasNext()) builder.append(", ")
+                    } while (iterator.hasNext())
+                    holder.createErrorAnnotation(getRangeToReport(), builder.toString())
+                }
+                isError() == 0 -> holder.createWeakWarningAnnotation(getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                else -> null
+            }
+
+            val quickfix = ImplementFieldsQuickFix(this, fields.values.mapNotNull { it.firstOrNull() }, actionText)
+            if (annotation != null) annotation.registerFix(quickfix) else
+                IntentionManager.getInstance().registerIntentionAndMetaData(quickfix, "Lol")
+            return true
+        } else return false
+    }
+
     companion object {
         private const val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
         private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
         private const val REPLACE_WITH_IMPLEMENTATION = "Replace with the implementation of the class"
         const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
-        const val INCREASE_IN_INDENT  = "  "
+        const val INCREASE_IN_INDENT = "  "
+
+        private fun isEmptyGoal(element: PsiElement): Boolean {
+            val goal: ArendGoal? = element.childOfType()
+            return goal != null && ArendCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
+        }
 
         fun moveCaretToTheEnd(editor: Editor?, anchor: PsiElement) {
             if (editor != null) {
@@ -51,7 +174,11 @@ class InstanceQuickFix {
                 IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
             }
         }
+    }
+}
 
+class InstanceQuickFix {
+    companion object {
         fun getIndent(str : String, defaultIndent: String, increaseInIndent: String): String {
             var myStr = str
             if (myStr.indexOf('\n') == -1) return defaultIndent
@@ -59,133 +186,11 @@ class InstanceQuickFix {
             return myStr + increaseInIndent
         }
 
-        private fun isEmptyGoal(element: PsiElement): Boolean {
-            val goal: ArendGoal? = element.childOfType()
-            return goal != null && ArendCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
-        }
-
-        private fun doAnnotate(expression: ExpressionWithCoClauses, classReference: ArendDefClass, holder: AnnotationHolder, onlyCheckFields: Boolean): Boolean {
-            val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
-            val fields = ClassReferable.Helper.getNotImplementedFields(classReference, expression.getClassReferenceHolder().argumentsExplicitness, superClassesFields)
-
-            annotateClauses(expression.getCoClauseList(), holder, superClassesFields, fields.keys)
-
-            if (fields.isNotEmpty() && !onlyCheckFields) {
-                val builder = StringBuilder()
-                val actionText = if (expression.isError() == 1) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
-                val annotation = when {
-                    expression.isError() == 1 -> {
-                        builder.append(IMPLEMENT_FIELDS_MSG)
-                        val iterator = fields.iterator()
-                        do {
-                            builder.append(iterator.next().key.textRepresentation())
-                            if (iterator.hasNext()) builder.append(", ")
-                        } while (iterator.hasNext())
-                        holder.createErrorAnnotation(expression.getRangeToReport(), builder.toString())
-                    }
-                    expression.isError() == 0 -> holder.createWeakWarningAnnotation(expression.getRangeToReport(), CAN_BE_REPLACED_WITH_IMPLEMENTATION)
-                    else -> null
-                }
-
-                val quickfix = ImplementFieldsQuickFix(expression, fields.values.mapNotNull { it.firstOrNull() }, actionText)
-                if (annotation != null) annotation.registerFix(quickfix) else
-                    IntentionManager.getInstance().registerIntentionAndMetaData(quickfix, "Lol")
-                return true
-            } else {
-                return false
-            }
-        }
-
-        private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>){
-            val classClauses = ArrayList<Pair<ArendDefClass,ArendCoClause>>()
-            for (coClause in coClauseList) {
-                val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
-                val underlyingRef = referable.underlyingReference ?: referable
-
-                if (underlyingRef is ArendDefClass) {
-                    classClauses.add(Pair(underlyingRef,coClause))
-                    continue
-                }
-
-                if (!fields.remove(underlyingRef)) {
-                    holder.createErrorAnnotation(coClause, "Field ${underlyingRef.textRepresentation()} is already implemented")
-                }
-                for (superClassFields in superClassesFields.values) {
-                    superClassFields.remove(underlyingRef)
-                }
-
-                val expr = coClause.expr
-                val fatArrow = coClause.fatArrow
-                val clauseBlock = fatArrow == null
-                val emptyGoal = expr != null && isEmptyGoal(expr)
-
-                if (clauseBlock || emptyGoal) {
-                    val typeClassReference = underlyingRef.typeClassReference
-                    if (typeClassReference is ArendDefClass) doAnnotate(object : CoClauseAdapter(coClause) {
-                        override fun isError() = if (clauseBlock) 1 else 0
-
-                        override fun getRangeToReport() = if (emptyGoal) coClause.textRange else coClause.longName?.textRange ?: coClause.textRange
-
-                        override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-                            if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
-                            super.insertFirstCoClause(name, factory, editor)
-                        }
-                    }, typeClassReference, holder, false)
-                }
-            }
-
-            for ((underlyingRef,coClause) in classClauses) {
-                val subClauses =
-                    if (coClause.fatArrow != null) {
-                        val superClassFields = superClassesFields[underlyingRef]
-                        if (superClassFields != null && !superClassFields.isEmpty()) {
-                            fields.removeAll(superClassFields)
-                            continue
-                        }
-                        emptyList()
-                    } else {
-                        coClause.coClauseList
-                    }
-
-                if (subClauses.isEmpty()) {
-                    val warningAnnotation = holder.createWeakWarningAnnotation(coClause, "Clause is redundant")
-                    warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    warningAnnotation.registerFix(object: IntentionAction {
-                        override fun startInWriteAction() = true
-
-                        override fun getFamilyName() = "arend.instance"
-
-                        override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
-
-                        override fun getText() = "Remove redundant clause"
-
-                        override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-                            var startChild: PsiElement = coClause
-                            if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-                            if (startChild.prevSibling != null) moveCaretToTheEnd(editor, startChild.prevSibling)
-
-                            coClause.parent.deleteChildRange(startChild, coClause)
-                        }
-                    })
-                    val fieldToImplement = superClassesFields[underlyingRef]
-                    if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null) {
-                        warningAnnotation.registerFix(ImplementFieldsQuickFix(object: CoClauseAdapter(coClause){
-                            override fun getRangeToReport(): TextRange = coClause.longName?.textRange ?: coClause.textRange
-
-                            override fun isError() = 0
-                        }, fieldToImplement.toSet(), "Implement fields"))
-                    }
-                } else {
-                    annotateClauses(subClauses, holder, superClassesFields, fields)
-                }
-            }
-        }
-
         fun annotateFunctionDefinitionWithCoWith(functionDefinition: ArendDefFunction, holder: AnnotationHolder): Boolean {
             val classReference = functionDefinition.classReference
             val coWithKw = functionDefinition.functionBody?.cowithKw
             if (classReference is ArendDefClass && coWithKw != null)
-                return doAnnotate(FunctionDefinitionAdapter(functionDefinition, coWithKw), classReference, holder, false)
+                return FunctionDefinitionAdapter(functionDefinition, coWithKw).doAnnotate(holder)
             return false
         }
 
@@ -194,7 +199,7 @@ class InstanceQuickFix {
             if (classReference is ArendDefClass && classReference.recordKw == null) {
                 val argumentAppExpr = instance.argumentAppExpr
                 if (argumentAppExpr != null)
-                    return doAnnotate(ArendInstanceAdapter(instance, argumentAppExpr), classReference, holder, false)
+                    return ArendInstanceAdapter(instance, argumentAppExpr).doAnnotate(holder)
             }
             return false
         }
@@ -204,14 +209,15 @@ class InstanceQuickFix {
             if (classReference is ArendDefClass) {
                 val argumentAppExpr = newExpr.getArgumentAppExpr()
                 if (argumentAppExpr != null)
-                    return doAnnotate(NewExprAdapter(newExpr, argumentAppExpr), classReference, holder, newExpr.getNewKw() == null)
+                    return NewExprAdapter(newExpr, argumentAppExpr).doAnnotate(holder)
             }
             return false
         }
     }
 }
 
-abstract class CoClauseAdapter(private val coClause: ArendCoClause) : ExpressionWithCoClauses{
+
+abstract class CoClauseAdapter(val coClause: ArendCoClause) : ExpressionWithCoClauses(){
     override fun getCoClauseList(): List<ArendCoClause> = coClause.coClauseList
 
     override fun getClassReferenceHolder() = coClause
@@ -248,7 +254,7 @@ abstract class CoClauseAdapter(private val coClause: ArendCoClause) : Expression
     }
 }
 
-class FunctionDefinitionAdapter(private val functionDefinition: ArendDefFunction, private val coWithKw: PsiElement) : ExpressionWithCoClauses {
+class FunctionDefinitionAdapter(private val functionDefinition: ArendDefFunction, private val coWithKw: PsiElement) : ExpressionWithCoClauses() {
     override fun getRangeToReport() = TextRange(functionDefinition.textRange.startOffset, coWithKw.textRange.endOffset)
 
     override fun getClassReferenceHolder() = functionDefinition
@@ -293,7 +299,7 @@ class FunctionDefinitionAdapter(private val functionDefinition: ArendDefFunction
 
 }
 
-class ArendInstanceAdapter(private val instance: InstanceAdapter, private val argumentAppExpr: ArendArgumentAppExpr) : ExpressionWithCoClauses {
+class ArendInstanceAdapter(private val instance: InstanceAdapter, private val argumentAppExpr: ArendArgumentAppExpr) : ExpressionWithCoClauses() {
     override fun isError() = 1
 
     override fun getRangeToReport(): TextRange = TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)
@@ -331,8 +337,8 @@ class ArendInstanceAdapter(private val instance: InstanceAdapter, private val ar
     }
 }
 
-class NewExprAdapter(private val newExpr: ArendNewExprImplMixin, private val argumentAppExpr: ArendArgumentAppExpr) : ExpressionWithCoClauses {
-    override fun isError() = -1 // No annotation shown at all (even warning)
+class NewExprAdapter(private val newExpr: ArendNewExprImplMixin, private val argumentAppExpr: ArendArgumentAppExpr) : ExpressionWithCoClauses() {
+    override fun isError() = 1 // No annotation shown at all (even warning)
 
     override fun getRangeToReport(): TextRange = argumentAppExpr.textRange
 
@@ -365,11 +371,13 @@ class NewExprAdapter(private val newExpr: ArendNewExprImplMixin, private val arg
         moveCaretToTheEnd(editor, anchor.nextSibling)
         anchor.parent.addAfter(factory.createWhitespace("\n"+whitespace), anchor)
     }
+
+    override fun suppressCheckingExpression(): Boolean = newExpr.getNewKw() == null
 }
 
 class ImplementFieldsIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, IMPLEMENT_MISSING_FIELDS){
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return false
     }
 
     override fun applyTo(element: ArendNewExprImplMixin, editor: Editor?) {
