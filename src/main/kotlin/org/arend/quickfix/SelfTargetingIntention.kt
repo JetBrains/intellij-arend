@@ -33,7 +33,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
 
     abstract fun isApplicableTo(element: T, caretOffset: Int): Boolean
 
-    abstract fun applyTo(element: T, editor: Editor?)
+    abstract fun applyTo(element: T, project: Project?, editor: Editor?)
 
     private fun getTarget(editor: Editor, file: PsiFile): T? {
         val offset = editor.caretModel.offset
@@ -73,7 +73,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
         PsiDocumentManager.getInstance(project).commitAllDocuments()
         val target = getTarget(editor, file) ?: return
         if (!FileModificationService.getInstance().preparePsiElementForWrite(target)) return
-        applyTo(target, editor)
+        applyTo(target, project, editor)
     }
 
     override fun startInWriteAction() = true
