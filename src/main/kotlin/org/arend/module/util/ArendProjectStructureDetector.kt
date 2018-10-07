@@ -10,12 +10,14 @@ import com.intellij.ide.util.projectWizard.importSources.ProjectStructureDetecto
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
+import com.intellij.ui.layout.panel
 import org.arend.module.ArendModuleType
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.psi.YAMLFile
 import java.io.File
 import java.util.ArrayList
 import javax.swing.Icon
+import javax.swing.JComponent
 
 class ArendProjectStructureDetector : ProjectStructureDetector() {
 
@@ -51,13 +53,15 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
         }
     }
 
+
     override fun createWizardSteps(
             builder: ProjectFromSourcesBuilder,
             projectDescriptor: ProjectDescriptor,
             stepIcon: Icon?
-    ): List<ModuleWizardStep> = listOf(ArendModuleWizardStep(builder.context, projectDescriptor))
+    ): List<ModuleWizardStep> = listOf(DummyStep)
 
     private object ConfigurationUpdater : ArendModuleConfigurationUpdater() {
+
         override fun sourceDir(moduleRoot: VirtualFile, project: Project): String {
             val virtualFile = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return super.sourceDir(moduleRoot, project)
             return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.sourcesDirProp ?: super.sourceDir(moduleRoot, project)
@@ -68,5 +72,17 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.outputPath?.toString() ?: super.outputDir(moduleRoot, project)
         }
 
+    }
+
+    object DummyStep : ModuleWizardStep() {
+        override fun updateDataModel() {
+
+        }
+
+        override fun getComponent(): JComponent = panel {}
+
+        override fun isStepVisible(): Boolean {
+            return false
+        }
     }
 }

@@ -1,8 +1,13 @@
 package org.arend.module
 
+import com.intellij.ide.util.projectWizard.ModuleBuilder
+import com.intellij.ide.util.projectWizard.ModuleWizardStep
+import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.openapi.module.ModuleTypeManager
+import com.intellij.openapi.roots.ui.configuration.ModulesProvider
 import org.arend.ArendIcons
 import org.arend.module.util.ArendModuleBuilder
+import org.arend.module.util.ArendModuleWizardStep
 import javax.swing.Icon
 
 class ArendModuleType : ArendModuleTypeBase(ID) {
