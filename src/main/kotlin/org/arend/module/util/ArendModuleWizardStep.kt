@@ -4,10 +4,8 @@ import com.intellij.ide.util.projectWizard.ModuleWizardStep
 import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.ui.layout.panel
 import javax.swing.JComponent
-import javax.swing.JPanel
 import javax.swing.JTextField
 
 class ArendModuleWizardStep(

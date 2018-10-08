@@ -5,15 +5,16 @@ import com.intellij.ide.util.projectWizard.ModuleWizardStep
 import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.module.ModuleType
+import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.projectRoots.SdkTypeId
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.ui.configuration.ModulesProvider
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.VirtualFile
 import org.arend.module.ArendModuleType
+import org.arend.util.FileUtils
 
 class ArendModuleBuilder : ModuleBuilder() {
-    private var moduleRoot: VirtualFile? = null
+    // private var moduleRoot: VirtualFile? = null
 
     companion object {
         val DEFAULT_SOURCE_DIR = "src"
@@ -43,6 +44,13 @@ class ArendModuleBuilder : ModuleBuilder() {
         //Disposer.register(parentDisposable, Disposable { this.disposeUIResources() })
     //}
 
+    override fun validateModuleName(moduleName: String): Boolean {
+        if (!FileUtils.isLibraryName(moduleName)) {
+            throw ConfigurationException("Invalid library name")
+        }
+        return true
+    }
+
     override fun createFinishingSteps(wizardContext: WizardContext, modulesProvider: ModulesProvider): Array<ModuleWizardStep> =
         arrayOf(ArendModuleWizardStep(wizardContext))
 
@@ -50,9 +58,9 @@ class ArendModuleBuilder : ModuleBuilder() {
         val root = doAddContentEntry(modifiableRootModel)?.file ?: return
         modifiableRootModel.inheritSdk()
         root.refresh(false, true)
-        val contentEntry = modifiableRootModel.contentEntries.singleOrNull()
-        if (contentEntry != null) {
-            moduleRoot = contentEntry.file
-        }
+       // val contentEntry = modifiableRootModel.contentEntries.singleOrNull()
+       // if (contentEntry != null) {
+       //     moduleRoot = contentEntry.file
+       // }
     }
 }

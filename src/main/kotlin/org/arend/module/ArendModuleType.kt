@@ -1,13 +1,8 @@
 package org.arend.module
 
-import com.intellij.ide.util.projectWizard.ModuleBuilder
-import com.intellij.ide.util.projectWizard.ModuleWizardStep
-import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.openapi.module.ModuleTypeManager
-import com.intellij.openapi.roots.ui.configuration.ModulesProvider
 import org.arend.ArendIcons
 import org.arend.module.util.ArendModuleBuilder
-import org.arend.module.util.ArendModuleWizardStep
 import javax.swing.Icon
 
 class ArendModuleType : ArendModuleTypeBase(ID) {
@@ -19,6 +14,28 @@ class ArendModuleType : ArendModuleTypeBase(ID) {
     override fun getDescription(): String = "Arend library"
 
     override fun getName(): String = "Arend"
+
+    /*
+    override fun modifySettingsStep(settingsStep: SettingsStep, moduleBuilder: ModuleBuilder): ModuleWizardStep? {
+        return object : ModuleWizardStep() {
+            override fun updateDataModel() {
+
+            }
+
+            override fun getComponent(): JComponent? {
+                return null
+            }
+
+            override fun validate(): Boolean {
+                if (settingsStep is ProjectSettingsStep) {
+                    if (!FileUtils.isLibraryName(settingsStep.moduleNameField.text)) {
+                        throw ConfigurationException("Invalid library name")
+                    }
+                }
+                return true
+            }
+        }
+    }*/
 
     companion object {
         private const val ID = "AREND_MODULE"

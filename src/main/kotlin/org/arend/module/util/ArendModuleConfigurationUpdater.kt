@@ -1,7 +1,6 @@
 package org.arend.module.util
 
 import com.intellij.ide.util.projectWizard.ModuleBuilder
-import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModifiableRootModel
@@ -30,9 +29,9 @@ open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.Module
             val srcDir = sourceDir(projectRoot, rootModel.project)
             val outDir = outputDir(projectRoot, rootModel.project)
 
-                if (projectRoot.fileSystem.findFileByPath(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir)) == null) {
-                    VfsUtil.createDirectories(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir))
-                }
+            if (projectRoot.fileSystem.findFileByPath(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir)) == null) {
+                VfsUtil.createDirectories(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir))
+            }
 
             /*
             val relSrcDir = ArendModuleBuilder.toRelative(projectRoot.path, srcDir)
