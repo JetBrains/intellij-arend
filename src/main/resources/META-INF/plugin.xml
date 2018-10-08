@@ -132,7 +132,7 @@
 
         <!-- Intention Actions -->
         <intentionAction>
-            <className>org.arend.quickfix.ImplementFieldsIntention</className>
+            <className>org.arend.intention.ImplementFieldsIntention</className>
             <category>Arend</category>
         </intentionAction>
 

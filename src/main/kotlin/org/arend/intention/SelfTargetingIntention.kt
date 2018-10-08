@@ -1,4 +1,4 @@
-package org.arend.quickfix
+package org.arend.intention
 
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInsight.intention.IntentionAction
