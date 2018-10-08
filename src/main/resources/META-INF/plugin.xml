@@ -33,7 +33,9 @@
 
         <postStartupActivity implementation="org.arend.ArendStartupActivity"/>
 
-        <!-- Arend -->
+        <!-- Typed Handler -->
+
+        <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler" id="HaskellFile"/>
 
         <!-- File-type Factory -->
 
