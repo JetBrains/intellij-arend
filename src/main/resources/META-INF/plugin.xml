@@ -33,7 +33,9 @@
 
         <postStartupActivity implementation="org.arend.ArendStartupActivity"/>
 
-        <!-- Arend -->
+        <!-- Typed Handler -->
+
+        <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler" id="HaskellFile"/>
 
         <!-- File-type Factory -->
 
@@ -129,6 +131,12 @@
 
         <annotator language="Arend"
                    implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+
+        <!-- Intention Actions -->
+        <intentionAction>
+            <className>org.arend.intention.ImplementFieldsIntention</className>
+            <category>Arend</category>
+        </intentionAction>
 
         <!-- <highlightRangeExtension implementation="org.arendannotation.ArendHighlightRangeExtension"/> -->
 

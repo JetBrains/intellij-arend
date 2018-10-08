@@ -71,8 +71,23 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                  | f => {?}{-caret-}
                  | B => {?}
                  }
+            """)
+
+    fun `test completing incomplete implementation`() = simpleQuickFixTest("Implement",
             """
-            )
+               --! A.ard
+               \class Bar { | A : Nat | B : Nat }
+               \func lol => \new Bar {
+                 | A => {?}{-caret-}
+                 }
+            """,
+            """
+               \class Bar { | A : Nat | B : Nat }
+               \func lol => \new Bar {
+                 | A => {?}
+                 | B => {?}{-caret-}
+                 }
+            """)
 
     fun `test adding implementation of cowith expression`() = simpleQuickFixTest("Implement",
             """
