@@ -12,17 +12,17 @@ import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
+import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
-import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
+import org.arend.term.abs.Abstract
 
 enum class AnnotationSeverity {
     ERROR,
@@ -52,7 +52,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
             }
 
             if (!fields.remove(underlyingRef)) {
-                holder?.createErrorAnnotation(coClause, "Field ${underlyingRef.textRepresentation()} is already implemented")
+                holder?.createErrorAnnotation(coClause, "Field ${referable.textRepresentation()} is already implemented")
             }
             for (superClassFields in superClassesFields.values) {
                 superClassFields.remove(underlyingRef)
@@ -143,7 +143,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
                         builder.append(IMPLEMENT_FIELDS_MSG)
                         val iterator = fields.iterator()
                         do {
-                            builder.append(iterator.next().key.textRepresentation())
+                            builder.append(iterator.next().value[0].textRepresentation())
                             if (iterator.hasNext()) builder.append(", ")
                         } while (iterator.hasNext())
                         holder?.createErrorAnnotation(rangeToReport, builder.toString())

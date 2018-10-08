@@ -216,9 +216,11 @@ class ArendHighlightingAnnotator : Annotator {
                 if (InstanceQuickFix.annotateClassInstance(definition, holder)) {
                     color = null
                 }
-            } else if (definition is ArendDefFunction)
+            } else if (definition is ArendDefFunction) {
                 InstanceQuickFix.annotateFunctionDefinitionWithCoWith(definition, holder)
-             else if (definition is ArendDefFunction && definition.coerceKw != null) {
+            }
+
+            if (definition is ArendDefFunction && definition.coerceKw != null) {
                 val lastParam = definition.nameTeleList.lastOrNull()
                 if (lastParam == null) {
                     holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
@@ -405,7 +407,7 @@ class ArendHighlightingAnnotator : Annotator {
                         if (superClass !is ArendDefClass) {
                             holder.createErrorAnnotation(element, "Expected a class")
                         } else if (parent.fatArrow != null) {
-                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.classSynRef?.longName?.reference?.resolve() as? ClassReferable, element)
+                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.classSynRef?.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ClassReferable, element)
                         }
                     }
                 }
