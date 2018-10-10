@@ -20,6 +20,7 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.impl.InstanceAdapter
+import org.arend.psi.impl.ArendClassImplementImpl
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
 import org.arend.term.abs.Abstract
@@ -211,6 +212,14 @@ class InstanceQuickFix {
             return false
         }
 
+        fun annotateClassImplement(classImpl: ArendClassImplement, holder: AnnotationHolder): Boolean {
+            val classReference = classImpl.classReference
+            if (classReference is ArendDefClass) {
+                return !ClassImplementAnnotator(classImpl).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
+            }
+            return false
+        }
+
         fun annotateNewExpr(newExpr: ArendNewExprImplMixin, holder: AnnotationHolder): Boolean {
             val classReference = newExpr.classReference
             if (classReference is ArendDefClass) {
@@ -224,32 +233,44 @@ class InstanceQuickFix {
 }
 
 
+class ClassImplementAnnotator(private val classImplement: ArendClassImplement):
+        AbstractCoClauseAnnotator(classImplement, classImplement.lbrace, classImplement.longName, classImplement.parent.prevSibling, classImplement.longName.textRange, AnnotationSeverity.ERROR) {
+    override fun coClausesList(): List<ArendCoClause> = classImplement.coClauseList
+}
+
 open class CoClauseAnnotator(private val coClause: ArendCoClause,
-                                 rangeToReport: TextRange,
-                                 isError: AnnotationSeverity):
+                              rangeToReport: TextRange,
+                              isError: AnnotationSeverity):
+        AbstractCoClauseAnnotator(coClause, coClause.lbrace, coClause.longName, coClause.prevSibling, rangeToReport, isError) {
+    override fun coClausesList(): List<ArendCoClause> = coClause.coClauseList
+}
+
+
+abstract class AbstractCoClauseAnnotator(coClause: Abstract.ClassReferenceHolder,
+                                         private val lBrace: PsiElement?,
+                                         private val longName: ArendLongName?,
+                                         private val anchor: PsiElement,
+                                         rangeToReport: TextRange,
+                                         isError: AnnotationSeverity):
         AbstractEWCCAnnotator(coClause, rangeToReport, isError){
     override fun calculateWhiteSpace() : String {
-        val anchor = coClause.prevSibling
         val defaultIndent = "  "
         return if (anchor is PsiWhiteSpace) InstanceQuickFix.getIndent(anchor.text, defaultIndent, INCREASE_IN_INDENT) else defaultIndent
     }
-
-    override fun coClausesList(): List<ArendCoClause> = coClause.coClauseList
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         val whitespace = calculateWhiteSpace()
         var anchor: PsiElement
 
-        val lbrace = coClause.lbrace
-        if (lbrace == null) {
-            anchor = coClause.longName!!
+        if (lBrace == null) {
+            anchor = longName!!
             val pOB = factory.createPairOfBraces()
             anchor.parent.addAfter(pOB.second, anchor)
             anchor.parent.addAfter(pOB.first, anchor)
-            anchor.parent.addAfter(factory.createWhitespace(" "), anchor) //separator between lbrace and coClause name
+            anchor.parent.addAfter(factory.createWhitespace(" "), anchor) //separator between lBrace and coClause name
             anchor = anchor.nextSibling.nextSibling
         } else {
-            anchor = lbrace
+            anchor = lBrace
         }
 
         val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()

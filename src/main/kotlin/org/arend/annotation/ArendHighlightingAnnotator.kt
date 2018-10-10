@@ -201,6 +201,10 @@ class ArendHighlightingAnnotator : Annotator {
             }
         }
 
+        if (element is ArendClassImplement) {
+            InstanceQuickFix.annotateClassImplement(element, holder)
+        }
+
         if (element is ArendDefIdentifier) {
             val definition = element.parent as? PsiLocatedReferable ?: return
 

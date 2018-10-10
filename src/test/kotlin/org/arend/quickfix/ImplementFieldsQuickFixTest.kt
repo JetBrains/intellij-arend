@@ -121,4 +121,33 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 \instance FooBar : Bar {{-caret-}
                   }
             """)
+
+    fun `test adding field implementation`() = simpleQuickFixTest("Implement",
+            """
+               --! A.ard
+               \class Foo1 {
+                 | j1 : Int
+                 | j2 : Int
+               }
+               \class Foo2 {
+                 | c : Foo1
+               }
+               \class Foo3 \extends  Foo2 {
+                 | c{-caret-} {
+               }
+            """,
+            """
+               \class Foo1 {
+                 | j1 : Int
+                 | j2 : Int
+               }
+               \class Foo2 {
+                 | c : Foo1
+               }
+               \class Foo3 \extends  Foo2 {
+                 | c {
+                   | j1 => {?}{-caret-}
+                   | j2 => {?}
+               }
+            """)
 }
