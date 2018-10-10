@@ -15,14 +15,12 @@ import org.arend.term.group.Group
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
-abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, ArendDefClass, Abstract.ClassDefinition {
+abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, ArendDefClass, Abstract.ClassDefinition, ClassReferenceHolder {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getReferable() = this
-
-    override fun getClassReference() = if (fatArrow == null) this else underlyingReference
 
     override fun isRecord(): Boolean = recordKw != null
 
@@ -50,7 +48,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
             classFieldSynList
 
     override fun getImplementedFields(): List<LocatedReferable> =
-        classFieldImpls.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
+        classFieldImpls.mapNotNull { it.getLongName().refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
     override fun getParameters(): List<Abstract.Parameter> = fieldTeleList
 
@@ -60,7 +58,12 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getClassFieldImpls(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
 
-    override fun getArgumentsExplicitness() = emptyList<Boolean>()
+    override fun getClassReference() = if (fatArrow == null) this else underlyingReference
+
+    override fun getClassReferenceData(): ClassReferenceData? {
+        val classRef = classReference ?: return null
+        return ClassReferenceData(classRef, emptyList(), emptyList())
+    }
 
     override fun getPrecedence() = calcPrecedence(prec)
 

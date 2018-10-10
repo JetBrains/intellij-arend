@@ -58,7 +58,7 @@ class ArendPsiFactory(private val project: Project) {
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {
         val nestedCoClause = createNestedCoClause("foo").coClauseList.first()
-        return Pair(nestedCoClause.lbrace!!, nestedCoClause.rbrace!!)
+        return Pair(nestedCoClause.getLbrace()!!, nestedCoClause.rbrace!!)
     }
 
     private fun createArgument(expr: String): ArendArgument =

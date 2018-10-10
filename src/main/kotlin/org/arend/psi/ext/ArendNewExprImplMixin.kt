@@ -3,15 +3,13 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.term.abs.Abstract
+import org.arend.psi.*
 import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.psi.ArendAppExpr
-import org.arend.psi.ArendArgument
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendCoClause
+import org.arend.typing.ReferableExtractVisitor
 
-abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), Abstract.ClassReferenceHolder {
+abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ClassReferenceHolder {
     abstract fun getNewKw(): PsiElement?
 
     abstract fun getLbrace(): PsiElement?
@@ -33,24 +31,19 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
         return visitor.visitClassExt(this, isNew, if (isNew) getArgumentAppExpr() else getAppExpr(), if (getLbrace() == null) null else getCoClauseList(), getArgumentList(), if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
     }
 
-    override fun getClassReference(): ClassReferable? = getClassReference(getAppExpr()) ?: getClassReference(getArgumentAppExpr())
+    override fun getClassReference(): ClassReferable? {
+        val argAppExpr = getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr() ?: return null
+        val ref = argAppExpr.accept(ReferableExtractVisitor(), null)
+        return (if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, argAppExpr.scope.globalSubscope) else ref) as? ClassReferable
+    }
+
+    override fun getClassReferenceData(): ClassReferenceData? {
+        val argAppExpr = getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr() ?: return null
+        val visitor = ReferableExtractVisitor(true)
+        val ref = argAppExpr.accept(visitor, null)
+        val classRef = (if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, argAppExpr.scope.globalSubscope) else ref) as? ClassReferable ?: return null
+        return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptyList())
+    }
 
     override fun getClassFieldImpls(): List<ArendCoClause> = getCoClauseList()
-
-    override fun getArgumentsExplicitness() = getArgumentAppExpr()?.argumentList?.map { it.isExplicit } ?: emptyList()
-
-    companion object {
-        fun getClassReference(appExpr: ArendAppExpr?): ClassReferable? {
-            val argAppExpr = appExpr as? ArendArgumentAppExpr ?: return null
-            var ref = argAppExpr.longNameExpr?.longName?.referent
-            if (ref == null) {
-                val atomFieldsAcc = argAppExpr.atomFieldsAcc ?: return null
-                if (!atomFieldsAcc.fieldAccList.isEmpty()) {
-                    return null
-                }
-                ref = atomFieldsAcc.atom.literal?.longName?.referent
-            }
-            return ExpressionResolveNameVisitor.resolve(ref, appExpr.scope.globalSubscope) as? ClassReferable
-        }
-    }
 }

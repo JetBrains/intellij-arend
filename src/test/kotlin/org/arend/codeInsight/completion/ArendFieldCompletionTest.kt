@@ -94,10 +94,11 @@ class ArendFieldCompletionTest : ArendCompletionTestBase() {
             listOf("f", "g"))
 
     fun `test function with no parameters reference`() =
-        checkNoCompletion(
+        checkCompletionVariants(
             "\\class A { | f : Nat | g : Nat }\n" +
             "\\func B (x : Nat) => A\n" +
-            "\\func test (a : B) => a.{-caret-}")
+            "\\func test (a : B) => a.{-caret-}",
+            listOf("f", "g"))
 
     fun `test infix function with parameters reference`() =
         checkCompletionVariants(

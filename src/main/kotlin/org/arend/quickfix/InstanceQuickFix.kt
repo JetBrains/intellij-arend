@@ -13,17 +13,14 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import org.arend.codeInsight.completion.ArendCompletionContributor
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable
+import org.arend.core.definition.ClassDefinition
+import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.impl.InstanceAdapter
-import org.arend.psi.impl.ArendClassImplementImpl
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
-import org.arend.term.abs.Abstract
+import org.arend.typechecking.TypeCheckingService
 
 enum class AnnotationSeverity {
     ERROR,
@@ -31,23 +28,22 @@ enum class AnnotationSeverity {
     NO_ANNOTATION
 }
 
-abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.ClassReferenceHolder,
+abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassReferenceHolder,
                                      private val rangeToReport: TextRange,
                                      val severity: AnnotationSeverity = AnnotationSeverity.ERROR,
                                      private val onlyCheckFields: Boolean = false) {
-    protected open fun getClassReference(): ClassReferable? = classReferenceHolder.classReference
     abstract fun calculateWhiteSpace(): String
     abstract fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?)
     abstract fun coClausesList(): List<ArendCoClause>
 
     private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>) {
-        val classClauses = ArrayList<Pair<ArendDefClass, ArendCoClause>>()
+        val classClauses = ArrayList<Pair<ClassReferable, ArendCoClause>>()
         for (coClause in coClauseList) {
-            val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
+            val referable = coClause.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
                     ?: continue
             val underlyingRef = referable.underlyingReference ?: referable
 
-            if (underlyingRef is ArendDefClass) {
+            if (underlyingRef is ClassReferable) {
                 classClauses.add(Pair(underlyingRef, coClause))
                 continue
             }
@@ -65,18 +61,14 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
             val emptyGoal = expr != null && isEmptyGoal(expr)
 
             if (clauseBlock || emptyGoal) {
-                val typeClassReference = underlyingRef.typeClassReference
-                val rangeToReport = if (emptyGoal) coClause.textRange else coClause.longName?.textRange
-                        ?: coClause.textRange
+                val rangeToReport = if (emptyGoal) coClause.textRange else coClause.getLongName()?.textRange ?: coClause.textRange
                 val message = if (clauseBlock) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
                 val severity = if (clauseBlock) AnnotationSeverity.ERROR else AnnotationSeverity.WEAK_WARNING
-                if (typeClassReference is ArendDefClass) (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
+                (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
                     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
                         if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
                         super.insertFirstCoClause(name, factory, editor)
                     }
-
-                    override fun getClassReference(): ClassReferable? = typeClassReference
                 }).doAnnotate(holder, message)
             }
         }
@@ -90,7 +82,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
                 }
                 emptyList()
             } else {
-                coClause.coClauseList
+                coClause.getCoClauseList()
             }
 
             if (subClauses.isEmpty()) {
@@ -117,10 +109,11 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
 
                     val fieldToImplement = superClassesFields[underlyingRef]
                     if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
-                        val rangeToReport = coClause.longName?.textRange ?: coClause.textRange
+                        val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
+                        val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
                         warningAnnotation.registerFix(ImplementFieldsQuickFix(
                                 CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
-                                fieldToImplement.toSet(), IMPLEMENT_MISSING_FIELDS))
+                                fieldToImplement.map { renamings[it]?.firstOrNull() ?: it }, IMPLEMENT_MISSING_FIELDS))
                     }
                 }
             } else {
@@ -131,9 +124,12 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
 
     fun doAnnotate(holder: AnnotationHolder?, actionText: String): Map<FieldReferable, List<LocatedReferable>> {
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
-        val classReference: ClassReferable? = classReferenceHolder.classReference
-        if (classReference != null) {
-            val fields = ClassReferable.Helper.getNotImplementedFields(classReference, classReferenceHolder.argumentsExplicitness, superClassesFields)
+        val classReferenceData = classReferenceHolder.getClassReferenceData()
+        if (classReferenceData != null) {
+            val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
+            for (field in classReferenceData.implementedFields) {
+                fields.remove(field.underlyingReference ?: field)
+            }
 
             annotateClauses(coClausesList(), holder, superClassesFields, fields.keys)
 
@@ -155,8 +151,8 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: Abstract.
                     AnnotationSeverity.NO_ANNOTATION -> null
                 }
 
-                val quickfix = ImplementFieldsQuickFix(this, fields.values.mapNotNull { it.firstOrNull() }, actionText)
-                annotation?.registerFix(quickfix)
+                val quickFix = ImplementFieldsQuickFix(this, fields.values.mapNotNull { it.firstOrNull() }, actionText)
+                annotation?.registerFix(quickFix)
             }
             return fields
         }
@@ -195,16 +191,13 @@ class InstanceQuickFix {
         }
 
         fun annotateFunctionDefinitionWithCoWith(functionDefinition: ArendDefFunction, holder: AnnotationHolder): Boolean {
-            val classReference = functionDefinition.classReference
             val coWithKw = functionDefinition.functionBody?.cowithKw
-            if (classReference is ArendDefClass && coWithKw != null)
-                return !FunctionDefinitionAnnotator(functionDefinition, coWithKw).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
-            return false
+            return coWithKw != null && !FunctionDefinitionAnnotator(functionDefinition, coWithKw).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
         }
 
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder): Boolean {
             val classReference = instance.classReference
-            if (classReference is ArendDefClass && classReference.recordKw == null) {
+            if (classReference is ArendDefClass && classReference.recordKw == null || classReference is TCReferable && (TypeCheckingService.getInstance(instance.project).typecheckerState.getTypechecked(classReference) as? ClassDefinition)?.isRecord == false) {
                 val argumentAppExpr = instance.argumentAppExpr
                 if (argumentAppExpr != null)
                     return !ArendInstanceAnnotator(instance, argumentAppExpr).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
@@ -221,49 +214,41 @@ class InstanceQuickFix {
         }
 
         fun annotateNewExpr(newExpr: ArendNewExprImplMixin, holder: AnnotationHolder): Boolean {
-            val classReference = newExpr.classReference
-            if (classReference is ArendDefClass) {
-                val argumentAppExpr = newExpr.getArgumentAppExpr()
-                if (argumentAppExpr != null)
-                    return !NewExprAnnotator(newExpr, argumentAppExpr).doAnnotate(holder, "").isEmpty()
-            }
-            return false
+            val argumentAppExpr = newExpr.getArgumentAppExpr()
+            return argumentAppExpr != null && !NewExprAnnotator(newExpr, argumentAppExpr).doAnnotate(holder, "").isEmpty()
         }
     }
 }
 
 
-class ClassImplementAnnotator(private val classImplement: ArendClassImplement):
-        AbstractCoClauseAnnotator(classImplement, classImplement.lbrace, classImplement.longName, classImplement.parent.prevSibling, classImplement.longName.textRange, AnnotationSeverity.ERROR) {
-    override fun coClausesList(): List<ArendCoClause> = classImplement.coClauseList
-}
+class ClassImplementAnnotator(classImplement: ArendClassImplement):
+        CoClauseBaseAnnotator(classImplement, classImplement.parent.prevSibling, classImplement.getLongName().textRange, AnnotationSeverity.ERROR)
 
-open class CoClauseAnnotator(private val coClause: ArendCoClause,
+open class CoClauseAnnotator(coClause: ArendCoClause,
                               rangeToReport: TextRange,
                               isError: AnnotationSeverity):
-        AbstractCoClauseAnnotator(coClause, coClause.lbrace, coClause.longName, coClause.prevSibling, rangeToReport, isError) {
-    override fun coClausesList(): List<ArendCoClause> = coClause.coClauseList
-}
+        CoClauseBaseAnnotator(coClause, coClause.prevSibling, rangeToReport, isError)
 
 
-abstract class AbstractCoClauseAnnotator(coClause: Abstract.ClassReferenceHolder,
-                                         private val lBrace: PsiElement?,
-                                         private val longName: ArendLongName?,
-                                         private val anchor: PsiElement,
-                                         rangeToReport: TextRange,
-                                         isError: AnnotationSeverity):
-        AbstractEWCCAnnotator(coClause, rangeToReport, isError){
+abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
+                                     private val anchor: PsiElement,
+                                     rangeToReport: TextRange,
+                                     isError: AnnotationSeverity):
+        AbstractEWCCAnnotator(coClause, rangeToReport, isError) {
     override fun calculateWhiteSpace() : String {
         val defaultIndent = "  "
         return if (anchor is PsiWhiteSpace) InstanceQuickFix.getIndent(anchor.text, defaultIndent, INCREASE_IN_INDENT) else defaultIndent
     }
 
+    override fun coClausesList(): List<ArendCoClause> = coClause.getCoClauseList()
+
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         val whitespace = calculateWhiteSpace()
         var anchor: PsiElement
 
+        val lBrace = coClause.getLbrace()
         if (lBrace == null) {
-            anchor = longName!!
+            anchor = coClause.getLongName()!!
             val pOB = factory.createPairOfBraces()
             anchor.parent.addAfter(pOB.second, anchor)
             anchor.parent.addAfter(pOB.first, anchor)

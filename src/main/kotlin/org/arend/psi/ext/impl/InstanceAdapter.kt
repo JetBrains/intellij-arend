@@ -5,10 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendCoClause
-import org.arend.psi.ArendDefInstance
-import org.arend.psi.ArendNameTele
+import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -16,7 +13,7 @@ import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
-abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendDefInstance, Abstract.InstanceDefinition {
+abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendDefInstance, Abstract.InstanceDefinition, ClassReferenceHolder {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -26,8 +23,6 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     override fun getResultType(): ArendArgumentAppExpr? = argumentAppExpr
 
     override fun getClassFieldImpls(): List<ArendCoClause> = coClauses?.coClauseList ?: emptyList()
-
-    override fun getArgumentsExplicitness() = argumentAppExpr?.argumentList?.map { it.isExplicit } ?: emptyList()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R? = visitor.visitInstance(this)
 
@@ -43,6 +38,13 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
         return ReferableExtractVisitor().findClassReferable(type)
+    }
+
+    override fun getClassReferenceData(): ClassReferenceData? {
+        val type = resultType ?: return null
+        val visitor = ReferableExtractVisitor(true)
+        val classRef = visitor.findClassReferable(type) ?: return null
+        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CLASS_INSTANCE

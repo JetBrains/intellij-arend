@@ -166,7 +166,7 @@ class ArendClassImplementStub(
         override fun createStub(
                 psi: ArendClassImplement,
                 parentStub: StubElement<*>?
-        ): ArendClassImplementStub = ArendClassImplementStub(parentStub, this, psi.longName.refIdentifierList.lastOrNull()?.referenceName)
+        ): ArendClassImplementStub = ArendClassImplementStub(parentStub, this, psi.getLongName().refIdentifierList.lastOrNull()?.referenceName)
 
         override fun indexStub(stub: ArendClassImplementStub, sink: IndexSink) =
                 sink.indexClassImplement(stub)

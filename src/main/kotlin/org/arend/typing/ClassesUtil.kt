@@ -7,12 +7,12 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendLongName
+import org.arend.psi.ClassReferenceHolder
 
 
-private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Abstract.ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
-    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefHolder?.argumentsExplicitness ?: emptyList(), superClassesFields)
+private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): HashMap<FieldReferable, List<LocatedReferable>> {
+    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefHolder?.getClassReferenceData()?.argumentsExplicitness ?: emptyList(), superClassesFields)
     if (classRefHolder != null) {
         for (fieldImpl in classRefHolder.classFieldImpls) {
             (fieldImpl as? PsiElement)?.let {
@@ -30,7 +30,7 @@ private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Ab
     return result
 }
 
-class ModifiedClassFieldImplScope(referable: ClassReferable, private val classRefHolder: Abstract.ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
+class ModifiedClassFieldImplScope(referable: ClassReferable, private val classRefHolder: ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
     override fun getElements(): List<Referable> {
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val fields = getNotImplementedFields(classReference, classRefHolder, superClassesFields).values.flatten()
