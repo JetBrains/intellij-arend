@@ -30,7 +30,7 @@ import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.error.LogErrorReporter
+import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FileUtils
@@ -63,7 +63,7 @@ interface TypeCheckingService {
 class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingService {
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
-    private val libraryErrorReporter = LogErrorReporter(PrettyPrinterConfig.DEFAULT)
+    private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
     override val libraryManager = LibraryManager(ArendLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
