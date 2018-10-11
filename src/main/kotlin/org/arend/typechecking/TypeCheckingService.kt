@@ -13,6 +13,7 @@ import org.arend.core.definition.Definition
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
+import org.arend.module.ModulePath
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.LocatingModuleScopeProvider
 import org.arend.module.util.defaultRoot
@@ -46,6 +47,8 @@ interface TypeCheckingService {
 
     val prelude: ArendFile?
 
+    val updatedModules: HashSet<ModulePath>
+
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
     fun getTypechecked(definition: ArendDefinition): Definition?
@@ -67,6 +70,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override val libraryManager = LibraryManager(ArendLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
+
+    override val updatedModules = HashSet<ModulePath>()
 
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
@@ -97,7 +102,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        val tcReferable = simpleReferableConverter.remove(referable)
+        val tcReferable = simpleReferableConverter.remove(referable) ?: return null
+        tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
                 typecheckerState.reset(simpleReferableConverter.remove(field))

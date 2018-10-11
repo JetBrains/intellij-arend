@@ -96,6 +96,14 @@ class TypeCheckProcessHandler(
             return
         }
 
+        for (module in typeCheckerService.updatedModules) {
+            val library = typeCheckerService.libraryManager.getModuleLibrary(module) as? SourceLibrary ?: continue
+            if (library.supportsPersisting()) {
+                library.deleteModule(module)
+            }
+        }
+        typeCheckerService.updatedModules.clear()
+
         PooledThreadExecutor.INSTANCE.execute {
             val referableConverter = typeCheckerService.newReferableConverter(true)
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
