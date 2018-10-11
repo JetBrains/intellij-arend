@@ -4,13 +4,15 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
+import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLetClause
 import org.arend.psi.ArendLetExpr
 import org.arend.psi.ArendNameTele
+import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
+import org.arend.typing.ReferableExtractVisitor
 
 
 abstract class ArendLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), ArendLetClause, ArendSourceNode {
@@ -28,6 +30,11 @@ abstract class ArendLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), 
     }
 
     override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+
+    override fun getTypeClassReference(): ClassReferable? {
+        val type = resultType ?: return null
+        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
+    }
 
     override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
 
