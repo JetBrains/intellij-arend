@@ -42,7 +42,7 @@ class ArendPsiFactory(private val project: Project) {
 
     fun createCoClause(name: String, expr: String): ArendCoClauses {
         val code = buildString {
-            append("\\instance Dummy: Dummy\n")
+            append("\\instance Dummy : Dummy\n")
             append("| $name => $expr")
         }
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
@@ -50,7 +50,7 @@ class ArendPsiFactory(private val project: Project) {
 
     fun createNestedCoClause(name: String): ArendCoClauses {
         val code = buildString {
-            append("\\instance Dummy: Dummy\n")
+            append("\\instance Dummy : Dummy\n")
             append("| $name { }")
         }
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
