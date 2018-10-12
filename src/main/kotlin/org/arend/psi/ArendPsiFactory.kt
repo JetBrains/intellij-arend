@@ -16,6 +16,9 @@ class ArendPsiFactory(private val project: Project) {
             createStatCmd(name).refIdentifierList.getOrNull(0)
                     ?: error("Failed to create ref identifier: `$name`")
 
+    fun createLongName(name: String): ArendLongName =
+            createImportCommand(name).statCmd?.longName ?: error("Failed to create long name: `$name`")
+
     fun createInfixName(name: String): ArendInfixArgument {
         val needsPrefix = !ArendNamesValidator.isInfixName(name)
         return createArgument("dummy ${if (needsPrefix) "`$name`" else name} dummy") as ArendInfixArgument

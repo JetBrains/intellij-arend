@@ -160,6 +160,7 @@
         <renameInputValidator implementation="org.arend.refactoring.ArendRenameInputValidator"/>
         <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
+        <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
 
         <!-- Run Configurations -->
 

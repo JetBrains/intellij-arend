@@ -46,6 +46,10 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
         return element
     }
 
+    override fun bindToElement(element: PsiElement): PsiElement {
+        return element
+    }
+
     override fun getVariants(): Array<Any> {
         var notARecord = false
         var notASynonym = false

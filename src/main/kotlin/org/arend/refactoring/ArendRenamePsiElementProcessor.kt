@@ -26,7 +26,6 @@ class ArendRenamePsiElementProcessor: RenamePsiElementProcessor() {
 
         override fun getNewName(): String = patchedGetNewName() + ".ard"
 
-
         private fun patchedGetNewName(): String = nameSuggestionsField.enteredName.trim()
 
         override fun canRun() {
