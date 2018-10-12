@@ -44,7 +44,9 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
             val underlyingRef = referable.underlyingReference ?: referable
 
             if (underlyingRef is ClassReferable) {
-                classClauses.add(Pair(underlyingRef, coClause))
+                if (!underlyingRef.isSynonym) {
+                    classClauses.add(Pair(underlyingRef, coClause))
+                }
                 continue
             }
 

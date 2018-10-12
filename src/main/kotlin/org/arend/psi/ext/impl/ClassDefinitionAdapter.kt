@@ -24,6 +24,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun isRecord(): Boolean = recordKw != null
 
+    override fun isSynonym() = fatArrow != null
+
     private fun resolve(ref: Referable?) =
         ExpressionResolveNameVisitor.resolve(ref, parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) as? ClassReferable
 
