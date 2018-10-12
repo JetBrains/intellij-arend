@@ -37,7 +37,7 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
 
     override fun isVisible(): Boolean = true
 
-    override fun getResultType() = expr
+    override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
 
     override fun getParameterType(params: List<Boolean>): Any? {
         val parameters = (ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.typeTeleList?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters

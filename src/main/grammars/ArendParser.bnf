@@ -368,7 +368,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_constructor typeTele* [COLON expr] [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier_constructor typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.term.group.Group.InternalReferable"
