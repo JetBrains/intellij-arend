@@ -13,6 +13,7 @@ import org.arend.core.definition.Definition
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
+import org.arend.module.ModulePath
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.LocatingModuleScopeProvider
 import org.arend.module.util.defaultRoot
@@ -30,7 +31,7 @@ import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.error.LogErrorReporter
+import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FileUtils
@@ -45,6 +46,8 @@ interface TypeCheckingService {
     val project: Project
 
     val prelude: ArendFile?
+
+    val updatedModules: HashSet<ModulePath>
 
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
@@ -63,10 +66,12 @@ interface TypeCheckingService {
 class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingService {
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
-    private val libraryErrorReporter = LogErrorReporter(PrettyPrinterConfig.DEFAULT)
+    private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
     override val libraryManager = LibraryManager(ArendLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
+
+    override val updatedModules = HashSet<ModulePath>()
 
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
@@ -97,7 +102,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        val tcReferable = simpleReferableConverter.remove(referable)
+        val tcReferable = simpleReferableConverter.remove(referable) ?: return null
+        tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
                 typecheckerState.reset(simpleReferableConverter.remove(field))

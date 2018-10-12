@@ -50,9 +50,14 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         return ReferableExtractVisitor().findClassReferable(type)
     }
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauses?.coClauseList ?: emptyList()
+    override fun getClassReferenceData(): ClassReferenceData? {
+        val type = resultType ?: return null
+        val visitor = ReferableExtractVisitor(true)
+        val classRef = visitor.findClassReferable(type) ?: return null
+        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
+    }
 
-    override fun getArgumentsExplicitness() = (resultType as? ArendNewExpr)?.argumentAppExpr?.argumentList?.map { it.isExplicit } ?: emptyList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauses?.coClauseList ?: emptyList()
 
     override val psiElementType: PsiElement?
         get() = resultType

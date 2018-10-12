@@ -201,6 +201,10 @@ class ArendHighlightingAnnotator : Annotator {
             }
         }
 
+        if (element is ArendClassImplement) {
+            InstanceQuickFix.annotateClassImplement(element, holder)
+        }
+
         if (element is ArendDefIdentifier) {
             val definition = element.parent as? PsiLocatedReferable ?: return
 
@@ -411,7 +415,7 @@ class ArendHighlightingAnnotator : Annotator {
                         }
                     }
                 }
-                is Abstract.ClassFieldImpl -> if ((parent is ArendCoClause && parent.lbrace != null || parent is ArendClassImplement && parent.lbrace != null) && parent.classReference == null) {
+                is Abstract.ClassFieldImpl -> if ((parent is ArendCoClause && parent.getLbrace() != null || parent is ArendClassImplement && parent.getLbrace() != null) && parent.classReference == null) {
                     holder.createErrorAnnotation(element, "Expected either a class or a field which has a class as its type")
                 }
             }

@@ -179,7 +179,8 @@ private defIdentifier_classFieldSyn ::= defIdentifier {
 classImplement ::= coClausePrivate {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.ClassFieldImpl" ]
+                   "org.arend.term.abs.Abstract.ClassFieldImpl"
+                   "org.arend.psi.CoClauseBase" ]
     mixin = "org.arend.psi.ext.impl.ClassFieldImplAdapter"
     stubClass = "org.arend.psi.stubs.ArendClassImplementStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -211,7 +212,8 @@ private moduleHeader ::= MODULE_KW defIdentifier {
 
 defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
     pin = 1
-    implements = "org.arend.term.abs.Abstract.FunctionDefinition"
+    implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -520,7 +522,8 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
 coClause ::= PIPE coClausePrivate {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.ClassFieldImpl" ]
+                   "org.arend.term.abs.Abstract.ClassFieldImpl"
+                   "org.arend.psi.CoClauseBase" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
 }
 

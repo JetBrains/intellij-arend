@@ -1,20 +1,25 @@
 package org.arend.typing
 
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendExpr
+import org.arend.psi.CoClauseBase
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendExpr
 
 
-class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
+class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = false) : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
     private enum class Mode { TYPE, EXPRESSION, NONE }
     private var mode: Mode = Mode.NONE
-    private var arguments: Int = 0
+    var argumentsExplicitness: MutableList<Boolean> = ArrayList()
+        private set
+    var implementedFields: MutableList<FieldReferable> = ArrayList()
+        private set
 
     private fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
         mode = Mode.EXPRESSION
@@ -31,10 +36,6 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
             }
 
             val term = ref.functionBody?.expr ?: return null
-            arguments -= ref.nameTeleList.sumBy { if (it.isExplicit) it.identifierOrUnknownList.size else 0 }
-            if (arguments < 0) {
-                return null
-            }
 
             if (visited == null) {
                 visited = mutableSetOf(ref)
@@ -43,6 +44,11 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
                     return null
                 }
             }
+
+            if (requiredAdditionalInfo) {
+                argumentsExplicitness.clear()
+                implementedFields.clear()
+            }
             ref = term.accept(this, null)
             scope = term.scope
         }
@@ -50,14 +56,15 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
 
     fun findClassReferable(expr: ArendExpr): ClassReferable? {
         mode = Mode.TYPE
-        arguments = 0
         return findClassReference(expr.accept(this, null), expr.scope)
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
         var expr = parseBinOp(left, sequence)
         if (expr is Concrete.AppExpression) {
-            arguments += expr.arguments.sumBy { if (it.isExplicit) 1 else 0 }
+            if (requiredAdditionalInfo) {
+                argumentsExplicitness.addAll(0, expr.arguments.map { it.isExplicit })
+            }
             expr = expr.function
         }
         return (expr as? Concrete.ReferenceExpression)?.referent
@@ -72,9 +79,13 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
             return null
         }
 
-        arguments -= parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 }
-        if (arguments < 0) {
-            return null
+        val numberOfParameters = parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 }
+        if (requiredAdditionalInfo) {
+            if (numberOfParameters < argumentsExplicitness.size) {
+                argumentsExplicitness.subList(0, numberOfParameters).clear()
+            } else {
+                argumentsExplicitness.clear()
+            }
         }
 
         return body.accept(this, null)
@@ -95,5 +106,15 @@ class ReferableExtractVisitor : BaseAbstractExpressionVisitor<Void?, Referable?>
     }
 
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? =
-        if (isNew || !sequence.isEmpty() || baseClass == null) null else baseClass.accept(this, null)
+        if (isNew || !sequence.isEmpty() || baseClass == null) {
+            null
+        } else {
+            if (requiredAdditionalInfo) {
+                val newFields = implementations?.mapNotNull { (it as? CoClauseBase)?.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? FieldReferable }
+                if (newFields != null && !newFields.isEmpty()) {
+                    implementedFields.addAll(0, newFields)
+                }
+            }
+            baseClass.accept(this, null)
+        }
 }
