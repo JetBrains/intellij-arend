@@ -233,7 +233,7 @@ open class CoClauseAnnotator(coClause: ArendCoClause,
 
 
 abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
-                                     private val anchor: PsiElement,
+                                     private val anchor: PsiElement?,
                                      rangeToReport: TextRange,
                                      isError: AnnotationSeverity):
         AbstractEWCCAnnotator(coClause, rangeToReport, isError) {
