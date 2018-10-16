@@ -99,10 +99,9 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """
                \class Foo (A : Nat)
                \class Bar { | f : Foo | B : Nat }
-               \func lol : Bar \cowith {
+               \func lol : Bar \cowith
                  | f => {?}{-caret-}
                  | B => {?}
-                 }
             """)
 
 

@@ -285,14 +285,11 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
         if (nodeCoClauses == null) {
             val sampleCoClauses = factory.createCoClause(name, "{?}")
             val functionBody = functionDefinition.functionBody!!
-            val pOB = factory.createPairOfBraces()
             functionBody.addAfter(sampleCoClauses, coWithKw)
             nodeCoClauses = functionDefinition.functionBody?.coClauses!!
             val firstCoClause = nodeCoClauses.coClauseList.first()
             nodeCoClauses.addBefore(factory.createWhitespace(" "), firstCoClause)
-            nodeCoClauses.addBefore(pOB.first, firstCoClause)
             nodeCoClauses.addBefore(factory.createWhitespace("\n"+whitespace), firstCoClause) // add first clause and crlf
-            nodeCoClauses.addAfter(pOB.second, firstCoClause)
             moveCaretToEndOffset(editor, nodeCoClauses.coClauseList.last())
         } else if (nodeCoClauses.lbrace != null) {
             val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!

@@ -216,7 +216,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
 
-        extend(CompletionType.BASIC, caseContext, pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST)))
+        extend(CompletionType.BASIC, caseContext, pairingWordProvider(pairingWithCondition, KeywordCompletionProvider(WITH_KW_LIST, false)))
 
         val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.asKw == null }
         val asCondition2 = { position: PsiElement? ->
@@ -277,8 +277,9 @@ class ArendCompletionContributor : CompletionContributor() {
             exprFound
         }}
 
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(ELIM_WITH_KW_LIST)))
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(ELIM_KW_LIST)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST, false)))
 
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
@@ -364,6 +365,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val COERCE_KW_LIST = listOf(COERCE_KW.toString())
         val RETURN_KW_LIST = listOf(RETURN_KW.toString())
         val COWITH_KW_LIST = listOf(COWITH_KW.toString())
+        val ELIM_KW_LIST = listOf(ELIM_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
@@ -561,11 +563,11 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    open class KeywordCompletionProvider(private val keywords: List<String>) : CompletionProvider<CompletionParameters>() {
+    open class KeywordCompletionProvider(private val keywords: List<String>, private val tailSpaceNeeded: Boolean = true) : CompletionProvider<CompletionParameters>() {
 
         open fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
             val document = insertContext.document
-            document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+            if (tailSpaceNeeded) document.insertString(insertContext.tailOffset, " ") // add tail whitespace
             insertContext.commitDocument()
             insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
         }
