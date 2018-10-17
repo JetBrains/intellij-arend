@@ -19,7 +19,7 @@ class ImplementFieldsIntention: SelfTargetingIntention<ArendNewExprImplMixin>(Ar
             val annotator = NewExprAnnotator(element, appExpr)
             val fields = annotator.doAnnotate(null, "")
             if (!fields.isEmpty() && project != null) {
-                val fixIntention = ImplementFieldsQuickFix(annotator, fields.values.mapNotNull { it.firstOrNull() }, "")
+                val fixIntention = ImplementFieldsQuickFix(annotator, fields, "")
                 fixIntention.invoke(project, editor, null)
             }
         }
