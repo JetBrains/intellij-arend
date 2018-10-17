@@ -37,7 +37,6 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
     abstract fun coClausesList(): List<ArendCoClause>
 
     private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>) {
-        val classClauses = ArrayList<Pair<ClassReferable, ArendCoClause>>()
         for (coClause in coClauseList) {
             val referable = coClause.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
                     ?: continue
@@ -45,7 +44,51 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
             if (underlyingRef is ClassReferable) {
                 if (!underlyingRef.isSynonym) {
-                    classClauses.add(Pair(underlyingRef, coClause))
+                    val subClauses = if (coClause.fatArrow != null) {
+                        val superClassFields = superClassesFields[underlyingRef]
+                        if (superClassFields != null && !superClassFields.isEmpty()) {
+                            fields.removeAll(superClassFields)
+                            continue
+                        }
+                        emptyList()
+                    } else {
+                        coClause.getCoClauseList()
+                    }
+
+                    if (subClauses.isEmpty()) {
+                        val warningAnnotation = holder?.createWeakWarningAnnotation(coClause, "Clause is redundant")
+                        if (warningAnnotation != null) {
+                            warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                            warningAnnotation.registerFix(object : IntentionAction {
+                                override fun startInWriteAction() = true
+
+                                override fun getFamilyName() = "arend.instance"
+
+                                override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+
+                                override fun getText() = REMOVE_CLAUSE
+
+                                override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+                                    var startChild: PsiElement = coClause
+                                    if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
+                                    if (startChild.prevSibling != null) moveCaretToEndOffset(editor, startChild.prevSibling)
+
+                                    coClause.parent.deleteChildRange(startChild, coClause)
+                                }
+                            })
+
+                            val fieldToImplement = superClassesFields[underlyingRef]
+                            if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
+                                val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
+                                val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
+                                warningAnnotation.registerFix(ImplementFieldsQuickFix(
+                                    CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
+                                    fieldToImplement.map { renamings[it]?.firstOrNull() ?: it }, IMPLEMENT_MISSING_FIELDS))
+                            }
+                        }
+                    } else {
+                        annotateClauses(subClauses, holder, superClassesFields, fields)
+                    }
                 }
                 continue
             }
@@ -72,54 +115,6 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                         super.insertFirstCoClause(name, factory, editor)
                     }
                 }).doAnnotate(holder, message)
-            }
-        }
-
-        for ((underlyingRef, coClause) in classClauses) {
-            val subClauses = if (coClause.fatArrow != null) {
-                val superClassFields = superClassesFields[underlyingRef]
-                if (superClassFields != null && !superClassFields.isEmpty()) {
-                    fields.removeAll(superClassFields)
-                    continue
-                }
-                emptyList()
-            } else {
-                coClause.getCoClauseList()
-            }
-
-            if (subClauses.isEmpty()) {
-                val warningAnnotation = holder?.createWeakWarningAnnotation(coClause, "Clause is redundant")
-                if (warningAnnotation != null) {
-                    warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    warningAnnotation.registerFix(object : IntentionAction {
-                        override fun startInWriteAction() = true
-
-                        override fun getFamilyName() = "arend.instance"
-
-                        override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
-
-                        override fun getText() = REMOVE_CLAUSE
-
-                        override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-                            var startChild: PsiElement = coClause
-                            if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-                            if (startChild.prevSibling != null) moveCaretToEndOffset(editor, startChild.prevSibling)
-
-                            coClause.parent.deleteChildRange(startChild, coClause)
-                        }
-                    })
-
-                    val fieldToImplement = superClassesFields[underlyingRef]
-                    if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
-                        val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
-                        val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
-                        warningAnnotation.registerFix(ImplementFieldsQuickFix(
-                                CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
-                                fieldToImplement.map { renamings[it]?.firstOrNull() ?: it }, IMPLEMENT_MISSING_FIELDS))
-                    }
-                }
-            } else {
-                annotateClauses(subClauses, holder, superClassesFields, fields)
             }
         }
     }
