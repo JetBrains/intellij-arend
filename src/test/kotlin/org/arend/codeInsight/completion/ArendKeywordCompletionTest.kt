@@ -354,7 +354,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}",
             "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
-    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) {-caret-}",
             "\\func lol (a : Nat) : Nat {-caret-}",
             "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
@@ -364,7 +364,14 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\data lol (a : Nat) {-caret-}",
             "\\data lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\data lol | south (a : Nat) {-caret-}",
-            "\\data lol | south I {-caret-}")
+            "\\data lol | south I {-caret-}",
+            "\\func lol (a : Nat) {-caret-}")
+
+    fun `test cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func lol (a : Nat) : Nat {-caret-}",
+            "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
+            "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
+            "\\func lol : Nat {-caret-}")
 
     fun `test elim completion 3`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",

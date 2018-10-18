@@ -247,7 +247,7 @@ class ArendCompletionContributor : CompletionContributor() {
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
                     (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
         }
-        val elimCondition = {functionsOnly: Boolean -> { cP: CompletionParameters, _: ProcessingContext? ->
+        val elimOrCoWithCondition = { coWithMode: Boolean -> { cP: CompletionParameters, _: ProcessingContext? ->
             var pos2: PsiElement? = cP.position
             var exprFound = false
             while (pos2 != null) {
@@ -258,10 +258,12 @@ class ArendCompletionContributor : CompletionContributor() {
                     if ((body is ArendFunctionBody) && (pos2.parent is ArendDefFunction)) {
                         val fBody = (pos2.parent as ArendDefFunction).functionBody
                         exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
-                        exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefFunction).nameTeleList) // No point of writing elim keyword if there are no arguments
+                        exprFound = exprFound &&
+                                if (!coWithMode) !emptyTeleList((pos2.parent as ArendDefFunction).nameTeleList)  // No point of writing elim keyword if there are no arguments
+                                else (pos2.parent as ArendDefFunction).expr != null // No point of writing cowith keyword if there is no result type
                         break
                     }
-                    if ((body is ArendDataBody) && (pos2.parent is ArendDefData) &&!functionsOnly) {
+                    if ((body is ArendDataBody) && (pos2.parent is ArendDefData) && !coWithMode) {
                         val dBody = (pos2.parent as ArendDefData).dataBody
                         exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
                         exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefData).typeTeleList)
@@ -277,9 +279,9 @@ class ArendCompletionContributor : CompletionContributor() {
             exprFound
         }}
 
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(ELIM_KW_LIST)))
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))
-        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST, false)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(ELIM_KW_LIST)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST, false)))
 
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
