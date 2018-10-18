@@ -119,6 +119,10 @@
         <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefFunction"
                                  implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
 
+        <!-- Formatter -->
+
+        <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/>
+
         <!-- Code Insight -->
 
         <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
