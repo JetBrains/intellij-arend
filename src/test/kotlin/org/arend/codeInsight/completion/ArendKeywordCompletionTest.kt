@@ -424,5 +424,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func f (x : Bool) : Bool\n | true => {?}  -- {-caret-} \n | false => {?}\n",
             "\\data -- {-caret-} \n  D")
 
+    fun `test absence of completion after dot`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
+            "\\func f => 0\n \\func g (x : Nat) => f x.{-caret-}")
 
 }

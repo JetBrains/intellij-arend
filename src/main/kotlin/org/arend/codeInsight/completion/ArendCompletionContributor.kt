@@ -587,7 +587,10 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
-            if (ofTypeK(PsiComment::class.java).accepts(parameters.position)) return // Prevents showing kw completions in comments
+            if (ofTypeK(PsiComment::class.java).accepts(parameters.position) || // Prevents showing kw completions in comments
+                    afterLeaf(DOT).accepts(parameters.position))                // Prevents showing kw completions after dot expression
+                return
+
             val prefix = computePrefix(parameters, resultSet)
 
             val prefixMatcher = object : PlainPrefixMatcher(prefix) {
