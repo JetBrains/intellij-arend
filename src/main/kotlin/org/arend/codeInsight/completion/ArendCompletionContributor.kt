@@ -411,6 +411,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withParentOrGrandParent(ArendFunctionBody::class.java),
                 withParentOrGrandParent(ArendExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
                 not(afterLeaf(PIPE))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
