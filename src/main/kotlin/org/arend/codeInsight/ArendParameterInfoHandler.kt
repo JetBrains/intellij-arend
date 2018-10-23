@@ -11,16 +11,15 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendArgument
+import org.arend.psi.ArendArgumentAppExpr
+import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
-import org.arend.psi.ArendArgument
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendTypeTele
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendSourceNode
 import org.arend.typing.parseBinOp
 
 class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
@@ -68,7 +67,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): Abstract.Reference? {
-        val offset = adjustOffset(context.file, context.editor.caretModel.offset)
+        val offset = context.editor.caretModel.offset //adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
         val referable = ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
@@ -78,7 +77,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         } else {
             context.itemsToShow = null
         }
-        //lastAppExpr = appExprInfo?.second
+
         return appExprInfo?.second
     }
 
@@ -97,16 +96,30 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun fixedFindElement(file: PsiFile, offset: Int): PsiElement? {
-        val elem: PsiElement = file.findElementAt(offset) ?: return null
+        var elem: PsiElement? = file.findElementAt(adjustOffset(file, offset))
+        //var shiftedOffset = offset + 1
 
-        if (elem is PsiWhiteSpace) {
-            if (elem.textOffset != offset) { //context.editor.caretModel.offset) {
+        //while (shiftedOffset >= 0 && elem == null) {
+        //    --shiftedOffset
+        //    elem = file.findElementAt(shiftedOffset)
+       // }
+
+        //if (elem == null) return null
+
+        if (elem is PsiWhiteSpace && elem.prevSibling !is PsiWhiteSpace) {
+            return elem.prevSibling
+        }
+
+        while (elem is PsiWhiteSpace) {
+            elem = elem.nextSibling
+            /*
+            if (elem.textOffset != shiftedOffset) { //context.editor.caretModel.offset) {
                 // return PsiTreeUtil.getParentOfType(PsiTreeUtil.nextLeaf(arg), ArendArgument::class.java, true, ArendArgumentAppExpr::class.java)
                 return PsiTreeUtil.nextLeaf(elem)
             } else {
                 // return PsiTreeUtil.getParentOfType(PsiTreeUtil.prevLeaf(arg), ArendArgument::class.java, true, ArendArgumentAppExpr::class.java)
                 return PsiTreeUtil.prevLeaf(elem)
-            }
+            }*/
         }
 
         return elem
@@ -114,10 +127,26 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun adjustOffset(file: PsiFile, offset: Int): Int {
         val element = file.findElementAt(offset)
+
         if (element?.text == ")" || element?.text == "}") {
             return offset - 1
         }
+
         return offset
+    }
+
+    private fun skipWhiteSpaces(file: PsiFile, offset: Int): PsiElement? {
+        var shiftedOffset = offset
+        var res:PsiElement?
+
+        //if (element.prevSibling is PsiWhiteSpace) {
+            do {
+                res = file.findElementAt(shiftedOffset)
+                --shiftedOffset
+            } while (res is PsiWhiteSpace)
+       // }
+
+        return res
     }
 
     private fun findParamIndex(func: Abstract.ParametersHolder, argsExplicitness: List<Boolean>): Int {
@@ -209,52 +238,72 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                 findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
         }, null)
 
-    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
-        var absNode = fixedFindElement(file, offset)?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
-        var absNodeParent = absNode.parentSourceNode ?: return null
+    private fun isNewArgumentPosition(file: PsiFile, offset: Int): Boolean {
+        val element: PsiElement = file.findElementAt(offset) ?: return file.findElementAt(offset - 1) is PsiWhiteSpace
+
         /*
-        val mbJumpToExternalAppExpr = lbl_@{arg:ArendArgument?, appExpr:ArendArgumentAppExpr ->
-            if (extractParametersHolder(appExpr) == null) {
-                if (arg != null || appExpr.parentSourceNode !is ArendArgument || appExpr.parentSourceNode?.parentSourceNode !is ArendArgumentAppExpr) {
-                    return@lbl_ null
+        if (element?.prevSibling is PsiWhiteSpace) {
+            while (element != null) {
+                if (element.text == ")" || element.text == "}") {
+                    return true
                 }
-                return@lbl_ Pair(appExpr.parentSourceNode as ArendArgument, appExpr.parentSourceNode!!.parentSourceNode as ArendArgumentAppExpr)
+                if (element !is PsiWhiteSpace) {
+                    return false
+                }
+                element = element.nextSibling
             }
-            return@lbl_ Pair(arg, appExpr)
+            return true
         }
 
-        val processReference = lbl@{
-            if (absNodeParent is ArendArgument) {
-                val argLoc = locateArg(absNodeParent as ArendArgument)
-                if (argLoc == null && absNodeParent.parentSourceNode?.parentSourceNode is ArendArgument) {
-                    return@lbl locateArg(absNodeParent.parentSourceNode?.parentSourceNode as ArendArgument)
-                }
-                return@lbl argLoc
-                /*if (absNodeParent.parentSourceNode !is ArendArgumentAppExpr) {
-                    return@lbl null
-                } else {
-                    //return@lbl Pair(absNodeParent as? ArendArgument, absNodeParent!!.parentSourceNode as ArendArgumentAppExpr)
-                    return@lbl mbJumpToExternalAppExpr(absNodeParent as? ArendArgument, absNodeParent.parentSourceNode as ArendArgumentAppExpr)
-                } */
-            } else if (absNodeParent is ArendArgumentAppExpr) {
-                //return@lbl Pair(null, absNodeParent as ArendArgumentAppExpr)
-                if (absNodeParent.parentSourceNode is ArendArgument) {
-                    return@lbl locateArg(absNodeParent.parentSourceNode as ArendArgument)
-                }
+        return false */
 
-                return@lbl extractParametersHolder(absNodeParent as ArendArgumentAppExpr)?.let{ Pair(null, it)}
-                //mbJumpToExternalAppExpr(null, absNodeParent as ArendArgumentAppExpr)
+        return (element is PsiWhiteSpace || element.text == ")" || element.text == "}") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
+    }
+
+
+
+    private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
+        var absNode = node
+        var absNodeParent = absNode.parentSourceNode
+
+        while (absNodeParent != null) {
+            if (absNode is Abstract.Reference) {
+                val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
+                if (ref is Abstract.ParametersHolder && !ref.parameters.isEmpty()) {
+                    if (isNewArgPos) {
+                        return Pair(0, absNode)
+                    }
+                    return Pair(-1, absNode)
+                }
+            } else if (absNodeParent is ArendArgument && absNodeParent.parentSourceNode is ArendExpr) {
+                val arg: ArendArgument = absNodeParent
+                val argLoc = arg.expression?.let { locateArg(it as ArendExpr, (absNodeParent as Abstract.SourceNode).parentSourceNode as ArendExpr) }
+
+                if (argLoc != null) {
+                    if (isNewArgPos) return Pair(argLoc.first + 1, argLoc.second)
+                    return argLoc
+                }
             }
-            return@lbl null
-        }*/
-
-        if (absNode is Abstract.Pattern || absNodeParent is Abstract.Pattern) {
-            return null
+            absNode = absNodeParent
+            absNodeParent = absNodeParent.parentSourceNode
         }
 
-        if (absNode is ArendTypeTele || absNodeParent is ArendTypeTele) {
-            return null
-        }
+        return null
+    }
+
+    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
+        val isNewArgPos = isNewArgumentPosition(file, offset)
+        val absNode = skipWhiteSpaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
+        /*
+        var absNodeParent = absNode.parentSourceNode ?: return null
+
+        //if (absNode is Abstract.Pattern || absNodeParent is Abstract.Pattern) {
+         //   return null
+       // }
+
+       // if (absNode is ArendTypeTele || absNodeParent is ArendTypeTele) {
+       //     return null
+       // }
 
         while (absNode !is Abstract.Expression) {
             absNode = absNodeParent
@@ -264,10 +313,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         if (absNodeParent is ArendArgument && absNodeParent.parentSourceNode is ArendExpr) {
             var arg: ArendArgument = absNodeParent
             val argLoc = arg.expression?.let { locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
+
             if (argLoc == null && absNodeParent.parentSourceNode?.parentSourceNode is ArendArgument) {
                 arg = absNodeParent.parentSourceNode?.parentSourceNode as ArendArgument
                 return arg.expression?.let{ locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
             }
+
             return argLoc
         } else if (absNodeParent is ArendArgumentAppExpr) {
             val argLoc = locateArg(absNode as ArendExpr, absNodeParent)
@@ -279,9 +330,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             }
 
             return expressionToReference(absNodeParent)?.let { Pair(-1, it) }
-        }
+        } */
 
-        return null
+        return ascendTillAppExpr(absNode, isNewArgPos)
     }
 
     override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): Abstract.Reference? {
