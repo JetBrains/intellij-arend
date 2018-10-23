@@ -71,14 +71,14 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
             }
         }
 
-        return element.scope.elements.mapNotNull {
-            val ref = (it as? RedirectingReferable)?.originalReferable ?: it
+        return element.scope.elements.mapNotNull { origElement ->
+            val ref = (origElement as? RedirectingReferable)?.originalReferable ?: origElement
             val origRef: Any? = if (ref is DataLocatedReferable) ref.data?.element else ref
             if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? ArendDefClass)?.recordKw != null || notASynonym && (origRef as? ArendDefClass)?.fatArrow != null)) {
                 null
             } else when (origRef) {
                 is PsiNamedElement -> {
-                    var builder = LookupElementBuilder.createWithIcon(origRef)
+                    var builder = LookupElementBuilder.create(origRef, origElement.textRepresentation()).withIcon(origRef.getIcon(0))
                     val parameters = (origRef as? Abstract.ParametersHolder)?.parameters ?: emptyList()
                     if (!parameters.isEmpty()) {
                         val stringBuilder = StringBuilder()
@@ -98,9 +98,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                         if (it is ArendFile)
                             LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.MODULE) else
                             LookupElementBuilder.createWithIcon(it)
-                    } ?: LookupElementBuilder.create(origRef, origRef.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
+                    } ?: LookupElementBuilder.create(origRef, origElement.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
                 }
-                else -> LookupElementBuilder.create(ref, ref.textRepresentation())
+                else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
         }.toTypedArray()
     }

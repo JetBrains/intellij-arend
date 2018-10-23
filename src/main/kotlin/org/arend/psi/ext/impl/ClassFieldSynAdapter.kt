@@ -42,5 +42,5 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<ArendClassFieldSynStub>, 
 
     override fun getTypeOf() = (underlyingReference as? TypedReferable)?.typeOf
 
-    override fun isFieldSynonym() = true
+    override fun isSynonym() = true
 }

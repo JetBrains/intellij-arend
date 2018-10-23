@@ -99,10 +99,9 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """
                \class Foo (A : Nat)
                \class Bar { | f : Foo | B : Nat }
-               \func lol : Bar \cowith {
+               \func lol : Bar \cowith
                  | f => {?}{-caret-}
                  | B => {?}
-                 }
             """)
 
 
@@ -149,5 +148,40 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                    | j1 => {?}{-caret-}
                    | j2 => {?}
                }
+            """)
+
+    fun `test adding implementation of two fields with clashing names 1`() = simpleQuickFixTest("Implement",
+            """
+            --! A.ard
+            \class A {| Z : Nat}
+            \class B {| Z : Nat}
+            \class C \extends A, B {| A.Z => 0 }
+            \func lol => \new C{-caret-} {}
+            """,
+            """
+            \class A {| Z : Nat}
+            \class B {| Z : Nat}
+            \class C \extends A, B {| A.Z => 0 }
+            \func lol => \new C {
+              | B.Z => {?}{-caret-}
+              }
+            """)
+
+    fun `test adding implementation of two fields with clashing names 2`() = simpleQuickFixTest("Implement",
+            """
+            --! A.ard
+            \class A {| Z : Nat}
+            \class B {| Z : Nat}
+            \class C \extends A, B {}
+            \func lol => \new C{-caret-} {}
+            """,
+            """
+            \class A {| Z : Nat}
+            \class B {| Z : Nat}
+            \class C \extends A, B {}
+            \func lol => \new C {
+              | Z => {?}{-caret-}
+              | B.Z => {?}
+              }
             """)
 }
