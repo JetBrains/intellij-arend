@@ -7,6 +7,8 @@ import org.jetbrains.grammarkit.tasks.GenerateParser
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+version = "0.1.0-19"
+
 plugins {
     idea
     kotlin("jvm") version "1.2.61"
