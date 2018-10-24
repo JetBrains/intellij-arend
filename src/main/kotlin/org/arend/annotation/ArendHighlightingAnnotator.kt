@@ -99,7 +99,7 @@ class ArendHighlightingAnnotator : Annotator {
                 if (longName != null) {
                     val ref = longName.referent
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
-                    if (resolvedRef !is ArendDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
+                    if (resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
                         return
                     }
