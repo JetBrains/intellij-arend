@@ -43,7 +43,8 @@ open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.Module
 
             if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
                 val configFile = projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE)
-                configFile.setBinaryContent(("sourcesDir: ${srcDir}\n"+"outputDir: ${outDir}").toByteArray())
+                configFile.setBinaryContent(("sourcesDir: ${ArendModuleBuilder.toRelative(projectRoot.path, srcDir)?:srcDir}\n"+
+                        "outputDir: ${ArendModuleBuilder.toRelative(projectRoot.path, outDir)?:outDir}").toByteArray())
             }
 
             contentEntry.addExcludeFolder(ArendModuleBuilder.toAbsolute(projectRoot.path, outDir))
