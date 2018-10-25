@@ -17,6 +17,6 @@ class ArendFormattingModelBuilder: FormattingModelBuilder {
         val containingFile = element?.containingFile
         val documentModel = if (containingFile != null) FormattingDocumentModelImpl.createOn(containingFile) else null
         val tree = TreeUtil.getFileElement((SourceTreeToPsiMap.psiElementToTree(containingFile) as TreeElement?)!!) //TODO: No !! please
-        return PsiBasedFormattingModel(containingFile, RootBlock(tree), documentModel)
+        return PsiBasedFormattingModel(containingFile, RootBlock(tree, settings), documentModel)
     }
 }

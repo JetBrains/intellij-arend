@@ -5,10 +5,12 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.*
-import org.arend.psi.ArendElementTypes.PIPE
+import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
 class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?): AbstractBlock(node, wrap, alignment) {
+    private val pipeAlignment = Alignment.createAlignment()
+
     override fun isLeaf(): Boolean = myNode.firstChildNode == null
 
     override fun getIndent(): Indent? = myIndent
@@ -22,23 +24,28 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, privat
         return null
     }
 
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        return ChildAttributes(if (myNode.elementType == CO_CLAUSES) Indent.getNormalIndent() else Indent.getNoneIndent(), pipeAlignment)
+    }
+
     override fun buildChildren(): MutableList<Block> {
         val blocks = ArrayList<Block>()
         var child: ASTNode? = myNode.firstChildNode
-        var myIndent: Int = 0
 
         while (child != null) {
             if (child.elementType != WHITE_SPACE) {
-                var indent: Indent? = Indent.getNoneIndent()
+                val indent: Indent? =
                 if (child.psi is ArendCoClause ||
-                        ((myNode.psi is ArendFunctionClauses || myNode.psi is ArendConstructorClause) && child.elementType == PIPE) ||
-                        child.psi is ArendWhere) indent = Indent.getNormalIndent()
-                val block = if (child.psi is ArendExpr)
-                    ExpressionBlock(child, null, null, myIndent) else
-                    SimpleArendBlock(child, null, null, indent)
+                    ((myNode.psi is ArendFunctionClauses || myNode.psi is ArendConstructorClause)) ||
+                        child.psi is ArendStatement ||
+                        (myNode.elementType == FUNCTION_BODY && child.psi is ArendExpr))
+                    Indent.getNormalIndent() else
+                    Indent.getNoneIndent()
+
+                val wrap = if (child.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
+
+                val block = SimpleArendBlock(child, wrap, null, indent)
                 blocks.add(block)
-            } else {
-                myIndent = getIndent(child.text) ?: 0
             }
             child = child.treeNext
         }

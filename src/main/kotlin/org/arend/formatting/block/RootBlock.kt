@@ -1,30 +1,33 @@
 package org.arend.formatting.block
 
-import com.intellij.formatting.Block
-import com.intellij.formatting.Indent
-import com.intellij.formatting.Spacing
+import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType
+import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.*
 import java.util.ArrayList
 
-class RootBlock(node: ASTNode):
-        AbstractBlock(node, null, null) {
+class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
+        AbstractBlock(node, null, Alignment.createAlignment()) {
     override fun isLeaf(): Boolean = false
 
-    override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        if (child1 is AbstractBlock && child2 is AbstractBlock) {
-            val psi1 = child1.node.psi
-            val psi2 = child2.node.psi
-            if (psi1 is ArendStatement && psi2 is ArendStatement) {
-                val needLineFeed = psi1.statCmd == null || psi2.statCmd == null
-                val i = if (needLineFeed) 2 else 1
-                return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i-1)
-            }
-        }
-        return null
+     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
+         if (child1 is AbstractBlock && child2 is AbstractBlock) {
+             val psi1 = child1.node.psi
+             val psi2 = child2.node.psi
+             if (psi1 is ArendStatement && psi2 is ArendStatement) {
+                 val needLineFeed = psi1.statCmd == null || psi2.statCmd == null
+                 val i = if (needLineFeed) 2 else 1
+                 return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i-1)
+             }
+         }
+         return null
     }
+
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes = ChildAttributes(Indent.getNoneIndent(), null)
+
+    override fun getIndent(): Indent? = Indent.getNoneIndent()
 
     override fun buildChildren(): MutableList<Block> {
         val blocks = ArrayList<Block>()
