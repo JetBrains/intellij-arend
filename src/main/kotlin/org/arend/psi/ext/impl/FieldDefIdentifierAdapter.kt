@@ -3,15 +3,15 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.term.Precedence
-import org.arend.term.abs.Abstract
-import org.arend.ArendIcons
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
+import org.arend.term.Precedence
+import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 
@@ -41,6 +41,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override fun isVisible() = false
 
     override fun isExplicitField() = (parent as? ArendFieldTele)?.isExplicit ?: true
+
+    override fun isParameterField() = true
 
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }

@@ -33,6 +33,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
 
     override fun isExplicitField() = true
 
+    override fun isParameterField() = false
+
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null

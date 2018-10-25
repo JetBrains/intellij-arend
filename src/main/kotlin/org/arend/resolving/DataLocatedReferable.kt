@@ -46,7 +46,11 @@ class FieldDataLocatedReferable(
 
     private val isExplicit = referable.isExplicitField
 
+    private val isParameter = referable.isParameterField
+
     override fun isExplicitField() = isExplicit
+
+    override fun isParameterField() = isParameter
 
     override fun getUnderlyingReference() = underlyingField
 

@@ -36,6 +36,8 @@ abstract class ClassFieldSynAdapter : ReferableAdapter<ArendClassFieldSynStub>, 
 
     override fun isExplicitField() = true
 
+    override fun isParameterField() = false
+
     override fun getTypeClassReference() = (underlyingReference as? TypedReferable)?.typeClassReference
 
     override fun getParameterType(params: List<Boolean>) = (underlyingReference as? TypedReferable)?.getParameterType(params)
