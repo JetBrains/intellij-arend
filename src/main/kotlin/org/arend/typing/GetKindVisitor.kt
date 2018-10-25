@@ -5,11 +5,11 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendCompositeElement
 import java.math.BigInteger
 
 
@@ -27,7 +27,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
         CLASS { override fun isWHNF() = true }, // maybe with arguments
         REFERENCE { override fun isWHNF() = true }, // maybe with arguments
         CONSTRUCTOR_WITH_CONDITIONS, // maybe with arguments
-        APP, HOLE, GOAL, CASE, PROJ, LET, LET_CLAUSE, NUMBER, UNRESOLVED_REFERENCE, FIELD, FIELD_SYN, FUNCTION, INSTANCE;
+        APP, HOLE, GOAL, CASE, PROJ, LET, LET_CLAUSE, NUMBER, UNRESOLVED_REFERENCE, FIELD, FIELD_SYN, FUNCTION, INSTANCE, UNKNOWN;
 
         open fun isWHNF(): Boolean = false
     }
