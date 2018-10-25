@@ -3,6 +3,7 @@ package org.arend.psi.ext
 import com.intellij.openapi.application.runReadAction
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
 import org.arend.resolving.DataLocatedReferable
@@ -18,6 +19,8 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
         }
 
         // fun fromReferable(referable: Referable) = (referable as? GlobalReferable)?.let { fromReferable(it) } ?: referable
+
+        fun isValid(ref: TCReferable?) = ref != null && (ref !is DataLocatedReferable || ref.data == null || runReadAction { ref.data?.element } != null)
     }
 }
 

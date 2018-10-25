@@ -146,7 +146,7 @@ class TypeCheckProcessHandler(
                             }
                         } else {
                             val tcReferable = runReadAction { referableConverter.toDataLocatedReferable(ref) }
-                            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                            val typechecked = if (PsiLocatedReferable.isValid(tcReferable)) typeCheckerService.typecheckerState.getTypechecked(tcReferable) else null
                             if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
@@ -204,7 +204,7 @@ class TypeCheckProcessHandler(
 
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
-        if (tcReferable == null || ordering.getTypechecked(tcReferable) == null) {
+        if (!PsiLocatedReferable.isValid(tcReferable) || ordering.getTypechecked(tcReferable) == null) {
             (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
         }
 
