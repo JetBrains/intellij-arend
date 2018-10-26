@@ -9,7 +9,7 @@ import org.arend.psi.*
 import java.util.ArrayList
 
 class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
-        AbstractBlock(node, null, Alignment.createAlignment()) {
+        AbstractBlock(node, null, null) {
     override fun isLeaf(): Boolean = false
 
      override fun getSpacing(child1: Block?, child2: Block): Spacing? {

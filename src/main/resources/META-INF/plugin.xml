@@ -123,6 +123,8 @@
 
         <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/>
 
+        <codeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
+        <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendLanguageCodeStyleSettingsProvider"/>
 
         <!-- Code Insight -->
 

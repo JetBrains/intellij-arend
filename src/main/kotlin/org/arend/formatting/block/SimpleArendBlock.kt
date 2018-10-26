@@ -8,12 +8,8 @@ import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
-class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?): AbstractBlock(node, wrap, alignment) {
+class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?): AbstractArendBlock(node, wrap, alignment, myIndent) {
     private val pipeAlignment = Alignment.createAlignment()
-
-    override fun isLeaf(): Boolean = myNode.firstChildNode == null
-
-    override fun getIndent(): Indent? = myIndent
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         if (myNode.psi is ArendFunctionClauses) {
@@ -35,17 +31,26 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, privat
         while (child != null) {
             if (child.elementType != WHITE_SPACE) {
                 val indent: Indent? =
-                if (child.psi is ArendCoClause ||
-                    ((myNode.psi is ArendFunctionClauses || myNode.psi is ArendConstructorClause)) ||
-                        child.psi is ArendStatement ||
+                if (child.psi is ArendCoClause ||child.psi is ArendStatement ||
                         (myNode.elementType == FUNCTION_BODY && child.psi is ArendExpr))
                     Indent.getNormalIndent() else
+                    if (child.elementType == ATOM_ARGUMENT) Indent.getContinuationIndent() else
                     Indent.getNoneIndent()
 
                 val wrap = if (child.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
 
+                if (child.elementType == PIPE && myNode.elementType == FUNCTION_CLAUSES) {
+                    val clauseGroup = findClauseGroup(child)
+                    if (clauseGroup != null) {
+                        child = clauseGroup.first.treeNext
+                        blocks.add(GroupBlock(myNode, clauseGroup.second, wrap, null, Indent.getNormalIndent()))
+                        continue
+                    }
+                }
+
                 val block = SimpleArendBlock(child, wrap, null, indent)
                 blocks.add(block)
+
             }
             child = child.treeNext
         }
@@ -53,6 +58,20 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, privat
     }
 
     companion object {
+
+        fun findClauseGroup(child: ASTNode): Pair<ASTNode, List<ASTNode>>? {
+            var currChild: ASTNode? = child
+            val groupNodes = ArrayList<ASTNode>()
+            while (currChild != null) {
+                groupNodes.add(currChild)
+                if (currChild.elementType == CLAUSE) {
+                    return Pair(currChild, groupNodes)
+                }
+                currChild = currChild.treeNext
+            }
+            return null
+        }
+
         fun getIndent(str : String): Int? {
             var myStr = str
             if (myStr.indexOf('\n') == -1) return null
