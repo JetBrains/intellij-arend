@@ -2,14 +2,12 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
-import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
 class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?): AbstractArendBlock(node, wrap, alignment, myIndent) {
-    private val pipeAlignment = Alignment.createAlignment()
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         if (myNode.psi is ArendFunctionClauses) {
@@ -21,29 +19,41 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        return ChildAttributes(if (myNode.elementType == CO_CLAUSES) Indent.getNormalIndent() else Indent.getNoneIndent(), pipeAlignment)
+        val child = if (newChildIndex < subBlocks.size) subBlocks[newChildIndex] else null
+        val indent = if (child == null) Indent.getNoneIndent() else child.indent
+        return ChildAttributes(indent, null)
     }
 
     override fun buildChildren(): MutableList<Block> {
         val blocks = ArrayList<Block>()
         var child: ASTNode? = myNode.firstChildNode
+        val pipeAlignment = Alignment.createAlignment()
 
         while (child != null) {
             if (child.elementType != WHITE_SPACE) {
+                val childPsi = child.psi
                 val indent: Indent? =
-                if (child.psi is ArendCoClause ||child.psi is ArendStatement ||
-                        (myNode.elementType == FUNCTION_BODY && child.psi is ArendExpr))
+                if (child.elementType == CO_CLAUSE ||
+                        child.elementType == STATEMENT ||
+                        child.elementType == CONSTRUCTOR_CLAUSE ||
+                        child.elementType == FUNCTION_BODY && childPsi is ArendFunctionBody && childPsi.expr != null ||
+                        myNode.elementType == CO_CLAUSE && childPsi is ArendExpr)
                     Indent.getNormalIndent() else
-                    if (child.elementType == ATOM_ARGUMENT) Indent.getContinuationIndent() else
+                if (child.elementType == ATOM_ARGUMENT ||
+                        child.elementType == TUPLE_EXPR ||
+                        childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
+                                myNode.elementType == SIGMA_EXPR ||
+                                myNode.elementType == LAM_EXPR) )
+                    Indent.getContinuationIndent() else
                     Indent.getNoneIndent()
 
-                val wrap = if (child.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
+                val wrap = if (myNode.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
 
-                if (child.elementType == PIPE && myNode.elementType == FUNCTION_CLAUSES) {
+                if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR) && child.elementType == PIPE) {
                     val clauseGroup = findClauseGroup(child)
                     if (clauseGroup != null) {
                         child = clauseGroup.first.treeNext
-                        blocks.add(GroupBlock(myNode, clauseGroup.second, wrap, null, Indent.getNormalIndent()))
+                        blocks.add(GroupBlock(myNode, clauseGroup.second, wrap, pipeAlignment, Indent.getNormalIndent()))
                         continue
                     }
                 }
@@ -64,7 +74,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             val groupNodes = ArrayList<ASTNode>()
             while (currChild != null) {
                 groupNodes.add(currChild)
-                if (currChild.elementType == CLAUSE) {
+                if (currChild.elementType == CLAUSE || currChild.elementType == LET_CLAUSE) {
                     return Pair(currChild, groupNodes)
                 }
                 currChild = currChild.treeNext

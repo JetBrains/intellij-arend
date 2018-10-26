@@ -10,7 +10,6 @@ import com.intellij.psi.impl.source.SourceTreeToPsiMap
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.intellij.psi.impl.source.tree.TreeUtil
 import org.arend.formatting.block.RootBlock
-import org.arend.formatting.block.SimpleArendBlock
 
 class ArendFormattingModelBuilder: FormattingModelBuilder {
     override fun createModel(element: PsiElement?, settings: CodeStyleSettings?): FormattingModel {
