@@ -95,9 +95,9 @@ afterEvaluate {
 
 task<Copy>("prelude") {
     from(project(":Arend").file("lib/Prelude.ard"))
-    from(project(":Arend").file("${project(":Arend").buildDir}/classes/main/lib/Prelude.arc"))
+    from(project(":Arend").file("${project(":Arend").buildDir}/classes/java/main/lib/Prelude.arc"))
     into("src/main/resources/lib")
-    dependsOn(project(":Arend").relativeProjectPath(":prelude"))
+    dependsOn(":Arend:prelude")
 }
 
 tasks.withType<Wrapper> {
