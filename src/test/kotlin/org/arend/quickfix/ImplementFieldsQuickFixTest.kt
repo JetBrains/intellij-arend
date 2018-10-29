@@ -34,7 +34,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
                 \instance Bar : Foo {
                   | A => {?}{-caret-}
-                  }
+                }
             """)
 
     fun `test adding implementation for a field`() = simpleQuickFixTest("Replace",
@@ -53,8 +53,8 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                   | f {
                     | A => {?}{-caret-}
                     | B => {?}
-                    }
                   }
+                }
             """)
 
     fun `test adding implementation of a new expression`() = simpleQuickFixTest("Implement",
@@ -70,7 +70,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                \func lol => \new Bar {
                  | f => {?}{-caret-}
                  | B => {?}
-                 }
+               }
             """)
 
     fun `test completing incomplete implementation`() = simpleQuickFixTest("Implement",
@@ -86,7 +86,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                \func lol => \new Bar {
                  | A => {?}
                  | B => {?}{-caret-}
-                 }
+               }
             """)
 
     fun `test adding implementation of cowith expression`() = simpleQuickFixTest("Implement",
@@ -118,7 +118,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 \class Foo (A : Nat)
                 \class Bar \extends Foo
                 \instance FooBar : Bar {{-caret-}
-                  }
+                }
             """)
 
     fun `test adding field implementation`() = simpleQuickFixTest("Implement",
@@ -147,7 +147,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                  | c {
                    | j1 => {?}{-caret-}
                    | j2 => {?}
-               }
+                 }
             """)
 
     fun `test adding implementation of two fields with clashing names 1`() = simpleQuickFixTest("Implement",
@@ -164,7 +164,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             \class C \extends A, B {| A.Z => 0 }
             \func lol => \new C {
               | B.Z => {?}{-caret-}
-              }
+            }
             """)
 
     fun `test adding implementation of two fields with clashing names 2`() = simpleQuickFixTest("Implement",
@@ -182,6 +182,6 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             \func lol => \new C {
               | Z => {?}{-caret-}
               | B.Z => {?}
-              }
+            }
             """)
 }

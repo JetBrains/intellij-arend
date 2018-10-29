@@ -110,6 +110,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import A
+
                 \func d => a.b
             """)
 

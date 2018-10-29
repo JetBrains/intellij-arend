@@ -15,6 +15,8 @@ class ArendLanguageCodeStyleSettingsProvider: LanguageCodeStyleSettingsProvider(
     override fun getDefaultCommonSettings(): CommonCodeStyleSettings? {
         val defaultSettings = CommonCodeStyleSettings(ArendLanguage.INSTANCE)
         defaultSettings.initIndentOptions()
+        defaultSettings.indentOptions?.CONTINUATION_INDENT_SIZE = 4
+        defaultSettings.indentOptions?.INDENT_SIZE = 2
         return defaultSettings
     }
 
