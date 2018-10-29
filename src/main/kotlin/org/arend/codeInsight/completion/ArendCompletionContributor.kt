@@ -251,28 +251,24 @@ class ArendCompletionContributor : CompletionContributor() {
             var pos2: PsiElement? = cP.position
             var exprFound = false
             while (pos2 != null) {
-                if (pos2.nextSibling is PsiWhiteSpace) {
-                    var body = pos2.nextSibling
-                    while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
-
-                    if ((body is ArendFunctionBody) && (pos2.parent is ArendDefFunction)) {
-                        val fBody = (pos2.parent as ArendDefFunction).functionBody
-                        exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
-                        exprFound = exprFound &&
-                                if (!coWithMode) !emptyTeleList((pos2.parent as ArendDefFunction).nameTeleList)  // No point of writing elim keyword if there are no arguments
-                                else (pos2.parent as ArendDefFunction).expr != null // No point of writing cowith keyword if there is no result type
-                        break
-                    }
-                    if ((body is ArendDataBody) && (pos2.parent is ArendDefData) && !coWithMode) {
-                        val dBody = (pos2.parent as ArendDefData).dataBody
-                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
-                        exprFound = exprFound && !emptyTeleList((pos2.parent as ArendDefData).typeTeleList)
-                        break
-
-                    }
+               if ((pos2 is ArendDefFunction)) {
+                    val fBody = pos2.functionBody
+                    exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
+                    exprFound = exprFound &&
+                            if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
+                            else pos2.expr != null // No point of writing cowith keyword if there is no result type
+                    break
                 }
+                if ((pos2 is ArendDefData) && !coWithMode) {
+                    val dBody = pos2.dataBody
+                    exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                    exprFound = exprFound && !emptyTeleList(pos2.typeTeleList)
+                    break
+                }
+
                 if (pos2 is ArendConstructor && pos2.elim == null) {
                     exprFound = !emptyTeleList(pos2.typeTeleList)
+                    break
                 }
                 if (pos2.nextSibling == null) pos2 = pos2.parent else break
             }
@@ -282,6 +278,10 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(ELIM_KW_LIST)))
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST, false)))
+
+        /*extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(ELIM_KW_LIST))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(WITH_KW_LIST, false))
+        extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(COWITH_KW_LIST, false)) */
 
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
@@ -338,7 +338,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -429,8 +429,12 @@ class ArendCompletionContributor : CompletionContributor() {
         val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, ArendAtomLevelExpr::class.java))
         val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
-                        withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java),
-                        and(withParent(PsiErrorElement::class.java), withGrandParents(ArendNameTele::class.java, ArendTypeTele::class.java, ArendDefData::class.java, ArendDefFunction::class.java))))
+                        withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
+                        withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
+                        withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)
+                        /*withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java),
+                        and(withParent(PsiErrorElement::class.java), withGrandParents(ArendNameTele::class.java,
+                                ArendTypeTele::class.java, ArendDefData::class.java, ArendDefFunction::class.java)) */))
         val ARGUMENT_EXPRESSION_IN_BRACKETS =
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
                         ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendTuple::class.java,
