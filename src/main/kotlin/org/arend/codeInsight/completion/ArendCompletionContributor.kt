@@ -279,10 +279,6 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(true), KeywordCompletionProvider(COWITH_KW_LIST, false)))
 
-        /*extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(ELIM_KW_LIST))
-        extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(WITH_KW_LIST, false))
-        extend(CompletionType.BASIC, ELIM_CONTEXT, KeywordCompletionProvider(COWITH_KW_LIST, false)) */
-
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
                     ((argumentAppExpr.children[0] as? ArendAtomFieldsAcc)?.atom?.literal?.longName != null)
@@ -338,7 +334,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -431,10 +427,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
-                        withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)
-                        /*withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java),
-                        and(withParent(PsiErrorElement::class.java), withGrandParents(ArendNameTele::class.java,
-                                ArendTypeTele::class.java, ArendDefData::class.java, ArendDefFunction::class.java)) */))
+                        withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)))
         val ARGUMENT_EXPRESSION_IN_BRACKETS =
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
                         ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendTuple::class.java,
