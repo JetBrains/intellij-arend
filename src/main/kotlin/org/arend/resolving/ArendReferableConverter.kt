@@ -49,7 +49,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                             } else {
                                 val pointer = project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(referable) }
                                 val locatedParent = referable.locatedReferableParent
-                                val parent = if (locatedParent is ArendFile) ModuleReferable(locatedParent.modulePath) else toDataLocatedReferable(locatedParent)
+                                val parent = if (locatedParent is ArendFile) locatedParent.modulePath?.let { ModuleReferable(it) } else toDataLocatedReferable(locatedParent)
                                 when (referable) {
                                     is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
                                     is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]

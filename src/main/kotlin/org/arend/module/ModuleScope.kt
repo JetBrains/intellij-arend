@@ -3,16 +3,16 @@ package org.arend.module
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
+import org.arend.module.util.libraryConfig
+import org.arend.module.util.sourcesDirFile
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
-import org.arend.util.FileUtils
-import org.arend.module.util.libraryConfig
-import org.arend.module.util.sourcesDirFile
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiModuleReferable
+import org.arend.util.FileUtils
 
 
 class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
@@ -32,7 +32,8 @@ class ModuleScope private constructor(private val module: Module, private val ro
                         }
                     }
                 } else if (file.name.endsWith(FileUtils.EXTENSION)) {
-                    (psiManager.findFile(file) as? ArendFile)?.let { result.add(PsiModuleReferable(listOf(it), it.modulePath)) }
+                    val arendFile = psiManager.findFile(file) as? ArendFile
+                    arendFile?.modulePath?.let { result.add(PsiModuleReferable(listOf(arendFile), it)) }
                 }
             }
         }

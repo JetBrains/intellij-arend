@@ -221,11 +221,14 @@ class TypeCheckProcessHandler(
             when (child) {
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable ?: ModuleReferable(modulePath), child.errorDescription))
-                    if (group is PsiLocatedReferable) {
-                        typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
-                    } else {
-                        typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                    if (modulePath != null) {
+                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable
+                            ?: ModuleReferable(modulePath), child.errorDescription))
+                        if (group is PsiLocatedReferable) {
+                            typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
+                        } else {
+                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                        }
                     }
                 }
                 is ArendStatement -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }

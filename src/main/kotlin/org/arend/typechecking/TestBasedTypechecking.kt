@@ -3,15 +3,15 @@ package org.arend.typechecking
 import com.intellij.openapi.application.runReadAction
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
-import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.FullModulePath
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
+import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
 class TestBasedTypechecking(
@@ -57,7 +57,7 @@ class TestBasedTypechecking(
         eventsProcessor.onTestFinished(ref)
         runReadAction {
             val file = ref.containingFile as? ArendFile ?: return@runReadAction
-            typecheckedModules.add(FullModulePath(file.libraryName ?: return@runReadAction, file.modulePath))
+            typecheckedModules.add(FullModulePath(file.libraryName ?: return@runReadAction, file.modulePath ?: return@runReadAction))
         }
     }
 
