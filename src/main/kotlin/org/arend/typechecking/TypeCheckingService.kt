@@ -105,11 +105,11 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
-                typecheckerState.reset(simpleReferableConverter.remove(field))
+                simpleReferableConverter.remove(field)
             }
         } else if (referable is DataDefinitionAdapter) {
             for (constructor in referable.constructors) {
-                typecheckerState.reset(simpleReferableConverter.remove(constructor))
+                simpleReferableConverter.remove(constructor)
             }
         }
         return tcReferable
