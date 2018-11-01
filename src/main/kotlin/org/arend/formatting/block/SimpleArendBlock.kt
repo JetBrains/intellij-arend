@@ -19,9 +19,14 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        val child = if (newChildIndex < subBlocks.size) subBlocks[newChildIndex] else null
+        val child = if (newChildIndex > 0) {
+            subBlocks[newChildIndex-1].let {
+                if (it is AbstractArendBlock && it.isLBrace())
+                    subBlocks.getOrNull(newChildIndex) else it
+            }
+        } else null
         val indent = if (child == null) Indent.getNoneIndent() else child.indent
-        return ChildAttributes(indent, null)
+        return ChildAttributes(indent, child?.alignment)
     }
 
     override fun buildChildren(): MutableList<Block> {
@@ -40,10 +45,12 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                         child.elementType == FUNCTION_BODY && childPsi is ArendFunctionBody && childPsi.expr != null ||
                         myNode.elementType == CO_CLAUSE && childPsi is ArendExpr ||
                         child.psi is ArendWhere ||
-                        myNode.elementType == LET_EXPR && child.psi is ArendExpr)
+                        myNode.elementType == LET_EXPR && child.psi is ArendExpr ||
+                        child.elementType == TUPLE_EXPR ||
+                        myNode.elementType == FUNCTION_BODY && child.psi is ArendExpr ||
+                        child.elementType == CLASS_STAT)
                     Indent.getNormalIndent() else
                 if (myNode.elementType == ARGUMENT_APP_EXPR ||
-                        child.elementType == TUPLE_EXPR ||
                         childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
                                 myNode.elementType == SIGMA_EXPR ||
                                 myNode.elementType == LAM_EXPR) )
@@ -52,7 +59,8 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
 
                 val wrap = if (child.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
 
-                if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR) && child.elementType == PIPE) {
+                if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR || myNode.elementType == DATA_BODY || myNode.elementType == CONSTRUCTOR) &&
+                        child.elementType == PIPE) {
                     val clauseGroup = findClauseGroup(child)
                     if (clauseGroup != null) {
                         child = clauseGroup.first.treeNext
@@ -80,19 +88,12 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             val groupNodes = ArrayList<ASTNode>()
             while (currChild != null) {
                 groupNodes.add(currChild)
-                if (currChild.elementType == CLAUSE || currChild.elementType == LET_CLAUSE) {
+                if (currChild.elementType == CLAUSE || currChild.elementType == LET_CLAUSE || currChild.elementType == CONSTRUCTOR) {
                     return Pair(currChild, groupNodes)
                 }
                 currChild = currChild.treeNext
             }
             return null
-        }
-
-        fun getIndent(str : String): Int? {
-            var myStr = str
-            if (myStr.indexOf('\n') == -1) return null
-            while (myStr.indexOf('\n') != -1) myStr = myStr.substring(myStr.indexOf('\n')+1)
-            return myStr.length
         }
     }
 }

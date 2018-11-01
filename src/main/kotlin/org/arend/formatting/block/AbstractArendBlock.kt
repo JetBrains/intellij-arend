@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.formatter.common.AbstractBlock
+import org.arend.psi.ArendElementTypes
 
 abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?): AbstractBlock(node, wrap, alignment) {
     override fun getIndent(): Indent? = myIndent
@@ -13,4 +14,6 @@ abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignme
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
             ChildAttributes(Indent.getNoneIndent(), null)
+
+    fun isLBrace() = myNode.elementType == ArendElementTypes.LBRACE
 }
