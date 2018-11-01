@@ -5,37 +5,42 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import org.arend.ArendFileType
+import org.arend.ArendIcons
+import org.arend.ArendLanguage
 import org.arend.module.ModulePath
+import org.arend.module.util.sourcesDir
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.stubs.ArendFileStub
+import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
-import org.arend.ArendFileType
-import org.arend.ArendIcons
-import org.arend.ArendLanguage
-import org.arend.module.util.sourcesDir
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendSourceNode
-import org.arend.psi.stubs.ArendFileStub
-import org.arend.resolving.ArendReference
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
-    val modulePath: ModulePath
+    val modulePath: ModulePath?
         get() {
             val fileName = viewProvider.virtualFile.path
+            if (fileName == "/Prelude.ard") {
+                return ModulePath("Prelude")
+            }
             val root = module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
-            val shortFileName = if (root == null || !fileName.startsWith(root)) fileName else fileName.removePrefix(root)
-            val fullName = shortFileName.removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
+            if (root == null || !fileName.startsWith(root)) {
+                return null
+            }
+            val fullName = fileName.removePrefix(root).removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
             return ModulePath(fullName.split('.'))
         }
 
     val fullName
-        get() = modulePath.toString()
+        get() = modulePath?.toString() ?: name
 
     val libraryName
         get() = module?.name ?: if (name == "Prelude.ard") "prelude" else null

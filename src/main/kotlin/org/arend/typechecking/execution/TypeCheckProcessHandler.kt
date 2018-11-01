@@ -146,7 +146,7 @@ class TypeCheckProcessHandler(
                             }
                         } else {
                             val tcReferable = runReadAction { referableConverter.toDataLocatedReferable(ref) }
-                            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                            val typechecked = if (PsiLocatedReferable.isValid(tcReferable)) typeCheckerService.typecheckerState.getTypechecked(tcReferable) else null
                             if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
@@ -204,7 +204,7 @@ class TypeCheckProcessHandler(
 
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
-        if (tcReferable == null || ordering.getTypechecked(tcReferable) == null) {
+        if (!PsiLocatedReferable.isValid(tcReferable) || ordering.getTypechecked(tcReferable) == null) {
             (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
         }
 
@@ -221,11 +221,14 @@ class TypeCheckProcessHandler(
             when (child) {
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable ?: ModuleReferable(modulePath), child.errorDescription))
-                    if (group is PsiLocatedReferable) {
-                        typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
-                    } else {
-                        typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                    if (modulePath != null) {
+                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable
+                            ?: ModuleReferable(modulePath), child.errorDescription))
+                        if (group is PsiLocatedReferable) {
+                            typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
+                        } else {
+                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                        }
                     }
                 }
                 is ArendStatement -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }

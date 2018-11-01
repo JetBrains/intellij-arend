@@ -68,14 +68,21 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
         // TODO: Compare expressions
     }
 
-    private fun compare(actualType: Abstract.Expression, expectedType: Any) {
+    private fun compare(actualType: Abstract.Expression, expectedType: Any, isReference: Boolean) {
         val expr = expectedType as? Abstract.Expression ?: (expectedType as? ExpectedTypeVisitor.Substituted)?.expr
         if (expr != null) {
             compareExpr(actualType, false, expr, expectedType is ExpectedTypeVisitor.Substituted, true)
             return
         }
 
-        val visitor = ExpectedTypeVisitor.GetKindDefVisitor()
+        val visitor = object : ExpectedTypeVisitor.GetKindDefVisitor() {
+            override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
+                if (isReference && parameters.all { !it.isExplicit }) {
+                    codomain?.accept(this, null) ?: Kind.UNKNOWN
+                } else {
+                    Kind.PI
+                }
+        }
         val expectedKind = getKind(expectedType, visitor)
         if (expectedKind != null && !expectedKind.isWHNF()) {
             return
@@ -102,7 +109,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
                         typeMismatch("a universe", toString(actualType))
                 }
             ExpectedTypeVisitor.Data ->
-                if (actualKind != GetKindVisitor.Kind.DATA) {
+                if (actualKind != GetKindVisitor.Kind.DATA && actualKind != GetKindVisitor.Kind.SIGMA && actualKind != GetKindVisitor.Kind.CLASS && actualKind != GetKindVisitor.Kind.CLASS_EXT) {
                     typeMismatch("a data", toString(actualType))
                 }
             is ExpectedTypeVisitor.Definition ->
@@ -138,7 +145,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
             return
         }
 
-        compare(actualType, expectedType)
+        compare(actualType, expectedType, true)
     }
 
     override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, expectedType: Any?) =
@@ -292,7 +299,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
 
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, expectedType: Any?) {
         if (expectedType != null) {
-            compare(type, expectedType)
+            compare(type, expectedType, false)
         }
     }
 }

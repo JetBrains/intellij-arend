@@ -11,13 +11,13 @@ import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
 import org.arend.module.ModulePath
+import org.arend.psi.ArendFile
+import org.arend.psi.module
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
-import org.arend.psi.ArendFile
-import org.arend.psi.module
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -42,7 +42,7 @@ val YAMLFile.libModulesProp: List<String>?
     get() = (getProp("modules") as? YAMLSequence)?.items?.mapNotNull { (it.value as? YAMLScalar)?.textValue }
 
 val YAMLFile.libModules: List<ModulePath>
-    get() = libModulesProp?.mapNotNull { FileUtils.modulePath(it) } ?: sourcesDirFile?.let { getArendFiles(it).map { it.modulePath } } ?: emptyList()
+    get() = libModulesProp?.mapNotNull { FileUtils.modulePath(it) } ?: sourcesDirFile?.let { getArendFiles(it).mapNotNull { it.modulePath } } ?: emptyList()
 
 private fun YAMLFile.getArendFiles(root: VirtualFile): List<ArendFile> {
     val result = ArrayList<ArendFile>()

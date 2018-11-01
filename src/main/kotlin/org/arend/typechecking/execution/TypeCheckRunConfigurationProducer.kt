@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
+import org.arend.psi.module
 import org.arend.psi.parentOfType
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
 import org.arend.typechecking.execution.configurations.TypeCheckConfigurationType
@@ -36,14 +37,15 @@ class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfi
         when (definition) {
             is ArendDefinition -> {
                 val file = definition.containingFile as? ArendFile ?: return null
+                val modulePath = file.modulePath ?: return null
                 sourceElement?.set(definition)
                 val fullName = definition.fullName
-                return MyConfiguration("Typecheck $fullName", TypeCheckCommand("", file.fullName, fullName))
+                return MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.module?.name ?: "", modulePath.toString(), fullName))
             }
             is ArendFile -> {
                 sourceElement?.set(definition)
-                val fullName = definition.fullName
-                return MyConfiguration("Typecheck $fullName", TypeCheckCommand("", fullName))
+                val fullName = definition.modulePath?.toString() ?: return null
+                return MyConfiguration("Typecheck $fullName", TypeCheckCommand(definition.module?.name ?: "", fullName))
             }
             else -> return null
         }

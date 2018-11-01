@@ -407,6 +407,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withParentOrGrandParent(ArendFunctionBody::class.java),
                 withParentOrGrandParent(ArendExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
                 not(afterLeaf(PIPE))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
@@ -584,7 +585,10 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
-            if (ofTypeK(PsiComment::class.java).accepts(parameters.position)) return // Prevents showing kw completions in comments
+            if (ofTypeK(PsiComment::class.java).accepts(parameters.position) || // Prevents showing kw completions in comments
+                    afterLeaf(DOT).accepts(parameters.position))                // Prevents showing kw completions after dot expression
+                return
+
             val prefix = computePrefix(parameters, resultSet)
 
             val prefixMatcher = object : PlainPrefixMatcher(prefix) {

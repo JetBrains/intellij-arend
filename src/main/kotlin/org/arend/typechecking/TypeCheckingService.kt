@@ -26,7 +26,6 @@ import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
@@ -106,11 +105,11 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
-                typecheckerState.reset(simpleReferableConverter.remove(field))
+                simpleReferableConverter.remove(field)
             }
         } else if (referable is DataDefinitionAdapter) {
             for (constructor in referable.constructors) {
-                typecheckerState.reset(simpleReferableConverter.remove(constructor))
+                simpleReferableConverter.remove(constructor)
             }
         }
         return tcReferable
@@ -119,7 +118,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun updateDefinition(referable: LocatedReferable) {
         val tcReferable = removeDefinition(referable) ?: return
         for (ref in dependencyListener.update(tcReferable)) {
-            PsiLocatedReferable.fromReferable(ref)?.let { removeDefinition(it) }
+            removeDefinition(ref)
         }
     }
 
