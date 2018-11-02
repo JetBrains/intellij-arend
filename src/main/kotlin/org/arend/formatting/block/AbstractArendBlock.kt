@@ -3,9 +3,10 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.formatter.common.AbstractBlock
+import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendElementTypes
 
-abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?): AbstractBlock(node, wrap, alignment) {
+abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?) : AbstractBlock(node, wrap, alignment) {
     override fun getIndent(): Indent? = myIndent
 
     override fun isLeaf(): Boolean = myNode.firstChildNode == null
@@ -16,4 +17,12 @@ abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignme
             ChildAttributes(Indent.getNoneIndent(), null)
 
     fun isLBrace() = myNode.elementType == ArendElementTypes.LBRACE
+
+    fun createArendBlock(childNode: ASTNode, childWrap: Wrap?, childAlignment: Alignment?, indent: Indent?): AbstractArendBlock {
+        val childPsi = childNode.psi
+        return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty()) ArgumentAppExprBlock(childNode, childWrap, childAlignment, indent)
+        else SimpleArendBlock(childNode, childWrap, childAlignment, indent)
+    }
+
+
 }

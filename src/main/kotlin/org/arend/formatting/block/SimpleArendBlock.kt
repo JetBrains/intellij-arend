@@ -34,6 +34,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         var child: ASTNode? = myNode.firstChildNode
         val alignment = Alignment.createAlignment()
         val alignment2 = Alignment.createAlignment()
+        val nodePsi = myNode.psi
 
         while (child != null) {
             if (child.elementType != WHITE_SPACE) {
@@ -42,22 +43,19 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                 if (child.elementType == CO_CLAUSE ||
                         child.elementType == STATEMENT ||
                         child.elementType == CONSTRUCTOR_CLAUSE ||
-                        child.elementType == FUNCTION_BODY && childPsi is ArendFunctionBody && childPsi.expr != null ||
                         myNode.elementType == CO_CLAUSE && childPsi is ArendExpr ||
                         child.psi is ArendWhere ||
-                        myNode.elementType == LET_EXPR && child.psi is ArendExpr ||
+                        myNode.elementType == LET_EXPR && childPsi is ArendExpr ||
+                        myNode.elementType == LET_CLAUSE && childPsi is ArendExpr ||
                         child.elementType == TUPLE_EXPR ||
-                        myNode.elementType == FUNCTION_BODY && child.psi is ArendExpr ||
-                        child.elementType == CLASS_STAT)
+                        nodePsi is ArendFunctionBody && nodePsi.coClauses == null && nodePsi.functionClauses == null ||
+                        child.elementType == CLASS_STAT ||
+                        childPsi is ArendExpr && myNode.elementType == LAM_EXPR)
                     Indent.getNormalIndent() else
-                if (myNode.elementType == ARGUMENT_APP_EXPR ||
-                        childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
-                                myNode.elementType == SIGMA_EXPR ||
-                                myNode.elementType == LAM_EXPR) )
+                if (childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
+                        myNode.elementType == SIGMA_EXPR))
                     Indent.getContinuationIndent() else
                     Indent.getNoneIndent()
-
-                val wrap = if (child.elementType == FUNCTION_BODY) Wrap.createWrap(WrapType.NORMAL, true) else null
 
                 if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR || myNode.elementType == DATA_BODY || myNode.elementType == CONSTRUCTOR) &&
                         child.elementType == PIPE) {
@@ -69,16 +67,32 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                     }
                 }
 
-                val align = if (myNode.elementType == LET_EXPR && (child.elementType == LET_KW || child.elementType == IN_KW))
-                    alignment2 else null
+                val align = when {
+                    myNode.elementType == LET_EXPR -> when {
+                        child.elementType == LET_KW || child.elementType == IN_KW -> alignment2
+                        child.elementType == LINE_COMMENT -> alignment
+                        else -> null
+                    }
+                    child.elementType == CO_CLAUSE -> alignment
+                    else -> null
+                }
 
-                val block = SimpleArendBlock(child, wrap, align, indent)
+
+                val block = createArendBlock(child, null, align, indent)
                 blocks.add(block)
 
             }
             child = child.treeNext
         }
         return blocks
+    }
+
+    override fun isIncomplete(): Boolean {
+        val psi = myNode.psi
+        if (psi is ArendNewExpr) {
+            return psi.lbrace != null && psi.rbrace == null
+        }
+        return false
     }
 
     companion object {
