@@ -16,85 +16,25 @@ import java.util.ArrayList
 
 class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
-        var child = myNode.firstChildNode
-        val blocks = ArrayList<Block>()
-        while (child != null && child.elementType != ATOM_ARGUMENT) {
-            blocks.add(createArendBlock(child, null, null, Indent.getNoneIndent()))
-            child = child.treeNext
-        }
-
-
         val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
                     parseBinOp(left, sequence)
         }
 
         val cExpr = (node.psi as ArendExpr).accept(expressionVisitor, null)
-        if (cExpr != null) return transform(cExpr).subBlocks
+        if (cExpr != null) return transform2(cExpr, myNode.psi.children.toList(), Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
 
         return ArrayList()
-
-        /*val n = (myNode.psi as ArendArgumentAppExpr).argumentList.size > 1
-        val blocks2 = ArrayList<Block>()
-        val alignment = Alignment.createAlignment()
-        var flag = true
-        while (child != null) {
-            flag = if (child.elementType != WHITE_SPACE) {
-                blocks2.add(createArendBlock(child, null, if (flag && n) alignment else null, Indent.getNoneIndent()))
-                false
-            } else child.text.contains('\n')
-            child = child.treeNext
-
-        }
-        if (blocks2.isNotEmpty())
-            blocks.add(object : AbstractArendBlock(myNode, null, null, Indent.getContinuationIndent()) {
-                override fun buildChildren(): MutableList<Block> = blocks2
-                override fun getTextRange(): TextRange {
-                    val f = blocks2.first()
-                    val l = blocks2.last()
-                    return TextRange(f.textRange.startOffset, l.textRange.endOffset)
-                }
-            })*/
-
     }
 
-
-    private fun transform(cExpr: Concrete.Expression): AbstractArendBlock {
+    private fun transform2(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>, align: Alignment?, indent: Indent): AbstractArendBlock {
         val cExprData = cExpr.data
-        if (cExpr is Concrete.AppExpression && cExprData is PsiElement) {
+        if (cExpr is Concrete.AppExpression) {
             val blocks = ArrayList<Block>()
             val fData = cExpr.function.data
-            var fieldMode = false
-
-            blocks.addAll(cExpr.arguments.asSequence().map { v: Concrete.Argument ->
-                val vExprData = v.expression.data
-                val blocks2 = ArrayList<Block>()
-                var lb: PsiElement? = null
-                var rb: PsiElement? = null
-                if (vExprData is PsiElement) {
-                    var vp: PsiElement? = vExprData
-                    if (fData == vExprData) {
-                        fieldMode = true
-                    } else if (!v.isExplicit) do {
-                        vp = vp?.parent
-                        if (vp is ArendImplicitArgument) {
-                            lb = vp.lbrace
-                            rb = vp.rbrace
-                        }
-                    } while (vp != null && vp.node != null &&
-                            vp.node.elementType != IMPLICIT_ARGUMENT)
-
-                    val te = transform(v.expression)
-                    if (lb != null && !te.textRange.contains(lb.node.textRange))
-                        blocks2.add(createArendBlock(lb.node, null, null, Indent.getNoneIndent()))
-                    blocks2.add(te)
-                    if (rb != null && !te.textRange.contains(rb.node.textRange))
-                        blocks2.add(createArendBlock(rb.node, null, null, Indent.getNoneIndent()))
-                } else throw IllegalStateException()
-                SimplestBlock(myNode, blocks2, null, null, Indent.getNoneIndent())
-
-            }.toList())
-
+            val newAlign = if(cExpr.arguments.size > 2) Alignment.createAlignment() else null
+            val newIndent = if (cExpr.arguments.size > 2) Indent.getNormalIndent() else Indent.getNoneIndent()
+            blocks.addAll(cExpr.arguments.asSequence().map { transform2(it.expression, aaeBlocks, newAlign, newIndent) }.toList())
             if (fData is PsiElement) {
                 val fBlock = createArendBlock(fData.node, null, null, Indent.getNoneIndent())
                 var haveBlockInThisRange = false
@@ -102,14 +42,19 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
                     haveBlockInThisRange = true
                     break
                 }
-                if (!fieldMode)
-                    blocks.add(fBlock)
-
+                if (!haveBlockInThisRange) blocks.add(fBlock)
             }
             blocks.sortBy { it.textRange.startOffset }
-            return SimplestBlock(myNode, blocks, null, null, Indent.getNoneIndent())
+            return SimplestBlock(myNode, blocks, null, align, indent)
         } else if (cExprData is PsiElement) {
-            return createArendBlock(cExprData.node, null, null, Indent.getNoneIndent())
+            var node: ASTNode? = null
+            for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
+                node = psi.node
+                break
+            }
+            if (node == null) throw IllegalStateException()
+
+            return createArendBlock(node, null, align, indent)
         } else throw IllegalStateException()
     }
 
