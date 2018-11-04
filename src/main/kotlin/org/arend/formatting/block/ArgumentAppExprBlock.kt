@@ -4,8 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendElementTypes.ATOM_ARGUMENT
-import org.arend.psi.ArendElementTypes.IMPLICIT_ARGUMENT
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendImplicitArgument
 import org.arend.term.abs.Abstract
@@ -72,14 +71,14 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
                 var rb: PsiElement? = null
                 if (vExprData is PsiElement) {
                     var vp: PsiElement? = vExprData
-                    //Probably rewrite this
-                    do {
+                    if (!v.isExplicit) do {
                         vp = vp?.parent
                         if (vp is ArendImplicitArgument) {
                             lb = vp.lbrace
                             rb = vp.rbrace
                         }
-                    } while (vp != null && vp.node != null && !(vp.node.elementType == ATOM_ARGUMENT || vp.node.elementType == IMPLICIT_ARGUMENT))
+                    } while (vp != null && vp.node != null &&
+                            vp.node.elementType != IMPLICIT_ARGUMENT)
 
                     val te = transform(v.expression)
                     if (lb != null && !te.textRange.contains(lb.node.textRange))
