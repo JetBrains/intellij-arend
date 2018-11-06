@@ -1,38 +1,29 @@
 package org.arend.formatting.block
 
-import com.intellij.formatting.*
+import com.intellij.formatting.Alignment
+import com.intellij.formatting.Block
+import com.intellij.formatting.Indent
+import com.intellij.formatting.Wrap
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import java.util.ArrayList
 
-class GroupBlock(myParentNode: ASTNode, private val myNodes: List<ASTNode>, private val myWrap: Wrap?, private val myAlignment: Alignment?, private val myIndent: Indent?,
-                 private val myChildAlignment: Alignment? = null):
-        AbstractArendBlock(myParentNode, myWrap, myAlignment, myIndent) {
-    override fun isLeaf(): Boolean = false
-
-    override fun getSpacing(child1: Block?, child2: Block): Spacing? = null
+class GroupBlock(myNode: ASTNode, private val blocks: List<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent) : AbstractArendBlock(myNode, wrap, alignment, indent) {
+    override fun buildChildren(): MutableList<Block> {
+        val result = ArrayList<Block>()
+        result.addAll(blocks)
+        return result
+    }
 
     override fun getTextRange(): TextRange {
-        if (myNodes.isNotEmpty()) {
-            val f = myNodes.first()
-            val l = myNodes.last()
-            return TextRange(f.startOffset, l.textRange.endOffset)
-        }
-        return TextRange.EMPTY_RANGE //wrong
+        val f = blocks.first()
+        val l = blocks.last()
+        return TextRange(f.textRange.startOffset, l.textRange.endOffset)
     }
 
-    override fun buildChildren(): MutableList<Block> {
-        val blocks = ArrayList<Block>()
-        for (node in myNodes) {
-            val block = createArendBlock(node, null, myChildAlignment, Indent.getNoneIndent())
-            blocks.add(block)
-        }
-        return blocks
+    override fun toString(): String {
+        var blockText = ""
+        for (b in blocks) blockText += b.toString()+"; "
+        return "$blockText $textRange"
     }
-
-    override fun isIncomplete(): Boolean = false
-
-    override fun getChildAttributes(newChildIndex: Int): ChildAttributes = ChildAttributes(Indent.getNoneIndent(), null)
-
-    override fun getIndent(): Indent? = myIndent
 }

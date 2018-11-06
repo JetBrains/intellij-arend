@@ -4,14 +4,11 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
-import org.arend.psi.ArendImplicitArgument
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
-import java.lang.IllegalArgumentException
 import java.util.ArrayList
 
 class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
@@ -22,19 +19,69 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
         }
 
         val cExpr = (node.psi as ArendExpr).accept(expressionVisitor, null)
-        if (cExpr != null) return transform2(cExpr, myNode.psi.children.toList(), Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
+        if (cExpr != null) return transform(cExpr, myNode.psi.children.toList(), Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
 
         return ArrayList()
     }
 
-    private fun transform2(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>, align: Alignment?, indent: Indent): AbstractArendBlock {
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        if (newChildIndex < subBlocks.size - 1) {
+            val child = subBlocks[newChildIndex+1].let {
+                if (it is AbstractArendBlock)
+                    subBlocks.getOrNull(newChildIndex) else it
+            }
+            val indent = if (child == null) Indent.getNoneIndent() else child.indent
+            return ChildAttributes(indent, child?.alignment)
+        }
+
+        return super.getChildAttributes(newChildIndex)
+    }
+
+    private fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>): TextRange {
+        val cExprData = cExpr.data
+        if (cExpr is Concrete.AppExpression) {
+            val elements = ArrayList<TextRange>()
+            val fData = cExpr.function.data
+
+            elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
+            if (fData is PsiElement) elements.add(fData.textRange)
+
+            val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
+            val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
+            if (startOffset != null && endOffset != null) {
+                return TextRange.create(startOffset, endOffset)
+            }
+        } else if (cExprData is PsiElement) {
+            for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
+                return psi.textRange
+            }
+        }
+        throw IllegalStateException()
+    }
+
+    private fun transform(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>, align: Alignment?, indent: Indent): AbstractArendBlock {
         val cExprData = cExpr.data
         if (cExpr is Concrete.AppExpression) {
             val blocks = ArrayList<Block>()
             val fData = cExpr.function.data
-            val newAlign = if(cExpr.arguments.size > 2) Alignment.createAlignment() else null
-            val newIndent = if (cExpr.arguments.size > 2) Indent.getNormalIndent() else Indent.getNoneIndent()
-            blocks.addAll(cExpr.arguments.asSequence().map { transform2(it.expression, aaeBlocks, newAlign, newIndent) }.toList())
+
+            val sampleBlockList = ArrayList<Pair<Boolean, Int>>()
+            sampleBlockList.addAll(cExpr.arguments.map {
+                val data = it.expression.data
+                Pair(false, (data as? PsiElement)?.node?.startOffset ?: -1) })
+            if (fData is PsiElement) sampleBlockList.add(Pair(true, fData.node.startOffset))
+            sampleBlockList.sortBy { it.second }
+            val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.first().first
+
+            val newAlign = if (cExpr.arguments.size > 1 && isPrefix) Alignment.createAlignment() else null
+            val newIndent = if (cExpr.arguments.size >= 1 && isPrefix) Indent.getNormalIndent() else Indent.getNoneIndent()
+
+            blocks.addAll(cExpr.arguments.asSequence().map {
+                val myBounds = getBounds(it.expression, aaeBlocks)
+                val aaeBlocksFiltered = aaeBlocks.filter { myBounds.contains(it.textRange)  }
+                transform(it.expression, aaeBlocksFiltered, newAlign, newIndent) })
+
+
             if (fData is PsiElement) {
                 val fBlock = createArendBlock(fData.node, null, null, Indent.getNoneIndent())
                 var haveBlockInThisRange = false
@@ -45,31 +92,37 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
                 if (!haveBlockInThisRange) blocks.add(fBlock)
             }
             blocks.sortBy { it.textRange.startOffset }
-            return SimplestBlock(myNode, blocks, null, align, indent)
+
+            // Dedicated search for "lost" blocks
+             val lostBlocks = aaeBlocks.asSequence().sortedBy { it.node.startOffset }.toMutableList()
+            for (block in blocks) {
+                val toRemove = ArrayList<PsiElement>()
+                for (aae in lostBlocks) {
+                    if (block.textRange.contains(aae.node.textRange)) toRemove.add(aae)
+                    if (aae.node.startOffset > block.textRange.endOffset) break
+                }
+                lostBlocks.removeAll(toRemove)
+            }
+
+            for (lostBlock in lostBlocks) //Lost blocks that were not in BinOpParser output
+                blocks.add(createArendBlock(lostBlock.node, null, null, Indent.getNoneIndent()))
+
+            blocks.sortBy { it.textRange.startOffset }
+
+            return GroupBlock(myNode, blocks, null, align, indent)
         } else if (cExprData is PsiElement) {
-            var node: ASTNode? = null
-            for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
-                node = psi.node
+            var psi: PsiElement? = null
+            for (aaeBlock in aaeBlocks) if (aaeBlock.textRange.contains(cExprData.node.textRange)) {
+                psi = aaeBlock
                 break
             }
-            if (node == null) throw IllegalStateException()
+            if (psi == null)
+                throw IllegalStateException()
 
-            return createArendBlock(node, null, align, indent)
+            val singletonSet = HashSet<PsiElement>()
+            singletonSet.add(psi)
+
+            return createArendBlock(psi.node, null, align, indent)
         } else throw IllegalStateException()
     }
-
-    class SimplestBlock(myNode: ASTNode, private val blocks: List<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent) : AbstractArendBlock(myNode, wrap, alignment, indent) {
-        override fun buildChildren(): MutableList<Block> {
-            val result = ArrayList<Block>()
-            result.addAll(blocks)
-            return result
-        }
-
-        override fun getTextRange(): TextRange {
-            val f = blocks.first()
-            val l = blocks.last()
-            return TextRange(f.textRange.startOffset, l.textRange.endOffset)
-        }
-    }
-
 }
