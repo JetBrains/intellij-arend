@@ -15,8 +15,8 @@ abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignme
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? = null
 
-    /*override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
-            ChildAttributes(Indent.getNoneIndent(), null)*/
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
+            ChildAttributes(Indent.getNoneIndent(), null)
 
     fun isLBrace() = myNode.elementType == ArendElementTypes.LBRACE
 

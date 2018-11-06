@@ -4,6 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.ArendElementTypes
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
 import java.util.ArrayList
 
@@ -21,6 +22,19 @@ class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInd
         }
 
         return result
+    }
+
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        if (newChildIndex > 0) {
+            val prevBlock = subBlocks[newChildIndex-1]
+            val indent =  if (prevBlock is AbstractArendBlock &&
+                    (prevBlock.node.elementType == FAT_ARROW ||
+                    prevBlock.node.elementType == COWITH_KW ||
+                    prevBlock.node.elementType == ELIM))
+                Indent.getNormalIndent() else Indent.getNoneIndent()
+            return ChildAttributes(indent, null)
+        }
+        return super.getChildAttributes(newChildIndex)
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {

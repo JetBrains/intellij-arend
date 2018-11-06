@@ -1,9 +1,6 @@
 package org.arend.formatting.block
 
-import com.intellij.formatting.Alignment
-import com.intellij.formatting.Block
-import com.intellij.formatting.Indent
-import com.intellij.formatting.Wrap
+import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import java.util.ArrayList
