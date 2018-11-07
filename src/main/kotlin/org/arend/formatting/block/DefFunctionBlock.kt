@@ -27,8 +27,8 @@ class DefFunctionBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        val spacingFA = SpacingImpl(1, 1, 0, false, false, false, 0, false, 0)
-        val spacingColon = SpacingImpl(1, 1, 0, false, false, true, 0, false, 0)
+        val spacingFA = SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
+        val spacingColon = SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
         if (child2 is FunctionBodyBlock) {
             val childPsi = child2.node.psi
             if (childPsi is ArendFunctionBody && childPsi.fatArrow != null) return spacingFA
@@ -38,6 +38,14 @@ class DefFunctionBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             if (child1et == COLON && child2psi is ArendExpr) return spacingColon
         }
         return null
+    }
+
+    override fun isIncomplete(): Boolean {
+        val nodePsi = node.psi
+        if (nodePsi is ArendDefFunction) {
+            return nodePsi.functionBody == null
+        }
+        return super.isIncomplete()
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {

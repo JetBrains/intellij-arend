@@ -1,6 +1,6 @@
 package org.arend.formatting
 
-class ArendNewlineTest: ArendFormatterTestBase() {
+class ArendNewlineTest : ArendFormatterTestBase() {
     fun testAfterFunc1() = checkNewLine(
             """
             \func lol (a : Nat) =>{-caret-}
@@ -11,11 +11,11 @@ class ArendNewlineTest: ArendFormatterTestBase() {
             """)
 
     fun testAfterFunc2() = checkNewLine(
-    """
+            """
             \func lol (a : Nat) =>{-caret-}
             \func lol2 => 1
             """,
-    """
+            """
             \func lol (a : Nat) =>
               {-caret-}
             \func lol2 => 1
@@ -50,4 +50,12 @@ class ArendNewlineTest: ArendFormatterTestBase() {
             \func lol (a : Nat)
               {-caret-}
             """)
+
+    fun testAfterFunc6() = checkNewLine(
+            "\\func lol (a : Nat){-caret-}\n  ",
+            "\\func lol (a : Nat)\n  {-caret-}\n  ")
+
+    fun testAfterFunc7() = checkNewLine(
+            "\\func lol (a : Nat){-caret-}",
+            "\\func lol (a : Nat)\n  \n  {-caret-}", 2)
 }

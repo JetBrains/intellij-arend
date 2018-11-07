@@ -5,17 +5,29 @@ import org.intellij.lang.annotations.Language
 
 abstract class ArendFormatterTestBase: ArendTestBase(){
 
-    protected fun checkNewLine(@Language("Arend") code: String, @Language("Arend") resultingContent: String) {
-        InlineFile(code.trimIndent()).withCaret()
-        myFixture.type('\n')
+    protected fun checkNewLine(@Language("Arend") code: String, @Language("Arend") resultingContent: String, count: Int = 1) {
+        val c = code.trimIndent()
+        InlineFile(c).withCaret()
+        for (i in 1..count) myFixture.type('\n')
 
-        val contentTrimmed = resultingContent.trimIndent()
-        val index = contentTrimmed.indexOf(CARET_MARKER)
+        val rC = resultingContent.trimIndent()
+        val index = rC.indexOf(CARET_MARKER)
         if (index != -1) {
-            myFixture.checkResult(contentTrimmed.replace(CARET_MARKER, ""), true)
-            assert (index == myFixture.caretOffset)
+            val contentWithoutMarkers = rC.replace(CARET_MARKER, "")
+            myFixture.checkResult(contentWithoutMarkers, false)
+            val actualCaret = myFixture.caretOffset
+            if (index != actualCaret) {
+                if (actualCaret < rC.length) {
+                    System.err.println("Expected caret position: \n$rC")
+                    System.err.println("Actual caret position: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
+                } else  {
+                    System.out.println("Expected caret position: $index\n Actual caret position: $actualCaret")
+                }
+                assert (false)
+            }
+
         } else {
-            myFixture.checkResult(contentTrimmed, true)
+            myFixture.checkResult(rC, true)
         }
     }
 }

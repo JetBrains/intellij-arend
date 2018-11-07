@@ -41,8 +41,13 @@ class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInd
         return ChildAttributes(Indent.getNormalIndent(), null)
     }
 
+    override fun isIncomplete(): Boolean {
+        if (node.startOffset == node.textRange.endOffset) return false
+        return super.isIncomplete()
+    }
+
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        val spacingCRLF = SpacingImpl(1, 1, 0, false, false, true, 0, false, 1)
+        val spacingCRLF = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
         if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return spacingCRLF
         return super.getSpacing(child1, child2)
     }

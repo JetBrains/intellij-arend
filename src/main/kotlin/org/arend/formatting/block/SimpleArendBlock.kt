@@ -94,7 +94,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         val psi = myNode.psi
         if (psi is ArendNewExpr) {
             return psi.lbrace != null && psi.rbrace == null
-        }
+        } else if (psi is ArendStatement) return true
         return super.isIncomplete()
     }
 
