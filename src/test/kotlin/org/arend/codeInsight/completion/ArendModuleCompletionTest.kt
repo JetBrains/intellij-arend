@@ -1,7 +1,7 @@
 package org.arend.codeInsight.completion
 
 class ArendModuleCompletionTest : ArendCompletionTestBase() {
-    fun `test module name completion`() = doSingleCompletionMultiflie(
+    fun `test module name completion`() = doSingleCompletionMultifile(
             """
                 --! Main.ard
                 \import My{-caret-}
@@ -14,7 +14,7 @@ class ArendModuleCompletionTest : ArendCompletionTestBase() {
             """
     )
 
-    fun `test directory name completion`() = doSingleCompletionMultiflie(
+    fun `test directory name completion`() = doSingleCompletionMultifile(
             """
                 --! Main.ard
                 \import Dir{-caret-}
@@ -27,7 +27,7 @@ class ArendModuleCompletionTest : ArendCompletionTestBase() {
             """
     )
 
-    fun `test module name completion subdirectory`() = doSingleCompletionMultiflie(
+    fun `test module name completion subdirectory`() = doSingleCompletionMultifile(
             """
                 --! Main.ard
                 \import Directory.My{-caret-}

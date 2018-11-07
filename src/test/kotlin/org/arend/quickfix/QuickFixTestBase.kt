@@ -17,9 +17,9 @@ abstract class QuickFixTestBase : ArendTestBase() {
 
         val quickfix = myFixture.findSingleIntention(fixName)
         myFixture.launchAction(quickfix)
-        val index = resultingContent.trimIndent().indexOf("{-caret-}")
+        val index = resultingContent.trimIndent().indexOf(CARET_MARKER)
         if (index != -1) {
-            myFixture.checkResult(resultingContent.trimIndent().replace("{-caret-}", ""), true)
+            myFixture.checkResult(resultingContent.trimIndent().replace(CARET_MARKER, ""), true)
             assert (index == myFixture.caretOffset)
         } else {
             myFixture.checkResult(resultingContent.trimIndent(), true)

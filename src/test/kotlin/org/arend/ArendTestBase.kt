@@ -117,13 +117,13 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     protected object DefaultDescriptor : ArendProjectDescriptorBase()
 
     inner class InlineFile(@Language("Arend") private val code: String, name: String = "Main.ard") {
-        private val hasCaretMarker = "{-caret-}" in code
+        private val hasCaretMarker = CARET_MARKER in code
 
         init {
             myFixture.configureByText(name, replaceCaretMarker(code))
         }
 
-        fun withCaret() = check(hasCaretMarker) { "Please, add `{-caret-}` marker to\n$code" }
+        fun withCaret() = check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
     }
 
     protected inline fun <reified T : PsiElement> findElementInEditor(marker: String = "^"): T {
@@ -162,6 +162,8 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     }
 
     companion object {
+        const val CARET_MARKER = "{-caret-}"
+
         @JvmStatic
         fun camelOrWordsToSnake(name: String): String {
             if (' ' in name) return name.replace(" ", "_")

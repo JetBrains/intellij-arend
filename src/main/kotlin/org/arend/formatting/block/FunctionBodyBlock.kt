@@ -2,10 +2,12 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
+import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
 class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
@@ -27,14 +29,16 @@ class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInd
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         if (newChildIndex > 0) {
             val prevBlock = subBlocks[newChildIndex-1]
-            val indent =  if (prevBlock is AbstractArendBlock &&
-                    (prevBlock.node.elementType == FAT_ARROW ||
-                    prevBlock.node.elementType == COWITH_KW ||
-                    prevBlock.node.elementType == ELIM))
-                Indent.getNormalIndent() else Indent.getNoneIndent()
+            val indent =  if (prevBlock is AbstractArendBlock) {
+                val eT = prevBlock.node.elementType
+                when (eT) {
+                    FAT_ARROW, COWITH_KW, ELIM, ERROR_ELEMENT -> Indent.getNormalIndent()
+                    else -> Indent.getNoneIndent()
+                }
+            } else Indent.getNoneIndent()
             return ChildAttributes(indent, null)
         }
-        return super.getChildAttributes(newChildIndex)
+        return ChildAttributes(Indent.getNormalIndent(), null)
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {

@@ -288,12 +288,11 @@ classSynRef ::= longName
 private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
 functionBody ::= functionTermBody
-    | coWith
+    | COWITH_KW coClauses?
     | elim? functionClauses {
+    pin(".*") = 1
     recoverWhile = statement_recover
 }
-
-private coWith ::= COWITH_KW coClauses? { pin = 1 }
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 

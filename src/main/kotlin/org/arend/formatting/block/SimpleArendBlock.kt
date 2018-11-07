@@ -95,7 +95,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         if (psi is ArendNewExpr) {
             return psi.lbrace != null && psi.rbrace == null
         }
-        return false
+        return super.isIncomplete()
     }
 
     private fun findClauseGroup(child: ASTNode, childAlignment: Alignment?): Pair<ASTNode, List<Block>>? {

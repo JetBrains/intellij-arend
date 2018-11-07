@@ -247,33 +247,42 @@ class ArendCompletionContributor : CompletionContributor() {
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
                     (l[0].referableList.size == 0 || l[0].referableList[0] == null || (l[0].referableList[0] as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED)
         }
-        val elimOrCoWithCondition = { coWithMode: Boolean -> { cP: CompletionParameters, _: ProcessingContext? ->
-            var pos2: PsiElement? = cP.position
-            var exprFound = false
-            while (pos2 != null) {
-               if ((pos2 is ArendDefFunction)) {
-                    val fBody = pos2.functionBody
-                    exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
-                    exprFound = exprFound &&
-                            if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
-                            else pos2.expr != null // No point of writing cowith keyword if there is no result type
-                    break
-                }
-                if ((pos2 is ArendDefData) && !coWithMode) {
-                    val dBody = pos2.dataBody
-                    exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
-                    exprFound = exprFound && !emptyTeleList(pos2.typeTeleList)
-                    break
-                }
+        val elimOrCoWithCondition = { coWithMode: Boolean ->
+            { cP: CompletionParameters, _: ProcessingContext? ->
+                var pos2: PsiElement? = cP.position
+                var exprFound = false
+                while (pos2 != null) {
+                    if (pos2.nextSibling is PsiWhiteSpace) {
+                        var body = pos2.nextSibling
+                        while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
+                        if (body is ArendFunctionBody || body is ArendDataBody) pos2 = body.parent
+                    }
 
-                if (pos2 is ArendConstructor && pos2.elim == null) {
-                    exprFound = !emptyTeleList(pos2.typeTeleList)
-                    break
+                    if ((pos2 is ArendDefFunction)) {
+                        val fBody = pos2.functionBody
+                        exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
+                        exprFound = exprFound &&
+                                if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
+                                else pos2.expr != null // No point of writing cowith keyword if there is no result type
+                        break
+                    }
+                    if ((pos2 is ArendDefData) && !coWithMode) {
+                        val dBody = pos2.dataBody
+                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                        exprFound = exprFound && !emptyTeleList(pos2.typeTeleList)
+                        break
+                    }
+
+                    if (pos2 is ArendConstructor && pos2.elim == null) {
+                        exprFound = !emptyTeleList(pos2.typeTeleList)
+                        break
+                    }
+
+                    if (pos2?.nextSibling == null) pos2 = pos2?.parent else break
                 }
-                if (pos2.nextSibling == null) pos2 = pos2.parent else break
+                exprFound
             }
-            exprFound
-        }}
+        }
 
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(ELIM_KW_LIST)))
         extend(CompletionType.BASIC, ELIM_CONTEXT, ProviderWithCondition(elimOrCoWithCondition.invoke(false), KeywordCompletionProvider(WITH_KW_LIST, false)))

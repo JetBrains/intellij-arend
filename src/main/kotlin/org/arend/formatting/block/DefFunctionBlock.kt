@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType
+import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
@@ -37,5 +38,9 @@ class DefFunctionBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             if (child1et == COLON && child2psi is ArendExpr) return spacingColon
         }
         return null
+    }
+
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        return ChildAttributes(Indent.getNormalIndent(), null)
     }
 }
