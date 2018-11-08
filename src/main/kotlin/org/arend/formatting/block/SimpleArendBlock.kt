@@ -7,7 +7,7 @@ import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
-class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?): AbstractArendBlock(node, wrap, alignment, myIndent) {
+class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         if (myNode.psi is ArendFunctionClauses) {
@@ -20,7 +20,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         val child = if (newChildIndex > 0) {
-            subBlocks[newChildIndex-1].let {
+            subBlocks[newChildIndex - 1].let {
                 if (it is AbstractArendBlock && it.isLBrace())
                     subBlocks.getOrNull(newChildIndex) else it
             }
@@ -40,22 +40,22 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             if (child.elementType != WHITE_SPACE) {
                 val childPsi = child.psi
                 val indent: Indent? =
-                if (child.elementType == CO_CLAUSE ||
-                        child.elementType == STATEMENT ||
-                        child.elementType == CONSTRUCTOR_CLAUSE ||
-                        myNode.elementType == CO_CLAUSE && childPsi is ArendExpr ||
-                        childPsi is ArendWhere ||
-                        myNode.elementType == LET_EXPR && childPsi is ArendExpr ||
-                        myNode.elementType == LET_CLAUSE && childPsi is ArendExpr ||
-                        child.elementType == TUPLE_EXPR ||
-                        nodePsi is ArendFunctionBody && nodePsi.coClauses == null && nodePsi.functionClauses == null ||
-                        child.elementType == CLASS_STAT ||
-                        childPsi is ArendExpr && myNode.elementType == LAM_EXPR)
-                    Indent.getNormalIndent() else
-                if (childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
-                        myNode.elementType == SIGMA_EXPR))
-                    Indent.getContinuationIndent() else
-                    Indent.getNoneIndent()
+                        if (child.elementType == CO_CLAUSE ||
+                                child.elementType == STATEMENT ||
+                                child.elementType == CONSTRUCTOR_CLAUSE ||
+                                myNode.elementType == CO_CLAUSE && childPsi is ArendExpr ||
+                                childPsi is ArendWhere ||
+                                myNode.elementType == LET_EXPR && childPsi is ArendExpr ||
+                                myNode.elementType == LET_CLAUSE && childPsi is ArendExpr ||
+                                child.elementType == TUPLE_EXPR ||
+                                nodePsi is ArendFunctionBody && nodePsi.coClauses == null && nodePsi.functionClauses == null ||
+                                child.elementType == CLASS_STAT ||
+                                childPsi is ArendExpr && myNode.elementType == LAM_EXPR)
+                            Indent.getNormalIndent() else
+                            if (childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
+                                            myNode.elementType == SIGMA_EXPR))
+                                Indent.getContinuationIndent() else
+                                Indent.getNoneIndent()
 
                 if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR || myNode.elementType == DATA_BODY || myNode.elementType == CONSTRUCTOR ||
                                 myNode.elementType == DEF_CLASS || myNode.elementType == CASE_EXPR) &&
@@ -92,17 +92,16 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
 
     override fun isIncomplete(): Boolean {
         val psi = myNode.psi
-        if (psi is ArendNewExpr) {
-            return psi.lbrace != null && psi.rbrace == null
-        }
-        return super.isIncomplete()
+        return if (psi is ArendNewExpr) psi.lbrace != null && psi.rbrace == null
+        else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
+        else super.isIncomplete()
     }
 
     private fun findClauseGroup(child: ASTNode, childAlignment: Alignment?): Pair<ASTNode, List<Block>>? {
         var currChild: ASTNode? = child
         val groupNodes = ArrayList<Block>()
         while (currChild != null) {
-            groupNodes.add( createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
+            groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
             if (currChild.elementType == CLAUSE || currChild.elementType == LET_CLAUSE || currChild.elementType == CONSTRUCTOR || currChild.elementType == CLASS_FIELD) {
                 return Pair(currChild, groupNodes)
             }

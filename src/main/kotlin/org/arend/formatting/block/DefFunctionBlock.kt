@@ -1,7 +1,6 @@
 package org.arend.formatting.block
 
 import com.intellij.formatting.*
-import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendElementTypes.*
@@ -9,7 +8,7 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
-class DefFunctionBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
+class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(defFunc.node, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
@@ -41,11 +40,8 @@ class DefFunctionBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun isIncomplete(): Boolean {
-        val nodePsi = node.psi
-        if (nodePsi is ArendDefFunction) {
-            return nodePsi.functionBody == null
-        }
-        return super.isIncomplete()
+        val fBody = defFunc.functionBody
+        return fBody == null || FunctionBodyBlock.isIncomplete(fBody)
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {

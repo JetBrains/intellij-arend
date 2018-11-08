@@ -1,7 +1,6 @@
 package org.arend.formatting.block
 
 import com.intellij.formatting.*
-import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.ArendElementTypes
@@ -10,7 +9,7 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
-class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
+class FunctionBodyBlock(val functionBody: ArendFunctionBody, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(functionBody.node, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
@@ -41,14 +40,17 @@ class FunctionBodyBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInd
         return ChildAttributes(Indent.getNormalIndent(), null)
     }
 
-    override fun isIncomplete(): Boolean {
-        if (node.startOffset == node.textRange.endOffset) return false
-        return super.isIncomplete()
-    }
+    override fun isIncomplete(): Boolean = isIncomplete(functionBody)
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         val spacingCRLF = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
         if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return spacingCRLF
         return super.getSpacing(child1, child2)
+    }
+
+    companion object {
+        fun isIncomplete(fBody: ArendFunctionBody) =
+                fBody.fatArrow != null && fBody.expr == null ||
+                        fBody.elim != null && fBody.functionClauses == null
     }
 }
