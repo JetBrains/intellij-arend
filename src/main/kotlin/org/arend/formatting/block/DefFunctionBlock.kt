@@ -15,7 +15,7 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Al
         var first = true
         while (c != null) {
             if (c.elementType != TokenType.WHITE_SPACE) {
-                val indent = if (c.elementType != FUNCTION_BODY && !first) Indent.getNormalIndent() else Indent.getNoneIndent()
+                val indent = if (!first) Indent.getNormalIndent() else Indent.getNoneIndent()
                 result.add(createArendBlock(c, null, null, indent))
             }
             c = c.treeNext
@@ -29,8 +29,8 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Al
         val spacingFA = SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
         val spacingColon = SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
         if (child2 is FunctionBodyBlock) {
-            val childPsi = child2.node.psi
-            if (childPsi is ArendFunctionBody && childPsi.fatArrow != null) return spacingFA
+            val child1node = (child1 as? AbstractArendBlock)?.node
+            if (child1node != null && child1node.elementType != LINE_COMMENT && child2.functionBody.fatArrow != null) return spacingFA
         } else if (child1 is AbstractArendBlock && child2 is AbstractArendBlock) {
             val child1et = child1.node.elementType
             val child2psi = child2.node.psi
