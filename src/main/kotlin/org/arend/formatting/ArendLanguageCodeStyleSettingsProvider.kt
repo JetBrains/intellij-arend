@@ -8,7 +8,16 @@ import com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider
 import org.arend.ArendLanguage
 
 class ArendLanguageCodeStyleSettingsProvider: LanguageCodeStyleSettingsProvider() {
-    override fun getCodeSample(settingsType: SettingsType): String? = "Lol"
+    override fun getCodeSample(settingsType: SettingsType): String? = """
+        \import Logic
+        \data Dec (E : \Type)
+        | yes E
+        | no (Not E)
+        \class Decide (E : \Type)
+        | decide : Dec E
+        \func DecEq (A : \Type) => \Pi {a a' : A} ->
+        Dec (a = a')
+    """.trimIndent()
 
     override fun getIndentOptionsEditor(): IndentOptionsEditor? = SmartIndentOptionsEditor(this)
 

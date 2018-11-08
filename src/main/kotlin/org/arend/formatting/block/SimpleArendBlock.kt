@@ -34,38 +34,19 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         var child: ASTNode? = myNode.firstChildNode
         val alignment = Alignment.createAlignment()
         val alignment2 = Alignment.createAlignment()
-        val nodePsi = myNode.psi
+        val nodeET = myNode.elementType
 
-        while (child != null) {
+        mainLoop@while (child != null) {
             if (child.elementType != WHITE_SPACE) {
                 val childPsi = child.psi
-                val indent: Indent? =
-                        if (child.elementType == CO_CLAUSE ||
-                                child.elementType == STATEMENT ||
-                                child.elementType == CONSTRUCTOR_CLAUSE ||
-                                myNode.elementType == CO_CLAUSE && childPsi is ArendExpr ||
-                                childPsi is ArendWhere ||
-                                myNode.elementType == LET_EXPR && childPsi is ArendExpr ||
-                                myNode.elementType == LET_CLAUSE && childPsi is ArendExpr ||
-                                child.elementType == TUPLE_EXPR ||
-                                nodePsi is ArendFunctionBody && nodePsi.coClauses == null && nodePsi.functionClauses == null ||
-                                child.elementType == CLASS_STAT ||
-                                childPsi is ArendExpr && myNode.elementType == LAM_EXPR)
-                            Indent.getNormalIndent() else
-                            if (childPsi is ArendExpr && (myNode.elementType == PI_EXPR ||
-                                            myNode.elementType == SIGMA_EXPR))
-                                Indent.getContinuationIndent() else
-                                Indent.getNoneIndent()
 
-                if ((myNode.elementType == FUNCTION_CLAUSES || myNode.elementType == LET_EXPR || myNode.elementType == DATA_BODY || myNode.elementType == CONSTRUCTOR ||
-                                myNode.elementType == DEF_CLASS || myNode.elementType == CASE_EXPR) &&
-                        child.elementType == PIPE) {
-                    val clauseGroup = findClauseGroup(child, null)
-                    if (clauseGroup != null) {
-                        child = clauseGroup.first.treeNext
-                        blocks.add(GroupBlock(myNode, clauseGroup.second, null, alignment, Indent.getNormalIndent()))
-                        continue
-                    }
+                val indent: Indent? = if (childPsi is ArendExpr) when (nodeET) {
+                    CO_CLAUSE, LET_EXPR, LET_CLAUSE -> Indent.getNormalIndent()
+                    PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
+                    else -> Indent.getNoneIndent()
+                } else when (child.elementType) {
+                    CO_CLAUSE, STATEMENT, CONSTRUCTOR_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT -> Indent.getNormalIndent()
+                    else -> Indent.getNoneIndent()
                 }
 
                 val align = when (myNode.elementType) {
@@ -80,12 +61,21 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                     }
                 }
 
+                if (child.elementType == PIPE) when (nodeET) {
+                    FUNCTION_CLAUSES, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR -> {
+                        val clauseGroup = findClauseGroup(child, null)
+                        if (clauseGroup != null) {
+                            child = clauseGroup.first.treeNext
+                            blocks.add(GroupBlock(myNode, clauseGroup.second, null, alignment, Indent.getNormalIndent()))
+                            continue@mainLoop
+                        }
+                    }
+                }
 
-                val block = createArendBlock(child, null, align, indent)
-                blocks.add(block)
-
+                blocks.add(createArendBlock(child, null, align, indent))
             }
             child = child.treeNext
+
         }
         return blocks
     }
@@ -102,8 +92,8 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         val groupNodes = ArrayList<Block>()
         while (currChild != null) {
             groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
-            if (currChild.elementType == CLAUSE || currChild.elementType == LET_CLAUSE || currChild.elementType == CONSTRUCTOR || currChild.elementType == CLASS_FIELD) {
-                return Pair(currChild, groupNodes)
+            when (currChild.elementType) {
+                CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD -> return Pair(currChild, groupNodes)
             }
             currChild = currChild.treeNext
         }

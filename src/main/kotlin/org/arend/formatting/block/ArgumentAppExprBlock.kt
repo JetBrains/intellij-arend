@@ -74,7 +74,7 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
             val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.first().first
 
             val newAlign = if (cExpr.arguments.size > 1 && isPrefix) Alignment.createAlignment() else null
-            val newIndent = if (cExpr.arguments.size >= 1 && isPrefix) Indent.getNormalIndent() else Indent.getNoneIndent()
+            val newIndent = if (cExpr.arguments.size >= 1 && isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
                 val myBounds = getBounds(it.expression, aaeBlocks)

@@ -15,7 +15,10 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Al
         var first = true
         while (c != null) {
             if (c.elementType != TokenType.WHITE_SPACE) {
-                val indent = if (!first) Indent.getNormalIndent() else Indent.getNoneIndent()
+                val cPsi = c.psi
+                val notFBodyWithClauses = if (cPsi is ArendFunctionBody) cPsi.fatArrow != null else true //Needed for correct indentation of fat arrow
+
+                val indent = if (!first && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
                 result.add(createArendBlock(c, null, null, indent))
             }
             c = c.treeNext
