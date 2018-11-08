@@ -9,14 +9,14 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCoClauseImplMixin
+import org.arend.psi.ext.impl.ClassFieldImplAdapter
+import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.ArgInferenceError
-import org.arend.psi.ext.ArendCoClauseImplMixin
-import org.arend.psi.ext.impl.ClassFieldImplAdapter
-import org.arend.psi.ext.impl.DefinitionAdapter
 import java.math.BigInteger
 import java.util.*
 
@@ -373,7 +373,10 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
                         }
                         Definition(implemented)
                     }
-                    is Abstract.ClassField -> reduceParameters(PsiTreeUtil.getChildrenOfTypeAsList(parent as? PsiElement, ArendNameTele::class.java), implemented.resultType, holder)
+                    is Abstract.ClassField -> {
+                        val typeParameters = implemented.parameters
+                        reduceParameters(PsiTreeUtil.getChildrenOfTypeAsList(parent as? PsiElement, ArendNameTele::class.java), if (typeParameters.isEmpty()) implemented.resultType else PiImpl(typeParameters, implemented.resultType), holder)
+                    }
                     else -> null
                 }
             }
