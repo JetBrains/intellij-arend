@@ -208,7 +208,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func f (a : Nat) => \\Sigma ({-caret-})",
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
-                    "\\func g => 101 (\\lam a => {-caret-})")
+                    "\\func g => 101 (\\lam a => {-caret-})",
+                    "\\class X { | x : {-caret-} }",
+                    "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }")
+
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f({-caret-})")
