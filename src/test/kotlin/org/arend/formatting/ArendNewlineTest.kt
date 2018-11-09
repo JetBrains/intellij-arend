@@ -36,4 +36,32 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testAfterFunc9() = checkNewLine(
             "\\func pred (x : Nat) : Nat\n  | zero => 0\n  | suc x' => x'{-caret-}\n\n \\func lol => 1",
             "\\func pred (x : Nat) : Nat\n  | zero => 0\n  | suc x' => x'\n  {-caret-}\n\n \\func lol => 1")
+
+    fun testInExpr1() = checkNewLine(
+            "\\func lol4 => ({-caret-})",
+            "\\func lol4 => (\n  {-caret-}\n)")
+
+    fun testInstance1() = checkNewLine(
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1{-caret-}",
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  {-caret-}")
+
+    fun testInstance2() = checkNewLine(
+            "\\class C { a : Nat } \n\n\\instance I : C{-caret-}\n  | a => 1\n",
+            "\\class C { a : Nat } \n\n\\instance I : C\n  {-caret-}\n  | a => 1\n")
+
+    fun testInstance3() = checkNewLine(
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1{-caret-}\n\n\\func lol => 1",
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  {-caret-}\n\n\\func lol => 1")
+
+    fun testWhere1() = checkNewLine(
+            "\\func lol => 1 \\where{-caret-}",
+            "\\func lol => 1 \\where\n  {-caret-}")
+
+    fun testInstance4() = checkNewLine(
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
+            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
+
+    fun testData1() = checkNewLine("\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n",
+
+    )
 }

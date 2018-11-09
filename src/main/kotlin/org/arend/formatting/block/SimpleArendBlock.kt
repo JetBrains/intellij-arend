@@ -20,7 +20,17 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        System.out.println("SimpleArendBlock.getChildAttributes($newChildIndex)")
+        System.out.println("SimpleArendBlock(${node.elementType}).getChildAttributes($newChildIndex)")
+        val nodePsi = node.psi
+        if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1 ||
+                node.elementType == WHERE && newChildIndex >= 1 ||
+                nodePsi is ArendDefInstance && newChildIndex == subBlocks.size-1 && nodePsi.where == null) {
+            return ChildAttributes(Indent.getNormalIndent(), null)
+        } else if (node.elementType == CO_CLAUSE && subBlocks.size == newChildIndex)
+            return ChildAttributes(indent, alignment)
+        else if (nodePsi is ArendDefInstance && newChildIndex == subBlocks.size && nodePsi.where != null)
+            return ChildAttributes(Indent.getNoneIndent(), null)
+
         val child = if (newChildIndex > 0) {
             subBlocks[newChildIndex - 1].let {
                 if (it is AbstractArendBlock && it.isLBrace())
@@ -89,6 +99,9 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                 else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
                 else if (psi is ArendFunctionClauses) psi.rbrace == null
                 else if (psi is ArendCoClauses) psi.rbrace == null
+                else if (psi is ArendCoClause) true
+                else if (psi is ArendDefInstance)
+                    subBlocks.asSequence().filter { it is AbstractArendBlock && it.node.elementType == CO_CLAUSES }.firstOrNull().let { it?.isIncomplete ?: super.isIncomplete() }
                 else super.isIncomplete()
         System.out.println("SimpleArendBlock.isIncomplete(${node.elementType}/${node.text}) = $result")
         return result
