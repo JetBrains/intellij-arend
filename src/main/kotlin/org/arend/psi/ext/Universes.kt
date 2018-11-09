@@ -8,13 +8,13 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 
 
-private fun <P : Any?, R : Any?> acceptSet(data: Any, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, if (visitor.visitErrors() && setElem is ArendCompositeElement) org.arend.psi.ext.getErrorData(setElem) else null, params)
+private fun <P : Any?, R : Any?> acceptSet(data: ArendCompositeElement, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
 
-private fun <P : Any?, R : Any?> acceptUniverse(data: Any, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, if (visitor.visitErrors() && universeElem is ArendCompositeElement) org.arend.psi.ext.getErrorData(universeElem) else null, params)
+private fun <P : Any?, R : Any?> acceptUniverse(data: ArendCompositeElement, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
 
-private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
+private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val uniText = truncatedElem.text
     val index = uniText.indexOf('-')
     val hLevelNum = when {
@@ -23,7 +23,7 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: Any, truncatedElem: PsiEl
         else                             -> null
     }
     val pLevelNum = if (hLevelNum != null) uniText.substring(index + "-Type".length).toIntOrNull() else null
-    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, if (visitor.visitErrors() && truncatedElem is ArendCompositeElement) org.arend.psi.ext.getErrorData(truncatedElem) else null, params)
+    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
 }
 
 
