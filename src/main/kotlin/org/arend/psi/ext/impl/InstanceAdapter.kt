@@ -37,13 +37,13 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return ReferableExtractVisitor().findClassReferable(type)
+        return ReferableExtractVisitor().findReferable(type) as? ClassReferable
     }
 
     override fun getClassReferenceData(): ClassReferenceData? {
         val type = resultType ?: return null
         val visitor = ReferableExtractVisitor(true)
-        val classRef = visitor.findClassReferable(type) ?: return null
+        val classRef = visitor.findReferable(type) as? ClassReferable ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 
