@@ -2,6 +2,7 @@ package org.arend.codeInsight.completion
 
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.AS_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_LEVEL_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COWITH_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
@@ -39,7 +40,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data MyNat | {-caret-}myzero",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class AddMonoid => Monoid { | * => {-caret-}+}")
+                    "\\class AddMonoid => Monoid { | * => {-caret-}+}",
+                    "\\class Lol { } \\where { \\use \\level {-caret-} } ")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -92,6 +94,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test local statement keywords completion in func where block 2`() =
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuite1)
+
+    fun `test keywords after use`() =
+            checkKeywordCompletionVariants(COERCE_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+                    "\\func lol => 1 \\where { \\use {-caret-} }")
 
     fun `test local statement keywords in data and class`() =
             checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + USE_KW_LIST, CompletionCondition.CONTAINS,
