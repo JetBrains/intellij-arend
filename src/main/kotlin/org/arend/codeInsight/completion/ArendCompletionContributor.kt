@@ -13,11 +13,11 @@ import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
-import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.search.ArendWordScanner
+import org.arend.term.abs.Abstract
 import java.util.*
 
 class ArendCompletionContributor : CompletionContributor() {
@@ -73,7 +73,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { coerceAdmissibleAncestors.accepts(it) }.toSet().isNotEmpty() },
-                        KeywordCompletionProvider(COERCE_KW_LIST))))
+                        KeywordCompletionProvider(USE_KW_LIST))))
+        extend(CompletionType.BASIC, afterLeaf(USE_KW), KeywordCompletionProvider(COERCE_LEVEL_KWS))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
@@ -324,13 +325,13 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ch is ArendAtomArgument) forbidden = true
                     }
                     counter < threshold && !forbidden
-                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
             }
         }
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, false, 2), KeywordCompletionProvider(LPH_KW_LIST)))
 
-        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, true, 1), KeywordCompletionProvider(LEVELS_KW_LIST)))
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, true, 1), KeywordCompletionProvider(LEVEL_KW_LIST)))
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION_IN_BRACKETS, ProviderWithCondition(unifiedLevelCondition.invoke(1, false, 2), KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
@@ -339,7 +340,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, withParent(ArendArgumentAppExpr::class.java), ProviderWithCondition({ cP, _ ->
             val argumentAppExpr: ArendArgumentAppExpr? = cP.position.parent as ArendArgumentAppExpr
-            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+            argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
@@ -354,6 +355,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
         val LPH_KW_LIST = listOf(LP_KW, LH_KW).map { it.toString() }
         val ELIM_WITH_KW_LIST = listOf(ELIM_KW, WITH_KW).map { it.toString() }
+        val COERCE_LEVEL_KWS = listOf(COERCE_KW, LEVEL_KW).map{ it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -367,16 +369,16 @@ class ArendCompletionContributor : CompletionContributor() {
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
-        val LEVELS_KW_LIST = listOf(LEVELS_KW.toString())
+        val LEVEL_KW_LIST = listOf(LEVEL_KW.toString())
         val PROP_KW_LIST = listOf(PROP_KW.toString())
-        val COERCE_KW_LIST = listOf(COERCE_KW.toString())
+        val USE_KW_LIST = listOf(USE_KW.toString())
         val RETURN_KW_LIST = listOf(RETURN_KW.toString())
         val COWITH_KW_LIST = listOf(COWITH_KW.toString())
         val ELIM_KW_LIST = listOf(ELIM_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
-        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + COERCE_KW_LIST
+        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
@@ -394,7 +396,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
-        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
+        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(COERCE_KW), afterLeaf(LEVEL_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java)), //class field
@@ -407,10 +409,9 @@ class ArendCompletionContributor : CompletionContributor() {
         val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
                 not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
                 afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
-                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW))),
+                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW))),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
-                not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java))
-        )
+                not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
         val EXPRESSION_CONTEXT = and(or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
                 withParentOrGrandParent(ArendFunctionBody::class.java),

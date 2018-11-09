@@ -59,9 +59,9 @@ class ArendReferableConverter(private val project: Project?, private val state: 
 
                     if (referable is ClassReferable && result is ClassDataLocatedReferable && !result.filledIn) {
                         result.underlyingClass = toDataLocatedReferable(referable.underlyingReference) as? TCClassReferable
-                        result.superClassReferences.clear()
+                        result.superClasses.clear()
                         for (ref in referable.superClassReferences) {
-                            (toDataLocatedReferable(ref) as? TCClassReferable)?.let { result.superClassReferences.add(it) }
+                            (toDataLocatedReferable(ref) as? TCClassReferable)?.let { result.superClasses.add(it) }
                         }
                         result.fieldReferables.clear()
                         for (ref in referable.fieldReferables) {

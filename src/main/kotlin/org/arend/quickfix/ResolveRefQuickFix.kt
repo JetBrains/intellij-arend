@@ -29,9 +29,14 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 
     override fun isValid() = importFile.modulePath?.let { currentFile.module?.libraryConfig?.findArendFile(it) } == importFile || ResolveRefQuickFix.isPrelude(importFile)
 
-    private fun calculateWhiteSpace(statement: PsiElement): String {
+    private fun calculateWhiteSpace(statement: PsiElement): String { //TODO: Get rid of this code and use formatting model's spacing rules instead to handle this situation
         var s = statement.nextSibling
-        while (s is PsiWhiteSpace || s is PsiComment) s = s.nextSibling
+        var i = 0
+        while (s is PsiWhiteSpace || s is PsiComment) {
+            i += s.text.filter { it == '\n' }.toList().size
+            if (i > 1) return ""
+            s = s.nextSibling
+        }
         return if (s is ArendStatement && s.statCmd == null) "\n" else ""
     }
 
