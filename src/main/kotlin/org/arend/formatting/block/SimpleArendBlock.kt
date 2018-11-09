@@ -2,6 +2,7 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.TokenType.WHITE_SPACE
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -41,7 +42,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             if (child.elementType != WHITE_SPACE) {
                 val childPsi = child.psi
 
-                val indent: Indent? = if (childPsi is ArendExpr) when (nodeET) {
+                val indent: Indent? = if (childPsi is ArendExpr || childPsi is PsiErrorElement) when (nodeET) {
                     CO_CLAUSE, LET_EXPR, LET_CLAUSE -> Indent.getNormalIndent()
                     PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                     else -> Indent.getNoneIndent()
