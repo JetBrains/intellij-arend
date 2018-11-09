@@ -19,6 +19,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        System.out.println("SimpleArendBlock.getChildAttributes($newChildIndex)")
         val child = if (newChildIndex > 0) {
             subBlocks[newChildIndex - 1].let {
                 if (it is AbstractArendBlock && it.isLBrace())
@@ -36,7 +37,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         val alignment2 = Alignment.createAlignment()
         val nodeET = myNode.elementType
 
-        mainLoop@while (child != null) {
+        mainLoop@ while (child != null) {
             if (child.elementType != WHITE_SPACE) {
                 val childPsi = child.psi
 
@@ -82,9 +83,14 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
 
     override fun isIncomplete(): Boolean {
         val psi = myNode.psi
-        return if (psi is ArendNewExpr) psi.lbrace != null && psi.rbrace == null
-        else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
-        else super.isIncomplete()
+        val result =
+                if (psi is ArendNewExpr) psi.lbrace != null && psi.rbrace == null
+                else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
+                else if (psi is ArendFunctionClauses) psi.rbrace == null
+                else if (psi is ArendCoClauses) psi.rbrace == null
+                else super.isIncomplete()
+        System.out.println("SimpleArendBlock.isIncomplete(${node.elementType}/${node.text}) = $result")
+        return result
     }
 
     private fun findClauseGroup(child: ASTNode, childAlignment: Alignment?): Pair<ASTNode, List<Block>>? {

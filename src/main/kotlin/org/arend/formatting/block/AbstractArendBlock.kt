@@ -20,6 +20,8 @@ abstract class AbstractArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignme
 
     fun isLBrace() = myNode.elementType == ArendElementTypes.LBRACE
 
+
+
     fun createArendBlock(childNode: ASTNode, childWrap: Wrap?, childAlignment: Alignment?, indent: Indent?): AbstractArendBlock {
         val childPsi = childNode.psi
         return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty()) ArgumentAppExprBlock(childNode, childWrap, childAlignment, indent)

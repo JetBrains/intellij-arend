@@ -8,7 +8,7 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
-class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(defFunc.node, wrap, alignment, myIndent) {
+class DefFunctionBlock(private val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(defFunc.node, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
@@ -17,8 +17,8 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Al
             if (c.elementType != TokenType.WHITE_SPACE) {
                 val cPsi = c.psi
                 val notFBodyWithClauses = if (cPsi is ArendFunctionBody) cPsi.fatArrow != null else true //Needed for correct indentation of fat arrow
-
                 val indent = if (!first && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
+
                 result.add(createArendBlock(c, null, null, indent))
             }
             c = c.treeNext
@@ -43,11 +43,19 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Al
     }
 
     override fun isIncomplete(): Boolean {
-        val fBody = defFunc.functionBody
-        return fBody == null || FunctionBodyBlock.isIncomplete(fBody)
+        val fBB = locateFunctionBodyBlock()
+        val result = fBB != null && fBB.isIncomplete
+        System.out.println("DefFunctionBlock.isIncomplete(${node.text}) = $result")
+        return result
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        System.out.println("DefFunctionBlock.getChildAttributes($newChildIndex)")
         return ChildAttributes(Indent.getNormalIndent(), null)
+    }
+
+    private fun locateFunctionBodyBlock(): AbstractArendBlock? {
+        for (b in subBlocks) if (b is AbstractArendBlock && b.node.elementType == FUNCTION_BODY) return b
+        return null
     }
 }

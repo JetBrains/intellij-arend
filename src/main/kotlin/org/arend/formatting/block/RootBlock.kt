@@ -25,7 +25,10 @@ class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
          return null
     }
 
-    override fun getChildAttributes(newChildIndex: Int): ChildAttributes = ChildAttributes(Indent.getNoneIndent(), null)
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        System.out.println("RootBlock.getChildAttributes($newChildIndex)")
+        return ChildAttributes(Indent.getNoneIndent(), null)
+    }
 
     override fun getIndent(): Indent? = Indent.getNoneIndent()
 
@@ -42,4 +45,6 @@ class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
         }
         return blocks
     }
+
+    override fun isIncomplete(): Boolean = true
 }

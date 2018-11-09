@@ -18,6 +18,17 @@ class GroupBlock(myNode: ASTNode, private val blocks: List<Block>, wrap: Wrap?, 
         return TextRange(f.textRange.startOffset, l.textRange.endOffset)
     }
 
+    override fun isIncomplete(): Boolean {
+        val result = true
+        System.out.println("GroupBlock.isIncomplete() = $result")
+        return result
+    }
+
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        System.out.println("GroupBlock.getChildAttributes($newChildIndex)")
+        return if (newChildIndex == blocks.size) ChildAttributes(indent, alignment) else super.getChildAttributes(newChildIndex)
+    }
+
     override fun toString(): String {
         var blockText = ""
         for (b in blocks) blockText += b.toString()+"; "
