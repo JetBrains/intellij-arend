@@ -13,11 +13,11 @@ import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
-import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.search.ArendWordScanner
+import org.arend.term.abs.Abstract
 import java.util.*
 
 class ArendCompletionContributor : CompletionContributor() {
@@ -73,7 +73,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
                 ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { coerceAdmissibleAncestors.accepts(it) }.toSet().isNotEmpty() },
-                        KeywordCompletionProvider(COERCE_KW_LIST))))
+                        KeywordCompletionProvider(USE_KW_LIST))))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
@@ -319,13 +319,13 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ch is ArendAtomArgument) forbidden = true
                     }
                     counter < threshold && !forbidden
-                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
             }
         }
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, false, 2), KeywordCompletionProvider(LPH_KW_LIST)))
 
-        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, true, 1), KeywordCompletionProvider(LEVELS_KW_LIST)))
+        extend(CompletionType.BASIC, ARGUMENT_EXPRESSION, ProviderWithCondition(unifiedLevelCondition.invoke(0, true, 1), KeywordCompletionProvider(LEVEL_KW_LIST)))
 
         extend(CompletionType.BASIC, ARGUMENT_EXPRESSION_IN_BRACKETS, ProviderWithCondition(unifiedLevelCondition.invoke(1, false, 2), KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
@@ -334,7 +334,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, withParent(ArendArgumentAppExpr::class.java), ProviderWithCondition({ cP, _ ->
             val argumentAppExpr: ArendArgumentAppExpr? = cP.position.parent as ArendArgumentAppExpr
-            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+            argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
@@ -362,16 +362,16 @@ class ArendCompletionContributor : CompletionContributor() {
         val FAKE_NTYPE_LIST = listOf("\\n-Type")
         val IN_KW_LIST = listOf(IN_KW.toString())
         val WITH_KW_LIST = listOf(WITH_KW.toString())
-        val LEVELS_KW_LIST = listOf(LEVELS_KW.toString())
+        val LEVEL_KW_LIST = listOf(LEVEL_KW.toString())
         val PROP_KW_LIST = listOf(PROP_KW.toString())
-        val COERCE_KW_LIST = listOf(COERCE_KW.toString())
+        val USE_KW_LIST = listOf(USE_KW.toString())
         val RETURN_KW_LIST = listOf(RETURN_KW.toString())
         val COWITH_KW_LIST = listOf(COWITH_KW.toString())
         val ELIM_KW_LIST = listOf(ELIM_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
-        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + COERCE_KW_LIST
+        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS

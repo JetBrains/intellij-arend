@@ -40,6 +40,7 @@
         MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
         COERCE_KW           = '\coerce'
+        USE_KW              = '\use'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
         RIGHT_ASSOC_KW      = '\fixr'
@@ -68,7 +69,7 @@
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         SUC_KW              = '\suc'
-        LEVELS_KW           = '\levels'
+        LEVEL_KW            = '\level'
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
@@ -90,7 +91,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | COERCE_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | USE_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -210,7 +211,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
+defFunction ::= (FUNCTION_KW | useMod) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
@@ -218,6 +219,8 @@ defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [CO
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private useMod ::= USE_KW (COERCE_KW | LEVEL_KW) { pin = 1 }
 
 private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
@@ -606,7 +609,7 @@ onlyLevelExpr ::= atomOnlyLevelExpr
 
 levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
-private levelsLevels ::= LEVELS_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
+private levelsLevels ::= LEVEL_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW

@@ -32,6 +32,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun isCoerce() = coerceKw != null
 
+    override fun isLevel() = levelKw != null
+
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
     override fun getIcon(flags: Int): Icon = ArendIcons.FUNCTION_DEFINITION

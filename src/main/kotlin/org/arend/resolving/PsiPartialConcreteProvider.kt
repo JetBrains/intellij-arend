@@ -3,12 +3,12 @@ package org.arend.resolving
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Reference
-import org.arend.typechecking.typecheckable.provider.PartialConcreteProvider
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefData
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendDefInstance
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.typecheckable.provider.PartialConcreteProvider
 
 
 object PsiPartialConcreteProvider : PartialConcreteProvider {
@@ -24,7 +24,7 @@ object PsiPartialConcreteProvider : PartialConcreteProvider {
 
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefInstance
 
-    override fun isCoerce(ref: GlobalReferable) = (PsiLocatedReferable.fromReferable(ref) as? ArendDefFunction)?.coerceKw != null
+    override fun isUse(ref: GlobalReferable) = (PsiLocatedReferable.fromReferable(ref) as? ArendDefFunction)?.useKw != null
 
     override fun isData(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefData
 }

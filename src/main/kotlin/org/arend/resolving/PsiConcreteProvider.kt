@@ -12,16 +12,16 @@ import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.term.Precedence
-import org.arend.term.concrete.Concrete
-import org.arend.term.concrete.ConcreteDefinitionVisitor
-import org.arend.typechecking.error.ProxyError
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.Precedence
+import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
 private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {
@@ -146,8 +146,8 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
 
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefInstance
 
-    override fun isCoerce(ref: GlobalReferable): Boolean {
+    override fun isUse(ref: GlobalReferable): Boolean {
         val psiReferable = PsiLocatedReferable.fromReferable(ref)
-        return psiReferable is ArendDefFunction && runReadAction { psiReferable.coerceKw != null }
+        return psiReferable is ArendDefFunction && runReadAction { psiReferable.useKw != null }
     }
 }
