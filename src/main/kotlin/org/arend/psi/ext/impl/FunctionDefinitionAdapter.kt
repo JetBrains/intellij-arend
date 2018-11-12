@@ -30,6 +30,10 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
+    override fun withTerm() = functionBody?.fatArrow != null
+
+    override fun isCowith() = functionBody?.cowithKw != null
+
     override fun isCoerce() = coerceKw != null
 
     override fun isLevel() = levelKw != null
@@ -49,13 +53,13 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return ReferableExtractVisitor().findClassReferable(type)
+        return if (isCowith) ReferableExtractVisitor().findReferable(type) as? ClassReferable else ReferableExtractVisitor().findClassReferable(type)
     }
 
     override fun getClassReferenceData(): ClassReferenceData? {
         val type = resultType ?: return null
         val visitor = ReferableExtractVisitor(true)
-        val classRef = visitor.findClassReferable(type) ?: return null
+        val classRef = (if (isCowith) visitor.findReferable(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 

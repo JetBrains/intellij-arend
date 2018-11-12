@@ -61,7 +61,6 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
 
-    fun testData1() = checkNewLine("\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n",
-
-    )
+    /*fun testData1() = checkNewLine("\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n{-caret-}",
+            "\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n") */
 }

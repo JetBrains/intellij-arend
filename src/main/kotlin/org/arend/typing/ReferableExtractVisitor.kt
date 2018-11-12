@@ -3,6 +3,7 @@ package org.arend.typing
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefFunction
@@ -57,6 +58,12 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     fun findClassReferable(expr: ArendExpr): ClassReferable? {
         mode = Mode.TYPE
         return findClassReference(expr.accept(this, null), expr.scope)
+    }
+
+    fun findReferable(expr: ArendExpr): Referable? {
+        mode = Mode.TYPE
+        val ref = expr.accept(this, null)
+        return if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, expr.scope) else ref
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {

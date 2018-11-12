@@ -81,13 +81,14 @@ class ArendHighlightingAnnotator : Annotator {
         }
 
         if (element is ArendArgumentAppExpr) {
-            val pElement = element.parent
+            val parentElement = element.parent
+            val pElement = ((parentElement as? ArendNewExpr)?.parent as? ArendDefFunction) ?: parentElement
             if (pElement is ArendNewExprImplMixin) {
                 if (InstanceQuickFix.annotateNewExpr(pElement, holder)) {
                     return
                 }
             }
-            if (pElement is ArendNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is ArendNewArg || pElement is ArendDefInstance) {
+            if (pElement is ArendNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is ArendNewArg || pElement is ArendDefInstance || (pElement as? ArendDefFunction)?.functionBody?.cowithKw != null) {
                 val longName = element.longNameExpr?.longName ?: run {
                     val atomFieldsAcc = element.atomFieldsAcc
                     if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
@@ -99,6 +100,10 @@ class ArendHighlightingAnnotator : Annotator {
                 if (longName != null) {
                     val ref = longName.referent
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
+                    if ((pElement is ArendDefInstance || pElement is ArendDefFunction) && resolvedRef !is ArendDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
+                        holder.createErrorAnnotation(longName, "Expected a class")
+                        return
+                    }
                     if (resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
                         return

@@ -274,7 +274,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         break
                     }
 
-                    if (pos2 is ArendConstructor && pos2.elim == null) {
+                    if (pos2 is ArendConstructor && pos2.elim == null && !coWithMode) {
                         exprFound = !emptyTeleList(pos2.typeTeleList)
                         break
                     }
@@ -409,7 +409,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
                 not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
                 afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
-                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW))),
+                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE))),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
@@ -420,7 +420,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
-                not(afterLeaf(PIPE))) // no expression keywords after pipe
+                not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
         val FIELD_CONTEXT = withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)
         val TELE_CONTEXT =
