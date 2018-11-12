@@ -61,6 +61,24 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
 
-    /*fun testData1() = checkNewLine("\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n{-caret-}",
-            "\\data \\infixr 2 || (A B : \\Type) : \\Prop\n  | byLeft A\n  | byRight B\n") */
+    fun testExprInClause() = checkNewLine(
+            "\\func lol2 (a : Nat) \\elim a\n  | _ =>{-caret-}",
+            "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    {-caret-}")
+
+    fun testInsideCaseBraces() = checkNewLine(
+            "\\func lol2 (a : Nat) => \\case a \\with {{-caret-}}",
+            "\\func lol2 (a : Nat) => \\case a \\with {\n  {-caret-}\n}")
+
+    fun testAfterLastClassExpr() = checkNewLine(
+            "\\class Lol\n  | a : Nat{-caret-}\n\\func lol2 => 1",
+            "\\class Lol\n  | a : Nat\n  {-caret-}\n\\func lol2 => 1")
+
+    fun testAfterDataWith() = checkNewLine(
+            "\\data D (x : Nat) : \\Prop \\with{-caret-}",
+            "\\data D (x : Nat) : \\Prop \\with\n  {-caret-}")
+
+    fun testAfterDataConsWith() = checkNewLine(
+            "\\data D (x : Nat) : \\Prop\n  | cons (y : Nat) \\with {{-caret-}}",
+            "\\data D (x : Nat) : \\Prop\n  | cons (y : Nat) \\with {\n    {-caret-}\n  }")
+
 }
