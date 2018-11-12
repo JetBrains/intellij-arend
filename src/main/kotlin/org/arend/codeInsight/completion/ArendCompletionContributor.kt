@@ -272,7 +272,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
                     }
                 }
-                if (pos2 is ArendConstructor && pos2.elim == null) {
+                if (pos2 is ArendConstructor && pos2.elim == null && !coWithMode) {
                     exprFound = !emptyTeleList(pos2.typeTeleList)
                 }
                 if (pos2.nextSibling == null) pos2 = pos2.parent else break

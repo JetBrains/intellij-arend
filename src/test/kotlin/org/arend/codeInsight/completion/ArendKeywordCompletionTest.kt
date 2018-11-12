@@ -384,6 +384,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
             "\\func lol : Nat {-caret-}")
 
+    fun `test absence of cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\data or (A B : \\Type) : \\Prop\n  | l A {-caret-}\n  | r B")
+
     fun `test elim completion 3`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",
             "\\func lol (a : Nat): {-caret-}",
@@ -392,8 +395,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) {-caret-} =>", // No elim if already there is a fat arrow
             "\\data lol {-caret-}",
             "\\data lol (A : \\Type) | south {-caret-}",
-            "\\data lol (a : Nat) {-caret-} \\elim a"
-    )
+            "\\data lol (a : Nat) {-caret-} \\elim a")
 
     fun `test no elim and no fixity completion`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
             "\\func lol {-caret-}", /* No elim if there are no arguments; No fixity */
