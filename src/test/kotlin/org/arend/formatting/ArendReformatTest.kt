@@ -8,7 +8,7 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func pred (x : Nat) : Nat\n  | zero => 0\n  | suc x' => x'")
 
     fun testLineCommentsInArgAppExpr() = checkReformat("\\func lol2 => Nat --aa\n-bb",
-            "\\func lol2 => Nat --aa\n-bb")
+            "\\func lol2 => Nat --aa\n    -bb")
 
     fun testExprInClause() = checkReformat("\\func lol2 (a : Nat) \\elim a\n  | _ =>\n  1",
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    1")

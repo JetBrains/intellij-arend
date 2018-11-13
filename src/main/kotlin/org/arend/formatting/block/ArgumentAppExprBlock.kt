@@ -4,6 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.TokenType
 import org.arend.psi.ArendExpr
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -19,7 +20,9 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
         }
 
         val cExpr = (node.psi as ArendExpr).accept(expressionVisitor, null)
-        if (cExpr != null) return transform(cExpr, myNode.psi.children.toList(), Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
+        val children = myNode.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
+
+        if (cExpr != null) return transform(cExpr, children, Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
 
         return ArrayList()
     }
@@ -37,7 +40,7 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
         return super.getChildAttributes(newChildIndex)
     }
 
-    private fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>): TextRange {
+    private fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange {
         val cExprData = cExpr.data
         if (cExpr is Concrete.AppExpression) {
             val elements = ArrayList<TextRange>()
@@ -59,7 +62,7 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
         throw IllegalStateException()
     }
 
-    private fun transform(cExpr: Concrete.Expression, aaeBlocks: List<PsiElement>, align: Alignment?, indent: Indent): AbstractArendBlock {
+    private fun transform(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, align: Alignment?, indent: Indent): AbstractArendBlock {
         val cExprData = cExpr.data
         if (cExpr is Concrete.AppExpression) {
             val blocks = ArrayList<Block>()
@@ -94,18 +97,18 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
             blocks.sortBy { it.textRange.startOffset }
 
             // Dedicated search for "lost" blocks
-             val lostBlocks = aaeBlocks.asSequence().sortedBy { it.node.startOffset }.toMutableList()
+             val lostBlocks = aaeBlocks.asSequence().sortedBy { it.startOffset }.toMutableList()
             for (block in blocks) {
-                val toRemove = ArrayList<PsiElement>()
+                val toRemove = ArrayList<ASTNode>()
                 for (aae in lostBlocks) {
-                    if (block.textRange.contains(aae.node.textRange)) toRemove.add(aae)
-                    if (aae.node.startOffset > block.textRange.endOffset) break
+                    if (block.textRange.contains(aae.textRange)) toRemove.add(aae)
+                    if (aae.startOffset > block.textRange.endOffset) break
                 }
                 lostBlocks.removeAll(toRemove)
             }
 
             for (lostBlock in lostBlocks) //Lost blocks that were not in BinOpParser output
-                blocks.add(createArendBlock(lostBlock.node, null, null, Indent.getNoneIndent()))
+                blocks.add(createArendBlock(lostBlock, null, null, Indent.getNoneIndent()))
 
             blocks.sortBy { it.textRange.startOffset }
 
@@ -113,7 +116,7 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
         } else if (cExprData is PsiElement) {
             var psi: PsiElement? = null
             for (aaeBlock in aaeBlocks) if (aaeBlock.textRange.contains(cExprData.node.textRange)) {
-                psi = aaeBlock
+                psi = aaeBlock.psi
                 break
             }
             if (psi == null)
