@@ -189,7 +189,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Lol (n : Nat){-caret-}",
                     "\\class Lol (n : Nat){-caret-}{}")
 
-    fun `test no extends after class without name or inside class arguments block`() =
+    fun `test absence of extends`() =
             checkKeywordCompletionVariants(EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class {-caret-}{}",
                     "\\class Lol (n : Nat) {-caret-} (m : Nat){}")
@@ -217,7 +217,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
                     "\\func g => 101 (\\lam a => {-caret-})",
                     "\\class X { | x : {-caret-} }",
-                    "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }")
+                    "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
+                    "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}")
 
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
@@ -242,7 +243,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test no keyword completion after with 2`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with { | zero => 0 | suc a' => a'}{-caret-}",
-            "\\class Foo \\extends Bar {-caret-}" /* test no extends */)
+            "\\class Foo \\extends Bar {-caret-}", /* test no extends */
+            "\\class C\n\\class D => C {-caret-}")
 
     fun `test only universe keywords after Sigma or Pi`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
