@@ -30,14 +30,14 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             return ChildAttributes(indent, alignment)
         else if (nodePsi is ArendDefInstance && newChildIndex == subBlocks.size && nodePsi.where != null)
             return ChildAttributes(Indent.getNoneIndent(), null)
-
         val child = if (newChildIndex > 0) {
             subBlocks[newChildIndex - 1].let {
                 if (it is AbstractArendBlock && it.isLBrace())
                     subBlocks.getOrNull(newChildIndex) else it
             }
         } else null
-        val indent = if (child == null) Indent.getNoneIndent() else child.indent
+        val indent = if (child is AbstractArendBlock && child.node.elementType == RBRACE) Indent.getNormalIndent() else
+                     if (child == null) Indent.getNoneIndent() else child.indent
         return ChildAttributes(indent, child?.alignment)
     }
 
@@ -53,7 +53,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                 val childPsi = child.psi
 
                 val indent: Indent? = if (childPsi is ArendExpr || childPsi is PsiErrorElement) when (nodeET) {
-                    CO_CLAUSE, LET_EXPR, LET_CLAUSE -> Indent.getNormalIndent()
+                    CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE -> Indent.getNormalIndent()
                     PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                     else -> Indent.getNoneIndent()
                 } else when (child.elementType) {
@@ -111,7 +111,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         var currChild: ASTNode? = child
         val groupNodes = ArrayList<Block>()
         while (currChild != null) {
-            groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
+            if (currChild.elementType != WHITE_SPACE) groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
             when (currChild.elementType) {
                 CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD -> return Pair(currChild, groupNodes)
             }
