@@ -31,9 +31,4 @@ class GroupBlock(myNode: ASTNode, settings: CommonCodeStyleSettings?, private va
         return "$blockText $textRange"
     }
 
-    /*override fun isIncomplete(): Boolean {
-        val result = true //super.isIncomplete()
-        System.out.println("GroupBlock.isIncomplete() = $result")
-        return result
-    }*/
 }

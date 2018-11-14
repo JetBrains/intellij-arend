@@ -26,12 +26,13 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCod
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        printChildAttributesContext(newChildIndex)
+        //printChildAttributesContext(newChildIndex)
 
         if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) {
             val prevBlock = subBlocks[newChildIndex - 1]
             val indent = if (prevBlock is AbstractArendBlock) {
                 val eT = prevBlock.node.elementType
+                if (prevBlock.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 when (eT) {
                     FAT_ARROW, COWITH_KW, ELIM, ERROR_ELEMENT -> Indent.getNormalIndent()
                     FUNCTION_CLAUSES, CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
@@ -40,22 +41,9 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCod
             } else Indent.getNoneIndent()
             return ChildAttributes(indent, null)
         }
-        //return ChildAttributes(Indent.getNormalIndent(), null)
+
         return super.getChildAttributes(newChildIndex)
     }
-
-    /*override fun isIncomplete(): Boolean {
-        val eB = locateExpressionBlock()
-        val ccB = locateCoClausesBlock()
-        val fcB = locateFunctionClausesBlock()
-        val result = when {
-            functionBody.fatArrow != null -> eB == null || eB.isIncomplete
-            functionBody.cowithKw != null -> ccB == null || ccB.isIncomplete
-            else -> fcB == null || fcB.isIncomplete
-        }
-        System.out.println("FunctionBodyBlock.isIncomplete(${node.text}) = $result")
-        return result
-    }*/
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         val spacingCRLF = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
@@ -63,18 +51,4 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCod
         return super.getSpacing(child1, child2)
     }
 
-    private fun locateExpressionBlock(): AbstractArendBlock? {
-        for (b in subBlocks) if (b is AbstractArendBlock && b.node.psi is ArendExpr) return b
-        return null
-    }
-
-    private fun locateCoClausesBlock(): AbstractArendBlock? {
-        for (b in subBlocks) if (b is AbstractArendBlock && b.node.psi is ArendCoClauses) return b
-        return null
-    }
-
-    private fun locateFunctionClausesBlock(): AbstractArendBlock? {
-        for (b in subBlocks) if (b is AbstractArendBlock && b.node.psi is ArendFunctionClauses) return b
-        return null
-    }
 }

@@ -15,15 +15,15 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testAfterFunc4() = checkNewLine(
             "\\func lol (a : Nat){-caret-}",
-            "\\func lol (a : Nat)\n{-caret-}")
+            "\\func lol (a : Nat)\n  {-caret-}")
 
     fun testAfterFunc5() = checkNewLine(
             "\\func lol (a : Nat){-caret-}\n  ",
-            "\\func lol (a : Nat)\n{-caret-}\n  ")
+            "\\func lol (a : Nat)\n  {-caret-}\n  ")
 
     fun testAfterFunc6() = checkNewLine(
             "\\func lol (a : Nat){-caret-}",
-            "\\func lol (a : Nat)\n\n{-caret-}", 2)
+            "\\func lol (a : Nat)\n  \n  {-caret-}", 2)
 
     fun testAfterFunc7() = checkNewLine(
             "\\func lol (a : Nat) => 1{-caret-}",
@@ -81,4 +81,27 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\data D (x : Nat) : \\Prop\n  | cons (y : Nat) \\with {{-caret-}}",
             "\\data D (x : Nat) : \\Prop\n  | cons (y : Nat) \\with {\n    {-caret-}\n  }")
 
+    fun testFirstDataCons() = checkNewLine(
+            "\\data Foo{-caret-}\n  |  A (b : Nat)",
+            "\\data Foo\n  {-caret-}\n  |  A (b : Nat)")
+
+    fun testFirstClassField() = checkNewLine(
+            "\\class A1 {}\n\\class A \\extends A1{-caret-}\n  | f (b : Nat) : Nat\n",
+            "\\class A1 {}\n\\class A \\extends A1\n  {-caret-}\n  | f (b : Nat) : Nat\n")
+
+    fun testFirstClauseInFuncWithoutElim() = checkNewLine(
+            "\\func foo (x : Nat){-caret-}\n  | 0 => 1\n",
+            "\\func foo (x : Nat)\n  {-caret-}\n  | 0 => 1\n")
+
+    fun testAlignmentInTele() = checkNewLine(
+            "\\func lol => \\Sigma (A : Nat){-caret-}",
+            "\\func lol => \\Sigma (A : Nat)\n                    {-caret-}")
+
+    fun testCoClauses1() = checkNewLine(
+            "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith{-caret-}\n  | f => 101",
+            "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  {-caret-}\n  | f => 101")
+
+    fun testCoClauses2() = checkNewLine(
+            "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101{-caret-}",
+            "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101\n  {-caret-}")
 }

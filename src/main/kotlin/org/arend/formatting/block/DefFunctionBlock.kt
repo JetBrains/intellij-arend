@@ -9,19 +9,22 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
-class DefFunctionBlock(defFunc: ArendDefFunction, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
+class DefFunctionBlock(val defFunc: ArendDefFunction, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
         AbstractArendBlock(defFunc.node, settings, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
         var first = true
+        val alignment = Alignment.createAlignment()
+
         while (c != null) {
             if (c.elementType != TokenType.WHITE_SPACE) {
                 val cPsi = c.psi
                 val notFBodyWithClauses = if (cPsi is ArendFunctionBody) cPsi.fatArrow != null else true //Needed for correct indentation of fat arrow
                 val indent = if (!first && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
+                val align = if (c.elementType == NAME_TELE || c.elementType == TYPE_TELE) alignment else null
 
-                result.add(createArendBlock(c, null, null, indent))
+                result.add(createArendBlock(c, null, align, indent))
             }
             c = c.treeNext
             first = false
@@ -44,20 +47,10 @@ class DefFunctionBlock(defFunc: ArendDefFunction, settings: CommonCodeStyleSetti
         return null
     }
 
-    /*override fun isIncomplete(): Boolean {
-        val fBB = locateFunctionBodyBlock()
-        val result = fBB != null && fBB.isIncomplete
-        System.out.println("DefFunctionBlock.isIncomplete(${node.text}) = $result")
-        return result
-    }*/
-
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        printChildAttributesContext(newChildIndex)
-        return ChildAttributes.DELEGATE_TO_PREV_CHILD//ChildAttributes(Indent.getNormalIndent(), null)
-    }
-
-    private fun locateFunctionBodyBlock(): AbstractArendBlock? {
-        for (b in subBlocks) if (b is AbstractArendBlock && b.node.elementType == FUNCTION_BODY) return b
-        return null
+        //printChildAttributesContext(newChildIndex)
+        return if (newChildIndex == subBlocks.size && defFunc.functionBody != null)
+                        ChildAttributes.DELEGATE_TO_PREV_CHILD
+                        else ChildAttributes(Indent.getNormalIndent(), null)
     }
 }

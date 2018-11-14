@@ -26,7 +26,6 @@ class RootBlock(node: ASTNode, val settings: CommonCodeStyleSettings?):
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        System.out.println("RootBlock.getChildAttributes($newChildIndex)")
         return ChildAttributes.DELEGATE_TO_PREV_CHILD
     }
 
