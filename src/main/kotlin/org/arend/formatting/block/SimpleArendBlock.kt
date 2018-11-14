@@ -4,11 +4,13 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.TokenType.WHITE_SPACE
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
-class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
+class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
+        AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         if (myNode.psi is ArendFunctionClauses) {
@@ -20,8 +22,11 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        System.out.println("SimpleArendBlock(${node.elementType}).getChildAttributes($newChildIndex)")
+        printChildAttributesContext(newChildIndex)
+
         val nodePsi = node.psi
+
+        if (node.elementType == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1 ||
                 node.elementType == WHERE && newChildIndex >= 1 ||
                 nodePsi is ArendDefInstance && newChildIndex == subBlocks.size-1 && nodePsi.where == null) {
@@ -37,7 +42,10 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
             }
         } else null
         val indent = if (child is AbstractArendBlock && child.node.elementType == RBRACE) Indent.getNormalIndent() else
-                     if (child == null) Indent.getNoneIndent() else child.indent
+                     if (child == null) Indent.getNoneIndent() else
+                     if (child.indent?.type == Indent.Type.NORMAL) Indent.getSpaceIndent(2) else
+                         child.indent
+
         return ChildAttributes(indent, child?.alignment)
     }
 
@@ -78,7 +86,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
-                            blocks.add(GroupBlock(myNode, clauseGroup.second, null, alignment, Indent.getNormalIndent()))
+                            blocks.add(GroupBlock(myNode, settings, clauseGroup.second, null, alignment, Indent.getNormalIndent()))
                             continue@mainLoop
                         }
                     }
@@ -97,7 +105,7 @@ class SimpleArendBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myInde
         val result =
                 if (psi is ArendNewExpr) psi.lbrace != null && psi.rbrace == null
                 else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
-                else if (psi is ArendFunctionClauses) psi.rbrace == null
+                //else if (psi is ArendFunctionClauses) psi.rbrace == null
                 else if (psi is ArendCoClauses) psi.rbrace == null
                 else if (psi is ArendCoClause) true
                 else if (psi is ArendDefInstance)

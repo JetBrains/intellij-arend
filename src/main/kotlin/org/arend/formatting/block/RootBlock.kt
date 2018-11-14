@@ -3,12 +3,12 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.TokenType
-import com.intellij.psi.codeStyle.CodeStyleSettings
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.*
 import java.util.ArrayList
 
-class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
+class RootBlock(node: ASTNode, val settings: CommonCodeStyleSettings?):
         AbstractBlock(node, null, null) {
     override fun isLeaf(): Boolean = false
 
@@ -27,7 +27,7 @@ class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         System.out.println("RootBlock.getChildAttributes($newChildIndex)")
-        return ChildAttributes(Indent.getNoneIndent(), null)
+        return ChildAttributes.DELEGATE_TO_PREV_CHILD
     }
 
     override fun getIndent(): Indent? = Indent.getNoneIndent()
@@ -38,7 +38,7 @@ class RootBlock(node: ASTNode, val settings: CodeStyleSettings?):
 
         while (child != null) {
             if (child.elementType != TokenType.WHITE_SPACE) {
-                val block = SimpleArendBlock(child, null, null, Indent.getNoneIndent())
+                val block = SimpleArendBlock(child, settings, null, null, Indent.getNoneIndent())
                 blocks.add(block)
             }
             child = child.treeNext

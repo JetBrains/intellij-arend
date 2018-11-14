@@ -9,6 +9,7 @@ import com.intellij.psi.formatter.PsiBasedFormattingModel
 import com.intellij.psi.impl.source.SourceTreeToPsiMap
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.intellij.psi.impl.source.tree.TreeUtil
+import org.arend.ArendLanguage
 import org.arend.formatting.block.RootBlock
 
 class ArendFormattingModelBuilder: FormattingModelBuilder {
@@ -16,6 +17,7 @@ class ArendFormattingModelBuilder: FormattingModelBuilder {
         val containingFile = element?.containingFile
         val documentModel = if (containingFile != null) FormattingDocumentModelImpl.createOn(containingFile) else null
         val tree = TreeUtil.getFileElement((SourceTreeToPsiMap.psiElementToTree(containingFile) as TreeElement?)!!) //TODO: No !! please
-        return PsiBasedFormattingModel(containingFile, RootBlock(tree, settings), documentModel)
+        val arendSettings = settings?.getCommonSettings(ArendLanguage.INSTANCE)
+        return PsiBasedFormattingModel(containingFile, RootBlock(tree, arendSettings), documentModel)
     }
 }

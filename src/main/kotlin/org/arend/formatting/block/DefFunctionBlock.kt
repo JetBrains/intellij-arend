@@ -2,13 +2,15 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.psi.TokenType
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFunctionBody
 import java.util.ArrayList
 
-class DefFunctionBlock(private val defFunc: ArendDefFunction, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(defFunc.node, wrap, alignment, myIndent) {
+class DefFunctionBlock(defFunc: ArendDefFunction, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
+        AbstractArendBlock(defFunc.node, settings, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
@@ -42,16 +44,16 @@ class DefFunctionBlock(private val defFunc: ArendDefFunction, wrap: Wrap?, align
         return null
     }
 
-    override fun isIncomplete(): Boolean {
+    /*override fun isIncomplete(): Boolean {
         val fBB = locateFunctionBodyBlock()
         val result = fBB != null && fBB.isIncomplete
         System.out.println("DefFunctionBlock.isIncomplete(${node.text}) = $result")
         return result
-    }
+    }*/
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        System.out.println("DefFunctionBlock.getChildAttributes($newChildIndex)")
-        return ChildAttributes(Indent.getNormalIndent(), null)
+        printChildAttributesContext(newChildIndex)
+        return ChildAttributes.DELEGATE_TO_PREV_CHILD//ChildAttributes(Indent.getNormalIndent(), null)
     }
 
     private fun locateFunctionBodyBlock(): AbstractArendBlock? {

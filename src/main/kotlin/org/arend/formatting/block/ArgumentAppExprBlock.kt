@@ -5,6 +5,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.ArendExpr
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -12,7 +13,8 @@ import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 import java.util.ArrayList
 
-class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(node, wrap, alignment, myIndent) {
+class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
+        AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
@@ -112,7 +114,7 @@ class ArgumentAppExprBlock(node: ASTNode, wrap: Wrap?, alignment: Alignment?, my
 
             blocks.sortBy { it.textRange.startOffset }
 
-            return GroupBlock(myNode, blocks, null, align, indent)
+            return GroupBlock(myNode, settings, blocks, null, align, indent)
         } else if (cExprData is PsiElement) {
             var psi: PsiElement? = null
             for (aaeBlock in aaeBlocks) if (aaeBlock.textRange.contains(cExprData.node.textRange)) {

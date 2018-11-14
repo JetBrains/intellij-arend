@@ -3,11 +3,13 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
-class FunctionBodyBlock(val functionBody: ArendFunctionBody, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) : AbstractArendBlock(functionBody.node, wrap, alignment, myIndent) {
+class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
+        AbstractArendBlock(functionBody.node, settings, wrap, alignment, myIndent) {
     override fun buildChildren(): MutableList<Block> {
         val result = ArrayList<Block>()
         var c = node.firstChildNode
@@ -24,10 +26,11 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, wrap: Wrap?, alignm
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        System.out.println("FunctionBody.getChildAttributes($newChildIndex)")
-        if (newChildIndex > 0) {
+        printChildAttributesContext(newChildIndex)
+
+        if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) {
             val prevBlock = subBlocks[newChildIndex - 1]
-            val indent = if (prevBlock is AbstractArendBlock) {
+            if (prevBlock is AbstractArendBlock) {
                 val eT = prevBlock.node.elementType
                 when (eT) {
                     FAT_ARROW, COWITH_KW, ELIM, ERROR_ELEMENT -> Indent.getNormalIndent()
@@ -36,10 +39,11 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, wrap: Wrap?, alignm
             } else Indent.getNoneIndent()
             return ChildAttributes(indent, null)
         }
-        return ChildAttributes(Indent.getNormalIndent(), null)
+        //return ChildAttributes(Indent.getNormalIndent(), null)
+        return super.getChildAttributes(newChildIndex)
     }
 
-    override fun isIncomplete(): Boolean {
+    /*override fun isIncomplete(): Boolean {
         val eB = locateExpressionBlock()
         val ccB = locateCoClausesBlock()
         val fcB = locateFunctionClausesBlock()
@@ -50,7 +54,7 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, wrap: Wrap?, alignm
         }
         System.out.println("FunctionBodyBlock.isIncomplete(${node.text}) = $result")
         return result
-    }
+    }*/
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         val spacingCRLF = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
