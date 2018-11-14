@@ -345,7 +345,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
