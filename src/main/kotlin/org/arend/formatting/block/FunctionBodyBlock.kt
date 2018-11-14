@@ -30,10 +30,11 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCod
 
         if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) {
             val prevBlock = subBlocks[newChildIndex - 1]
-            if (prevBlock is AbstractArendBlock) {
+            val indent = if (prevBlock is AbstractArendBlock) {
                 val eT = prevBlock.node.elementType
                 when (eT) {
                     FAT_ARROW, COWITH_KW, ELIM, ERROR_ELEMENT -> Indent.getNormalIndent()
+                    FUNCTION_CLAUSES, CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                     else -> Indent.getNoneIndent()
                 }
             } else Indent.getNoneIndent()

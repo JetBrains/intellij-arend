@@ -23,7 +23,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         printChildAttributesContext(newChildIndex)
-
         val nodePsi = node.psi
 
         if (node.elementType == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
@@ -42,9 +41,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
         } else null
         val indent = if (child is AbstractArendBlock && child.node.elementType == RBRACE) Indent.getNormalIndent() else
-                     if (child == null) Indent.getNoneIndent() else
-                     if (child.indent?.type == Indent.Type.NORMAL) Indent.getSpaceIndent(2) else
-                         child.indent
+                            if (child is AbstractArendBlock && child.node.elementType == DATA_BODY) Indent.getNormalIndent() else
+                            if (child == null) Indent.getNoneIndent() else
+                            child.indent
 
         return ChildAttributes(indent, child?.alignment)
     }
