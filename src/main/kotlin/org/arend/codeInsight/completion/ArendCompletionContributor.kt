@@ -93,9 +93,10 @@ class ArendCompletionContributor : CompletionContributor() {
             } else false
         })
 
-        val noExtendsCondition = ProviderWithCondition({ cP, _ ->
+        val noExtendsCondition = genericJointCondition({cP, _, jD ->
+            val condition = and(ofType(ID), withParent(ArendRefIdentifier::class.java))
             val dC = cP.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
-            if (dC != null) dC.extendsKw == null else false
+            if (dC != null) dC.extendsKw == null && (!condition.accepts(jD.prevElement)) else false
         }, KeywordCompletionProvider(EXTENDS_KW_LIST))
 
         extend(CompletionType.BASIC, and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java), afterLeaf(ID)), noExtendsCondition)
@@ -344,7 +345,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
 
-        //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
+        extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
     companion object {
@@ -419,6 +420,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendDefInstance::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
                 not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
