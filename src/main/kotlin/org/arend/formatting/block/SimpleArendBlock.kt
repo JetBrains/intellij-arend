@@ -89,7 +89,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         else -> null
                     }
                     else -> when (child.elementType) {
-                        CO_CLAUSE, NAME_TELE, TYPE_TELE -> alignment
+                        CO_CLAUSE -> alignment
+                        NAME_TELE, TYPE_TELE -> alignment2
                         else -> null
                     }
                 }
