@@ -69,6 +69,14 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
 
+    fun testWhere4() = checkNewLine(
+            "\\func lol => 1 \\where {\n  \\func lol2 (n : Nat) \\elim n\n    | 0 => 1{-caret-}\n}",
+            "\\func lol => 1 \\where {\n  \\func lol2 (n : Nat) \\elim n\n    | 0 => 1\n    {-caret-}\n}")
+
+    fun testWhere5() = checkNewLine(
+            "\\func lol => 1 \\where {{-caret-}\n  \\func lol2 => 2\n}",
+            "\\func lol => 1 \\where {\n  {-caret-}\n  \\func lol2 => 2\n}")
+
     fun testExprInClause() = checkNewLine(
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>{-caret-}",
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    {-caret-}")

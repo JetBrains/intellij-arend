@@ -19,8 +19,6 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
             ChildAttributes(Indent.getNoneIndent(), null)
 
-    fun isLBrace() = myNode.elementType == ArendElementTypes.LBRACE
-
     fun createArendBlock(childNode: ASTNode, childWrap: Wrap?, childAlignment: Alignment?, indent: Indent?): AbstractArendBlock {
         val childPsi = childNode.psi
         return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty()) ArgumentAppExprBlock(childNode, settings, childWrap, childAlignment, indent)
@@ -29,9 +27,8 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
 
 
     protected fun printChildAttributesContext(newChildIndex: Int) { // Needed for debug only
-        return
-        /* System.out.println(this.javaClass.simpleName+"("+this.node.elementType+").getChildAttributes($newChildIndex)")
-        subBlocks.mapIndexed { i, a -> System.out.println("$i $a")} */
+        /*System.out.println(this.javaClass.simpleName+"("+this.node.elementType+").getChildAttributes($newChildIndex)")
+        subBlocks.mapIndexed { i, a -> System.out.println("$i $a")}*/
     }
 
 }
