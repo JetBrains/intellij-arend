@@ -15,21 +15,22 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
+        val oneCrlf =       SpacingImpl(0, 0, 1, false, false, false, 1, false, 1)
+        val atMostOneCrlf = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
+        val spacingFA =     SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
+        val spacingColon =  SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
+
         if (myNode.psi is ArendFunctionClauses) {
-            val spacing = SpacingImpl(0, 0, 1, false, false, false, 1, false, 1)
             if (child2 is SimpleArendBlock && child2.node.elementType == PIPE)
-                return spacing
+                return oneCrlf
         }
 
         if (myNode.psi is ArendFunctionBody) {
-            val spacingCRLF = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
-            if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return spacingCRLF
+            if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return atMostOneCrlf
             return super.getSpacing(child1, child2)
         }
 
         if (myNode.psi is ArendDefFunction) {
-            val spacingFA = SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
-            val spacingColon = SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
             if (child2 is AbstractArendBlock && child2.node.elementType == FUNCTION_BODY) {
                 val child1node = (child1 as? AbstractArendBlock)?.node
                 val child2node = (child2 as? AbstractArendBlock)?.node?.psi as? ArendFunctionBody
@@ -42,6 +43,19 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
         }
 
+        if (child1 is AbstractBlock && child2 is AbstractBlock) {
+            val psi1 = child1.node.psi
+            val psi2 = child2.node.psi
+            val c1et = child1.node.elementType
+            val c2et = child2.node.elementType
+            if (psi1 is ArendStatement && psi2 is ArendStatement) {
+                val needLineFeed = psi1.statCmd == null || psi2.statCmd == null
+                val i = if (needLineFeed) 2 else 1
+                return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i-1)
+            } else if (psi1 is ArendStatement && c2et == RBRACE ||
+                       c1et == LBRACE && psi2 is ArendStatement) return oneCrlf
+        }
+
         return null
     }
 
@@ -50,7 +64,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         val nodePsi = node.psi
 
-        if (node.elementType == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+        if (node.elementType == STATEMENT || nodePsi is ArendFile) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1)
             return ChildAttributes(Indent.getNormalIndent(), null)
@@ -125,22 +139,26 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         var child: ASTNode? = myNode.firstChildNode
         val alignment = Alignment.createAlignment()
         val alignment2 = Alignment.createAlignment()
+
+        val nodePsi = myNode.psi
         val nodeET = myNode.elementType
 
         mainLoop@ while (child != null) {
-            if (child.elementType != WHITE_SPACE) {
-                val childPsi = child.psi
+            val childPsi = child.psi
+            val childET = child.elementType
 
+            if (childET != WHITE_SPACE) {
                 val indent: Indent? =
-                        if (childPsi is ArendExpr || childPsi is PsiErrorElement || child.elementType == LINE_COMMENT) when (nodeET) {
+                        if (childPsi is ArendExpr || childPsi is PsiErrorElement || childET == LINE_COMMENT) when (nodeET) {
                             CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY -> Indent.getNormalIndent()
                             PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                             else -> Indent.getNoneIndent()
                         } else if (nodeET == DEF_FUNCTION) {
                             val notFBodyWithClauses = if (childPsi is ArendFunctionBody) childPsi.fatArrow != null else true
                             if ((blocks.size > 0) && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
-                        } else when (child.elementType) {
-                            CO_CLAUSE, STATEMENT, CONSTRUCTOR_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT -> Indent.getNormalIndent()
+                        } else when (childET) {
+                            CO_CLAUSE, CONSTRUCTOR_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT -> Indent.getNormalIndent()
+                            STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         }
 
@@ -148,19 +166,19 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (nodeET == FUNCTION_BODY && childPsi is ArendExpr) Wrap.createWrap(WrapType.NORMAL, false) else null
 
                 val align = when (myNode.elementType) {
-                    LET_EXPR -> when (child.elementType) {
+                    LET_EXPR -> when (childET) {
                         LET_KW, IN_KW -> alignment2
                         LINE_COMMENT -> alignment
                         else -> null
                     }
-                    else -> when (child.elementType) {
+                    else -> when (childET) {
                         CO_CLAUSE -> alignment
                         NAME_TELE, TYPE_TELE -> alignment2
                         else -> null
                     }
                 }
 
-                if (child.elementType == PIPE) when (nodeET) {
+                if (childET == PIPE) when (nodeET) {
                     FUNCTION_CLAUSES, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR -> {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
