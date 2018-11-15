@@ -75,7 +75,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             if (nodePsi is ArendDefData) when (prevET) {
-                DEF_IDENTIFIER, UNIVERSE_EXPR, DATA_BODY -> return ChildAttributes(Indent.getNormalIndent(), null)
+                DEF_IDENTIFIER, UNIVERSE_EXPR, DATA_BODY, TYPE_TELE -> return ChildAttributes(Indent.getNormalIndent(), null)
                 WHERE -> return ChildAttributes(Indent.getNoneIndent(), null)
             }
 

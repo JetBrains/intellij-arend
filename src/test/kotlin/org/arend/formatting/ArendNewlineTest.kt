@@ -105,6 +105,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\data Foo{-caret-}\n  |  A (b : Nat)",
             "\\data Foo\n  {-caret-}\n  |  A (b : Nat)")
 
+    fun testAfterDataTele() = checkNewLine(
+            "\\data Foo (A : \\Type){-caret-}",
+            "\\data Foo (A : \\Type)\n  {-caret-}")
+
     fun testFirstClassField() = checkNewLine(
             "\\class A1 {}\n\\class A \\extends A1{-caret-}\n  | f (b : Nat) : Nat\n",
             "\\class A1 {}\n\\class A \\extends A1\n  {-caret-}\n  | f (b : Nat) : Nat\n")
