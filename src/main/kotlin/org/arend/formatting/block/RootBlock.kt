@@ -25,9 +25,8 @@ class RootBlock(node: ASTNode, val settings: CommonCodeStyleSettings?):
          return null
     }
 
-    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        return ChildAttributes.DELEGATE_TO_PREV_CHILD
-    }
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
+            ChildAttributes.DELEGATE_TO_PREV_CHILD
 
     override fun getIndent(): Indent? = Indent.getNoneIndent()
 

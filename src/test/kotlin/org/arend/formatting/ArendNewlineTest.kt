@@ -53,11 +53,19 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1{-caret-}\n\n\\func lol => 1",
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  {-caret-}\n\n\\func lol => 1")
 
+    fun testInstance4() = checkNewLine(
+            "\\class C { a : Nat } \n\n\\instance I : C{-caret-}",
+            "\\class C { a : Nat } \n\n\\instance I : C\n  {-caret-}")
+
     fun testWhere1() = checkNewLine(
             "\\func lol => 1 \\where{-caret-}",
             "\\func lol => 1 \\where\n  {-caret-}")
 
-    fun testInstance4() = checkNewLine(
+    fun testWhere2() = checkNewLine(
+            "\\func lol => foo \\where \\func foo => 1{-caret-}",
+            "\\func lol => foo \\where \\func foo => 1\n{-caret-}")
+
+    fun testWhere3() = checkNewLine(
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
             "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
 
@@ -76,6 +84,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testAfterDataWith() = checkNewLine(
             "\\data D (x : Nat) : \\Prop \\with{-caret-}",
             "\\data D (x : Nat) : \\Prop \\with\n  {-caret-}")
+
+    fun testAfterDataWith2() = checkNewLine(
+            "\\data So (b : Bool) \\with{-caret-}\n  | true => so",
+            "\\data So (b : Bool) \\with\n  {-caret-}\n  | true => so")
 
     fun testAfterDataConsWith() = checkNewLine(
             "\\data D (x : Nat) : \\Prop\n  | cons (y : Nat) \\with {{-caret-}}",

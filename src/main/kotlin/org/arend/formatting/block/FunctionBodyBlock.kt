@@ -26,7 +26,7 @@ class FunctionBodyBlock(val functionBody: ArendFunctionBody, settings: CommonCod
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        //printChildAttributesContext(newChildIndex)
+        printChildAttributesContext(newChildIndex)
 
         if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) {
             val prevBlock = subBlocks[newChildIndex - 1]

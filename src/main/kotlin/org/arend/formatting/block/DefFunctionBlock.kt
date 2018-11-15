@@ -48,9 +48,16 @@ class DefFunctionBlock(val defFunc: ArendDefFunction, settings: CommonCodeStyleS
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        //printChildAttributesContext(newChildIndex)
-        return if (newChildIndex == subBlocks.size && defFunc.functionBody != null)
-                        ChildAttributes.DELEGATE_TO_PREV_CHILD
-                        else ChildAttributes(Indent.getNormalIndent(), null)
+        printChildAttributesContext(newChildIndex)
+
+        val prevChild = if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) subBlocks[newChildIndex - 1] else null
+
+        if (prevChild is AbstractArendBlock) {
+            if (prevChild.node.elementType == FUNCTION_BODY) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            if (prevChild.node.elementType == WHERE) return ChildAttributes(Indent.getNoneIndent(), null)
+            return ChildAttributes(Indent.getNormalIndent(), null)
+        }
+
+        return super.getChildAttributes(newChildIndex)
     }
 }

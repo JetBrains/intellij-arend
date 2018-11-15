@@ -22,22 +22,18 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        //printChildAttributesContext(newChildIndex)
+        printChildAttributesContext(newChildIndex)
 
         val nodePsi = node.psi
 
         if (node.elementType == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1 ||
-                node.elementType == WHERE && newChildIndex >= 1 ||
-                nodePsi is ArendDefInstance && newChildIndex == subBlocks.size - 1 && nodePsi.where == null)
+                node.elementType == WHERE && newChildIndex >= 1)
             return ChildAttributes(Indent.getNormalIndent(), null)
 
         if (node.elementType == CO_CLAUSE && subBlocks.size == newChildIndex)
             return ChildAttributes(indent, alignment)
-
-        if (nodePsi is ArendDefInstance && newChildIndex == subBlocks.size && nodePsi.where != null)
-            return ChildAttributes(Indent.getNoneIndent(), null)
 
         val prevChild = if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) {
             subBlocks[newChildIndex - 1].let {
@@ -46,20 +42,36 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
         } else null
 
-        if (node.elementType == DEF_CLASS && prevChild is AbstractArendBlock &&
-                (prevChild.node.elementType == DEF_IDENTIFIER || prevChild.node.elementType == LONG_NAME))
-            return ChildAttributes(Indent.getNormalIndent(), null)
+        if (prevChild is AbstractArendBlock) {
+            val prevET = prevChild.node.elementType
+            if (nodePsi is ArendDefClass) when (prevET) {
+                DEF_IDENTIFIER, LONG_NAME -> return ChildAttributes(Indent.getNormalIndent(), null)
+                WHERE -> return ChildAttributes(Indent.getNoneIndent(), null)
+            }
 
-        if (node.elementType == DEF_DATA && prevChild is AbstractArendBlock &&
-                (prevChild.node.elementType == DEF_IDENTIFIER || prevChild.node.elementType == UNIVERSE_EXPR))
-            return ChildAttributes(Indent.getNormalIndent(), null)
+            if (nodePsi is ArendDefData) when (prevET) {
+                DEF_IDENTIFIER, UNIVERSE_EXPR, DATA_BODY -> return ChildAttributes(Indent.getNormalIndent(), null)
+                WHERE -> return ChildAttributes(Indent.getNoneIndent(), null)
+            }
 
-        val indent = if (prevChild is AbstractArendBlock) when (prevChild.node.elementType) {
-            RBRACE, DATA_BODY -> Indent.getNormalIndent()
-            else -> prevChild.indent
-        } else Indent.getNoneIndent()
+            if (nodePsi is ArendDefInstance) when (prevChild.node.psi) {
+                is ArendExpr -> return ChildAttributes(Indent.getNormalIndent(), null)
+                is ArendCoClauses -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                is ArendWhere -> return ChildAttributes(Indent.getNoneIndent(), null)
+            }
 
-        return ChildAttributes(indent, prevChild?.alignment)
+            if (nodePsi is ArendDataBody && prevChild.node.psi is ArendElim)
+                return ChildAttributes(Indent.getNormalIndent(), null)
+
+            val indent = when (prevET) {
+                RBRACE -> Indent.getNormalIndent()
+                else -> prevChild.indent
+            }
+
+            return ChildAttributes(indent, prevChild.alignment)
+        }
+
+        return super.getChildAttributes(newChildIndex)
     }
 
     override fun buildChildren(): MutableList<Block> {
@@ -114,22 +126,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         return blocks
     }
 
-    override fun isIncomplete(): Boolean {
-        val psi = myNode.psi
-        val result =
-                if (psi is ArendNewExpr) psi.lbrace != null && psi.rbrace == null
-                else if (psi is ArendStatement && subBlocks.size == 1) subBlocks.first().isIncomplete
-                else if (psi is ArendCoClauses) psi.rbrace == null
-                else if (psi is ArendCoClause) true
-                else if (psi is ArendDefInstance)
-                    subBlocks.asSequence().filter { it is AbstractArendBlock && it.node.elementType == CO_CLAUSES }.firstOrNull().let {
-                        it?.isIncomplete ?: super.isIncomplete()
-                    }
-                else super.isIncomplete()
-        return result
-    }
-
-    private fun findClauseGroup(child: ASTNode, childAlignment: Alignment?): Pair<ASTNode, List<Block>>? {
+    private fun findClauseGroup(child: ASTNode, childAlignment: Alignment?): Pair<ASTNode, MutableList<Block>>? {
         var currChild: ASTNode? = child
         val groupNodes = ArrayList<Block>()
         while (currChild != null) {
