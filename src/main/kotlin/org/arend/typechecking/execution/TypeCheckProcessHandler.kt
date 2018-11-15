@@ -109,7 +109,7 @@ class TypeCheckProcessHandler(
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
             val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
 
             try {
                 for (library in libraries) {

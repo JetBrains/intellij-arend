@@ -18,7 +18,7 @@ open class DataLocatedReferable(
     referable: LocatedReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?)
-    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), DataContainer, SourceInfo {
+    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), SourceInfo {
 
     override fun getData() = psiElementPointer
 

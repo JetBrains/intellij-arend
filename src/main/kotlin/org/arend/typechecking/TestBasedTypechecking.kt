@@ -8,6 +8,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.FullModulePath
+import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
@@ -21,7 +22,7 @@ class TestBasedTypechecking(
     concreteProvider: ConcreteProvider,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener) {
+    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener, PsiElementComparator) {
 
     val typecheckedModules = LinkedHashSet<FullModulePath>()
 
