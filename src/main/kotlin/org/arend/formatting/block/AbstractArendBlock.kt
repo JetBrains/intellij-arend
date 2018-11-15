@@ -24,8 +24,6 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
     fun createArendBlock(childNode: ASTNode, childWrap: Wrap?, childAlignment: Alignment?, indent: Indent?): AbstractArendBlock {
         val childPsi = childNode.psi
         return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty()) ArgumentAppExprBlock(childNode, settings, childWrap, childAlignment, indent)
-        else if (childPsi is ArendFunctionBody) FunctionBodyBlock(childPsi, settings, childWrap, childAlignment, indent)
-        else if (childPsi is ArendDefFunction) DefFunctionBlock(childPsi, settings, childWrap, childAlignment, indent)
         else SimpleArendBlock(childNode, settings, childWrap, childAlignment, indent)
     }
 

@@ -12,4 +12,6 @@ class ArendReformatTest : ArendFormatterTestBase() {
 
     fun testExprInClause() = checkReformat("\\func lol2 (a : Nat) \\elim a\n  | _ =>\n  1",
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    1")
+
+    fun testExprOnNewLine() = checkReformat("\\func lol =>\n1", "\\func lol =>\n  1")
 }
