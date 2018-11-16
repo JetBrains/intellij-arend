@@ -1,5 +1,7 @@
 package org.arend.quickfix
 
+import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
+
 class ImplementFieldsQuickFixTest : QuickFixTestBase() {
     fun `test adding copatterns in instance`() = simpleQuickFixTest("Implement",
             """
@@ -182,6 +184,18 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             \func lol => \new C {
               | Z => {?}{-caret-}
               | B.Z => {?}
+            }
+            """)
+
+    fun `test no implement quickfix in ClassImplement with fat arrow`() = checkNoQuickFixes(IMPLEMENT_MISSING_FIELDS,
+            """
+            --! A.ard
+            \class A { a : Nat }
+            \class B { b : A }
+
+            \class C \extends B {
+              | c : A
+              | {-caret-}b => c
             }
             """)
 }

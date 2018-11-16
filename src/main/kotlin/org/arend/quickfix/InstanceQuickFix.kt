@@ -204,7 +204,7 @@ class InstanceQuickFix {
 
         fun annotateClassImplement(classImpl: ArendClassImplement, holder: AnnotationHolder): Boolean {
             val classReference = classImpl.classReference
-            if (classReference is ArendDefClass) {
+            if (classReference is ArendDefClass && classImpl.fatArrow == null) {
                 return !ClassImplementAnnotator(classImpl).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
             }
             return false
