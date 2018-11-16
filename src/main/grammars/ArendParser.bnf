@@ -292,7 +292,7 @@ private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RB
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
-    | elim functionClauses
+    | elim functionClauses?
     | functionClauses {
     pin(".*") = 1
     recoverWhile = statement_recover
