@@ -618,7 +618,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """
     )
 
-    /* fun `test strange behavior of arend import commands`() = simpleImportFixTest(
+     fun `test strange behavior of arend import commands`() = checkNoImport(
             """
                 --! A.ard
                 \func lol => 0
@@ -631,13 +631,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import B
 
                 \func a => f{-caret-}
-            """,
-            """
-                \import A(f)
-                \import B
-
-                \func a => f
-            """) */
+            """)
 
     fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
