@@ -182,4 +182,26 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
         myFixture.configureFromTempProjectFile(testProject.fileWithCaret)
         return testProject
     }
+
+    fun testCaret(resultingContent: String) {
+        val rC = resultingContent.trimIndent()
+        val index = rC.indexOf(CARET_MARKER)
+        if (index != -1) {
+            val contentWithoutMarkers = rC.replace(CARET_MARKER, "")
+            myFixture.checkResult(contentWithoutMarkers, false)
+            val actualCaret = myFixture.caretOffset
+            if (index != actualCaret) {
+                if (actualCaret < rC.length) {
+                    System.err.println("Expected caret position: \n$rC")
+                    System.err.println("Actual caret position: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
+                } else {
+                    System.out.println("Expected caret position: $index\n Actual caret position: $actualCaret")
+                }
+                assert(false)
+            }
+
+        } else {
+            myFixture.checkResult(rC, true)
+        }
+    }
 }

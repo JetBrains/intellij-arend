@@ -123,6 +123,19 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
+    fun `test remove already implemented coclause`() = simpleQuickFixTest("Remove",
+            """
+                --! A.ard
+                \record C | x : Nat
+                \record D \extends C | x => 0
+                \func f : D \cowith | x => 1{-caret-}
+            """,
+            """
+                \record C | x : Nat
+                \record D \extends C | x => 0
+                \func f : D \cowith {-caret-}
+            """)
+
     fun `test adding field implementation`() = simpleQuickFixTest("Implement",
             """
                --! A.ard
