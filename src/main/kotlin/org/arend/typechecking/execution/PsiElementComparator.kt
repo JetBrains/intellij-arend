@@ -1,5 +1,7 @@
 package org.arend.typechecking.execution
 
+import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.TCReferable
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.typechecking.order.PartialComparator
@@ -13,18 +15,22 @@ object PsiElementComparator : PartialComparator<TCReferable> {
             return PartialComparator.Result.UNCOMPARABLE
         }
 
-        val d1 = t1.data
-        val d2 = t2.data
-        if (!(d1 is ArendCompositeElement && d2 is ArendCompositeElement && d1.containingFile == d2.containingFile)) {
-            return PartialComparator.Result.UNCOMPARABLE
-        }
-
-        val offset1 = d1.textOffset
-        val offset2 = d2.textOffset
-        return when {
-            offset1 < offset2 -> PartialComparator.Result.LESS
-            offset1 > offset2 -> PartialComparator.Result.GREATER
-            else -> PartialComparator.Result.EQUALS
+        val p1 = t1.data
+        val p2 = t2.data
+        return runReadAction {
+            val d1 = (p1 as? SmartPsiElementPointer<*>)?.element ?: p1
+            val d2 = (p2 as? SmartPsiElementPointer<*>)?.element ?: p2
+            if (!(d1 is ArendCompositeElement && d2 is ArendCompositeElement && d1.containingFile == d2.containingFile)) {
+                PartialComparator.Result.UNCOMPARABLE
+            } else {
+                val offset1 = d1.textOffset
+                val offset2 = d2.textOffset
+                when {
+                    offset1 < offset2 -> PartialComparator.Result.LESS
+                    offset1 > offset2 -> PartialComparator.Result.GREATER
+                    else -> PartialComparator.Result.EQUALS
+                }
+            }
         }
     }
 }
