@@ -31,9 +31,12 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+    private val allParameters
+        get() = if (enclosingClass == null) parameters else listOf(ExpectedTypeVisitor.ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(allParameters, resultType, params, textRepresentation())
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, resultType)
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
