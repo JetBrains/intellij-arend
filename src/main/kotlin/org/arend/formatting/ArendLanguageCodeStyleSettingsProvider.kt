@@ -21,12 +21,9 @@ class ArendLanguageCodeStyleSettingsProvider: LanguageCodeStyleSettingsProvider(
 
     override fun getIndentOptionsEditor(): IndentOptionsEditor? = SmartIndentOptionsEditor(this)
 
-    override fun getDefaultCommonSettings(): CommonCodeStyleSettings? {
-        val defaultSettings = CommonCodeStyleSettings(ArendLanguage.INSTANCE)
-        defaultSettings.initIndentOptions()
-        defaultSettings.indentOptions?.CONTINUATION_INDENT_SIZE = 4
-        defaultSettings.indentOptions?.INDENT_SIZE = 2
-        return defaultSettings
+    override fun customizeDefaults(commonSettings: CommonCodeStyleSettings, indentOptions: CommonCodeStyleSettings.IndentOptions) {
+        commonSettings.indentOptions?.CONTINUATION_INDENT_SIZE = 4
+        commonSettings.indentOptions?.INDENT_SIZE = 2
     }
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
