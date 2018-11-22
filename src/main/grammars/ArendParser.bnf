@@ -759,16 +759,19 @@ private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | COWITH_KW | ELIM_KW) & statement_recover
 
-fieldTele ::= fieldTeleExplicit | fieldTeleImplicit {
+fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         implements = [ "org.arend.psi.ext.ArendCompositeElement"
                        "org.arend.term.abs.Abstract.Parameter" ]
         mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
-        recoverWhile = fieldTele_recover
     }
 
 private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
 private fieldTeleImplicit ::= LBRACE fieldDefIdentifier+ COLON expr RBRACE { pin = 2 }
+
+private fieldTeleRecovery ::= fieldTele_recover {
+    recoverWhile = fieldTele_recover
+}
 
 private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
 
