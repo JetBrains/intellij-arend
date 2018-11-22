@@ -72,6 +72,11 @@ class ArendHighlightingAnnotator : Annotator {
             }
         }
 
+        if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.USE_KW && element.parent?.parent is ArendClassStat) {
+            holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed inside a class definition")
+            return
+        }
+
         if (element is ArendPrec) {
             val prec = (element.number ?: return).text.toByteOrNull() ?: 10
             if (prec < 1 || prec > 9) {
