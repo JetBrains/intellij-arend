@@ -99,7 +99,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             blocks.sortBy { it.textRange.startOffset }
 
             // Dedicated search for "lost" blocks
-             val lostBlocks = aaeBlocks.asSequence().sortedBy { it.startOffset }.toMutableList()
+            val lostBlocks = aaeBlocks.asSequence().sortedBy { it.startOffset }.toMutableList()
             for (block in blocks) {
                 val toRemove = ArrayList<ASTNode>()
                 for (aae in lostBlocks) {
@@ -109,8 +109,17 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
                 lostBlocks.removeAll(toRemove)
             }
 
-            for (lostBlock in lostBlocks) //Lost blocks that were not in BinOpParser output
-                blocks.add(createArendBlock(lostBlock, null, null, Indent.getNoneIndent()))
+            if (lostBlocks.isNotEmpty()) {
+                for (lostBlock in lostBlocks) { // Remove BinOpParser blocks and replace them with containing lost blocks
+                    val toRemove = ArrayList<Block>()
+                    for (block in blocks) if (lostBlock.textRange.contains(block.textRange)) toRemove.add(block)
+                    blocks.removeAll(toRemove)
+                }
+
+
+                for (lostBlock in lostBlocks) //Lost blocks that were not in BinOpParser output
+                    blocks.add(createArendBlock(lostBlock, null, null, Indent.getNoneIndent()))
+            }
 
             blocks.sortBy { it.textRange.startOffset }
 
