@@ -1,5 +1,6 @@
 package org.arend.typechecking.execution
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -166,9 +167,8 @@ class TypeCheckProcessHandler(
 
                 if (!indicator.isCanceled) {
                     TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
-                        val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
-
                         if (typechecking.typecheckCollected(collector)) {
                             for (module in typechecking.typecheckedModules) {
                                 val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
@@ -181,6 +181,11 @@ class TypeCheckProcessHandler(
                     } finally {
                         TypecheckingOrderingListener.setDefaultCancellationIndicator()
                         typecheckingErrorReporter.flush()
+                        runReadAction {
+                            for (filePtr in typechecking.typecheckedFiles) {
+                                filePtr.element?.let { DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(it) }
+                            }
+                        }
                     }
                 }
             }
