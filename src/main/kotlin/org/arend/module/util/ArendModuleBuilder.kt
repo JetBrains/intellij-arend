@@ -9,17 +9,16 @@ import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.projectRoots.SdkTypeId
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.ui.configuration.ModulesProvider
-import com.intellij.openapi.util.io.FileUtil
 import org.arend.module.ArendModuleType
 import org.arend.util.FileUtils
 
 class ArendModuleBuilder : ModuleBuilder() {
-    // private var moduleRoot: VirtualFile? = null
 
     companion object {
         val DEFAULT_SOURCE_DIR = "src"
         val DEFAULT_OUTPUT_DIR = ".output"
 
+        /*
         fun toAbsolute(root: String, path: String): String = if (FileUtil.isAbsolute(path)) path else FileUtil.join(root, path)
         fun toRelative(root: String, path: String): String? {
             if (FileUtil.isAbsolute(path)) {
@@ -27,7 +26,7 @@ class ArendModuleBuilder : ModuleBuilder() {
                 return path.substring(root.length + 1)
             }
             return path
-        }
+        }*/
     }
 
     override fun getModuleType(): ModuleType<*>? = ArendModuleType.INSTANCE
@@ -40,9 +39,6 @@ class ArendModuleBuilder : ModuleBuilder() {
             parentDisposable: Disposable
     ): ModuleWizardStep = ArendProjectStructureDetector.DummyStep
 
-            //ArendModuleWizardStep(context, null, moduleRoot).apply {
-        //Disposer.register(parentDisposable, Disposable { this.disposeUIResources() })
-    //}
 
     override fun validateModuleName(moduleName: String): Boolean {
         if (!FileUtils.isLibraryName(moduleName)) {
@@ -58,9 +54,5 @@ class ArendModuleBuilder : ModuleBuilder() {
         val root = doAddContentEntry(modifiableRootModel)?.file ?: return
         modifiableRootModel.inheritSdk()
         root.refresh(false, true)
-       // val contentEntry = modifiableRootModel.contentEntries.singleOrNull()
-       // if (contentEntry != null) {
-       //     moduleRoot = contentEntry.file
-       // }
     }
 }

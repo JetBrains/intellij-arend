@@ -29,8 +29,8 @@ open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.Module
             val srcDir = sourceDir(projectRoot, rootModel.project)
             val outDir = outputDir(projectRoot, rootModel.project)
 
-            if (projectRoot.fileSystem.findFileByPath(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir)) == null) {
-                VfsUtil.createDirectories(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir))
+            if (projectRoot.fileSystem.findFileByPath(toAbsolute(projectRoot.path, srcDir)) == null) {
+                VfsUtil.createDirectories(toAbsolute(projectRoot.path, srcDir))
             }
 
             /*
@@ -39,15 +39,16 @@ open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.Module
                 if (projectRoot.findChild(relSrcDir) == null)
                     projectRoot.createChildDirectory(null, relSrcDir)
             }*/
-            contentEntry.addSourceFolder(ArendModuleBuilder.toAbsolute(projectRoot.path, srcDir), false)
+
+            contentEntry.addSourceFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, srcDir)), false)
 
             if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
                 val configFile = projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE)
-                configFile.setBinaryContent(("sourcesDir: ${ArendModuleBuilder.toRelative(projectRoot.path, srcDir)?:srcDir}\n"+
-                        "outputDir: ${ArendModuleBuilder.toRelative(projectRoot.path, outDir)?:outDir}").toByteArray())
+                configFile.setBinaryContent(("sourcesDir: ${toRelative(projectRoot.path, srcDir)?:srcDir}\n"+
+                        "outputDir: ${toRelative(projectRoot.path, outDir)?:outDir}").toByteArray())
             }
 
-            contentEntry.addExcludeFolder(ArendModuleBuilder.toAbsolute(projectRoot.path, outDir))
+            contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, outDir)))
         }
     }
 }

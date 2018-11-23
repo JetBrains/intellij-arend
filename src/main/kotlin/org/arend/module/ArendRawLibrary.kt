@@ -1,6 +1,9 @@
 package org.arend.module
 
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.ErrorReporter
@@ -15,33 +18,25 @@ import org.arend.source.GZIPStreamBinarySource
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 import org.jetbrains.yaml.psi.YAMLFile
+import java.nio.file.Path
+import java.nio.file.Paths
 
 
-class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
+class ArendRawLibrary(private val pathToHeader: Path?, private val project: Project, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
     private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? = null
 
     val headerFile: YAMLFile?
         get() = headerFilePtr?.element
 
-    override fun getName() = module.name
+    constructor(module: Module, typecheckerState: TypecheckerState): this(module.libraryConfig?.virtualFile?.path?.let { Paths.get(it) }, module.project, typecheckerState)
 
-    override fun getModuleGroup(modulePath: ModulePath) = headerFilePtr?.element?.findArendFile(modulePath)
+    override fun getName() = headerFile?.libName ?: "noname"
+
+    override fun getModuleGroup(modulePath: ModulePath) = headerFile?.findArendFile(modulePath)
 
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
-        // TODO: Do not create a header file here
-        /*
-        if (headerVirtualFile == null) {
-            val appendString = {acc:String, s:String ->
-                if ("$acc $s".length - "$acc $s".lastIndexOf("\n") > MAX_HEADER_LINE_LENGTH) "$acc\n $s" else "$acc $s"
-            }
-
-            val templateStr = loadedModules.fold(MODULES.toString() + COLON) { acc, m -> appendString(acc, m.toString())} + "\n\n" + BINARY + COLON + " " + module.defaultBinDir
-            File(headerPath.toString()).printWriter().use { out -> out.print(templateStr) }
-            headerVirtualFile = VirtualFileManager.getInstance().findFileByUrl(headerUrl)
-        }
-        */
-        //else if (headerVirtualFile.fileType == YAMLFileType) {
-        headerFilePtr = module.libraryConfig?.let { SmartPointerManager.getInstance(module.project).createSmartPsiElementPointer(it) }
+        val libHeader = VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(pathToHeader.toString()) as? YAMLFile
+        headerFilePtr = libHeader?.let { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
 
         /* TODO: implement this properly
         val deps = getHeaderFile()?.dependencies
@@ -88,10 +83,10 @@ class ArendRawLibrary(private val module: Module, typecheckerState: TypecheckerS
     override fun needsTypechecking() = true
 
     override fun unloadDefinition(referable: LocatedReferable) {
-        TypeCheckingService.getInstance(module.project).updateDefinition(referable)
+        TypeCheckingService.getInstance(project).updateDefinition(referable)
     }
 
-    override fun getReferableConverter() = TypeCheckingService.getInstance(module.project).newReferableConverter(true)
+    override fun getReferableConverter() = TypeCheckingService.getInstance(project).newReferableConverter(true)
 
-    override fun getDependencyListener() = TypeCheckingService.getInstance(module.project).dependencyListener
+    override fun getDependencyListener() = TypeCheckingService.getInstance(project).dependencyListener
 }

@@ -18,8 +18,8 @@ class ArendModuleWizardStep(
     private fun getModuleRoot(): String? = (context.projectBuilder as? ArendModuleBuilder)?.moduleFileDirectory
 
     override fun getComponent(): JComponent {
-        sourceDirTextField = getModuleRoot()?.let { JTextField(ArendModuleBuilder.toAbsolute(it, ArendModuleBuilder.DEFAULT_SOURCE_DIR)) }
-        outputDirTextField = getModuleRoot()?.let { JTextField(ArendModuleBuilder.toAbsolute(it, ArendModuleBuilder.DEFAULT_OUTPUT_DIR)) }
+        sourceDirTextField = getModuleRoot()?.let { JTextField(toAbsolute(it, ArendModuleBuilder.DEFAULT_SOURCE_DIR)) }
+        outputDirTextField = getModuleRoot()?.let { JTextField(toAbsolute(it, ArendModuleBuilder.DEFAULT_OUTPUT_DIR)) }
         return getModuleRoot()?.let {
             panel {
                 row("Sources directory: ") {
