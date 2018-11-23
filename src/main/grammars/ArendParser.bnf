@@ -145,9 +145,13 @@ private ns_refIdentifier ::= refIdentifier {
 
 private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
-private classStats ::= LBRACE classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
+private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
 
 classStat ::= classFieldOrImplement | definition | classFieldStat | defModule { recoverWhile = classStat_recover }
+
+private classStatRecovery ::= classStat_recover {
+  recoverWhile = classStat_recover
+}
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
