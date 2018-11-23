@@ -1,17 +1,20 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
-import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.FullModulePath
+import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
+import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
 class TestBasedTypechecking(
@@ -21,9 +24,10 @@ class TestBasedTypechecking(
     concreteProvider: ConcreteProvider,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener) {
+    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener, PsiElementComparator) {
 
     val typecheckedModules = LinkedHashSet<FullModulePath>()
+    val typecheckedFiles = LinkedHashSet<SmartPsiElementPointer<ArendFile>>()
 
     private fun startTimer(definition: TCReferable) {
         val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
@@ -57,7 +61,8 @@ class TestBasedTypechecking(
         eventsProcessor.onTestFinished(ref)
         runReadAction {
             val file = ref.containingFile as? ArendFile ?: return@runReadAction
-            typecheckedModules.add(FullModulePath(file.libraryName ?: return@runReadAction, file.modulePath))
+            typecheckedModules.add(FullModulePath(file.libraryName ?: return@runReadAction, file.modulePath ?: return@runReadAction))
+            typecheckedFiles.add(SmartPointerManager.createPointer(file))
         }
     }
 

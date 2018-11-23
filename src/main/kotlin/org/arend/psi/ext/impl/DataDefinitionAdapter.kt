@@ -38,15 +38,18 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
-    override fun getCoercingFunctions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition
-        if (def is ArendDefFunction && def.coerceKw != null) def else null
+        if (def is ArendDefFunction && def.useKw != null) def else null
     } ?: emptyList()
 
-    override fun getParameterType(params: List<Boolean>) =
-        ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.Universe, params, textRepresentation())
+    internal val allParameters
+        get() = if (enclosingClass == null) parameters else listOf(ExpectedTypeVisitor.ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, ExpectedTypeVisitor.Universe)
+    override fun getParameterType(params: List<Boolean>) =
+        ExpectedTypeVisitor.getParameterType(allParameters, ExpectedTypeVisitor.Universe, params, textRepresentation())
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, ExpectedTypeVisitor.Universe)
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 

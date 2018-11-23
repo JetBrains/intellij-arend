@@ -72,6 +72,11 @@ class ArendHighlightingAnnotator : Annotator {
             }
         }
 
+        if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.USE_KW && element.parent?.parent is ArendClassStat) {
+            holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed inside a class definition")
+            return
+        }
+
         if (element is ArendPrec) {
             val prec = (element.number ?: return).text.toByteOrNull() ?: 10
             if (prec < 1 || prec > 9) {
@@ -81,13 +86,14 @@ class ArendHighlightingAnnotator : Annotator {
         }
 
         if (element is ArendArgumentAppExpr) {
-            val pElement = element.parent
+            val parentElement = element.parent
+            val pElement = ((parentElement as? ArendNewExpr)?.parent as? ArendDefFunction) ?: parentElement
             if (pElement is ArendNewExprImplMixin) {
                 if (InstanceQuickFix.annotateNewExpr(pElement, holder)) {
                     return
                 }
             }
-            if (pElement is ArendNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is ArendNewArg || pElement is ArendDefInstance) {
+            if (pElement is ArendNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is ArendNewArg || pElement is ArendDefInstance || (pElement as? ArendDefFunction)?.functionBody?.cowithKw != null) {
                 val longName = element.longNameExpr?.longName ?: run {
                     val atomFieldsAcc = element.atomFieldsAcc
                     if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
@@ -99,6 +105,10 @@ class ArendHighlightingAnnotator : Annotator {
                 if (longName != null) {
                     val ref = longName.referent
                     val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
+                    if ((pElement is ArendDefInstance || pElement is ArendDefFunction) && resolvedRef !is ArendDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
+                        holder.createErrorAnnotation(longName, "Expected a class")
+                        return
+                    }
                     if (resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
                         holder.createErrorAnnotation(longName, "Expected a class")
                         return
@@ -358,7 +368,7 @@ class ArendHighlightingAnnotator : Annotator {
             }
 
             val scope = element.scope
-            val commandNames = NamespaceCommandNamespace.resolveNamespace(scope, element).elements.map { it.textRepresentation() }.toSet()
+            val commandNames = NamespaceCommandNamespace.resolveNamespace(if (element.kind == NamespaceCommand.Kind.IMPORT) scope.importedSubscope else scope, element).elements.map { it.textRepresentation() }.toSet()
             if (commandNames.isEmpty()) {
                 return
             }
@@ -367,7 +377,7 @@ class ArendHighlightingAnnotator : Annotator {
                 if (cmd == element) {
                     continue
                 }
-                for (other in NamespaceCommandNamespace.resolveNamespace(scope, cmd).elements) {
+                for (other in NamespaceCommandNamespace.resolveNamespace(if (cmd.kind == NamespaceCommand.Kind.IMPORT) scope.importedSubscope else scope, cmd).elements) {
                     val otherName = other.textRepresentation()
                     if (commandNames.contains(otherName)) {
                         if (defined == null) {

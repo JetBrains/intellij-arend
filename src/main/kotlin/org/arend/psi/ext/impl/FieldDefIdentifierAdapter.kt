@@ -2,6 +2,8 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.SearchScope
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
@@ -10,6 +12,7 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
+import org.arend.term.ClassFieldKind
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
@@ -29,6 +32,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
         get() = name
 
     override fun getName(): String = stub?.name ?: text
+
+    override fun getClassFieldKind() = ClassFieldKind.FIELD
 
     override fun textRepresentation(): String = name
 
@@ -61,6 +66,11 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override fun getResultType(): ArendExpr? = (parent as? ArendFieldTele)?.expr
 
     override fun getIcon(flags: Int) = ArendIcons.CLASS_FIELD
+
+    override fun getUseScope(): SearchScope {
+        if (parent is ArendFieldTele) return GlobalSearchScope.projectScope(project)
+        return super.getUseScope()
+    }
 
     override val psiElementType: PsiElement?
         get() = (parent as? ArendFieldTele)?.expr

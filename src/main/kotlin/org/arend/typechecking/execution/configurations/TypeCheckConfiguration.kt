@@ -9,16 +9,16 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
-import org.jdom.Element
+import org.arend.arendModules
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckRunConfigurationEditor
-import org.arend.arendModules
+import org.jdom.Element
 
 class TypeCheckConfiguration(
         project: Project,
         name: String,
         factory: ConfigurationFactory
-) : ModuleBasedConfiguration<TypeCheckRunConfigurationModule>(
+) : ModuleBasedConfiguration<TypeCheckRunConfigurationModule, Element>(
         name,
         TypeCheckRunConfigurationModule(project),
         factory

@@ -149,6 +149,10 @@ class RenameTest : ArendTestBase() {
             """
     )
 
+    fun `test rename class parameters`() = doTest("q",
+            "\\class Lol (p{-caret-} : Nat) {}\n\\func lol => Lol.p",
+            "\\class Lol (q : Nat) {}\n\\func lol => Lol.q")
+
     fun `test rename file`() = checkByDirectory(
             """
                 --! Main.ard

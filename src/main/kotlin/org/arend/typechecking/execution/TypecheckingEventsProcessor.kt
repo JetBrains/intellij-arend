@@ -7,6 +7,7 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.testframework.sm.runner.TestProxyPrinterProvider
 import com.intellij.execution.testframework.sm.runner.events.*
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil.addToInvokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import org.arend.module.ModulePath
@@ -62,7 +63,6 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             myTestsRootProxy.setFinished()
             fireOnTestingFinished(myTestsRootProxy)
         }
-        stopEventProcessing()
     }
 
     fun onSuiteStarted(modulePath: ModulePath) {

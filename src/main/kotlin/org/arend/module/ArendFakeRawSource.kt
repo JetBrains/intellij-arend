@@ -12,4 +12,6 @@ class ArendFakeRawSource(private val modulePath: ModulePath): Source {
     override fun getTimeStamp(): Long = -1
 
     override fun isAvailable() = true
+
+    override fun toString(): String = modulePath.toString()
 }

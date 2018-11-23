@@ -123,6 +123,14 @@
         <declarationRangeHandler key="org.arend.lang.core.psi.ArendDefFunction"
                                  implementationClass="org.arend.codeInsight.ArendDeclarationRangeHandler"/>
 
+        <!-- Formatter -->
+
+        <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/>
+        <codeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
+        <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendLanguageCodeStyleSettingsProvider"/>
+        <editor.backspaceModeOverride language="Arend" implementationClass="org.arend.formatting.ArendBackspaceDisabler"/>
+        <enterHandlerDelegate implementation="org.arend.formatting.ArendEnterAtIndentHandler" order="first"/>
+
         <!-- Code Insight -->
 
         <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
@@ -198,15 +206,6 @@
     </extensions>
 
     <actions>
-
-        <action id="Arend.PrettyPrinterFormat"
-                class="org.arend.actions.ArendPrettyPrinterFormatAction"
-                text="Reformat code with PrettyPrinter"
-                description="Format current file with PrettyPrinter">
-            <add-to-group group-id="CodeFormatGroup" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
-        </action>
-
         <action id="Arend.NewArendFile"
                 class="org.arend.actions.ArendCreateFileAction"
                 text="Arend File"

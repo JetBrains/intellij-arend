@@ -75,8 +75,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getUnresolvedUnderlyingReference(): Reference? = underlyingClass
 
-    override fun getCoercingFunctions(): List<LocatedReferable> =
-        (dynamicSubgroups + subgroups).mapNotNull { if (it is ArendDefFunction && it.coerceKw != null) it else null }
+    override fun getUsedDefinitions(): List<LocatedReferable> =
+        (dynamicSubgroups + subgroups).mapNotNull { if (it is ArendDefFunction && it.useKw != null) it else null }
 
     override fun getParameterType(params: List<Boolean>): Any? {
         val fields = ClassReferable.Helper.getNotImplementedFields(this)

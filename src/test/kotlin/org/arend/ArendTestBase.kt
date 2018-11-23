@@ -11,6 +11,7 @@ import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
@@ -117,13 +118,13 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     protected object DefaultDescriptor : ArendProjectDescriptorBase()
 
     inner class InlineFile(@Language("Arend") private val code: String, name: String = "Main.ard") {
-        private val hasCaretMarker = "{-caret-}" in code
+        private val hasCaretMarker = CARET_MARKER in code
 
         init {
             myFixture.configureByText(name, replaceCaretMarker(code))
         }
 
-        fun withCaret() = check(hasCaretMarker) { "Please, add `{-caret-}` marker to\n$code" }
+        fun withCaret() = check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
     }
 
     protected inline fun <reified T : PsiElement> findElementInEditor(marker: String = "^"): T {
@@ -162,6 +163,8 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     }
 
     companion object {
+        const val CARET_MARKER = "{-caret-}"
+
         @JvmStatic
         fun camelOrWordsToSnake(name: String): String {
             if (' ' in name) return name.replace(" ", "_")
@@ -178,5 +181,27 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
         val testProject = create()
         myFixture.configureFromTempProjectFile(testProject.fileWithCaret)
         return testProject
+    }
+
+    fun testCaret(resultingContent: String) {
+        val rC = resultingContent.trimIndent()
+        val index = rC.indexOf(CARET_MARKER)
+        if (index != -1) {
+            val contentWithoutMarkers = rC.replace(CARET_MARKER, "")
+            myFixture.checkResult(contentWithoutMarkers, false)
+            val actualCaret = myFixture.caretOffset
+            if (index != actualCaret) {
+                if (actualCaret < rC.length) {
+                    System.err.println("Expected caret position: \n$rC")
+                    System.err.println("Actual caret position: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
+                } else {
+                    System.out.println("Expected caret position: $index\n Actual caret position: $actualCaret")
+                }
+                assert(false)
+            }
+
+        } else {
+            myFixture.checkResult(rC, true)
+        }
     }
 }

@@ -1,5 +1,6 @@
 package org.arend.typechecking.execution
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -109,7 +110,7 @@ class TypeCheckProcessHandler(
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
             val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
 
             try {
                 for (library in libraries) {
@@ -166,9 +167,8 @@ class TypeCheckProcessHandler(
 
                 if (!indicator.isCanceled) {
                     TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
-                        val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService.typecheckerState, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
-
                         if (typechecking.typecheckCollected(collector)) {
                             for (module in typechecking.typecheckedModules) {
                                 val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
@@ -181,6 +181,11 @@ class TypeCheckProcessHandler(
                     } finally {
                         TypecheckingOrderingListener.setDefaultCancellationIndicator()
                         typecheckingErrorReporter.flush()
+                        runReadAction {
+                            for (filePtr in typechecking.typecheckedFiles) {
+                                filePtr.element?.let { DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(it) }
+                            }
+                        }
                     }
                 }
             }
@@ -221,11 +226,14 @@ class TypeCheckProcessHandler(
             when (child) {
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
-                    typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable ?: ModuleReferable(modulePath), child.errorDescription))
-                    if (group is PsiLocatedReferable) {
-                        typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
-                    } else {
-                        typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                    if (modulePath != null) {
+                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable
+                            ?: ModuleReferable(modulePath), child.errorDescription))
+                        if (group is PsiLocatedReferable) {
+                            typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
+                        } else {
+                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                        }
                     }
                 }
                 is ArendStatement -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }

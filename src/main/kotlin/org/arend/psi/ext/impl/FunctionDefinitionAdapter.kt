@@ -30,7 +30,13 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
+    override fun withTerm() = functionBody?.fatArrow != null
+
+    override fun isCowith() = functionBody?.cowithKw != null
+
     override fun isCoerce() = coerceKw != null
+
+    override fun isLevel() = levelKw != null
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
@@ -41,19 +47,22 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
+    private val allParameters
+        get() = if (enclosingClass == null) parameters else listOf(ExpectedTypeVisitor.ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(allParameters, resultType, params, textRepresentation())
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, resultType)
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return ReferableExtractVisitor().findClassReferable(type)
+        return if (isCowith) ReferableExtractVisitor().findReferable(type) as? ClassReferable else ReferableExtractVisitor().findClassReferable(type)
     }
 
     override fun getClassReferenceData(): ClassReferenceData? {
         val type = resultType ?: return null
         val visitor = ReferableExtractVisitor(true)
-        val classRef = visitor.findClassReferable(type) ?: return null
+        val classRef = (if (isCowith) visitor.findReferable(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 

@@ -1,0 +1,35 @@
+package org.arend.formatting
+
+class ArendReformatTest : ArendFormatterTestBase() {
+    fun testWrapAfterComment() = checkReformat(
+            "\\func lol --Lol\n => 1",
+            "\\func lol --Lol\n  => 1")
+
+    fun testFunctionClausesIndent() = checkReformat(
+            "\\func pred (x : Nat) : Nat\n| zero => 0\n| suc x' => x'",
+            "\\func pred (x : Nat) : Nat\n  | zero => 0\n  | suc x' => x'")
+
+    fun testArgAppExpr1() = checkReformat(
+            "\\func lol2 => Nat --aa\n-bb",
+            "\\func lol2 => Nat --aa\n    -bb")
+
+    fun testArgAppExpr2() = checkReformat(
+            "\\class C {\n  | foo : Nat \\case foo\n}",
+            "\\class C {\n  | foo : Nat \\case foo\n}")
+
+    fun testExprInClause() = checkReformat(
+            "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n  1",
+            "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    1")
+
+    fun testExprOnNewLine() = checkReformat(
+            "\\func lol =>\n1",
+            "\\func lol =>\n  1")
+
+    fun testStatementSpacing1() = checkReformat(
+            "\\open Prelude.TrS \\func lol\n  => 1",
+            "\\open Prelude.TrS\n\n\\func lol => 1")
+
+    fun testStatementSpacing2() = checkReformat(
+            "\\func lol1 => 1 \\where {\\open Prelude.TrS \\func lol => 1}",
+            "\\func lol1 => 1 \\where {\n  \\open Prelude.TrS\n\n  \\func lol => 1\n}")
+}

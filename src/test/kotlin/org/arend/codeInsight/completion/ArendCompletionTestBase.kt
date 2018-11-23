@@ -57,7 +57,7 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         var successString = ""
         for (codePiece in code) {
             //System.out.println("*** Testing: $codePiece ***")
-            val codePieceWithBackSlash = codePiece.replace("{-caret-}", "\\{-caret-}", false)
+            val codePieceWithBackSlash = codePiece.replace(CARET_MARKER, "\\$CARET_MARKER", false)
             var failedTest = false
             try {
                 checkCompletionVariants(codePiece, variants, condition)
@@ -109,12 +109,12 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
             @Language("Arend") after: String
     ) {
         check(hasCaretMarker(before) && hasCaretMarker(after)) {
-            "Please add `{-caret-}` marker"
+            "Please add `$CARET_MARKER` marker"
         }
         checkByText(before, after) { executeSoloCompletion() }
     }
 
-    protected fun doSingleCompletionMultiflie(
+    protected fun doSingleCompletionMultifile(
             @Language("Arend") before: String,
             @Language("Arend") after: String
     ) {
@@ -154,7 +154,7 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         }
     }
 
-    protected fun executeSoloCompletion() {
+    private fun executeSoloCompletion() {
         val variants = myFixture.completeBasic()
         if (variants != null) {
             fun LookupElement.debug(): String = "$lookupString ($psiElement)"

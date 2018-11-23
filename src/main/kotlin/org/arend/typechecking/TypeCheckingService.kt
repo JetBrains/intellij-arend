@@ -24,7 +24,7 @@ import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
-import org.arend.psi.ancestors
+import org.arend.psi.ArendWhere
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
@@ -105,11 +105,11 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
-                typecheckerState.reset(simpleReferableConverter.remove(field))
+                simpleReferableConverter.remove(field)
             }
         } else if (referable is DataDefinitionAdapter) {
             for (constructor in referable.constructors) {
-                typecheckerState.reset(simpleReferableConverter.remove(constructor))
+                simpleReferableConverter.remove(constructor)
             }
         }
         return tcReferable
@@ -196,6 +196,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             val child = event.child
             if (child is PsiErrorElement ||
                 child is PsiWhiteSpace ||
+                child is ArendWhere ||
                 child is LeafPsiElement && isComment(child.node.elementType)) {
                 return
             }
@@ -203,6 +204,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             val newChild = event.newChild
             if (oldChild is PsiErrorElement && newChild is PsiErrorElement ||
                 oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
+                oldChild is ArendWhere && newChild is ArendWhere ||
                 oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
                 return
             }
@@ -224,9 +226,17 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 }
             }
 
-            val ancestors = event.parent.ancestors
-            val definition = ancestors.filterIsInstance<ArendDefinition>().firstOrNull() ?: return
-            updateDefinition(definition)
+            var elem = event.parent
+            while (elem != null) {
+                if (elem is ArendWhere || elem is ArendFile) {
+                    return
+                }
+                if (elem is ArendDefinition) {
+                    updateDefinition(elem)
+                    return
+                }
+                elem = elem.parent
+            }
         }
 
         private fun invalidateChild(element : PsiElement) {

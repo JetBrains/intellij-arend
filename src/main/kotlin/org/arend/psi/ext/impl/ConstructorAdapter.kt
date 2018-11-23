@@ -39,12 +39,12 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
 
     override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
 
-    override fun getParameterType(params: List<Boolean>): Any? {
-        val parameters = (ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.typeTeleList?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
-        return ExpectedTypeVisitor.getParameterType(parameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), params, textRepresentation())
-    }
+    private val allParameters
+        get() = (ancestors.filterIsInstance<DataDefinitionAdapter>().firstOrNull()?.allParameters?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) })
+    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(allParameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), params, textRepresentation())
+
+    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) })
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CONSTRUCTOR
 

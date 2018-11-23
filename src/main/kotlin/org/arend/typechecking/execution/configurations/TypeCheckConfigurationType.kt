@@ -29,8 +29,6 @@ class TypeCheckConfigurationType : ConfigurationTypeBase(
                     task.isEnabled = false
                 }
             }
-
-            override fun isConfigurationSingletonByDefault(): Boolean = true
         })
     }
 }

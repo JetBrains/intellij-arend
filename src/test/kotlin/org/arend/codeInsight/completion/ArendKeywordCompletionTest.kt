@@ -2,7 +2,7 @@ package org.arend.codeInsight.completion
 
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.AS_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_LEVEL_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COWITH_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
@@ -16,13 +16,14 @@ import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.HID
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.HU_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.IMPORT_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.IN_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LEVELS_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LEVEL_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LOCAL_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LPH_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LPH_LEVEL_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.NEW_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.PROP_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.RETURN_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.USE_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.WHERE_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.WITH_KW_LIST
 
@@ -39,7 +40,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data MyNat | {-caret-}myzero",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class AddMonoid => Monoid { | * => {-caret-}+}")
+                    "\\class AddMonoid => Monoid { | * => {-caret-}+}",
+                    "\\class Lol { } \\where { \\use \\level {-caret-} } ")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -83,18 +85,22 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     private val kwSuite1 =
             arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
-            "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
-            "\\func foo => 0 \\where {\n{-caret-} }",
-            "\\coerce Lol => 101 \\where {\n {-caret-} }")
+                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
+                    "\\func foo => 0 \\where {\n{-caret-} }",
+                    "\\use \\coerce Lol => 101 \\where {\n {-caret-} }")
 
     fun `test local statement keywords completion in func where block`() =
             checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS, *kwSuite1)
 
     fun `test local statement keywords completion in func where block 2`() =
-            checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuite1)
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuite1)
+
+    fun `test keywords after use`() =
+            checkKeywordCompletionVariants(COERCE_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+                    "\\func lol => 1 \\where { \\use {-caret-} }")
 
     fun `test local statement keywords in data and class`() =
-            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + COERCE_KW_LIST, CompletionCondition.CONTAINS,
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + USE_KW_LIST, CompletionCondition.CONTAINS,
                     "\\class Foo { | A : Nat\n {-caret-} }",
                     "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }",
                     "\\data Lol \\where {\n {-caret-} }")
@@ -118,7 +124,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class A {\n {-caret-} }")
 
     fun `test no coerce in global context`() =
-            checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "{-caret-}")
 
     fun `test root completion in empty context`() =
@@ -170,7 +176,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol => 0 \\where {-caret-}" /* duplicate of where not allowed */,
                     "\\class Foo { | A : Nat {-caret-}}",
                     "\\class Foo => Lol { {-caret-} }",
-                    "\\class Foo { {-caret-} }")
+                    "\\class Foo { {-caret-} }",
+                    "\\class C { } \\func lol : C \\cowith | {-caret-}")
 
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")
@@ -182,7 +189,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Lol (n : Nat){-caret-}",
                     "\\class Lol (n : Nat){-caret-}{}")
 
-    fun `test no extends after class without name or inside class arguments block`() =
+    fun `test absence of extends`() =
             checkKeywordCompletionVariants(EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class {-caret-}{}",
                     "\\class Lol (n : Nat) {-caret-} (m : Nat){}")
@@ -208,7 +215,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func f (a : Nat) => \\Sigma ({-caret-})",
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
-                    "\\func g => 101 (\\lam a => {-caret-})")
+                    "\\func g => 101 (\\lam a => {-caret-})",
+                    "\\class X { | x : {-caret-} }",
+                    "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
+                    "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}")
+
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f({-caret-})")
@@ -222,7 +233,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => (\\new () {-caret-})")
 
     fun `test only new & universes in application expression or after new expr 2`() =
-            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVEL_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f {-caret-}")
 
     fun `test no keyword completion after with`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_ELEMENTS,
@@ -232,7 +243,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test no keyword completion after with 2`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with { | zero => 0 | suc a' => a'}{-caret-}",
-            "\\class Foo \\extends Bar {-caret-}" /* test no extends */)
+            "\\class Foo \\extends Bar {-caret-}", /* test no extends */
+            "\\class C\n\\class D => C {-caret-}")
 
     fun `test only universe keywords after Sigma or Pi`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
@@ -275,7 +287,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test levels completion after universe literal 2`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
-                    "\\func lol (a : Nat) => (\\Prop {-caret-})" ,
+                    "\\func lol (a : Nat) => (\\Prop {-caret-})",
                     "\\func lol (a : Nat) => (\\Set \\lp {-caret-})",
                     "\\func lol (a : Nat) => (\\Set (\\suc \\lp {-caret-}))",
                     "\\func lol (a : Nat) => (\\Set (\\max 1 \\lp {-caret-}))",
@@ -374,6 +386,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
             "\\func lol : Nat {-caret-}")
 
+    fun `test absence of cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\data or (A B : \\Type) : \\Prop\n  | l A {-caret-}\n  | r B")
+
     fun `test elim completion 3`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",
             "\\func lol (a : Nat): {-caret-}",
@@ -382,41 +397,38 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) {-caret-} =>", // No elim if already there is a fat arrow
             "\\data lol {-caret-}",
             "\\data lol (A : \\Type) | south {-caret-}",
-            "\\data lol (a : Nat) {-caret-} \\elim a"
-    )
+            "\\data lol (a : Nat) {-caret-} \\elim a")
 
     fun `test no elim and no fixity completion`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
-     "\\func lol {-caret-}" /* No elim if there are no arguments; No fixity */)
+            "\\func lol {-caret-}", /* No elim if there are no arguments; No fixity */
+            "\\class C { } \\func lol : C \\cowith {-caret-}")
 
-    fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVEL_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => lol {-caret-} a",
-            "\\func lol (a : Nat) => lol {-caret-} a 1 2"
-            )
+            "\\func lol (a : Nat) => lol {-caret-} a 1 2")
 
     fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\levels {-caret-}")
+            "\\func lol => lol \\level {-caret-}")
 
     fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\levels \\lp {-caret-}",
+            "\\func lol => lol \\level \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
-            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2"
-            //,"\\func lol => lol \\levels (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
-            )
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2") //,"\\func lol => lol \\level (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
 
     fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\levels ({-caret-})",
-            "\\func lol => lol \\levels \\lp ({-caret-})",
+            "\\func lol => lol \\level ({-caret-})",
+            "\\func lol => lol \\level \\lp ({-caret-})",
             "\\func lol => lol \\lp ({-caret-})")
 
-    fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\levels \\lp \\lh {-caret-}",
+    fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol => lol \\level \\lp \\lh {-caret-}",
             "\\func lol => lol \\lp \\lh {-caret-}",
             "\\func lol (a : Nat) => lol a {-caret-}",
             "\\func lol => 1 {-caret-}",
             "\\func lol => 1 ({-caret-})")
 
-    fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\levels \\lp {-caret-}",
+    fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol => lol \\level \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
             "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
             "\\func lol (a : Nat) => lol ({-caret-})")

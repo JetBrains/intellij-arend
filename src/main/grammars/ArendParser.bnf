@@ -39,7 +39,10 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
+        FIELD_KW            = '\field'
+        PROPERTY_KW         = '\property'
         COERCE_KW           = '\coerce'
+        USE_KW              = '\use'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
         RIGHT_ASSOC_KW      = '\fixr'
@@ -68,7 +71,7 @@
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         SUC_KW              = '\suc'
-        LEVELS_KW           = '\levels'
+        LEVEL_KW            = '\level'
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
@@ -90,7 +93,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | COERCE_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -144,11 +147,13 @@ private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
 private classStats ::= LBRACE classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
 
-classStat ::= classFieldOrImplement | definition | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | definition | classFieldStat | defModule { recoverWhile = classStat_recover }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
 private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin = 1 }
+
+private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 
 classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     pin = 4
@@ -210,7 +215,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [COLON expr] functionBody where? {
+defFunction ::= (FUNCTION_KW | useMod) prec? defIdentifier_func nameTele* [COLON expr] functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
@@ -219,13 +224,15 @@ defFunction ::= (FUNCTION_KW | COERCE_KW) prec? defIdentifier_func nameTele* [CO
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
+private useMod ::= USE_KW (COERCE_KW | LEVEL_KW) { pin = 1 }
+
 private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
 }
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
-defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody where? {
+defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody? where? {
     pin = 1
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefDataStub"
@@ -289,14 +296,15 @@ private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RB
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
-    | elim? functionClauses {
+    | elim functionClauses?
+    | functionClauses {
     pin(".*") = 1
     recoverWhile = statement_recover
 }
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 
-dataBody ::= elim constructorClauses | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)* {
+dataBody ::= elim constructorClauses | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)+ {
     recoverWhile = statement_recover
 }
 
@@ -495,7 +503,7 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }
 
-functionClauses ::= clausesWithBraces | (pipe_pattern clause)*
+functionClauses ::= clausesWithBraces | (pipe_pattern clause)+
 private clausesWithBraces ::= LBRACE [pipe_pattern? clause] (pipe_pattern clause)* RBRACE { pin = 1 }
 
 private pipe_pattern ::= PIPE {
@@ -606,7 +614,7 @@ onlyLevelExpr ::= atomOnlyLevelExpr
 
 levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
-private levelsLevels ::= LEVELS_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
+private levelsLevels ::= LEVEL_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
@@ -755,16 +763,19 @@ private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | COWITH_KW | ELIM_KW) & statement_recover
 
-fieldTele ::= fieldTeleExplicit | fieldTeleImplicit {
+fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         implements = [ "org.arend.psi.ext.ArendCompositeElement"
                        "org.arend.term.abs.Abstract.Parameter" ]
         mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
-        recoverWhile = fieldTele_recover
     }
 
 private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
 private fieldTeleImplicit ::= LBRACE fieldDefIdentifier+ COLON expr RBRACE { pin = 2 }
+
+private fieldTeleRecovery ::= fieldTele_recover {
+    recoverWhile = fieldTele_recover
+}
 
 private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
 

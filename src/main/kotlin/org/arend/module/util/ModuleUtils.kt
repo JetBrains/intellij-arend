@@ -122,7 +122,7 @@ val YAMLFile.libModulesProp: List<String>?
     get() = (getProp("modules") as? YAMLSequence)?.items?.mapNotNull { (it.value as? YAMLScalar)?.textValue }
 
 val YAMLFile.libModules: List<ModulePath>
-    get() = libModulesProp?.mapNotNull { FileUtils.modulePath(it) } ?: sourcesDirFile?.let { getArendFiles(it).map { it.modulePath } } ?: emptyList()
+    get() = libModulesProp?.mapNotNull { FileUtils.modulePath(it) } ?: sourcesDirFile?.let { getArendFiles(it).mapNotNull { it.modulePath } } ?: emptyList()
 
 private fun YAMLFile.getArendFiles(root: VirtualFile): List<ArendFile> {
     val result = ArrayList<ArendFile>()

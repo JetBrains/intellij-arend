@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
-    kotlin("jvm") version "1.2.61"
+    kotlin("jvm") version "1.3.10"
     id("org.jetbrains.intellij") version "0.3.7"
     id("org.jetbrains.grammarkit") version "2018.1.7"
 }
@@ -31,8 +31,8 @@ configure<JavaPluginConvention> {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
-        languageVersion = "1.2"
-        apiVersion = "1.2"
+        languageVersion = "1.3"
+        apiVersion = "1.3"
     }
     dependsOn("generateArendLexer", "generateArendParser")
 }
@@ -50,7 +50,7 @@ idea {
 }
 
 intellij {
-    version = "2018.2"
+    version = "2018.3"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
