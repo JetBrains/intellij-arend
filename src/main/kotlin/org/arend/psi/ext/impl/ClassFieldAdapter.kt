@@ -8,6 +8,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldStub
+import org.arend.term.ClassFieldKind
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
@@ -18,6 +19,15 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
     constructor(stub: ArendClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getKind() = GlobalReferable.Kind.FIELD
+
+    override fun getClassFieldKind(): ClassFieldKind {
+        val parent = parent as? ArendClassStat ?: return ClassFieldKind.ANY
+        return when {
+            parent.fieldKw != null -> ClassFieldKind.FIELD
+            parent.propertyKw != null -> ClassFieldKind.PROPERTY
+            else -> ClassFieldKind.ANY
+        }
+    }
 
     override fun getPrecedence() = calcPrecedence(prec)
 

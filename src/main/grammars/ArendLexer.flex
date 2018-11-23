@@ -77,6 +77,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\func"                { return FUNCTION_KW; }
     "\\coerce"              { return COERCE_KW; }
     "\\use"                 { return USE_KW; }
+    "\\field"               { return FIELD_KW; }
+    "\\property"            { return PROPERTY_KW; }
     "\\infix"               { return INFIX_NON_KW; }
     "\\infixl"              { return INFIX_LEFT_KW; }
     "\\infixr"              { return INFIX_RIGHT_KW; }

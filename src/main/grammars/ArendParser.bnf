@@ -39,6 +39,8 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
+        FIELD_KW            = '\field'
+        PROPERTY_KW         = '\property'
         COERCE_KW           = '\coerce'
         USE_KW              = '\use'
         NON_ASSOC_KW        = '\fix'
@@ -91,7 +93,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | USE_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -145,11 +147,13 @@ private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
 private classStats ::= LBRACE classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
 
-classStat ::= classFieldOrImplement | definition | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | definition | classFieldStat | defModule { recoverWhile = classStat_recover }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
 private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin = 1 }
+
+private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 
 classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
     pin = 4
