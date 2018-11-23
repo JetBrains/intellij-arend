@@ -2,6 +2,8 @@ package org.arend.codeInsight.completion
 
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.AS_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_MEMBER_KWS
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_LEVEL_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COWITH_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_KW_LIST
@@ -99,16 +101,34 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(COERCE_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
                     "\\func lol => 1 \\where { \\use {-caret-} }")
 
-    fun `test local statement keywords in data and class`() =
-            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + USE_KW_LIST, CompletionCondition.CONTAINS,
-                    "\\class Foo { | A : Nat\n {-caret-} }",
-                    "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }",
+    fun `test local statement keywords in data`() =
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
                     "\\data Lol \\where {\n {-caret-} }")
+
+    private val kwSuiteInsideClass =
+            arrayOf("\\class Foo { \n {-caret-} }",
+                    "\\class Foo { | A : Nat\n {-caret-} }",
+                    "\\class Foo { | A : Nat\n \\func lol => 0\n {-caret-} \n\\func lol2 => 0 }")
+
+    private val kwSuiteInsideClassWhere =
+            arrayOf("\\class Foo { } \\where {\n {-caret-}\n}")
+
+    fun `test local statement keywords in class`() =
+            checkKeywordCompletionVariants(CLASS_STATEMENT_KWS, CompletionCondition.CONTAINS, *kwSuiteInsideClass)
+
+    fun `test no use keyword inside class`() =
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClass)
+
+    fun `test use keyword in class where`() =
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.CONTAINS, *kwSuiteInsideClassWhere)
+
+    fun `test no field and property in class where`() =
+            checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClassWhere)
 
     fun `test no root keywords completion`() =
             checkKeywordCompletionVariants(ALL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
-                    //"\\class Foo {\n {-caret-} \n | A : Nat }", //TODO: Fixme
+                    "\\class Foo {\n {-caret-} \n | A : Nat }",
                     "\\class Foo => Foo' {\n {-caret-} }", /* no statements in completion for class rename */
                     "\\class Foo => Foo' {\n {-caret-} | A => A' }",
                     "\\class Foo => Foo' {| A => A'\n {-caret-} }")
@@ -123,8 +143,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}",
                     "\\class A {\n {-caret-} }")
 
-    fun `test no coerce in global context`() =
-            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+    fun `test no coerce or class members in global context`() =
+            checkKeywordCompletionVariants(USE_KW_LIST + CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "{-caret-}")
 
     fun `test root completion in empty context`() =

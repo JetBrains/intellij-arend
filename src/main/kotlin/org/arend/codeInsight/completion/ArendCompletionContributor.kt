@@ -69,10 +69,27 @@ class ArendCompletionContributor : CompletionContributor() {
                 },
                         KeywordCompletionProvider(IMPORT_KW_LIST))))
 
-        val coerceAdmissibleAncestors = or(and(ofTypeK(ArendWhere::class.java), withParents(ArendDefData::class.java, ArendDefClass::class.java)), ofTypeK(ArendDefClass::class.java))
+        val classOrDataPositionMatcher = { position : PsiElement, insideWhere : Boolean, dataAllowed : Boolean ->
+            var foundWhere = false
+            var ancestor: PsiElement? = position
+            var result2 = false
+            while (ancestor != null) {
+                if (ancestor is ArendWhere) foundWhere = true
+                if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
+                    result2 = !(insideWhere xor foundWhere)
+                }
+                if (ancestor is ArendDefinition) foundWhere = false
+                ancestor = ancestor.parent
+            }
+            result2
+        }
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
-                ProviderWithCondition({ parameters, _ -> parameters.position.ancestors.filter { coerceAdmissibleAncestors.accepts(it) }.toSet().isNotEmpty() },
+                ProviderWithCondition({ parameters, _ -> classOrDataPositionMatcher(parameters.position, false, false) },
+                        KeywordCompletionProvider(CLASS_MEMBER_KWS))))
+
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
+                ProviderWithCondition({ parameters, _ -> classOrDataPositionMatcher(parameters.position, true, true) },
                         KeywordCompletionProvider(USE_KW_LIST))))
         extend(CompletionType.BASIC, afterLeaf(USE_KW), KeywordCompletionProvider(COERCE_LEVEL_KWS))
 
@@ -351,6 +368,7 @@ class ArendCompletionContributor : CompletionContributor() {
     companion object {
         val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
         val STATEMENT_WT_KWS = listOf(FUNCTION_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map { it.toString() }
+        val CLASS_MEMBER_KWS = listOf(FIELD_KW, PROPERTY_KW).map { it.toString() }
         val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
         val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, CASE_KW).map { it.toString() }
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
@@ -379,7 +397,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
-        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST
+        val CLASS_STATEMENT_KWS = LOCAL_STATEMENT_KWS + CLASS_MEMBER_KWS
+        val ALL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST + CLASS_MEMBER_KWS
         val HU_KW_LIST = USING_KW_LIST + HIDING_KW_LIST
         val DATA_OR_EXPRESSION_KW = DATA_UNIVERSE_KW + BASIC_EXPRESSION_KW + NEW_KW_LIST
         val LPH_LEVEL_KWS = LPH_KW_LIST + LEVEL_KWS
@@ -406,7 +425,8 @@ class ArendCompletionContributor : CompletionContributor() {
         val AS_CONTEXT = and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java))
         val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
         val ANY: PsiElementPattern.Capture<PsiElement> = PlatformPatterns.psiElement()
-        val STATEMENT_END_CONTEXT = withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java)
+        val STATEMENT_END_CONTEXT = or(withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java),
+                withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java)) //Needed for correct completion inside empty classes
         val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
                 not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
                 afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
@@ -526,15 +546,14 @@ class ArendCompletionContributor : CompletionContributor() {
                 genericJointCondition({ _, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementCondition, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementCondition, jointData.prevElement)
-                    val leftSideOk = (allowInsideBraces && jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) || ancestorsPE.isEmpty()
-                    val rightSideOk = (allowInsideBraces && jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) || ancestorsNE.isEmpty()
-                    val leftStatement = ancestorsPE.lastOrNull()
-                    val rightStatement = ancestorsNE.lastOrNull()
-                    val isInsideClassFields = (leftStatement is ArendClassStat && leftStatement.definition == null) &&
-                            rightStatement is ArendClassStat && rightStatement.definition == null
+                    val leftStatement = if (allowInsideBraces && jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) null else ancestorsPE.lastOrNull()
+                    val rightStatement = if (allowInsideBraces && jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) null else ancestorsNE.lastOrNull()
+                    val isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
+                    val leftSideOk = leftStatement == null && !isBeforeClassFields
+                    val rightSideOk = rightStatement == null
 
                     val correctStatements = (leftSideOk || rightSideOk ||
-                            leftStatement != null && rightStatement != null && !isInsideClassFields &&
+                            leftStatement != null && rightStatement != null && !isBeforeClassFields &&
                             ancestorsNE.intersect(ancestorsPE).isEmpty() &&
                             statementCondition.invoke(leftStatement) && statementCondition.invoke(rightStatement) &&
                             ancestorsNE.last().parent == ancestorsPE.last().parent)
