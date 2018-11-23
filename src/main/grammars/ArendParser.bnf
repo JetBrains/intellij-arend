@@ -149,7 +149,7 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
 
 classStat ::= classFieldOrImplement | definition | classFieldStat | defModule { recoverWhile = classStat_recover }
 
-private classStatRecovery ::= classStat_recover {
+private classStatRecovery ::= {
   recoverWhile = classStat_recover
 }
 
