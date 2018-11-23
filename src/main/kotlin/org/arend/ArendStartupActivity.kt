@@ -81,7 +81,8 @@ class ArendStartupActivity : StartupActivity {
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
             override fun projectClosed(project: Project) {
-                service.libraryManager.unload()
+                // TODO: the code below hangs the system
+            //    service.libraryManager.unload()
             }
         })
 

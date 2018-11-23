@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiManager
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.ErrorReporter
@@ -24,18 +25,27 @@ import java.nio.file.Paths
 
 class ArendRawLibrary(private val pathToHeader: Path?, private val project: Project, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
     private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? = null
+    private var module: Module? = null
 
     val headerFile: YAMLFile?
         get() = headerFilePtr?.element
 
-    constructor(module: Module, typecheckerState: TypecheckerState): this(module.libraryConfig?.virtualFile?.path?.let { Paths.get(it) }, module.project, typecheckerState)
+    constructor(module: Module, typecheckerState: TypecheckerState): this(module.libraryConfig?.virtualFile?.path?.let { Paths.get(it) }, module.project, typecheckerState) {
+        this.module = module
+    }
 
     override fun getName() = headerFile?.libName ?: "noname"
 
     override fun getModuleGroup(modulePath: ModulePath) = headerFile?.findArendFile(modulePath)
 
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
-        val libHeader = VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(pathToHeader.toString()) as? YAMLFile
+        val libHeader: YAMLFile?
+        if (module == null) {
+            if (pathToHeader == null) return LibraryHeader(emptyList(), emptyList())
+            libHeader = libHeaderByPath(pathToHeader, project) // VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(pathToHeader.toString()) as? YAMLFile
+        } else {
+            libHeader = module?.libraryConfig
+        }
         headerFilePtr = libHeader?.let { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
         return LibraryHeader(loadedModules, headerFilePtr?.element?.dependencies ?: emptyList())
     }
