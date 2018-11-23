@@ -37,29 +37,6 @@ class ArendRawLibrary(private val pathToHeader: Path?, private val project: Proj
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
         val libHeader = VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(pathToHeader.toString()) as? YAMLFile
         headerFilePtr = libHeader?.let { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
-
-        /* TODO: implement this properly
-        val deps = getHeaderFile()?.dependencies
-        if (deps != null) {
-            for (dep in deps) {
-                WriteAction.run<Exception> {
-                    val table = LibraryTablesRegistrar.getInstance().getLibraryTable(module.project)
-                    val tableModel = table.modifiableModel
-                    val library = tableModel.createLibrary(dep.name)
-
-                    val pathUrl = VirtualFileManager.constructUrl(LocalFileSystem.PROTOCOL, Paths.get("").toString())
-                    val file = VirtualFileManager.getInstance().findFileByUrl(pathUrl)
-                    if (file != null) {
-                        val libraryModel = library.modifiableModel
-                        libraryModel.addRoot(file, OrderRootType.CLASSES)
-                        libraryModel.commit()
-                        tableModel.commit()
-                        ModuleRootModificationUtil.addDependency(module.project.arendModules.elementAt(0), library)
-                    }
-                }
-            }
-        }*/
-        //}
         return LibraryHeader(loadedModules, headerFilePtr?.element?.dependencies ?: emptyList())
     }
 
