@@ -2,15 +2,13 @@ package org.arend.module
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiManager
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
+import org.arend.library.error.LibraryError
 import org.arend.module.util.*
 import org.arend.naming.reference.LocatedReferable
 import org.arend.source.BinarySource
@@ -19,35 +17,29 @@ import org.arend.source.GZIPStreamBinarySource
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 import org.jetbrains.yaml.psi.YAMLFile
-import java.nio.file.Path
-import java.nio.file.Paths
 
 
-class ArendRawLibrary(private val pathToHeader: Path?, private val project: Project, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
-    private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? = null
-    private var module: Module? = null
+class ArendRawLibrary(private val name: String, private val project: Project, headerFile: YAMLFile?, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
+    constructor(module: Module, typecheckerState: TypecheckerState):
+        this(module.name, module.project, module.libraryConfig, typecheckerState)
+
+    private var headerFilePtr: SmartPsiElementPointer<YAMLFile>? =
+        headerFile?.let { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
 
     val headerFile: YAMLFile?
         get() = headerFilePtr?.element
 
-    constructor(module: Module, typecheckerState: TypecheckerState): this(module.libraryConfig?.virtualFile?.path?.let { Paths.get(it) }, module.project, typecheckerState) {
-        this.module = module
-    }
-
-    override fun getName() = headerFile?.libName ?: "noname"
+    override fun getName() = name
 
     override fun getModuleGroup(modulePath: ModulePath) = headerFile?.findArendFile(modulePath)
 
-    override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader {
-        val libHeader: YAMLFile?
-        if (module == null) {
-            if (pathToHeader == null) return LibraryHeader(emptyList(), emptyList())
-            libHeader = libHeaderByPath(pathToHeader, project) // VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(pathToHeader.toString()) as? YAMLFile
-        } else {
-            libHeader = module?.libraryConfig
+    override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader? {
+        val config = headerFile
+        if (config == null) {
+            errorReporter.report(LibraryError.notFound(name))
+            return null
         }
-        headerFilePtr = libHeader?.let { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
-        return LibraryHeader(loadedModules, headerFilePtr?.element?.dependencies ?: emptyList())
+        return LibraryHeader(config.libModules, config.dependencies)
     }
 
     override fun load(libraryManager: LibraryManager?): Boolean {
@@ -57,15 +49,15 @@ class ArendRawLibrary(private val pathToHeader: Path?, private val project: Proj
         return true
     }
 
-    override fun getLoadedModules() = headerFilePtr?.element?.libModules ?: emptyList()
+    override fun getLoadedModules() = headerFile?.libModules ?: emptyList()
 
-    override fun getRawSource(modulePath: ModulePath) = headerFilePtr?.element?.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
+    override fun getRawSource(modulePath: ModulePath) =
+        headerFile?.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
-    override fun getBinarySource(modulePath: ModulePath): BinarySource? {
-        return headerFilePtr?.element?.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
-    }
+    override fun getBinarySource(modulePath: ModulePath): BinarySource? =
+        headerFile?.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
 
-    override fun containsModule(modulePath: ModulePath) = headerFilePtr?.element?.containsModule(modulePath) == true
+    override fun containsModule(modulePath: ModulePath) = headerFile?.containsModule(modulePath) == true
 
     override fun needsTypechecking() = true
 

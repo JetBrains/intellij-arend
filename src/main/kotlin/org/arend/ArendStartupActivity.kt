@@ -81,8 +81,7 @@ class ArendStartupActivity : StartupActivity {
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
             override fun projectClosed(project: Project) {
-                // TODO: the code below hangs the system
-            //    service.libraryManager.unload()
+                service.libraryManager.unload()
             }
         })
 
@@ -164,7 +163,7 @@ class ArendStartupActivity : StartupActivity {
                 for (entry in rootModel.orderEntries) {
                     if (entry is LibraryOrderEntry && !depNames.contains(entry.libraryName)) {
                         rootModel.removeOrderEntry(entry)
-                        System.out.println("Removed ${entry.libraryName}")
+                        // System.out.println("Removed ${entry.libraryName}")
                     }
                 }
                 rootModel.commit()
@@ -205,7 +204,7 @@ class ArendStartupActivity : StartupActivity {
                 val rootModel = ModuleRootManager.getInstance(module).modifiableModel
                 if (!libEntriesNames.contains(libName)) {
                     rootModel.addLibraryEntry(library)
-                    System.out.println("Added $libName")
+                    // System.out.println("Added $libName")
                 }
                 rootModel.commit()
              //   rootsChangedExternally = true
