@@ -434,12 +434,12 @@ class ArendHighlightingAnnotator : Annotator {
 
         if (element is LeafPsiElement) {
             when (element.node.elementType) {
-                ArendElementTypes.COERCE_KW -> {
+                ArendElementTypes.USE_KW -> {
                     val parent = (element.parent as? ArendDefFunction)?.parentGroup
                     if (parent is ArendFile) {
-                        holder.createErrorAnnotation(element as PsiElement, "\\coerce is not allowed on the top level")
+                        holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed on the top level")
                     } else if (parent !is ArendDefData && parent !is ArendDefClass) {
-                        holder.createErrorAnnotation(element as PsiElement, "\\coerce is allowed only in \\where block of \\data and \\class")
+                        holder.createErrorAnnotation(element as PsiElement, "\\use is allowed only in \\where block of \\data and \\class")
                     }
                 }
                 ArendElementTypes.IMPORT_KW ->
