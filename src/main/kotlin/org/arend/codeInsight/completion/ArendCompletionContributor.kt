@@ -77,8 +77,11 @@ class ArendCompletionContributor : CompletionContributor() {
                 if (ancestor is ArendWhere) foundWhere = true
                 if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
                     result2 = !(insideWhere xor foundWhere)
+                    break
+                } else if (ancestor is ArendDefinition && foundWhere) {
+                    result2 = false
+                    break
                 }
-                if (ancestor is ArendDefinition) foundWhere = false
                 ancestor = ancestor.parent
             }
             result2
@@ -95,8 +98,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
-        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true, false)
-        { jD: JointData ->
+        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true, false) { jD: JointData ->
             var anc = jD.prevElement
             while (anc != null && anc !is ArendDefinition && anc !is ArendDefModule && anc !is ArendClassStat) anc = anc.parent
             if (anc != null) {
@@ -546,17 +548,21 @@ class ArendCompletionContributor : CompletionContributor() {
                 genericJointCondition({ _, _, jointData ->
                     val ancestorsNE = ancestorsUntil(statementCondition, jointData.nextElement)
                     val ancestorsPE = ancestorsUntil(statementCondition, jointData.prevElement)
-                    val leftStatement = if (allowInsideBraces && jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)) null else ancestorsPE.lastOrNull()
-                    val rightStatement = if (allowInsideBraces && jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)) null else ancestorsNE.lastOrNull()
-                    val isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
-                    val leftSideOk = leftStatement == null && !isBeforeClassFields
-                    val rightSideOk = rightStatement == null
+                    val leftBrace = jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)
+                    val rightBrace = jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)
+                    val leftStatement = ancestorsPE.lastOrNull()
+                    val rightStatement = ancestorsNE.lastOrNull()
 
-                    val correctStatements = (leftSideOk || rightSideOk ||
-                            leftStatement != null && rightStatement != null && !isBeforeClassFields &&
+                    val isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
+                    val betweenStatementsOk = leftStatement != null && rightStatement != null && !isBeforeClassFields &&
                             ancestorsNE.intersect(ancestorsPE).isEmpty() &&
                             statementCondition.invoke(leftStatement) && statementCondition.invoke(rightStatement) &&
-                            ancestorsNE.last().parent == ancestorsPE.last().parent)
+                            ancestorsNE.last().parent == ancestorsPE.last().parent
+
+                    val leftSideOk = (leftStatement == null || leftBrace && allowInsideBraces) && !isBeforeClassFields
+                    val rightSideOk = (rightStatement == null || rightBrace && !leftBrace)
+
+                    val correctStatements = leftSideOk || rightSideOk || betweenStatementsOk
 
                     (jointData.delimeterBeforeCaret || noCrlfRequired) && additionalCondition(jointData) && correctStatements
                 }, completionProvider)
