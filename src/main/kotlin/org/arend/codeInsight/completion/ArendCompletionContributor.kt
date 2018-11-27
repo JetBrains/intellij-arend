@@ -637,6 +637,4 @@ class ArendCompletionContributor : CompletionContributor() {
                 resultSet.withPrefixMatcher(prefixMatcher).addElement(lookupElement(keyword).withInsertHandler(insertHandler(keyword)).withPriority(KEYWORD_PRIORITY))
         }
     }
-
-    override fun invokeAutoPopup(position: PsiElement, typeChar: Char): Boolean = typeChar == '\\'
 }

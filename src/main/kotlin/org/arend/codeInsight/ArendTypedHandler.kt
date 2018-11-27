@@ -1,5 +1,6 @@
 package org.arend.codeInsight
 
+import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.openapi.application.TransactionGuard
@@ -32,4 +33,12 @@ class ArendTypedHandler : TypedHandlerDelegate() {
 
         return Result.CONTINUE
     }
+
+    override fun checkAutoPopup(charTyped: Char, project: Project, editor: Editor, file: PsiFile) =
+        if (charTyped == '\\') {
+            AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
+            Result.STOP
+        } else {
+            Result.CONTINUE
+        }
 }
