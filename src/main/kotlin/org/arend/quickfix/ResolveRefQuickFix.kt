@@ -29,17 +29,6 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 
     override fun isValid() = importFile.modulePath?.let { currentFile.module?.libraryConfig?.findArendFile(it) } == importFile || ResolveRefQuickFix.isPrelude(importFile)
 
-    private fun calculateWhiteSpace(statement: PsiElement): String { //TODO: Get rid of this code and use formatting model's spacing rules instead to handle this situation
-        var s = statement.nextSibling
-        var i = 0
-        while (s is PsiWhiteSpace || s is PsiComment) {
-            i += s.text.filter { it == '\n' }.toList().size
-            if (i > 1) return ""
-            s = s.nextSibling
-        }
-        return if (s is ArendStatement && s.statCmd == null) "\n" else ""
-    }
-
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return
         val factory = ArendPsiFactory(importFile.project)
@@ -71,11 +60,10 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
             if (after) {
                 val insertedCommand = currentFile.addAfter(commandStatement, anchor)
                 currentFile.addAfter(factory.createWhitespace("\n"), anchor)
-                val s = calculateWhiteSpace(insertedCommand)
-                if (s != "") currentFile.addAfter(factory.createWhitespace(s), insertedCommand)
+                currentFile.addAfter(factory.createWhitespace(" "), insertedCommand)
             } else {
                 val insertedCommand = currentFile.addBefore(commandStatement, anchor)
-                currentFile.addAfter(factory.createWhitespace("\n"+calculateWhiteSpace(insertedCommand)), insertedCommand)
+                currentFile.addAfter(factory.createWhitespace("\n"), insertedCommand)
             }
         }
     }

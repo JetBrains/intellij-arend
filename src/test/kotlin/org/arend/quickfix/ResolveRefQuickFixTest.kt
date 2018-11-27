@@ -633,6 +633,30 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func a => f{-caret-}
             """)
 
+    fun `test spacing in import commands`() = simpleImportFixTest(
+            """
+                --! A.ard
+                \func lol => 1
+                --! B.ard
+
+                {-
+                ---
+
+                -}
+
+                \func lol2 => lol{-caret-}
+            """,
+            """
+                \import A
+
+                {-
+                ---
+
+                -}
+
+                \func lol2 => lol
+            """)
+
     fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
             "\\import A \\using (a, b, z)") { file ->

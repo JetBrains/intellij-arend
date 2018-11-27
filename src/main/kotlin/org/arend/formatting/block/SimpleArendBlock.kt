@@ -16,6 +16,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         val oneCrlf =       SpacingImpl(0, 0, 1, false, false, false, 1, false, 1)
+        val oneBlankLine =  Spacing.createSpacing(0, Integer.MAX_VALUE, 2, false, 1)
         val atMostOneCrlf = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
         val spacingFA =     SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
         val spacingColon =  SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
@@ -54,6 +55,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i-1)
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
                        c1et == LBRACE && psi2 is ArendStatement) return oneCrlf
+            else {
+                val isStatCmd1 = psi1 is ArendStatement && psi1.statCmd != null
+                val isStatCmd2 = psi2 is ArendStatement && psi2.statCmd != null
+                if (isStatCmd1 xor isStatCmd2) return oneBlankLine
+            }
         }
 
         return null
