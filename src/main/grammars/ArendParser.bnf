@@ -39,6 +39,7 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNCTION_KW         = '\func'
+        LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
         PROPERTY_KW         = '\property'
         COERCE_KW           = '\coerce'
@@ -93,7 +94,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNCTION_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -219,7 +220,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (FUNCTION_KW | useMod) prec? defIdentifier_func nameTele* [COLON expr] functionBody? where? {
+defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* [COLON expr] functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
