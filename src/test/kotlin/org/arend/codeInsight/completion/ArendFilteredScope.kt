@@ -1,7 +1,7 @@
 package org.arend.codeInsight.completion
 
 
-private val preludeConstructors = listOf("inP", "inS", "left", "path", "right", "suc", "truncP", "truncS", "zero", "neg", "pos")
+private val preludeConstructors = listOf("left", "path", "right", "suc", "zero", "neg", "pos")
 
 class ArendFilteredScope : ArendCompletionTestBase() {
     fun `test super classes`() =
