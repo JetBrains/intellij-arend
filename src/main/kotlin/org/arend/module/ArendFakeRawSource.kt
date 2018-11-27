@@ -7,7 +7,9 @@ import org.arend.source.SourceLoader
 class ArendFakeRawSource(private val modulePath: ModulePath): Source {
     override fun getModulePath() = modulePath
 
-    override fun load(sourceLoader: SourceLoader) = true
+    override fun preload(sourceLoader: SourceLoader) = true
+
+    override fun load(sourceLoader: SourceLoader) = Source.LoadResult.SUCCESS
 
     override fun getTimeStamp(): Long = -1
 
