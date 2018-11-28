@@ -19,6 +19,7 @@
     tokens = [
         LBRACE              = '{'
         RBRACE              = '}'
+        TGOAL               = '{?}'
         LGOAL               = '{?'
         LPAREN              = '('
         RPAREN              = ')'
@@ -396,7 +397,7 @@ private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
 }
 
-private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
+private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
@@ -509,7 +510,9 @@ letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
 }
 
 functionClauses ::= clausesWithBraces | (pipe_pattern clause)+
-private clausesWithBraces ::= LBRACE [pipe_pattern? clause] (pipe_pattern clause)* RBRACE { pin = 1 }
+private clausesWithBraces ::= LBRACE [pipe_pattern? clause] pipeClause* RBRACE { pin = 1 }
+
+private pipeClause ::= pipe_pattern clause { pin = 1 }
 
 private pipe_pattern ::= PIPE {
     recoverWhile = pipe_pattern_recover
@@ -732,11 +735,12 @@ literal ::= longName
     mixin = "org.arend.psi.ext.ArendLiteralImplMixin"
 }
 
-goal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE {
-    pin = 1
+goal ::= TGOAL | lGoal {
     implements = "org.arend.psi.ext.PsiReferable"
     mixin = "org.arend.psi.ext.PsiReferableImpl"
 }
+
+private lGoal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE { pin = 1 }
 
 private defIdentifier_goal ::= defIdentifier {
     recoverWhile = defIdentifier_goal_recover
@@ -798,7 +802,7 @@ private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | LGOAL) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | TGOAL | LGOAL) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 
