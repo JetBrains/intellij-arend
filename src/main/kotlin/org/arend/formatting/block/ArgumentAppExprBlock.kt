@@ -1,9 +1,12 @@
 package org.arend.formatting.block
 
 import com.intellij.formatting.*
+import com.intellij.formatting.blocks.prev
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.ArendExpr
@@ -30,13 +33,27 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
-        if (newChildIndex < subBlocks.size - 1) {
-            val child = subBlocks[newChildIndex+1].let {
-                if (it is AbstractArendBlock)
-                    subBlocks.getOrNull(newChildIndex) else it
-            }
+        if (newChildIndex > 0) {
+            val child = subBlocks[newChildIndex-1]
+
+            val isLast = newChildIndex == subBlocks.size
+            val hasLfBefore = if (child is AbstractArendBlock) {
+                var n = child.node.psi.prevSibling
+                var r = false
+                while (n is PsiComment || n is PsiWhiteSpace) {
+                    if (n is PsiWhiteSpace && n.textContains('\n')) {
+                        r = true
+                        break
+                    }
+                    n = n.prevSibling
+                }
+                r
+            } else false
+
             val indent = if (child == null) Indent.getNoneIndent() else child.indent
-            return ChildAttributes(indent, child?.alignment)
+            val align = if (hasLfBefore || !isLast) child?.alignment else null
+
+            return ChildAttributes(indent, align)
         }
 
         return super.getChildAttributes(newChildIndex)

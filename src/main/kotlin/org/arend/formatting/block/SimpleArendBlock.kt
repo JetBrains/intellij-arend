@@ -78,30 +78,33 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         if (node.elementType == CO_CLAUSE && subBlocks.size == newChildIndex)
             return ChildAttributes(indent, alignment)
 
-        val prevChild = if (newChildIndex > 0 && newChildIndex - 1 < subBlocks.size) subBlocks[newChildIndex - 1] else null
+        val prevChild = if (newChildIndex > 0) subBlocks[newChildIndex - 1] else null
 
         if (prevChild is AbstractArendBlock) {
             val prevET = prevChild.node.elementType
 
             if (nodePsi is ArendWhere) {
-                if (prevET == STATEMENT && nodePsi.lbrace != null && nodePsi.rbrace != null) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                if (prevET == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 if (prevET == WHERE_KW || prevET == LBRACE || prevET == TokenType.ERROR_ELEMENT) return ChildAttributes(Indent.getNormalIndent(), null)
             }
 
             // Definitions
+            if (nodePsi is ArendDefinition && newChildIndex < subBlocks.size) when (prevET) {
+                TYPE_TELE, NAME_TELE, FIELD_TELE -> return ChildAttributes(prevChild.indent, prevChild.alignment)
+            }
+
+            if (nodePsi is ArendDefinition && prevET == WHERE) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+
             if (nodePsi is ArendDefClass) when (prevET) {
                 DEF_IDENTIFIER, LONG_NAME -> return ChildAttributes(Indent.getNormalIndent(), null)
-                WHERE -> return ChildAttributes(Indent.getNoneIndent(), null)
             }
 
             if (nodePsi is ArendDefData) when (prevET) {
                 DEF_IDENTIFIER, UNIVERSE_EXPR, DATA_BODY, TYPE_TELE -> return ChildAttributes(Indent.getNormalIndent(), null)
-                WHERE -> return ChildAttributes(Indent.getNoneIndent(), null)
             }
 
             if (nodePsi is ArendDefFunction) return when (prevET) {
                 FUNCTION_BODY -> ChildAttributes.DELEGATE_TO_PREV_CHILD
-                WHERE -> ChildAttributes(Indent.getNoneIndent(), null)
                 else -> ChildAttributes(Indent.getNormalIndent(), null)
             }
 
@@ -128,6 +131,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 } else Indent.getNoneIndent()
                 return ChildAttributes(indent, null)
             }
+
+            //Expressions
+
+            when (node.elementType) {
+                NEW_EXPR, LAM_EXPR, PI_EXPR, ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            }
+
+            //General case
 
             val indent = when (prevET) {
                 LBRACE -> Indent.getNormalIndent()

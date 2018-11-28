@@ -65,10 +65,6 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func lol => foo \\where \\func foo => 1{-caret-}",
             "\\func lol => foo \\where \\func foo => 1\n{-caret-}")
 
-    fun testWhere3() = checkNewLine(
-            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1{-caret-}",
-            "\\class C { a : Nat } \n\n\\instance I : C\n  | a => 1\n  \\where \\func lol => 1\n{-caret-}")
-
     fun testWhere4() = checkNewLine(
             "\\func lol => 1 \\where {\n  \\func lol2 (n : Nat) \\elim n\n    | 0 => 1{-caret-}\n}",
             "\\func lol => 1 \\where {\n  \\func lol2 (n : Nat) \\elim n\n    | 0 => 1\n    {-caret-}\n}")
@@ -76,6 +72,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testWhere5() = checkNewLine(
             "\\func lol => 1 \\where {{-caret-}\n  \\func lol2 => 2\n}",
             "\\func lol => 1 \\where {\n  {-caret-}\n  \\func lol2 => 2\n}")
+
+    fun testWhere6() = checkNewLine(
+            "\\func bar => 0\n  \\where\n    \\func foo (x : Nat)\n      | 0 => 0{-caret-}",
+            "\\func bar => 0\n  \\where\n    \\func foo (x : Nat)\n      | 0 => 0\n      {-caret-}")
 
     fun testExprInClause() = checkNewLine(
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>{-caret-}",
@@ -113,10 +113,6 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class A1 {}\n\\class A \\extends A1{-caret-}\n  | f (b : Nat) : Nat\n",
             "\\class A1 {}\n\\class A \\extends A1\n  {-caret-}\n  | f (b : Nat) : Nat\n")
 
-    fun testFirstClauseInFuncWithoutElim() = checkNewLine(
-            "\\func foo (x : Nat){-caret-}\n  | 0 => 1\n",
-            "\\func foo (x : Nat)\n  {-caret-}\n  | 0 => 1\n")
-
     fun testAlignmentInTele() = checkNewLine(
             "\\func lol => \\Sigma (A : Nat){-caret-}",
             "\\func lol => \\Sigma (A : Nat)\n                    {-caret-}")
@@ -128,4 +124,20 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testCoClauses2() = checkNewLine(
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101{-caret-}",
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101\n  {-caret-}")
+
+    fun testTele1() = checkNewLine(
+            "\\func lol (A : Nat) (B : Nat){-caret-}\n (C : Nat)",
+            "\\func lol (A : Nat) (B : Nat)\n          {-caret-}\n (C : Nat)")
+
+    fun testArgAppExpr() = checkNewLine(
+            "\\func lol => (=) 1{-caret-} 2",
+            "\\func lol => (=) 1\n                 {-caret-}2")
+
+    fun testArgAppExpr2() = checkNewLine(
+            "\\func foobar (A : \\Type) => (=) A 101{-caret-}",
+            "\\func foobar (A : \\Type) => (=) A 101\n    {-caret-}")
+
+    fun testArgAppExpr3() = checkNewLine(
+            "\\func foobar (A : \\Type) => (=) A\n                                101{-caret-}",
+            "\\func foobar (A : \\Type) => (=) A\n                                101\n                                {-caret-}")
 }
