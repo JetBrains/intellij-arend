@@ -125,6 +125,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101{-caret-}",
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101\n  {-caret-}")
 
+    /* fun testCoClauses3() = checkNewLine(
+            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {\n{-caret-}  | foo => 1 }\n",
+            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {\n  {-caret-}\n  | foo => 1 }\n") */ //Fixme
+
     fun testTele1() = checkNewLine(
             "\\func lol (A : Nat) (B : Nat){-caret-}\n (C : Nat)",
             "\\func lol (A : Nat) (B : Nat)\n          {-caret-}\n (C : Nat)")
@@ -140,4 +144,16 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testArgAppExpr3() = checkNewLine(
             "\\func foobar (A : \\Type) => (=) A\n                                101{-caret-}",
             "\\func foobar (A : \\Type) => (=) A\n                                101\n                                {-caret-}")
+
+    fun testPi1() = checkNewLine(
+            "\\func foo => \\Pi (A : Nat) ->{-caret-}",
+            "\\func foo => \\Pi (A : Nat) ->\n    {-caret-}") //continuation
+
+    fun testPi2() = checkNewLine(
+            "\\func foo => \\Pi (A : Nat){-caret-}",
+            "\\func foo => \\Pi (A : Nat)\n                 {-caret-}")
+
+    fun testPi3() = checkNewLine(
+            "\\func foo => \\Pi (A : Nat) {-caret-}\n-> A",
+            "\\func foo => \\Pi (A : Nat) \n                 {-caret-}\n-> A")
 }

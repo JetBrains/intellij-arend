@@ -4,6 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.TokenType
+import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
@@ -135,7 +136,15 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             //Expressions
 
             when (node.elementType) {
-                NEW_EXPR, LAM_EXPR, PI_EXPR, ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                PI_EXPR, LAM_EXPR -> when (prevET) {
+                    ERROR_ELEMENT -> if (newChildIndex > 1) {
+                        val sB = subBlocks[newChildIndex - 2]
+                        if (sB is AbstractBlock && sB.node.elementType == TYPE_TELE) return ChildAttributes(sB.indent, sB.alignment)
+                    }
+                    ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE -> {}
+                    else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                }
+                NEW_EXPR, ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
             }
 
             //General case
@@ -189,7 +198,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         else -> null
                     }
                     else -> when (childET) {
-                        CO_CLAUSE -> alignment
+                        CO_CLAUSE, CLASS_STAT -> alignment
                         NAME_TELE, TYPE_TELE -> alignment2
                         else -> null
                     }
