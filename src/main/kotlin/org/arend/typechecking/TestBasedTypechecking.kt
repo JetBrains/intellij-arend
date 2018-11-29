@@ -51,7 +51,7 @@ class TestBasedTypechecking(
         val ref = PsiLocatedReferable.fromReferable(referable) ?: return
         if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
             val status = when {
-                !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_NEEDS_TYPE_CHECKING
+                !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_HAS_ERRORS
                 definition.status() == Definition.TypeCheckingStatus.HAS_WARNINGS || definition.status() == Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS
                 else -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_ERRORS
             }
