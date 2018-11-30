@@ -125,9 +125,9 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101{-caret-}",
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith\n  | f => 101\n  {-caret-}")
 
-    /* fun testCoClauses3() = checkNewLine(
-            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {\n{-caret-}  | foo => 1 }\n",
-            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {\n  {-caret-}\n  | foo => 1 }\n") */ //Fixme
+    fun testCoClauses3() = checkNewLine(
+            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {{-caret-}\n  | foo => 1 }\n",
+            "\\class Lol { | foo : Nat }\n\\func bar => \\new Lol {\n  {-caret-}\n  | foo => 1 }\n")
 
     fun testTele1() = checkNewLine(
             "\\func lol (A : Nat) (B : Nat){-caret-}\n (C : Nat)",

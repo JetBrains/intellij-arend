@@ -145,7 +145,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE -> {}
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
-                NEW_EXPR, ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                NEW_EXPR -> when (prevET) {
+                    LBRACE -> {}
+                    else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                }
             }
 
             //General case
