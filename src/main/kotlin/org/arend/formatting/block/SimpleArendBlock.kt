@@ -94,7 +94,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 TYPE_TELE, NAME_TELE, FIELD_TELE -> return ChildAttributes(prevChild.indent, prevChild.alignment)
             }
 
-            if (nodePsi is ArendDefinition && prevET == WHERE) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            if ((nodePsi is ArendDefinition || nodePsi is ArendDefModule) && prevET == WHERE)
+                return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
             if (nodePsi is ArendDefClass) when (prevET) {
                 DEF_IDENTIFIER, LONG_NAME -> return ChildAttributes(Indent.getNormalIndent(), null)
