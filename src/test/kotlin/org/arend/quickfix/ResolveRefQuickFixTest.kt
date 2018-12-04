@@ -669,4 +669,14 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test that resolve ref quick fixes are disabled for matched variable of elim expressions`() =
             checkNoImport("\\func bar => 0 \\func foo(a : Nat): Nat \\elim bar{-caret-} | _ => zero")
+
+    fun `test no import for class field tele`() =
+            checkNoImport2(
+             """
+                --! A.ard
+                \class C (x : Nat) | y : Nat
+
+                --! B.ard
+                \func foo => x{-caret-}
+            """)
 }

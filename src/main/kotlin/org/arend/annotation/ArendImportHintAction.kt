@@ -22,6 +22,7 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
 import org.arend.term.group.Group
 import org.arend.module.ArendPreludeLibrary
+import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
@@ -68,7 +69,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
                     union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
 
-            return items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
+            return items.filter { it !is ArendFieldDefIdentifier } // We do not autoimport class fields
+                    .mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
         }
 
         return emptyList()
