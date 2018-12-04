@@ -116,7 +116,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (allowPopup) {
+        if (allowPopup && filteredFixData.isNotEmpty()) { // thus we prevent showing hint-action for class field names
             val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
