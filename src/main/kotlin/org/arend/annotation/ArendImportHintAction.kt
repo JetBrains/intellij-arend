@@ -69,8 +69,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
                     union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
 
-            return items.filter { it !is ArendFieldDefIdentifier } // We do not autoimport class fields
-                    .mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
+            return items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
         }
 
         return emptyList()
@@ -97,6 +96,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
     fun doFix(editor: Editor, allowPopup : Boolean) : Result {
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val fixData = getItemsToImport()
+        val filteredFixData = fixData.filter { it.target !is ArendFieldDefIdentifier }
+
         if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
         val psiFile = referenceElement.containingFile
@@ -108,7 +109,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         else
             !LaterInvocator.isInModalContext()
 
-        if (fixData.size == 1 && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
+        if (fixData.size == 1 && filteredFixData.size == 1 // thus we prevent autoimporting short class field names
+                && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED

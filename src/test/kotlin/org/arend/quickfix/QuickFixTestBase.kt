@@ -28,12 +28,6 @@ abstract class QuickFixTestBase : ArendTestBase() {
         assert(myFixture.getAvailableIntention(fixName, "Main.ard") == null)
     }
 
-    protected fun checkNoImport2(@Language("Arend") contents: String) {
-        val fileTree = fileTreeFromText(contents)
-        fileTree.createAndOpenFileWithCaretMarker()
-        assert(myFixture.filterAvailableIntentions(importQfName).isEmpty())
-    }
-
     protected fun checkNoImport(@Language("Arend") contents: String) = checkNoQuickFixes(importQfName, contents)
 
     protected fun simpleActionTest (@Language("Arend") contents: String, @Language("Arend") resultingContent: String, f: (ArendFile) -> Unit) {

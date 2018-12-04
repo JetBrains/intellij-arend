@@ -671,12 +671,17 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             checkNoImport("\\func bar => 0 \\func foo(a : Nat): Nat \\elim bar{-caret-} | _ => zero")
 
     fun `test no import for class field tele`() =
-            checkNoImport2(
+            simpleImportFixTest(
              """
                 --! A.ard
                 \class C (x : Nat) | y : Nat
 
                 --! B.ard
                 \func foo => x{-caret-}
+            """,
+            """
+                \import A
+
+                \func foo => C.x
             """)
 }
