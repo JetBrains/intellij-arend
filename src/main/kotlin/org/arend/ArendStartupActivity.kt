@@ -1,8 +1,11 @@
 package org.arend
 
+import com.intellij.AppTopics
 import com.intellij.ProjectTopics
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManagerListener
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
@@ -12,8 +15,8 @@ import com.intellij.openapi.roots.*
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.startup.StartupActivity
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import org.arend.error.DummyErrorReporter
@@ -85,7 +88,20 @@ class ArendStartupActivity : StartupActivity {
             }
         })
 
-        PsiManager.getInstance(project).addPsiTreeChangeListener(LibHeaderPsiTreeChangeListener)
+        // PsiManager.getInstance(project).addPsiTreeChangeListener(LibHeaderPsiTreeChangeListener)
+        project.messageBus.connect().subscribe(AppTopics.FILE_DOCUMENT_SYNC, object : FileDocumentManagerListener {
+            override fun beforeDocumentSaving(document: Document) {
+                val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) as? YAMLFile ?: return
+
+                for (module in project.arendModules) {
+                    if (module.name == psiFile.libName) {
+                        syncModuleDependencies(module, mutableSetOf(), false)
+                    }
+                }
+                cleanObsoleteProjectLibraries(project)
+            }
+
+        })
 
         /*LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(object: LibraryTable.Listener {
             override fun afterLibraryAdded(newLibrary: Library) {
