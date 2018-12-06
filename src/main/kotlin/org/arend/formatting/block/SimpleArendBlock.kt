@@ -233,7 +233,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         while (currChild != null) {
             if (currChild.elementType != WHITE_SPACE) groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
             when (currChild.elementType) {
-                CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD, CLASS_FIELD_SYN -> return Pair(currChild, groupNodes)
+                CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD, CLASS_FIELD_SYN, CLASS_IMPLEMENT -> return Pair(currChild, groupNodes)
             }
             currChild = currChild.treeNext
         }

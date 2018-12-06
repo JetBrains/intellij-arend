@@ -164,4 +164,8 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testNoIndentAfterWhere2() = checkNewLine(
             "\\func foo \\where {}{-caret-}",
             "\\func foo \\where {}\n{-caret-}")
+
+    fun testClassImplement() = checkNewLine(
+            "\\class A (n : Nat)\n\n\\class B \\extends A{-caret-}\n| n => 0",
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  {-caret-}\n| n => 0")
 }

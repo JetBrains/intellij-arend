@@ -40,4 +40,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testArgAppExpr2() = checkReformat(
             "\\class C {\n  | foo : Nat \\case foo\n}",
             "\\class C {\n  | foo : Nat \\case foo\n}")
+
+    fun testClassImplement() = checkReformat(
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n| n => 0",
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n => 0")
 }
