@@ -21,10 +21,7 @@ abstract class ArendLetClauseImplMixin(node: ASTNode) : PsiReferableImpl(node), 
 
     override fun getTerm(): ArendExpr? = expr
 
-    override fun getUseScope(): SearchScope {
-        if (parent is ArendLetExpr) return LocalSearchScope(parent)
-        return super.getUseScope()
-    }
+    override fun getUseScope() = LocalSearchScope(parent)
 
     override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
 

@@ -1,9 +1,10 @@
 package org.arend.quickfix
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import org.arend.mapFirstNotNull
+import org.arend.module.util.availableConfigs
 import org.arend.module.util.findArendFile
 import org.arend.module.util.libraryConfig
 import org.arend.naming.reference.GlobalReferable
@@ -27,7 +28,7 @@ interface ResolveRefFixAction {
 class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid() = importFile.modulePath?.let { currentFile.module?.libraryConfig?.findArendFile(it) } == importFile || ResolveRefQuickFix.isPrelude(importFile)
+    override fun isValid() = importFile.modulePath?.let { modulePath -> currentFile.module?.libraryConfig?.availableConfigs?.mapFirstNotNull { it.findArendFile(modulePath) } } == importFile || ResolveRefQuickFix.isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return

@@ -74,18 +74,16 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         }
 
     override fun getUseScope(): SearchScope {
-        if (parent != null && parent.parent is ArendTypedExpr && parent.parent.parent is ArendTypeTele) {
-            return LocalSearchScope(parent.parent.parent.parent) //Pi expression
-        } else if (parent != null && parent.parent is ArendFieldTele) {
-            return LocalSearchScope(parent.parent.parent)
-        } else if (parent != null && parent.parent is ArendNameTele) {
-            return LocalSearchScope(parent.parent.parent)
-        } else if (parent is ArendAtomPatternOrPrefix && parent.parent != null) {
-            var p = parent.parent.parent
-            while (p != null && p !is ArendClause) p = p.parent
-            if (p is ArendClause) return LocalSearchScope(p) // Pattern variables
-        } else if (parent is ArendPattern) {
-            if (parent.parent is ArendClause) return LocalSearchScope(parent.parent)
+        val parent = parent
+        if (parent != null) when {
+            parent.parent is ArendTypedExpr && parent.parent.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
+            parent.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)
+            parent is ArendAtomPatternOrPrefix && parent.parent != null -> {
+                var p = parent.parent.parent
+                while (p != null && p !is ArendClause) p = p.parent
+                if (p is ArendClause) return LocalSearchScope(p) // Pattern variables
+            }
+            parent is ArendPattern && parent.parent is ArendClause -> return LocalSearchScope(parent.parent)
         }
         return super.getUseScope()
     }

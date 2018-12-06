@@ -15,9 +15,11 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.psi.module
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.YAMLFile
@@ -141,6 +143,15 @@ var YAMLFile.dependencies: List<LibraryDependency>
     set(deps) {
         setProp("dependencies", yamlSeqFromList(deps.map { it.name }))
     }
+
+val YAMLFile.dependencyConfigs: List<YAMLFile>
+    get() {
+        val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+        return dependencies.mapNotNull { (libraryManager.getRegisteredLibrary(it.name) as? ArendRawLibrary)?.headerFile }
+    }
+
+val YAMLFile.availableConfigs
+    get() = listOf(this) + dependencyConfigs
 
 val Module.sourcesDir: String?
     get() {

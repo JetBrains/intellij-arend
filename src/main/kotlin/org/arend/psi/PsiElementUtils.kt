@@ -1,6 +1,5 @@
 package org.arend.psi
 
-import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootManager
@@ -11,6 +10,12 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
+import org.arend.module.util.availableConfigs
+import org.arend.module.util.containsModule
+import org.arend.module.util.findArendFile
+import org.arend.module.util.libraryConfig
+import org.arend.naming.scope.LexicalScope
+import org.arend.prelude.Prelude
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 
@@ -21,8 +26,19 @@ val PsiElement.module: Module?
     get() = ModuleUtilCore.findModuleForPsiElement(this)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
-    get() = ServiceManager.getService(project, TypeCheckingService::class.java)?.libraryManager?.moduleScopeProvider
-        ?: EmptyModuleScopeProvider.INSTANCE
+    get() {
+        val module = module ?: return EmptyModuleScopeProvider.INSTANCE
+        return module.libraryConfig?.availableConfigs?.let { libs ->
+            ModuleScopeProvider { modulePath ->
+                val file = if (modulePath == Prelude.MODULE_PATH) {
+                    TypeCheckingService.getInstance(module.project).prelude
+                } else {
+                    libs.firstOrNull { it.containsModule(modulePath) }?.findArendFile(modulePath)
+                }
+                file?.let { LexicalScope.opened(it) }
+            }
+        } ?: EmptyModuleScopeProvider.INSTANCE
+    }
 
 val PsiElement.sourceRoot: VirtualFile?
     get() = containingFile?.virtualFile?.let { ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(it) }

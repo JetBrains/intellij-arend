@@ -3,7 +3,6 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.SearchScope
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
@@ -67,10 +66,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getIcon(flags: Int) = ArendIcons.CLASS_FIELD
 
-    override fun getUseScope(): SearchScope {
-        if (parent is ArendFieldTele) return GlobalSearchScope.projectScope(project)
-        return super.getUseScope()
-    }
+    override fun getUseScope() = GlobalSearchScope.projectScope(project)
 
     override val psiElementType: PsiElement?
         get() = (parent as? ArendFieldTele)?.expr
