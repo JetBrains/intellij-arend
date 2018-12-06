@@ -54,16 +54,10 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val project = referenceElement.project
             val name = referenceElement.referenceName
 
-            val libraryManager = TypeCheckingService.getInstance(project).libraryManager
-            val preludeLibrary = libraryManager.getRegisteredLibrary("prelude")
+            val prelude = TypeCheckingService.getInstance(project).prelude
             val preludeItems = HashSet<Referable>()
-            if (preludeLibrary is ArendPreludeLibrary) {
-                val moduleGroup = preludeLibrary.getModuleGroup(Prelude.MODULE_PATH)
-                if (moduleGroup != null) {
-                    iterateOverGroup(moduleGroup, { referable: Referable ->
-                        referable is PsiLocatedReferable && referable.name == referenceElement.referenceName
-                    }, preludeItems)
-                }
+            if (prelude != null) {
+                iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == referenceElement.referenceName }, preludeItems)
             }
 
             val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().

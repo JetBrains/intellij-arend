@@ -15,6 +15,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
+import org.arend.prelude.Prelude
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendFileStub
@@ -43,7 +44,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = modulePath?.toString() ?: name
 
     val libraryName
-        get() = module?.name ?: if (name == "Prelude.ard") "prelude" else null
+        get() = module?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)

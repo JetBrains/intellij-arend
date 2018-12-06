@@ -3,10 +3,10 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.SourceInfo
 import org.arend.naming.reference.*
+import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
@@ -27,13 +27,24 @@ open class DataLocatedReferable(
     override fun positionTextRepresentation(): String? = psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
 
     fun fixPointer(project: Project) =
+        if (psiElementPointer == null) {
+            runReadAction {
+                LocatedReferable.Helper.resolveReferable(this) { modulePath ->
+                    if (modulePath == Prelude.MODULE_PATH) {
+                        TypeCheckingService.getInstance(project).libraryManager.getRegisteredLibrary(Prelude.LIBRARY_NAME)?.moduleScopeProvider?.forModule(modulePath)
+                    } else null
+                } as? PsiLocatedReferable
+            }
+        } else null
+        /* TODO
         runReadAction {
-            val psiRef = LocatedReferable.Helper.resolveReferable(this, TypeCheckingService.getInstance(project).libraryManager.moduleScopeProvider) as? PsiLocatedReferable
+            val psiRef = LocatedReferable.Helper.resolveReferable(this, TypeCheckingService.getInstance(project).libraryManager.getAvailableModuleScopeProvider()) as? PsiLocatedReferable
             if (psiElementPointer != null && psiRef != null) {
                 psiElementPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(psiRef)
             }
             psiRef
         }
+        */
 }
 
 class FieldDataLocatedReferable(

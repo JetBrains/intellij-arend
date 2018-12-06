@@ -5,6 +5,7 @@ import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
 import org.arend.error.ErrorReporter
 import org.arend.library.BaseLibrary
+import org.arend.library.LibraryDependency
 import org.arend.library.LibraryManager
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.LocatedReferable
@@ -30,9 +31,11 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
     private var isTypechecked: Boolean = false
     private var scope: Scope? = null
 
-    override fun getName() = "prelude"
+    override fun getName() = Prelude.LIBRARY_NAME
 
     override fun getLoadedModules(): List<ModulePath> = if (prelude == null) emptyList() else listOf(Prelude.MODULE_PATH)
+
+    override fun getDependencies(): List<LibraryDependency> = emptyList()
 
     override fun getModuleGroup(modulePath: ModulePath) = if (modulePath == Prelude.MODULE_PATH) prelude else null
 

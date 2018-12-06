@@ -14,8 +14,6 @@ import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
-import org.arend.module.scopeprovider.EmptyModuleScopeProvider
-import org.arend.module.scopeprovider.LocatingModuleScopeProvider
 import org.arend.module.util.defaultRoot
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
@@ -66,7 +64,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
-    override val libraryManager = LibraryManager(ArendLibraryResolver(project), EmptyModuleScopeProvider.INSTANCE, null, libraryErrorReporter, libraryErrorReporter)
+    override val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
@@ -76,8 +74,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
     init {
-        libraryManager.moduleScopeProvider = LocatingModuleScopeProvider(libraryManager)
-
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
         project.messageBus.connect(project).subscribe(PsiManagerImpl.ANY_PSI_CHANGE_TOPIC, object : AnyPsiChangeListener.Adapter() {
             override fun beforePsiChanged(isPhysical: Boolean) {

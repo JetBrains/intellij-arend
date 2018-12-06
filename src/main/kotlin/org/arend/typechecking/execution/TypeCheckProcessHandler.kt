@@ -124,7 +124,7 @@ class TypeCheckProcessHandler(
                         if (module == null) {
                             runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
                         } else if (command.definitionFullName == "") {
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.moduleScopeProvider)) }
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library))) }
                         }
                         module
                     }

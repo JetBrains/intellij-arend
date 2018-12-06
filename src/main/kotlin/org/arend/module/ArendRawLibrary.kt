@@ -51,6 +51,8 @@ class ArendRawLibrary(private val name: String, private val project: Project, he
 
     override fun getLoadedModules() = headerFile?.libModules ?: emptyList()
 
+    override fun getDependencies() = headerFile?.dependencies ?: emptyList()
+
     override fun getRawSource(modulePath: ModulePath) =
         headerFile?.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
