@@ -51,7 +51,8 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(AREND_LIB_KIND) {
             }
         }) */
         val libHome = ProjectRootManager.getInstance(project).projectSdk?.homePath ?: return null
-        val libNameDialog = ChooseLibrariesDialog(project, findAllLibrariesInDirectory(Paths.get(libHome)).map { it.fileName.toString() })
+        val libNameDialog = ChooseLibrariesDialog(project,
+                findExternalLibrariesInDirectory(Paths.get(libHome)).map { it.fileName.toString() }.filter { getProjectDependencies(project).find { n -> it == n.name } == null })
 
         libNameDialog.show()
 

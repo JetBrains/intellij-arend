@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
+import org.arend.arendModules
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
@@ -41,9 +42,28 @@ fun toRelative(root: String, path: String): String? {
 
 val DEFAULT_OUTPUT = ".output"
 
-fun findAllLibrariesInDirectory(path: Path): List<Path> {
+fun findExternalLibrariesInDirectory(path: Path): List<Path> {
     val dir = path.toFile()
-    return dir?.walkTopDown()?.filter { it.name == "arend.yaml" }?.map { Paths.get(it.parentFile.path) }?.toList() ?: emptyList()
+    val res = mutableListOf<Path>()
+
+    for (subDir in dir.listFiles()) {
+        if (subDir.listFiles()?.find { it.name == "arend.yaml" } != null) {
+            res.add(Paths.get(subDir.path))
+        }
+    }
+
+    return res.toList()
+    // return dir?.walkTopDown()?.filter { it.name == "arend.yaml" }?.map { Paths.get(it.parentFile.path) }?.toList() ?: emptyList()
+}
+
+fun getProjectDependencies(project: Project): List<LibraryDependency> {
+    val res = mutableListOf<LibraryDependency>()
+
+    for (module in project.arendModules) {
+        module.libraryConfig?.dependencies?.let { res.addAll(it) }
+    }
+
+    return res.toList()
 }
 
 fun findLibHeaderInDirectory(path: Path, libName: String): Path? {

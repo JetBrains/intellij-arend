@@ -53,7 +53,8 @@ class ArendStartupActivity : StartupActivity {
                 override fun rootsChanged(event: ModuleRootEvent) {
                     // System.out.println("Roots changed. Source: ${event.source}")
                     val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toSet()
+                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toMutableSet()
+                    libEntriesNames.addAll(orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }.toMutableSet())
                     if (!rootsChangedExternally) return
                     // if (module.libraryConfig?.dependencies?.map { it.name }?.toSet()?.equals(libEntriesNames) == true) return
                     ApplicationManager.getApplication().invokeLater {
@@ -170,7 +171,9 @@ class ArendStartupActivity : StartupActivity {
 
             rootsChangedExternally = false
             for (dep in deps) {
+               // if (!module.project.arendModules.map { it.name }.contains(dep.name)) {
                 addDependency(module, dep.name, addedLibraries, useInvokeLater)
+               // }
                 addedLibraries.add(dep.name)
             }
 
@@ -179,7 +182,9 @@ class ArendStartupActivity : StartupActivity {
                 for (entry in rootModel.orderEntries) {
                     if (entry is LibraryOrderEntry && !depNames.contains(entry.libraryName)) {
                         rootModel.removeOrderEntry(entry)
-                        // System.out.println("Removed ${entry.libraryName}")
+                    }
+                    if (entry is ModuleOrderEntry && !depNames.contains(entry.moduleName)) {
+                        rootModel.removeOrderEntry(entry)
                     }
                 }
                 rootModel.commit()
@@ -191,8 +196,9 @@ class ArendStartupActivity : StartupActivity {
             val table = LibraryTablesRegistrar.getInstance().getLibraryTable(module.project)
             val tableModel = table.modifiableModel
             var library: Library? = table.getLibraryByName(libName)
+            val isExternal = !module.project.arendModules.map { it.name }.contains(libName)
 
-            if (library == null) {
+            if (library == null && isExternal) {
                 library = tableModel.createLibrary(libName)
                 val addLibrary = { WriteAction.run<Exception> {
                     val libModel = library.modifiableModel
@@ -216,11 +222,19 @@ class ArendStartupActivity : StartupActivity {
 
             WriteAction.run<Exception> {
                 val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-                val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }
                 val rootModel = ModuleRootManager.getInstance(module).modifiableModel
-                if (!libEntriesNames.contains(libName)) {
-                    rootModel.addLibraryEntry(library)
-                    // System.out.println("Added $libName")
+                if (isExternal) {
+                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }
+                    if (!libEntriesNames.contains(libName)) {
+                        rootModel.addLibraryEntry(library!!)
+                        // System.out.println("Added $libName")
+                    }
+                } else {
+                    val modEntriesNames = orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }
+                    val depModule = module.project.arendModules.find { it.name == libName }
+                    if (!modEntriesNames.contains(libName)) {
+                        depModule?.let { rootModel.addModuleOrderEntry(it) }
+                    }
                 }
                 rootModel.commit()
              //   rootsChangedExternally = true
