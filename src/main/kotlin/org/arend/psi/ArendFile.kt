@@ -28,7 +28,7 @@ import org.arend.term.group.Group
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath?
         get() {
-            val fileName = viewProvider.virtualFile.path
+            val fileName = originalFile.viewProvider.virtualFile.path
             if (fileName == "/Prelude.ard") {
                 return ModulePath("Prelude")
             }
@@ -78,7 +78,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { (it as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
+    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
 
