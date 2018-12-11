@@ -40,14 +40,11 @@ class ArendCompletionContributor : CompletionContributor() {
                 ProviderWithCondition({ parameters, _ -> noHiding(parameters.position.parent.parent.parent as ArendStatCmd) },
                         KeywordCompletionProvider(HIDING_KW_LIST)))
 
-        val statementCondition = { psi: PsiElement -> psi is ArendStatement || psi is ArendClassStat }
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
+                onJointOfStatementsCondition(KeywordCompletionProvider(STATEMENT_WT_KWS)))
 
         extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
-                onJointOfStatementsCondition(statementCondition,
-                        KeywordCompletionProvider(STATEMENT_WT_KWS)))
-
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
-                onJointOfStatementsCondition(statementCondition,
+                onJointOfStatementsCondition(
                         object : KeywordCompletionProvider(TRUNCATED_KW_LIST) {
                             override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
                                 val document = insertContext.document
@@ -60,16 +57,17 @@ class ArendCompletionContributor : CompletionContributor() {
                                     LookupElementBuilder.create(keyword).withPresentableText("\\truncated \\data")
                         }))
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
-                ProviderWithCondition({ parameters, _ ->
-                    val pp = parameters.position
-                    val ppp = pp.parent
-                    pp.ancestors.filter { it is ArendWhere || it is ArendDefClass }.none() ||
-                            (ppp is PsiErrorElement && ppp.parent is ArendDefClass && ppp.nextSibling == null)
-                },
-                        KeywordCompletionProvider(IMPORT_KW_LIST))))
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT,
+                onJointOfStatementsCondition(KeywordCompletionProvider(IMPORT_KW_LIST), false, true) { jointData ->
+                    val noWhere = { seq: Sequence<PsiElement> -> seq.filter { it is ArendWhere || it is ArendDefClass }.none() }
 
-        val classOrDataPositionMatcher = { position : PsiElement, insideWhere : Boolean, dataAllowed : Boolean ->
+                    jointData.leftStatement?.ancestors.let { if (it != null) noWhere(it) else true } &&
+                            jointData.rightStatement?.ancestors.let { if (it != null) noWhere(it) else true } &&
+                            (!jointData.leftBrace || jointData.ancestorsPE.isEmpty() || noWhere(jointData.ancestorsPE.asSequence())) &&
+                            (!jointData.rightBrace || jointData.ancestorsNE.isEmpty() || noWhere(jointData.ancestorsNE.asSequence()))
+                })
+
+        val classOrDataPositionMatcher = { position: PsiElement, insideWhere: Boolean, dataAllowed: Boolean ->
             var foundWhere = false
             var ancestor: PsiElement? = position
             var result2 = false
@@ -87,18 +85,18 @@ class ArendCompletionContributor : CompletionContributor() {
             result2
         }
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(
                 ProviderWithCondition({ parameters, _ -> classOrDataPositionMatcher(parameters.position, false, false) },
                         KeywordCompletionProvider(CLASS_MEMBER_KWS))))
 
-        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(statementCondition,
+        extend(CompletionType.BASIC, STATEMENT_END_CONTEXT, onJointOfStatementsCondition(
                 ProviderWithCondition({ parameters, _ -> classOrDataPositionMatcher(parameters.position, true, true) },
                         KeywordCompletionProvider(USE_KW_LIST))))
         extend(CompletionType.BASIC, afterLeaf(USE_KW), KeywordCompletionProvider(COERCE_LEVEL_KWS))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
 
-        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(statementCondition, KeywordCompletionProvider(WHERE_KW_LIST), true, false) { jD: JointData ->
+        extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(KeywordCompletionProvider(WHERE_KW_LIST), true, false) { jD: JointData ->
             var anc = jD.prevElement
             while (anc != null && anc !is ArendDefinition && anc !is ArendDefModule && anc !is ArendClassStat) anc = anc.parent
             if (anc != null) {
@@ -112,7 +110,7 @@ class ArendCompletionContributor : CompletionContributor() {
             } else false
         })
 
-        val noExtendsCondition = genericJointCondition({cP, _, jD ->
+        val noExtendsCondition = genericJointCondition({ cP, _, jD ->
             val condition = and(ofType(ID), withParent(ArendRefIdentifier::class.java))
             val dC = cP.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
             if (dC != null) dC.extendsKw == null && (!condition.accepts(jD.prevElement)) else false
@@ -285,6 +283,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         exprFound = exprFound &&
                                 if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
                                 else pos2.expr != null // No point of writing cowith keyword if there is no result type
+                        exprFound = exprFound && (fBody == null || fBody.cowithKw == null && fBody.elim.let{it == null || it.elimKw == null && it.withKw == null})
                         break
                     }
                     if ((pos2 is ArendDefData) && !coWithMode) {
@@ -298,6 +297,8 @@ class ArendCompletionContributor : CompletionContributor() {
                         exprFound = !emptyTeleList(pos2.typeTeleList)
                         break
                     }
+
+                    if (pos2 is ArendClause || pos2 is ArendCoClause) break
 
                     if (pos2?.nextSibling == null) pos2 = pos2?.parent else break
                 }
@@ -376,7 +377,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
         val LPH_KW_LIST = listOf(LP_KW, LH_KW).map { it.toString() }
         val ELIM_WITH_KW_LIST = listOf(ELIM_KW, WITH_KW).map { it.toString() }
-        val COERCE_LEVEL_KWS = listOf(COERCE_KW, LEVEL_KW).map{ it.toString() }
+        val COERCE_LEVEL_KWS = listOf(COERCE_KW, LEVEL_KW).map { it.toString() }
 
         val AS_KW_LIST = listOf(AS_KW.toString())
         val USING_KW_LIST = listOf(USING_KW.toString())
@@ -489,7 +490,17 @@ class ArendCompletionContributor : CompletionContributor() {
                     opc.accepts(parameters.originalPosition, context)
                 }, completionProvider)
 
-        private class JointData(val prevElement: PsiElement?, val delimeterBeforeCaret: Boolean, val nextElement: PsiElement?)
+        private class JointData(val prevElement: PsiElement?, val delimeterBeforeCaret: Boolean, val nextElement: PsiElement?) {
+            val ancestorsNE = ancestorsUntil(statementCondition, nextElement)
+            val ancestorsPE = ancestorsUntil(statementCondition, prevElement)
+            val leftBrace = prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(prevElement)
+            val rightBrace = nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(nextElement)
+            val leftStatement = ancestorsPE.lastOrNull()
+            val rightStatement = ancestorsNE.lastOrNull()
+
+            val isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
+            val betweenStatementsOk = leftStatement != null && rightStatement != null && !isBeforeClassFields && ancestorsNE.intersect(ancestorsPE).isEmpty()
+        }
 
         private fun textBeforeCaret(whiteSpace: PsiWhiteSpace, caretOffset: Int): String = when {
             whiteSpace.textRange.contains(caretOffset) -> whiteSpace.text.substring(0, caretOffset - whiteSpace.textRange.startOffset)
@@ -542,27 +553,20 @@ class ArendCompletionContributor : CompletionContributor() {
             else -> false
         }
 
-        private fun onJointOfStatementsCondition(statementCondition: (PsiElement) -> Boolean, completionProvider: CompletionProvider<CompletionParameters>,
+        private val statementCondition = { psi: PsiElement ->
+            if (psi is ArendStatement) {
+                val p = psi.parent
+                !(p is ArendWhere && p.lbrace == null)
+            } else psi is ArendClassStat
+        }
+
+        private fun onJointOfStatementsCondition(completionProvider: CompletionProvider<CompletionParameters>,
                                                  noCrlfRequired: Boolean = false, allowInsideBraces: Boolean = true,
-                                                 additionalCondition: (JointData) -> Boolean = { _: JointData -> true }): CompletionProvider<CompletionParameters> =
+                                                 additionalCondition: (JointData) -> Boolean = { true }): CompletionProvider<CompletionParameters> =
                 genericJointCondition({ _, _, jointData ->
-                    val ancestorsNE = ancestorsUntil(statementCondition, jointData.nextElement)
-                    val ancestorsPE = ancestorsUntil(statementCondition, jointData.prevElement)
-                    val leftBrace = jointData.prevElement?.node?.elementType == LBRACE && parentIsStatementHolder(jointData.prevElement)
-                    val rightBrace = jointData.nextElement?.node?.elementType == RBRACE && parentIsStatementHolder(jointData.nextElement)
-                    val leftStatement = ancestorsPE.lastOrNull()
-                    val rightStatement = ancestorsNE.lastOrNull()
-
-                    val isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
-                    val betweenStatementsOk = leftStatement != null && rightStatement != null && !isBeforeClassFields &&
-                            ancestorsNE.intersect(ancestorsPE).isEmpty() &&
-                            statementCondition.invoke(leftStatement) && statementCondition.invoke(rightStatement) &&
-                            ancestorsNE.last().parent == ancestorsPE.last().parent
-
-                    val leftSideOk = (leftStatement == null || leftBrace && allowInsideBraces) && !isBeforeClassFields
-                    val rightSideOk = (rightStatement == null || rightBrace && !leftBrace)
-
-                    val correctStatements = leftSideOk || rightSideOk || betweenStatementsOk
+                    val leftSideOk = (jointData.leftStatement == null || jointData.leftBrace && allowInsideBraces) && !jointData.isBeforeClassFields
+                    val rightSideOk = (jointData.rightStatement == null || jointData.rightBrace && !jointData.leftBrace)
+                    val correctStatements = leftSideOk || rightSideOk || jointData.betweenStatementsOk
 
                     (jointData.delimeterBeforeCaret || noCrlfRequired) && additionalCondition(jointData) && correctStatements
                 }, completionProvider)

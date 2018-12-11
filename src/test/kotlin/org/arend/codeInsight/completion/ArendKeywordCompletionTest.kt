@@ -83,7 +83,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\import B \\func foo => 0 \\data bar | foobar\n {-caret-}\\func f => 0 \\where { \\func g => 1 } ",
                     "\\import B \\hiding (a)\n{-caret-}\\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
                     "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}",
-                    "\\class A {}\n {-caret-}")
+                    "\\class A {}\n {-caret-}",
+                    "\\func foo => 0\n  \\where\n    \\func bar => 1\n\n{-caret-}\n\n\\func baz => 2")
 
     private val kwSuite1 =
             arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
@@ -426,7 +427,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) {-caret-} =>", // No elim if already there is a fat arrow
             "\\data lol {-caret-}",
             "\\data lol (A : \\Type) | south {-caret-}",
-            "\\data lol (a : Nat) {-caret-} \\elim a")
+            "\\data lol (a : Nat) {-caret-} \\elim a",
+            "\\func foo (n : Nat)\n  | 0 => 0\n  | suc n => 101 {-caret-}",
+            "\\class M | a : Nat\n\\func foo (n : Nat) : M \\cowith | a => 0{-caret-}",
+            "\\func foo (n : Nat) {-caret-}\\cowith")
 
     fun `test no elim and no fixity completion`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
             "\\func lol {-caret-}", /* No elim if there are no arguments; No fixity */
