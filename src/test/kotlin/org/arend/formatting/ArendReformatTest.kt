@@ -48,4 +48,12 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testClassImplement2() = checkReformat(
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n\\let x => 0\n\\in x",
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n    \\let x => 0\n    \\in x")
+
+    fun testCommentsIndent1() = checkReformat(
+            "\\func - (n m : Nat) : Nat\n-- comment 1\n  | 0, _ => 0\n-- comment 2\n  | suc n, 0 => suc n\n-- comment 3\n  | suc n, suc m => n - m\n",
+            "\\func - (n m : Nat) : Nat\n  -- comment 1\n  | 0, _ => 0\n  -- comment 2\n  | suc n, 0 => suc n\n  -- comment 3\n  | suc n, suc m => n - m\n")
+
+    fun testCommentsIndent2() = checkReformat(
+            "\\func - (n m : Nat) : Nat \\elim n, m\n-- comment 1\n  | 0, _ => 0\n-- comment 2\n  | suc n, 0 => suc n\n-- comment 3\n  | suc n, suc m => n - m\n",
+            "\\func - (n m : Nat) : Nat \\elim n, m\n  -- comment 1\n  | 0, _ => 0\n  -- comment 2\n  | suc n, 0 => suc n\n  -- comment 3\n  | suc n, suc m => n - m\n")
 }
