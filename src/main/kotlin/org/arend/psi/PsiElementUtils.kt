@@ -8,7 +8,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.module.util.availableConfigs
 import org.arend.module.util.containsModule
@@ -27,17 +26,20 @@ val PsiElement.module: Module?
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
-        val module = module ?: return EmptyModuleScopeProvider.INSTANCE
-        return module.libraryConfig?.availableConfigs?.let { libs ->
-            ModuleScopeProvider { modulePath ->
-                val file = if (modulePath == Prelude.MODULE_PATH) {
-                    TypeCheckingService.getInstance(module.project).prelude
+        val module = module
+        return ModuleScopeProvider { modulePath ->
+            val file = if (modulePath == Prelude.MODULE_PATH) {
+                TypeCheckingService.getInstance(module?.project ?: project).prelude
+            } else {
+                val libConf = module?.libraryConfig
+                if (libConf == null) {
+                    TypeCheckingService.getInstance(module?.project ?: project).libraryManager.registeredLibraries.firstOrNull { it.containsModule(modulePath) }?.getModuleGroup(modulePath)
                 } else {
-                    libs.firstOrNull { it.containsModule(modulePath) }?.findArendFile(modulePath)
+                    libConf.availableConfigs.firstOrNull { it.containsModule(modulePath) }?.findArendFile(modulePath)
                 }
-                file?.let { LexicalScope.opened(it) }
             }
-        } ?: EmptyModuleScopeProvider.INSTANCE
+            file?.let { LexicalScope.opened(it) }
+        }
     }
 
 val PsiElement.sourceRoot: VirtualFile?
