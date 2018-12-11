@@ -172,4 +172,8 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testClassImplement2() = checkNewLine(
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>{-caret-}",
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n    {-caret-}")
+
+    fun testComments1() = checkNewLine(
+            "\\class Foo { | A : Nat }\n\\func bar : Foo \\cowith\n  -- Lol1{-caret-}\n  | A => 101",
+            "\\class Foo { | A : Nat }\n\\func bar : Foo \\cowith\n  -- Lol1\n  {-caret-}\n  | A => 101")
 }

@@ -126,9 +126,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     val eT = prevBlock.node.elementType
                     if (prevBlock.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD
                     when (eT) {
-                        FAT_ARROW, COWITH_KW, ELIM, TokenType.ERROR_ELEMENT -> Indent.getNormalIndent()
                         FUNCTION_CLAUSES, CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                        else -> Indent.getNoneIndent()
+                        else -> Indent.getNormalIndent()
                     }
                 } else Indent.getNoneIndent()
                 return ChildAttributes(indent, null)
@@ -187,7 +186,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         } else if (childET == LINE_COMMENT || childET == BLOCK_COMMENT) when (nodeET) {
                             CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
                             FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR,
-                            DEF_FUNCTION, NEW_EXPR -> Indent.getNormalIndent()
+                            DEF_FUNCTION, NEW_EXPR, WHERE, CO_CLAUSES -> Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         } else if (nodeET == DEF_FUNCTION) {
                             val notFBodyWithClauses = if (childPsi is ArendFunctionBody) childPsi.fatArrow != null else true
