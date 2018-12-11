@@ -26,9 +26,9 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
         fun resolveReference(data: Any?, referent: Referable) =
             if (data is ArendCompositeElement) {
                 if (data !is ArendLongName || data.refIdentifierList.size <= 1) {
-                    Concrete.ReferenceExpression(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, null, referent.textRepresentation()), Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+                    Concrete.ReferenceExpression(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, null, referent.textRepresentation()))
                 } else {
-                    val refExpr = Concrete.ReferenceExpression(data, referent, Concrete.PLevelExpression(data), Concrete.HLevelExpression(data))
+                    val refExpr = Concrete.ReferenceExpression(data, referent)
                     val arg = ExpressionResolveNameVisitor.resolve(refExpr, data.scope)
                     (refExpr.referent as? GlobalReferable)?.let {
                         val psiRef = PsiLocatedReferable.fromReferable(it)
