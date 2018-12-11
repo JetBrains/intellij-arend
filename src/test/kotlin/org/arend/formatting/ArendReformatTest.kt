@@ -56,4 +56,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testCommentsIndent2() = checkReformat(
             "\\func - (n m : Nat) : Nat \\elim n, m\n-- comment 1\n  | 0, _ => 0\n-- comment 2\n  | suc n, 0 => suc n\n-- comment 3\n  | suc n, suc m => n - m\n",
             "\\func - (n m : Nat) : Nat \\elim n, m\n  -- comment 1\n  | 0, _ => 0\n  -- comment 2\n  | suc n, 0 => suc n\n  -- comment 3\n  | suc n, suc m => n - m\n")
+
+    fun testCommentsIndent3() = checkReformat(
+            "\\data \\fixr 2 Or (A B : \\Type)\n--foo\n| inl A\n--bar\n| inr B\n",
+            "\\data \\fixr 2 Or (A B : \\Type)\n  --foo\n  | inl A\n  --bar\n  | inr B\n")
 }
