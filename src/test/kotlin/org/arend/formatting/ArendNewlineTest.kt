@@ -168,4 +168,8 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testClassImplement() = checkNewLine(
             "\\class A (n : Nat)\n\n\\class B \\extends A{-caret-}\n| n => 0",
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  {-caret-}\n| n => 0")
+
+    fun testClassImplement2() = checkNewLine(
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>{-caret-}",
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n    {-caret-}")
 }

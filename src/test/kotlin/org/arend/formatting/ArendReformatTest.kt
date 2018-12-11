@@ -44,4 +44,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testClassImplement() = checkReformat(
             "\\class A (n : Nat)\n\n\\class B \\extends A\n| n => 0",
             "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n => 0")
+
+    fun testClassImplement2() = checkReformat(
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n\\let x => 0\n\\in x",
+            "\\class A (n : Nat)\n\n\\class B \\extends A\n  | n =>\n    \\let x => 0\n    \\in x")
 }

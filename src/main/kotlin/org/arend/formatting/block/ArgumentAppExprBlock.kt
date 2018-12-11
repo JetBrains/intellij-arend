@@ -1,7 +1,6 @@
 package org.arend.formatting.block
 
 import com.intellij.formatting.*
-import com.intellij.formatting.blocks.prev
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
@@ -14,7 +13,6 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
-import java.util.ArrayList
 
 class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
@@ -95,12 +93,12 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             sampleBlockList.sortBy { it.second }
             val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.first().first
 
-            val newAlign = if (cExpr.arguments.size > 1 && isPrefix) Alignment.createAlignment() else null
+            val newAlign =  if (cExpr.arguments.size > 1) Alignment.createAlignment() else null
             val newIndent = if (cExpr.arguments.size >= 1 && isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
                 val myBounds = getBounds(it.expression, aaeBlocks)
-                val aaeBlocksFiltered = aaeBlocks.filter { myBounds.contains(it.textRange)  }
+                val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }
                 transform(it.expression, aaeBlocksFiltered, newAlign, newIndent) })
 
 

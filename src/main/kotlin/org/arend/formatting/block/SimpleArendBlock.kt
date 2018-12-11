@@ -181,7 +181,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (childET != WHITE_SPACE) {
                 val indent: Indent? =
                         if (childPsi is ArendExpr || childPsi is PsiErrorElement || childET == LINE_COMMENT) when (nodeET) {
-                            CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY -> Indent.getNormalIndent()
+                            CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY, CLASS_IMPLEMENT -> Indent.getNormalIndent()
                             PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                             else -> Indent.getNoneIndent()
                         } else if (nodeET == DEF_FUNCTION) {
