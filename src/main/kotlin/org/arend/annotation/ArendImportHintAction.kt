@@ -19,9 +19,7 @@ import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
-import org.arend.prelude.Prelude
 import org.arend.term.group.Group
-import org.arend.module.ArendPreludeLibrary
 import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -89,29 +87,29 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     fun doFix(editor: Editor, allowPopup : Boolean) : Result {
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
-        val fixData = getItemsToImport()
-        val filteredFixData = fixData.filter { it.target !is ArendFieldDefIdentifier }
+        val fixes = getItemsToImport()
+        val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
 
-        if (fixData.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
+        if (fixes.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
 
         val psiFile = referenceElement.containingFile
         val project = referenceElement.project
 
-        val action = ArendAddImportAction(project, editor, referenceElement, fixData)
+        val action = ArendAddImportAction(project, editor, referenceElement, fixes)
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality"))
             !LaterInvocator.isInModalContextForProject(editor.project)
         else
             !LaterInvocator.isInModalContext()
 
-        if (fixData.size == 1 && filteredFixData.size == 1 // thus we prevent autoimporting short class field names
+        if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
                 && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (allowPopup && filteredFixData.isNotEmpty()) { // thus we prevent showing hint-action for class field names
-            val hintText = ShowAutoImportPass.getMessage(fixData.size > 1, fixData[0].toString())
+        if (allowPopup && highPriorityFixes.isNotEmpty()) { // thus we prevent showing hint-action for class field names
+            val hintText = ShowAutoImportPass.getMessage(fixes.size > 1, fixes[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
                 if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException

@@ -204,7 +204,6 @@ class InstanceQuickFix {
     }
 }
 
-
 class ClassImplementAnnotator(classImplement: ArendClassImplement) :
         CoClauseBaseAnnotator(classImplement, classImplement.parent?.prevSibling, classImplement.getLongName().textRange, AnnotationSeverity.ERROR)
 
@@ -212,7 +211,6 @@ open class CoClauseAnnotator(coClause: ArendCoClause,
                              rangeToReport: TextRange,
                              isError: AnnotationSeverity) :
         CoClauseBaseAnnotator(coClause, coClause.prevSibling, rangeToReport, isError)
-
 
 abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
                                      private val anchor: PsiElement?,
