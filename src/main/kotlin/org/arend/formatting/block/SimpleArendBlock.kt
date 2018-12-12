@@ -145,10 +145,15 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                TUPLE -> when (prevET) {
+                    RPAREN -> {}
+                    else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                }
                 NEW_EXPR -> when (prevET) {
                     LBRACE -> {}
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
+                TUPLE_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
             }
 
             //General case

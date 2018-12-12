@@ -64,7 +64,12 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             val fData = cExpr.function.data
 
             elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
-            if (fData is PsiElement) elements.add(fData.textRange)
+
+            if (fData is PsiElement) {
+                val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
+                if (f.size != 1) throw java.lang.IllegalStateException()
+                elements.add(f.first().textRange)
+            }
 
             val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
             val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
@@ -103,14 +108,12 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
 
 
             if (fData is PsiElement) {
-                val fBlock = createArendBlock(fData.node, null, null, Indent.getNoneIndent())
-                var haveBlockInThisRange = false
-                for (b in blocks) if (b.textRange.contains(fBlock.textRange)) {
-                    haveBlockInThisRange = true
-                    break
-                }
-                if (!haveBlockInThisRange) blocks.add(fBlock)
+                val f = aaeBlocks.filter{ it.textRange.contains(fData.node.textRange) }
+                if (f.size != 1) throw java.lang.IllegalStateException()
+                val fBlock = createArendBlock(f.first(), null, null, Indent.getNoneIndent())
+                if (!blocks.any { it.textRange.contains(fBlock.textRange) }) blocks.add(fBlock)
             }
+
             blocks.sortBy { it.textRange.startOffset }
 
             // Dedicated search for "lost" blocks

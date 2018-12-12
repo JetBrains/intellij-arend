@@ -145,6 +145,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func foobar (A : \\Type) => (=) A\n                                101{-caret-}",
             "\\func foobar (A : \\Type) => (=) A\n                                101\n                                {-caret-}")
 
+    fun testArgAppExpr4() = checkNewLine(
+            "\\func foobar (A : \\Type) => (\n  (=) A\n      101{-caret-}\n)",
+            "\\func foobar (A : \\Type) => (\n  (=) A\n      101\n      {-caret-}\n)")
+
     fun testPi1() = checkNewLine(
             "\\func foo => \\Pi (A : Nat) ->{-caret-}",
             "\\func foo => \\Pi (A : Nat) ->\n    {-caret-}") //continuation
