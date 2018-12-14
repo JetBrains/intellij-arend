@@ -63,113 +63,113 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                             warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                             warningAnnotation.registerFix(RemoveCoClause(coClause))
 
-                        val fieldToImplement = superClassesFields[underlyingRef]
-                        if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
-                            val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
-                            val scope = CachingScope.make(ClassFieldImplScope(referable, false))
-                            val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
-                            val fieldsList = fieldToImplement.mapNotNull { field -> renamings[field]?.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) } }
-                            warningAnnotation.registerFix(ImplementFieldsQuickFix(
-                                    CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
-                                    fieldsList, IMPLEMENT_MISSING_FIELDS))
+                            val fieldToImplement = superClassesFields[underlyingRef]
+                            if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
+                                val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
+                                val scope = CachingScope.make(ClassFieldImplScope(referable, false))
+                                val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
+                                val fieldsList = fieldToImplement.mapNotNull { field -> renamings[field]?.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) } }
+                                warningAnnotation.registerFix(ImplementFieldsQuickFix(
+                                        CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
+                                        fieldsList, IMPLEMENT_MISSING_FIELDS))
+                            }
                         }
+                    } else {
+                        annotateClauses(subClauses, holder, superClassesFields, fields)
                     }
-                } else {
-                    annotateClauses(subClauses, holder, superClassesFields, fields)
                 }
-            }
-            continue
-        }
-
-        if (!fields.remove(underlyingRef)) {
-            val annotation = holder?.createErrorAnnotation(coClause, "Field ${referable.textRepresentation()} is already implemented")
-            annotation?.registerFix(RemoveCoClause(coClause))
-        }
-        for (superClassFields in superClassesFields.values) {
-            superClassFields.remove(underlyingRef)
-        }
-
-        val expr = coClause.expr
-        val fatArrow = coClause.fatArrow
-        val clauseBlock = fatArrow == null
-        val emptyGoal = expr != null && isEmptyGoal(expr)
-
-        if (clauseBlock || emptyGoal) {
-            val rangeToReport = if (emptyGoal) coClause.textRange else coClause.getLongName()?.textRange
-                    ?: coClause.textRange
-            val message = if (clauseBlock) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
-            val severity = if (clauseBlock) AnnotationSeverity.ERROR else AnnotationSeverity.WEAK_WARNING
-            (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
-                override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-                    if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
-                    super.insertFirstCoClause(name, factory, editor)
-                }
-            }).doAnnotate(holder, message)
-        }
-    }
-}
-
-fun doAnnotate(holder: AnnotationHolder?, actionText: String): List<Pair<LocatedReferable, Boolean>> { //Map<FieldReferable, List<Pair<LocatedReferable, Boolean>>> {
-    val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
-    val classReferenceData = classReferenceHolder.getClassReferenceData()
-    if (classReferenceData != null) {
-        val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
-        for (field in classReferenceData.implementedFields) {
-            fields.remove(field.underlyingReference ?: field)
-        }
-
-        annotateClauses(coClausesList(), holder, superClassesFields, fields.keys)
-
-        val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
-        val fieldsList = fields.values.mapNotNull { field ->
-            field.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
-        }
-
-        if (fieldsList.isNotEmpty() && !onlyCheckFields) {
-            val builder = StringBuilder()
-            val annotation = when (severity) {
-                AnnotationSeverity.ERROR -> {
-                    builder.append(IMPLEMENT_FIELDS_MSG)
-                    val iterator = fields.iterator()
-                    do {
-                        builder.append(iterator.next().value[0].textRepresentation())
-                        if (iterator.hasNext()) builder.append(", ")
-                    } while (iterator.hasNext())
-                    holder?.createErrorAnnotation(rangeToReport, builder.toString())
-                }
-                AnnotationSeverity.WEAK_WARNING -> {
-                    holder?.createWeakWarningAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
-                }
-                AnnotationSeverity.NO_ANNOTATION -> null
+                continue
             }
 
-            val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
-            annotation?.registerFix(quickFix)
+            if (!fields.remove(underlyingRef)) {
+                val annotation = holder?.createErrorAnnotation(coClause, "Field ${referable.textRepresentation()} is already implemented")
+                annotation?.registerFix(RemoveCoClause(coClause))
+            }
+            for (superClassFields in superClassesFields.values) {
+                superClassFields.remove(underlyingRef)
+            }
+
+            val expr = coClause.expr
+            val fatArrow = coClause.fatArrow
+            val clauseBlock = fatArrow == null
+            val emptyGoal = expr != null && isEmptyGoal(expr)
+
+            if (clauseBlock || emptyGoal) {
+                val rangeToReport = if (emptyGoal) coClause.textRange else coClause.getLongName()?.textRange
+                        ?: coClause.textRange
+                val message = if (clauseBlock) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
+                val severity = if (clauseBlock) AnnotationSeverity.ERROR else AnnotationSeverity.WEAK_WARNING
+                (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
+                    override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
+                        if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
+                        super.insertFirstCoClause(name, factory, editor)
+                    }
+                }).doAnnotate(holder, message)
+            }
         }
-        return fieldsList
-    }
-    return emptyList()
-}
-
-companion object {
-    private const val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
-    private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
-    private const val REPLACE_WITH_IMPLEMENTATION = "Replace {?} with the implementation of the class"
-    const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
-    const val REMOVE_COCLAUSE = "Remove redundant coclause"
-
-    private fun isEmptyGoal(element: PsiElement): Boolean {
-        val goal: ArendGoal? = element.childOfType()
-        return goal != null && ArendCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
     }
 
-    fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
-        if (editor != null) {
-            editor.caretModel.moveToOffset(anchor.textRange.endOffset)
-            IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
+    fun doAnnotate(holder: AnnotationHolder?, actionText: String): List<Pair<LocatedReferable, Boolean>> { //Map<FieldReferable, List<Pair<LocatedReferable, Boolean>>> {
+        val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
+        val classReferenceData = classReferenceHolder.getClassReferenceData()
+        if (classReferenceData != null) {
+            val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
+            for (field in classReferenceData.implementedFields) {
+                fields.remove(field.underlyingReference ?: field)
+            }
+
+            annotateClauses(coClausesList(), holder, superClassesFields, fields.keys)
+
+            val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
+            val fieldsList = fields.values.mapNotNull { field ->
+                field.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
+            }
+
+            if (fieldsList.isNotEmpty() && !onlyCheckFields) {
+                val builder = StringBuilder()
+                val annotation = when (severity) {
+                    AnnotationSeverity.ERROR -> {
+                        builder.append(IMPLEMENT_FIELDS_MSG)
+                        val iterator = fields.iterator()
+                        do {
+                            builder.append(iterator.next().value[0].textRepresentation())
+                            if (iterator.hasNext()) builder.append(", ")
+                        } while (iterator.hasNext())
+                        holder?.createErrorAnnotation(rangeToReport, builder.toString())
+                    }
+                    AnnotationSeverity.WEAK_WARNING -> {
+                        holder?.createWeakWarningAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                    }
+                    AnnotationSeverity.NO_ANNOTATION -> null
+                }
+
+                val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
+                annotation?.registerFix(quickFix)
+            }
+            return fieldsList
+        }
+        return emptyList()
+    }
+
+    companion object {
+        private const val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
+        private const val CAN_BE_REPLACED_WITH_IMPLEMENTATION = "Goal can be replaced with class implementation"
+        private const val REPLACE_WITH_IMPLEMENTATION = "Replace {?} with the implementation of the class"
+        const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
+        const val REMOVE_COCLAUSE = "Remove redundant coclause"
+
+        private fun isEmptyGoal(element: PsiElement): Boolean {
+            val goal: ArendGoal? = element.childOfType()
+            return goal != null && ArendCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
+        }
+
+        fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
+            if (editor != null) {
+                editor.caretModel.moveToOffset(anchor.textRange.endOffset)
+                IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
+            }
         }
     }
-}
 }
 
 class InstanceQuickFix {
