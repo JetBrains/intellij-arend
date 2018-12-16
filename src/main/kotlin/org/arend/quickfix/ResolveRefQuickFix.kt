@@ -447,7 +447,7 @@ class ResolveRefQuickFix {
 
                     if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
                         val complementScope = object : ListScope(targetTop) {
-                            override fun resolveNamespace(name: String?): Scope? = targetTop
+                            override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetTop
                                 .filterIsInstance<ArendDefinition>()
                                 .firstOrNull { name == it.textRepresentation() }
                                 ?.let { LexicalScope.opened(it) }
