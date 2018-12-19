@@ -45,16 +45,18 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getFields(): List<Group.InternalReferable> = emptyList()
 
     override fun getEnclosingClass(): ClassReferable? {
+        var prev: ChildGroup = this
         var parent = parentGroup
         while (parent != null && parent !is ArendFile) {
             val ref = parent.referable
             if (ref is ClassReferable) {
                 for (subgroup in parent.dynamicSubgroups) {
-                    if (subgroup.referable == referable) {
+                    if (subgroup.referable == prev) {
                         return ref
                     }
                 }
             }
+            prev = parent
             parent = parent.parentGroup
         }
         return null
