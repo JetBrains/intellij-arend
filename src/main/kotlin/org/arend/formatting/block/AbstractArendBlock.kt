@@ -2,12 +2,11 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendElementTypes
-import org.arend.psi.ArendFunctionBody
 
 abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?) : AbstractBlock(node, wrap, alignment) {
     override fun getIndent(): Indent? = myIndent
@@ -31,6 +30,22 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
         System.out.println(this.javaClass.simpleName+"("+this.node.elementType+").getChildAttributes($newChildIndex)")
         subBlocks.mapIndexed { i, a -> System.out.println("$i $a")}
         */
+    }
+
+    companion object {
+        fun hasLfBefore(currBlock: Block) =
+                if (currBlock is AbstractArendBlock) {
+                    var n = currBlock.node.psi.prevSibling
+                    var r = false
+                    while (n is PsiComment || n is PsiWhiteSpace) {
+                        if (n is PsiWhiteSpace && n.textContains('\n')) {
+                            r = true
+                            break
+                        }
+                        n = n.prevSibling
+                    }
+                    r
+                } else false
     }
 
 }

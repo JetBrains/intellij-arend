@@ -80,6 +80,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return ChildAttributes(indent, alignment)
 
         val prevChild = if (newChildIndex > 0) subBlocks[newChildIndex - 1] else null
+        val nextChild = if (newChildIndex < subBlocks.size) subBlocks[newChildIndex] else null
 
         if (prevChild is AbstractArendBlock) {
             val prevET = prevChild.node.elementType
@@ -90,8 +91,16 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             // Definitions
-            if (nodePsi is ArendDefinition && newChildIndex < subBlocks.size) when (prevET) {
-                TYPE_TELE, NAME_TELE, FIELD_TELE -> return ChildAttributes(prevChild.indent, prevChild.alignment)
+            if ((nodePsi is ArendDefinition || nodePsi is ArendClassField)
+                    && newChildIndex <= subBlocks.size) when (prevET) {
+                TYPE_TELE, NAME_TELE, FIELD_TELE -> {
+                    val isLast = if (nextChild is AbstractArendBlock) when (nextChild.node.elementType) {
+                        TYPE_TELE, NAME_TELE, FIELD_TELE -> false
+                        else -> true
+                    } else true
+                    val align = if (!isLast || hasLfBefore(prevChild)) prevChild.alignment else null
+                    return ChildAttributes(prevChild.indent, align)
+                }
             }
 
             if ((nodePsi is ArendDefinition || nodePsi is ArendDefModule) && prevET == WHERE)
@@ -105,9 +114,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 DEF_IDENTIFIER, UNIVERSE_EXPR, DATA_BODY, TYPE_TELE -> return ChildAttributes(Indent.getNormalIndent(), null)
             }
 
-            if (nodePsi is ArendDefFunction) return when (prevET) {
-                FUNCTION_BODY -> ChildAttributes.DELEGATE_TO_PREV_CHILD
-                else -> ChildAttributes(Indent.getNormalIndent(), null)
+            if (nodePsi is ArendDefFunction) when (prevET) {
+                FUNCTION_BODY -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
             }
 
             if (nodePsi is ArendDefInstance) when (prevChild.node.psi) {
