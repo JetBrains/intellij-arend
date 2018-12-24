@@ -115,7 +115,7 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testAlignmentInTele() = checkNewLine(
             "\\func lol => \\Sigma (A : Nat){-caret-}",
-            "\\func lol => \\Sigma (A : Nat)\n                    {-caret-}")
+            "\\func lol => \\Sigma (A : Nat)\n  {-caret-}")
 
     fun testCoClauses1() = checkNewLine(
             "\\class A {f : Nat}\n\\func lol2 (n : Nat) : A \\cowith{-caret-}\n  | f => 101",
@@ -155,11 +155,11 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testPi2() = checkNewLine(
             "\\func foo => \\Pi (A : Nat){-caret-}",
-            "\\func foo => \\Pi (A : Nat)\n                 {-caret-}")
+            "\\func foo => \\Pi (A : Nat)\n    {-caret-}")
 
     fun testPi3() = checkNewLine(
             "\\func foo => \\Pi (A : Nat) {-caret-}\n-> A",
-            "\\func foo => \\Pi (A : Nat) \n                 {-caret-}\n-> A")
+            "\\func foo => \\Pi (A : Nat) \n  {-caret-}\n-> A")
 
     fun testNoIndentAfterWhere1() = checkNewLine(
             "\\module Foo \\where {}{-caret-}",
