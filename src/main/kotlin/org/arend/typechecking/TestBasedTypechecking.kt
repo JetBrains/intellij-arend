@@ -44,11 +44,10 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingUnitFinished(referable: TCReferable, definition: Definition) {
-        stopTimer(referable)
-
         errorReporter.flush()
 
         val ref = PsiLocatedReferable.fromReferable(referable) ?: return
+        eventsProcessor.stopTimer(ref)
         if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
             val status = when {
                 !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_HAS_ERRORS
@@ -80,5 +79,12 @@ class TestBasedTypechecking(
 
     override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {
         typecheckingUnitFinished(referable, definition)
+    }
+
+    override fun typecheckingInterrupted(definition: TCReferable) {
+        val ref = PsiLocatedReferable.fromReferable(definition) ?: return
+        eventsProcessor.stopTimer(ref)
+        eventsProcessor.onTestFailure(ref, true)
+        eventsProcessor.onTestFinished(ref)
     }
 }

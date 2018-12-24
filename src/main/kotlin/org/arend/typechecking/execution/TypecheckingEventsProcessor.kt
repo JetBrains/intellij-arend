@@ -28,13 +28,16 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     private val deferredActions = mutableMapOf<LocatedReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false
     private val testsDuration = mutableMapOf<PsiLocatedReferable, Long>()
+    private val startTimes = mutableMapOf<PsiLocatedReferable, Long>()
 
     fun startTimer(ref: PsiLocatedReferable) {
-        testsDuration.compute(ref) { _, time -> System.currentTimeMillis() + (time ?: 0) }
+        startTimes[ref] = System.currentTimeMillis()
     }
 
     fun stopTimer(ref: PsiLocatedReferable) {
-        testsDuration.compute(ref) { _, time -> time?.let { System.currentTimeMillis() - it } }
+        val startTime = startTimes.remove(ref) ?: return
+        val duration = System.currentTimeMillis() - startTime
+        testsDuration.compute(ref) { _, time -> duration + (time ?: 0) }
     }
 
     override fun onStartTesting() {
@@ -127,6 +130,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
             deferredActions.clear()
             testsDuration.clear()
+            startTimes.clear()
             fileToProxy.clear()
             definitionToProxy.clear()
         }
@@ -164,9 +168,13 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     }
 
     fun onTestFailure(ref: PsiLocatedReferable) {
+        onTestFailure(ref, null)
+    }
+
+    fun onTestFailure(ref: PsiLocatedReferable, testError: Boolean?) {
         addToInvokeLater {
             val proxy = definitionToProxy[ref] ?: return@addToInvokeLater
-            proxy.setTestFailed("", null, proxy.hasErrors())
+            proxy.setTestFailed("", null, testError ?: proxy.hasErrors())
             fireOnTestFailed(proxy)
         }
     }
