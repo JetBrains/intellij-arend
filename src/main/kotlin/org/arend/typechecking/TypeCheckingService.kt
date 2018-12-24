@@ -5,8 +5,6 @@ import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.*
 import com.intellij.psi.*
-import com.intellij.psi.impl.AnyPsiChangeListener
-import com.intellij.psi.impl.PsiManagerImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
@@ -23,7 +21,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.ArendResolveCache
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
@@ -72,11 +69,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
-        project.messageBus.connect(project).subscribe(PsiManagerImpl.ANY_PSI_CHANGE_TOPIC, object : AnyPsiChangeListener.Adapter() {
-            override fun beforePsiChanged(isPhysical: Boolean) {
-                ArendResolveCache.clearCache()
-            }
-        })
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
     }
 

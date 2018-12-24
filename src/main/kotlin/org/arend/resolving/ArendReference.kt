@@ -1,6 +1,7 @@
 package org.arend.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
@@ -112,9 +113,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
     }
 
     override fun resolve(): PsiElement? {
-        var ref: Any? = ArendResolveCache.resolveCached( { element ->
-            element.scope.resolveName(element.referenceName)
-        }, this.element)
+        val cache = ServiceManager.getService(element.project, ArendResolveCache::class.java)
+        val resolver =  { element : ArendReferenceElement ->  element.scope.resolveName(element.referenceName)}
+
+        var ref: Any? = if (cache != null) cache.resolveCached(resolver, this.element)
+                        else resolver.invoke(this.element)
 
         if (ref is RedirectingReferable) ref = ref.originalReferable
         if (ref is DataLocatedReferable) ref = ref.data?.element
