@@ -79,11 +79,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         if (node.elementType == CO_CLAUSE && subBlocks.size == newChildIndex)
             return ChildAttributes(indent, alignment)
 
+        val prev2Child = if (newChildIndex > 1) subBlocks[newChildIndex - 2] else null
         val prevChild = if (newChildIndex > 0) subBlocks[newChildIndex - 1] else null
         val nextChild = if (newChildIndex < subBlocks.size) subBlocks[newChildIndex] else null
 
         if (prevChild is AbstractArendBlock) {
             val prevET = prevChild.node.elementType
+            val prev2ET = if (prev2Child is AbstractArendBlock) prev2Child.node.elementType else null
 
             if (nodePsi is ArendWhere) {
                 if (prevET == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
@@ -91,15 +93,20 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             // Definitions
-            if ((nodePsi is ArendDefinition || nodePsi is ArendClassField)
-                    && newChildIndex <= subBlocks.size) when (prevET) {
-                TYPE_TELE, NAME_TELE, FIELD_TELE -> {
-                    val isLast = if (nextChild is AbstractArendBlock) when (nextChild.node.elementType) {
-                        TYPE_TELE, NAME_TELE, FIELD_TELE -> false
-                        else -> true
-                    } else true
-                    val align = if (!isLast || hasLfBefore(prevChild)) prevChild.alignment else null
-                    return ChildAttributes(prevChild.indent, align)
+            if ((nodePsi is ArendDefinition || nodePsi is ArendClassField ||
+                            nodePsi is ArendPiExpr || nodePsi is ArendLamExpr || nodePsi is ArendSigmaExpr)
+                    && newChildIndex <= subBlocks.size) {
+                when (if (prevET == ERROR_ELEMENT) prev2ET else prevET) {
+                    TYPE_TELE, NAME_TELE, FIELD_TELE -> {
+                        val isLast = if (nextChild is AbstractArendBlock) when (nextChild.node.elementType) {
+                            TYPE_TELE, NAME_TELE, FIELD_TELE -> false
+                            else -> true
+                        } else true
+                        val align = (if (prevET == ERROR_ELEMENT) prev2Child else prevChild).let {
+                            if (!isLast || it != null && hasLfBefore(it)) it?.alignment else null
+                        }
+                        return ChildAttributes(prevChild.indent, align)
+                    }
                 }
             }
 
