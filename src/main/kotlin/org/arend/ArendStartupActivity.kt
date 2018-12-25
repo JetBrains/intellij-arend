@@ -227,7 +227,6 @@ class ArendStartupActivity : StartupActivity {
                     val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }
                     if (!libEntriesNames.contains(libName)) {
                         rootModel.addLibraryEntry(library!!)
-                        // System.out.println("Added $libName")
                     }
                 } else {
                     val modEntriesNames = orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }
@@ -237,7 +236,6 @@ class ArendStartupActivity : StartupActivity {
                     }
                 }
                 rootModel.commit()
-             //   rootsChangedExternally = true
             }
         }
 

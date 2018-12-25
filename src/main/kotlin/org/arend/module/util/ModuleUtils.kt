@@ -186,7 +186,7 @@ val Module.sourcesDir: String?
 
 val YAMLFile.sourcesDirFile: VirtualFile?
     get() {
-        val root = module?.defaultRoot
+        val root = module?.defaultRoot ?: parent?.virtualFile
         val dir = sourcesDirProp ?: return root
         val path = when {
             root != null -> Paths.get(root.path).resolve(dir).toString()
