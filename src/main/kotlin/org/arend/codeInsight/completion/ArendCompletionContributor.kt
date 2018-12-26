@@ -282,7 +282,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
                         exprFound = exprFound &&
                                 if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
-                                else pos2.expr != null // No point of writing cowith keyword if there is no result type
+                                else pos2.returnExpr != null // No point of writing cowith keyword if there is no result type
                         exprFound = exprFound && (fBody == null || fBody.cowithKw == null && fBody.elim.let{it == null || it.elimKw == null && it.withKw == null})
                         break
                     }

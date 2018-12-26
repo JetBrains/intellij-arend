@@ -10,6 +10,9 @@ import org.arend.psi.ArendCaseExpr
 abstract class ArendCaseExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendCaseExpr, Abstract.CaseArgumentsHolder {
     override fun getCaseArguments(): List<ArendCaseArg> = caseArgList
 
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitCase(this, caseArgList, expr, clauseList, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
+        val returnExpr = returnExpr
+        val returnExprs = returnExpr?.expr?.let { listOf(it) } ?: returnExpr?.atomFieldsAccList ?: emptyList()
+        return visitor.visitCase(this, caseArgList, returnExprs.firstOrNull(), returnExprs.getOrNull(1), clauseList, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+    }
 }

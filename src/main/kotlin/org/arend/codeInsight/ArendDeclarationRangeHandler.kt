@@ -11,7 +11,7 @@ import org.arend.psi.ArendDefInstance
 class ArendDeclarationRangeHandler : DeclarationRangeHandler<PsiElement> {
     override fun getDeclarationRange(container: PsiElement): TextRange =
         when (container) {
-            is ArendDefFunction -> container.expr ?: container.nameTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
+            is ArendDefFunction -> container.returnExpr ?: container.nameTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is ArendDefData -> container.universeExpr ?: container.typeTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is ArendDefClass -> container.longNameList.lastOrNull() ?: container.fieldTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is ArendDefInstance -> container.nameTeleList.lastOrNull() ?: container.defIdentifier
