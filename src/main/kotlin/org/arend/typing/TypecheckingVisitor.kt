@@ -252,7 +252,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
         // TODO: Check expected type
     }
 
-    override fun visitCase(data: Any?, caseArsg: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
+    override fun visitCase(data: Any?, caseArsg: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, expectedType: Any?) {
         // TODO: Try to infer the type of expressions and check that constructors in clauses have correct types.
         //       If cannot infer the type, check that constructors have the same type.
     }

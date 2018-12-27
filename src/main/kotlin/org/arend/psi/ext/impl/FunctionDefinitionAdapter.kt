@@ -20,7 +20,9 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
-    override fun getResultType(): ArendExpr? = expr
+    override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
+
+    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
 
     override fun getTerm(): ArendExpr? = functionBody?.expr
 

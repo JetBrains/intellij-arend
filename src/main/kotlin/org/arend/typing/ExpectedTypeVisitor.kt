@@ -183,7 +183,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
                     val type = if (fromOther) {
                         statDef.nameTeleList.lastOrNull()?.type ?: continue
                     } else {
-                        statDef.expr ?: return true
+                        statDef.resultType ?: return true
                     }
                     val visitor = GetKindDefVisitor()
                     val kind = type.accept(visitor, null)
@@ -479,7 +479,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
         return if (index < 0) null else ref.getParameterType(args.take(index + 1).map { it.isExplicit })
     }
 
-    override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
+    override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == resultType) Universe else null
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, errorData: Abstract.ErrorData?, params: Void?) =

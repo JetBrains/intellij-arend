@@ -244,7 +244,7 @@ class ArendHighlightingAnnotator : Annotator {
                     val parentDef = definition.parentGroup
                     val isParamDef = ExpressionResolveNameVisitor.resolve(lastParam.expr?.accept(visitor, null), scope) == parentDef
 
-                    val defType = definition.expr
+                    val defType = definition.resultType
                     var resultDef = if (defType != null) {
                         ExpressionResolveNameVisitor.resolve(defType.accept(visitor, null), scope)
                     } else {

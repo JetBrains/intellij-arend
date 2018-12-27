@@ -221,7 +221,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* [COLON expr] functionBody? where? {
+defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* [COLON returnExpr] functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
@@ -229,6 +229,8 @@ defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameT
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+returnExpr ::= expr | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
 
 private useMod ::= USE_KW (COERCE_KW | LEVEL_KW) { pin = 1 }
 
@@ -459,7 +461,7 @@ caseExpr ::= CASE_KW <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_K
     recoverWhile = expr_recover
 }
 
-private returnCaseExpr ::= RETURN_KW expr {
+private returnCaseExpr ::= RETURN_KW returnExpr {
     pin = 1
     recoverWhile = returnCaseExpr_recover
 }

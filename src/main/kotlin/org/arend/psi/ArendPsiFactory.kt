@@ -65,11 +65,11 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     private fun createArgument(expr: String): ArendArgument =
-        ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
+        ((createFunction("dummy", emptyList(), expr).returnExpr?.expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")
 
     fun createLiteral(expr: String): ArendLiteral =
-        ((createFunction("dummy", emptyList(), expr).expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
+        ((createFunction("dummy", emptyList(), expr).returnExpr?.expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
             ?: error("Failed to create literal: `$expr`")
 
     private fun createStatCmd(name: String): ArendStatCmd =
