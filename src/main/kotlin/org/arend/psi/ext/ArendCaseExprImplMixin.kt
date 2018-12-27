@@ -12,7 +12,7 @@ abstract class ArendCaseExprImplMixin(node: ASTNode) : ArendExprImplMixin(node),
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val returnExpr = returnExpr
-        val returnExprs = returnExpr?.expr?.let { listOf(it) } ?: returnExpr?.atomFieldsAccList ?: emptyList()
+        val returnExprs = returnExpr?.atomFieldsAccList ?: returnExpr?.expr?.let { listOf(it) } ?: emptyList()
         return visitor.visitCase(this, caseArgList, returnExprs.firstOrNull(), returnExprs.getOrNull(1), clauseList, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
     }
 }
