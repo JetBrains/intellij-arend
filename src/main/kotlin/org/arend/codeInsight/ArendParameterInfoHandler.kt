@@ -95,6 +95,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return true
     }
 
+    /*
     private fun fixedFindElement(file: PsiFile, offset: Int): PsiElement? {
         var elem: PsiElement? = file.findElementAt(adjustOffset(file, offset))
         //var shiftedOffset = offset + 1
@@ -123,7 +124,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         }
 
         return elem
-    }
+    } */
 
     private fun adjustOffset(file: PsiFile, offset: Int): Int {
         val element = file.findElementAt(offset)
@@ -135,7 +136,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return offset
     }
 
-    private fun skipWhiteSpaces(file: PsiFile, offset: Int): PsiElement? {
+    private fun skipWhitespaces(file: PsiFile, offset: Int): PsiElement? {
         var shiftedOffset = offset
         var res:PsiElement?
 
@@ -183,8 +184,11 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun findArgInParsedBinopSeq(arg: ArendExpr, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
         if (expr is Concrete.ReferenceExpression || expr is Concrete.HoleExpression) {
+            // Rewrite in a less ad-hoc way
             if ((expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode ||
-                    (expr.data as? ArendSourceNode)?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode) {
+                    (expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode
+                    || (expr.data as? ArendSourceNode)?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode
+            ) {
                 if (curFunc == null) {
                     if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, arg.scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
                         return Pair(-1, expr.data as Abstract.Reference)
@@ -222,6 +226,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
         (ExpressionResolveNameVisitor.resolve(referent, scope) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
 
+    /*
     private fun expressionToReference(expr: Abstract.Expression): Abstract.Reference? {
         return expr.accept(object : BaseAbstractExpressionVisitor<Void, Abstract.Reference?>(null) {
             override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Abstract.Reference? =
@@ -230,7 +235,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Abstract.Reference? =
                 data as? Abstract.Reference
         }, null)
-    }
+    } */
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
@@ -259,8 +264,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
         return (element is PsiWhiteSpace || element.text == ")" || element.text == "}") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
     }
-
-
 
     private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
         var absNode = node
@@ -293,7 +296,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
         val isNewArgPos = isNewArgumentPosition(file, offset)
-        val absNode = skipWhiteSpaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
+        val absNode = skipWhitespaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
         /*
         var absNodeParent = absNode.parentSourceNode ?: return null
 
