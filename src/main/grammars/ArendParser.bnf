@@ -43,6 +43,7 @@
         LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
         PROPERTY_KW         = '\property'
+        CLASSIFYING_KW      = '\classifying'
         COERCE_KW           = '\coerce'
         USE_KW              = '\use'
         NON_ASSOC_KW        = '\fix'
@@ -776,13 +777,13 @@ private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | C
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.Parameter" ]
+                       "org.arend.term.abs.Abstract.FieldParameter" ]
         mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
     }
 
-private fieldTeleExplicit ::= LPAREN fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE fieldDefIdentifier+ COLON expr RBRACE { pin = 2 }
+private fieldTeleImplicit ::= LBRACE CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover

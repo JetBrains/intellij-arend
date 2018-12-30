@@ -30,6 +30,7 @@ import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import org.arend.typing.TypecheckingVisitor
 import org.arend.util.LongName
+import java.util.*
 
 class ArendHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -74,6 +75,47 @@ class ArendHighlightingAnnotator : Annotator {
 
         if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.USE_KW && element.parent?.parent is ArendClassStat) {
             holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed inside a class definition")
+            return
+        }
+
+        if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.CLASSIFYING_KW) {
+            val fieldTele = element.parent as? ArendFieldTele ?: return
+            if (fieldTele.fieldDefIdentifierList.size > 1) {
+                holder.createErrorAnnotation(fieldTele, "Class can have at most one classifying field")
+                return
+            }
+
+            val classDef = fieldTele.parent as? ArendDefClass ?: return
+            if (classDef.recordKw != null) {
+                holder.createErrorAnnotation(fieldTele, "Records cannot have classifying fields")
+                return
+            }
+
+            val visited = HashSet<ArendDefClass>()
+            val toVisit = ArrayDeque<ArendDefClass>()
+            toVisit.add(classDef)
+            while (toVisit.isNotEmpty()) {
+                val current = toVisit.removeLast()
+                if (!visited.add(current)) {
+                    continue
+                }
+
+                if (current.recordKw == null) {
+                    val thisClass = current == classDef
+                    for (field in current.fieldTeleList) {
+                        if (field.isClassifying || !thisClass && field.isExplicit) {
+                            if (thisClass && field == fieldTele) {
+                                break
+                            }
+                            holder.createErrorAnnotation(fieldTele, if (thisClass) "Class can have at most one classifying field" else "Superclass '${current.textRepresentation()}' already has a classifying field")
+                            return
+                        }
+                    }
+                }
+
+                toVisit.addAll(current.longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ArendDefClass })
+            }
+
             return
         }
 

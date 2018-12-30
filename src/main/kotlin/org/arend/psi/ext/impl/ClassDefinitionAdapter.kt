@@ -52,7 +52,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getImplementedFields(): List<LocatedReferable> =
         classFieldImpls.mapNotNull { it.getLongName().refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
-    override fun getParameters(): List<Abstract.Parameter> = fieldTeleList
+    override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
     override fun getSuperClasses(): List<ArendLongName> = longNameList
 

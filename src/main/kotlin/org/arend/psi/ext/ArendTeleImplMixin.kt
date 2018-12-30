@@ -39,4 +39,6 @@ abstract class ArendFieldTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node)
     override fun getReferableList(): List<Referable> = fieldDefIdentifierList
 
     override fun getType() = expr
+
+    override fun isClassifying() = classifyingKw != null
 }
