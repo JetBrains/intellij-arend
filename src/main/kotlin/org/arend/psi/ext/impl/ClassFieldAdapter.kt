@@ -9,6 +9,7 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.term.ClassFieldKind
+import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
@@ -35,7 +36,9 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 
-    override fun getResultType(): ArendExpr? = expr
+    override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
+
+    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
 
     override fun isVisible() = true
 

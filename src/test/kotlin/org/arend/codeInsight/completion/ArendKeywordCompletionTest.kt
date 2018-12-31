@@ -246,7 +246,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
                     "\\func g => 101 (\\lam a => {-caret-})",
-                    "\\class X { | x : {-caret-} }",
+                    // TODO:
+                    // "\\class X { | x : {-caret-} }",
                     "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
                     "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}")
 

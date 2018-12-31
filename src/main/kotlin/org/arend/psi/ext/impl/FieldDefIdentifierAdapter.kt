@@ -64,10 +64,12 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getResultType(): ArendExpr? = (parent as? ArendFieldTele)?.expr
 
+    override fun getResultTypeLevel(): ArendExpr? = null
+
     override fun getIcon(flags: Int) = ArendIcons.CLASS_FIELD
 
     override fun getUseScope() = GlobalSearchScope.projectScope(project)
 
     override val psiElementType: PsiElement?
-        get() = (parent as? ArendFieldTele)?.expr
+        get() = resultType
 }

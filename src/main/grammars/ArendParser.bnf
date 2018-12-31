@@ -162,7 +162,7 @@ private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin =
 
 private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 
-classField ::= prec? defIdentifier_typeTele typeTele* COLON expr {
+classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
     pin = 4
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.term.group.Group.InternalReferable"
@@ -222,7 +222,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* [COLON returnExpr] functionBody? where? {
+defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
@@ -230,6 +230,8 @@ defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameT
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private functionType ::= COLON returnExpr { pin = 1 }
 
 returnExpr ::= expr | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
 

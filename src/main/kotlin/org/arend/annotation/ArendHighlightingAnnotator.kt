@@ -78,6 +78,11 @@ class ArendHighlightingAnnotator : Annotator {
             return
         }
 
+        if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.LEVEL_KW && (((element.parent as? ArendReturnExpr)?.parent as? ArendClassField)?.parent as? ArendClassStat)?.fieldKw != null) {
+            holder.createErrorAnnotation(element as PsiElement, "\\level is allowed only for properties")
+            return
+        }
+
         if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.CLASSIFYING_KW) {
             val fieldTele = element.parent as? ArendFieldTele ?: return
             if (fieldTele.fieldDefIdentifierList.size > 1) {
