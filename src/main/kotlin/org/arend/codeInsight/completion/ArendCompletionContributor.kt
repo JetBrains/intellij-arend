@@ -443,7 +443,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withParentOrGrandParent(ArendExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
-                withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java),
+                or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
                 withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendDefInstance::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
                 and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
