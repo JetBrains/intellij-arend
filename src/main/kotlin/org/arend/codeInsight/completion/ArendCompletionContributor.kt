@@ -111,9 +111,10 @@ class ArendCompletionContributor : CompletionContributor() {
         })
 
         val noExtendsCondition = genericJointCondition({ cP, _, jD ->
-            val condition = and(ofType(ID), withParent(ArendRefIdentifier::class.java))
+            val condition = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
+                               and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
             val dC = cP.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
-            if (dC != null) dC.extendsKw == null && (!condition.accepts(jD.prevElement)) else false
+            if (dC != null) dC.extendsKw == null && (condition.accepts(jD.prevElement)) else false
         }, KeywordCompletionProvider(EXTENDS_KW_LIST))
 
         extend(CompletionType.BASIC, and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java), afterLeaf(ID)), noExtendsCondition)
@@ -444,7 +445,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendDefInstance::class.java),
-                and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java))),
+                and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
+                and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
                 not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
         val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
         val FIELD_CONTEXT = withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)

@@ -222,7 +222,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test absence of extends`() =
             checkKeywordCompletionVariants(EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class {-caret-}{}",
-                    "\\class Lol (n : Nat) {-caret-} (m : Nat){}")
+                    "\\class Lol (n : Nat) {-caret-} (m : Nat){}",
+                    "\\class C (\\{-caret-})")
 
     fun `test data universe keywords after colon`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_ELEMENTS, "\\data d1 (n : Nat): {-caret-}")
@@ -249,7 +250,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     // TODO:
                     // "\\class X { | x : {-caret-} }",
                     "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
-                    "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}")
+                    "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}",
+                    "\\class C (A : {-caret-})",
+                    "\\class C (A : \\Pi (A : \\Type) -> {-caret-}")
 
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
@@ -338,8 +341,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => (\\new ({-caret-}))",
                     "\\func lol (a : Nat) => (\\new (({-caret-})))") */ //Deemed too difficult to implement at the moment
 
-    fun `test no expression keywords after universe literal 10`() = // only levels
-            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN, "\\func lol (a : Nat) => \\Sigma (\\Set {-caret-})")
+    fun `test absence of expression keywords`() = // only levels
+            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\func lol (a : Nat) => \\Sigma (\\Set {-caret-})",
+                    "\\class C ({-caret-})",
+                    "\\class C (a {-caret-})")
 
     fun `test universe keywords as typed tele`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.CONTAINS,
