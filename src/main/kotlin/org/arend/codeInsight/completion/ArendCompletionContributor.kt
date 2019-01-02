@@ -20,13 +20,17 @@ import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
 import java.util.*
 
-class ArendCompletionContributor : CompletionContributor() {
+class ArendCompletionContributor() : CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
-
+        extend(CompletionType.BASIC, afterLeaf(LEVEL_KW), genericJointCondition({_, _, jD ->
+           val p = jD.prevElement?.parent
+           p is ArendDefFunction && p.useKw != null
+        }, KeywordCompletionProvider(FIXITY_KWS)))
         extend(CompletionType.BASIC, afterLeaf(FAT_ARROW), originalPositionCondition(withParentOrGrandParent(ArendClassFieldSyn::class.java),
                 KeywordCompletionProvider(FIXITY_KWS))) // fixity kws for class field synonym (2nd part)
+
         extend(CompletionType.BASIC, AS_CONTEXT, ProviderWithCondition({ parameters, _ -> (parameters.position.parent.parent as ArendNsId).asKw == null },
                 KeywordCompletionProvider(AS_KW_LIST)))
 
@@ -428,7 +432,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
-        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(LEVEL_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
+        val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java)), //class field
@@ -439,18 +443,29 @@ class ArendCompletionContributor : CompletionContributor() {
         val ANY: PsiElementPattern.Capture<PsiElement> = PlatformPatterns.psiElement()
         val STATEMENT_END_CONTEXT = or(withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java)) //Needed for correct completion inside empty classes
-        val WHERE_CONTEXT = and(or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
-                not(PREC_CONTEXT), not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
-                afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
-                afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE))),
+        val INSIDE_RETURN_EXPR_CONTEXT = or(
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
+                        ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
+        val WHERE_CONTEXT = and(
+                or(STATEMENT_END_CONTEXT,
+                   withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
+                not(PREC_CONTEXT),
+                not(INSIDE_RETURN_EXPR_CONTEXT),
+                not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
+                       afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
+                       afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE), afterLeaf(LEVEL_KW))),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
-        val EXPRESSION_CONTEXT = and(or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
+        val EXPRESSION_CONTEXT = and(or(
+                and(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
+                    not(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))),
                 withParentOrGrandParent(ArendFunctionBody::class.java),
-                withParentOrGrandParent(ArendExpr::class.java),
+                and(withParentOrGrandParent(ArendExpr::class.java), not(INSIDE_RETURN_EXPR_CONTEXT)),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
+                and(afterLeaf(LPAREN), withAncestors(PsiErrorElement::class.java, ArendReturnExpr::class.java)),
                 and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
                 and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                 or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
@@ -487,10 +502,11 @@ class ArendCompletionContributor : CompletionContributor() {
         val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                    withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
-        val RETURN_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
+
+        val LEVEL_CONTEXT_0 = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
                 ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java)
-        val LEVEL_CONTEXT = or(and(afterLeaf(COLON),     or(RETURN_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java), withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
-                               and(afterLeaf(RETURN_KW), or(RETURN_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))))
+        val LEVEL_CONTEXT = or(and(afterLeaf(COLON),     or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java), withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
+                               and(afterLeaf(RETURN_KW), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))))
 
         private fun noUsing(cmd: ArendStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: ArendStatCmd): Boolean = cmd.hidingKw == null

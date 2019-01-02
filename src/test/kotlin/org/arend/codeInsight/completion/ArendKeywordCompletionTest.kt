@@ -255,7 +255,14 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
                     "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}",
                     "\\class C (A : {-caret-})",
-                    "\\class C (A : \\Pi (A : \\Type) -> {-caret-}")
+                    "\\class C (A : \\Pi (A : \\Type) -> {-caret-}",
+                    "\\func lol : \\level ({-caret-})",
+                    "\\func lol : \\level (Nat) ({-caret-})")
+
+    fun `test absence of keywords after level`() =
+            checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
+                    "\\func lol : \\level {-caret-}",
+                    "\\func lol : \\level (Nat) {-caret-}")
 
     fun `test expression keywords 2`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
