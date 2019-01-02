@@ -371,6 +371,8 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }, KeywordCompletionProvider(CLASSIFYING_KW_LIST)))
 
+        extend(CompletionType.BASIC, LEVEL_CONTEXT, KeywordCompletionProvider(LEVEL_KW_LIST))
+
         //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
 
@@ -449,6 +451,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 withParentOrGrandParent(ArendExpr::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
+                and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
+                and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                 or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
                 withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendDefInstance::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
@@ -483,6 +487,10 @@ class ArendCompletionContributor : CompletionContributor() {
         val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                    withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
+        val RETURN_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
+                ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java)
+        val LEVEL_CONTEXT = or(and(afterLeaf(COLON),     or(RETURN_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java), withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
+                               and(afterLeaf(RETURN_KW), or(RETURN_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))))
 
         private fun noUsing(cmd: ArendStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: ArendStatCmd): Boolean = cmd.hidingKw == null

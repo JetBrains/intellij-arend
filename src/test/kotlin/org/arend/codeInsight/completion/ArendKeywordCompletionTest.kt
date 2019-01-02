@@ -171,12 +171,17 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test completion after truncated 5`() =
             checkSingleCompletion("\\tru{-caret-}\\func", "\\truncated \\data \\func")
 
+    fun `test completion in resulting type`() =
+            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LEVEL_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+                    "\\func foo (a : Nat) : {-caret-}",
+                    "\\class C { | f : {-caret-} }",
+                    "\\class C\n  | f : {-caret-}")
+
     fun `test no keyword completion after instance, open or wrong state`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\instance {-caret-}",
                     "\\open {-caret-}",
                     "\\func f (a : Nat) : Nat => {-caret-}",
-                    "\\func f (a : Nat) : {-caret-}",
                     "\\func f ({-caret-}")
 
     fun `test no where completion in empty context, after import, open`() =
@@ -247,7 +252,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
                     "\\func g => 101 (\\lam a => {-caret-})",
-                    "\\class X { | x : {-caret-} }",
                     "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
                     "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}",
                     "\\class C (A : {-caret-})",
@@ -362,6 +366,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class C1 (\\classifying x : Nat) ({-caret-})",
                     "\\func Lol ({-caret-})")
 
+    fun `test level keyword completion`() =
+            checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.CONTAINS,
+                    "\\func foo => \\case 0 \\return {-caret-} \\with {}",
+                    "\\func foo => \\case 0 \\return {-caret-} Nat \\with {}")
+
     fun `test in keyword completion`() = checkKeywordCompletionVariants(IN_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\let a => 1 + {-caret-}",
             "\\func lol (a : Nat) => \\let a => 1 + 2 {-caret-}",
@@ -436,7 +445,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test elim completion 3`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST + COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func {-caret-}",
-            "\\func lol (a : Nat): {-caret-}",
             "\\func lol (a : Nat) {-caret-} (b : Nat) : \\Type",
             "\\func lol (a : Nat) : \\Set ({-caret-})",
             "\\func lol (a : Nat) {-caret-} =>", // No elim if already there is a fat arrow
