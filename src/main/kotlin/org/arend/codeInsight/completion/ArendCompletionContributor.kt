@@ -365,6 +365,11 @@ class ArendCompletionContributor : CompletionContributor() {
             argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
         }, KeywordCompletionProvider(LPH_LEVEL_KWS)))
 
+        extend(CompletionType.BASIC, CLASSIFYING_CONTEXT, ProviderWithCondition({cP, _ ->
+            cP.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull().let {
+                if (it != null) !it.fieldTeleList.any { it.isClassifying }  else false
+            }
+        }, KeywordCompletionProvider(CLASSIFYING_KW_LIST)))
 
         //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
@@ -398,6 +403,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val RETURN_KW_LIST = listOf(RETURN_KW.toString())
         val COWITH_KW_LIST = listOf(COWITH_KW.toString())
         val ELIM_KW_LIST = listOf(ELIM_KW.toString())
+        val CLASSIFYING_KW_LIST = listOf(CLASSIFYING_KW.toString())
 
         val LOCAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST
         val GLOBAL_STATEMENT_KWS = STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST
@@ -474,6 +480,9 @@ class ArendCompletionContributor : CompletionContributor() {
         val INSTANCE_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendDefInstance::class.java)
         val GOAL_IN_COPATTERN = ArendCompletionContributor.withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
                 ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
+        val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
+                or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
+                   withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
 
         private fun noUsing(cmd: ArendStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         private fun noHiding(cmd: ArendStatCmd): Boolean = cmd.hidingKw == null

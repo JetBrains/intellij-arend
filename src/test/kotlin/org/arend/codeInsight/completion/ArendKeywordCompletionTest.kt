@@ -2,6 +2,7 @@ package org.arend.codeInsight.completion
 
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ALL_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.AS_KW_LIST
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASSIFYING_KW_LIST
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_MEMBER_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_STATEMENT_KWS
 import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_LEVEL_KWS
@@ -222,8 +223,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test absence of extends`() =
             checkKeywordCompletionVariants(EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class {-caret-}{}",
-                    "\\class Lol (n : Nat) {-caret-} (m : Nat){}",
-                    "\\class C (\\{-caret-})")
+                    "\\class Lol (n : Nat) {-caret-} (m : Nat){}")
 
     fun `test data universe keywords after colon`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_ELEMENTS, "\\data d1 (n : Nat): {-caret-}")
@@ -343,7 +343,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test absence of expression keywords`() = // only levels
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func lol (a : Nat) => \\Sigma (\\Set {-caret-})",
-                    "\\class C ({-caret-})",
                     "\\class C (a {-caret-})")
 
     fun `test universe keywords as typed tele`() =
@@ -352,6 +351,16 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data DDD | ccc {-caret-}",
                     "\\data DDDD (x : Nat) \\with\n   | zero => cccc {-caret-}",
                     "\\class X {\n   | xxxx {-caret-} : xxxx\n}")
+
+    fun `test classifying keyword in class parameters`() =
+            checkKeywordCompletionVariants(CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+                    "\\class C ({-caret-} a : Nat)",
+                    "\\class C (x y : Nat) ({-caret-})")
+
+    fun `test absence of classifying keyword`() =
+            checkKeywordCompletionVariants(CLASSIFYING_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\class C1 (\\classifying x : Nat) ({-caret-})",
+                    "\\func Lol ({-caret-})")
 
     fun `test in keyword completion`() = checkKeywordCompletionVariants(IN_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\let a => 1 + {-caret-}",
