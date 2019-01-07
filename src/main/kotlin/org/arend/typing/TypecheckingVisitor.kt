@@ -154,6 +154,8 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, expectedType: Any?) =
         checkReference(data, referent, expectedType, true)
 
+    override fun visitThis(data: Any?) = null
+
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {
         if (expectedType == null) {
             return

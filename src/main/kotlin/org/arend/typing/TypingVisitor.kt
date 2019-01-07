@@ -17,6 +17,10 @@ class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
         TODO("not implemented")
     }
 
+    override fun visitThis(data: Any?): Any {
+        TODO("not implemented")
+    }
+
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
         TODO("not implemented")
     }

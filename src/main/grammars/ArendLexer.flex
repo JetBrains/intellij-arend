@@ -89,6 +89,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\fixl"                { return LEFT_ASSOC_KW; }
     "\\fixr"                { return RIGHT_ASSOC_KW; }
     "\\Prop"                { return PROP_KW; }
+    "\\this"                { return THIS_KW; }
     "\\where"               { return WHERE_KW; }
     "\\with"                { return WITH_KW; }
     "\\cowith"              { return COWITH_KW; }

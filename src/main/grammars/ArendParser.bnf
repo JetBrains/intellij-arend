@@ -53,6 +53,7 @@
         INFIX_LEFT_KW       = '\infixl'
         INFIX_RIGHT_KW      = '\infixr'
         PROP_KW             = '\Prop'
+        THIS_KW             = '\this'
         WHERE_KW            = '\where'
         WITH_KW             = '\with'
         COWITH_KW           = '\cowith'
@@ -654,7 +655,8 @@ fieldAcc ::= DOT NUMBER { pin = 1 }
 atom ::= literal
     | tuple
     | NEGATIVE_NUMBER
-    | NUMBER {
+    | NUMBER
+    | THIS_KW {
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendAtomImplMixin"
 }
@@ -697,7 +699,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"

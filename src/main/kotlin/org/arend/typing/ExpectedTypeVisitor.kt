@@ -404,6 +404,8 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?) = null
 
+    override fun visitThis(data: Any?) = null
+
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
         if (element != body) {
             return null

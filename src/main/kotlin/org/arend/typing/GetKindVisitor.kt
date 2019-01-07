@@ -54,6 +54,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
     override fun visitErrors() = false
     override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = getReferenceKind(data, referent)
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?) = getReferenceKind(data, referent)
+    override fun visitThis(data: Any?) = Kind.REFERENCE
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.LAMBDA
     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.PI
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.UNIVERSE

@@ -11,6 +11,7 @@ abstract class ArendAtomImplMixin(node: ASTNode) : ArendExprImplMixin(node), Are
         literal?.let { return it.accept(visitor, params) }
         tuple?.let { return it.accept(visitor, params) }
         (number ?: negativeNumber)?.let { return visitor.visitNumericLiteral(this, BigInteger(it.text), if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params) }
+        thisKw?.let { return visitor.visitThis(this) }
         error("Incorrect expression: atom")
     }
 }
