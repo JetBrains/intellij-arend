@@ -97,7 +97,6 @@ class TypeCheckRunState(
 
             override fun processTerminated(event: ProcessEvent) {
                 eventsProcessor.onFinishTesting()
-                Disposer.dispose(eventsProcessor)
             }
 
             override fun startNotified(event: ProcessEvent) = eventsProcessor.onStartTesting()
