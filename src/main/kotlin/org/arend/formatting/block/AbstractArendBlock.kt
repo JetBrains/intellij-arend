@@ -8,7 +8,8 @@ import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.ArendArgumentAppExpr
 
-abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?) : AbstractBlock(node, wrap, alignment) {
+abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?,
+                                  private val parentBlock: AbstractArendBlock?) : AbstractBlock(node, wrap, alignment) {
     override fun getIndent(): Indent? = myIndent
 
     override fun isLeaf(): Boolean = myNode.firstChildNode == null
@@ -20,8 +21,20 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
 
     fun createArendBlock(childNode: ASTNode, childWrap: Wrap?, childAlignment: Alignment?, indent: Indent?): AbstractArendBlock {
         val childPsi = childNode.psi
-        return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty()) ArgumentAppExprBlock(childNode, settings, childWrap, childAlignment, indent)
-        else SimpleArendBlock(childNode, settings, childWrap, childAlignment, indent)
+        return if (childPsi is ArendArgumentAppExpr && childPsi.argumentList.isNotEmpty())
+            ArgumentAppExprBlock(childNode, settings, childWrap, childAlignment, indent, this)
+        else SimpleArendBlock(childNode, settings, childWrap, childAlignment, indent, this)
+    }
+
+
+    fun getGrandParentAlignment(): Alignment? {
+        if (parentBlock is AbstractArendBlock) {
+            val gpBlock = parentBlock.parentBlock
+            if (gpBlock is Block) {
+                return gpBlock.alignment
+            }
+        }
+        return null
     }
 
 
@@ -33,19 +46,25 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
     }
 
     companion object {
-        fun hasLfBefore(currBlock: Block) =
-                if (currBlock is AbstractArendBlock) {
-                    var n = currBlock.node.psi.prevSibling
-                    var r = false
-                    while (n is PsiComment || n is PsiWhiteSpace) {
-                        if (n is PsiWhiteSpace && n.textContains('\n')) {
-                            r = true
-                            break
-                        }
-                        n = n.prevSibling
+        fun hasLfBefore(currBlock: Block): Boolean {
+            var cB: Block? = currBlock
+            while (cB is GroupBlock) {
+                cB = cB.subBlocks.firstOrNull()
+            }
+
+            return if (cB is AbstractArendBlock) {
+                var n = cB.node.psi.prevSibling
+                var r = false
+                while (n is PsiComment || n is PsiWhiteSpace) {
+                    if (n is PsiWhiteSpace && n.textContains('\n')) {
+                        r = true
+                        break
                     }
-                    r
-                } else false
+                    n = n.prevSibling
+                }
+                r
+            } else false
+        }
     }
 
 }

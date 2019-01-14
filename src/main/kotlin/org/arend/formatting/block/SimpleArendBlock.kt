@@ -12,8 +12,8 @@ import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
 
-class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
-        AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
+class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
+        AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         val oneCrlf = SpacingImpl(0, 0, 1, false, false, false, 1, false, 1)
@@ -224,6 +224,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         LINE_COMMENT -> alignment
                         else -> null
                     }
+                    TUPLE -> when (childET) {
+                        TUPLE_EXPR, RPAREN -> alignment
+                        else -> null
+                    }
                     else -> when (childET) {
                         CO_CLAUSE, CLASS_STAT -> alignment
                         NAME_TELE, TYPE_TELE, FIELD_TELE -> alignment2
@@ -236,7 +240,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
-                            blocks.add(GroupBlock(myNode, settings, clauseGroup.second, null, alignment, Indent.getNormalIndent()))
+                            blocks.add(GroupBlock(settings, clauseGroup.second, null, alignment, Indent.getNormalIndent(), this))
                             continue@mainLoop
                         }
                     }

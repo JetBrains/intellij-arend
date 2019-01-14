@@ -12,8 +12,8 @@ import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 
-class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?) :
-        AbstractArendBlock(node, settings, wrap, alignment, myIndent) {
+class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
+        AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
     override fun buildChildren(): MutableList<Block> {
         val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
@@ -35,10 +35,10 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             val child = subBlocks[newChildIndex-1]
 
             val isLast = newChildIndex == subBlocks.size
-            val hasLfBefore = hasLfBefore(child)
+            val alignNeeded = if (isLast) subBlocks.any { hasLfBefore(it) } else true
 
             val indent = if (child == null) Indent.getNoneIndent() else child.indent
-            val align = if (hasLfBefore || !isLast) child?.alignment else null
+            val align = if (alignNeeded) child?.alignment else getGrandParentAlignment()
 
             return ChildAttributes(indent, align)
         }
@@ -56,7 +56,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
 
             if (fData is PsiElement) {
                 val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
-                if (f.size != 1) throw java.lang.IllegalStateException()
+                if (f.size != 1) throw IllegalStateException()
                 elements.add(f.first().textRange)
             }
 
@@ -130,7 +130,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
 
             blocks.sortBy { it.textRange.startOffset }
 
-            return GroupBlock(myNode, settings, blocks, null, align, indent)
+            return GroupBlock(settings, blocks, null, align, indent, this)
         } else if (cExprData is PsiElement) {
             var psi: PsiElement? = null
             for (aaeBlock in aaeBlocks) if (aaeBlock.textRange.contains(cExprData.node.textRange)) {

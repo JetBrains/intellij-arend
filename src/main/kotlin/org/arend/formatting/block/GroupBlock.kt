@@ -5,8 +5,8 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 
-class GroupBlock(myEnclosingNode: ASTNode, settings: CommonCodeStyleSettings?, private val blocks: MutableList<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent) :
-        AbstractArendBlock(myEnclosingNode, settings, wrap, alignment, indent) {
+class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: MutableList<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent, parentBlock: AbstractArendBlock) :
+        AbstractArendBlock(parentBlock.node, settings, wrap, alignment, indent, parentBlock) {
     override fun buildChildren(): MutableList<Block> = blocks
 
     override fun getTextRange(): TextRange {
