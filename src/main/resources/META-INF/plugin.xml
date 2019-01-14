@@ -39,7 +39,7 @@
 
         <!-- Typed Handler -->
 
-        <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler" id="HaskellFile"/>
+        <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler"/>
 
         <!-- File-type Factory -->
 
@@ -205,6 +205,12 @@
 
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
+
+        <!-- Configuration Options -->
+
+        <applicationService serviceInterface="org.arend.editor.ArendSmartKeysOptions"
+                            serviceImplementation="org.arend.editor.ArendSmartKeysOptions"/>
+        <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
 
     </extensions>
 
