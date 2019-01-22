@@ -173,6 +173,7 @@
         <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
+        <refactoring.moveHandler implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
 
         <!-- Run Configurations -->
 
