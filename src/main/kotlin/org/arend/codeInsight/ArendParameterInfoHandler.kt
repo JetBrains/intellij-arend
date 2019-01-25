@@ -265,6 +265,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return (element is PsiWhiteSpace || element.text == ")" || element.text == "}") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
     }
 
+    private fun isBinOp(expr: ArendExpr): Boolean =
+        expr.accept(object: BaseAbstractExpressionVisitor<Void, Boolean>(false) {
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Boolean =
+                    true
+        }, null)
+
     private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
         var absNode = node
         var absNodeParent = absNode.parentSourceNode
@@ -273,6 +279,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             if (absNode is Abstract.Reference) {
                 val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
                 if (ref is Abstract.ParametersHolder && !ref.parameters.isEmpty()) {
+                    val parentAppExprCandidate = absNodeParent.parentSourceNode?.parentSourceNode
+                    if (parentAppExprCandidate is ArendExpr) {
+                        if (isBinOp(parentAppExprCandidate)) {
+                            absNode = absNodeParent
+                            absNodeParent = absNodeParent.parentSourceNode
+                            continue
+                        }
+                    }
                     if (isNewArgPos) {
                         return Pair(0, absNode)
                     }
