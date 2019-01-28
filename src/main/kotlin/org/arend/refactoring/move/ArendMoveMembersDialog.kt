@@ -1,19 +1,35 @@
 package org.arend.refactoring.move
 
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.refactoring.HelpID
 import com.intellij.refactoring.move.MoveDialogBase
+import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
+import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.layout.panel
+import org.arend.module.ModulePath
+import org.arend.module.util.findArendFile
+import org.arend.module.util.libraryConfig
+import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.DefinitionAdapter
+import org.arend.psi.findGroupByFullName
 import org.arend.term.group.ChildGroup
+import org.arend.term.group.Group
 import javax.swing.*
+import javax.swing.event.DocumentEvent
 
-class ArendMoveMembersDialog(project: Project, elements: List<PsiElement>, container: ChildGroup): MoveDialogBase(project, false) {
-    private val targetModuleTextField: JTextField = JTextField("")
-    private val targetNamespaceTextField: JTextField = JTextField("")
+class ArendMoveMembersDialog(project: Project,
+                             elements: List<ArendDefinition>,
+                             container: ChildGroup,
+                             private val enclosingModule: Module): MoveDialogBase(project, false) {
+    private val targetFileTextField: JTextField
+    private val targetModuleTextField: JTextField
     private val myPanel: JPanel
+    private val elementPointers: List<SmartPsiElementPointer<ArendDefinition>>
 
     init {
         title = "Move Arend static members"
@@ -26,28 +42,36 @@ class ArendMoveMembersDialog(project: Project, elements: List<PsiElement>, conta
                 val file = container.getContainingFile() as? ArendFile
                 Pair(file?.modulePath.toString(), container.fullName)
             }
-            else -> null
+            else -> {
+                null
+            }
         }
 
+        elementPointers = elements.map { SmartPointerManager.createPointer(it) }
+
+        val updater = {
+            validateButtons()
+        }
+
+        val documentListener = object: javax.swing.event.DocumentListener {
+            override fun changedUpdate(e: DocumentEvent?) = updater.invoke()
+
+            override fun insertUpdate(e: DocumentEvent?) = updater.invoke()
+
+            override fun removeUpdate(e: DocumentEvent?) = updater.invoke()
+        }
+
+        targetFileTextField = JTextField(names?.first?: "")
+        targetFileTextField.document.addDocumentListener(documentListener)
+        targetModuleTextField = JTextField(names?.second?: "")
+        targetModuleTextField.document.addDocumentListener(documentListener)
+
         myPanel = panel {
-
-            row("Source module: ") {
-                val sourceModuleName = JTextField(names?.first?: "???")
-                sourceModuleName.isEditable = false
-                sourceModuleName()
+            row("Target file: ") {
+                targetFileTextField()
             }
-
-            row("Source namespace: ") {
-                val sourceNamespace = JTextField(names?.second?: "???")
-                sourceNamespace.isEditable = false
-                sourceNamespace()
-            }
-
             row("Target module: ") {
                 targetModuleTextField()
-            }
-            row("Target namespace: ") {
-                targetNamespaceTextField()
             }
         }
 
@@ -55,10 +79,26 @@ class ArendMoveMembersDialog(project: Project, elements: List<PsiElement>, conta
     }
 
     override fun doAction() {
+        if (elementPointers.any{ it.element == null}) {
+            CommonRefactoringUtil.showErrorMessage(
+                    MoveMembersImpl.REFACTORING_NAME,
+                    "One of the PSI elements being moved was changed",
+                    HelpID.MOVE_MEMBERS,
+                    myProject)
+            return
+        }
+
         //TODO: Implement refactoring
     }
 
-    override fun getPreferredFocusedComponent(): JComponent? = targetModuleTextField
+    private fun locateTargetGroup(): Group? {
+        val f = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text))
+        return f?.findGroupByFullName(targetModuleTextField.text.split("\\."))
+    }
+
+    override fun areButtonsValid(): Boolean = locateTargetGroup() != null
+
+    override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
 
     override fun getCbTitle(): String = "Open moved members in editor"
 

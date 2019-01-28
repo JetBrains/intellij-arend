@@ -8,7 +8,6 @@ import com.intellij.psi.PsiReference
 import com.intellij.refactoring.move.MoveHandlerDelegate
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import org.arend.psi.*
-import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.term.abs.Abstract
 
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
@@ -29,10 +28,13 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
     private fun showDialog(project: Project, elements: List<ArendDefinition>): Boolean {
         if (elements.isNotEmpty()) {
             val group = elements.first().parentGroup
-            if (group != null && elements.subList(1, elements.size).map { it.parentGroup }.all { it == group } && // Ensure elements are members of the same group
-                    group is ArendFile || group is DefinitionAdapter<*>) {
-                ArendMoveMembersDialog(project, elements, group).show()
-                return true
+            if (group != null && elements.subList(1, elements.size).map { it.parentGroup }.all { it == group } && /* Ensure elements are members of the same group */
+                group is PsiElement) {
+                val module = group.module
+                return if (module != null) {
+                    ArendMoveMembersDialog(project, elements, group, module).show()
+                    true
+                } else false
             }
         }
         return false
