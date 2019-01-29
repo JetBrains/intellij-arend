@@ -6,6 +6,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
 import org.arend.refactoring.ArendNamesValidator
+import org.arend.term.abs.Abstract
 
 class ArendPsiFactory(private val project: Project) {
 
@@ -28,6 +29,10 @@ class ArendPsiFactory(private val project: Project) {
         val needsPrefix = !ArendNamesValidator.isPostfixName(name)
         return createArgument("dummy ${if (needsPrefix) "`$name" else name}") as ArendPostfixArgument
     }
+
+    fun createNameTele(name: String?, typeExpr: String): ArendNameTele =
+        createFunction("dummy", listOf("(" + (name ?: "_") + " : " + typeExpr) + ")").nameTeleList.firstOrNull()
+                ?: error("Failed to create name tele " + (name ?: ""))
 
     private fun createFunction(
             name: String,
