@@ -368,7 +368,9 @@ pattern ::= atomPattern | patternConstructor {
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
-private patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin = 1 }
+private patternConstructor ::= defIdentifier_pattern (private_typeAnnotation | atomPatternOrPrefix*) { pin = 1 }
+
+private private_typeAnnotation ::= COLON expr { pin = 1 }
 
 atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
@@ -380,7 +382,7 @@ private defIdentifier_pattern ::= defIdentifier {
     recoverWhile = defIdentifier_pattern_recover
 }
 
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE) & pattern_recover
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE | COLON) & pattern_recover
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
