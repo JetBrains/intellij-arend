@@ -2,6 +2,7 @@ package org.arend.refactoring.move
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.HelpID
@@ -17,22 +18,22 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.findGroupByFullName
-import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendDefinition>,
-                             container: ChildGroup,
+                             container: PsiElement,
                              private val enclosingModule: Module): MoveDialogBase(project, false) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
     private val myPanel: JPanel
     private val elementPointers: List<SmartPsiElementPointer<ArendDefinition>>
-
+    private val containerRef: SmartPsiElementPointer<PsiElement>
     init {
         title = "Move Arend static members"
+        containerRef = SmartPointerManager.createPointer(container)
 
         val names = when (container) {
             is ArendFile -> {
@@ -76,24 +77,36 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         init()
+        validateButtons()
     }
 
     override fun doAction() {
-        if (elementPointers.any{ it.element == null}) {
+        val targetGroup = locateTargetGroup()
+
+        val errorMessage: String? =
+                when {
+                    elementPointers.any{ it.element == null} -> "Can't locate of the PSI elements being moved"
+                    targetGroup !is PsiElement -> "Can't locate target PSI element"
+                    else -> null
+                }
+
+        if (errorMessage != null) {
             CommonRefactoringUtil.showErrorMessage(
                     MoveMembersImpl.REFACTORING_NAME,
-                    "One of the PSI elements being moved was changed",
+                    errorMessage,
                     HelpID.MOVE_MEMBERS,
                     myProject)
             return
         }
 
-        //TODO: Implement refactoring
+        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementPointers, targetGroup as PsiElement))
     }
 
     private fun locateTargetGroup(): Group? {
         val f = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text))
-        return f?.findGroupByFullName(targetModuleTextField.text.split("\\."))
+        val t = targetModuleTextField.text
+        val g = if (t.trim() == "") f else f?.findGroupByFullName(t.split("\\."))
+        return if (g != containerRef.element) g else null
     }
 
     override fun areButtonsValid(): Boolean = locateTargetGroup() != null
