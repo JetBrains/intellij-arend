@@ -69,5 +69,13 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
         return if (patterns.size == 1) patterns.first().arguments else patterns
     }
 
-    override fun getType() = getExpr()
+    override fun getType(): ArendExpr? {
+        val type = getExpr()
+        if (type != null) {
+            return type
+        }
+
+        val patterns = getAtomPattern()?.patternList ?: return null
+        return if (patterns.size == 1) patterns.first().expr else null
+    }
 }
