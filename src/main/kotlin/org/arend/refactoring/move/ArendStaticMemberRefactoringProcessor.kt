@@ -59,7 +59,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 if (member != null) {
                     val text = member.textRepresentation()
                     val psi = localNamesMap[text]
-                    if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target ($text)"))
+                    if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
                 }
             }
         }

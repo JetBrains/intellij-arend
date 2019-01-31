@@ -18,6 +18,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.findGroupByFullName
+import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import javax.swing.*
 
@@ -87,13 +88,22 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     private fun locateTargetGroup(): Pair<Group?, String?> {
-        val f = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text))
-        val t = targetModuleTextField.text
-        val g = if (t.trim() == "") f else f?.findGroupByFullName(t.split("\\."))
-        return if (g != containerRef.element)
-            if (g == null) Pair(null, "Can't locate target module")
-            else Pair(g, null)
-        else Pair(null, "Target module cannot coincide with source module")
+        val targetFile = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text)) ?: return Pair(null, "Can't locate target file")
+        val moduleName = targetModuleTextField.text
+        val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
+
+        var m = targetModule as? ChildGroup
+        if (m == containerRef.element) return Pair(null, "Target module cannot coincide with the source module")
+
+        while (m != null) {
+            for (elementP in elementPointers)
+                if (m == elementP.element)
+                    return Pair(null, "Target module cannot be a submodule of the member being moved")
+
+            m = m.parentGroup
+        }
+
+        return  Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
