@@ -58,7 +58,9 @@ class ArendStartupActivity : StartupActivity {
                     if (!rootsChangedExternally) return
                     // if (module.libraryConfig?.dependencies?.map { it.name }?.toSet()?.equals(libEntriesNames) == true) return
                     ApplicationManager.getApplication().invokeLater {
-                        module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
+                        if (module.libraryConfig?.dependencies?.toSet()?.equals(libEntriesNames) != true) {
+                            module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
+                        }
                     }
                     //}
                 }

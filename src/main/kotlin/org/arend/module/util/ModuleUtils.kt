@@ -116,6 +116,15 @@ private fun YAMLFile.setProp(name: String, value: String) {
 
 }
 
+private fun YAMLFile.removeProp(name: String) {
+    val mapping = (documents?.firstOrNull()?.topLevelValue as? YAMLMapping)
+    CommandProcessor.getInstance().runUndoTransparentAction {
+        WriteAction.run<Exception> {
+            mapping?.getKeyValueByKey(name)?.let { mapping.deleteKeyValue(it) }
+        }
+    }
+}
+
 val YAMLFile.libraryPath: Path?
     get() = parent?.virtualFile?.path.let { Paths.get(it) }
 
@@ -161,7 +170,11 @@ private fun YAMLFile.getArendFiles(root: VirtualFile): List<ArendFile> {
 var YAMLFile.dependencies: List<LibraryDependency>
     get() = (getProp("dependencies") as? YAMLSequence)?.items?.mapNotNull { (it.value as? YAMLScalar)?.textValue?.let { LibraryDependency(it) } } ?: emptyList()
     set(deps) {
-        setProp("dependencies", yamlSeqFromList(deps.map { it.name }))
+        if (deps.isEmpty()) {
+            removeProp("dependencies")
+        } else {
+            setProp("dependencies", yamlSeqFromList(deps.map { it.name }))
+        }
     }
 
 val YAMLFile.dependencyConfigs: List<YAMLFile>

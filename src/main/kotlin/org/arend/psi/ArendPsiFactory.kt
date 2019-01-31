@@ -6,7 +6,6 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
 import org.arend.refactoring.ArendNamesValidator
-import org.arend.term.abs.Abstract
 
 class ArendPsiFactory(private val project: Project) {
 
