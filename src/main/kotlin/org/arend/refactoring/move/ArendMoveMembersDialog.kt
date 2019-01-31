@@ -20,7 +20,6 @@ import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.findGroupByFullName
 import org.arend.term.group.Group
 import javax.swing.*
-import javax.swing.event.DocumentEvent
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendDefinition>,
@@ -50,22 +49,8 @@ class ArendMoveMembersDialog(project: Project,
 
         elementPointers = elements.map { SmartPointerManager.createPointer(it) }
 
-        val updater = {
-            validateButtons()
-        }
-
-        val documentListener = object: javax.swing.event.DocumentListener {
-            override fun changedUpdate(e: DocumentEvent?) = updater.invoke()
-
-            override fun insertUpdate(e: DocumentEvent?) = updater.invoke()
-
-            override fun removeUpdate(e: DocumentEvent?) = updater.invoke()
-        }
-
         targetFileTextField = JTextField(names?.first?: "")
-        targetFileTextField.document.addDocumentListener(documentListener)
         targetModuleTextField = JTextField(names?.second?: "")
-        targetModuleTextField.document.addDocumentListener(documentListener)
 
         myPanel = panel {
             row("Target file: ") {
@@ -77,7 +62,6 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         init()
-        validateButtons()
     }
 
     override fun doAction() {
@@ -85,8 +69,8 @@ class ArendMoveMembersDialog(project: Project,
 
         val errorMessage: String? =
                 when {
-                    elementPointers.any{ it.element == null} -> "Can't locate of the PSI elements being moved"
-                    targetGroup !is PsiElement -> "Can't locate target PSI element"
+                    elementPointers.any{ it.element == null} -> "Can't locate some of the elements being moved"
+                    targetGroup.first !is PsiElement -> targetGroup.second
                     else -> null
                 }
 
@@ -99,17 +83,18 @@ class ArendMoveMembersDialog(project: Project,
             return
         }
 
-        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementPointers, targetGroup as PsiElement))
+        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementPointers, targetGroup.first as PsiElement))
     }
 
-    private fun locateTargetGroup(): Group? {
+    private fun locateTargetGroup(): Pair<Group?, String?> {
         val f = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text))
         val t = targetModuleTextField.text
         val g = if (t.trim() == "") f else f?.findGroupByFullName(t.split("\\."))
-        return if (g != containerRef.element) g else null
+        return if (g != containerRef.element)
+            if (g == null) Pair(null, "Can't locate target module")
+            else Pair(g, null)
+        else Pair(null, "Target module cannot coincide with source module")
     }
-
-    override fun areButtonsValid(): Boolean = locateTargetGroup() != null
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
 
