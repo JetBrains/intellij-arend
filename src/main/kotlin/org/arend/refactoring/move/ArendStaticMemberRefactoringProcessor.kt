@@ -5,6 +5,7 @@ import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.move.MoveMemberViewDescriptor
@@ -21,16 +22,15 @@ import java.util.Collections.singletonList
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             successfulCallback: () -> Unit,
-                                            private val myMembersToMove: List<SmartPsiElementPointer<ArendDefinition>>,
-                                            private val targetPsiElement: PsiElement): BaseRefactoringProcessor(project, successfulCallback) {
+                                            private val myMembersToMove: List<ArendDefinition>,
+                                            private val targetPsiElement: PsiElement) : BaseRefactoringProcessor(project, successfulCallback) {
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
-        for (member in myMembersToMove) {
-            val element = member.element
-            if (element != null) for (psiReference in ReferencesSearch.search(element))
-                usagesList.add(UsageInfo(psiReference))
+        for (member in myMembersToMove)
+            for (psiReference in ReferencesSearch.search(member))
+                if (!isInMovedMember(psiReference.element))
+                    usagesList.add(UsageInfo(psiReference))
 
-        }
         var usageInfos = usagesList.toTypedArray()
         usageInfos = UsageViewUtil.removeDuplicatedUsages(usageInfos)
         return usageInfos
@@ -54,13 +54,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val localNamesMap = HashMap<String, PsiElement>()
             for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi
 
-            for (memberToMove in myMembersToMove) {
-                val member = memberToMove.element
-                if (member != null) {
-                    val text = member.textRepresentation()
-                    val psi = localNamesMap[text]
-                    if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
-                }
+            for (member in myMembersToMove) {
+                val text = member.textRepresentation()
+                val psi = localNamesMap[text]
+                if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
             }
         }
 
@@ -70,5 +67,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     override fun getCommandName(): String = MoveMembersImpl.REFACTORING_NAME
 
     override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor =
-            MoveMemberViewDescriptor(PsiUtilCore.toPsiElementArray(myMembersToMove.mapNotNull { it.element }))
+            MoveMemberViewDescriptor(PsiUtilCore.toPsiElementArray(myMembersToMove.map { it }))
+
+    private fun isInMovedMember(element: PsiElement): Boolean =
+            myMembersToMove.any { PsiTreeUtil.isAncestor(it, element, false) }
 }

@@ -68,9 +68,10 @@ class ArendMoveMembersDialog(project: Project,
     override fun doAction() {
         val targetGroup = locateTargetGroup()
 
+        val elements = elementPointers.mapNotNull { it.element }
         val errorMessage: String? =
                 when {
-                    elementPointers.any{ it.element == null} -> "Can't locate some of the elements being moved"
+                    elements.size != elementPointers.size -> "Can't locate some of the elements being moved"
                     targetGroup.first !is PsiElement -> targetGroup.second
                     else -> null
                 }
@@ -84,7 +85,7 @@ class ArendMoveMembersDialog(project: Project,
             return
         }
 
-        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementPointers, targetGroup.first as PsiElement))
+        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elements, targetGroup.first as PsiElement))
     }
 
     private fun locateTargetGroup(): Pair<Group?, String?> {
