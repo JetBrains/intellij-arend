@@ -1,35 +1,5 @@
 package org.arend.codeInsight.completion
 
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ALL_STATEMENT_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.AS_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASSIFYING_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_MEMBER_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.CLASS_STATEMENT_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COERCE_LEVEL_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.COWITH_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_OR_EXPRESSION_KW
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.DATA_UNIVERSE_KW
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.ELIM_WITH_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.EXTENDS_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.FAKE_NTYPE_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.FIXITY_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.GLOBAL_STATEMENT_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.HIDING_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.HU_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.IMPORT_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.IN_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LEVEL_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LOCAL_STATEMENT_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LPH_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.LPH_LEVEL_KWS
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.NEW_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.PROP_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.RETURN_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.USE_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.WHERE_KW_LIST
-import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.WITH_KW_LIST
-
 class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.SAME_ELEMENTS,

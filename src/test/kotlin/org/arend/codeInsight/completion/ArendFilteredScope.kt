@@ -1,8 +1,5 @@
 package org.arend.codeInsight.completion
 
-
-private val preludeConstructors = listOf("left", "path", "right", "suc", "zero", "neg", "pos")
-
 class ArendFilteredScope : ArendCompletionTestBase() {
     fun `test super classes`() =
         checkCompletionVariants(
@@ -46,7 +43,7 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h (x : Nat) | {-caret-}",
-            listOf("con1", "con2", "con3") + preludeConstructors)
+            listOf("con1", "con2", "con3") + PRELUDE_CONSTRUCTORS)
 
     fun `test pattern argument`() =
         checkCompletionVariants(
@@ -57,7 +54,18 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h (x : Nat) | con1 {-caret-}",
-            listOf("con1", "con2", "con3") + preludeConstructors)
+            listOf("con1", "con2", "con3") + PRELUDE_CONSTRUCTORS)
+
+    fun `test pattern type`() =
+        checkCompletionVariants(
+            "\\class A { | z : Nat }\n" +
+            "\\func f\n" +
+            "\\data D | con1 Nat | con2\n" +
+            "\\data E | con3\n" +
+            "\\record R\n" +
+            "\\class S => A\n" +
+            "\\func h (x y : Nat) | suc t, suc (s : {-caret-})",
+            listOf("t", "A", "z", "f", "D", "E", "R", "S", "h", "con1", "con2", "con3") + PRELUDE_DEFINITIONS + DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST)
 
     fun `test class synonym`() =
         checkCompletionVariants(

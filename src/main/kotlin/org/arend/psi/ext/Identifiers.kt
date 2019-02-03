@@ -52,6 +52,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
             }
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
             is ArendLetClause -> parent.typeAnnotation?.expr
+            is ArendPatternImplMixin -> parent.getExpr()
             else -> null
         }
     }

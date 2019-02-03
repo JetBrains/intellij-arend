@@ -86,7 +86,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        val tcReferable = simpleReferableConverter.remove(referable) ?: return null
+        val tcReferable = simpleReferableConverter.remove(referable)?.typecheckable ?: return null
         tcReferable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {

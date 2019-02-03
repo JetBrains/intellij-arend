@@ -34,7 +34,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
 
             val offset = editor.caretModel.offset
             val text = editor.document.charsSequence
-            if (offset > 1 && text[offset - 2] == '{' && offset < text.length - 1 && text[offset] == '}') {
+            if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
                 if (style == ArendSmartKeysOptions.MatchingCommentStyle.INSERT_MINUS) {
                     editor.document.insertString(offset, CharArrayCharSequence('-'))
                 } else {

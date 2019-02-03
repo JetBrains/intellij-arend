@@ -2,20 +2,22 @@ package org.arend.codeInsight
 
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.lang.parameterInfo.*
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import org.arend.frontend.ConcreteExpressionFactory
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendArgument
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendExpr
+import org.arend.psi.*
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ClassFieldAdapter
+import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
@@ -66,14 +68,42 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
+    private fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
+        val params = mutableListOf<Abstract.Parameter>()
+        if (def is Abstract.ParametersHolder) {
+            params.addAll(def.parameters)
+            var resType: ArendExpr? = when(def) {
+                is ClassFieldAdapter -> def.resultType
+                is FunctionDefinitionAdapter -> def.resultType
+                else -> null
+            }
+            while (resType != null) {
+                resType = when(resType) {
+                    is ArendArrExpr -> {
+                        params.add(ArendPsiFactory(ProjectManager.getInstance().openProjects.first()).createNameTele(null,
+                                ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, resType.exprList.first()).toString()))
+                        resType.exprList[1]
+                    }
+                    is ArendPiExpr -> {
+                        params.addAll(resType.typeTeleList)
+                        resType.expr
+                    }
+                    else -> null
+                }
+            }
+        }
+        return params
+    }
+
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): Abstract.Reference? {
         val offset = context.editor.caretModel.offset //adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
         val referable = ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
+        val params = referable?.let { getAllParametersForReferable(it) }
 
-        if (referable is Abstract.ParametersHolder && !referable.parameters.isEmpty()) {
-            context.itemsToShow = arrayOf((referable as Abstract.ParametersHolder).parameters)
+        if (params != null && !params.isEmpty()) {
+            context.itemsToShow = arrayOf(params) //(referable as Abstract.ParametersHolder).parameters)
         } else {
             context.itemsToShow = null
         }
@@ -150,7 +180,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return res
     }
 
-    private fun findParamIndex(func: Abstract.ParametersHolder, argsExplicitness: List<Boolean>): Int {
+    private fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
         if (argsExplicitness.isEmpty()) return -1
 
         val argIsExplicit = argsExplicitness.last()
@@ -165,15 +195,15 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             }
         }
         var paramIndex = 0
-        loop@for (p in 0 until func.parameters.size) {
-            for (v in func.parameters[p].referableList) {
+        loop@for (p in 0 until params.size) {
+            for (v in params[p].referableList) {
                 if (numExplicitsBefore == 0) {
-                    if ((argIsExplicit && func.parameters[p].isExplicit) ||
+                    if ((argIsExplicit && params[p].isExplicit) ||
                             (!argIsExplicit && numImplicitsJustBefore == 0)) {
                         break@loop
                     }
                     --numImplicitsJustBefore
-                } else if (func.parameters[p].isExplicit) {
+                } else if (params[p].isExplicit) {
                     --numExplicitsBefore
                 }
                 ++paramIndex
@@ -213,7 +243,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             for (argument in expr.arguments) {
                 argExplicitness.add(argument.isExplicit)
                 val argRes = findArgInParsedBinopSeq(arg, argument.expression,
-                    funcReferable?.let{ findParamIndex(it as Abstract.ParametersHolder, argExplicitness)} ?: -1, func)
+                    funcReferable?.let{ findParamIndex(getAllParametersForReferable(it), argExplicitness)} ?: -1, func)
                 if (argRes != null) return argRes
             }
         } else if (expr is Concrete.LamExpression) {
@@ -265,6 +295,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return (element is PsiWhiteSpace || element.text == ")" || element.text == "}") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
     }
 
+    private fun isBinOp(expr: ArendExpr): Boolean =
+        expr.accept(object: BaseAbstractExpressionVisitor<Void, Boolean>(false) {
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Boolean =
+                    true
+        }, null)
+
     private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
         var absNode = node
         var absNodeParent = absNode.parentSourceNode
@@ -272,7 +308,16 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         while (absNodeParent != null) {
             if (absNode is Abstract.Reference) {
                 val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
-                if (ref is Abstract.ParametersHolder && !ref.parameters.isEmpty()) {
+                val params = ref?.let { getAllParametersForReferable(it) }
+                if (params != null && !params.isEmpty()) {//ref is Abstract.ParametersHolder && !ref.parameters.isEmpty()) {
+                    val parentAppExprCandidate = absNodeParent.parentSourceNode?.parentSourceNode
+                    if (parentAppExprCandidate is ArendExpr) {
+                        if (isBinOp(parentAppExprCandidate)) {
+                            absNode = absNodeParent
+                            absNodeParent = absNodeParent.parentSourceNode
+                            continue
+                        }
+                    }
                     if (isNewArgPos) {
                         return Pair(0, absNode)
                     }

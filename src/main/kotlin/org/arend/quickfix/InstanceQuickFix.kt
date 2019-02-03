@@ -25,15 +25,15 @@ import org.arend.quickfix.AbstractEWCCAnnotator.Companion.REMOVE_COCLAUSE
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
 import org.arend.typechecking.TypeCheckingService
 
-enum class AnnotationSeverity {
-    ERROR,
-    WEAK_WARNING,
+enum class InstanceQuickFixAnnotation {
+    IMPLEMENT_FIELDS_ERROR,
+    REPLACE_WITH_IMPLEMENTATION_INFO,
     NO_ANNOTATION
 }
 
 abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassReferenceHolder,
                                      private val rangeToReport: TextRange,
-                                     val severity: AnnotationSeverity = AnnotationSeverity.ERROR,
+                                     val annotationToShow: InstanceQuickFixAnnotation = InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR,
                                      private val onlyCheckFields: Boolean = false) {
     abstract fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?)
     abstract fun coClausesList(): List<ArendCoClause>
@@ -70,7 +70,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                                 val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
                                 val fieldsList = fieldToImplement.mapNotNull { field -> renamings[field]?.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) } }
                                 warningAnnotation.registerFix(ImplementFieldsQuickFix(
-                                        CoClauseAnnotator(coClause, rangeToReport, AnnotationSeverity.WEAK_WARNING),
+                                        CoClauseAnnotator(coClause, rangeToReport, InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO),
                                         fieldsList, IMPLEMENT_MISSING_FIELDS))
                             }
                         }
@@ -98,7 +98,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                 val rangeToReport = if (emptyGoal) coClause.textRange else coClause.getLongName()?.textRange
                         ?: coClause.textRange
                 val message = if (clauseBlock) IMPLEMENT_MISSING_FIELDS else REPLACE_WITH_IMPLEMENTATION
-                val severity = if (clauseBlock) AnnotationSeverity.ERROR else AnnotationSeverity.WEAK_WARNING
+                val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO
                 (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
                     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
                         if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
@@ -127,8 +127,8 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
             if (fieldsList.isNotEmpty() && !onlyCheckFields) {
                 val builder = StringBuilder()
-                val annotation = when (severity) {
-                    AnnotationSeverity.ERROR -> {
+                val annotation = when (annotationToShow) {
+                    InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
                         builder.append(IMPLEMENT_FIELDS_MSG)
                         val iterator = fields.iterator()
                         do {
@@ -137,10 +137,10 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                         } while (iterator.hasNext())
                         holder?.createErrorAnnotation(rangeToReport, builder.toString())
                     }
-                    AnnotationSeverity.WEAK_WARNING -> {
-                        holder?.createWeakWarningAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                    InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO -> {
+                        holder?.createInfoAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
                     }
-                    AnnotationSeverity.NO_ANNOTATION -> null
+                    InstanceQuickFixAnnotation.NO_ANNOTATION -> null
                 }
 
                 val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
@@ -205,17 +205,17 @@ class InstanceQuickFix {
 }
 
 class ClassImplementAnnotator(classImplement: ArendClassImplement) :
-        CoClauseBaseAnnotator(classImplement, classImplement.parent?.prevSibling, classImplement.getLongName().textRange, AnnotationSeverity.ERROR)
+        CoClauseBaseAnnotator(classImplement, classImplement.parent?.prevSibling, classImplement.getLongName().textRange, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
 
 open class CoClauseAnnotator(coClause: ArendCoClause,
                              rangeToReport: TextRange,
-                             isError: AnnotationSeverity) :
+                             isError: InstanceQuickFixAnnotation) :
         CoClauseBaseAnnotator(coClause, coClause.prevSibling, rangeToReport, isError)
 
 abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
                                      private val anchor: PsiElement?,
                                      rangeToReport: TextRange,
-                                     isError: AnnotationSeverity) :
+                                     isError: InstanceQuickFixAnnotation) :
         AbstractEWCCAnnotator(coClause, rangeToReport, isError) {
     override fun coClausesList(): List<ArendCoClause> = coClause.getCoClauseList()
 
@@ -299,7 +299,7 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, argumentAppE
 }
 
 class NewExprAnnotator(private val newExpr: ArendNewExprImplMixin, private val argumentAppExpr: ArendArgumentAppExpr) :
-        AbstractEWCCAnnotator(newExpr, argumentAppExpr.textRange, AnnotationSeverity.NO_ANNOTATION, newExpr.getNewKw() == null) {
+        AbstractEWCCAnnotator(newExpr, argumentAppExpr.textRange, InstanceQuickFixAnnotation.NO_ANNOTATION, newExpr.getNewKw() == null) {
     override fun coClausesList(): List<ArendCoClause> = newExpr.getCoClauseList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
@@ -391,5 +391,5 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
 
     }
 
-    override fun getIcon(flags: Int) = if (instance.severity == AnnotationSeverity.ERROR) null else AllIcons.Actions.IntentionBulb
+    override fun getIcon(flags: Int) = if (instance.annotationToShow == InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR) null else AllIcons.Actions.IntentionBulb
 }

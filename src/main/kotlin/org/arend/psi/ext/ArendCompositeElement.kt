@@ -10,10 +10,7 @@ import com.intellij.psi.stubs.StubElement
 import org.arend.error.SourceInfo
 import org.arend.module.ModuleScope
 import org.arend.naming.reference.DataContainer
-import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.Scope
-import org.arend.naming.scope.ScopeFactory
+import org.arend.naming.scope.*
 import org.arend.psi.*
 import org.arend.resolving.ArendReference
 import org.arend.term.abs.Abstract
@@ -48,7 +45,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
             return ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? ClassReferenceHolder)
         }
     }
-    return scope
+    return if (element is ArendDefIdentifier && sourceNode is Abstract.Pattern) ConstructorFilteredScope(scope.globalSubscope) else scope
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode {
