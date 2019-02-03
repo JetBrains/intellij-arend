@@ -15,8 +15,10 @@ import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -50,9 +52,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
                 val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
                         val localAnchor = targetPsiElement.lastChild
-                        targetPsiElement.addAfter(psiFactory.createWhere(), localAnchor)
+                        val insertedWhere = targetPsiElement.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
                         targetPsiElement.addAfter(psiFactory.createWhitespace(" "), localAnchor)
-                        targetPsiElement.childOfType()!!
+                        insertedWhere
                     }
 
                 if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
@@ -76,16 +78,40 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 anchor = null
             }
         }
+        val membersSet = myMembersToMove.toSet()
+        val refFixData = HashMap<ArendDefinition, MutableSet<UsageInfo>>()
+        for (usage in usages) {
+            val target = usage.reference?.resolve()
+            if (target is ArendDefinition && membersSet.contains(target)) {
+                var refSet = refFixData[target]
+                if (refSet == null) {
+                    refSet = HashSet()
+                    refFixData[target] = refSet
+                }
+                refSet.add(usage)
+            }
+        }
 
         for (m in myMembersToMove) {
             val mStatement = m.parent
-            val mCopy = mStatement.copy()
-            mStatement.delete()
+            val mCopyStatement = mStatement.copy()
+            val mCopy = (if (anchor == null) (targetPsiElement.add(mCopyStatement))
+            else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendDefinition>()!!
 
-            if (anchor == null) {
-                targetPsiElement.add(mCopy)
-            } else {
-                anchor.parent.addAfter(mCopy, anchor)
+            refFixData[mCopy] = refFixData[m]!! //safe to write (by the construction of refFixData)
+            refFixData.remove(m)
+            mStatement.delete()
+        }
+
+        //Now fix references
+        for (entry in refFixData) {
+            val newTarget = entry.key
+            for (usage in entry.value) {
+                val referenceElement = usage.reference?.element
+                if (referenceElement is ArendReferenceElement) {
+                    val fixData = ResolveRefQuickFix.getDecision(newTarget, referenceElement)
+                    if (fixData != null) fixData.execute(null)
+                }
             }
         }
     }

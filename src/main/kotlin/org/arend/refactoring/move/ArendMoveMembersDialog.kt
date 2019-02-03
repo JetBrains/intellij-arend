@@ -13,6 +13,7 @@ import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.util.findArendFile
 import org.arend.module.util.libraryConfig
+import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
@@ -40,6 +41,10 @@ class ArendMoveMembersDialog(project: Project,
                 Pair(container.fullName, "")
             }
             is DefinitionAdapter<*> -> {
+                val file = container.getContainingFile() as? ArendFile
+                Pair(file?.modulePath.toString(), container.fullName)
+            }
+            is ArendDefModule -> {
                 val file = container.getContainingFile() as? ArendFile
                 Pair(file?.modulePath.toString(), container.fullName)
             }
