@@ -94,4 +94,9 @@ class ArendPsiFactory(private val project: Project) {
     fun createWhitespace(symbol: String): PsiElement {
         return PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
     }
+
+    fun createWhere(): ArendWhere {
+        val code = "\\module Test \\where { }"
+        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
+    }
 }

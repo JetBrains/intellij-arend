@@ -3,7 +3,6 @@ package org.arend.refactoring.move
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
@@ -15,7 +14,9 @@ import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendDefinition
+import org.arend.psi.*
+import org.arend.psi.ext.impl.DefinitionAdapter
+import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -37,7 +38,56 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val anchor: PsiElement?
+        val psiFactory = ArendPsiFactory(myProject)
+
+        when (targetPsiElement) {
+            is DefinitionAdapter<*>, is ModuleAdapter -> {
+                val oldWhereImpl = when (targetPsiElement) { //TODO: Rewrite later using new interface
+                    is DefinitionAdapter<*> -> targetPsiElement.getWhere()
+                    is ModuleAdapter -> targetPsiElement.where
+                    else -> null
+                }
+                val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
+                        val localAnchor = targetPsiElement.lastChild
+                        targetPsiElement.addAfter(psiFactory.createWhere(), localAnchor)
+                        targetPsiElement.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+                        targetPsiElement.childOfType()!!
+                    }
+
+                if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
+                    val pOB = psiFactory.createPairOfBraces()
+                    if (actualWhereImpl.lbrace == null) {
+                        actualWhereImpl.addAfter(pOB.first, actualWhereImpl.whereKw)
+                        actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
+                    }
+                    if (actualWhereImpl.rbrace == null) {
+                        actualWhereImpl.addAfter(pOB.second, actualWhereImpl.lastChild)
+                    }
+                }
+
+                val lastStatement = actualWhereImpl.statementList.lastOrNull()
+                anchor = if (lastStatement == null) actualWhereImpl.lbrace else lastStatement
+            }
+            is ArendFile -> {
+                anchor = targetPsiElement.lastChild //null means file is empty
+            }
+            else -> {
+                anchor = null
+            }
+        }
+
+        for (m in myMembersToMove) {
+            val mStatement = m.parent
+            val mCopy = mStatement.copy()
+            mStatement.delete()
+
+            if (anchor == null) {
+                targetPsiElement.add(mCopy)
+            } else {
+                anchor.parent.addAfter(mCopy, anchor)
+            }
+        }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
