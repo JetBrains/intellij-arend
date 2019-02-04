@@ -16,6 +16,7 @@ import com.intellij.util.containers.MultiMap
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.term.group.ChildGroup
@@ -72,6 +73,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 anchor = null
             }
         }
+
+        // Collect references to fix
         val membersSet = myMembersToMove.toSet()
         val refFixData = HashMap<ArendGroup, MutableSet<UsageInfo>>()
         for (usage in usages) {
@@ -86,6 +89,15 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             }
         }
 
+        //Memorize references in members being moved
+        val fixMap =  HashMap<ArendGroup, Map<List<Int>, PsiLocatedReferable>>()
+        for (m in myMembersToMove) {
+            val fixData = HashMap<List<Int>, PsiLocatedReferable>()
+            memorizeReferences(emptyList(), m, fixData)
+            fixMap[m] = fixData
+        }
+
+        //Do move members
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
@@ -94,11 +106,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
             val old = refFixData[m]
             if (old != null) refFixData[mCopy] = old
+
+            //Now fix references in members moved
+            val fixData = fixMap[m] //TODO: Move away from here
+            if (fixData != null) restoreReferences(emptyList(), mCopy, fixData)
+
+            // purge old definition
             refFixData.remove(m)
             mStatement.delete()
         }
 
-        //Now fix references
+        //Now fix references of usages
         for (entry in refFixData) {
             val newTarget = entry.key
             for (usage in entry.value) {
@@ -109,6 +127,30 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
         }
+    }
+
+    private fun memorizeReferences(prefix: List<Int>, element: PsiElement, sink: MutableMap<List<Int>, PsiLocatedReferable>) {
+        //TODO: consider the case when there is a reference that points inside one of the members being moved
+        if (element is ArendReferenceElement) element.reference?.resolve().let { if (it is PsiLocatedReferable) sink[prefix] = it }
+        else if (element is ArendLongName) memorizeReferences(prefix + singletonList(0), element.firstChild, sink) else
+            element.children.mapIndexed{ i, e -> memorizeReferences(prefix + singletonList(i), e, sink) }
+    }
+
+    private fun restoreReferences(prefix: List<Int>, element: PsiElement, fixMap: Map<List<Int>, PsiLocatedReferable>) {
+        if (element is ArendReferenceElement) {
+            val correctTarget = fixMap[prefix]
+            if (correctTarget is ArendFile) {
+                //TODO: consider the case when the reference starts with a file name
+                //TODO: probably we need to add some minimal import 
+            } else if (correctTarget != null) {
+                val currentTarget = element.reference?.resolve()
+                if (currentTarget != correctTarget) {
+                    //Fix broken reference
+                    val fixData = ResolveRefQuickFix.getDecision(correctTarget, element)
+                    fixData?.execute(null)
+                }
+            }
+        } else element.children.mapIndexed{ i, e -> restoreReferences(prefix + singletonList(i), e, fixMap) }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
