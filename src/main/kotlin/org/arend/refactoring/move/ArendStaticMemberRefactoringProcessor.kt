@@ -16,8 +16,7 @@ import com.intellij.util.containers.MultiMap
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.impl.DefinitionAdapter
-import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
@@ -25,7 +24,7 @@ import java.util.Collections.singletonList
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             successfulCallback: () -> Unit,
-                                            private val myMembersToMove: List<ArendDefinition>,
+                                            private val myMembersToMove: List<ArendGroup>,
                                             private val targetPsiElement: PsiElement) : BaseRefactoringProcessor(project, successfulCallback) {
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
@@ -44,12 +43,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val psiFactory = ArendPsiFactory(myProject)
 
         when (targetPsiElement) {
-            is DefinitionAdapter<*>, is ModuleAdapter -> {
-                val oldWhereImpl = when (targetPsiElement) { //TODO: Rewrite later using new interface
-                    is DefinitionAdapter<*> -> targetPsiElement.getWhere()
-                    is ModuleAdapter -> targetPsiElement.where
-                    else -> null
-                }
+            is ArendGroup -> {
+                val oldWhereImpl = targetPsiElement.where
                 val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
                         val localAnchor = targetPsiElement.lastChild
                         val insertedWhere = targetPsiElement.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
@@ -78,10 +73,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             }
         }
         val membersSet = myMembersToMove.toSet()
-        val refFixData = HashMap<ArendDefinition, MutableSet<UsageInfo>>()
+        val refFixData = HashMap<ArendGroup, MutableSet<UsageInfo>>()
         for (usage in usages) {
             val target = usage.reference?.resolve()
-            if (target is ArendDefinition && membersSet.contains(target)) {
+            if (target is ArendGroup && membersSet.contains(target)) {
                 var refSet = refFixData[target]
                 if (refSet == null) {
                     refSet = HashSet()
@@ -95,7 +90,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
             val mCopy = (if (anchor == null) (targetPsiElement.add(mCopyStatement))
-            else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendDefinition>()!!
+            else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendGroup>()!!
 
             val old = refFixData[m]
             if (old != null) refFixData[mCopy] = old

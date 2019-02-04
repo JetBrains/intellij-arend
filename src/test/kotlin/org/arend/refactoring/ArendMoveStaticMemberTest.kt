@@ -77,5 +77,17 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \func foobar => Foo.bar.foo
             """, "Main", "Foo.bar")
 
+    fun testMoveModule() =
+            testMoveRefactoring("""
+             --! Main.ard
+            \module abc{-caret-} \where {}
+            \module def \where {}
+            """, """
+            \module def \where {
+              \module abc \where {}
+            }
+            """, "Main", "def")
+
+
 
 }

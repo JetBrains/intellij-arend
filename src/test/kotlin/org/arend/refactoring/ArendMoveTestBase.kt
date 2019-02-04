@@ -5,6 +5,7 @@ import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ancestors
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.move.ArendMoveMembersDialog
 import org.arend.refactoring.move.ArendStaticMemberRefactoringProcessor
 import org.arend.term.group.ChildGroup
@@ -19,9 +20,8 @@ abstract class ArendMoveTestBase : ArendTestBase() {
 
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
-        val sourceElement = myFixture.elementAtCaret.ancestors.firstOrNull { it is ChildGroup && it is ArendDefinition } ?: throw AssertionError("Cannot find source element")
+        val sourceElement = myFixture.elementAtCaret.ancestors.filterIsInstance<ArendGroup>().firstOrNull() ?: throw AssertionError("Cannot find source element")
         val container = (sourceElement as ChildGroup).parentGroup as? PsiElement ?: throw AssertionError("Source element has parent of wrong type")
-        if (sourceElement !is ArendDefinition) throw AssertionError("Source element is of wrong type")
 
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, listOf(sourceElement))
         val group = myTargetGroup.first

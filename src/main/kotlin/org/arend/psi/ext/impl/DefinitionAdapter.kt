@@ -16,7 +16,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 
-abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ChildGroup, Abstract.Definition, PsiConcreteReferable
+abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ArendGroup, Abstract.Definition, PsiConcreteReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
@@ -25,8 +25,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
-    open fun getWhere(): ArendWhere? = null
-
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
         ConcreteBuilder.convert(referableConverter, this, errorReporter)
 
@@ -34,9 +32,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ChildGroup> = getWhere()?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
+    override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
 
-    override fun getNamespaceCommands(): List<ArendStatCmd> = getWhere()?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
+    override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
     override fun getConstructors(): List<ArendConstructor> = emptyList()
 

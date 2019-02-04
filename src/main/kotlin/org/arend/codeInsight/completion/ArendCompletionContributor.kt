@@ -15,6 +15,7 @@ import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
@@ -102,13 +103,11 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(KeywordCompletionProvider(WHERE_KW_LIST), true, false) { jD: JointData ->
             var anc = jD.prevElement
-            while (anc != null && anc !is ArendDefinition && anc !is ArendDefModule && anc !is ArendClassStat) anc = anc.parent
+            while (anc != null && anc !is ArendGroup && anc !is ArendClassStat) anc = anc.parent
             if (anc != null) {
-                val da: ArendDefinition? = anc as? ArendDefinition /* TODO: create WhereHolder concept */
-                val dm: ArendDefModule? = anc as? ArendDefModule
+                val da: ArendGroup? = anc as? ArendGroup
                 (when {
-                    da is DefinitionAdapter<*> -> da.getWhere() == null
-                    dm != null -> dm.where == null
+                    da != null -> da.where == null
                     else -> false
                 })
             } else false

@@ -173,7 +173,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
                 }
             }
 
-            val stats = (def as? DefinitionAdapter<*>)?.getWhere()?.statementList ?: return false
+            val stats = (def as? DefinitionAdapter<*>)?.where?.statementList ?: return false
             for (stat in stats) {
                 val statDef = stat.definition
                 if (statDef is ArendDefFunction && statDef.coerceKw != null) {

@@ -204,15 +204,14 @@ definition ::= defFunction
     | defClass
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.term.group.ChildGroup" ]
+                   "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
 defModule ::= moduleHeader where? {
     pin = 1
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.abs.Abstract.SourceNode"
-                   "org.arend.term.group.ChildGroup" ]
+    implements = [ "org.arend.psi.ext.impl.ArendGroup"
+                   "org.arend.term.abs.Abstract.SourceNode" ]
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"

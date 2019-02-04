@@ -13,24 +13,22 @@ import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.util.findArendFile
 import org.arend.module.util.libraryConfig
-import org.arend.psi.ArendDefModule
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
-import org.arend.psi.ext.impl.DefinitionAdapter
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import javax.swing.*
 
 class ArendMoveMembersDialog(project: Project,
-                             elements: List<ArendDefinition>,
+                             elements: List<ArendGroup>,
                              container: PsiElement,
                              private val enclosingModule: Module): MoveDialogBase(project, false) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
     private val myPanel: JPanel
-    private val elementPointers: List<SmartPsiElementPointer<ArendDefinition>>
+    private val elementPointers: List<SmartPsiElementPointer<ArendGroup>>
     private val containerRef: SmartPsiElementPointer<PsiElement>
     init {
         title = "Move Arend static members"
@@ -40,11 +38,7 @@ class ArendMoveMembersDialog(project: Project,
             is ArendFile -> {
                 Pair(container.fullName, "")
             }
-            is DefinitionAdapter<*> -> {
-                val file = container.getContainingFile() as? ArendFile
-                Pair(file?.modulePath.toString(), container.fullName)
-            }
-            is ArendDefModule -> {
+            is ArendGroup -> {
                 val file = container.getContainingFile() as? ArendFile
                 Pair(file?.modulePath.toString(), container.fullName)
             }
@@ -107,7 +101,7 @@ class ArendMoveMembersDialog(project: Project,
 
     companion object {
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, enclosingModule: Module,
-                                        containerElement: PsiElement?, elementPointers: List<ArendDefinition?>): Pair<Group?, String?> {
+                                        containerElement: PsiElement?, elementPointers: List<ArendGroup?>): Pair<Group?, String?> {
             val targetFile = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(fileName)) ?: return Pair(null, "Can't locate target file")
             val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
 
