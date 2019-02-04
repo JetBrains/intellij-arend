@@ -71,7 +71,7 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     override fun doAction() {
-        val targetGroup = locateTargetGroup()
+        val targetGroup = locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, containerRef.element, elementPointers.map { it.element })
 
         val elements = elementPointers.mapNotNull { it.element }
         val errorMessage: String? =
@@ -93,25 +93,6 @@ class ArendMoveMembersDialog(project: Project,
         invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elements, targetGroup.first as PsiElement))
     }
 
-    private fun locateTargetGroup(): Pair<Group?, String?> {
-        val targetFile = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(targetFileTextField.text)) ?: return Pair(null, "Can't locate target file")
-        val moduleName = targetModuleTextField.text
-        val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
-
-        var m = targetModule as? ChildGroup
-        if (m == containerRef.element) return Pair(null, "Target module cannot coincide with the source module")
-
-        while (m != null) {
-            for (elementP in elementPointers)
-                if (m == elementP.element)
-                    return Pair(null, "Target module cannot be a submodule of the member being moved")
-
-            m = m.parentGroup
-        }
-
-        return  Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
-    }
-
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
 
     override fun getCbTitle(): String = "Open moved members in editor"
@@ -124,5 +105,24 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
+    companion object {
+        fun locateTargetGroupWithChecks(fileName: String, moduleName: String, enclosingModule: Module,
+                                        containerElement: PsiElement?, elementPointers: List<ArendDefinition?>): Pair<Group?, String?> {
+            val targetFile = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(fileName)) ?: return Pair(null, "Can't locate target file")
+            val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
+
+            var m = targetModule as? ChildGroup
+            if (m == containerElement) return Pair(null, "Target module cannot coincide with the source module")
+
+            while (m != null) {
+                for (elementP in elementPointers) if (m == elementP)
+                        return Pair(null, "Target module cannot be a submodule of the member being moved")
+
+                m = m.parentGroup
+            }
+
+            return  Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
+        }
+    }
 
 }

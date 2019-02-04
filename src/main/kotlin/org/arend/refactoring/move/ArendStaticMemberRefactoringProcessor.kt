@@ -68,8 +68,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     }
                 }
 
-                val lastStatement = actualWhereImpl.statementList.lastOrNull()
-                anchor = if (lastStatement == null) actualWhereImpl.lbrace else lastStatement
+                anchor = actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
             }
             is ArendFile -> {
                 anchor = targetPsiElement.lastChild //null means file is empty
@@ -98,7 +97,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val mCopy = (if (anchor == null) (targetPsiElement.add(mCopyStatement))
             else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendDefinition>()!!
 
-            refFixData[mCopy] = refFixData[m]!! //safe to write (by the construction of refFixData)
+            val old = refFixData[m]
+            if (old != null) refFixData[mCopy] = old
             refFixData.remove(m)
             mStatement.delete()
         }
@@ -110,7 +110,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 val referenceElement = usage.reference?.element
                 if (referenceElement is ArendReferenceElement) {
                     val fixData = ResolveRefQuickFix.getDecision(newTarget, referenceElement)
-                    if (fixData != null) fixData.execute(null)
+                    fixData?.execute(null)
                 }
             }
         }
