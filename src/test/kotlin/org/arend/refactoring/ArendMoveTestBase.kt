@@ -15,6 +15,8 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                             @Language("Arend") resultingContent: String?, //Null indicates that an error is expected as a correct test result
                             targetFile: String,
                             targetName: String) {
+        val expectsError: Boolean = resultingContent == null
+
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
         val sourceElement = myFixture.elementAtCaret.ancestors.firstOrNull { it is ChildGroup && it is ArendDefinition } ?: throw AssertionError("Cannot find source element")
@@ -25,11 +27,15 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val group = myTargetGroup.first
         if (group is PsiElement) {
             val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, listOf(sourceElement) , group)
-            processor.run()
+            try {
+                processor.run()
+            } catch (e: Exception) {
+                if (!expectsError) throw e else return
+            }
             if (resultingContent != null) myFixture.checkResult(resultingContent.trimIndent(), true)
             else throw AssertionError("Error was expected as a correct test result")
         } else {
-            if (resultingContent != null) throw AssertionError(myTargetGroup.second)
+            if (!expectsError) throw AssertionError(myTargetGroup.second)
         }
     }
 }

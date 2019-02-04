@@ -48,5 +48,34 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \func bar => Foo.abc
             """, "Main", "Foo")
 
+    fun testForbiddenRefactoring2() =
+            testMoveRefactoring("""
+             --! Main.ard
+            \func foo{-caret-} => 0
+            \module Foo \where {
+              \func foo => 1
+            }
+            """, null, "Main", "Foo")
+
+    fun testLongName1() =
+            testMoveRefactoring("""
+             --! Main.ard
+            \module Foo \where {
+              \func foo{-caret-} => 1
+
+              \func bar => 2
+            }
+
+            \func foobar => Foo.foo
+            """, """
+            \module Foo \where {
+              \func bar => 2 \where {
+                \func foo => 1
+              }
+            }
+
+            \func foobar => Foo.bar.foo
+            """, "Main", "Foo.bar")
+
 
 }

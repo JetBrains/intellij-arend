@@ -55,7 +55,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val i = if (needLineFeed) 2 else 1
                 return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i - 1)
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
-                    c1et == LBRACE && psi2 is ArendStatement) return oneCrlf
+                    c1et == LBRACE && psi2 is ArendStatement) return Spacing.createSpacing(0, Integer.MAX_VALUE, 1, false, 0)
             else if (psi1 is ArendStatement && psi2 is ArendStatement &&
                     (psi1.statCmd != null) xor (psi2.statCmd != null)) return oneBlankLine
         }

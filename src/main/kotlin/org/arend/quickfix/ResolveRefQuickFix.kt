@@ -16,6 +16,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.impl.ArendLongNameImpl
 import org.arend.term.group.Group
 import org.arend.util.LongName
 import java.util.Collections.singletonList
@@ -179,15 +180,16 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
     }
 
     override fun execute(editor: Editor?) {
-        if (element.parent is ArendLongName) {
+        val currentLongName = element.parent
+        if (currentLongName is ArendLongName) {
             val lName = LongName(id).toString()
             val factory = ArendPsiFactory(element.project)
             val literal =  factory.createLiteral(lName)
             val longName = literal.longName
             val offset = element.textOffset
             if (longName != null) {
-                element.parent.addRangeBefore(longName.firstChild, longName.lastChild, element)
-                element.delete()
+                currentLongName.addRangeAfter(longName.firstChild, longName.lastChild, element)
+                currentLongName.deleteChildRange(currentLongName.firstChild, element)
                 editor?.caretModel?.moveToOffset(offset + lName.length)
             }
         }
@@ -443,7 +445,8 @@ class ResolveRefQuickFix {
                 val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
 
                 for (fName in currentBlock.keys) {
-                    var correctedScope = element.scope
+                    val elementParent = element.parent
+                    var correctedScope = if (elementParent is ArendLongName) elementParent.scope else element.scope
 
                     if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
                         val complementScope = object : ListScope(targetTop) {
