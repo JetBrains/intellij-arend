@@ -90,11 +90,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Memorize references in members being moved
-        val fixMap =  HashMap<ArendGroup, Map<List<Int>, PsiLocatedReferable>>()
-        for (m in myMembersToMove) {
-            val fixData = HashMap<List<Int>, PsiLocatedReferable>()
-            memorizeReferences(emptyList(), m, fixData)
-            fixMap[m] = fixData
+        val bodyRefFixData =  HashMap<PsiLocatedReferable, Set<Pair<Int, List<Int>>>>()
+        val membersMap = HashMap<ArendGroup, Map<PsiLocatedReferable, List<Int>>>()
+        val newMemberList = ArrayList<ArendGroup>()
+
+        for ((mIndex, m) in myMembersToMove.withIndex()) {
+            val fixData = HashMap<PsiLocatedReferable, MutableSet<List<Int>>>()
+            val memberData = HashMap<PsiLocatedReferable, List<Int>>()
+            memorizeReferences(emptyList(), m, fixData, memberData)
+            membersMap[m] = memberData
+            for (r in fixData) bodyRefFixData[r.key] = r.value.map { Pair(mIndex, it) }.toSet()
         }
 
         //Do move members
@@ -104,14 +109,23 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val mCopy = (if (anchor == null) (targetPsiElement.add(mCopyStatement))
             else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendGroup>()!!
 
-            val old = refFixData[m]
-            if (old != null) refFixData[mCopy] = old
+            newMemberList.add(mCopy)
+            val oldRefFixData = refFixData[m]
+            if (oldRefFixData != null) refFixData[mCopy] = oldRefFixData
 
-            //Now fix references in members moved
-            val fixData = fixMap[m] //TODO: Move away from here
-            if (fixData != null) restoreReferences(emptyList(), mCopy, fixData)
+            val members = membersMap[m]
+            if (members != null) for (memberFixInfo in members) {
+                val oldKey = memberFixInfo.key
+                val refFixDataPack = bodyRefFixData[oldKey]
+                if (refFixDataPack != null) {
+                    val newTarget = locateMember(mCopy, memberFixInfo.value)
+                    if (newTarget is PsiLocatedReferable) {
+                        bodyRefFixData[newTarget] = refFixDataPack
+                        bodyRefFixData.remove(oldKey)
+                    }
+                }
+            }
 
-            // purge old definition
             refFixData.remove(m)
             mStatement.delete()
         }
@@ -127,26 +141,66 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
         }
+
+        //Fix references in the element being moved
+        for ((mIndex, m) in newMemberList.withIndex()) {
+            val localFixData = HashMap<List<Int>, PsiLocatedReferable>()
+            for (fD in bodyRefFixData) for (p in fD.value) if (p.first == mIndex) localFixData[p.second] = fD.key
+            restoreReferences(emptyList(), m, localFixData)
+        }
+
     }
 
-    private fun memorizeReferences(prefix: List<Int>, element: PsiElement, sink: MutableMap<List<Int>, PsiLocatedReferable>) {
-        //TODO: consider the case when there is a reference that points inside one of the members being moved
-        if (element is ArendReferenceElement) element.reference?.resolve().let { if (it is PsiLocatedReferable) sink[prefix] = it }
-        else if (element is ArendLongName) memorizeReferences(prefix + singletonList(0), element.firstChild, sink) else
-            element.children.mapIndexed{ i, e -> memorizeReferences(prefix + singletonList(i), e, sink) }
+    private fun locateMember(element: PsiElement, prefix: List<Int>): PsiElement? {
+        return if (prefix.isEmpty()) element else {
+            val shorterPrefix = prefix.subList(1, prefix.size)
+            val childElement = element.children[prefix[0]]
+            if (childElement != null) locateMember(childElement, shorterPrefix) else null
+        }
+    }
+
+    private fun memorizeReferences(prefix: List<Int>,
+                                   element: PsiElement,
+                                   fixData: MutableMap<PsiLocatedReferable, MutableSet<List<Int>>>,
+                                   memberData: MutableMap<PsiLocatedReferable, List<Int>>) {
+        when (element) {
+            is ArendReferenceElement -> if (element !is ArendDefIdentifier) element.reference?.resolve().let {
+                if (it is PsiLocatedReferable) {
+                    var set = fixData[it]
+                    if (set == null) {
+                        set = HashSet()
+                        fixData[it] = set
+                    }
+                    set.add(prefix)
+                }
+            }
+            is ArendLongName -> {
+                var i1 = -1
+                var e1: ArendReferenceElement? = null
+                for (i in 0 until element.children.size) {
+                    val e = element.children[i]
+                    if (e is ArendReferenceElement) {
+                        i1 = i
+                        e1 = e
+                    }
+                }
+
+                if (i1 != -1 && e1 != null) memorizeReferences(prefix + singletonList(i1), e1, fixData, memberData)
+            }
+            else -> {
+                if (element is PsiLocatedReferable) memberData[element] = prefix
+                element.children.mapIndexed{ i, e -> memorizeReferences(prefix + singletonList(i), e, fixData, memberData) }
+            }
+        }
     }
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, fixMap: Map<List<Int>, PsiLocatedReferable>) {
-        if (element is ArendReferenceElement) {
+        if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
             val correctTarget = fixMap[prefix]
-            if (correctTarget is ArendFile) {
-                //TODO: consider the case when the reference starts with a file name
-                //TODO: probably we need to add some minimal import 
-            } else if (correctTarget != null) {
+            if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
                 if (currentTarget != correctTarget) {
-                    //Fix broken reference
-                    val fixData = ResolveRefQuickFix.getDecision(correctTarget, element)
+                    val fixData = ResolveRefQuickFix.getDecision(correctTarget, element) //TODO: ResolveRefQuickFix does not help us in all situations
                     fixData?.execute(null)
                 }
             }

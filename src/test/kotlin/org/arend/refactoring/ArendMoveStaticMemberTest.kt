@@ -88,6 +88,26 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, "Main", "def")
 
+    fun testMovedContent1() = //Fixme
+            testMoveRefactoring("""
+                 --! Main.ard
+                \module Foo \where {
+                  \func foo => 101
+                }
+
+                \func foo => 202
+                \func bar{-caret-} => foo
+            """, """
+                \module Foo \where {
+                  \func foo => 101
+
+                  \func bar => Main.foo
+                }
+
+                \func foo => 202
+
+            """, "Main", "Foo")
+
 
 
 }
