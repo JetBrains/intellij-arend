@@ -88,7 +88,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, "Main", "def")
 
-    fun testMovedContent1() = //Fixme
+    fun testMovedContent1() =
             testMoveRefactoring("""
                  --! Main.ard
                 \module Foo \where {
@@ -108,6 +108,34 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
             """, "Main", "Foo")
 
+    fun testMoveData1() =
+            testMoveRefactoring("""
+                --! Main.ard
+                \module Foo \where {}
 
+                \data MyNat{-caret-}
+                  | myZero
+                  | myCons (n : MyNat)
 
+                \func foo => myCons myZero
+            ""","""
+                \module Foo \where {
+                  \data MyNat
+                    | myZero
+                    | myCons (n : MyNat)
+                }
+
+                \func foo => Foo.myCons Foo.myZero
+            """, "Main", "Foo")
+
+    fun testForbiddenRefactoring3() =
+            testMoveRefactoring("""
+             --! Main.ard
+            \data MyNat{-caret-}
+              | myZero
+              | myCons (n : MyNat)
+            \module Foo \where {
+              \func myZero => 0
+            }
+            """, null, "Main", "Foo")
 }

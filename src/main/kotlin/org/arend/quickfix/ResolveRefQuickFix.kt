@@ -26,7 +26,7 @@ interface ResolveRefFixAction {
     fun isValid(): Boolean = true
 }
 
-class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
+class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
     override fun isValid() = importFile.modulePath?.let { modulePath -> currentFile.module?.libraryConfig?.availableConfigs?.mapFirstNotNull { it.findArendFile(modulePath) } } == importFile || ResolveRefQuickFix.isPrelude(importFile)
@@ -71,13 +71,13 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     }
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>): ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>) : ResolveRefFixAction {
     override fun toString(): String {
         val name = if (idList.size == 1) idList[0] else idList.toString()
-        return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
+        return "Add " + name + " to " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"using\" list"
     }
 
-    private fun addId(id : String) {
+    private fun addId(id: String) {
         if (statCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
@@ -132,14 +132,14 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier): ResolveRefFixAction {
+class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
     override fun toString(): String {
-        return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
+        return "Remove " + id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
     }
 
     override fun execute(editor: Editor?) {
-        var startSibling : PsiElement = id
-        var endSibling : PsiElement = id
+        var startSibling: PsiElement = id
+        var endSibling: PsiElement = id
 
         if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
 
@@ -174,9 +174,9 @@ class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRef
     }
 }
 
-class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>): ResolveRefFixAction {
+class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : ResolveRefFixAction {
     override fun toString(): String {
-        return "Rename " + element.text + " to "+LongName(id).toString()
+        return "Rename " + element.text + " to " + LongName(id).toString()
     }
 
     override fun execute(editor: Editor?) {
@@ -184,7 +184,7 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
         if (currentLongName is ArendLongName) {
             val lName = LongName(id).toString()
             val factory = ArendPsiFactory(element.project)
-            val literal =  factory.createLiteral(lName)
+            val literal = factory.createLiteral(lName)
             val longName = literal.longName
             val offset = element.textOffset
             if (longName != null) {
@@ -199,10 +199,10 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
 class ResolveRefFixData(val target: PsiLocatedReferable,
                         private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
-                        private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
+                        private val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
 
     override fun toString(): String = LongName(targetFullName).toString() +
-        ((target.containingFile as? ArendFile)?.modulePath?.let { " in " + it.toString() } ?: "")
+            ((target.containingFile as? ArendFile)?.modulePath?.let { " in " + it.toString() } ?: "")
 
     override fun execute(editor: Editor?) {
         commandFixAction?.execute(editor)
@@ -213,8 +213,9 @@ class ResolveRefFixData(val target: PsiLocatedReferable,
 class ResolveRefQuickFix {
     companion object {
 
-        fun statCmdName(statCmd : ArendStatCmd) =
-            (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString() ?: "???"
+        fun statCmdName(statCmd: ArendStatCmd) =
+                (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString()
+                        ?: "???"
 
         fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
 
@@ -224,7 +225,7 @@ class ResolveRefQuickFix {
             val targetModulePath = targetFile.modulePath ?: return null
 
             val fullName = ArrayList<String>()
-            val alternativeFullName : ArrayList<String>? = if (target is ArendClassFieldSyn || target is ArendClassField || target is ArendConstructor)
+            val alternativeFullName: ArrayList<String>? = if (target is ArendClassFieldSyn || target is ArendClassField || target is ArendConstructor)
                 ArrayList() else
                 null
             var ignoreFlag = true
@@ -233,7 +234,7 @@ class ResolveRefQuickFix {
             var targetTop: MutableList<Referable> = ArrayList()
 
             var modifyingImportsNeeded = false
-            var fallbackImportAction : ResolveRefFixAction? = null
+            var fallbackImportAction: ResolveRefFixAction? = null
             val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
 
             while (psi.parent != null) {
@@ -264,7 +265,7 @@ class ResolveRefQuickFix {
             if (alternativeFullName != null) fullNames.add(alternativeFullName)
 
             if (currentFile != targetFile) {
-                val fileGroup =  object: Group by currentFile {
+                val fileGroup = object : Group by currentFile {
                     override fun getSubgroups(): Collection<Group> = emptyList()
                 }
                 val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
@@ -290,7 +291,7 @@ class ResolveRefQuickFix {
 
                         val nsUsing = namespaceCommand.nsUsing
                         val hiddenList = namespaceCommand.refIdentifierList
-                        val defaultNameHiddenFNames : HashSet<List<String>> = HashSet()
+                        val defaultNameHiddenFNames: HashSet<List<String>> = HashSet()
 
                         if (hiddenList.isNotEmpty()) for (ref in hiddenList) fullNames.filterTo(defaultNameHiddenFNames) { ref.referenceName == it[0] }
 
@@ -343,7 +344,7 @@ class ResolveRefQuickFix {
                         val hiddenList = suitableImport.refIdentifierList
 
                         for (fName in fullNames) {
-                            val hiddenRef : ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
+                            val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
                             if (hiddenRef != null)
                                 importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
                             else if (nsUsing != null)
@@ -365,112 +366,110 @@ class ResolveRefQuickFix {
                 }
             }
 
-            var currentBlock : Map<List<String>, ResolveRefFixAction?>
+            var currentBlock: Map<List<String>, ResolveRefFixAction?>
 
             currentBlock = HashMap()
             for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
 
-            if (fullName.size > 1) {
-                val namespaceCommands = ArrayList<List<ArendStatCmd>>()
-                psi = element
-                while (psi.parent != null) {
-                    var statements : List<ArendStatCmd>? = null
+            val namespaceCommands = ArrayList<List<ArendStatCmd>>()
+            psi = element
+            while (psi.parent != null) {
+                var statements: List<ArendStatCmd>? = null
 
-                    if (psi is ArendWhere)
-                        statements = psi.children.mapNotNull { (it as? ArendStatement)?.statCmd }
-                    else if (psi is ArendFile)
-                        statements = psi.namespaceCommands
+                if (psi is ArendWhere)
+                    statements = psi.children.mapNotNull { (it as? ArendStatement)?.statCmd }
+                else if (psi is ArendFile)
+                    statements = psi.namespaceCommands
 
-                    if (statements != null)
-                        namespaceCommands.add(0, statements.filter { it.openKw != null })
+                if (statements != null)
+                    namespaceCommands.add(0, statements.filter { it.openKw != null })
 
-                    psi = psi.parent
-                }
+                psi = psi.parent
+            }
 
-                for (commandBlock in namespaceCommands) {
-                    val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
-                    newBlock.putAll(currentBlock)
-
-                    for (command in commandBlock) {
-                        val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
-                        var renamings : HashMap<String, String>? = null
-                        val using = command.nsUsing
-
-                        if (using != null) {
-                            renamings = HashMap()
-                            for (nsId in using.nsIdList) {
-                                val oldName = nsId.refIdentifier.referenceName
-                                val defIdentifier = nsId.defIdentifier
-                                if (defIdentifier != null)
-                                    renamings[oldName] = defIdentifier.textRepresentation()
-                                else renamings[oldName] = oldName
-                            }
-                        }
-
-                        if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
-                            for (fName in currentBlock.keys) {
-                                val i1 = fName.iterator()
-                                val i2 = refIdentifiers.iterator()
-                                var equals = true
-                                while (i2.hasNext()) {
-                                    if (i1.next() != i2.next()) {
-                                        equals = false
-                                        break
-                                    }
-                                }
-                                if (equals && i1.hasNext()) {
-                                    val fName2 = ArrayList<String>()
-                                    while (i1.hasNext()) fName2.add(i1.next())
-                                    if (renamings != null) {
-                                        val newName = renamings[fName2[0]]
-                                        if (newName != null) {
-                                            fName2.removeAt(0)
-                                            fName2.add(0, newName)
-                                        } else {
-                                            equals = false
-                                        }
-                                    }
-
-                                    if (equals)
-                                        newBlock[fName2] = currentBlock[fName]
-
-                                }
-                            }
-                        }
-                    }
-
-                    currentBlock = newBlock
-                }
-
+            for (commandBlock in namespaceCommands) {
                 val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+                newBlock.putAll(currentBlock)
 
-                for (fName in currentBlock.keys) {
-                    val elementParent = element.parent
-                    var correctedScope = if (elementParent is ArendLongName) elementParent.scope else element.scope
+                for (command in commandBlock) {
+                    val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
+                    var renamings: HashMap<String, String>? = null
+                    val using = command.nsUsing
 
-                    if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
-                        val complementScope = object : ListScope(targetTop) {
-                            override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetTop
-                                .filterIsInstance<ArendDefinition>()
-                                .firstOrNull { name == it.textRepresentation() }
-                                ?.let { LexicalScope.opened(it) }
+                    if (using != null) {
+                        renamings = HashMap()
+                        for (nsId in using.nsIdList) {
+                            val oldName = nsId.refIdentifier.referenceName
+                            val defIdentifier = nsId.defIdentifier
+                            if (defIdentifier != null)
+                                renamings[oldName] = defIdentifier.textRepresentation()
+                            else renamings[oldName] = oldName
                         }
-
-                        correctedScope = MergeScope(correctedScope, complementScope)
                     }
 
-                    var referable = Scope.Utils.resolveName(correctedScope, fName)
-                    if (referable is RedirectingReferable) {
-                        referable = referable.originalReferable
-                    }
+                    if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
+                        for (fName in currentBlock.keys) {
+                            val i1 = fName.iterator()
+                            val i2 = refIdentifiers.iterator()
+                            var equals = true
+                            while (i2.hasNext()) {
+                                if (i1.next() != i2.next()) {
+                                    equals = false
+                                    break
+                                }
+                            }
+                            if (equals && i1.hasNext()) {
+                                val fName2 = ArrayList<String>()
+                                while (i1.hasNext()) fName2.add(i1.next())
+                                if (renamings != null) {
+                                    val newName = renamings[fName2[0]]
+                                    if (newName != null) {
+                                        fName2.removeAt(0)
+                                        fName2.add(0, newName)
+                                    } else {
+                                        equals = false
+                                    }
+                                }
 
-                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
-                        newBlock[fName] = currentBlock[fName]
+                                if (equals)
+                                    newBlock[fName2] = currentBlock[fName]
+
+                            }
+                        }
+                    }
                 }
 
                 currentBlock = newBlock
-
             }
+
+            val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+
+            for (fName in currentBlock.keys) {
+                val elementParent = element.parent
+                var correctedScope = if (elementParent is ArendLongName) elementParent.scope else element.scope
+
+                if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
+                    val complementScope = object : ListScope(targetTop) {
+                        override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetTop
+                                .filterIsInstance<ArendDefinition>()
+                                .firstOrNull { name == it.textRepresentation() }
+                                ?.let { LexicalScope.opened(it) }
+                    }
+
+                    correctedScope = MergeScope(correctedScope, complementScope)
+                }
+
+                var referable = Scope.Utils.resolveName(correctedScope, fName)
+                if (referable is RedirectingReferable) {
+                    referable = referable.originalReferable
+                }
+
+                if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
+                    newBlock[fName] = currentBlock[fName]
+            }
+
+            currentBlock = newBlock
+
 
             if (currentBlock.isEmpty()) {
                 val veryLongName = ArrayList<String>()
@@ -484,7 +483,7 @@ class ResolveRefQuickFix {
             // Determine shortest possible name in current scope
             val iterator = currentBlock.keys.iterator()
             var length = -1
-            val resultNames : MutableList<Pair<List<String>, ResolveRefFixAction?>> = ArrayList()
+            val resultNames: MutableList<Pair<List<String>, ResolveRefFixAction?>> = ArrayList()
 
             do {
                 val lName = iterator.next()
