@@ -90,7 +90,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
     fun testMovedContent1() =
             testMoveRefactoring("""
-                 --! Main.ard
+                 --! DirB/Main.ard
                 \module Foo \where {
                   \func foo => 101
                 }
@@ -98,15 +98,17 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                 \func foo => 202
                 \func bar{-caret-} => foo
             """, """
+                \import DirB.Main
+
                 \module Foo \where {
                   \func foo => 101
 
-                  \func bar => Main.foo
+                  \func bar => DirB.Main.foo
                 }
 
                 \func foo => 202
 
-            """, "Main", "Foo")
+            """, "DirB.Main", "Foo")
 
     fun testMoveData1() =
             testMoveRefactoring("""
@@ -138,4 +140,46 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
               \func myZero => 0
             }
             """, null, "Main", "Foo")
+
+    fun testMovedContent2() =
+            testMoveRefactoring("""
+                 --! Main.ard
+                \import Main
+                \open Nat
+
+                \module Foo{-caret-} \where {
+                  \func foo => bar.foobar + Foo.bar.foobar + Main.Foo.bar.foobar
+
+                  \func bar => 2 \where {
+                    \func foobar => foo + bar
+                  }
+                }
+
+                \module Bar \where {
+                  \open Foo
+
+                  \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
+                }
+
+                \func goo => 4
+            ""","""
+                \import Main
+                \open Nat
+
+                \module Bar \where {
+                  \open goo.Foo
+
+                  \func lol => foo + goo.Foo.foo + bar.foobar + goo.Foo.bar.foobar
+                }
+
+                \func goo => 4 \where {
+                  \module Foo \where {
+                    \func foo => bar.foobar + Foo.bar.foobar + goo.Foo.bar.foobar
+
+                    \func bar => 2 \where {
+                      \func foobar => foo + bar
+                    }
+                  }
+                }
+            """, "Main", "goo")
 }

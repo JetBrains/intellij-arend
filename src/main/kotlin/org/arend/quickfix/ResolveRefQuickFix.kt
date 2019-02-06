@@ -264,107 +264,106 @@ class ResolveRefQuickFix {
             fullNames.add(fullName)
             if (alternativeFullName != null) fullNames.add(alternativeFullName)
 
-            if (currentFile != targetFile) {
-                val fileGroup = object : Group by currentFile {
-                    override fun getSubgroups(): Collection<Group> = emptyList()
-                }
-                val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
+            val fileGroup = object : Group by currentFile {
+                override fun getSubgroups(): Collection<Group> = emptyList()
+            }
+            val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
 
-                val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+            val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
-                var suitableImport: ArendStatCmd? = null
-                val aliases = HashMap<List<String>, HashSet<String>>()
+            var suitableImport: ArendStatCmd? = null
+            val aliases = HashMap<List<String>, HashSet<String>>()
 
-                for (fName in fullNames) {
-                    aliases[fName] = HashSet()
-                }
+            for (fName in fullNames) {
+                aliases[fName] = HashSet()
+            }
 
-                var preludeImportedManually = false
+            var preludeImportedManually = false
 
-                for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-                    val isImportPrelude = namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
+            for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
+                val isImportPrelude = namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
 
-                    if (isImportPrelude) preludeImportedManually = true
+                if (isImportPrelude) preludeImportedManually = true
 
-                    if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
-                        suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
+                if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
+                    suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
-                        val nsUsing = namespaceCommand.nsUsing
-                        val hiddenList = namespaceCommand.refIdentifierList
-                        val defaultNameHiddenFNames: HashSet<List<String>> = HashSet()
+                    val nsUsing = namespaceCommand.nsUsing
+                    val hiddenList = namespaceCommand.refIdentifierList
+                    val defaultNameHiddenFNames: HashSet<List<String>> = HashSet()
 
-                        if (hiddenList.isNotEmpty()) for (ref in hiddenList) fullNames.filterTo(defaultNameHiddenFNames) { ref.referenceName == it[0] }
+                    if (hiddenList.isNotEmpty()) for (ref in hiddenList) fullNames.filterTo(defaultNameHiddenFNames) { ref.referenceName == it[0] }
 
-                        if (nsUsing != null) {
-                            for (refIdentifier in nsUsing.nsIdList) {
-                                for (fName in fullNames) {
-                                    val originalName = fName[0]
-                                    if (refIdentifier.refIdentifier.text == originalName) {
-                                        val defIdentifier = refIdentifier.defIdentifier
-                                        aliases[fName]?.add(defIdentifier?.textRepresentation() ?: originalName)
-                                    }
+                    if (nsUsing != null) {
+                        for (refIdentifier in nsUsing.nsIdList) {
+                            for (fName in fullNames) {
+                                val originalName = fName[0]
+                                if (refIdentifier.refIdentifier.text == originalName) {
+                                    val defIdentifier = refIdentifier.defIdentifier
+                                    aliases[fName]?.add(defIdentifier?.textRepresentation() ?: originalName)
                                 }
                             }
-
-                            if (nsUsing.usingKw != null)
-                                aliases.entries.filter { it.component2().isEmpty() && !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
-                        } else
-                            aliases.entries.filter { !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
-                    }
-                }
-
-                fullNames.clear()
-
-                for ((fName, aliases2) in aliases.entries) {
-                    for (alias in aliases2) {
-                        val fName2 = ArrayList<String>()
-                        fName2.addAll(fName)
-                        fName2.removeAt(0)
-                        fName2.add(0, alias)
-                        fullNames.add(fName2)
-                    }
-                }
-
-                if (isPrelude(targetFile) && !preludeImportedManually) {
-                    fullNames.add(fullName) // items from prelude are visible in any context
-                    fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
-                }
-
-
-                if (fullNames.isEmpty()) { // target definition is inaccessible in current context
-                    modifyingImportsNeeded = true
-
-                    if (importedScope.resolveName(fullName[0]) == null)
-                        fullNames.add(fullName)
-                    if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null)
-                        fullNames.add(alternativeFullName)
-
-                    if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
-                        val nsUsing = suitableImport.nsUsing
-                        val hiddenList = suitableImport.refIdentifierList
-
-                        for (fName in fullNames) {
-                            val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
-                            if (hiddenRef != null)
-                                importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
-                            else if (nsUsing != null)
-                                importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(fName[0]))
                         }
-                        fallbackImportAction = null
-                    } else { // targetFile has not been imported
-                        if (cautiousMode) {
-                            fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
-                            for (fName in fullNames)
-                                importActionMap[fName] = ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
-                        } else {
-                            fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
-                            for (fName in fullNames)
-                                importActionMap[fName] = fallbackImportAction
-                        }
-                    }
 
+                        if (nsUsing.usingKw != null)
+                            aliases.entries.filter { it.component2().isEmpty() && !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
+                    } else
+                        aliases.entries.filter { !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
                 }
             }
+
+            fullNames.clear()
+
+            for ((fName, aliases2) in aliases.entries) {
+                for (alias in aliases2) {
+                    val fName2 = ArrayList<String>()
+                    fName2.addAll(fName)
+                    fName2.removeAt(0)
+                    fName2.add(0, alias)
+                    fullNames.add(fName2)
+                }
+            }
+
+            if (isPrelude(targetFile) && !preludeImportedManually) {
+                fullNames.add(fullName) // items from prelude are visible in any context
+                fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
+            }
+
+
+            if (fullNames.isEmpty()) { // target definition is inaccessible in current context
+                modifyingImportsNeeded = true
+
+                if (importedScope.resolveName(fullName[0]) == null)
+                    fullNames.add(fullName)
+                if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null)
+                    fullNames.add(alternativeFullName)
+
+                if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
+                    val nsUsing = suitableImport.nsUsing
+                    val hiddenList = suitableImport.refIdentifierList
+
+                    for (fName in fullNames) {
+                        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
+                        if (hiddenRef != null)
+                            importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
+                        else if (nsUsing != null)
+                            importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(fName[0]))
+                    }
+                    fallbackImportAction = null
+                } else { // targetFile has not been imported
+                    if (cautiousMode) {
+                        fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
+                        for (fName in fullNames)
+                            importActionMap[fName] = ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
+                    } else {
+                        fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
+                        for (fName in fullNames)
+                            importActionMap[fName] = fallbackImportAction
+                    }
+                }
+
+            }
+
 
             var currentBlock: Map<List<String>, ResolveRefFixAction?>
 
@@ -471,8 +470,8 @@ class ResolveRefQuickFix {
             currentBlock = newBlock
 
 
+            val veryLongName = ArrayList<String>()
             if (currentBlock.isEmpty()) {
-                val veryLongName = ArrayList<String>()
                 veryLongName.addAll(targetModulePath.toList())
                 veryLongName.addAll(fullName)
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
@@ -514,7 +513,8 @@ class ResolveRefQuickFix {
 
             return if (resultNames.size > 0) {
                 val resultName = resultNames[0].first
-                val importAction = resultNames[0].second
+                val importAction = if (targetFile != currentFile || resultName == veryLongName)
+                    resultNames[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
                 if (importAction != null && !importAction.isValid())
                     return null //Perhaps current or target directory is not marked as a content root
