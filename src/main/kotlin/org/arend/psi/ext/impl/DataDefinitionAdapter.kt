@@ -18,10 +18,12 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
 
     constructor(stub: ArendDefDataStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getConstructors(): List<ArendConstructor> {
+    override fun getInternalReferables(): List<ArendConstructor> {
         val body = dataBody ?: return emptyList()
         return body.constructorClauseList.flatMap { it.constructorList } + body.constructorList
     }
+
+    override fun getConstructors() = internalReferables
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 

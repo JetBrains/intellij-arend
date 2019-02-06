@@ -8,13 +8,11 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.editor.Editor
 import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
-import org.arend.term.group.Group
 import org.arend.navigation.getPresentationForStructure
 import org.arend.psi.*
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.impl.ClassDefinitionAdapter
-import org.arend.psi.ext.impl.DataDefinitionAdapter
+import org.arend.psi.ext.PsiReferable
+import org.arend.term.group.Group
 
 class ArendStructureViewModel(editor: Editor?, file: ArendFile)
     : StructureViewModelBase(file, editor, ArendStructureViewElement(file)),
@@ -52,9 +50,5 @@ private class ArendStructureViewElement(val psi: ArendCompositeElement)
             childElements.mapNotNull { e -> (e as? ArendCompositeElement)?.let { ArendStructureViewElement(it) } }.toTypedArray()
 
     private val childElements: List<Any>
-        get() = when (psi) {
-            is ClassDefinitionAdapter -> psi.fields
-            is DataDefinitionAdapter -> psi.constructors
-            else -> emptyList()
-        } + ((psi as? Group)?.let { it.subgroups + it.dynamicSubgroups } ?: emptyList())
+        get() = (psi as? Group)?.let { it.internalReferables + it.subgroups + it.dynamicSubgroups } ?: emptyList()
 }

@@ -7,14 +7,15 @@ import org.arend.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
-import org.arend.psi.*
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendStatCmd
+import org.arend.psi.ancestors
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 
 abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ArendGroup, Abstract.Definition, PsiConcreteReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -35,12 +36,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
-
-    override fun getConstructors(): List<ArendConstructor> = emptyList()
-
-    override fun getDynamicSubgroups(): List<ChildGroup> = emptyList()
-
-    override fun getFields(): List<Group.InternalReferable> = emptyList()
 
     override fun getEnclosingClass(): ClassReferable? {
         var prev: ChildGroup = this

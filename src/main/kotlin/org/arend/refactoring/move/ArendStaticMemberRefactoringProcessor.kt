@@ -23,6 +23,25 @@ import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
 import java.util.Collections.singletonList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
+import kotlin.collections.List
+import kotlin.collections.Map
+import kotlin.collections.MutableMap
+import kotlin.collections.MutableSet
+import kotlin.collections.Set
+import kotlin.collections.any
+import kotlin.collections.emptyList
+import kotlin.collections.filterIsInstance
+import kotlin.collections.iterator
+import kotlin.collections.lastOrNull
+import kotlin.collections.map
+import kotlin.collections.mapIndexed
+import kotlin.collections.plus
+import kotlin.collections.set
+import kotlin.collections.toSet
+import kotlin.collections.toTypedArray
+import kotlin.collections.withIndex
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             successfulCallback: () -> Unit,
@@ -217,8 +236,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val localGroup = HashSet<PsiElement>()
             localGroup.addAll(targetPsiElement.subgroups.filterIsInstance<PsiElement>())
             localGroup.addAll(targetPsiElement.dynamicSubgroups.filterIsInstance<PsiElement>())
-            localGroup.addAll(targetPsiElement.fields.filterIsInstance<PsiElement>())
-            localGroup.addAll(targetPsiElement.constructors.filterIsInstance<PsiElement>())
+            localGroup.addAll(targetPsiElement.internalReferables.filterIsInstance<PsiElement>())
 
             val localNamesMap = HashMap<String, PsiElement>()
             for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi

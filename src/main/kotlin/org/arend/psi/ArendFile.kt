@@ -23,7 +23,6 @@ import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath?
@@ -81,12 +80,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
-
-    override fun getConstructors(): List<Group.InternalReferable> = emptyList()
-
-    override fun getDynamicSubgroups(): List<Group> = emptyList()
-
-    override fun getFields(): List<Group.InternalReferable> = emptyList()
 
     override fun moduleTextRepresentation(): String = name
 
