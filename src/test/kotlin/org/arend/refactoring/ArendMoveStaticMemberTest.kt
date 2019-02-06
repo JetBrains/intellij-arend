@@ -139,7 +139,23 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \module Foo \where {
               \func myZero => 0
             }
-            """, null, "Main", "Foo")
+
+            \func bar => Foo.myZero
+
+            \func lol => myZero
+            """, """
+            \module Foo \where {
+              \func myZero => 0
+
+              \data MyNat
+                | myZero
+                | myCons (n : MyNat)
+            }
+
+            \func bar => Foo.myZero
+
+            \func lol => Foo.MyNat.myZero
+            """, "Main", "Foo")
 
     fun testMovedContent2() =
             testMoveRefactoring("""
@@ -220,18 +236,20 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   | myZero
                   | myCons (n : MyNat)
 
-                \func foo (m : MyNat) \elim
+                \func foo (m : MyNat) \elim m
                   | myZero => myZero
                   | myCons x => myCons x
                 """, """
+                \open Foo (MyNat, myZero, myCons)
+
                 \module Foo \where {
                   \data MyNat
                     | myZero
                     | myCons (n : MyNat)
                 }
 
-                \func foo (m : Foo.MyNat) \elim
-                  | myZero => Foo.myZero
-                  | myCons x => Foo.myCons x
+                \func foo (m : MyNat) \elim m
+                  | myZero => myZero
+                  | myCons x => myCons x
                 """, "Main", "Foo")
 }

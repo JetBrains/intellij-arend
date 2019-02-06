@@ -11,4 +11,6 @@ interface ArendGroup: ChildGroup, PsiLocatedReferable {
     override fun getInternalReferables(): Collection<ArendInternalReferable>
 }
 
-interface ArendInternalReferable: Group.InternalReferable, PsiLocatedReferable
+interface ArendInternalReferable: Group.InternalReferable, PsiLocatedReferable {
+    override fun getReferable(): PsiLocatedReferable
+}

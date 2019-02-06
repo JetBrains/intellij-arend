@@ -72,7 +72,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 path.add(0, i)
                 psi = psi.parent
             }
-            relevantLocatedReferables[internalReferable.referable as PsiLocatedReferable] = path
+            relevantLocatedReferables[internalReferable] = path
         }
 
         return relevantLocatedReferables
@@ -235,13 +235,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val localGroup = HashSet<PsiElement>()
             localGroup.addAll(targetPsiElement.subgroups.filterIsInstance<PsiElement>())
             localGroup.addAll(targetPsiElement.dynamicSubgroups.filterIsInstance<PsiElement>())
-            localGroup.addAll(targetPsiElement.internalReferables.filterIsInstance<PsiElement>())
+            //TODO: Add verification that constructors names' do not clash
 
             val localNamesMap = HashMap<String, PsiElement>()
             for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi
 
-            for (member in myMembersToMove) for (locatedReferable in collectRelevantReferables(member).keys){
-                val text = locatedReferable.textRepresentation()
+            for (member in myMembersToMove) {
+                val text = member.textRepresentation()
                 val psi = localNamesMap[text]
                 if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
             }
