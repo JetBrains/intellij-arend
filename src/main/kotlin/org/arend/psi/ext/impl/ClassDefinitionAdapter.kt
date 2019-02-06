@@ -37,8 +37,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     private inline val parameterFields: List<ArendFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
 
-    override fun getInternalReferables(): List<Group.InternalReferable> =
-        (parameterFields as List<Group.InternalReferable> ) +
+    override fun getInternalReferables(): List<ArendInternalReferable> =
+        (parameterFields as List<ArendInternalReferable> ) +
             classStatList.mapNotNull { it.classField } +
             classFieldList +
             classFieldSynList

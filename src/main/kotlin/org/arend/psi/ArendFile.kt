@@ -18,11 +18,13 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
+import org.arend.term.group.Group
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath?
@@ -78,6 +80,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getReferable(): PsiLocatedReferable = this
 
     override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
+
+    override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
 

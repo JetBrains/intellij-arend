@@ -50,7 +50,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
         for ((i, member) in myMembersToMove.withIndex())
-            for (entry in doCollectRelevantLocatedReferables(member))
+            for (entry in collectRelevantReferables(member))
                 for (psiReference in ReferencesSearch.search(entry.key))
                     if (!isInMovedMember(psiReference.element))
                         usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
@@ -60,23 +60,22 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return usageInfos
     }
 
-    fun doCollectRelevantLocatedReferables(element: PsiElement): Map<PsiLocatedReferable, List<Int>> {
+    private fun collectRelevantReferables(element: ArendGroup): Map<PsiLocatedReferable, List<Int>> {
         val relevantLocatedReferables = HashMap<PsiLocatedReferable, List<Int>>()
-        collectRelevantLocatedReferables(element, emptyList(), relevantLocatedReferables)
-        return relevantLocatedReferables
-    }
-
-    fun collectRelevantLocatedReferables(element: PsiElement,
-                                         prefix: List<Int>,
-                                         sink: MutableMap<PsiLocatedReferable, List<Int>>) {
-        when (element) {
-            is ArendWhere -> return
-            is ArendGroup -> sink[element] = prefix
-            is ArendConstructor -> sink[element] = prefix
+        relevantLocatedReferables[element] = emptyList()
+        for (internalReferable in element.internalReferables)
+            if (internalReferable.isVisible) {
+            val path = ArrayList<Int>()
+            var psi: PsiElement = internalReferable
+            while (psi.parent != null && psi != element) {
+                val i = psi.parent.children.indexOf(psi)
+                path.add(0, i)
+                psi = psi.parent
+            }
+            relevantLocatedReferables[internalReferable.referable as PsiLocatedReferable] = path
         }
 
-        for ((i, child) in element.children.withIndex())
-            collectRelevantLocatedReferables(child, prefix + singletonList(i), sink)
+        return relevantLocatedReferables
     }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
@@ -241,7 +240,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val localNamesMap = HashMap<String, PsiElement>()
             for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi
 
-            for (member in myMembersToMove) for (locatedReferable in doCollectRelevantLocatedReferables(member).keys){
+            for (member in myMembersToMove) for (locatedReferable in collectRelevantReferables(member).keys){
                 val text = locatedReferable.textRepresentation()
                 val psi = localNamesMap[text]
                 if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))

@@ -182,4 +182,56 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   }
                 }
             """, "Main", "goo")
+
+    fun testMovedContent3() =
+            testMoveRefactoring("""
+                 --! Main.ard
+                \class C{-caret-} {
+                  | foo : Nat
+
+                  \func bar(a : Nat) => foobar a
+                } \where {
+                  \func foobar (a : Nat) => a
+                }
+
+                \module Foo \where { }
+
+                \func lol (L : C) => (C.bar (C.foobar (foo {L})))
+            ""","""
+                \module Foo \where {
+                  \class C {
+                    | foo : Nat
+
+                    \func bar(a : Nat) => foobar a
+                  } \where {
+                    \func foobar (a : Nat) => a
+                  }
+                }
+
+                \func lol (L : Foo.C) => (Foo.C.bar (Foo.C.foobar (Foo.foo {L})))
+            """, "Main", "Foo")
+
+    fun testMoveData2() =
+            testMoveRefactoring("""
+                --! Main.ard
+                \module Foo \where {}
+
+                \data MyNat{-caret-}
+                  | myZero
+                  | myCons (n : MyNat)
+
+                \func foo (m : MyNat) \elim
+                  | myZero => myZero
+                  | myCons x => myCons x
+                """, """
+                \module Foo \where {
+                  \data MyNat
+                    | myZero
+                    | myCons (n : MyNat)
+                }
+
+                \func foo (m : Foo.MyNat) \elim
+                  | myZero => Foo.myZero
+                  | myCons x => Foo.myCons x
+                """, "Main", "Foo")
 }

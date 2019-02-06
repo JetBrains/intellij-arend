@@ -37,6 +37,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
+    override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+
     override fun getEnclosingClass(): ClassReferable? {
         var prev: ChildGroup = this
         var parent = parentGroup
