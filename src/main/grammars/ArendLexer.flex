@@ -26,7 +26,6 @@ import static org.arend.psi.ArendElementTypes.*;
     private int commentStart;
     private int docCommentStart;
     private int commentDepth;
-    private boolean isDocComment;
     private boolean isInsideDocComment;
 %}
 
@@ -37,14 +36,14 @@ import static org.arend.psi.ArendElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- (([ \t] [^\|] .* | {EOL})? | (-+ ([ \t] .* | {EOL})?))
-BLOCK_COMMENT_START = \{-
-BLOCK_COMMENT_END   = -\}
+LINE_COMMENT        = -- (([ ] [^\|] .* | {EOL})? | ([\t`\\] .*) | (-+ ([ \t] .* | {EOL})?))
+BLOCK_COMMENT_START = "{-"
+BLOCK_COMMENT_END   = "-}"
 
 LINE_DOC_COMMENT_START  = -- " " \|
 BLOCK_DOC_COMMENT_START = \{- " " \|
 
-BLOCK_DOC_TEXT = ([^\{-]|-[^\}]|\{[^-])+
+BLOCK_DOC_TEXT = ([^\{-] | -[^\}] | \{[^-])+
 LINE_DOC_TEXT = (.*|{EOL})
 
 NUMBER              = [0-9]+
@@ -128,21 +127,19 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {LINE_COMMENT}          { return LINE_COMMENT; }
     {BLOCK_COMMENT_START}   {
                                 yybegin(BLOCK_COMMENT_INNER);
-                                isDocComment = false;
                                 isInsideDocComment = false;
                                 commentDepth = 0;
                                 commentStart = getTokenStart();
                             }
     {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
 
-    {LINE_DOC_COMMENT_START}      {
-                                yybegin(LINE_DOC_COMMENT_INNER);
-                                return LINE_DOC_COMMENT_START; }
-    {BLOCK_DOC_COMMENT_START}   {
-                                yybegin(BLOCK_DOC_COMMENT_INNER);
-                                isInsideDocComment = true;
-                                docCommentStart = getTokenStart();
-                            }
+    {LINE_DOC_COMMENT_START}
+                            { yybegin(LINE_DOC_COMMENT_INNER);
+                              return LINE_DOC_COMMENT_START; }
+    {BLOCK_DOC_COMMENT_START}
+                            { yybegin(BLOCK_DOC_COMMENT_INNER);
+                              isInsideDocComment = true;
+                              docCommentStart = getTokenStart(); }
 
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
@@ -172,14 +169,12 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
 
     {BLOCK_COMMENT_START} {
           yybegin(BLOCK_COMMENT_INNER);
-          isDocComment = false;
           commentDepth = 0;
           commentStart = getTokenStart();
     }
 
     {BLOCK_DOC_COMMENT_START} {
           yybegin(BLOCK_COMMENT_INNER);
-          isDocComment = true;
           commentDepth = 0;
           commentStart = getTokenStart();
     }
