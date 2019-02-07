@@ -11,45 +11,24 @@ import com.intellij.openapi.roots.libraries.PersistentLibraryKind
 import com.intellij.openapi.roots.libraries.ui.LibraryEditorComponent
 import com.intellij.openapi.roots.libraries.ui.LibraryPropertiesEditor
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.LibraryEditor
-import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.layout.panel
+import org.arend.ArendIcons
 import org.arend.module.util.*
 import java.nio.file.Paths
 import javax.swing.Icon
 import javax.swing.JComponent
-import javax.swing.JTextField
 
-class ArendLibraryType: LibraryType<LibraryVersionProperties>(AREND_LIB_KIND) {
+private object ArendLibKind: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
+    override fun createDefaultProperties() = LibraryVersionProperties()
+}
 
-    companion object {
-        val AREND_LIB_KIND = object: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
-            override fun createDefaultProperties(): LibraryVersionProperties {
-                return LibraryVersionProperties()
-            }
+class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
 
-        }
-    }
+    override fun createPropertiesEditor(editorComponent: LibraryEditorComponent<LibraryVersionProperties>): LibraryPropertiesEditor? = null
 
-    override fun createPropertiesEditor(editorComponent: LibraryEditorComponent<LibraryVersionProperties>): LibraryPropertiesEditor? {
-        return null
-    }
-
-    override fun getCreateActionName(): String? {
-        return "Arend library"
-    }
+    override fun getCreateActionName() = "Arend library"
 
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
-        /*
-        val descriptor = DefaultLibraryRootsComponentDescriptor()
-        val chooserDescriptor = FileChooserDescriptor(true, false, false, false, false, false)
-
-        chooserDescriptor.title = "Select Arend Library File"
-        chooserDescriptor.withFileFilter(object: Condition<VirtualFile> {
-            override fun value(t: VirtualFile?): Boolean {
-                return t?.name == "arend.yaml"
-            }
-        }) */
         val libHome = ProjectRootManager.getInstance(project).projectSdk?.homePath ?: return null
         val libNameDialog = ChooseLibrariesDialog(project,
                 findExternalLibrariesInDirectory(Paths.get(libHome)).map { it.fileName.toString() }.filter { getProjectDependencies(project).find { n -> it == n.name } == null })
@@ -69,56 +48,15 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(AREND_LIB_KIND) {
         }
     }
 
-    override fun getIcon(): Icon? {
-        return null
-    }
-
-    /*
-    class ArendLibRootsDetector: LibraryRootsDetector() {
-        override fun getRootTypeName(rootType: LibraryRootType): String? {
-            return ""
-        }
-
-        override fun detectRoots(rootCandidate: VirtualFile, progressIndicator: ProgressIndicator): MutableCollection<DetectedLibraryRoot> {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-    }*/
-
-    class SetLibraryNameDialog(project: Project): DialogWrapper(project) {
-        private val nameTextField = JTextField()
-
-        val libName
-            get() = nameTextField.text
-
-        init {
-            title = "Add external Arend library"
-            init()
-            //val fm = libNameDialog.contentPane?.getFontMetrics(libNameDialog.contentPane?.font)
-            //fm?.let { libNameDialog.setSize(4000, 4000) } //setSize(it.stringWidth(title), size.height) }
-        }
-
-        override fun createCenterPanel(): JComponent? {
-            return panel {
-                row("Library name:") {  }
-                row { nameTextField() }
-            }
-        }
-
-    }
+    override fun getIcon(properties: LibraryVersionProperties?) = ArendIcons.LIBRARY_ICON
 
     class ChooseLibrariesDialog(project: Project, items: List<String>): ChooseElementsDialog<String>(project, items, "Libraries to add", null) {
         init {
             myChooser.setSingleSelectionMode()
         }
 
-        override fun getItemIcon(item: String): Icon? {
-            return null
-        }
+        override fun getItemIcon(item: String): Icon? = ArendIcons.LIBRARY_ICON
 
-        override fun getItemText(item: String): String {
-            return item
-        }
-
+        override fun getItemText(item: String) = item
     }
 }

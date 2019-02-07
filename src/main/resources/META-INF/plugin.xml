@@ -30,7 +30,6 @@
                 implementation="org.arend.module.util.ArendProjectStructureDetector"/>
         <library.type implementation="org.arend.module.ArendLibraryType"/>
         <sdkType implementation="org.arend.module.ArendSdkType"/>
-        <projectStructureValidator implementation="org.arend.module.ArendProjectStructureValidator"/>
         <moduleConfigurationEditorProvider implementation="org.arend.module.util.ArendModuleConfigEditorProvider"/>
 
         <!-- Startup -->
