@@ -40,10 +40,10 @@ LINE_COMMENT        = -- (([ ] [^\|] .* | {EOL})? | ([\t`\\] .*) | (-+ ([ \t] .*
 BLOCK_COMMENT_START = "{-"
 BLOCK_COMMENT_END   = "-}"
 
-LINE_DOC_COMMENT_START  = -- " " \|
-BLOCK_DOC_COMMENT_START = \{- " " \|
+LINE_DOC_COMMENT_START  = -- [ ] \|
+BLOCK_DOC_COMMENT_START = "{- |"
 
-BLOCK_DOC_TEXT = ([^\{-] | -[^\}] | \{[^-])+
+BLOCK_DOC_TEXT = ([^\{-]|\{[^-]|-[^\}])+
 LINE_DOC_TEXT = (.*|{EOL})
 
 NUMBER              = [0-9]+
@@ -139,7 +139,9 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {BLOCK_DOC_COMMENT_START}
                             { yybegin(BLOCK_DOC_COMMENT_INNER);
                               isInsideDocComment = true;
-                              docCommentStart = getTokenStart(); }
+                              docCommentStart = getTokenStart();
+                              return BLOCK_DOC_COMMENT_START;
+                            }
 
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
@@ -180,7 +182,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     }
 
     {BLOCK_COMMENT_END} {
-        zzStartRead = commentStart;
         yybegin(YYINITIAL);
         return BLOCK_COMMENT_END;
     }
