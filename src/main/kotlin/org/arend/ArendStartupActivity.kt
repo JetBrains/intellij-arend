@@ -19,6 +19,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
+import com.intellij.util.Function
 import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendPreludeLibrary
@@ -82,6 +83,13 @@ class ArendStartupActivity : StartupActivity {
             override fun moduleRemoved(project: Project, module: Module) {
                 syncModuleDependencies(module, mutableSetOf(), true)
                 cleanObsoleteProjectLibraries(project)
+            }
+
+            override fun modulesRenamed(project: Project, modules: List<Module>, oldNameProvider: Function<Module, String>) {
+                for (module in modules) {
+                    val oldName = oldNameProvider.`fun`(module) ?: continue
+                    service.libraryManager.renameLibrary(oldName, module.name)
+                }
             }
         })
 

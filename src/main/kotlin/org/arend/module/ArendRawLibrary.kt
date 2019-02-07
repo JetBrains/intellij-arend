@@ -19,7 +19,7 @@ import org.arend.typechecking.TypecheckerState
 import org.jetbrains.yaml.psi.YAMLFile
 
 
-class ArendRawLibrary(private val name: String, private val project: Project, headerFile: YAMLFile?, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
+class ArendRawLibrary(private var name: String, private val project: Project, headerFile: YAMLFile?, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
     constructor(module: Module, typecheckerState: TypecheckerState):
         this(module.name, module.project, module.libraryConfig, typecheckerState)
 
@@ -30,6 +30,11 @@ class ArendRawLibrary(private val name: String, private val project: Project, he
         get() = headerFilePtr?.element
 
     override fun getName() = name
+
+    override fun setName(name: String): Boolean {
+        this.name = name
+        return true
+    }
 
     override fun getModuleGroup(modulePath: ModulePath) = headerFile?.findArendFile(modulePath)
 
