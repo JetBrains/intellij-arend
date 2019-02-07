@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.*
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
@@ -210,14 +209,14 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 child is PsiWhiteSpace ||
                 child is ArendWhere ||
                 isDynamicDef(child) ||
-                child is LeafPsiElement && isComment(child.node.elementType)) {
+                child is LeafPsiElement && AREND_COMMENTS.contains(child.node.elementType)) {
                 return
             }
             val oldChild = event.oldChild
             val newChild = event.newChild
             if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
                 (oldChild is ArendWhere || oldChild is PsiErrorElement || isDynamicDef(oldChild)) && (newChild is ArendWhere || newChild is PsiErrorElement || isDynamicDef(newChild)) ||
-                oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+                oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
                 return
             }
 
@@ -269,5 +268,3 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
     }
 }
-
-private fun isComment(element: IElementType) = element == ArendElementTypes.BLOCK_COMMENT || element == ArendElementTypes.LINE_COMMENT

@@ -3,8 +3,8 @@ package org.arend.formatting
 class ArendReformatTest : ArendFormatterTestBase() {
     // Wrap tests
     fun testWrapAfterComment() = checkReformat(
-            "\\func lol --Lol\n => 1",
-            "\\func lol --Lol\n  => 1")
+            "\\func lol -- Lol\n => 1",
+            "\\func lol -- Lol\n  => 1")
 
     // Tests on correct spacing
     fun testStatementSpacing1() = checkReformat(
@@ -17,8 +17,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
 
     // Tests on correctness of block subdivision
     fun testArgAppExpr1() = checkReformat(
-            "\\func lol2 => Nat --aa\n-bb",
-            "\\func lol2 => Nat --aa\n    -bb")
+            "\\func lol2 => Nat -- aa\n-bb",
+            "\\func lol2 => Nat -- aa\n    -bb")
 
     fun testArgAppExpr2() = checkReformat(
             "\\class C {\n  | foo : Nat \\case foo\n}",
@@ -62,6 +62,6 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func - (n m : Nat) : Nat \\elim n, m\n  -- comment 1\n  | 0, _ => 0\n  -- comment 2\n  | suc n, 0 => suc n\n  -- comment 3\n  | suc n, suc m => n - m\n")
 
     fun testCommentsIndent3() = checkReformat(
-            "\\data \\fixr 2 Or (A B : \\Type)\n--foo\n| inl A\n--bar\n| inr B\n",
-            "\\data \\fixr 2 Or (A B : \\Type)\n  --foo\n  | inl A\n  --bar\n  | inr B\n")
+            "\\data \\fixr 2 Or (A B : \\Type)\n-- foo\n| inl A\n-- bar\n| inr B\n",
+            "\\data \\fixr 2 Or (A B : \\Type)\n  -- foo\n  | inl A\n  -- bar\n  | inr B\n")
 }

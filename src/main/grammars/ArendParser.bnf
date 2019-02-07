@@ -30,8 +30,12 @@
         COMMA               = ','
         UNDERSCORE          = '_'
         PIPE                = '|'
+        LINE_DOC_COMMENT_START = '-- |'
         BLOCK_COMMENT_START = '{-'
         BLOCK_COMMENT_END   = '-}'
+        BLOCK_DOC_COMMENT_START = '{- |'
+        BLOCK_DOC_TEXT      = "regexp:([^{-]|-[^}]|\{[^-])+"
+        LINE_DOC_TEXT       = "regexp:[^\r\n]*"
 
         OPEN_KW             = '\open'
         IMPORT_KW           = '\import'
@@ -79,8 +83,10 @@
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
-        LINE_COMMENT        = "regexp:--[^\r\n]*"
+        LINE_COMMENT        = "regexp:-- ([^|])[^\r\n]*"
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
+        // LINE_DOC_COMMENT    = '  '
+
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition

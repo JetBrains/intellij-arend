@@ -5,12 +5,11 @@ import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.tree.IElementType
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendReferenceElement
 import com.intellij.openapi.project.Project
+import org.arend.psi.AREND_COMMENTS
 import java.util.concurrent.ConcurrentMap
 
 interface ArendResolveCache {
@@ -57,15 +56,12 @@ class ArendResolveCacheImpl(project: Project): ArendResolveCache {
             val oldChild = event.oldChild
             val newChild = event.newChild
             if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
-                    oldChild is LeafPsiElement && isComment(oldChild.node.elementType) &&
-                    newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+                    oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) &&
+                    newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
                 return
             }
 
             clearCache()
         }
-
-        private fun isComment(element: IElementType) =
-                element == ArendElementTypes.BLOCK_COMMENT || element == ArendElementTypes.LINE_COMMENT
     }
 }

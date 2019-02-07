@@ -37,6 +37,8 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 
             ArendElementTypes.BLOCK_COMMENT -> ArendHighlightingColors.BLOCK_COMMENT
             ArendElementTypes.LINE_COMMENT -> ArendHighlightingColors.LINE_COMMENT
+            ArendElementTypes.LINE_DOC_COMMENT_START, ArendElementTypes.LINE_DOC_TEXT,
+                ArendElementTypes.BLOCK_DOC_COMMENT_START, ArendElementTypes.BLOCK_DOC_TEXT, ArendElementTypes.BLOCK_COMMENT_END -> ArendHighlightingColors.DOC_COMMENT
 
             TokenType.BAD_CHARACTER -> ArendHighlightingColors.BAD_CHARACTER
             else -> null
