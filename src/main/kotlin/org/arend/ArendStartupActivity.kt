@@ -20,14 +20,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
 import com.intellij.util.Function
-import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryDependency
-import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.util.*
-import org.arend.prelude.Prelude
-import org.arend.resolving.PsiConcreteProvider
-import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -37,42 +32,12 @@ class ArendStartupActivity : StartupActivity {
 
     override fun runActivity(project: Project) {
         val service = TypeCheckingService.getInstance(project)
-
-        val preludeLibrary = ArendPreludeLibrary(project, service.typecheckerState)
-        service.libraryManager.loadLibrary(preludeLibrary)
-        val referableConverter = service.newReferableConverter(false)
-        val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
-        preludeLibrary.resolveNames(referableConverter, concreteProvider, service.libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
-
         val addedLibraries = mutableSetOf<String>()
-        for (module in project.arendModules) {
-            service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
-            syncModuleDependencies(module, addedLibraries, true)
-
-            module.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
-                override fun rootsChanged(event: ModuleRootEvent) {
-                    // System.out.println("Roots changed. Source: ${event.source}")
-                    val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toMutableSet()
-                    libEntriesNames.addAll(orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }.toMutableSet())
-                    if (!rootsChangedExternally) return
-                    // if (module.libraryConfig?.dependencies?.map { it.name }?.toSet()?.equals(libEntriesNames) == true) return
-                    ApplicationManager.getApplication().invokeLater {
-                        if (module.libraryConfig?.dependencies?.toSet()?.equals(libEntriesNames) != true) {
-                            module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
-                        }
-                    }
-                    //}
-                }
-            })
-        }
 
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun moduleAdded(project: Project, module: Module) {
                 if (module.isArendModule) {
-                    service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
-                    syncModuleDependencies(module, addedLibraries, true)
+                    addModule(service, module, addedLibraries)
                 }
             }
 
@@ -154,10 +119,37 @@ class ArendStartupActivity : StartupActivity {
                 }*/
             }
         })*/
+
+        for (module in project.arendModules) {
+            addModule(service, module, addedLibraries)
+
+            module.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
+                override fun rootsChanged(event: ModuleRootEvent) {
+                    // System.out.println("Roots changed. Source: ${event.source}")
+                    val orderEntries = ModuleRootManager.getInstance(module).orderEntries
+                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toMutableSet()
+                    libEntriesNames.addAll(orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }.toMutableSet())
+                    if (!rootsChangedExternally) return
+                    // if (module.libraryConfig?.dependencies?.map { it.name }?.toSet()?.equals(libEntriesNames) == true) return
+                    ApplicationManager.getApplication().invokeLater {
+                        if (module.libraryConfig?.dependencies?.toSet()?.equals(libEntriesNames) != true) {
+                            module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
+                        }
+                    }
+                    //}
+                }
+            })
+        }
     }
 
     companion object {
         var rootsChangedExternally = true
+
+        private fun addModule(service: TypeCheckingService, module: Module, addedLibraries: MutableSet<String>) {
+            service.initialize()
+            service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
+            syncModuleDependencies(module, addedLibraries, true)
+        }
 
         private fun cleanObsoleteProjectLibraries(project: Project) {
             val depNames = mutableSetOf<String>()

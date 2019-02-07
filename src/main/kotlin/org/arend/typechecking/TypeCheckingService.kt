@@ -8,6 +8,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
+import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
@@ -17,10 +18,12 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
@@ -39,6 +42,8 @@ interface TypeCheckingService {
     val prelude: ArendFile?
 
     val updatedModules: HashSet<ModulePath>
+
+    fun initialize()
 
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
@@ -68,8 +73,28 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
     init {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
+    }
+
+    private var isInitialized = false
+
+    override fun initialize() {
+        if (isInitialized) {
+            return
+        }
+
+        // Initialize prelude
+        val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
+        libraryManager.loadLibrary(preludeLibrary)
+        val referableConverter = newReferableConverter(false)
+        val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
+        preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
+
+        // Set the listener that updates typechecked definitions
+        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+
+        isInitialized = true
     }
 
     override val prelude: ArendFile?
