@@ -32,8 +32,7 @@ import static org.arend.psi.ArendElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-// LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
-LINE_COMMENT        = -- (.*|{EOL})
+LINE_COMMENT        = ---* ([ \t].*|{EOL})?
 BLOCK_COMMENT_START = \{-
 BLOCK_COMMENT_END   = -\}
 
@@ -43,7 +42,8 @@ NEGATIVE_NUMBER     = -[0-9]+
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_]
 KEYWORD             = \\[0-9]*{ID}
 
-ID                  = {START_CHAR} ({START_CHAR} | [0-9'])*
+ID_CHAR             = {START_CHAR} | [0-9']
+ID                  = {START_CHAR} {ID_CHAR}*
 POSTFIX             = `{ID}
 INFIX               = `{ID}`
 
