@@ -46,7 +46,8 @@ import kotlin.collections.withIndex
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             successfulCallback: () -> Unit,
                                             private val myMembersToMove: List<ArendGroup>,
-                                            private val targetPsiElement: PsiElement) : BaseRefactoringProcessor(project, successfulCallback) {
+                                            private val mySourceContainer: ChildGroup,
+                                            private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
         for ((i, member) in myMembersToMove.withIndex())
@@ -82,13 +83,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val anchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
 
-        when (targetPsiElement) {
+        when (myTargetContainer) {
             is ArendGroup -> {
-                val oldWhereImpl = targetPsiElement.where
+                val oldWhereImpl = myTargetContainer.where
                 val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
-                        val localAnchor = targetPsiElement.lastChild
-                        val insertedWhere = targetPsiElement.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
-                        targetPsiElement.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+                        val localAnchor = myTargetContainer.lastChild
+                        val insertedWhere = myTargetContainer.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
+                        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
                         insertedWhere
                     }
 
@@ -106,7 +107,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 anchor = actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
             }
             is ArendFile -> {
-                anchor = targetPsiElement.lastChild //null means file is empty
+                anchor = myTargetContainer.lastChild //null means file is empty
             }
             else -> {
                 anchor = null
@@ -130,7 +131,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
-            val mCopy = (if (anchor == null) (targetPsiElement.add(mCopyStatement))
+            val mCopy = (if (anchor == null) (myTargetContainer.add(mCopyStatement))
             else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendGroup>()!!
 
             newMemberList.add(mCopy)
@@ -231,10 +232,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val conflicts = MultiMap<PsiElement, String>()
         val usages = refUsages.get()
 
-        if (targetPsiElement is ChildGroup) {
+        if (myTargetContainer is ChildGroup) {
             val localGroup = HashSet<PsiElement>()
-            localGroup.addAll(targetPsiElement.subgroups.filterIsInstance<PsiElement>())
-            localGroup.addAll(targetPsiElement.dynamicSubgroups.filterIsInstance<PsiElement>())
+            localGroup.addAll(myTargetContainer.subgroups.filterIsInstance<PsiElement>())
+            localGroup.addAll(myTargetContainer.dynamicSubgroups.filterIsInstance<PsiElement>())
             //TODO: Add verification that constructors names' do not clash
 
             val localNamesMap = HashMap<String, PsiElement>()

@@ -4,7 +4,7 @@ import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.codeInsight.hint.QuestionAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
-import org.arend.quickfix.ResolveRefFixData
+import org.arend.refactoring.ResolveRefFixData
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.ui.popup.PopupStep

@@ -26,7 +26,7 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
-import org.arend.quickfix.ResolveRefFixData
+import org.arend.refactoring.ResolveRefFixData
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.typechecking.TypeCheckingService
 

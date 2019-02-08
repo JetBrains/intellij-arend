@@ -2,6 +2,7 @@ package org.arend.quickfix
 
 import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.openapi.command.WriteCommandAction
+import org.arend.refactoring.AddIdToUsingAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =

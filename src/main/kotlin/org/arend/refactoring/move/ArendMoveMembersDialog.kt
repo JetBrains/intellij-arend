@@ -24,12 +24,13 @@ import javax.swing.*
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
                              container: PsiElement,
-                             private val enclosingModule: Module): MoveDialogBase(project, false) {
+                             private val enclosingModule: Module) : MoveDialogBase(project, false) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
     private val myPanel: JPanel
     private val elementPointers: List<SmartPsiElementPointer<ArendGroup>>
     private val containerRef: SmartPsiElementPointer<PsiElement>
+
     init {
         title = "Move Arend static members"
         containerRef = SmartPointerManager.createPointer(container)
@@ -49,8 +50,8 @@ class ArendMoveMembersDialog(project: Project,
 
         elementPointers = elements.map { SmartPointerManager.createPointer(it) }
 
-        targetFileTextField = JTextField(names?.first?: "")
-        targetModuleTextField = JTextField(names?.second?: "")
+        targetFileTextField = JTextField(names?.first ?: "")
+        targetModuleTextField = JTextField(names?.second ?: "")
 
         myPanel = panel {
             row("Target file: ") {
@@ -65,26 +66,18 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     override fun doAction() {
-        val targetGroup = locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, containerRef.element, elementPointers.map { it.element })
+        val sourceGroup = containerRef.element
+        val elementsToMove = elementPointers.mapNotNull { it.element }
 
-        val elements = elementPointers.mapNotNull { it.element }
-        val errorMessage: String? =
-                when {
-                    elements.size != elementPointers.size -> "Can't locate some of the elements being moved"
-                    targetGroup.first !is PsiElement -> targetGroup.second
-                    else -> null
-                }
-
-        if (errorMessage != null) {
-            CommonRefactoringUtil.showErrorMessage(
-                    MoveMembersImpl.REFACTORING_NAME,
-                    errorMessage,
-                    HelpID.MOVE_MEMBERS,
-                    myProject)
-            return
+        val locateResult: Pair<Group?, String?> = when {
+            sourceGroup !is ChildGroup -> Pair(null, "Source module has invalid type")
+            elementsToMove.size != elementPointers.size -> Pair(null, "Can't locate some of the elements to be moved")
+            else -> locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, sourceGroup, elementPointers.map { it.element })
         }
 
-        invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elements, targetGroup.first as PsiElement))
+        if (locateResult.second != null)
+            CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, locateResult.second, HelpID.MOVE_MEMBERS, myProject) else
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement))
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
@@ -100,22 +93,23 @@ class ArendMoveMembersDialog(project: Project,
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
     companion object {
-        fun locateTargetGroupWithChecks(fileName: String, moduleName: String, enclosingModule: Module,
-                                        containerElement: PsiElement?, elementPointers: List<ArendGroup?>): Pair<Group?, String?> {
-            val targetFile = enclosingModule.libraryConfig?.findArendFile(ModulePath.fromString(fileName)) ?: return Pair(null, "Can't locate target file")
+        fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
+                                        sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
+            val targetFile = ideaModule.libraryConfig?.findArendFile(ModulePath.fromString(fileName))
+                    ?: return Pair(null, "Can't locate target file")
             val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
 
             var m = targetModule as? ChildGroup
-            if (m == containerElement) return Pair(null, "Target module cannot coincide with the source module")
+            if (m == sourceModule) return Pair(null, "Target module cannot coincide with the source module")
 
             while (m != null) {
-                for (elementP in elementPointers) if (m == elementP)
-                        return Pair(null, "Target module cannot be a submodule of the member being moved")
+                for (elementP in elementsToMove) if (m == elementP)
+                    return Pair(null, "Target module cannot be a submodule of the member being moved")
 
                 m = m.parentGroup
             }
 
-            return  Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
+            return Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
         }
     }
 

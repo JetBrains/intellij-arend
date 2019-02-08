@@ -21,12 +21,12 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
         val sourceElement = myFixture.elementAtCaret.ancestors.filterIsInstance<ArendGroup>().firstOrNull() ?: throw AssertionError("Cannot find source element")
-        val container = (sourceElement as ChildGroup).parentGroup as? PsiElement ?: throw AssertionError("Source element has parent of wrong type")
+        val container = (sourceElement as ChildGroup).parentGroup ?: throw AssertionError("Source element has no parent")
 
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, listOf(sourceElement))
         val group = myTargetGroup.first
         if (group is PsiElement) {
-            val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, listOf(sourceElement) , group)
+            val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, listOf(sourceElement), container, group)
             try {
                 processor.run()
             } catch (e: Exception) {
