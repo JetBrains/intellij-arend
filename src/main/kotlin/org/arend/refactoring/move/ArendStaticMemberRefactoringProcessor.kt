@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
@@ -20,6 +21,8 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
+import org.arend.resolving.ArendReference
+import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -46,15 +49,30 @@ import kotlin.collections.withIndex
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             successfulCallback: () -> Unit,
                                             private val myMembersToMove: List<ArendGroup>,
-                                            private val mySourceContainer: ChildGroup,
+                                            private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
                                             private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
+        val statCmdsToFix = HashMap<ArendStatCmd, PsiReference>()
+
+        if (mySourceContainer is PsiElement) for (psiReference in ReferencesSearch.search(mySourceContainer)) {
+            val statCmd = isStatCmdUsage(psiReference, true)
+            if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement)
+                statCmdsToFix[statCmd] = psiReference
+        }
+
         for ((i, member) in myMembersToMove.withIndex())
             for (entry in collectRelevantReferables(member))
                 for (psiReference in ReferencesSearch.search(entry.key))
-                    if (!isInMovedMember(psiReference.element))
-                        usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
+                    if (!isInMovedMember(psiReference.element)) {
+                        val statCmd = isStatCmdUsage(psiReference, false)
+                        if (statCmd == null || !statCmdsToFix.contains(statCmd)) //Needed to prevent processing same StatCmds more than once
+                            usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
+                    }
+
+        //TODO: Somehow determine which of the statCmd usages are not relevant and filter them out
+
+        for (statCmd in statCmdsToFix) usagesList.add(ArendStatCmdUsageInfo(statCmd.key, statCmd.value))
 
         var usageInfos = usagesList.toTypedArray()
         usageInfos = UsageViewUtil.removeDuplicatedUsages(usageInfos)
@@ -259,7 +277,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     private fun isInMovedMember(element: PsiElement): Boolean =
             myMembersToMove.any { PsiTreeUtil.isAncestor(it, element, false) }
 
-    class ArendUsageInfo(reference: PsiReference,
-                         val memberNo: Int,
-                         val memberPath: List<Int>): UsageInfo(reference)
+    private fun isStatCmdUsage(reference: PsiReference, insideLongNameOnly: Boolean): ArendStatCmd? {
+        val parent = reference.element.parent
+        if (parent is ArendStatCmd && !insideLongNameOnly) return parent
+        if (parent is ArendLongName) {
+            val grandparent = parent.parent
+            if (grandparent is ArendStatCmd) return grandparent
+        }
+        return null
+    }
+
+    class ArendUsageInfo(reference: PsiReference, val memberNo: Int, val memberPath: List<Int>): UsageInfo(reference)
+
+    class ArendStatCmdUsageInfo(val command: ArendStatCmd, reference: PsiReference): UsageInfo(reference)
 }

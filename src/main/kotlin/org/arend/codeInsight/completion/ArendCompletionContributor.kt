@@ -123,9 +123,7 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java), afterLeaf(ID)), noExtendsCondition)
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
-                    var nS = parameters.position.parent?.parent?.nextSibling
-                    while (nS is PsiWhiteSpace) nS = nS.nextSibling
-                    nS !is ArendFieldTele
+                    parameters.position.parent?.parent?.findNextSibling() !is ArendFieldTele
                 }, noExtendsCondition))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(COLON)), KeywordCompletionProvider(DATA_UNIVERSE_KW))
@@ -276,8 +274,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 var exprFound = false
                 while (pos2 != null) {
                     if (pos2.nextSibling is PsiWhiteSpace) {
-                        var body = pos2.nextSibling
-                        while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
+                        val body = pos2.findNextSibling()
                         if (body is ArendFunctionBody || body is ArendDataBody) pos2 = body.parent
                     }
 
