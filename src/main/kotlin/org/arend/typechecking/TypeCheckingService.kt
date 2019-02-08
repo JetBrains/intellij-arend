@@ -1,18 +1,14 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.*
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
-import org.arend.module.util.defaultRoot
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
@@ -27,7 +23,6 @@ import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.util.FileUtils
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -71,9 +66,11 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
+    /*  TODO[libraries]
     init {
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
     }
+    */
 
     private var isInitialized = false
 
@@ -131,6 +128,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
     }
 
+    /* TODO[libraries]
     private inner class MyVirtualFileListener : VirtualFileListener {
         override fun beforeFileDeletion(event: VirtualFileEvent) {
             process(event, event.fileName, event.parent, null)
@@ -171,6 +169,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
     }
+    */
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {

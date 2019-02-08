@@ -205,12 +205,14 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
+        <moduleService serviceInterface="org.arend.module.config.ArendModuleConfigService"
+                       serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
+
         <!-- Configuration Options -->
 
         <applicationService serviceInterface="org.arend.editor.ArendSmartKeysOptions"
                             serviceImplementation="org.arend.editor.ArendSmartKeysOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
-
     </extensions>
 
     <actions>

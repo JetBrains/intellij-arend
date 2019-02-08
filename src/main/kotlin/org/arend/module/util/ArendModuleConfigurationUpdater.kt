@@ -4,18 +4,15 @@ import com.intellij.ide.util.projectWizard.ModuleBuilder
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import org.arend.module.config.DEFAULT_OUTPUT_DIR
+import org.arend.module.config.DEFAULT_SOURCES_DIR
 import org.arend.util.FileUtils
 
-open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.ModuleConfigurationUpdater() {
-    private var sourceDir = ArendModuleBuilder.DEFAULT_SOURCE_DIR
-    private var outputDir = ArendModuleBuilder.DEFAULT_OUTPUT_DIR
-
-    constructor(sourceDir: String, outputDir: String): this() {
-        this.sourceDir = sourceDir
-        this.outputDir = outputDir
-    }
+open class ArendModuleConfigurationUpdater(private val sourceDir: String, private val outputDir: String) : ModuleBuilder.ModuleConfigurationUpdater() {
+    constructor(): this(DEFAULT_SOURCES_DIR, DEFAULT_OUTPUT_DIR)
 
     protected open fun sourceDir(moduleRoot: VirtualFile, project: Project): String = sourceDir
 
@@ -23,32 +20,35 @@ open class ArendModuleConfigurationUpdater constructor () : ModuleBuilder.Module
 
     override fun update(module: Module, rootModel: ModifiableRootModel) {
         rootModel.inheritSdk()
-        val contentEntry = rootModel.contentEntries.singleOrNull()
-        if (contentEntry != null) {
-            val projectRoot = contentEntry.file ?: return
-            val srcDir = sourceDir(projectRoot, rootModel.project)
-            val outDir = outputDir(projectRoot, rootModel.project)
+        val contentEntry = rootModel.contentEntries.singleOrNull() ?: return
+        val projectRoot = contentEntry.file ?: return
+        val srcDir = sourceDir(projectRoot, rootModel.project)
+        val srcAbsoluteDir = toAbsolute(projectRoot.path, srcDir)
+        val outDir = outputDir(projectRoot, rootModel.project)
 
-            if (projectRoot.fileSystem.findFileByPath(toAbsolute(projectRoot.path, srcDir)) == null) {
-                VfsUtil.createDirectories(toAbsolute(projectRoot.path, srcDir))
-            }
+        if (projectRoot.fileSystem.findFileByPath(srcAbsoluteDir) == null) {
+            VfsUtil.createDirectories(srcAbsoluteDir)
+        }
 
-            /*
-            val relSrcDir = ArendModuleBuilder.toRelative(projectRoot.path, srcDir)
-            if (relSrcDir != null) {
-                if (projectRoot.findChild(relSrcDir) == null)
-                    projectRoot.createChildDirectory(null, relSrcDir)
-            }*/
+        contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcAbsoluteDir), false)
+        contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, outDir)))
 
-            contentEntry.addSourceFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, srcDir)), false)
+        if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
+            projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE).setBinaryContent(
+                ("sourcesDir: ${toRelative(projectRoot.path, srcDir)}\n" +
+                  "outputDir: ${toRelative(projectRoot.path, outDir)}").toByteArray())
+        }
+    }
 
-            if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
-                val configFile = projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE)
-                configFile.setBinaryContent(("sourcesDir: ${toRelative(projectRoot.path, srcDir)?:srcDir}\n"+
-                        "outputDir: ${toRelative(projectRoot.path, outDir)?:outDir}").toByteArray())
-            }
+    private companion object {
+        private fun toAbsolute(root: String, path: String): String {
+            val iPath = FileUtil.toSystemIndependentName(path)
+            return if (FileUtil.isAbsolute(path)) iPath else "$root/$iPath"
+        }
 
-            contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, outDir)))
+        private fun toRelative(root: String, path: String): String {
+            val iPath = FileUtil.toSystemIndependentName(path)
+            return if (iPath.startsWith(root)) iPath.substring(root.length + (if (root.endsWith('/')) 0 else 1)) else iPath
         }
     }
 }

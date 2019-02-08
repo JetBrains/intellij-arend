@@ -1,11 +1,8 @@
 package org.arend
 
-import com.intellij.AppTopics
 import com.intellij.ProjectTopics
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.FileDocumentManagerListener
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
@@ -15,14 +12,10 @@ import com.intellij.openapi.roots.*
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.startup.StartupActivity
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.util.Function
-import org.arend.library.LibraryDependency
+import com.intellij.openapi.vfs.VfsUtil
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
-import org.arend.module.util.*
 import org.arend.typechecking.TypeCheckingService
-import org.jetbrains.yaml.psi.YAMLFile
 
 
 class ArendStartupActivity : StartupActivity {
@@ -46,13 +39,6 @@ class ArendStartupActivity : StartupActivity {
                 syncModuleDependencies(module, mutableSetOf(), true)
                 cleanObsoleteProjectLibraries(project)
             }
-
-            override fun modulesRenamed(project: Project, modules: List<Module>, oldNameProvider: Function<Module, String>) {
-                for (module in modules) {
-                    val oldName = oldNameProvider.`fun`(module) ?: continue
-                    service.libraryManager.renameLibrary(oldName, module.name)
-                }
-            }
         })
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
@@ -61,6 +47,7 @@ class ArendStartupActivity : StartupActivity {
             }
         })
 
+        /* TODO[libraries]
         project.messageBus.connect().subscribe(AppTopics.FILE_DOCUMENT_SYNC, object : FileDocumentManagerListener {
             override fun beforeDocumentSaving(document: Document) {
                 val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) as? YAMLFile ?: return
@@ -73,7 +60,7 @@ class ArendStartupActivity : StartupActivity {
                 cleanObsoleteProjectLibraries(project)
             }
 
-        })
+        }) */
 
         for (module in project.arendModules) {
             addModule(service, module, addedLibraries)
@@ -84,11 +71,13 @@ class ArendStartupActivity : StartupActivity {
                     val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toMutableSet()
                     libEntriesNames.addAll(orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }.toMutableSet())
                     if (!rootsChangedExternally) return
+                    /* TODO[libraries]
                     ApplicationManager.getApplication().invokeLater {
                         if (module.libraryConfig?.dependencies?.toSet()?.equals(libEntriesNames) != true) {
                             module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
                         }
                     }
+                    */
                 }
             })
         }
@@ -105,7 +94,8 @@ class ArendStartupActivity : StartupActivity {
 
         private fun cleanObsoleteProjectLibraries(project: Project) {
             val depNames = mutableSetOf<String>()
-            project.arendModules.forEach { mod -> mod.libraryConfig?.dependencies?.let { deps -> depNames.addAll(deps.map { it.name })}}
+            // TODO[libraries]
+            // project.arendModules.forEach { mod -> mod.libraryConfig?.dependencies?.let { deps -> depNames.addAll(deps.map { it.name })}}
 
             val table = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
             for (library in table.libraries) {
@@ -120,6 +110,8 @@ class ArendStartupActivity : StartupActivity {
         }
 
         private fun syncModuleDependencies(module: Module, addedLibraries: MutableSet<String>, useInvokeLater: Boolean) {
+            return
+            /* TODO[libraries]
             val deps = module.libraryConfig?.dependencies ?: return
             val depNames = deps.map { it.name }
 
@@ -142,6 +134,7 @@ class ArendStartupActivity : StartupActivity {
                 rootModel.commit()
                 rootsChangedExternally = true
             }
+            */
         }
 
         private fun addDependency(module: Module, libName: String, addedLibraries: MutableSet<String>, useInvokeLater: Boolean) {
@@ -152,18 +145,23 @@ class ArendStartupActivity : StartupActivity {
 
             if (library == null && isExternal) {
                 library = tableModel.createLibrary(libName)
-                val addLibrary = { WriteAction.run<Exception> {
-                    val libModel = library.modifiableModel
-                    val libHeader = findLibHeader(module.project, libName)?.let { libHeaderByPath(it, module.project) }
-                    val srcDir = libHeader?.sourcesDirPath
-                    if (srcDir != null) libModel.addRoot(srcDir.toString(), OrderRootType.SOURCES)
-                    val outDir = libHeader?.outputPath
-                    if (outDir != null) libModel.addRoot(outDir.toString(), OrderRootType.CLASSES)
-                    libModel.commit()
-                    tableModel.commit()
-                } }
-
-                if (!addedLibraries.contains(libName) && findLibHeader(module.project, libName) != null) {
+                val libConfig = module.project.findExternalLibrary(libName)
+                if (libConfig != null && !addedLibraries.contains(libName)) {
+                    val addLibrary = {
+                        WriteAction.run<Exception> {
+                            val libModel = library.modifiableModel
+                            val srcDir = libConfig.sourcesPath
+                            if (srcDir != null) {
+                                libModel.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
+                            }
+                            val outDir = libConfig.outputPath
+                            if (outDir != null) {
+                                libModel.addRoot(VfsUtil.pathToUrl(outDir.toString()), OrderRootType.CLASSES)
+                            }
+                            libModel.commit()
+                            tableModel.commit()
+                        }
+                    }
                     if (useInvokeLater) {
                         ApplicationManager.getApplication().invokeLater { addLibrary() }
                     } else {

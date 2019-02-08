@@ -97,10 +97,12 @@ class TypeCheckProcessHandler(
             return
         }
 
+        val persistableLibraries = typeCheckerService.libraryManager.registeredLibraries.filterIsInstance<SourceLibrary>().filter { it.supportsPersisting() }
         for (module in typeCheckerService.updatedModules) {
-            val library = typeCheckerService.libraryManager.getModuleLibrary(module) as? SourceLibrary ?: continue
-            if (library.supportsPersisting()) {
-                library.deleteModule(module)
+            for (lib in persistableLibraries) {
+                if (lib.containsModule(module)) {
+                    lib.deleteModule(module)
+                }
             }
         }
         typeCheckerService.updatedModules.clear()

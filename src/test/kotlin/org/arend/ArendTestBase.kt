@@ -1,12 +1,10 @@
 package org.arend
 
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -33,13 +31,6 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
 
     override fun setUp() {
         super.setUp()
-
-        val root = ModuleRootManager.getInstance(myModule).contentEntries.firstOrNull()?.file
-        if (root != null) {
-            if (root.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
-                runWriteAction { root.createChildData(root, FileUtils.LIBRARY_CONFIG_FILE) }
-            }
-        }
 
         val service = TypeCheckingService.getInstance(myModule.project)
         service.initialize()
