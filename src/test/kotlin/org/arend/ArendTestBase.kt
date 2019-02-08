@@ -11,15 +11,15 @@ import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
-import org.arend.util.FileUtils
-import org.intellij.lang.annotations.Language
+import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.psi.parentOfType
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
+import org.intellij.lang.annotations.Language
 
 abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendTestCase {
 
@@ -104,16 +104,14 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     protected open class ArendProjectDescriptorBase : LightProjectDescriptor() {
         open val skipTestReason: String? = null
 
-        final override fun configureModule(
-                module: Module,
-                model: ModifiableRootModel,
-                contentEntry: ContentEntry
-        ) {
+        final override fun configureModule(module: Module, model: ModifiableRootModel, contentEntry: ContentEntry) {
             super.configureModule(module, model, contentEntry)
 
             skipTestReason ?: return
             LibraryTablesRegistrar.getInstance().getLibraryTable(module.project).libraries.forEach { model.addLibraryEntry(it) }
         }
+
+        override fun getModuleType() = ArendModuleType.INSTANCE
     }
 
     protected object DefaultDescriptor : ArendProjectDescriptorBase()

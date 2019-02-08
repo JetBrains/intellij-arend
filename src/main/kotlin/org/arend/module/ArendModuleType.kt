@@ -1,5 +1,7 @@
 package org.arend.module
 
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleType
 import com.intellij.openapi.module.ModuleTypeManager
 import org.arend.ArendIcons
 import org.arend.module.util.ArendModuleBuilder
@@ -21,5 +23,7 @@ class ArendModuleType : ArendModuleTypeBase(ID) {
         val INSTANCE: ArendModuleType by lazy {
             ModuleTypeManager.getInstance().findByID(ID) as ArendModuleType
         }
+
+        fun has(module: Module) = ModuleType.`is`(module, INSTANCE)
     }
 }

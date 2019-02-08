@@ -244,6 +244,3 @@ val Module.libraryConfig: YAMLFile?
         val virtualFile = defaultRoot?.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return null
         return PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile
     }
-
-val Module.isArendModule: Boolean
-    get() = libraryConfig != null

@@ -18,6 +18,7 @@ import com.intellij.openapi.startup.StartupActivity
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Function
 import org.arend.library.LibraryDependency
+import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.util.*
 import org.arend.typechecking.TypeCheckingService
@@ -32,7 +33,7 @@ class ArendStartupActivity : StartupActivity {
 
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun moduleAdded(project: Project, module: Module) {
-                if (module.isArendModule) {
+                if (ArendModuleType.has(module)) {
                     addModule(service, module, addedLibraries)
                 }
             }
@@ -104,7 +105,7 @@ class ArendStartupActivity : StartupActivity {
 
         private fun cleanObsoleteProjectLibraries(project: Project) {
             val depNames = mutableSetOf<String>()
-            project.arendModules.forEach { mod -> mod.libraryConfig?.dependencies?.let { depNames.addAll(it.map { it.name })}}
+            project.arendModules.forEach { mod -> mod.libraryConfig?.dependencies?.let { deps -> depNames.addAll(deps.map { it.name })}}
 
             val table = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
             for (library in table.libraries) {
