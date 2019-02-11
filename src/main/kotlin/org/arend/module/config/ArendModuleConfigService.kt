@@ -33,7 +33,8 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig() {
         }
     }
 
-    private val root = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
+    private val root
+        get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
 
     override val rootPath
         get() = root?.let { Paths.get(it.path) }

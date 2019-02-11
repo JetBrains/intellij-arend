@@ -98,7 +98,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                     } else {
                         element.module?.let { module ->
                             val project = module.project
-                            ArendModuleConfigService(module).forAvailableConfigs(TypeCheckingService.getInstance(project).libraryManager) { it.findArendFilesAndDirectories(origRef.path, project).firstOrNull() }
+                            ArendModuleConfigService.getInstance(module).forAvailableConfigs(TypeCheckingService.getInstance(project).libraryManager) { it.findArendFilesAndDirectories(origRef.path, project).firstOrNull() }
                         }
                     }
                     module?.let {

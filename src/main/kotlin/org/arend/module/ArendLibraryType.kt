@@ -38,7 +38,7 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
         val projectDependencies = HashSet<String>()
         for (module in project.arendModules) {
-            for (dependency in ArendModuleConfigService(module).dependencies) {
+            for (dependency in ArendModuleConfigService.getInstance(module).dependencies) {
                 projectDependencies.add(dependency.name)
             }
         }
