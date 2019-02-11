@@ -1,5 +1,6 @@
 {
     parserClass = "org.arend.parser.ArendParser"
+    parserImports = ["static org.arend.parser.ParserMixin.recursion_guard_"]
 
     implements = 'org.arend.psi.ext.ArendCompositeElement'
     extends = 'org.arend.psi.ext.ArendCompositeElementImpl'
