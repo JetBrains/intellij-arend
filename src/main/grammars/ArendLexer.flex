@@ -24,18 +24,27 @@ import static org.arend.psi.ArendElementTypes.*;
 
 %{
     private int commentStart;
+    private int docCommentStart;
     private int commentDepth;
+    private boolean isInsideDocComment;
 %}
 
 %state BLOCK_COMMENT_INNER
+%state BLOCK_DOC_COMMENT_INNER
+%state LINE_DOC_COMMENT_INNER
 
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-// LINE_COMMENT        = -- -* ([ \t] (.*|{EOL}))? {EOL}?
-LINE_COMMENT        = -- (.*|{EOL})
-BLOCK_COMMENT_START = \{-
-BLOCK_COMMENT_END   = -\}
+LINE_COMMENT        = -- (([ ] [^\|] .* | {EOL})? | ([\t`\\] .*) | (-+ ([ \t] .* | {EOL})?))
+BLOCK_COMMENT_START = "{-"
+BLOCK_COMMENT_END   = "-}"
+
+LINE_DOC_COMMENT_START  = -- [ ] \|
+BLOCK_DOC_COMMENT_START = "{- |"
+
+BLOCK_DOC_TEXT = ([^\{-]|\{[^-]|-[^\}])+
+LINE_DOC_TEXT = (.*|{EOL})
 
 NUMBER              = [0-9]+
 NEGATIVE_NUMBER     = -[0-9]+
@@ -43,7 +52,8 @@ NEGATIVE_NUMBER     = -[0-9]+
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_]
 KEYWORD             = \\[0-9]*{ID}
 
-ID                  = {START_CHAR} ({START_CHAR} | [0-9'])*
+ID_CHAR             = {START_CHAR} | [0-9']
+ID                  = {START_CHAR} {ID_CHAR}*
 POSTFIX             = `{ID}
 INFIX               = `{ID}`
 
@@ -117,10 +127,21 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {LINE_COMMENT}          { return LINE_COMMENT; }
     {BLOCK_COMMENT_START}   {
                                 yybegin(BLOCK_COMMENT_INNER);
+                                isInsideDocComment = false;
                                 commentDepth = 0;
                                 commentStart = getTokenStart();
                             }
     {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
+
+    {LINE_DOC_COMMENT_START}
+                            { yybegin(LINE_DOC_COMMENT_INNER);
+                              return LINE_DOC_COMMENT_START; }
+    {BLOCK_DOC_COMMENT_START}
+                            { yybegin(BLOCK_DOC_COMMENT_INNER);
+                              isInsideDocComment = true;
+                              docCommentStart = getTokenStart();
+                              return BLOCK_DOC_COMMENT_START;
+                            }
 
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
@@ -136,8 +157,49 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     {ID}                    { return ID; }
 }
 
+<LINE_DOC_COMMENT_INNER> {
+    {LINE_DOC_TEXT} {
+        yybegin(YYINITIAL);
+        return LINE_DOC_TEXT;
+    }
+
+    [^] {}
+ }
+
+<BLOCK_DOC_COMMENT_INNER> {
+    {BLOCK_DOC_TEXT} { return BLOCK_DOC_TEXT; }
+
+    {BLOCK_COMMENT_START} {
+          yybegin(BLOCK_COMMENT_INNER);
+          commentDepth = 0;
+          commentStart = getTokenStart();
+    }
+
+    {BLOCK_DOC_COMMENT_START} {
+          yybegin(BLOCK_COMMENT_INNER);
+          commentDepth = 0;
+          commentStart = getTokenStart();
+    }
+
+    {BLOCK_COMMENT_END} {
+        yybegin(YYINITIAL);
+        return BLOCK_COMMENT_END;
+    }
+
+    <<EOF>> {
+        yybegin(YYINITIAL);
+        return BLOCK_COMMENT_END;
+    }
+
+    [^] {}
+}
+
 <BLOCK_COMMENT_INNER> {
     {BLOCK_COMMENT_START} {
+        commentDepth++;
+    }
+
+    {BLOCK_DOC_COMMENT_START} {
         commentDepth++;
     }
 
@@ -146,15 +208,23 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
             commentDepth--;
         } else {
              int state = yystate();
-             yybegin(YYINITIAL);
              zzStartRead = commentStart;
+             if (isInsideDocComment) {
+                 yybegin(BLOCK_DOC_COMMENT_INNER);
+             } else {
+                 yybegin(YYINITIAL);
+             }
              return BLOCK_COMMENT;
         }
     }
 
     <<EOF>> {
         int state = yystate();
-        yybegin(YYINITIAL);
+        if (isInsideDocComment) {
+            yybegin(BLOCK_DOC_COMMENT_INNER);
+        } else {
+            yybegin(YYINITIAL);
+        }
         zzStartRead = commentStart;
         return BLOCK_COMMENT;
     }

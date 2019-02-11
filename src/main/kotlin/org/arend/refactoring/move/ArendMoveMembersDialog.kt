@@ -11,8 +11,7 @@ import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
-import org.arend.module.util.findArendFile
-import org.arend.module.util.libraryConfig
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
@@ -95,7 +94,8 @@ class ArendMoveMembersDialog(project: Project,
     companion object {
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
                                         sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
-            val targetFile = ideaModule.libraryConfig?.findArendFile(ModulePath.fromString(fileName))
+            val configService = ArendModuleConfigService.getInstance(ideaModule)
+            val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
                     ?: return Pair(null, "Can't locate target file")
             val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
 

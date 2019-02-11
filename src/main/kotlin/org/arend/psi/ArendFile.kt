@@ -9,7 +9,7 @@ import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.module.ModulePath
-import org.arend.module.util.sourcesDir
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
@@ -24,7 +24,6 @@ import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
     val modulePath: ModulePath?
@@ -33,7 +32,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             if (fileName == "/Prelude.ard") {
                 return ModulePath("Prelude")
             }
-            val root = module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
+            val module = module ?: return null
+            val root = ArendModuleConfigService.getInstance(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (root == null || !fileName.startsWith(root)) {
                 return null
             }

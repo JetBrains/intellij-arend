@@ -4,9 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import org.arend.mapFirstNotNull
-import org.arend.module.util.availableConfigs
-import org.arend.module.util.findArendFile
-import org.arend.module.util.libraryConfig
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
@@ -18,10 +16,16 @@ interface ResolveRefFixAction {
     fun isValid(): Boolean = true
 }
 
-class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : ResolveRefFixAction {
+class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid() = importFile.modulePath?.let { modulePath -> currentFile.module?.libraryConfig?.availableConfigs?.mapFirstNotNull { it.findArendFile(modulePath) } } == importFile || ResolveRefQuickFix.isPrelude(importFile)
+    private fun isTheSameFile(): Boolean {
+        val modulePath = importFile.modulePath ?: return false
+        val module = currentFile.module ?: return false
+        return ArendModuleConfigService.getInstance(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
+    }
+
+    override fun isValid() = isTheSameFile() || ResolveRefQuickFix.isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return
@@ -63,13 +67,13 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     }
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>) : ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>): ResolveRefFixAction {
     override fun toString(): String {
         val name = if (idList.size == 1) idList[0] else idList.toString()
-        return "Add " + name + " to " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"using\" list"
+        return "Add $name to ${ResolveRefQuickFix.statCmdName(statCmd)} import's \"using\" list"
     }
 
-    private fun addId(id: String) {
+    private fun addId(id : String) {
         if (statCmd.importKw != null) {
             val project = statCmd.project
             val using = statCmd.nsUsing
@@ -124,14 +128,14 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
+class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier): ResolveRefFixAction {
     override fun toString(): String {
-        return "Remove " + id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
+        return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
     }
 
     override fun execute(editor: Editor?) {
-        var startSibling: PsiElement = id
-        var endSibling: PsiElement = id
+        var startSibling : PsiElement = id
+        var endSibling : PsiElement = id
 
         if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
 
@@ -166,9 +170,9 @@ class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRef
     }
 }
 
-class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : ResolveRefFixAction {
+class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>): ResolveRefFixAction {
     override fun toString(): String {
-        return "Rename " + element.text + " to " + LongName(id).toString()
+        return "Rename " + element.text + " to "+LongName(id).toString()
     }
 
     override fun execute(editor: Editor?) {
@@ -191,7 +195,7 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
 class ResolveRefFixData(val target: PsiLocatedReferable,
                         private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
-                        private val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
+                        private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
 
     override fun toString(): String = LongName(targetFullName).toString() +
             ((target.containingFile as? ArendFile)?.modulePath?.let { " in " + it.toString() } ?: "")

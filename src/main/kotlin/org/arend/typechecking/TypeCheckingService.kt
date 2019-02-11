@@ -1,31 +1,28 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.*
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.tree.IElementType
 import org.arend.core.definition.Definition
+import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
-import org.arend.module.util.defaultRoot
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.util.FileUtils
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -39,6 +36,8 @@ interface TypeCheckingService {
     val prelude: ArendFile?
 
     val updatedModules: HashSet<ModulePath>
+
+    fun initialize()
 
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
@@ -67,9 +66,31 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
+    /*  TODO[libraries]
     init {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
+    }
+    */
+
+    private var isInitialized = false
+
+    override fun initialize() {
+        if (isInitialized) {
+            return
+        }
+
+        // Initialize prelude
+        val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
+        libraryManager.loadLibrary(preludeLibrary)
+        val referableConverter = newReferableConverter(false)
+        val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
+        preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
+
+        // Set the listener that updates typechecked definitions
+        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+
+        isInitialized = true
     }
 
     override val prelude: ArendFile?
@@ -107,6 +128,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
     }
 
+    /* TODO[libraries]
     private inner class MyVirtualFileListener : VirtualFileListener {
         override fun beforeFileDeletion(event: VirtualFileEvent) {
             process(event, event.fileName, event.parent, null)
@@ -147,6 +169,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
     }
+    */
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
@@ -185,14 +208,14 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 child is PsiWhiteSpace ||
                 child is ArendWhere ||
                 isDynamicDef(child) ||
-                child is LeafPsiElement && isComment(child.node.elementType)) {
+                child is LeafPsiElement && AREND_COMMENTS.contains(child.node.elementType)) {
                 return
             }
             val oldChild = event.oldChild
             val newChild = event.newChild
             if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
                 (oldChild is ArendWhere || oldChild is PsiErrorElement || isDynamicDef(oldChild)) && (newChild is ArendWhere || newChild is PsiErrorElement || isDynamicDef(newChild)) ||
-                oldChild is LeafPsiElement && isComment(oldChild.node.elementType) && newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+                oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
                 return
             }
 
@@ -244,5 +267,3 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
     }
 }
-
-private fun isComment(element: IElementType) = element == ArendElementTypes.BLOCK_COMMENT || element == ArendElementTypes.LINE_COMMENT

@@ -1,25 +1,23 @@
 package org.arend
 
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
-import org.arend.util.FileUtils
-import org.intellij.lang.annotations.Language
+import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.psi.parentOfType
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
+import org.intellij.lang.annotations.Language
 
 abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendTestCase {
 
@@ -34,14 +32,8 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     override fun setUp() {
         super.setUp()
 
-        val root = ModuleRootManager.getInstance(myModule).contentEntries.firstOrNull()?.file
-        if (root != null) {
-            if (root.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
-                runWriteAction { root.createChildData(root, FileUtils.LIBRARY_CONFIG_FILE) }
-            }
-        }
-
         val service = TypeCheckingService.getInstance(myModule.project)
+        service.initialize()
         val library = ArendRawLibrary(myModule, service.typecheckerState)
         service.libraryManager.unloadLibrary(library)
         service.libraryManager.loadLibrary(library)
@@ -103,16 +95,14 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     protected open class ArendProjectDescriptorBase : LightProjectDescriptor() {
         open val skipTestReason: String? = null
 
-        final override fun configureModule(
-                module: Module,
-                model: ModifiableRootModel,
-                contentEntry: ContentEntry
-        ) {
+        final override fun configureModule(module: Module, model: ModifiableRootModel, contentEntry: ContentEntry) {
             super.configureModule(module, model, contentEntry)
 
             skipTestReason ?: return
             LibraryTablesRegistrar.getInstance().getLibraryTable(module.project).libraries.forEach { model.addLibraryEntry(it) }
         }
+
+        override fun getModuleType() = ArendModuleType.INSTANCE
     }
 
     protected object DefaultDescriptor : ArendProjectDescriptorBase()

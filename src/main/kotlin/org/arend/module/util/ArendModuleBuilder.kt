@@ -14,21 +14,6 @@ import org.arend.util.FileUtils
 
 class ArendModuleBuilder : ModuleBuilder() {
 
-    companion object {
-        val DEFAULT_SOURCE_DIR = "src"
-        val DEFAULT_OUTPUT_DIR = ".output"
-
-        /*
-        fun toAbsolute(root: String, path: String): String = if (FileUtil.isAbsolute(path)) path else FileUtil.join(root, path)
-        fun toRelative(root: String, path: String): String? {
-            if (FileUtil.isAbsolute(path)) {
-                if (!path.startsWith(root)) return null
-                return path.substring(root.length + 1)
-            }
-            return path
-        }*/
-    }
-
     override fun getModuleType(): ModuleType<*>? = ArendModuleType.INSTANCE
 
     override fun isSuitableSdkType(sdkType: SdkTypeId?): Boolean = true

@@ -10,8 +10,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.psi.containsInside
-import org.arend.psi.parentsWithSelf
+import org.arend.psi.ancestorsUntilFile
 
 // code borrowed from kotlin plugin
 
@@ -43,21 +42,26 @@ abstract class SelfTargetingIntention<T : PsiElement>(
 
         var elementsToCheck: Sequence<PsiElement> = emptySequence()
         if (leaf1 != null) {
-            elementsToCheck += leaf1.parentsWithSelf.takeWhile { it != commonParent }
+            elementsToCheck += leaf1.ancestorsUntilFile.takeWhile { it != commonParent }
         }
         if (leaf2 != null) {
-            elementsToCheck += leaf2.parentsWithSelf.takeWhile { it != commonParent }
+            elementsToCheck += leaf2.ancestorsUntilFile.takeWhile { it != commonParent }
         }
         if (commonParent != null && commonParent !is PsiFile) {
-            elementsToCheck += commonParent.parentsWithSelf
+            elementsToCheck += commonParent.ancestorsUntilFile
         }
 
         for (element in elementsToCheck) {
-            @Suppress("UNCHECKED_CAST")
-            if (elementType.isInstance(element) && isApplicableTo(element as T, offset)) {
-                return element
+            if (elementType.isInstance(element)) {
+                val tElement = elementType.cast(element)
+                if (isApplicableTo(tElement, offset)) {
+                    return tElement
+                }
             }
-            if (!allowCaretInsideElement(element) && element.textRange.containsInside(offset)) break
+            if (!allowCaretInsideElement(element)) {
+                val textRange = element.textRange
+                if (textRange.startOffset < offset && offset < textRange.endOffset) break
+            }
         }
         return null
     }

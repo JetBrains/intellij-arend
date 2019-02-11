@@ -37,7 +37,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val child1node = (child1 as? AbstractArendBlock)?.node
                 val child2node = (child2 as? AbstractArendBlock)?.node?.psi as? ArendFunctionBody
                 if (child1node != null && child2node != null &&
-                        child1node.elementType != LINE_COMMENT && child2node.fatArrow != null) return spacingFA
+                        // TODO: If child1node.elementType is BLOCK_DOC_TEXT, then use a different alignment
+                        !AREND_COMMENTS.contains(child1node.elementType) && child2node.fatArrow != null) return spacingFA
             } else if (child1 is AbstractArendBlock && child2 is AbstractArendBlock) {
                 val child1et = child1.node.elementType
                 val child2psi = child2.node.psi
@@ -200,7 +201,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY, CLASS_IMPLEMENT -> Indent.getNormalIndent()
                             PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                             else -> Indent.getNoneIndent()
-                        } else if (childET == LINE_COMMENT || childET == BLOCK_COMMENT) when (nodeET) {
+                        } else if (AREND_COMMENTS.contains(childET)) when (nodeET) {
                             CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
                             FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR,
                             DEF_FUNCTION, NEW_EXPR, WHERE, CO_CLAUSES, DEF_DATA -> Indent.getNormalIndent()
@@ -219,11 +220,12 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (nodeET == FUNCTION_BODY && childPsi is ArendExpr) Wrap.createWrap(WrapType.NORMAL, false) else null
 
                 val align = when (myNode.elementType) {
-                    LET_EXPR -> when (childET) {
-                        LET_KW, IN_KW -> alignment2
-                        LINE_COMMENT -> alignment
-                        else -> null
-                    }
+                    LET_EXPR ->
+                        if (AREND_COMMENTS.contains(childET)) alignment // TODO: If childET is BLOCK_DOC_TEXT, then use a different alignment
+                        else when (childET) {
+                            LET_KW, IN_KW -> alignment2
+                            else -> null
+                        }
                     TUPLE -> when (childET) {
                         TUPLE_EXPR, RPAREN -> alignment
                         else -> null
