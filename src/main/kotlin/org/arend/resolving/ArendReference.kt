@@ -97,8 +97,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                         origRef.modules.firstOrNull()
                     } else {
                         element.module?.let { module ->
-                            val project = module.project
-                            ArendModuleConfigService.getInstance(module).forAvailableConfigs(TypeCheckingService.getInstance(project).libraryManager) { it.findArendFilesAndDirectories(origRef.path, project).firstOrNull() }
+                            ArendModuleConfigService.getInstance(module).forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
                         }
                     }
                     module?.let {
@@ -129,9 +128,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                     TypeCheckingService.getInstance(element.project).prelude
                 } else {
                     element.module?.let { module ->
-                        val project = module.project
-                        ArendModuleConfigService.getInstance(module).forAvailableConfigs(TypeCheckingService.getInstance(project).libraryManager) { conf ->
-                            val list = conf.findArendFilesAndDirectories(ref.path, project)
+                        ArendModuleConfigService.getInstance(module).forAvailableConfigs { conf ->
+                            val list = conf.findArendFilesAndDirectories(ref.path)
                             list.firstOrNull { it is ArendFile } ?: list.firstOrNull()
                         }
                     }
@@ -169,8 +167,7 @@ open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendR
                     TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
                 } else {
                     element.module?.let { module ->
-                        val project = module.project
-                        ArendModuleConfigService.getInstance(module).availableConfigs(TypeCheckingService.getInstance(project).libraryManager).flatMap { it.findArendFilesAndDirectories(ref.path, project) }
+                        ArendModuleConfigService.getInstance(module).availableConfigs.flatMap { it.findArendFilesAndDirectories(ref.path) }
                     }
                 }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()

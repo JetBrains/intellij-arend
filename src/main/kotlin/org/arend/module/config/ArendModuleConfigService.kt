@@ -17,7 +17,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Paths
 
 
-class ArendModuleConfigService(private val module: Module) : LibraryConfig() {
+class ArendModuleConfigService(private val module: Module) : LibraryConfig(module.project) {
     override var sourcesDir: String? = null
     override var outputDir: String? = null
     override var modules: List<ModulePath>? = null
@@ -56,12 +56,14 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig() {
 
     companion object {
         fun getInstance(module: Module): LibraryConfig {
-            val isArendModule = ArendModuleType.has(module)
-            val service = if (isArendModule) ModuleServiceManager.getService(module, ArendModuleConfigService::class.java) else null
-            if (service == null) {
-                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification(if (isArendModule) "Failed to get ArendModuleConfigService for $module" else "$module is not an Arend module", NotificationType.ERROR)
+            if (ArendModuleType.has(module)) {
+                val service = ModuleServiceManager.getService(module, ArendModuleConfigService::class.java)
+                if (service != null) {
+                    return service
+                }
+                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR)
             }
-            return service ?: EmptyLibraryConfig(module.name)
+            return EmptyLibraryConfig(module.name, module.project)
         }
     }
 }

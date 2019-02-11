@@ -17,6 +17,6 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
         }
 
         val library = project.findExternalLibrary(name) ?: return null
-        return ArendRawLibrary(project, library, TypeCheckingService.getInstance(project).typecheckerState)
+        return ArendRawLibrary(library, TypeCheckingService.getInstance(project).typecheckerState)
     }
 }

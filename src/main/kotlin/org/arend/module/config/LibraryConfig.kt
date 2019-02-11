@@ -8,11 +8,11 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
-import org.arend.library.LibraryManager
 import org.arend.mapFirstNotNull
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -21,7 +21,7 @@ import java.nio.file.Paths
 const val DEFAULT_SOURCES_DIR = "src"
 const val DEFAULT_OUTPUT_DIR = ".output"
 
-abstract class LibraryConfig {
+abstract class LibraryConfig(val project: Project) {
     open val sourcesDir: String?
         get() = null
     open val outputDir: String?
@@ -56,7 +56,7 @@ abstract class LibraryConfig {
 
     // Modules
 
-    fun findModules(project: Project): List<ModulePath> {
+    fun findModules(): List<ModulePath> {
         val modules = modules
         if (modules != null) {
             return modules
@@ -64,7 +64,7 @@ abstract class LibraryConfig {
 
         val srcFile = sourcesDirFile
         if (srcFile != null) {
-            return getArendFiles(srcFile, project).mapNotNull { it.modulePath }
+            return getArendFiles(srcFile).mapNotNull { it.modulePath }
         }
 
         val srcPath = sourcesPath
@@ -77,7 +77,7 @@ abstract class LibraryConfig {
         return emptyList()
     }
 
-    private fun getArendFiles(root: VirtualFile, project: Project): List<ArendFile> {
+    private fun getArendFiles(root: VirtualFile): List<ArendFile> {
         val result = ArrayList<ArendFile>()
         val psiManager = PsiManager.getInstance(project)
         VfsUtilCore.iterateChildrenRecursively(root, null) { file ->
@@ -89,11 +89,10 @@ abstract class LibraryConfig {
         return result
     }
 
-    fun containsModule(modulePath: ModulePath, project: Project): Boolean {
-        return modules?.any { it == modulePath } ?: findArendFile(modulePath, project) != null
-    }
+    fun containsModule(modulePath: ModulePath): Boolean =
+        modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
 
-    fun findArendFilesAndDirectories(modulePath: ModulePath, project: Project): List<PsiFileSystemItem> {
+    fun findArendFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystemItem> {
         var dirs = listOf(sourcesDirFile ?: return emptyList())
         val path = modulePath.toList()
         val psiManager = PsiManager.getInstance(project)
@@ -115,18 +114,34 @@ abstract class LibraryConfig {
         return emptyList()
     }
 
-    fun findArendFile(modulePath: ModulePath, project: Project): ArendFile? =
-        findArendFilesAndDirectories(modulePath, project).filterIsInstance<ArendFile>().firstOrNull()
+    fun findArendFile(modulePath: ModulePath): ArendFile? =
+        findArendFilesAndDirectories(modulePath).filterIsInstance<ArendFile>().firstOrNull()
 
     // Dependencies
 
-    fun availableConfigs(libraryManager: LibraryManager): List<LibraryConfig> =
-        listOf(this) + dependencies.mapNotNull { dep ->
-            (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config
+    val availableConfigs: List<LibraryConfig>
+        get() {
+            val deps = dependencies
+            if (deps.isEmpty()) {
+                return listOf(this)
+            }
+
+            val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+            return listOf(this) + deps.mapNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config }
         }
 
-    inline fun <T> forAvailableConfigs(libraryManager: LibraryManager, f : (LibraryConfig) -> T?): T? =
-        f(this) ?: dependencies.mapFirstNotNull { dep ->
-            (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config?.let { f(it) }
+    inline fun <T> forAvailableConfigs(f : (LibraryConfig) -> T?): T? {
+        val t = f(this)
+        if (t != null) {
+            return t
         }
+
+        val deps = dependencies
+        if (deps.isEmpty()) {
+            return null
+        }
+
+        val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+        return deps.mapFirstNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config?.let { f(it) } }
+    }
 }

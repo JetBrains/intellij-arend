@@ -3,6 +3,7 @@ package org.arend.quickfix
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
@@ -14,7 +15,6 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.term.group.Group
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.LongName
 import java.util.Collections.singletonList
 
@@ -26,15 +26,13 @@ interface ResolveRefFixAction {
 class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid(): Boolean {
+    private fun isTheSameFile(): Boolean {
         val modulePath = importFile.modulePath ?: return false
-        if (modulePath == Prelude.MODULE_PATH && importFile.containingDirectory == null) {
-            return true
-        }
         val module = currentFile.module ?: return false
-        val project = module.project
-        return ArendModuleConfigService.getInstance(module).forAvailableConfigs(TypeCheckingService.getInstance(project).libraryManager) { it.findArendFile(modulePath, project) } == importFile
+        return ArendModuleConfigService.getInstance(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
     }
+
+    override fun isValid() = isTheSameFile() || ResolveRefQuickFix.isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return
@@ -220,7 +218,7 @@ class ResolveRefQuickFix {
         fun statCmdName(statCmd : ArendStatCmd) =
             (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString() ?: "???"
 
-        private fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
+        fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
 
         fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile as? ArendFile ?: return null

@@ -7,7 +7,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 
-class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : LibraryConfig() {
+class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : LibraryConfig(yaml.project) {
     override val sourcesDir = yaml.sourcesDir
     override val outputDir = yaml.outputDir
     override val modules = yaml.modules

@@ -26,9 +26,8 @@ val PsiElement.module: Module?
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
         val module = module
-        val project = module?.project ?: project
         val config = module?.let { if (ArendModuleType.has(it)) ArendModuleConfigService.getInstance(it) else null }
-        val typecheckingService = TypeCheckingService.getInstance(project)
+        val typecheckingService = TypeCheckingService.getInstance(module?.project ?: project)
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude
@@ -36,7 +35,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
                 if (config == null) {
                     typecheckingService.libraryManager.registeredLibraries.mapFirstNotNull { it.getModuleGroup(modulePath) }
                 } else {
-                    config.forAvailableConfigs(typecheckingService.libraryManager) { it.findArendFile(modulePath, project) }
+                    config.forAvailableConfigs { it.findArendFile(modulePath) }
                 }
             }
             file?.let { LexicalScope.opened(it) }

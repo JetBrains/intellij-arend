@@ -11,14 +11,13 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiModuleReferable
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 
 
 class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
     constructor(module: Module) : this(module, null)
 
-    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getInstance(module).availableConfigs(TypeCheckingService.getInstance(module.project).libraryManager).mapNotNull { it.sourcesDirFile }
+    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getInstance(module).availableConfigs.mapNotNull { it.sourcesDirFile }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()

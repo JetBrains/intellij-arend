@@ -1,7 +1,6 @@
 package org.arend.module
 
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.project.Project
 import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
@@ -16,16 +15,16 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 
 
-class ArendRawLibrary(private val project: Project, val config: LibraryConfig, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
+class ArendRawLibrary(val config: LibraryConfig, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
     constructor(module: Module, typecheckerState: TypecheckerState):
-        this(module.project, ArendModuleConfigService.getInstance(module), typecheckerState)
+        this(ArendModuleConfigService.getInstance(module), typecheckerState)
 
     override fun getName() = config.name
 
-    override fun getModuleGroup(modulePath: ModulePath) = config.findArendFile(modulePath, project)
+    override fun getModuleGroup(modulePath: ModulePath) = config.findArendFile(modulePath)
 
     override fun loadHeader(errorReporter: ErrorReporter): LibraryHeader? {
-        return LibraryHeader(config.findModules(project), config.dependencies)
+        return LibraryHeader(config.findModules(), config.dependencies)
     }
 
     override fun load(libraryManager: LibraryManager?): Boolean {
@@ -35,25 +34,25 @@ class ArendRawLibrary(private val project: Project, val config: LibraryConfig, t
         return true
     }
 
-    override fun getLoadedModules() = config.findModules(project)
+    override fun getLoadedModules() = config.findModules()
 
     override fun getDependencies() = config.dependencies
 
     override fun getRawSource(modulePath: ModulePath) =
-        config.findArendFile(modulePath, project)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
+        config.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? =
         config.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
 
-    override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath, project)
+    override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)
 
     override fun needsTypechecking() = true
 
     override fun unloadDefinition(referable: LocatedReferable) {
-        TypeCheckingService.getInstance(project).updateDefinition(referable)
+        TypeCheckingService.getInstance(config.project).updateDefinition(referable)
     }
 
-    override fun getReferableConverter() = TypeCheckingService.getInstance(project).newReferableConverter(true)
+    override fun getReferableConverter() = TypeCheckingService.getInstance(config.project).newReferableConverter(true)
 
-    override fun getDependencyListener() = TypeCheckingService.getInstance(project).dependencyListener
+    override fun getDependencyListener() = TypeCheckingService.getInstance(config.project).dependencyListener
 }
