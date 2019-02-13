@@ -103,5 +103,10 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
 
     override fun getReferent(): Referable = NamedUnresolvedReference(this, referenceName)
 
-    override fun getReference(): ArendReference = ArendReferenceImpl<ArendRefIdentifier>(this)
+    override fun getReference(): ArendReference {
+        val parent = parent as? ArendLongName
+        val isImport = (parent?.parent as? ArendStatCmd)?.importKw != null
+        val last = if (isImport) parent?.refIdentifierList?.lastOrNull() else null
+        return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this)
+    }
 }
