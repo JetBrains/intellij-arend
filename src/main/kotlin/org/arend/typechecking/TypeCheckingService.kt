@@ -102,8 +102,18 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        val tcReferable = simpleReferableConverter.remove(referable)?.typecheckable ?: return null
-        tcReferable.location?.let { updatedModules.add(it) }
+        val tcReferable = simpleReferableConverter.remove(referable) ?: return null
+        val data = tcReferable.data
+        if (data is SmartPsiElementPointer<*>) {
+            val element = data.element
+            if (element is LocatedReferable && element != referable) {
+                simpleReferableConverter.putIfAbsent(referable, tcReferable)
+                return null
+            }
+        }
+
+        val tcTypecheckable = tcReferable.typecheckable ?: return null
+        tcTypecheckable.location?.let { updatedModules.add(it) }
         if (referable is ClassReferable) {
             for (field in referable.fieldReferables) {
                 simpleReferableConverter.remove(field)
@@ -113,7 +123,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 simpleReferableConverter.remove(constructor)
             }
         }
-        return tcReferable
+        return tcTypecheckable
     }
 
     override fun updateDefinition(referable: LocatedReferable) {
