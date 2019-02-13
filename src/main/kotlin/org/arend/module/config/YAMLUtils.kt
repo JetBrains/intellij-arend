@@ -12,6 +12,11 @@ import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
 
 
+const val SOURCES = "sourcesDir"
+const val BINARIES = "outputDir"
+const val MODULES = "modules"
+const val DEPENDENCIES = "dependencies"
+
 private fun YAMLFile.getProp(name: String) = (documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey(name)?.value
 
 private fun yamlSeqFromList(lst: List<String>): String =  "[" + lst.reduce { acc, x -> "$acc, $x" } + "]"
@@ -26,15 +31,13 @@ private fun YAMLFile.setProp(name: String, value: String) {
 }
 
 val YAMLFile.sourcesDir
-    get() = (getProp("sourcesDir") as? YAMLScalar)?.textValue
+    get() = (getProp(SOURCES) as? YAMLScalar)?.textValue
 
 val YAMLFile.outputDir
-    get() = (getProp("outputDir") as? YAMLScalar)?.textValue
+    get() = (getProp(BINARIES) as? YAMLScalar)?.textValue
 
 val YAMLFile.modules
-    get() = (getProp("modules") as? YAMLSequence)?.items?.mapNotNull { item -> (item.value as? YAMLScalar)?.textValue?.let { ModulePath.fromString(it) } }
-
-private const val DEPENDENCIES = "dependencies"
+    get() = (getProp(MODULES) as? YAMLSequence)?.items?.mapNotNull { item -> (item.value as? YAMLScalar)?.textValue?.let { ModulePath.fromString(it) } }
 
 var YAMLFile.dependencies
     get() = (getProp(DEPENDENCIES) as? YAMLSequence)?.items?.mapNotNull { item -> (item.value as? YAMLScalar)?.textValue?.let { LibraryDependency(it) } } ?: emptyList()

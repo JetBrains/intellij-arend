@@ -140,8 +140,9 @@
 
         <!-- Annotation -->
 
-        <annotator language="Arend"
-                   implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+        <annotator language="Arend" implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+
+        <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
 
         <!-- Intention Actions -->
         <intentionAction>
