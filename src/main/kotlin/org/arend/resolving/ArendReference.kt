@@ -97,7 +97,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                         origRef.modules.firstOrNull()
                     } else {
                         element.module?.let { module ->
-                            ArendModuleConfigService.getInstance(module).forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
+                            ArendModuleConfigService.getConfig(module).forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
                         }
                     }
                     module?.let {
@@ -128,7 +128,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
                     TypeCheckingService.getInstance(element.project).prelude
                 } else {
                     element.module?.let { module ->
-                        ArendModuleConfigService.getInstance(module).forAvailableConfigs { conf ->
+                        ArendModuleConfigService.getConfig(module).forAvailableConfigs { conf ->
                             val list = conf.findArendFilesAndDirectories(ref.path)
                             list.firstOrNull { it is ArendFile } ?: list.firstOrNull()
                         }
@@ -167,7 +167,7 @@ open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendR
                     TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
                 } else {
                     element.module?.let { module ->
-                        ArendModuleConfigService.getInstance(module).availableConfigs.flatMap { it.findArendFilesAndDirectories(ref.path) }
+                        ArendModuleConfigService.getConfig(module).availableConfigs.flatMap { it.findArendFilesAndDirectories(ref.path) }
                     }
                 }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()

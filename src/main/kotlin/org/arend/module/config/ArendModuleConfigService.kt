@@ -1,6 +1,7 @@
 package org.arend.module.config
 
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.module.Module
@@ -51,13 +52,40 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
             return VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(path)
         }
 
+    private val yamlFile
+        get() = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { module.project.findPsiFileByPath(it) as? YAMLFile }
+
     fun updateFromYAML() {
-        val yaml = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { module.project.findPsiFileByPath(it) as? YAMLFile }
-        sourcesDir = yaml?.sourcesDir
-        outputDir = yaml?.outputDir
-        modules = yaml?.modules
-        dependencies = yaml?.dependencies ?: emptyList()
-        updateIdea()
+        val yaml = yamlFile
+        var updated = false
+
+        val newDependencies = yaml?.dependencies ?: emptyList()
+        if (dependencies != newDependencies) {
+            dependencies = newDependencies
+            updated = true
+        }
+
+        val newModules = yaml?.modules
+        if (updated || modules != newModules) {
+            modules = newModules
+            updated = true
+        }
+
+        val newOutputDir = yaml?.outputDir
+        if (updated || outputDir != newOutputDir) {
+            outputDir = newOutputDir
+            updated = true
+        }
+
+        val newSourcesDir = yaml?.sourcesDir
+        if (updated || sourcesDir != newSourcesDir) {
+            sourcesDir = newSourcesDir
+            updated = true
+        }
+
+        if (updated) {
+            updateIdea()
+        }
     }
 
     private class IdeaDependency(val name: String, val module: Module?, val library: Library?) {
@@ -101,10 +129,11 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
                 val library = runReadAction {
                     var library = projectTable.getLibraryByName(dependency.name)
                     if (library == null) {
+                        val tableModel = projectTable.modifiableModel
+                        library = tableModel.createLibrary(dependency.name)
+
                         val libConfig = module.project.findExternalLibrary(dependency.name)
                         if (libConfig != null) {
-                            val tableModel = projectTable.modifiableModel
-                            library = tableModel.createLibrary(dependency.name)
                             val libModel = library.modifiableModel
                             val srcDir = libConfig.sourcesPath
                             if (srcDir != null) {
@@ -118,6 +147,8 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
                                 libModel.commit()
                                 tableModel.commit()
                             }
+                        } else {
+                            runWriteAction { tableModel.commit() }
                         }
                     }
                     library
@@ -129,10 +160,6 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
             } else {
                 ideaDependencies.add(IdeaDependency(dependency.name, depModule, null))
             }
-        }
-
-        if (ideaDependencies.isEmpty()) {
-            return
         }
 
         // Libraries to be removed from the project-level library table
@@ -167,7 +194,7 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
         // Do not remove libraries which are used in other modules
         for (arendModule in arendModules.values) {
             if (arendModule != module) {
-                for (dependency in getInstance(arendModule).dependencies) {
+                for (dependency in getConfig(arendModule).dependencies) {
                     if (!arendModules.containsKey(dependency.name) && librariesToRemove.any { it.name == dependency.name }) {
                         val library = projectTable.getLibraryByName(dependency.name)
                         if (library != null && librariesToRemove.remove(library) && librariesToRemove.isEmpty()) {
@@ -187,11 +214,22 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
     }
 
     fun updateFromIdea() {
+        val orderEntries = ModuleRootManager.getInstance(module).orderEntries
+        val entries = orderEntries.mapNotNull { entry ->
+            when (entry) {
+                is LibraryOrderEntry -> entry.libraryName
+                is ModuleOrderEntry -> entry.moduleName
+                else -> null
+            }?.let { LibraryDependency(it) }
+        }
 
+        if (entries != dependencies) {
+            ApplicationManager.getApplication().invokeLater { yamlFile?.dependencies = entries }
+        }
     }
 
     companion object {
-        fun getInstance(module: Module): LibraryConfig {
+        fun getConfig(module: Module): LibraryConfig {
             if (ArendModuleType.has(module)) {
                 val service = ModuleServiceManager.getService(module, ArendModuleConfigService::class.java)
                 if (service != null) {
@@ -201,5 +239,8 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
             }
             return EmptyLibraryConfig(module.name, module.project)
         }
+
+        fun getInstance(module: Module) =
+            if (ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigService::class.java) else null
     }
 }

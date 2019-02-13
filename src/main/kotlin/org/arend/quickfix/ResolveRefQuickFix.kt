@@ -29,7 +29,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     private fun isTheSameFile(): Boolean {
         val modulePath = importFile.modulePath ?: return false
         val module = currentFile.module ?: return false
-        return ArendModuleConfigService.getInstance(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
+        return ArendModuleConfigService.getConfig(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
     }
 
     override fun isValid() = isTheSameFile() || ResolveRefQuickFix.isPrelude(importFile)

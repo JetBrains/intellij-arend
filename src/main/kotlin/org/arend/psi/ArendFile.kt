@@ -33,7 +33,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
                 return ModulePath("Prelude")
             }
             val module = module ?: return null
-            val root = ArendModuleConfigService.getInstance(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
+            val root = ArendModuleConfigService.getConfig(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (root == null || !fileName.startsWith(root)) {
                 return null
             }

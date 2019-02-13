@@ -12,6 +12,8 @@ import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.roots.ModuleRootEvent
+import com.intellij.openapi.roots.ModuleRootListener
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.*
 import org.arend.module.ArendModuleType
@@ -45,24 +47,15 @@ class ArendStartupActivity : StartupActivity {
 
         for (module in project.arendModules) {
             addModule(module)
-
-            /* TODO[libraries]
-            module.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
-                override fun rootsChanged(event: ModuleRootEvent) {
-                    val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-                    val libEntriesNames = orderEntries.filter { it is LibraryOrderEntry }.map { (it as LibraryOrderEntry).libraryName }.toMutableSet()
-                    libEntriesNames.addAll(orderEntries.filter { it is ModuleOrderEntry }.map { (it as ModuleOrderEntry).moduleName }.toMutableSet())
-                    if (!rootsChangedExternally) return
-
-                    ApplicationManager.getApplication().invokeLater {
-                        if (module.libraryConfig?.dependencies?.toSet()?.equals(libEntriesNames) != true) {
-                            module.libraryConfig?.dependencies = libEntriesNames.map { LibraryDependency(it) }.toList()
-                        }
-                    }
-                }
-            })
-            */
         }
+
+        project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
+            override fun rootsChanged(event: ModuleRootEvent) {
+                for (module in project.arendModules) {
+                    ArendModuleConfigService.getInstance(module)?.updateFromIdea()
+                }
+            }
+        })
 
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(project), project)
     }
@@ -82,14 +75,14 @@ class ArendStartupActivity : StartupActivity {
 
                         val fileModule = ModuleUtilCore.findModuleForFile(file, project) ?: return
                         if (ArendModuleType.has(fileModule)) {
-                            (ArendModuleConfigService.getInstance(fileModule) as? ArendModuleConfigService)?.updateFromYAML()
+                            ArendModuleConfigService.getInstance(fileModule)?.updateFromYAML()
                         }
                     }
                 })
             }
 
             service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
-            (ArendModuleConfigService.getInstance(module) as? ArendModuleConfigService)?.updateFromYAML()
+            ArendModuleConfigService.getInstance(module)?.updateFromYAML()
         }
 
         private class MyVirtualFileListener(private val project: Project) : VirtualFileListener {
@@ -107,7 +100,7 @@ class ArendStartupActivity : StartupActivity {
                 }
                 if (fileName == FileUtils.LIBRARY_CONFIG_FILE) {
                     val module = ModuleUtil.findModuleForFile(event.file, project) ?: return
-                    val service = ArendModuleConfigService.getInstance(module) as? ArendModuleConfigService ?: return
+                    val service = ArendModuleConfigService.getInstance(module) ?: return
                     val root = service.root ?: return
                     if (root == oldParent || root == newParent) {
                         service.updateFromYAML()
