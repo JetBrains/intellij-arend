@@ -30,7 +30,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return
         val factory = ArendPsiFactory(importFile.project)
-        val commandStatement = factory.createImportCommand(fullName + (if (usingList == null) "" else " ()"))
+        val commandStatement = factory.createImportCommand("\\import "+fullName + (if (usingList == null) "" else " ()"))
 
         if (currentFile.children.isEmpty())
             currentFile.add(commandStatement)
@@ -97,8 +97,8 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
             }
 
             val factory = ArendPsiFactory(project)
-            val remapStr = if (newName == null) "" else " \\as $newName"
-            val nsCmd = factory.createImportCommand("Dummy (a,${id+remapStr})").statCmd
+            val nsIdStr = if (newName == null) id else "$id \\as $newName"
+            val nsCmd = factory.createImportCommand("\\import Dummy (a,$nsIdStr)").statCmd
             val newNsUsing = nsCmd!!.nsUsing!!
             val nsId = newNsUsing.nsIdList[1]
 
