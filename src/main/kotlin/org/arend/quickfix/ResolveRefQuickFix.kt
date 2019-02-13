@@ -151,7 +151,7 @@ class ResolveRefQuickFix {
                         if (hiddenRef != null)
                             importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
                         else if (nsUsing != null)
-                            importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(fName[0]))
+                            importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(Pair(fName[0], null)))
                     }
                     fallbackImportAction = null
                 } else { // targetFile has not been imported

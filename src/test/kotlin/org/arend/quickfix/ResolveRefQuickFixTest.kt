@@ -657,11 +657,11 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func lol2 => lol
             """)
 
-    fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
+    fun `test AddIdToUsing action on an incomplete namespace command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
-            "\\import A \\using (a, b, z)") { file ->
+            "\\import A \\using (a, b \\as b', z)") { file ->
         val cmd = file.namespaceCommands.first()
-        val action = AddIdToUsingAction(cmd, listOf("a", "z", "b"))
+        val action = AddIdToUsingAction(cmd, listOf(Pair("a", null), Pair("z", null), Pair("b", "b'")))
         WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =

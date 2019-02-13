@@ -52,7 +52,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
         }
 
         if (usingList != null)
-            AddIdToUsingAction(commandStatement.statCmd!!, usingList).execute(editor)
+            AddIdToUsingAction(commandStatement.statCmd!!, usingList.map{Pair(it, null)}.toList()).execute(editor)
 
         if (anchor.parent == currentFile) {
             if (after) {
@@ -67,55 +67,61 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     }
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>): ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>): ResolveRefFixAction {
     override fun toString(): String {
-        val name = if (idList.size == 1) idList[0] else idList.toString()
-        return "Add $name to ${ResolveRefQuickFix.statCmdName(statCmd)} import's \"using\" list"
+        val name = if (idList.size == 1) idList[0].first else {
+            val buffer = StringBuffer()
+            for ((m, entry) in idList.withIndex()) {
+                buffer.append(entry.first + (if (entry.second == null) "" else " \\as ${entry.second}"))
+                if (m < idList.size - 1) buffer.append(", ")
+            }
+            buffer.toString()
+        }
+        return "Add $name to the \"using\" list of the namespace command `${statCmd.text}`"
     }
 
-    private fun addId(id : String) {
-        if (statCmd.importKw != null) {
-            val project = statCmd.project
-            val using = statCmd.nsUsing
-            if (using != null) {
-                val nsIds = using.nsIdList
-                var anchor = using.lparen
-                var needsCommaBefore = false
+    private fun addId(id : String, newName: String?) {
+        val project = statCmd.project
+        val using = statCmd.nsUsing
+        if (using != null) {
+            val nsIds = using.nsIdList
+            var anchor = using.lparen
+            var needsCommaBefore = false
 
-                for (nsId in nsIds) {
-                    val name = nsId.refIdentifier.referenceName
-                    if (name > id) break
+            for (nsId in nsIds) {
+                val name = nsId.refIdentifier.referenceName
+                if (name > id) break
 
-                    anchor = nsId
-                    needsCommaBefore = true
+                anchor = nsId
+                needsCommaBefore = true
+            }
+
+            val factory = ArendPsiFactory(project)
+            val remapStr = if (newName == null) "" else " \\as $newName"
+            val nsCmd = factory.createImportCommand("Dummy (a,${id+remapStr})").statCmd
+            val newNsUsing = nsCmd!!.nsUsing!!
+            val nsId = newNsUsing.nsIdList[1]
+
+            if (nsId != null) {
+                val comma = nsId.prevSibling //we will need the comma only once
+
+                if (anchor == null) {
+                    anchor = using.usingKw ?: error("Can't find anchor within namespace command")
+                    anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
+                    anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
+                    anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
                 }
 
-                val factory = ArendPsiFactory(project)
-                val nsCmd = factory.createImportCommand("Dummy (a,$id)").statCmd
-                val newNsUsing = nsCmd!!.nsUsing!!
-                val nsId = newNsUsing.nsIdList[1]
-
-                if (nsId != null) {
-                    val comma = nsId.prevSibling //we will need the comma only once
-
-                    if (anchor == null) {
-                        anchor = using.usingKw ?: error("Can't find anchor within namespace command")
-                        anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
-                        anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
+                if (anchor != null) {
+                    if (!needsCommaBefore && !nsIds.isEmpty()) {
+                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
                     }
 
-                    if (anchor != null) {
-                        if (!needsCommaBefore && !nsIds.isEmpty()) {
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(comma, anchor)
-                        }
-
-                        anchor.parent.addAfter(nsId, anchor)
-                        if (needsCommaBefore) {
-                            anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                            anchor.parent.addAfter(comma, anchor)
-                        }
+                    anchor.parent.addAfter(nsId, anchor)
+                    if (needsCommaBefore) {
+                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
+                        anchor.parent.addAfter(comma, anchor)
                     }
                 }
             }
@@ -124,7 +130,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
 
     override fun execute(editor: Editor?) {
         for (id in idList)
-            addId(id)
+            addId(id.first, id.second)
     }
 }
 
