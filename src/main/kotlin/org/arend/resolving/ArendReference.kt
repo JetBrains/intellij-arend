@@ -9,6 +9,7 @@ import org.arend.ArendIcons
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.RedirectingReferable
+import org.arend.naming.reference.Referable
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -40,7 +41,7 @@ open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, priv
     override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -113,7 +114,23 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferen
 
     override fun resolve(): PsiElement? {
         val cache = ServiceManager.getService(element.project, ArendResolveCache::class.java)
-        val resolver =  { element : ArendReferenceElement ->  element.scope.resolveName(element.referenceName)}
+        val resolver =  { element : ArendReferenceElement ->
+            if (beforeImportDot) {
+                val refName = element.referenceName
+                var result: Referable? = null
+                for (ref in element.scope.elements) {
+                    if (ref.textRepresentation() == refName) {
+                        result = ref
+                        if (ref !is PsiModuleReferable || ref.modules.firstOrNull() is PsiDirectory) {
+                            break
+                        }
+                    }
+                }
+                result
+            } else {
+                element.scope.resolveName(element.referenceName)
+            }
+        }
 
         var ref: Any? = if (cache != null) cache.resolveCached(resolver, this.element)
                         else resolver.invoke(this.element)

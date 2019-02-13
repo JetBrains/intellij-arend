@@ -18,7 +18,7 @@ import org.jetbrains.yaml.psi.YAMLSequence
 
 
 const val SOURCES = "sourcesDir"
-const val BINARIES = "outputDir"
+const val BINARIES = "binariesDir"
 const val MODULES = "modules"
 const val DEPENDENCIES = "dependencies"
 
@@ -40,7 +40,7 @@ private fun YAMLFile.setProp(name: String, value: String) {
 val YAMLFile.sourcesDir
     get() = (getProp(SOURCES) as? YAMLScalar)?.textValue
 
-val YAMLFile.outputDir
+val YAMLFile.binariesDir
     get() = (getProp(BINARIES) as? YAMLScalar)?.textValue
 
 val YAMLFile.modules

@@ -12,7 +12,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.ui.layout.panel
 import org.arend.module.ArendModuleType
-import org.arend.module.config.outputDir
+import org.arend.module.config.binariesDir
 import org.arend.module.config.sourcesDir
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.psi.YAMLFile
@@ -69,9 +69,9 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.sourcesDir ?: super.sourceDir(moduleRoot, project)
         }
 
-        override fun outputDir(moduleRoot: VirtualFile, project: Project): String {
-            val virtualFile = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return super.outputDir(moduleRoot, project)
-            return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.outputDir ?: super.outputDir(moduleRoot, project)
+        override fun binariesDir(moduleRoot: VirtualFile, project: Project): String {
+            val virtualFile = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return super.binariesDir(moduleRoot, project)
+            return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.binariesDir ?: super.binariesDir(moduleRoot, project)
         }
 
     }

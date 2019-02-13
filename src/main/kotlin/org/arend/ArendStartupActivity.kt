@@ -74,15 +74,13 @@ class ArendStartupActivity : StartupActivity {
                         }
 
                         val fileModule = ModuleUtilCore.findModuleForFile(file, project) ?: return
-                        if (ArendModuleType.has(fileModule)) {
-                            ArendModuleConfigService.getInstance(fileModule)?.updateFromYAML()
-                        }
+                        ArendModuleConfigService.getInstance(fileModule)?.updateFromYAML()
                     }
                 })
             }
 
-            service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
             ArendModuleConfigService.getInstance(module)?.updateFromYAML()
+            service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
         }
 
         private class MyVirtualFileListener(private val project: Project) : VirtualFileListener {

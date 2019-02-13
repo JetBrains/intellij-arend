@@ -56,7 +56,7 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
                 if (srcDir != null) {
                     editor.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
                 }
-                val outDir = if (library.outputDir != null) library.outputPath else null
+                val outDir = if (library.binariesDir != null) library.binariesPath else null
                 if (outDir != null) {
                     editor.addRoot(VfsUtil.pathToUrl(outDir.toString()), OrderRootType.CLASSES)
                 }
