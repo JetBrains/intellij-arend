@@ -2,9 +2,14 @@ package org.arend.module.config
 
 import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.arend.library.LibraryDependency
+import org.arend.module.ArendModuleType
 import org.arend.module.ModulePath
+import org.arend.psi.module
+import org.arend.util.FileUtils
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
@@ -16,6 +21,8 @@ const val SOURCES = "sourcesDir"
 const val BINARIES = "outputDir"
 const val MODULES = "modules"
 const val DEPENDENCIES = "dependencies"
+
+val KEYS = setOf(SOURCES, BINARIES, MODULES, DEPENDENCIES)
 
 private fun YAMLFile.getProp(name: String) = (documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey(name)?.value
 
@@ -49,4 +56,21 @@ var YAMLFile.dependencies
         } else {
             setProp(DEPENDENCIES, yamlSeqFromList(deps.map { it.name }))
         }
+    }
+
+val PsiFile.isYAMLConfig: Boolean
+    get() {
+        if (this !is YAMLFile) {
+            return false
+        }
+        if (name != FileUtils.LIBRARY_CONFIG_FILE) {
+            return false
+        }
+        val module = module ?: return false
+        if (!ArendModuleType.has(module)) {
+            return false
+        }
+
+        val rootPath = ArendModuleConfigService.getConfig(module).rootPath ?: return false
+        return virtualFile.parent.path == FileUtil.toSystemIndependentName(rootPath.toString())
     }
