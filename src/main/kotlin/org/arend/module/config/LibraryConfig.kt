@@ -19,12 +19,12 @@ import java.nio.file.Paths
 
 
 const val DEFAULT_SOURCES_DIR = "src"
-const val DEFAULT_OUTPUT_DIR = ".output"
+const val DEFAULT_BINARIES_DIR = ".bin"
 
 abstract class LibraryConfig(val project: Project) {
     open val sourcesDir: String?
         get() = null
-    open val outputDir: String?
+    open val binariesDir: String?
         get() = null
     open val modules: List<ModulePath>?
         get() = null
@@ -46,11 +46,11 @@ abstract class LibraryConfig(val project: Project) {
     open val sourcesDirFile: VirtualFile?
         get() = sourcesPath?.let { VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(it.toString()) }
 
-    // Output directory
+    // Binaries directory
 
-    val outputPath: Path?
+    val binariesPath: Path?
         get() {
-            val path = Paths.get(outputDir ?: DEFAULT_OUTPUT_DIR)
+            val path = Paths.get(binariesDir ?: DEFAULT_BINARIES_DIR)
             return if (path.isAbsolute) path else rootPath?.resolve(path)
         }
 

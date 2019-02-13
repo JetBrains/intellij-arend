@@ -7,16 +7,18 @@ import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import org.arend.module.config.DEFAULT_OUTPUT_DIR
+import org.arend.module.config.BINARIES
+import org.arend.module.config.DEFAULT_BINARIES_DIR
 import org.arend.module.config.DEFAULT_SOURCES_DIR
+import org.arend.module.config.SOURCES
 import org.arend.util.FileUtils
 
-open class ArendModuleConfigurationUpdater(private val sourceDir: String, private val outputDir: String) : ModuleBuilder.ModuleConfigurationUpdater() {
-    constructor(): this(DEFAULT_SOURCES_DIR, DEFAULT_OUTPUT_DIR)
+open class ArendModuleConfigurationUpdater(private val sourceDir: String, private val binariesDir: String) : ModuleBuilder.ModuleConfigurationUpdater() {
+    constructor(): this(DEFAULT_SOURCES_DIR, DEFAULT_BINARIES_DIR)
 
     protected open fun sourceDir(moduleRoot: VirtualFile, project: Project): String = sourceDir
 
-    protected open fun outputDir(moduleRoot: VirtualFile, project: Project): String = outputDir
+    protected open fun binariesDir(moduleRoot: VirtualFile, project: Project): String = binariesDir
 
     override fun update(module: Module, rootModel: ModifiableRootModel) {
         rootModel.inheritSdk()
@@ -24,7 +26,7 @@ open class ArendModuleConfigurationUpdater(private val sourceDir: String, privat
         val projectRoot = contentEntry.file ?: return
         val srcDir = sourceDir(projectRoot, rootModel.project)
         val srcAbsoluteDir = toAbsolute(projectRoot.path, srcDir)
-        val outDir = outputDir(projectRoot, rootModel.project)
+        val outDir = binariesDir(projectRoot, rootModel.project)
 
         if (projectRoot.fileSystem.findFileByPath(srcAbsoluteDir) == null) {
             VfsUtil.createDirectories(srcAbsoluteDir)
@@ -35,8 +37,8 @@ open class ArendModuleConfigurationUpdater(private val sourceDir: String, privat
 
         if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
             projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE).setBinaryContent(
-                ("sourcesDir: ${toRelative(projectRoot.path, srcDir)}\n" +
-                  "outputDir: ${toRelative(projectRoot.path, outDir)}").toByteArray())
+                ("$SOURCES: ${toRelative(projectRoot.path, srcDir)}\n" +
+                 "$BINARIES: ${toRelative(projectRoot.path, outDir)}").toByteArray())
         }
     }
 

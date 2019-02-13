@@ -42,7 +42,7 @@ class ArendRawLibrary(val config: LibraryConfig, typecheckerState: TypecheckerSt
         config.findArendFile(modulePath)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? =
-        config.outputPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
+        config.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
 
     override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)
 

@@ -27,7 +27,7 @@ import java.nio.file.Paths
 
 class ArendModuleConfigService(private val module: Module) : LibraryConfig(module.project) {
     override var sourcesDir: String? = null
-    override var outputDir: String? = null
+    override var binariesDir: String? = null
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
 
@@ -71,9 +71,9 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
             updated = true
         }
 
-        val newOutputDir = yaml?.outputDir
-        if (updated || outputDir != newOutputDir) {
-            outputDir = newOutputDir
+        val newBinariesDir = yaml?.binariesDir
+        if (updated || binariesDir != newBinariesDir) {
+            binariesDir = newBinariesDir
             updated = true
         }
 
@@ -139,7 +139,7 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
                             if (srcDir != null) {
                                 libModel.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
                             }
-                            val outDir = libConfig.outputPath
+                            val outDir = libConfig.binariesPath
                             if (outDir != null) {
                                 libModel.addRoot(VfsUtil.pathToUrl(outDir.toString()), OrderRootType.CLASSES)
                             }
