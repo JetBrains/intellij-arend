@@ -385,7 +385,7 @@ atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     mixin = "org.arend.psi.ext.ArendPatternImplMixin"
 }
 
-private defIdentifier_pattern ::= defIdentifier {
+private defIdentifier_pattern ::= defIdentifier !DOT | longName {
     recoverWhile = defIdentifier_pattern_recover
 }
 
