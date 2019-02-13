@@ -94,7 +94,7 @@ class ArendMoveMembersDialog(project: Project,
     companion object {
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
                                         sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
-            val configService = ArendModuleConfigService.getInstance(ideaModule)
+            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return Pair(null, "Arend module config service unavailable")
             val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
                     ?: return Pair(null, "Can't locate target file")
             val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))

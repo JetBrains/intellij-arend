@@ -29,7 +29,7 @@ val PsiElement.module: Module?
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
         val module = module
-        val config = module?.let { if (ArendModuleType.has(it)) ArendModuleConfigService.getInstance(it) else null }
+        val config = module?.let { if (ArendModuleType.has(it)) ArendModuleConfigService.getConfig(it) else null }
         val typecheckingService = TypeCheckingService.getInstance(module?.project ?: project)
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {

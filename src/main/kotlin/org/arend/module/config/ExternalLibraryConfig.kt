@@ -13,7 +13,7 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val modules = yaml.modules
     override val dependencies = yaml.dependencies
 
-    override val rootPath: Path = Paths.get(FileUtil.toSystemDependentName(yaml.virtualFile.path))
+    override val rootPath: Path = Paths.get(FileUtil.toSystemDependentName(yaml.virtualFile.parent.path))
 
     override val sourcesDirFile: VirtualFile?
         get() = null

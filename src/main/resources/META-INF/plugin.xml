@@ -138,10 +138,13 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
+        <completion.contributor language="yaml" implementationClass="org.arend.codeInsight.completion.YAMLCompletionContributor"/>
+
         <!-- Annotation -->
 
-        <annotator language="Arend"
-                   implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+        <annotator language="Arend" implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+
+        <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
 
         <!-- Intention Actions -->
         <intentionAction>

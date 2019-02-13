@@ -37,7 +37,7 @@ interface TypeCheckingService {
 
     val updatedModules: HashSet<ModulePath>
 
-    fun initialize()
+    fun initialize(): Boolean
 
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
 
@@ -66,17 +66,11 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
-    /*  TODO[libraries]
-    init {
-        VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(), project)
-    }
-    */
-
     private var isInitialized = false
 
-    override fun initialize() {
+    override fun initialize(): Boolean {
         if (isInitialized) {
-            return
+            return false
         }
 
         // Initialize prelude
@@ -91,6 +85,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
 
         isInitialized = true
+        return true
     }
 
     override val prelude: ArendFile?
@@ -127,49 +122,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             removeDefinition(ref)
         }
     }
-
-    /* TODO[libraries]
-    private inner class MyVirtualFileListener : VirtualFileListener {
-        override fun beforeFileDeletion(event: VirtualFileEvent) {
-            process(event, event.fileName, event.parent, null)
-        }
-
-        override fun fileCreated(event: VirtualFileEvent) {
-            process(event, event.fileName, null, event.parent)
-        }
-
-        private fun process(event: VirtualFileEvent, fileName: String, oldParent: VirtualFile?, newParent: VirtualFile?) {
-            if (oldParent == null && newParent == null) {
-                return
-            }
-            if (fileName == FileUtils.LIBRARY_CONFIG_FILE) {
-                val module = ModuleUtil.findModuleForFile(event.file, project) ?: return
-                val root = module.defaultRoot
-                if (root != null && root == oldParent) {
-                    libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
-                }
-                if (root != null && root == newParent) {
-                    libraryManager.loadLibrary(ArendRawLibrary(module, typecheckerState))
-                }
-            }
-        }
-
-        override fun fileMoved(event: VirtualFileMoveEvent) {
-            process(event, event.fileName, event.oldParent, event.newParent)
-        }
-
-        override fun fileCopied(event: VirtualFileCopyEvent) {
-            process(event, event.fileName, null, event.parent)
-        }
-
-        override fun propertyChanged(event: VirtualFilePropertyEvent) {
-            if (event.propertyName == VirtualFile.PROP_NAME) {
-                process(event, event.oldValue as String, event.parent, null)
-                process(event, event.newValue as String, null, event.parent)
-            }
-        }
-    }
-    */
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
          override fun beforeChildrenChange(event: PsiTreeChangeEvent) {

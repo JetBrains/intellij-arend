@@ -17,7 +17,7 @@ import org.arend.typechecking.TypecheckerState
 
 class ArendRawLibrary(val config: LibraryConfig, typecheckerState: TypecheckerState): SourceLibrary(typecheckerState) {
     constructor(module: Module, typecheckerState: TypecheckerState):
-        this(ArendModuleConfigService.getInstance(module), typecheckerState)
+        this(ArendModuleConfigService.getConfig(module), typecheckerState)
 
     override fun getName() = config.name
 

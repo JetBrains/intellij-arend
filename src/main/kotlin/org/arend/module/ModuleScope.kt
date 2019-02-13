@@ -17,7 +17,7 @@ import org.arend.util.FileUtils
 class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
     constructor(module: Module) : this(module, null)
 
-    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getInstance(module).availableConfigs.mapNotNull { it.sourcesDirFile }
+    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getConfig(module).availableConfigs.mapNotNull { it.sourcesDirFile }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
