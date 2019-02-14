@@ -252,4 +252,27 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   | myZero => myZero
                   | myCons x => myCons x
                 """, "Main", "Foo")
-}
+
+    fun testMoveStatCmds() =
+            testMoveRefactoring("""
+                --! Goo.ard
+                \module GooM \where {
+                  \func lol => 1
+                }
+                --! Foo.ard
+                \module FooM \where {
+                }
+                --! Main.ard
+                \import Goo
+                \open GooM (lol){-caret-}
+
+                \func foobar => lol
+            """, """
+                \import Foo
+                \import Goo
+                \open GooM ()
+                \open FooM (lol)
+
+                \func foobar => lol
+            """, "Goo", "GooM.lol", "Foo", "FooM")
+ }

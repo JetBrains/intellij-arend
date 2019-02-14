@@ -162,12 +162,8 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
 }
 
 class ResolveRefFixData(val target: PsiLocatedReferable,
-                        private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
                         private val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
-
-    override fun toString(): String = LongName(targetFullName).toString() +
-            ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" } ?: "")
 
     override fun execute(editor: Editor?) {
         commandFixAction?.execute(editor)
@@ -219,22 +215,22 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
     return insertedStatement
 }
 
-fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String?): String? {
+fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String?): Pair<String, ArendNsId?>? {
     if (shortName == null) return null
 
     val nsUsing = namespaceCommand.nsUsing
     val isHidden = namespaceCommand.refIdentifierList.any { it.referenceName == shortName }
 
     if (nsUsing != null) {
-        for (refIdentifier in nsUsing.nsIdList) {
-            if (refIdentifier.refIdentifier.text == shortName) {
-                val defIdentifier = refIdentifier.defIdentifier
-                return defIdentifier?.textRepresentation() ?: shortName
+        for (nsId in nsUsing.nsIdList) {
+            if (nsId.refIdentifier.text == shortName) {
+                val defIdentifier = nsId.defIdentifier
+                return Pair(defIdentifier?.textRepresentation() ?: shortName, nsId)
             }
         }
 
         if (nsUsing.usingKw == null) return null
     }
 
-    return if (isHidden) null else shortName
+    return if (isHidden) null else Pair(shortName, null)
 }

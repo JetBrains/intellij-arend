@@ -21,6 +21,8 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
+import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
+import org.arend.refactoring.RemoveRefFromStatCmdAction
 import org.arend.refactoring.getImportedName
 import org.arend.resolving.ArendReference
 import org.arend.term.NamespaceCommand
@@ -102,6 +104,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         val anchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
+        val memberNames = myMembersToMove.map { it.name!! }.toList()
+        val targetFile = myTargetContainer.containingFile as ArendFile
 
         when (myTargetContainer) {
             is ArendGroup -> {
@@ -172,6 +176,29 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             mStatement.delete()
         }
 
+        for (usage in usages) if (usage is ArendStatCmdUsageInfo) {
+            val statCmd = usage.command
+            val renamings = ArrayList<Pair<String, String?>>()
+            for ((index, memberName) in memberNames.withIndex()) {
+                val importedName = getImportedName(statCmd, memberName)
+                val correspondingNewMember = newMemberList[index]
+
+                if (importedName != null) {
+                    val newName = if (importedName.first == memberName) null else importedName.first
+                    renamings.add(Pair(memberName, newName))
+                    val nsId = importedName.second
+                    val importData = getDecision(correspondingNewMember, targetFile, statCmd)
+                    val importAction = importData?.first
+
+                    if (nsId != null) RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
+                    importAction?.execute(null)
+                    //We should also learn how to insert proper open commands
+                }
+            }
+
+
+        }
+
         //Now fix references of usages
         for (usage in usages) if (usage is ArendUsageInfo) {
             val num = usage.memberNo
@@ -185,7 +212,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
 
-        //Fix references in the elements that were moved
+        //Fix references in the elements that have been moved
         for ((mIndex, m) in newMemberList.withIndex()) {
             val localFixData = HashMap<List<Int>, PsiLocatedReferable>()
             for (fD in bodyRefFixData) for (p in fD.value) if (p.first == mIndex) localFixData[p.second] = fD.key

@@ -92,13 +92,19 @@ class ArendMoveMembersDialog(project: Project,
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
     companion object {
+        const val canNotLocateMessage = "Can not locate target module"
+
+        fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Group? {
+            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return null
+            val targetFile = configService.findArendFile(ModulePath.fromString(fileName)) ?: return null
+
+            return if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
+        }
+
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
                                         sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
-            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return Pair(null, "Arend module config service unavailable")
-            val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
-                    ?: return Pair(null, "Can't locate target file")
-            val targetModule = if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
 
+            val targetModule = simpleLocate(fileName, moduleName, ideaModule) ?: return Pair(null, canNotLocateMessage)
             var m = targetModule as? ChildGroup
             if (m == sourceModule) return Pair(null, "Target module cannot coincide with the source module")
 
@@ -109,7 +115,7 @@ class ArendMoveMembersDialog(project: Project,
                 m = m.parentGroup
             }
 
-            return Pair(targetModule, if (targetModule !is PsiElement) "Can't locate target module" else null)
+            return Pair(targetModule, if (targetModule !is PsiElement) canNotLocateMessage else null)
         }
     }
 

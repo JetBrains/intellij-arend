@@ -7,6 +7,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -17,8 +18,18 @@ import java.util.Collections.singletonList
 class ResolveRefQuickFix {
     companion object {
         fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveRefFixData? {
+            val containingFile = element.containingFile as? ArendFile ?: return null
+            val (importAction, resultName) = getDecision(target, containingFile, element) ?: return null
+
+            val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName)))
+                RenameReferenceAction(element, resultName) else null
+            return ResolveRefFixData(target, importAction, renameAction)
+        }
+
+        fun getDecision(target: PsiLocatedReferable,
+                        currentFile: ArendFile,
+                        anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
             val targetFile = target.containingFile as? ArendFile ?: return null
-            val currentFile = element.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
 
             val fullName = ArrayList<String>()
@@ -87,7 +98,7 @@ class ResolveRefQuickFix {
 
                     for (fName in fullNames) {
                         val importedName = getImportedName(namespaceCommand, fName[0])
-                        if (importedName != null) aliases[fName]?.add(importedName)
+                        if (importedName != null) aliases[fName]?.add(importedName.first)
                     }
                 }
             }
@@ -151,7 +162,7 @@ class ResolveRefQuickFix {
             for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
 
             val namespaceCommands = ArrayList<List<ArendStatCmd>>()
-            psi = element
+            psi = anchor
             while (psi.parent != null) {
                 var statements: List<ArendStatCmd>? = null
 
@@ -224,8 +235,8 @@ class ResolveRefQuickFix {
             val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
 
             for (fName in currentBlock.keys) {
-                val elementParent = element.parent
-                var correctedScope = if (elementParent is ArendLongName) elementParent.scope else element.scope
+                val elementParent = anchor.parent
+                var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
 
                 if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
                     val complementScope = object : ListScope(targetTop) {
@@ -299,8 +310,7 @@ class ResolveRefQuickFix {
                 if (importAction is ImportFileAction && !importAction.isValid())
                     return null //Perhaps current or target directory is not marked as a content root
 
-                val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
-                ResolveRefFixData(target, fullName, importAction, renameAction)
+                return Pair(importAction, resultName)
             } else
                 null
         }
