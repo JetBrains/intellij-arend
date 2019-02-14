@@ -58,9 +58,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
                     c1et == LBRACE && psi2 is ArendStatement) oneCrlf
-            else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd) && /* Spacing rules for hiding/using refs in namespace commands */
-                        ((c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID)) ||
-                        ((c1et == REF_IDENTIFIER || c1et == NS_ID) && (c2et == COMMA || c2et == RPAREN)))) noWhitespace
+            else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd)) { /* Spacing rules for hiding/using refs in namespace commands */
+                when {
+                    (c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID)) ||
+                            ((c1et == REF_IDENTIFIER || c1et == NS_ID) && (c2et == COMMA || c2et == RPAREN)) -> noWhitespace
+                    c1et == COMMA -> oneSpaceWrap
+                    else -> null
+                }
+            }
             else null
         }
 

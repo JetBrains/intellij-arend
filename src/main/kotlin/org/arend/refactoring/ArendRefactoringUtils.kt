@@ -2,7 +2,6 @@ package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiWhiteSpace
 import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
@@ -151,18 +150,20 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
     override fun execute(editor: Editor?) {
-        val currentLongName = element.parent
-        if (currentLongName is ArendLongName) {
-            val lName = LongName(id).toString()
-            val factory = ArendPsiFactory(element.project)
-            val literal = factory.createLiteral(lName)
-            val longName = literal.longName
-            val offset = element.textOffset
-            if (longName != null) {
-                currentLongName.addRangeAfter(longName.firstChild, longName.lastChild, element)
-                currentLongName.deleteChildRange(currentLongName.firstChild, element)
-                editor?.caretModel?.moveToOffset(offset + lName.length)
+        val parent = element.parent
+        val factory = ArendPsiFactory(element.project)
+        val longNameStr = LongName(id).toString()
+        val longNamePsi = factory.createLiteral(longNameStr).longName
+        val offset = element.textOffset
+
+        if (longNamePsi != null) {
+            if (parent is ArendLongName) {
+                parent.addRangeAfter(longNamePsi.firstChild, longNamePsi.lastChild, element)
+                parent.deleteChildRange(parent.firstChild, element)
+            } else if (parent is ArendPattern) {
+                element.replace(longNamePsi)
             }
+            editor?.caretModel?.moveToOffset(offset + longNameStr.length)
         }
     }
 }
