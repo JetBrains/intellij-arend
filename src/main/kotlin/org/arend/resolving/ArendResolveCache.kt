@@ -6,8 +6,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.AREND_COMMENTS
-import org.arend.psi.ancestorsUntilFile
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
@@ -17,9 +16,12 @@ interface ArendResolveCache {
     fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable?
 }
 
+private fun getDefinitionOfLocalElement(element: PsiElement) =
+    (element as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
+
 class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
     private val globalMap: ConcurrentMap<ArendReferenceElement, GlobalReferable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
-    private val localMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
+    private val localMap: ConcurrentMap<ArendDefinition, HashMap<ArendReferenceElement, Referable>> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
     override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
         val globalRef = globalMap[ref]
@@ -27,17 +29,21 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
             return globalRef
         }
 
-        val localRef = localMap[ref]
-        if (localRef != null) {
-            return localRef
+        val def = getDefinitionOfLocalElement(ref)
+        val defMap = if (def is ArendDefinition) localMap.computeIfAbsent(def) { HashMap() } else null
+        if (defMap != null) {
+            val localRef = defMap[ref]
+            if (localRef != null) {
+                return localRef
+            }
         }
 
         val result = resolver(ref)
         if (result != null) {
             if (result is GlobalReferable) {
                 globalMap[ref] = result
-            } else {
-                localMap[ref] = result
+            } else if (defMap != null) {
+                defMap[ref] = result
             }
         }
 
@@ -70,10 +76,15 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
             }
 
             val sourceNode = (parent as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
-            if (!sourceNode.isLocal) {
-                globalMap.clear()
+            if (sourceNode.isLocal) {
+                val def = getDefinitionOfLocalElement(sourceNode)
+                if (def != null) {
+                    localMap.remove(def)
+                    return
+                }
             }
 
+            globalMap.clear()
             localMap.clear()
         }
     }
