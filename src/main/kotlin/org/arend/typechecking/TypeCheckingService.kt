@@ -134,10 +134,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-         override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
-            processParent(event, false)
-        }
-
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event, true)
         }
