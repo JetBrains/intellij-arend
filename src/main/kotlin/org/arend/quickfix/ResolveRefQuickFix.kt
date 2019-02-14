@@ -16,13 +16,6 @@ import java.util.Collections.singletonList
 
 class ResolveRefQuickFix {
     companion object {
-
-        fun statCmdName(statCmd: ArendStatCmd) =
-                (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString()
-                        ?: "???"
-
-        fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
-
         fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveRefFixData? {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val currentFile = element.containingFile as? ArendFile ?: return null
@@ -320,7 +313,7 @@ class ResolveRefQuickFix {
                 val importAction = if (targetFile != currentFile || resultName == veryLongName)
                     resultNames[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
-                if (importAction != null && !importAction.isValid())
+                if (importAction is ImportFileAction && !importAction.isValid())
                     return null //Perhaps current or target directory is not marked as a content root
 
                 val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null

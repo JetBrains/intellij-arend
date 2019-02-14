@@ -3,6 +3,7 @@ package org.arend.quickfix
 import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.openapi.command.WriteCommandAction
 import org.arend.refactoring.AddIdToUsingAction
+import org.arend.refactoring.ImportFileAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -662,6 +663,11 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import A \\using (a, b \\as b', z)") { file ->
         val cmd = file.namespaceCommands.first()
         val action = AddIdToUsingAction(cmd, listOf(Pair("a", null), Pair("z", null), Pair("b", "b'")))
+        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+
+    fun `test ImportFileAction on empty file`() = simpleActionTest(
+            "{-caret-}", "\\import Main") { file ->
+        val action = ImportFileAction(file, file, null)
         WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =

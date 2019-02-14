@@ -1,86 +1,66 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.util.LongName
 
 interface ResolveRefFixAction {
     fun execute(editor: Editor?)
-    fun isValid(): Boolean = true
 }
 
-class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
+class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    private fun isTheSameFile(): Boolean {
+    private fun importFileCanBeFound(): Boolean {
         val modulePath = importFile.modulePath ?: return false
         val module = currentFile.module ?: return false
         return ArendModuleConfigService.getConfig(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
     }
 
-    override fun isValid() = isTheSameFile() || ResolveRefQuickFix.isPrelude(importFile)
+    fun isValid() = importFileCanBeFound() || isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
-        val fullName = importFile.modulePath?.toString() ?: return
         val factory = ArendPsiFactory(importFile.project)
-        val commandStatement = factory.createImportCommand("\\import "+fullName + (if (usingList == null) "" else " ()"))
+        val fullName = importFile.modulePath?.toString() ?: return
 
-        if (currentFile.children.isEmpty())
-            currentFile.add(commandStatement)
-        var anchor = currentFile.children[0]
-        var after = false
+        var anchor: PsiElement = currentFile
+        val relativePosition = if (currentFile.children.isEmpty()) RelativePosition.INSIDE_EMPTY_ANCHOR else {
+            anchor = currentFile.children[0]
+            var after = false
 
-        val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
-        if (currFileCommands.isNotEmpty()) {
-            val name = LongName(currFileCommands[0].path).toString()
-            anchor = currFileCommands[0].parent
-            if (fullName >= name)
-                after = true
-        }
-
-        if (after) for (nC in currFileCommands.drop(1)) {
-            val name = LongName(nC.path).toString()
-            if (fullName >= name)
-                anchor = nC.parent else break
-        }
-
-        if (usingList != null)
-            AddIdToUsingAction(commandStatement.statCmd!!, usingList.map{Pair(it, null)}.toList()).execute(editor)
-
-        if (anchor.parent == currentFile) {
-            if (after) {
-                val insertedCommand = currentFile.addAfter(commandStatement, anchor)
-                currentFile.addAfter(factory.createWhitespace("\n"), anchor)
-                currentFile.addAfter(factory.createWhitespace(" "), insertedCommand)
-            } else {
-                val insertedCommand = currentFile.addBefore(commandStatement, anchor)
-                currentFile.addAfter(factory.createWhitespace("\n"), insertedCommand)
+            val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
+            if (currFileCommands.isNotEmpty()) {
+                val name = LongName(currFileCommands[0].path).toString()
+                anchor = currFileCommands[0].parent
+                if (fullName >= name)
+                    after = true
             }
+
+            if (after) for (nC in currFileCommands.drop(1)) {
+                val name = LongName(nC.path).toString()
+                if (fullName >= name)
+                    anchor = nC.parent else break
+            }
+
+            if (after) RelativePosition.AFTER_ANCHOR else RelativePosition.BEFORE_ANCHOR
         }
+
+        addStatCmd(factory, ArendPsiFactory.StatCmdKind.IMPORT, fullName, usingList?.map { Pair(it, null) }?.toList(), anchor, relativePosition)
     }
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>): ResolveRefFixAction {
-    override fun toString(): String {
-        val name = if (idList.size == 1) idList[0].first else {
-            val buffer = StringBuffer()
-            for ((m, entry) in idList.withIndex()) {
-                buffer.append(entry.first + (if (entry.second == null) "" else " \\as ${entry.second}"))
-                if (m < idList.size - 1) buffer.append(", ")
-            }
-            buffer.toString()
-        }
-        return "Add $name to the \"using\" list of the namespace command `${statCmd.text}`"
-    }
+class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>) : ResolveRefFixAction {
+    override fun toString(): String = "Add ${usingListToString(idList)} to the \"using\" list of the namespace command `${statCmd.text}`"
 
-    private fun addId(id : String, newName: String?) {
+    private fun addId(id: String, newName: String?) {
         val project = statCmd.project
         val using = statCmd.nsUsing
         if (using != null) {
@@ -98,7 +78,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
 
             val factory = ArendPsiFactory(project)
             val nsIdStr = if (newName == null) id else "$id \\as $newName"
-            val nsCmd = factory.createImportCommand("\\import Dummy (a,$nsIdStr)").statCmd
+            val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
             val newNsUsing = nsCmd!!.nsUsing!!
             val nsId = newNsUsing.nsIdList[1]
 
@@ -134,14 +114,12 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier): ResolveRefFixAction {
-    override fun toString(): String {
-        return "Remove "+ id.referenceName + " from " + ResolveRefQuickFix.statCmdName(statCmd) + " import's \"hiding\" list"
-    }
+class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
+    override fun toString(): String = "Remove " + id.referenceName + " from " + statCmdName(statCmd) + " import's \"hiding\" list"
 
     override fun execute(editor: Editor?) {
-        var startSibling : PsiElement = id
-        var endSibling : PsiElement = id
+        var startSibling: PsiElement = id
+        var endSibling: PsiElement = id
 
         if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
 
@@ -176,10 +154,8 @@ class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRef
     }
 }
 
-class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>): ResolveRefFixAction {
-    override fun toString(): String {
-        return "Rename " + element.text + " to "+LongName(id).toString()
-    }
+class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : ResolveRefFixAction {
+    override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
     override fun execute(editor: Editor?) {
         val currentLongName = element.parent
@@ -201,13 +177,57 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
 class ResolveRefFixData(val target: PsiLocatedReferable,
                         private val targetFullName: List<String>,
                         private val commandFixAction: ResolveRefFixAction?,
-                        private val cursorFixAction: ResolveRefFixAction?): ResolveRefFixAction {
+                        private val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
 
     override fun toString(): String = LongName(targetFullName).toString() +
-            ((target.containingFile as? ArendFile)?.modulePath?.let { " in " + it.toString() } ?: "")
+            ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" } ?: "")
 
     override fun execute(editor: Editor?) {
         commandFixAction?.execute(editor)
         cursorFixAction?.execute(editor)
     }
+}
+
+fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
+
+fun statCmdName(statCmd: ArendStatCmd) =
+        (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString()
+                ?: "???"
+
+fun usingListToString(usingList: List<Pair<String, String?>>?): String {
+    if (usingList == null) return ""
+    val buffer = StringBuffer()
+    buffer.append("(")
+    for ((m, entry) in usingList.withIndex()) {
+        buffer.append(entry.first + (if (entry.second == null) "" else " \\as ${entry.second}"))
+        if (m < usingList.size - 1) buffer.append(", ")
+    }
+    buffer.append(")")
+    return buffer.toString()
+}
+
+enum class RelativePosition {
+    BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
+}
+
+fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, fullName: String, usingList: List<Pair<String, String?>>?,
+               anchor: PsiElement, position: RelativePosition): PsiElement {
+    val commandStatement = factory.createImportCommand(fullName + " " + usingListToString(usingList), command)
+    val insertedStatement: PsiElement
+
+    when (position) {
+        RelativePosition.BEFORE_ANCHOR -> {
+            insertedStatement = anchor.parent.addBefore(commandStatement, anchor)
+            anchor.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
+        }
+        RelativePosition.AFTER_ANCHOR -> {
+            insertedStatement = anchor.parent.addAfter(commandStatement, anchor)
+            anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
+            anchor.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
+        }
+        RelativePosition.INSIDE_EMPTY_ANCHOR -> {
+            insertedStatement = anchor.add(commandStatement)
+        }
+    }
+    return insertedStatement
 }

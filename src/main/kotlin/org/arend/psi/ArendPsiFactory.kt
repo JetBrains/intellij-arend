@@ -8,6 +8,7 @@ import org.arend.ArendFileType
 import org.arend.refactoring.ArendNamesValidator
 
 class ArendPsiFactory(private val project: Project) {
+    enum class StatCmdKind {OPEN, IMPORT}
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
             createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
@@ -17,7 +18,7 @@ class ArendPsiFactory(private val project: Project) {
                     ?: error("Failed to create ref identifier: `$name`")
 
     fun createLongName(name: String): ArendLongName =
-            createImportCommand("\\import $name").statCmd?.longName ?: error("Failed to create long name: `$name`")
+            createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
 
     fun createInfixName(name: String): ArendInfixArgument {
         val needsPrefix = !ArendNamesValidator.isInfixName(name)
@@ -80,8 +81,12 @@ class ArendPsiFactory(private val project: Project) {
         createFromText("\\open X \\hiding ($name)")?.childOfType()
             ?: error("Failed to create stat cmd: `$name`")
 
-    fun createImportCommand(command : String): ArendStatement {
-        val commands = createFromText(command)?.namespaceCommands
+    fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStatement {
+        val prefix = when (cmdKind) {
+            StatCmdKind.OPEN -> "\\open "
+            StatCmdKind.IMPORT -> "\\import "
+        }
+        val commands = createFromText(prefix + command)?.namespaceCommands
         if (commands != null && commands.size == 1) {
             return commands[0].parent as ArendStatement
         }
