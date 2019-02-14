@@ -21,6 +21,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
+import org.arend.refactoring.getImportedName
 import org.arend.resolving.ArendReference
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
@@ -57,7 +58,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         if (mySourceContainer is PsiElement) for (psiReference in ReferencesSearch.search(mySourceContainer)) {
             val statCmd = isStatCmdUsage(psiReference, true)
-            if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement)
+            if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement &&
+                    myMembersToMove.any {getImportedName(statCmd, it.name) != null})
                 statCmdsToFix[statCmd] = psiReference
         }
 

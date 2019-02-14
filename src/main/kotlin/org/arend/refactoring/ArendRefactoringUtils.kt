@@ -91,16 +91,9 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
                 }
 
                 if (anchor != null) {
-                    if (!needsCommaBefore && !nsIds.isEmpty()) {
-                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
-                    }
-
+                    if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
                     anchor.parent.addAfter(nsId, anchor)
-                    if (needsCommaBefore) {
-                        anchor.parent.addAfter(factory.createWhitespace(" "), anchor)
-                        anchor.parent.addAfter(comma, anchor)
-                    }
+                    if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
                 }
             }
         }
@@ -226,7 +219,9 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
     return insertedStatement
 }
 
-fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String): String? {
+fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String?): String? {
+    if (shortName == null) return null
+
     val nsUsing = namespaceCommand.nsUsing
     val isHidden = namespaceCommand.refIdentifierList.any { it.referenceName == shortName }
 
