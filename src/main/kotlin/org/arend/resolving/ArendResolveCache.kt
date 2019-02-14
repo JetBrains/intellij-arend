@@ -4,7 +4,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.containers.ContainerUtil
-import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -20,7 +19,7 @@ private fun getDefinitionOfLocalElement(element: PsiElement) =
     (element as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
 
 class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
-    private val globalMap: ConcurrentMap<ArendReferenceElement, GlobalReferable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
+    private val globalMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
     private val localMap: ConcurrentMap<ArendDefinition, HashMap<ArendReferenceElement, Referable>> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
     override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
@@ -40,10 +39,10 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
 
         val result = resolver(ref)
         if (result != null) {
-            if (result is GlobalReferable) {
-                globalMap[ref] = result
-            } else if (defMap != null) {
+            if (defMap != null) {
                 defMap[ref] = result
+            } else {
+                globalMap[ref] = result
             }
         }
 
@@ -77,6 +76,12 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
 
             val sourceNode = (parent as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
             if (sourceNode.isLocal) {
+                if (sourceNode is ArendLongName) {
+                    for (refIdentifier in sourceNode.refIdentifierList) {
+                        globalMap.remove(refIdentifier)
+                    }
+                }
+
                 val def = getDefinitionOfLocalElement(sourceNode)
                 if (def != null) {
                     localMap.remove(def)

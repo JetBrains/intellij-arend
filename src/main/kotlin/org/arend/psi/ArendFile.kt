@@ -60,7 +60,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            CachedValueProvider.Result(CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT)
+            CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT)
         }
 
     override fun getLocation() = modulePath
