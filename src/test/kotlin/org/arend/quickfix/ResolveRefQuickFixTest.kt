@@ -1,10 +1,9 @@
 package org.arend.quickfix
 
-import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.openapi.command.WriteCommandAction
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.ImportFileAction
-import org.arend.refactoring.RemoveFromHidingAction
+import org.arend.refactoring.RemoveRefFromStatCmdAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -664,20 +663,20 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import A \\using (a, b \\as b', z)") { file ->
         val cmd = file.namespaceCommands.first()
         val action = AddIdToUsingAction(cmd, listOf(Pair("a", null), Pair("z", null), Pair("b", "b'")))
-        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
             "{-caret-}", "\\import Main") { file ->
         val action = ImportFileAction(file, file, null)
-        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
 
     fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
-            "\\import Prelude \\hiding (Nat {- c2 -} , {- c1 -} Int {- c4 -} , {- c3 -} Path){-caret-}",
-            "\\import Prelude \\hiding (Nat {- c2 -} , {- c3 -} Path)") {file ->
+            "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
+            "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
         val cmd = file.namespaceCommands.first()
         val ref = cmd.refIdentifierList[1]
-        val action = RemoveFromHidingAction(cmd, ref)
-        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file)
+        val action = RemoveRefFromStatCmdAction(cmd, ref)
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file)
     }
 
 

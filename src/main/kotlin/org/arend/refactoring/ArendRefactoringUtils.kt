@@ -113,43 +113,37 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveFromHidingAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
-    override fun toString(): String = "Remove " + id.referenceName + " from " + statCmdName(statCmd) + " import's \"hiding\" list"
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
+    override fun toString(): String {
+        val listType = when (id.parent) {
+            is ArendStatCmd -> "\"hiding\" list"
+            /* ArendNsUsing */ else -> "\"using\" list"
+        }
+        return "Remove " + id.referenceName + " from " + statCmdName(statCmd) + " import's $listType"
+    }
 
     override fun execute(editor: Editor?) {
-        var startSibling: PsiElement = id
-        var endSibling: PsiElement = id
+        val elementToRemove = if (id.parent is ArendNsId) id.parent else id
+        val parent = elementToRemove.parent
 
-        if (startSibling.prevSibling is PsiWhiteSpace) startSibling = startSibling.prevSibling
+        val prevSibling = elementToRemove.findPrevSibling()
+        val nextSibling = elementToRemove.findNextSibling()
 
-        val leftEnd = startSibling.prevSibling.node.elementType == ArendElementTypes.LPAREN
+        elementToRemove.delete()
 
-        while (endSibling.nextSibling is PsiWhiteSpace || endSibling.nextSibling.node.elementType == ArendElementTypes.COMMA) {
-            endSibling = endSibling.nextSibling
-            if (endSibling.node.elementType == ArendElementTypes.COMMA && !leftEnd)
-                break
+        if (prevSibling?.node?.elementType == ArendElementTypes.COMMA) {
+            prevSibling?.delete()
+        } else if (prevSibling?.node?.elementType == ArendElementTypes.LPAREN) {
+            if (nextSibling?.node?.elementType == ArendElementTypes.COMMA) {
+                nextSibling?.delete()
+            }
         }
 
-        val rightEnd = endSibling.nextSibling.node.elementType == ArendElementTypes.RPAREN
-
-        if (rightEnd && startSibling.prevSibling.node.elementType == ArendElementTypes.COMMA) {
-            startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace)
-                startSibling = startSibling.prevSibling
+        if (parent is ArendStatCmd && parent.refIdentifierList.isEmpty()) { // This means that we are removing something from "hiding" list
+            parent.lparen?.delete()
+            parent.rparen?.delete()
+            parent.hidingKw?.delete()
         }
-
-        if (leftEnd && rightEnd) {
-            startSibling = startSibling.prevSibling
-            endSibling = endSibling.nextSibling
-            if (startSibling.prevSibling is PsiWhiteSpace)
-                startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling.node.elementType == ArendElementTypes.HIDING_KW)
-                startSibling = startSibling.prevSibling
-            if (startSibling.prevSibling is PsiWhiteSpace)
-                startSibling = startSibling.prevSibling
-        }
-
-        id.parent.deleteChildRange(startSibling, endSibling)
     }
 }
 

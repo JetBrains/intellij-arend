@@ -15,20 +15,22 @@ import java.util.ArrayList
 class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
 
-    override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        val oneCrlf = SpacingImpl(0, 0, 1, false, false, false, 1, false, 1)
-        val oneBlankLine = Spacing.createSpacing(0, Integer.MAX_VALUE, 2, false, 1)
-        val atMostOneCrlf = SpacingImpl(1, 1, 0, false, true, true, 0, false, 1)
-        val spacingFA = SpacingImpl(1, 1, 0, false, true, false, 0, false, 0)
-        val spacingColon = SpacingImpl(1, 1, 0, false, true, true, 0, false, 0)
+    companion object {
+        val noWhitespace: Spacing   = Spacing.createSpacing(0, 0, 0, false, 0)
+        val oneSpaceNoWrap: Spacing = Spacing.createSpacing(1, 1, 0, false, 0)
+        val oneSpaceWrap: Spacing   = Spacing.createSpacing(1, 1, 0, true,  0)
+        val oneCrlf: Spacing        = Spacing.createSpacing(0, 0, 1, false, 0)
+        val oneBlankLine: Spacing   = Spacing.createSpacing(0, 0, 2, false, 1)
+    }
 
+    override fun getSpacing(child1: Block?, child2: Block): Spacing? {
         if (myNode.psi is ArendFunctionClauses) {
             if (child2 is SimpleArendBlock && child2.node.elementType == PIPE)
                 return oneCrlf
         }
 
         if (myNode.psi is ArendFunctionBody) {
-            if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return atMostOneCrlf
+            if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return oneSpaceWrap
             return super.getSpacing(child1, child2)
         }
 
@@ -38,11 +40,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val child2node = (child2 as? AbstractArendBlock)?.node?.psi as? ArendFunctionBody
                 if (child1node != null && child2node != null &&
                         // TODO: If child1node.elementType is BLOCK_DOC_TEXT, then use a different alignment
-                        !AREND_COMMENTS.contains(child1node.elementType) && child2node.fatArrow != null) return spacingFA
+                        !AREND_COMMENTS.contains(child1node.elementType) && child2node.fatArrow != null) return oneSpaceNoWrap
             } else if (child1 is AbstractArendBlock && child2 is AbstractArendBlock) {
                 val child1et = child1.node.elementType
                 val child2psi = child2.node.psi
-                if (child1et == COLON && child2psi is ArendExpr) return spacingColon
+                if (child1et == COLON && child2psi is ArendExpr) return oneSpaceWrap
             }
         }
 
@@ -51,14 +53,15 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val psi2 = child2.node.psi
             val c1et = child1.node.elementType
             val c2et = child2.node.elementType
-            if (psi1 is ArendStatement && psi2 is ArendStatement) {
-                val needLineFeed = psi1.statCmd == null || psi2.statCmd == null
-                val i = if (needLineFeed) 2 else 1
-                return Spacing.createSpacing(0, Integer.MAX_VALUE, i, false, i - 1)
+
+            return if (psi1 is ArendStatement && psi2 is ArendStatement) {
+                if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
-                    c1et == LBRACE && psi2 is ArendStatement) return Spacing.createSpacing(0, Integer.MAX_VALUE, 1, false, 0)
-            else if (psi1 is ArendStatement && psi2 is ArendStatement &&
-                    (psi1.statCmd != null) xor (psi2.statCmd != null)) return oneBlankLine
+                    c1et == LBRACE && psi2 is ArendStatement) oneCrlf
+            else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd) && /* Spacing rules for hiding/using refs in namespace commands */
+                        ((c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID)) ||
+                        ((c1et == REF_IDENTIFIER || c1et == NS_ID) && (c2et == COMMA || c2et == RPAREN)))) noWhitespace
+            else null
         }
 
         return null

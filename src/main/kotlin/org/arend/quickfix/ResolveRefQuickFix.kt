@@ -142,7 +142,7 @@ class ResolveRefQuickFix {
                     for (fName in fullNames) {
                         val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
                         if (hiddenRef != null)
-                            importActionMap[fName] = RemoveFromHidingAction(suitableImport, hiddenRef)
+                            importActionMap[fName] = RemoveRefFromStatCmdAction(suitableImport, hiddenRef)
                         else if (nsUsing != null)
                             importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(Pair(fName[0], null)))
                     }
