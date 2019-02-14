@@ -1,7 +1,6 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import org.arend.mapFirstNotNull

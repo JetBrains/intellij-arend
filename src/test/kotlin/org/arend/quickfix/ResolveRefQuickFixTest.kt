@@ -4,6 +4,7 @@ import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.openapi.command.WriteCommandAction
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.ImportFileAction
+import org.arend.refactoring.RemoveFromHidingAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -669,6 +670,16 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "{-caret-}", "\\import Main") { file ->
         val action = ImportFileAction(file, file, null)
         WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+
+    fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
+            "\\import Prelude \\hiding (Nat {- c2 -} , {- c1 -} Int {- c4 -} , {- c3 -} Path){-caret-}",
+            "\\import Prelude \\hiding (Nat {- c2 -} , {- c3 -} Path)") {file ->
+        val cmd = file.namespaceCommands.first()
+        val ref = cmd.refIdentifierList[1]
+        val action = RemoveFromHidingAction(cmd, ref)
+        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file)
+    }
+
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =
             checkNoImport("\\func bar => 0\n\\class A {}\n\\func f => \\new A {| bar{-caret-} => 1}")
