@@ -225,3 +225,21 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
     }
     return insertedStatement
 }
+
+fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String): String? {
+    val nsUsing = namespaceCommand.nsUsing
+    val isHidden = namespaceCommand.refIdentifierList.any { it.referenceName == shortName }
+
+    if (nsUsing != null) {
+        for (refIdentifier in nsUsing.nsIdList) {
+            if (refIdentifier.refIdentifier.text == shortName) {
+                val defIdentifier = refIdentifier.defIdentifier
+                return defIdentifier?.textRepresentation() ?: shortName
+            }
+        }
+
+        if (nsUsing.usingKw == null) return null
+    }
+
+    return if (isHidden) null else shortName
+}

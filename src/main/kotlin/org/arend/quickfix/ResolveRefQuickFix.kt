@@ -85,27 +85,10 @@ class ResolveRefQuickFix {
                 if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                     suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
-                    val nsUsing = namespaceCommand.nsUsing
-                    val hiddenList = namespaceCommand.refIdentifierList
-                    val defaultNameHiddenFNames: HashSet<List<String>> = HashSet()
-
-                    if (hiddenList.isNotEmpty()) for (ref in hiddenList) fullNames.filterTo(defaultNameHiddenFNames) { ref.referenceName == it[0] }
-
-                    if (nsUsing != null) {
-                        for (refIdentifier in nsUsing.nsIdList) {
-                            for (fName in fullNames) {
-                                val originalName = fName[0]
-                                if (refIdentifier.refIdentifier.text == originalName) {
-                                    val defIdentifier = refIdentifier.defIdentifier
-                                    aliases[fName]?.add(defIdentifier?.textRepresentation() ?: originalName)
-                                }
-                            }
-                        }
-
-                        if (nsUsing.usingKw != null)
-                            aliases.entries.filter { it.component2().isEmpty() && !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
-                    } else
-                        aliases.entries.filter { !defaultNameHiddenFNames.contains(it.component1()) }.forEach { it.component2().add(it.component1()[0]) }
+                    for (fName in fullNames) {
+                        val importedName = getImportedName(namespaceCommand, fName[0])
+                        if (importedName != null) aliases[fName]?.add(importedName)
+                    }
                 }
             }
 
