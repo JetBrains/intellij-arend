@@ -147,6 +147,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Do move members
+        val holes = ArrayList<RelativePosition>()
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
@@ -168,9 +169,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            mStatement.delete()
+            holes.add(mStatement.deleteAndGetPosition())
         }
 
+        //Prepare "remainder" namespace command (which is inserted in the place where one of the moved definitions was)
+        if (holes.isNotEmpty()) {
+            val upperHole = holes.sorted().first()
+            //We should reuse code below...
+        }
+
+
+        //Fix usages of namespace commands
         for (usage in usages) if (usage is ArendStatCmdUsageInfo) {
             val statCmd = usage.command
             val usageFile = statCmd.containingFile as ArendFile
@@ -209,7 +218,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         }
 
-        //Now fix references of usages
+        //Now fix references of "normal" usages
         for (usage in usages) if (usage is ArendUsageInfo) {
             val num = usage.memberNo
             val enclosingGroup = if (num < newMemberList.size) newMemberList[num] else null

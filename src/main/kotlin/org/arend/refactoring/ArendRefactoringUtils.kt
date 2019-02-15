@@ -189,12 +189,6 @@ fun usingListToString(usingList: List<Pair<String, String?>>?): String {
     return buffer.toString()
 }
 
-enum class PositionKind {
-    BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
-}
-
-class RelativePosition(val kind: PositionKind, val anchor: PsiElement)
-
 fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, fullName: String, usingList: List<Pair<String, String?>>?, relativePosition: RelativePosition): PsiElement {
     val commandStatement = factory.createImportCommand(fullName + " " + usingListToString(usingList), command)
     val insertedStatement: PsiElement
