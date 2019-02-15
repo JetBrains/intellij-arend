@@ -202,7 +202,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     if (index < currentName.size - 2) name += "."
                 }
                 //TODO: Check if another open command pointing to the same container is already there
-                //If it is, we should modify it accordingly (add something to "using list" or remove something from "hiding list")
+                //If it is, we should modify it accordingly (add something to "using list")
                 addStatCmd(ArendPsiFactory(this.myProject), ArendPsiFactory.StatCmdKind.OPEN,
                         name, renamings, RelativePosition(PositionKind.AFTER_ANCHOR, statCmd.parent))
             }

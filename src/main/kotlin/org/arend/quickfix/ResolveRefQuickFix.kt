@@ -58,9 +58,10 @@ class ResolveRefQuickFix {
                 }
             }
 
-            fun getFullName(): MutableList<String> = myLongName.map { it.first }.toMutableList()
-
-            fun getAlternativeFullName(): MutableList<String>? = myAlternativeName?.map { it.first }?.toMutableList()
+            fun getFullName(altName: Boolean = false): MutableList<String>? {
+                val source = if (altName) myAlternativeName else myLongName
+                return source?.map { it.first }?.toMutableList()
+            }
 
             fun isNotEmpty() = myLongName.isNotEmpty()
 
@@ -73,6 +74,37 @@ class ResolveRefQuickFix {
                             ?.let { LexicalScope.opened(it) }
                 }
             }
+
+            fun calculateShorterName(openCommand: ArendStatCmd, altName: Boolean): List<String>? {
+                val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
+                if (lastRef != null) {
+                    val openedGroup = lastRef.reference?.resolve()
+                    if (openedGroup is PsiLocatedReferable) {
+                        val remainder = calculateRemainder(openedGroup, altName)
+                        if (remainder != null && remainder.isNotEmpty()) {
+                            val currName = remainder[0]
+                            val tail = remainder.drop(1).toList()
+                            val newName = getImportedName(openCommand, currName)
+                            if (newName != null) {
+                                return singletonList(newName.first) + tail
+                            }
+                        }
+                    }
+                }
+                return null
+            }
+
+            private fun calculateRemainder(referable: PsiLocatedReferable, altName: Boolean): List<String>? {
+                val source = (if (altName) myAlternativeName else myLongName) ?: return null
+                var result: ArrayList<String>? = null
+                for (entry in source) {
+                    result?.add(entry.first)
+                    if (entry.second == referable) {
+                        result = ArrayList()
+                    }
+                }
+                return result
+            }
         }
 
         fun getDecision(target: PsiLocatedReferable,
@@ -80,15 +112,15 @@ class ResolveRefQuickFix {
                         anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
-            val longName = LocationData(target)
+            val location = LocationData(target)
 
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null
             val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
 
             val fullNames = HashSet<List<String>>()
-            fullNames.add(longName.getFullName())
-            longName.getAlternativeFullName()?.let { fullNames.add(it) }
+
+            for (b in listOf(true, false)) location.getFullName(b)?.let { fullNames.add(it)  }
 
             val fileGroup = object : Group by currentFile {
                 override fun getSubgroups(): Collection<Group> = emptyList()
@@ -132,7 +164,7 @@ class ResolveRefQuickFix {
             }
 
             if (isPrelude(targetFile) && !preludeImportedManually) {
-                fullNames.add(longName.getFullName()) // items from prelude are visible in any context
+                location.getFullName()?.let{fullNames.add(it)} // items from prelude are visible in any context
                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
             }
 
@@ -140,11 +172,9 @@ class ResolveRefQuickFix {
             if (fullNames.isEmpty()) { // target definition is inaccessible in current context
                 modifyingImportsNeeded = true
 
-                if (importedScope.resolveName(longName.getFullName()[0]) == null)
-                    fullNames.add(longName.getFullName())
-                longName.getAlternativeFullName()?.let{
-                    if (importedScope.resolveName(it[0]) == null)
-                        fullNames.add(it)
+                location.getFullName()?.let {fullNames.add(it) }
+                location.getFullName(true)?.let{
+                    if (importedScope.resolveName(it[0]) == null) fullNames.add(it)
                 }
 
                 if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
@@ -170,7 +200,6 @@ class ResolveRefQuickFix {
                             importActionMap[fName] = fallbackImportAction
                     }
                 }
-
             }
 
 
@@ -201,51 +230,17 @@ class ResolveRefQuickFix {
                 newBlock.putAll(currentBlock)
 
                 for (openCommand in openCommandBlock) {
-                    val refIdentifiers = openCommand.longName?.refIdentifierList?.map { it.referenceName }
-                    var renamings: HashMap<String, String>? = null
-                    val using = openCommand.nsUsing
-
-                    if (using != null) { //TODO: Isolate this piece of code
-                        renamings = HashMap()
-                        for (nsId in using.nsIdList) {
-                            val oldName = nsId.refIdentifier.referenceName
-                            val defIdentifier = nsId.defIdentifier
-                            renamings[oldName] = defIdentifier?.textRepresentation() ?: oldName
-                        }
-                    }
-
-                    if (refIdentifiers != null && refIdentifiers.isNotEmpty()) {
-                        for (fName in currentBlock.keys) {
-                            val i1 = fName.iterator()
-                            val i2 = refIdentifiers.iterator()
-                            var equals = true
-                            while (i2.hasNext()) {
-                                if (i1.next() != i2.next()) { /* This algorithm is wrong! */
-                                    equals = false
-                                    break
-                                }
-                            }
-                            if (equals && i1.hasNext()) {
-                                val fName2 = ArrayList<String>()
-                                while (i1.hasNext()) fName2.add(i1.next())
-                                if (renamings != null) {
-                                    val newName = renamings[fName2[0]]
-                                    if (newName != null) {
-                                        fName2.removeAt(0)
-                                        fName2.add(0, newName)
-                                    } else {
-                                        equals = false
-                                    }
-                                }
-
-                                if (equals)
-                                    newBlock[fName2] = currentBlock[fName]
-
+                    val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
+                    if (lastRef != null) {
+                        for (b in listOf(true, false)) {
+                            val oldFName = location.getFullName(b)
+                            val correctedName = location.calculateShorterName(openCommand, b)
+                            if (oldFName != null && correctedName != null) {
+                                newBlock[correctedName] = currentBlock[oldFName]
                             }
                         }
                     }
                 }
-
                 currentBlock = newBlock
             }
 
@@ -255,8 +250,8 @@ class ResolveRefQuickFix {
                 val elementParent = anchor.parent
                 var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
 
-                if (modifyingImportsNeeded && longName.isNotEmpty())
-                    correctedScope = MergeScope(correctedScope, longName.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
+                if (modifyingImportsNeeded && location.isNotEmpty())
+                    correctedScope = MergeScope(correctedScope, location.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
                 var referable = Scope.Utils.resolveName(correctedScope, fName)
                 if (referable is RedirectingReferable) {
@@ -273,7 +268,8 @@ class ResolveRefQuickFix {
             val veryLongName = ArrayList<String>()
             if (currentBlock.isEmpty()) {
                 veryLongName.addAll(targetModulePath.toList())
-                veryLongName.addAll(longName.getFullName())
+                location.getFullName()?.let{ veryLongName.addAll(it) }
+
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
                 // Let us use the "longest possible name" when referring to the anchor
                 currentBlock.put(veryLongName, fallbackImportAction)
