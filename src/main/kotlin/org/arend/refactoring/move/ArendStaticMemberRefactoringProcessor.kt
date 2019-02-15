@@ -16,6 +16,7 @@ import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -23,6 +24,7 @@ import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
 import org.arend.refactoring.*
 import org.arend.term.group.ChildGroup
+import org.arend.util.LongName
 import java.util.ArrayList
 import java.util.Collections.singletonList
 import kotlin.collections.HashMap
@@ -57,7 +59,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         if (mySourceContainer is PsiElement) for (psiReference in ReferencesSearch.search(mySourceContainer)) {
             val statCmd = isStatCmdUsage(psiReference, true)
             if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement &&
-                    myMembersToMove.any {getImportedName(statCmd, it.name) != null})
+                    myMembersToMove.any { getImportedName(statCmd, it.name) != null })
                 statCmdsToFix[statCmd] = psiReference
         }
 
@@ -84,21 +86,21 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         relevantLocatedReferables[element] = emptyList()
         for (internalReferable in element.internalReferables)
             if (internalReferable.isVisible) {
-            val path = ArrayList<Int>()
-            var psi: PsiElement = internalReferable
-            while (psi.parent != null && psi != element) {
-                val i = psi.parent.children.indexOf(psi)
-                path.add(0, i)
-                psi = psi.parent
+                val path = ArrayList<Int>()
+                var psi: PsiElement = internalReferable
+                while (psi.parent != null && psi != element) {
+                    val i = psi.parent.children.indexOf(psi)
+                    path.add(0, i)
+                    psi = psi.parent
+                }
+                relevantLocatedReferables[internalReferable] = path
             }
-            relevantLocatedReferables[internalReferable] = path
-        }
 
         return relevantLocatedReferables
     }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
-        val anchor: PsiElement?
+        val insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
         val memberNames = myMembersToMove.map { it.name!! }.toList()
 
@@ -106,11 +108,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             is ArendGroup -> {
                 val oldWhereImpl = myTargetContainer.where
                 val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
-                        val localAnchor = myTargetContainer.lastChild
-                        val insertedWhere = myTargetContainer.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
-                        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
-                        insertedWhere
-                    }
+                    val localAnchor = myTargetContainer.lastChild
+                    val insertedWhere = myTargetContainer.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
+                    myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+                    insertedWhere
+                }
 
                 if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
                     val pOB = psiFactory.createPairOfBraces()
@@ -123,18 +125,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     }
                 }
 
-                anchor = actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+                insertAnchor = actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
             }
             is ArendFile -> {
-                anchor = myTargetContainer.lastChild //null means file is empty
+                insertAnchor = myTargetContainer.lastChild //null means file is empty
             }
             else -> {
-                anchor = null
+                insertAnchor = null
             }
         }
 
         //Memorize references in members being moved
-        val bodyRefFixData =  HashMap<PsiLocatedReferable, Set<Pair<Int, List<Int>>>>()
+        val bodyRefFixData = HashMap<PsiLocatedReferable, Set<Pair<Int, List<Int>>>>()
         val membersMap = HashMap<ArendGroup, Map<PsiLocatedReferable, List<Int>>>()
         val newMemberList = ArrayList<ArendGroup>()
 
@@ -151,8 +153,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
-            val mCopy = (if (anchor == null) (myTargetContainer.add(mCopyStatement))
-            else (anchor.parent.addAfter(mCopyStatement, anchor))).childOfType<ArendGroup>()!!
+            val mCopy = (if (insertAnchor == null) (myTargetContainer.add(mCopyStatement))
+            else (insertAnchor.parent.addAfter(mCopyStatement, insertAnchor))).childOfType<ArendGroup>()!!
 
             newMemberList.add(mCopy)
 
@@ -169,19 +171,33 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            holes.add(mStatement.deleteAndGetPosition())
+            mStatement.deleteAndGetPosition()?.let { holes.add(it) }
         }
 
         //Prepare "remainder" namespace command (which is inserted in the place where one of the moved definitions was)
         if (holes.isNotEmpty()) {
-            val upperHole = holes.sorted().first()
-            //We should reuse code below...
+            val uppermostHole = holes.sorted().first()
+            val remainderAnchor = uppermostHole.anchor
+
+            if (remainderAnchor is ArendCompositeElement) {
+                val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor
+                val containerFile = (mySourceContainer as PsiElement).containingFile
+                val importData = getDecision((myTargetContainer as PsiLocatedReferable), (containerFile as ArendFile), remainderAnchor)
+                if (importData != null) {
+                    val importAction = importData.first
+                    importAction?.execute(null)
+
+                    val name = LongName(importData.second).toString()
+                    addIdToUsing(groupMember, myTargetContainer, name, memberNames.map { Pair(it, null) }, psiFactory, uppermostHole)
+                }
+            }
         }
 
 
         //Fix usages of namespace commands
         for (usage in usages) if (usage is ArendStatCmdUsageInfo) {
             val statCmd = usage.command
+            val statCmdStatement = statCmd.parent
             val usageFile = statCmd.containingFile as ArendFile
             val renamings = ArrayList<Pair<String, String?>>()
             var currentName: List<String>? = null
@@ -210,10 +226,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     name += c
                     if (index < currentName.size - 2) name += "."
                 }
-                //TODO: Check if another open command pointing to the same container is already there
-                //If it is, we should modify it accordingly (add something to "using list")
-                addStatCmd(ArendPsiFactory(this.myProject), ArendPsiFactory.StatCmdKind.OPEN,
-                        name, renamings, RelativePosition(PositionKind.AFTER_ANCHOR, statCmd.parent))
+
+                addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
         }
@@ -278,7 +292,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             }
             else -> {
                 if (element is PsiLocatedReferable) memberData[element] = prefix
-                element.children.mapIndexed{ i, e -> memorizeReferences(prefix + singletonList(i), e, fixData, memberData) }
+                element.children.mapIndexed { i, e -> memorizeReferences(prefix + singletonList(i), e, fixData, memberData) }
             }
         }
     }
@@ -291,7 +305,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 if (currentTarget != correctTarget)
                     ResolveRefQuickFix.getDecision(correctTarget, element)?.execute(null)
             }
-        } else element.children.mapIndexed{ i, e -> restoreReferences(prefix + singletonList(i), e, fixMap) }
+        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, fixMap) }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
@@ -335,7 +349,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return null
     }
 
-    class ArendUsageInfo(reference: PsiReference, val memberNo: Int, val memberPath: List<Int>): UsageInfo(reference)
+    class ArendUsageInfo(reference: PsiReference, val memberNo: Int, val memberPath: List<Int>) : UsageInfo(reference)
 
-    class ArendStatCmdUsageInfo(val command: ArendStatCmd, reference: PsiReference): UsageInfo(reference)
+    class ArendStatCmdUsageInfo(val command: ArendStatCmd, reference: PsiReference) : UsageInfo(reference)
 }

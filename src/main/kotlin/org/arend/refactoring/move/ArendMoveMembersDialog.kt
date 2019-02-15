@@ -69,14 +69,14 @@ class ArendMoveMembersDialog(project: Project,
         val elementsToMove = elementPointers.mapNotNull { it.element }
 
         val locateResult: Pair<Group?, String?> = when {
-            sourceGroup !is ChildGroup -> Pair(null, "Source module has invalid type")
+            sourceGroup !is ArendGroup -> Pair(null, "Source module has invalid type")
             elementsToMove.size != elementPointers.size -> Pair(null, "Can't locate some of the elements to be moved")
             else -> locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, sourceGroup, elementPointers.map { it.element })
         }
 
         if (locateResult.second != null)
             CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, locateResult.second, HelpID.MOVE_MEMBERS, myProject) else
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement))
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, locateResult.first as PsiElement))
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField

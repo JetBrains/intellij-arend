@@ -98,11 +98,11 @@ class RelativePosition(val kind: PositionKind, val anchor: PsiElement) : Compara
     }
 }
 
-fun PsiElement.deleteAndGetPosition(): RelativePosition {
-    val result: RelativePosition = when {
+fun PsiElement.deleteAndGetPosition(): RelativePosition? {
+    val result: RelativePosition? = when {
         this.prevSibling != null -> RelativePosition(PositionKind.AFTER_ANCHOR, this.prevSibling)
         this.nextSibling != null -> RelativePosition(PositionKind.BEFORE_ANCHOR, this.nextSibling)
-        else -> RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, this.parent)
+        else -> this.parent?.let { RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, it) }
     }
     this.delete()
     return result

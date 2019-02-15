@@ -210,6 +210,27 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
     return insertedStatement
 }
 
+fun addIdToUsing(groupMember: PsiElement?,
+                 targetContainer: PsiElement,
+                 targetContainerName: String,
+                 renamings: List<Pair<String, String?>>,
+                 factory: ArendPsiFactory,
+                 relativePosition: RelativePosition) {
+    val siblingNsCmds = groupMember?.parent?.children?.filterIsInstance<ArendStatCmd>()?.filter {
+        if (it.openKw != null) {
+            val ref = it.longName?.refIdentifierList?.lastOrNull()
+            if (ref != null) {
+                val target = ref.reference?.resolve()
+                target == targetContainer
+            } else false
+        } else false
+    }
+
+    if (siblingNsCmds != null && siblingNsCmds.isNotEmpty()) AddIdToUsingAction(siblingNsCmds.first(), renamings).execute(null)
+    else addStatCmd(factory, ArendPsiFactory.StatCmdKind.OPEN,
+            targetContainerName, renamings, relativePosition)
+}
+
 fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String?): Pair<String, ArendNsId?>? {
     if (shortName == null) return null
 
