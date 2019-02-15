@@ -8,6 +8,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \func abc{-caret-} => 1
             \module def \where {}
             """, """
+            \open def (abc)
+
             \module def \where {
               \func abc => 1
             }
@@ -20,6 +22,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \func foo => 2 \where
               \func bar => 3
             """, """
+            \open foo (abc)
+
             \func foo => 2 \where {
               \func bar => 3
 
@@ -41,11 +45,13 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \module Foo
             \func bar => abc
             """, """
+            \open Foo (abc)
+
             \module Foo \where {
               \func abc => 1
             }
 
-            \func bar => Foo.abc
+            \func bar => abc
             """, "Main", "Foo")
 
     fun testForbiddenRefactoring2() =
@@ -83,6 +89,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \module abc{-caret-} \where {}
             \module def \where {}
             """, """
+            \open def (abc)
+
             \module def \where {
               \module abc \where {}
             }
@@ -108,6 +116,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \func foo => 202
 
+                \open Foo (bar)
+
             """, "DirB.Main", "Foo")
 
     fun testMoveData1() =
@@ -126,6 +136,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                     | myZero
                     | myCons (n : MyNat)
                 }
+
+                \open Foo (MyNat)
 
                 \func foo => Foo.myCons Foo.myZero
             """, "Main", "Foo")

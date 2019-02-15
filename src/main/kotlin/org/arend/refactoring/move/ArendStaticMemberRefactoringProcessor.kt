@@ -188,7 +188,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     importAction?.execute(null)
 
                     val name = LongName(importData.second).toString()
-                    addIdToUsing(groupMember, myTargetContainer, name, memberNames.map { Pair(it, null) }, psiFactory, uppermostHole)
+                    val renamings = memberNames.map { Pair(it, null) }
+                    addIdToUsing(groupMember, myTargetContainer, name, renamings, psiFactory, uppermostHole)
                 }
             }
         }
@@ -201,7 +202,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val usageFile = statCmd.containingFile as ArendFile
             val renamings = ArrayList<Pair<String, String?>>()
             var currentName: List<String>? = null
-            for ((index, memberName) in memberNames.withIndex()) {
+
+            for ((index, memberName) in memberNames.withIndex()) { /* This is wrong, rewrite this*/
                 val importedName = getImportedName(statCmd, memberName)
                 val correspondingNewMember = newMemberList[index]
 
