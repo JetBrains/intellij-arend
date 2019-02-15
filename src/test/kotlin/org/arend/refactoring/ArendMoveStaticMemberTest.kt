@@ -264,15 +264,15 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                 }
                 --! Main.ard
                 \import Goo
-                \open GooM (lol){-caret-}
+                \open GooM (lol \as lol'){-caret-}
 
-                \func foobar => lol
+                \func foobar => lol'
             """, """
                 \import Foo
                 \import Goo
                 \open GooM ()
-                \open FooM (lol)
+                \open FooM (lol \as lol')
 
-                \func foobar => lol
+                \func foobar => lol'
             """, "Goo", "GooM.lol", "Foo", "FooM")
  }

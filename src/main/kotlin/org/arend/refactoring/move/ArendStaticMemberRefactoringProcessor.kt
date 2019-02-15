@@ -22,7 +22,9 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
+import org.arend.refactoring.RelativePosition
 import org.arend.refactoring.RemoveRefFromStatCmdAction
+import org.arend.refactoring.addStatCmd
 import org.arend.refactoring.getImportedName
 import org.arend.resolving.ArendReference
 import org.arend.term.NamespaceCommand
@@ -105,7 +107,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val anchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
         val memberNames = myMembersToMove.map { it.name!! }.toList()
-        val targetFile = myTargetContainer.containingFile as ArendFile
 
         when (myTargetContainer) {
             is ArendGroup -> {
@@ -178,7 +179,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         for (usage in usages) if (usage is ArendStatCmdUsageInfo) {
             val statCmd = usage.command
+            val usageFile = statCmd.containingFile as ArendFile
             val renamings = ArrayList<Pair<String, String?>>()
+            var currentName: List<String>? = null
             for ((index, memberName) in memberNames.withIndex()) {
                 val importedName = getImportedName(statCmd, memberName)
                 val correspondingNewMember = newMemberList[index]
@@ -187,15 +190,28 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     val newName = if (importedName.first == memberName) null else importedName.first
                     renamings.add(Pair(memberName, newName))
                     val nsId = importedName.second
-                    val importData = getDecision(correspondingNewMember, targetFile, statCmd)
-                    val importAction = importData?.first
-
+                    val importData = getDecision(correspondingNewMember, usageFile, statCmd)
+                    if (importData != null) {
+                        val importAction = importData.first
+                        importAction?.execute(null)
+                        currentName = importData.second
+                    }
                     if (nsId != null) RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
-                    importAction?.execute(null)
-                    //We should also learn how to insert proper open commands
+
                 }
             }
-
+            if (statCmd.openKw != null && renamings.isNotEmpty() && currentName != null &&
+                    currentName.size > 1) {
+                var name = ""
+                for ((index, c) in currentName.withIndex()) if (index < currentName.size - 1) {
+                    name += c
+                    if (index < currentName.size - 2) name += "."
+                }
+                //TODO: Check if another open command pointing to the same container is already there
+                //If it is, we should modify it accordingly (add something to "using list" or remove something from "hiding list")
+                addStatCmd(ArendPsiFactory(this.myProject), ArendPsiFactory.StatCmdKind.OPEN,
+                        name, renamings, statCmd.parent, RelativePosition.AFTER_ANCHOR)
+            }
 
         }
 

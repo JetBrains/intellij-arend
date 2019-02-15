@@ -700,4 +700,37 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
                 \func foo => C.x
             """)
+
+    fun `test that shorter names are preferred 1`() =
+            simpleImportFixTest("""
+                --! Foo.ard
+                \module FooM \where {
+                  \func lol => 1
+                }
+
+                --! B.ard
+                \func foo => lol{-caret-}
+            """, """
+                \import Foo
+
+                \func foo => FooM.lol""")
+
+    fun `test that shorter names are preferred 2`() =
+            simpleImportFixTest("""
+                --! Foo.ard
+                \module FooM \where {
+                  \func lol => 1
+                }
+
+                --! B.ard
+                \import Foo
+                \open Foo.FooM (lol \as lol')
+
+                \func foo => lol{-caret-}
+            """, """
+                \import Foo
+                \open Foo.FooM (lol \as lol')
+
+                \func foo => lol'""")
+
 }
