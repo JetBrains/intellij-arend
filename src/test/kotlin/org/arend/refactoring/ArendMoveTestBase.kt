@@ -18,7 +18,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                             targetName: String) {
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
-        val sourceElement = myFixture.elementAtCaret.ancestors.filterIsInstance<ArendGroup>().firstOrNull() ?: throw AssertionError("Cannot find source element")
+        val sourceElement = myFixture.elementAtCaret.ancestors.filterIsInstance<ArendGroup>().firstOrNull() ?: throw AssertionError("Cannot find source anchor")
 
         doPerformMoveRefactoringTest(resultingContent, targetFile, targetName, sourceElement)
     }
@@ -41,7 +41,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                                              targetName: String,
                                              sourceElement: ArendGroup?) {
         val expectsError: Boolean = resultingContent == null
-        val container = (sourceElement as ChildGroup).parentGroup ?: throw AssertionError("Source element has no parent")
+        val container = (sourceElement as ChildGroup).parentGroup ?: throw AssertionError("Source anchor has no parent")
 
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, listOf(sourceElement))
         val group = myTargetGroup.first

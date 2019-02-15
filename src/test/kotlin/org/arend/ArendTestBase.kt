@@ -182,10 +182,10 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
             val actualCaret = myFixture.caretOffset
             if (index != actualCaret) {
                 if (actualCaret < rC.length) {
-                    System.err.println("Expected caret position: \n$rC")
-                    System.err.println("Actual caret position: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
+                    System.err.println("Expected caret kind: \n$rC")
+                    System.err.println("Actual caret kind: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
                 } else {
-                    System.out.println("Expected caret position: $index\n Actual caret position: $actualCaret")
+                    System.out.println("Expected caret kind: $index\n Actual caret kind: $actualCaret")
                 }
                 assert(false)
             }

@@ -36,7 +36,7 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendClassFieldSyn,
         is ArendClassImplement,
         is ArendConstructor -> true
-        else -> error("Unexpected tree element")
+        else -> error("Unexpected tree anchor")
     }
 }
 

@@ -121,8 +121,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         } else ""
     }
 
-    private fun printExpression(element: Abstract.Expression): String? {
-        val expression = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, element)
+    private fun printExpression(anchor: Abstract.Expression): String? {
+        val expression = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, anchor)
         return if (expression != null) {
             val builder = StringBuilder()
             val printer = PrettyPrintVisitor(builder, 0, false)
@@ -131,9 +131,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         } else ""
     }
 
-    fun getConstructorInfo (element : ArendConstructor) : String? {
+    fun getConstructorInfo (anchor : ArendConstructor) : String? {
         val reporter = ListErrorReporter()
-        val concreteElement = element.computeConcrete(reporter)
+        val concreteElement = anchor.computeConcrete(reporter)
         val builder = StringBuilder()
         if (reporter.errorList.isEmpty()) {
             when (concreteElement) {
@@ -147,9 +147,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         return builder.toString()
     }
 
-    fun getDefFunctionInfo(element : ArendDefFunction) : String? {
+    fun getDefFunctionInfo(anchor : ArendDefFunction) : String? {
         val reporter = ListErrorReporter()
-        val concreteElement = element.computeConcrete(reporter)
+        val concreteElement = anchor.computeConcrete(reporter)
         val builder = StringBuilder()
         if (reporter.errorList.isEmpty()) {
             when (concreteElement) {

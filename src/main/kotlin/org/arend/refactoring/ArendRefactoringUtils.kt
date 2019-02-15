@@ -30,7 +30,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
         val fullName = importFile.modulePath?.toString() ?: return
 
         var anchor: PsiElement = currentFile
-        val relativePosition = if (currentFile.children.isEmpty()) RelativePosition.INSIDE_EMPTY_ANCHOR else {
+        val relativePosition = if (currentFile.children.isEmpty()) PositionKind.INSIDE_EMPTY_ANCHOR else {
             anchor = currentFile.children[0]
             var after = false
 
@@ -48,10 +48,10 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
                     anchor = nC.parent else break
             }
 
-            if (after) RelativePosition.AFTER_ANCHOR else RelativePosition.BEFORE_ANCHOR
+            if (after) PositionKind.AFTER_ANCHOR else PositionKind.BEFORE_ANCHOR
         }
 
-        addStatCmd(factory, ArendPsiFactory.StatCmdKind.IMPORT, fullName, usingList?.map { Pair(it, null) }?.toList(), anchor, relativePosition)
+        addStatCmd(factory, ArendPsiFactory.StatCmdKind.IMPORT, fullName, usingList?.map { Pair(it, null) }?.toList(), RelativePosition(relativePosition, anchor))
     }
 }
 
@@ -189,27 +189,28 @@ fun usingListToString(usingList: List<Pair<String, String?>>?): String {
     return buffer.toString()
 }
 
-enum class RelativePosition {
+enum class PositionKind {
     BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
 }
 
-fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, fullName: String, usingList: List<Pair<String, String?>>?,
-               anchor: PsiElement, position: RelativePosition): PsiElement {
+class RelativePosition(val kind: PositionKind, val anchor: PsiElement)
+
+fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, fullName: String, usingList: List<Pair<String, String?>>?, relativePosition: RelativePosition): PsiElement {
     val commandStatement = factory.createImportCommand(fullName + " " + usingListToString(usingList), command)
     val insertedStatement: PsiElement
 
-    when (position) {
-        RelativePosition.BEFORE_ANCHOR -> {
-            insertedStatement = anchor.parent.addBefore(commandStatement, anchor)
-            anchor.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
+    when (relativePosition.kind) {
+        PositionKind.BEFORE_ANCHOR -> {
+            insertedStatement = relativePosition.anchor.parent.addBefore(commandStatement, relativePosition.anchor)
+            relativePosition.anchor.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
         }
-        RelativePosition.AFTER_ANCHOR -> {
-            insertedStatement = anchor.parent.addAfter(commandStatement, anchor)
-            anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
-            anchor.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
+        PositionKind.AFTER_ANCHOR -> {
+            insertedStatement = relativePosition.anchor.parent.addAfter(commandStatement, relativePosition.anchor)
+            relativePosition.anchor.parent.addAfter(factory.createWhitespace("\n"), relativePosition.anchor)
+            relativePosition.anchor.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
         }
-        RelativePosition.INSIDE_EMPTY_ANCHOR -> {
-            insertedStatement = anchor.add(commandStatement)
+        PositionKind.INSIDE_EMPTY_ANCHOR -> {
+            insertedStatement = relativePosition.anchor.add(commandStatement)
         }
     }
     return insertedStatement

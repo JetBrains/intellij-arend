@@ -4,7 +4,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
@@ -22,12 +21,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
-import org.arend.refactoring.RelativePosition
-import org.arend.refactoring.RemoveRefFromStatCmdAction
-import org.arend.refactoring.addStatCmd
-import org.arend.refactoring.getImportedName
-import org.arend.resolving.ArendReference
-import org.arend.term.NamespaceCommand
+import org.arend.refactoring.*
 import org.arend.term.group.ChildGroup
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -210,7 +204,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 //TODO: Check if another open command pointing to the same container is already there
                 //If it is, we should modify it accordingly (add something to "using list" or remove something from "hiding list")
                 addStatCmd(ArendPsiFactory(this.myProject), ArendPsiFactory.StatCmdKind.OPEN,
-                        name, renamings, statCmd.parent, RelativePosition.AFTER_ANCHOR)
+                        name, renamings, RelativePosition(PositionKind.AFTER_ANCHOR, statCmd.parent))
             }
 
         }

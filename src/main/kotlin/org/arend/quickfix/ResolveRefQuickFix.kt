@@ -14,6 +14,7 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.*
 import org.arend.term.group.Group
+import java.lang.IllegalStateException
 import java.util.Collections.singletonList
 
 class ResolveRefQuickFix {
@@ -27,51 +28,67 @@ class ResolveRefQuickFix {
             return ResolveRefFixData(target, importAction, renameAction)
         }
 
+        class LocationData(target: PsiLocatedReferable) {
+            private val myLongName: List<Pair<String, Referable>>
+            private val myAlternativeName: MutableList<Pair<String, Referable>>?
+
+            init {
+                var psi: PsiElement = target
+                var ignoreFlag = true
+
+                myLongName = ArrayList()
+                myAlternativeName = when (target) {
+                    is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> ArrayList()
+                    else -> null
+                }
+                while (psi.parent != null) {
+                    if (psi is PsiReferable && psi !is ArendFile) {
+                        val name = psi.name ?: throw IllegalStateException() //Fix later :)
+
+                        myLongName.add(0, Pair(name, psi))
+                        if (myAlternativeName != null) {
+                            if (ignoreFlag && myAlternativeName.isNotEmpty()) {
+                                ignoreFlag = false
+                            } else {
+                                myAlternativeName.add(0, Pair(name, psi))
+                            }
+                        }
+                    }
+                    psi = psi.parent
+                }
+            }
+
+            fun getFullName(): MutableList<String> = myLongName.map { it.first }.toMutableList()
+
+            fun getAlternativeFullName(): MutableList<String>? = myAlternativeName?.map { it.first }?.toMutableList()
+
+            fun isNotEmpty() = myLongName.isNotEmpty()
+
+            fun getComplementScope(): Scope {
+                val targetContainers = myLongName.reversed().map { it.second }
+                return object : ListScope(targetContainers) {
+                    override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
+                            .filterIsInstance<ArendGroup>()
+                            .firstOrNull { name == it.textRepresentation() }
+                            ?.let { LexicalScope.opened(it) }
+                }
+            }
+        }
+
         fun getDecision(target: PsiLocatedReferable,
                         currentFile: ArendFile,
                         anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
-
-            val fullName = ArrayList<String>()
-            val alternativeFullName: ArrayList<String>? = if (target is ArendClassFieldSyn || target is ArendClassField || target is ArendConstructor)
-                ArrayList() else
-                null
-            var ignoreFlag = true
-
-            var psi: PsiElement = target
-            var targetTop: MutableList<Referable> = ArrayList()
+            val longName = LocationData(target)
 
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null
             val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
 
-            while (psi.parent != null) {
-                if (psi is PsiReferable && psi !is ArendFile) {
-                    val name = psi.name ?: return null
-
-                    fullName.add(0, name)
-                    if (alternativeFullName != null) {
-                        if (ignoreFlag && alternativeFullName.isNotEmpty()) {
-                            ignoreFlag = false
-                            targetTop.add(psi)
-                        } else {
-                            alternativeFullName.add(0, name)
-                            targetTop = ArrayList()
-                            targetTop.add(psi)
-                        }
-                    } else {
-                        targetTop = ArrayList()
-                        targetTop.add(psi)
-                    }
-
-                }
-                psi = psi.parent
-            }
-
             val fullNames = HashSet<List<String>>()
-            fullNames.add(fullName)
-            if (alternativeFullName != null) fullNames.add(alternativeFullName)
+            fullNames.add(longName.getFullName())
+            longName.getAlternativeFullName()?.let { fullNames.add(it) }
 
             val fileGroup = object : Group by currentFile {
                 override fun getSubgroups(): Collection<Group> = emptyList()
@@ -115,7 +132,7 @@ class ResolveRefQuickFix {
             }
 
             if (isPrelude(targetFile) && !preludeImportedManually) {
-                fullNames.add(fullName) // items from prelude are visible in any context
+                fullNames.add(longName.getFullName()) // items from prelude are visible in any context
                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
             }
 
@@ -123,10 +140,12 @@ class ResolveRefQuickFix {
             if (fullNames.isEmpty()) { // target definition is inaccessible in current context
                 modifyingImportsNeeded = true
 
-                if (importedScope.resolveName(fullName[0]) == null)
-                    fullNames.add(fullName)
-                if (alternativeFullName != null && importedScope.resolveName(alternativeFullName[0]) == null)
-                    fullNames.add(alternativeFullName)
+                if (importedScope.resolveName(longName.getFullName()[0]) == null)
+                    fullNames.add(longName.getFullName())
+                longName.getAlternativeFullName()?.let{
+                    if (importedScope.resolveName(it[0]) == null)
+                        fullNames.add(it)
+                }
 
                 if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
                     val nsUsing = suitableImport.nsUsing
@@ -161,7 +180,8 @@ class ResolveRefQuickFix {
             for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
 
             val nestedOpenCommandBlocks = ArrayList<List<ArendStatCmd>>()
-            psi = anchor
+
+            var psi: PsiElement = anchor
             while (psi.parent != null) {
                 var statements: List<ArendStatCmd>? = null
 
@@ -235,16 +255,8 @@ class ResolveRefQuickFix {
                 val elementParent = anchor.parent
                 var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
 
-                if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
-                    val complementScope = object : ListScope(targetTop) {
-                        override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetTop
-                                .filterIsInstance<ArendGroup>()
-                                .firstOrNull { name == it.textRepresentation() }
-                                ?.let { LexicalScope.opened(it) }
-                    }
-
-                    correctedScope = MergeScope(correctedScope, complementScope)
-                }
+                if (modifyingImportsNeeded && longName.isNotEmpty())
+                    correctedScope = MergeScope(correctedScope, longName.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
                 var referable = Scope.Utils.resolveName(correctedScope, fName)
                 if (referable is RedirectingReferable) {
@@ -261,9 +273,9 @@ class ResolveRefQuickFix {
             val veryLongName = ArrayList<String>()
             if (currentBlock.isEmpty()) {
                 veryLongName.addAll(targetModulePath.toList())
-                veryLongName.addAll(fullName)
+                veryLongName.addAll(longName.getFullName())
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
-                // Let us use the "longest possible name" when referring to the element
+                // Let us use the "longest possible name" when referring to the anchor
                 currentBlock.put(veryLongName, fallbackImportAction)
             }
 

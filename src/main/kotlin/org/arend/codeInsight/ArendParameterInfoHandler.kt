@@ -170,7 +170,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         var shiftedOffset = offset
         var res:PsiElement?
 
-        //if (element.prevSibling is PsiWhiteSpace) {
+        //if (anchor.prevSibling is PsiWhiteSpace) {
             do {
                 res = file.findElementAt(shiftedOffset)
                 --shiftedOffset
@@ -277,15 +277,15 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         val element: PsiElement = file.findElementAt(offset) ?: return file.findElementAt(offset - 1) is PsiWhiteSpace
 
         /*
-        if (element?.prevSibling is PsiWhiteSpace) {
-            while (element != null) {
-                if (element.text == ")" || element.text == "}") {
+        if (anchor?.prevSibling is PsiWhiteSpace) {
+            while (anchor != null) {
+                if (anchor.text == ")" || anchor.text == "}") {
                     return true
                 }
-                if (element !is PsiWhiteSpace) {
+                if (anchor !is PsiWhiteSpace) {
                     return false
                 }
-                element = element.nextSibling
+                anchor = anchor.nextSibling
             }
             return true
         }

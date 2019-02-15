@@ -576,11 +576,11 @@ class ArendCompletionContributor : CompletionContributor() {
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
-            System.out.println("position: " + parameters.position.javaClass + " text: " + parameters.position.text)
+            System.out.println("kind: " + parameters.position.javaClass + " text: " + parameters.position.text)
             var i = 0
             var pp: PsiElement? = parameters.position
             while (i < 13 && pp != null) {
-                System.out.format("position.parent(%2d): %-40s text: %-50s\n", i, pp.javaClass.simpleName, pp.text)
+                System.out.format("kind.parent(%2d): %-40s text: %-50s\n", i, pp.javaClass.simpleName, pp.text)
                 pp = pp.parent
                 i++
             }

@@ -125,7 +125,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
-            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid
             return reference.resolve() == null // return false if already imported
         }
 
