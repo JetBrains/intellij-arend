@@ -11,6 +11,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.*
 import org.arend.term.group.Group
 import java.util.Collections.singletonList
@@ -82,9 +83,7 @@ class ResolveRefQuickFix {
             var suitableImport: ArendStatCmd? = null
             val aliases = HashMap<List<String>, HashSet<String>>()
 
-            for (fName in fullNames) {
-                aliases[fName] = HashSet()
-            }
+            for (fName in fullNames) aliases[fName] = HashSet()
 
             var preludeImportedManually = false
 
@@ -161,7 +160,7 @@ class ResolveRefQuickFix {
             currentBlock = HashMap()
             for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
 
-            val namespaceCommands = ArrayList<List<ArendStatCmd>>()
+            val nestedOpenCommandBlocks = ArrayList<List<ArendStatCmd>>()
             psi = anchor
             while (psi.parent != null) {
                 var statements: List<ArendStatCmd>? = null
@@ -172,28 +171,26 @@ class ResolveRefQuickFix {
                     statements = psi.namespaceCommands
 
                 if (statements != null)
-                    namespaceCommands.add(0, statements.filter { it.openKw != null })
+                    nestedOpenCommandBlocks.add(0, statements.filter { it.openKw != null })
 
                 psi = psi.parent
             }
 
-            for (commandBlock in namespaceCommands) {
+            for (openCommandBlock in nestedOpenCommandBlocks) {
                 val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
                 newBlock.putAll(currentBlock)
 
-                for (command in commandBlock) {
-                    val refIdentifiers = command.longName?.refIdentifierList?.map { it.referenceName }
+                for (openCommand in openCommandBlock) {
+                    val refIdentifiers = openCommand.longName?.refIdentifierList?.map { it.referenceName }
                     var renamings: HashMap<String, String>? = null
-                    val using = command.nsUsing
+                    val using = openCommand.nsUsing
 
-                    if (using != null) {
+                    if (using != null) { //TODO: Isolate this piece of code
                         renamings = HashMap()
                         for (nsId in using.nsIdList) {
                             val oldName = nsId.refIdentifier.referenceName
                             val defIdentifier = nsId.defIdentifier
-                            if (defIdentifier != null)
-                                renamings[oldName] = defIdentifier.textRepresentation()
-                            else renamings[oldName] = oldName
+                            renamings[oldName] = defIdentifier?.textRepresentation() ?: oldName
                         }
                     }
 
@@ -203,7 +200,7 @@ class ResolveRefQuickFix {
                             val i2 = refIdentifiers.iterator()
                             var equals = true
                             while (i2.hasNext()) {
-                                if (i1.next() != i2.next()) {
+                                if (i1.next() != i2.next()) { /* This algorithm is wrong! */
                                     equals = false
                                     break
                                 }
@@ -241,7 +238,7 @@ class ResolveRefQuickFix {
                 if (modifyingImportsNeeded && targetTop.isNotEmpty()) { // calculate the scope imitating current scope after the imports have been fixed
                     val complementScope = object : ListScope(targetTop) {
                         override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetTop
-                                .filterIsInstance<ArendDefinition>()
+                                .filterIsInstance<ArendGroup>()
                                 .firstOrNull { name == it.textRepresentation() }
                                 ?.let { LexicalScope.opened(it) }
                     }
@@ -287,7 +284,7 @@ class ResolveRefQuickFix {
                 }
             } while (iterator.hasNext())
 
-            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 ->
+            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 -> //TODO: Isolate this piece of code
                 if (o1 == null && o2 == null) return@Comparator 0
                 if (o1 == null) return@Comparator -1
                 if (o2 == null) return@Comparator 1

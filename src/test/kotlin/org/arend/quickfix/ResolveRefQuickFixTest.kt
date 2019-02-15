@@ -274,7 +274,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """)
 
 
-    fun `test that simple renamings are taking into account`() = simpleImportFixTest(fileA +
+    fun `test that simple renamings are taken into account`() = simpleImportFixTest(fileA +
             """
                 --! B.ard
                 \import A
@@ -701,7 +701,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func foo => C.x
             """)
 
-    fun `test that shorter names are preferred 1`() =
+    fun `test that shorter names are always preferred 2`() =
             simpleImportFixTest("""
                 --! Foo.ard
                 \module FooM \where {
@@ -715,7 +715,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
                 \func foo => FooM.lol""")
 
-    fun `test that shorter names are preferred 2`() =
+    fun `test that simple renamings are taken into account 2`() =
             simpleImportFixTest("""
                 --! Foo.ard
                 \module FooM \where {
