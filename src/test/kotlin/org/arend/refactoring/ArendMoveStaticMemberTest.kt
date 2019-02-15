@@ -274,5 +274,5 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                 \open FooM (lol \as lol')
 
                 \func foobar => lol'
-            """, "Goo", "GooM.lol", "Foo", "FooM")
+            """, "Foo", "FooM", "Goo", "GooM.lol")
  }

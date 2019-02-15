@@ -144,7 +144,7 @@ class ResolveRefQuickFix {
                 if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                     suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
-                    for (fName in fullNames) {
+                    for (fName in fullNames) { //TODO: Could we reuse LocationData.calculateShorterName() here?
                         val importedName = getImportedName(namespaceCommand, fName[0])
                         if (importedName != null) aliases[fName]?.add(importedName.first)
                     }

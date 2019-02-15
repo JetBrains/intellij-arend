@@ -10,6 +10,7 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import org.arend.psi.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.abs.Abstract
+import org.arend.term.group.ChildGroup
 
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
 
@@ -25,9 +26,8 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
 
     private fun showDialog(project: Project, elements: List<ArendGroup>): Boolean {
         if (elements.isNotEmpty()) {
-            val group = elements.first().parentGroup
-            if (group != null && elements.subList(1, elements.size).map { it.parentGroup }.all { it == group } && /* Ensure elements are members of the same group */
-                group is PsiElement) {
+            val group = getCommonContainer(elements)
+            if (group != null && group is PsiElement) { /* Ensure elements are members of the same group */
                 val module = group.module
                 return if (module != null) {
                     ArendMoveMembersDialog(project, elements, group, module).show()
@@ -36,6 +36,13 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
             }
         }
         return false
+    }
+
+    companion object {
+        fun getCommonContainer(elements: List<ArendGroup>): ChildGroup? {
+            val group = elements.first().parentGroup
+            return if (group != null && elements.subList(1, elements.size).map { it.parentGroup }.all { it == group }) group else null
+        }
     }
 
 }
