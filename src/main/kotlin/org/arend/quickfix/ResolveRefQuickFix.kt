@@ -117,6 +117,7 @@ class ResolveRefQuickFix {
             val boundingGroup = anchor.parents().filterIsInstance<ChildGroup>().firstOrNull()
 
             val location = LocationData(target, boundingGroup)
+            if (!location.isNotEmpty()) return null
 
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null

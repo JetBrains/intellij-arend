@@ -289,7 +289,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             """, """
                 \import Foo
                 \import Goo
-                \open GooM ()
+
                 \open FooM (lol \as lol')
 
                 \func foobar => lol'
@@ -377,4 +377,36 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \func lol => Bar.foo
             """, "Main", "Bar", "A", "Foo.foo")
+
+    fun testRemainderInEmptyFile() =
+            testMoveRefactoring("""
+                --! A.ard
+                \func foo{-caret-} => 1
+
+                --! B.ard
+                \module Bar \where {}
+            """, """
+                \import B
+                \open Bar (foo)
+            """, "B", "Bar")
+
+    fun testRemovingEmptyImportCommand() =
+            testMoveRefactoring("""
+                --! Main.ard
+                \module Foo \where {
+                  \func foo{-caret-} => 1
+                }
+
+                \module Bar \where {
+                  \open Foo (foo)
+                }
+            """, """
+                \module Foo \where {
+                  \open Bar (foo)
+                }
+
+                \module Bar \where {
+                  \func foo => 1
+                }
+            """, "Main", "Bar")
  }

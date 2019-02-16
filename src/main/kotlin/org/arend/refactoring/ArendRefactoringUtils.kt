@@ -136,6 +136,16 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: Aren
             parent.rparen?.delete()
             parent.hidingKw?.delete()
         }
+
+        val statCmd = if (parent is ArendStatCmd) parent else {
+            val grandParent = parent.parent
+            if (grandParent is ArendStatCmd) grandParent else null
+        }
+
+        if (statCmd != null && statCmd.openKw != null) { //Remove open command with null effect
+            val nsUsing = statCmd.nsUsing
+            if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) statCmd.delete()
+        }
     }
 }
 
