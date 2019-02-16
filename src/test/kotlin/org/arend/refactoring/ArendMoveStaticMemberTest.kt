@@ -207,7 +207,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \func goo => 4 \where {
                   \module Foo \where {
-                    \func foo => bar.foobar + Foo.bar.foobar + Foo.bar.foobar
+                    \func foo => bar.foobar + Foo.bar.foobar + bar.foobar
 
                     \func bar => 2 \where {
                       \func foobar => foo + bar
@@ -409,4 +409,60 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   \func foo => 1
                 }
             """, "Main", "Bar")
+
+    fun testMultipleMove1() =
+            testMoveRefactoring("""
+                --! A.ard
+                \module Foo \where {
+                  \func foo => 1
+
+                  \func lol => 2
+
+                  \func bar => 3
+
+                  \func goo => 4
+                }
+                --! Main.ard
+                 \import A
+                 \open Nat{-caret-}
+
+                 \module Bar \where {
+                   \open Foo (foo, lol, goo)
+
+                   \func foobar => foo + lol + goo
+                 }
+
+                 \module Fubar \where {
+                   \open Foo \hiding (bar, goo)
+
+                   \func fubar => foo + lol + Foo.bar + Foo.goo
+                 }
+            """, """
+                 \import A
+                 \open Nat
+
+                 \module Bar \where {
+                   \open Foo (lol, goo)
+
+                   \func foobar => foo + lol + goo
+
+                   \func bar => 3
+
+                   \func foo => 1
+                 }
+
+                 \module Fubar \where {
+                   \open Foo \hiding (goo)
+                   \open Bar (foo)
+
+                   \func fubar => foo + lol + Bar.bar + Foo.goo
+                 }
+            """, "Main", "Bar", "A", "Foo.foo", "Foo.bar")
+
+    /* fun testObstructedScopes() =
+            testMoveRefactoring("""
+
+            """, """
+
+            """, "", "") */
  }

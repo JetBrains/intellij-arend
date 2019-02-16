@@ -61,7 +61,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         if (mySourceContainer is PsiElement) for (psiReference in ReferencesSearch.search(mySourceContainer)) {
             val statCmd = isStatCmdUsage(psiReference, true)
             if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement &&
-                    myMembersToMove.any { getImportedName(statCmd, it.name) != null })
+                    myMembersToMove.any { getImportedNames(statCmd, it.name).isNotEmpty() })
                 statCmdsToFix[statCmd] = psiReference
         }
 
@@ -69,12 +69,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             for (entry in collectRelevantReferables(member)) {
                 entry.key.name?.let{ movedReferableNames.add(it) }
 
-                for (psiReference in ReferencesSearch.search(entry.key))
+                for (psiReference in ReferencesSearch.search(entry.key)) {
+                    val referenceElement = psiReference.element
+                    val referenceParent = referenceElement.parent
                     if (!isInMovedMember(psiReference.element)) {
                         val statCmd = isStatCmdUsage(psiReference, false)
-                        if (statCmd == null || !statCmdsToFix.contains(statCmd)) //Needed to prevent processing same StatCmds more than once
+                        val isUsageInHiding = referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd
+                        if (statCmd == null || isUsageInHiding || !statCmdsToFix.contains(statCmd))
                             usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
                     }
+                }
             }
 
 
@@ -220,15 +224,14 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
             val renamings = ArrayList<Pair<String, String?>>()
             for (memberName in movedReferableNames) {
-                val importedName = getImportedName(statCmd, memberName)
+                val importedName = getImportedNames(statCmd, memberName)
 
-                if (importedName != null) {
-                    val newName = if (importedName.first == memberName) null else importedName.first
+                for (name in importedName) {
+                    val newName = if (name.first == memberName) null else name.first
                     renamings.add(Pair(memberName, newName))
-                    val nsId = importedName.second
+                    val nsId = name.second
 
                     if (nsId != null) RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
-
                 }
             }
 
@@ -316,8 +319,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val correctTarget = fixMap[prefix]
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
-                if (currentTarget != correctTarget)
-                    ResolveRefQuickFix.getDecision(correctTarget, element)?.execute(null)
+                if (currentTarget != correctTarget) {
+                    val action = ResolveRefQuickFix.getDecision(correctTarget, element)
+                    action?.execute(null)
+                }
+
             }
         } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, fixMap) }
     }

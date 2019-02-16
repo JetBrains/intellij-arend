@@ -9,6 +9,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.LongName
+import java.util.Collections.singletonList
 
 interface ResolveRefFixAction {
     fun execute(editor: Editor?)
@@ -241,22 +242,24 @@ fun addIdToUsing(groupMember: PsiElement?,
             targetContainerName, renamings, relativePosition)
 }
 
-fun getImportedName(namespaceCommand: ArendStatCmd, shortName: String?): Pair<String, ArendNsId?>? {
-    if (shortName == null) return null
+fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<Pair<String, ArendNsId?>> {
+    if (shortName == null) return emptyList()
 
     val nsUsing = namespaceCommand.nsUsing
     val isHidden = namespaceCommand.refIdentifierList.any { it.referenceName == shortName }
 
     if (nsUsing != null) {
+        val resultList = ArrayList<Pair<String, ArendNsId?>>()
+
         for (nsId in nsUsing.nsIdList) {
             if (nsId.refIdentifier.text == shortName) {
                 val defIdentifier = nsId.defIdentifier
-                return Pair(defIdentifier?.textRepresentation() ?: shortName, nsId)
+                resultList.add(Pair(defIdentifier?.textRepresentation() ?: shortName, nsId))
             }
         }
 
-        if (nsUsing.usingKw == null) return null
+        if (nsUsing.usingKw == null) return resultList
     }
 
-    return if (isHidden) null else Pair(shortName, null)
+    return if (isHidden) emptyList() else singletonList(Pair(shortName, null))
 }

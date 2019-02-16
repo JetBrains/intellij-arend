@@ -1,7 +1,6 @@
 package org.arend.quickfix
 
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.parents
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
@@ -30,40 +29,29 @@ class ResolveRefQuickFix {
             return ResolveRefFixData(target, importAction, renameAction)
         }
 
-        class LocationData(target: PsiLocatedReferable, boundingGroup: ChildGroup?) {
+        class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
             private val myLongName: List<Pair<String, Referable>>
-            private val myAlternativeName: MutableList<Pair<String, Referable>>?
 
             init {
                 var psi: PsiElement = target
-                var ignoreFlag = true
+                var skipFlag = skipFirstParent
 
                 myLongName = ArrayList()
-                myAlternativeName = when (target) {
-                    is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> ArrayList()
-                    else -> null
-                }
                 while (psi.parent != null) {
-                    if (psi is PsiReferable && psi !is ArendFile && psi != boundingGroup) {
+                    if (psi is PsiReferable && psi !is ArendFile) {
                         val name = psi.name ?: throw IllegalStateException() //Fix later :)
 
-                        myLongName.add(0, Pair(name, psi))
-                        if (myAlternativeName != null) {
-                            if (ignoreFlag && myAlternativeName.isNotEmpty()) {
-                                ignoreFlag = false
-                            } else {
-                                myAlternativeName.add(0, Pair(name, psi))
-                            }
+                        if (skipFlag && myLongName.isNotEmpty()) {
+                            skipFlag = false
+                        } else {
+                            myLongName.add(0, Pair(name, psi))
                         }
                     }
                     psi = psi.parent
                 }
             }
 
-            fun getFullName(altName: Boolean = false): MutableList<String>? {
-                val source = if (altName) myAlternativeName else myLongName
-                return source?.map { it.first }?.toMutableList()
-            }
+            fun getFullName(): List<String> = myLongName.map { it.first }.toList()
 
             fun isNotEmpty() = myLongName.isNotEmpty()
 
@@ -77,29 +65,25 @@ class ResolveRefQuickFix {
                 }
             }
 
-            fun calculateShorterName(openCommand: ArendStatCmd, altName: Boolean): List<String>? {
+            fun calculateShorterNames(openCommand: ArendStatCmd): List<List<String>> {
                 val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
                 if (lastRef != null) {
                     val openedGroup = lastRef.reference?.resolve()
                     if (openedGroup is PsiLocatedReferable) {
-                        val remainder = calculateRemainder(openedGroup, altName)
+                        val remainder = calculateRemainder(openedGroup)
                         if (remainder != null && remainder.isNotEmpty()) {
                             val currName = remainder[0]
                             val tail = remainder.drop(1).toList()
-                            val newName = getImportedName(openCommand, currName)
-                            if (newName != null) {
-                                return singletonList(newName.first) + tail
-                            }
+                            return getImportedNames(openCommand, currName).map { singletonList(it.first) + tail }
                         }
                     }
                 }
-                return null
+                return emptyList()
             }
 
-            private fun calculateRemainder(referable: PsiLocatedReferable, altName: Boolean): List<String>? {
-                val source = (if (altName) myAlternativeName else myLongName) ?: return null
+            fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
                 var result: ArrayList<String>? = null
-                for (entry in source) {
+                for (entry in myLongName) {
                     result?.add(entry.first)
                     if (entry.second == referable) {
                         result = ArrayList()
@@ -114,10 +98,17 @@ class ResolveRefQuickFix {
                         anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
-            val boundingGroup = anchor.parents().filterIsInstance<ChildGroup>().firstOrNull()
 
-            val location = LocationData(target, boundingGroup)
-            if (!location.isNotEmpty()) return null
+            //Prepare target item locations
+            val defaultLocation = LocationData(target)
+            val alternativeLocation = when (target) {
+                is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> LocationData(target, true)
+                else -> null
+            }
+            val locations: MutableList<LocationData> = ArrayList()
+            locations.add(defaultLocation)
+            alternativeLocation?.let { locations.add(it) }
+
 
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null
@@ -125,7 +116,7 @@ class ResolveRefQuickFix {
 
             val fullNames = HashSet<List<String>>()
 
-            for (b in listOf(true, false)) location.getFullName(b)?.let { fullNames.add(it)  }
+            for (location in locations) fullNames.add(location.getFullName())
 
             val fileGroup = object : Group by currentFile {
                 override fun getSubgroups(): Collection<Group> = emptyList()
@@ -149,9 +140,9 @@ class ResolveRefQuickFix {
                 if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                     suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
 
-                    for (fName in fullNames) { //TODO: Could we reuse LocationData.calculateShorterName() here?
-                        val importedName = getImportedName(namespaceCommand, fName[0])
-                        if (importedName != null) aliases[fName]?.add(importedName.first)
+                    for (fName in fullNames) { //TODO: Could we reuse LocationData.calculateShorterNames() here?
+                        val importedNames = getImportedNames(namespaceCommand, fName[0])
+                        for (name in importedNames) aliases[fName]?.add(name.first)
                     }
                 }
             }
@@ -169,7 +160,7 @@ class ResolveRefQuickFix {
             }
 
             if (isPrelude(targetFile) && !preludeImportedManually) {
-                location.getFullName()?.let{fullNames.add(it)} // items from prelude are visible in any context
+                fullNames.add(defaultLocation.getFullName()) // items from prelude are visible in any context
                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
             }
 
@@ -177,10 +168,8 @@ class ResolveRefQuickFix {
             if (fullNames.isEmpty()) { // target definition is inaccessible in current context
                 modifyingImportsNeeded = true
 
-                location.getFullName()?.let {fullNames.add(it) }
-                location.getFullName(true)?.let{
-                    if (importedScope.resolveName(it[0]) == null) fullNames.add(it)
-                }
+                fullNames.add(defaultLocation.getFullName())
+                alternativeLocation?.getFullName()?.let { if (importedScope.resolveName(it[0]) == null) fullNames.add(it) }
 
                 if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
                     val nsUsing = suitableImport.nsUsing
@@ -209,40 +198,52 @@ class ResolveRefQuickFix {
 
 
             var currentBlock: Map<List<String>, ResolveRefFixAction?>
+            //val anchorParentGroups: Sequence<PsiElement>? = anchor.parents().filter{ it is ChildGroup }
 
             currentBlock = HashMap()
             for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
 
-            val nestedOpenCommandBlocks = ArrayList<List<ArendStatCmd>>()
+            val nestedOpenCommandBlocks = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
 
             var psi: PsiElement = anchor
-            while (psi.parent != null) {
+            while (psi.parent != null) { //File also passes well (its parent is a directory)
                 var statements: List<ArendStatCmd>? = null
+                var containingGroup: ChildGroup? = null
 
-                if (psi is ArendWhere)
+                if (psi is ArendWhere) {
                     statements = psi.children.mapNotNull { (it as? ArendStatement)?.statCmd }
-                else if (psi is ArendFile)
+                    containingGroup = psi.parent as? ChildGroup /* in fact ArendGroup */
+                } else if (psi is ArendFile) {
                     statements = psi.namespaceCommands
+                    containingGroup = psi
+                }
 
                 if (statements != null)
-                    nestedOpenCommandBlocks.add(0, statements.filter { it.openKw != null })
+                    nestedOpenCommandBlocks.add(0, Pair(containingGroup, statements.filter { it.openKw != null }))
 
                 psi = psi.parent
             }
 
             for (openCommandBlock in nestedOpenCommandBlocks) {
                 val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+                val currentGroup = openCommandBlock.first
                 newBlock.putAll(currentBlock)
 
-                for (openCommand in openCommandBlock) {
-                    val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
-                    if (lastRef != null) {
-                        for (b in listOf(true, false)) {
-                            val oldFName = location.getFullName(b)
-                            val correctedName = location.calculateShorterName(openCommand, b)
-                            if (oldFName != null && correctedName != null) {
-                                newBlock[correctedName] = currentBlock[oldFName]
-                            }
+                for (location in locations) {
+                    val oldFName = location.getFullName()
+
+                    if (currentGroup is PsiLocatedReferable) {
+                        val remainder = location.calculateRemainder(currentGroup)
+                        if (remainder != null) {
+                            newBlock[remainder] = currentBlock[oldFName]
+                        }
+                    }
+
+                    for (openCommand in openCommandBlock.second) {
+                        val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
+                        if (lastRef != null) {
+                            val correctedNames = location.calculateShorterNames(openCommand)
+                            for (name in correctedNames) newBlock[name] = currentBlock[oldFName]
                         }
                     }
                 }
@@ -252,11 +253,13 @@ class ResolveRefQuickFix {
             val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
 
             for (fName in currentBlock.keys) {
+                if (fName.isEmpty()) return null // Trivial situation - we are trying to resolve the link to our direct parent :)
+
                 val elementParent = anchor.parent
                 var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
 
-                if (modifyingImportsNeeded && location.isNotEmpty())
-                    correctedScope = MergeScope(correctedScope, location.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
+                if (modifyingImportsNeeded && defaultLocation.isNotEmpty())
+                    correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
                 var referable = Scope.Utils.resolveName(correctedScope, fName)
                 if (referable is RedirectingReferable) {
@@ -273,8 +276,7 @@ class ResolveRefQuickFix {
             val veryLongName = ArrayList<String>()
             if (currentBlock.isEmpty()) {
                 veryLongName.addAll(targetModulePath.toList())
-                location.getFullName()?.let{ veryLongName.addAll(it) }
-
+                veryLongName.addAll(defaultLocation.getFullName())
                 // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
                 // Let us use the "longest possible name" when referring to the anchor
                 currentBlock.put(veryLongName, fallbackImportAction)
@@ -297,7 +299,8 @@ class ResolveRefQuickFix {
                 }
             } while (iterator.hasNext())
 
-            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 -> //TODO: Isolate this piece of code
+            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 ->
+                //TODO: Isolate this piece of code
                 if (o1 == null && o2 == null) return@Comparator 0
                 if (o1 == null) return@Comparator -1
                 if (o2 == null) return@Comparator 1
