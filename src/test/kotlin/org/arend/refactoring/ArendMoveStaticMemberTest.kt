@@ -137,12 +137,12 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                     | myCons (n : MyNat)
                 }
 
-                \open Foo (MyNat)
+                \open Foo (MyNat, myZero, myCons)
 
-                \func foo => Foo.myCons Foo.myZero
+                \func foo => myCons myZero
             """, "Main", "Foo")
 
-    fun testForbiddenRefactoring3() =
+    fun testClashingNames() =
             testMoveRefactoring("""
              --! Main.ard
             \data MyNat{-caret-}
@@ -156,6 +156,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
             \func lol => myZero
             """, """
+            \open Foo (MyNat, myZero, myCons)
+
             \module Foo \where {
               \func myZero => 0
 
@@ -166,7 +168,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
             \func bar => Foo.myZero
 
-            \func lol => Foo.MyNat.myZero
+            \func lol => MyNat.myZero
             """, "Main", "Foo")
 
     fun testMovedContent2() =
@@ -193,16 +195,17 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             ""","""
                 \import Main
                 \open Nat
+                \open goo (Foo)
 
                 \module Bar \where {
                   \open goo.Foo
 
-                  \func lol => foo + goo.Foo.foo + bar.foobar + goo.Foo.bar.foobar
+                  \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
                 }
 
                 \func goo => 4 \where {
                   \module Foo \where {
-                    \func foo => bar.foobar + Foo.bar.foobar + goo.Foo.bar.foobar
+                    \func foo => bar.foobar + Foo.bar.foobar + Foo.bar.foobar
 
                     \func bar => 2 \where {
                       \func foobar => foo + bar
@@ -226,6 +229,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \func lol (L : C) => (C.bar (C.foobar (foo {L})))
             ""","""
+                \open Foo (C, foo)
+
                 \module Foo \where {
                   \class C {
                     | foo : Nat
@@ -236,7 +241,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   }
                 }
 
-                \func lol (L : Foo.C) => (Foo.C.bar (Foo.C.foobar (Foo.foo {L})))
+                \func lol (L : C) => (C.bar (C.foobar (foo {L})))
             """, "Main", "Foo")
 
     fun testMoveData2() =
@@ -252,13 +257,13 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   | myZero => myZero
                   | myCons x => myCons x
                 """, """
-                \open Foo (MyNat, myZero, myCons)
-
                 \module Foo \where {
                   \data MyNat
                     | myZero
                     | myCons (n : MyNat)
                 }
+
+                \open Foo (MyNat, myZero, myCons)
 
                 \func foo (m : MyNat) \elim m
                   | myZero => myZero

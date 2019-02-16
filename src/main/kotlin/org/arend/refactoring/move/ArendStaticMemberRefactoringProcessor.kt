@@ -52,6 +52,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMembersToMove: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
                                             private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
+    private val movedReferableNames = ArrayList<String>()
+
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
         val statCmdsToFix = HashMap<ArendStatCmd, PsiReference>()
@@ -64,13 +66,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         for ((i, member) in myMembersToMove.withIndex())
-            for (entry in collectRelevantReferables(member))
+            for (entry in collectRelevantReferables(member)) {
+                entry.key.name?.let{ movedReferableNames.add(it) }
+
                 for (psiReference in ReferencesSearch.search(entry.key))
                     if (!isInMovedMember(psiReference.element)) {
                         val statCmd = isStatCmdUsage(psiReference, false)
                         if (statCmd == null || !statCmdsToFix.contains(statCmd)) //Needed to prevent processing same StatCmds more than once
                             usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
                     }
+            }
+
 
         //TODO: Somehow determine which of the statCmd usages are not relevant and filter them out
 
@@ -82,7 +88,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     private fun collectRelevantReferables(element: ArendGroup): Map<PsiLocatedReferable, List<Int>> {
-        val relevantLocatedReferables = HashMap<PsiLocatedReferable, List<Int>>()
+        val relevantLocatedReferables = LinkedHashMap<PsiLocatedReferable, List<Int>>()
         relevantLocatedReferables[element] = emptyList()
         for (internalReferable in element.internalReferables)
             if (internalReferable.isVisible) {
@@ -181,14 +187,14 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
             if (remainderAnchor is ArendCompositeElement) {
                 val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor
-                val containerFile = (mySourceContainer as PsiElement).containingFile
-                val importData = getDecision((myTargetContainer as PsiLocatedReferable), (containerFile as ArendFile), remainderAnchor)
+                val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
+                val importData = getDecision((myTargetContainer as PsiLocatedReferable), sourceContainerFile, remainderAnchor)
                 if (importData != null) {
                     val importAction = importData.first
                     importAction?.execute(null)
 
                     val name = LongName(importData.second).toString()
-                    val renamings = memberNames.map { Pair(it, null) }
+                    val renamings = movedReferableNames.map { Pair(it, null) }
                     addIdToUsing(groupMember, myTargetContainer, name, renamings, psiFactory, uppermostHole)
                 }
             }
@@ -200,35 +206,30 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val statCmd = usage.command
             val statCmdStatement = statCmd.parent
             val usageFile = statCmd.containingFile as ArendFile
-            val renamings = ArrayList<Pair<String, String?>>()
-            var currentName: List<String>? = null
 
-            for ((index, memberName) in memberNames.withIndex()) { /* This is wrong, rewrite this*/
+            val importData = getDecision(myTargetContainer as PsiLocatedReferable, usageFile, statCmd)
+            if (importData != null) {
+                val importAction = importData.first
+                importAction?.execute(null)
+            }
+
+            val renamings = ArrayList<Pair<String, String?>>()
+            for (memberName in movedReferableNames) {
                 val importedName = getImportedName(statCmd, memberName)
-                val correspondingNewMember = newMemberList[index]
 
                 if (importedName != null) {
                     val newName = if (importedName.first == memberName) null else importedName.first
                     renamings.add(Pair(memberName, newName))
                     val nsId = importedName.second
-                    val importData = getDecision(correspondingNewMember, usageFile, statCmd)
-                    if (importData != null) {
-                        val importAction = importData.first
-                        importAction?.execute(null)
-                        currentName = importData.second
-                    }
+
                     if (nsId != null) RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
 
                 }
             }
-            if (statCmd.openKw != null && renamings.isNotEmpty() && currentName != null &&
-                    currentName.size > 1) {
-                var name = ""
-                for ((index, c) in currentName.withIndex()) if (index < currentName.size - 1) {
-                    name += c
-                    if (index < currentName.size - 2) name += "."
-                }
 
+            val currentName: List<String>? = importData?.second
+            if (statCmd.openKw != null && renamings.isNotEmpty() && currentName != null && currentName.isNotEmpty()) {
+                val name = LongName(currentName).toString()
                 addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
