@@ -1,6 +1,7 @@
 package org.arend.quickfix
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.parents
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
@@ -13,6 +14,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.*
+import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import java.lang.IllegalStateException
 import java.util.Collections.singletonList
@@ -28,7 +30,7 @@ class ResolveRefQuickFix {
             return ResolveRefFixData(target, importAction, renameAction)
         }
 
-        class LocationData(target: PsiLocatedReferable) {
+        class LocationData(target: PsiLocatedReferable, boundingGroup: ChildGroup?) {
             private val myLongName: List<Pair<String, Referable>>
             private val myAlternativeName: MutableList<Pair<String, Referable>>?
 
@@ -42,7 +44,7 @@ class ResolveRefQuickFix {
                     else -> null
                 }
                 while (psi.parent != null) {
-                    if (psi is PsiReferable && psi !is ArendFile) {
+                    if (psi is PsiReferable && psi !is ArendFile && psi != boundingGroup) {
                         val name = psi.name ?: throw IllegalStateException() //Fix later :)
 
                         myLongName.add(0, Pair(name, psi))
@@ -112,7 +114,9 @@ class ResolveRefQuickFix {
                         anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
-            val location = LocationData(target)
+            val boundingGroup = anchor.parents().filterIsInstance<ChildGroup>().firstOrNull()
+
+            val location = LocationData(target, boundingGroup)
 
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null
@@ -127,7 +131,7 @@ class ResolveRefQuickFix {
             }
             val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
 
-            val cautiousMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+            val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
             var suitableImport: ArendStatCmd? = null
             val aliases = HashMap<List<String>, HashSet<String>>()
@@ -190,7 +194,7 @@ class ResolveRefQuickFix {
                     }
                     fallbackImportAction = null
                 } else { // targetFile has not been imported
-                    if (cautiousMode) {
+                    if (minimalImportMode) {
                         fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
                         for (fName in fullNames)
                             importActionMap[fName] = ImportFileAction(targetFile, currentFile, singletonList(fName[0]))

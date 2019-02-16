@@ -184,8 +184,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val uppermostHole = holes.sorted().first()
             var remainderAnchor: PsiElement? = uppermostHole.anchor
 
-            while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null)
-                remainderAnchor = remainderAnchor.parent
+            val next = remainderAnchor?.rightSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
+            val prev = remainderAnchor?.leftSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
+            if (next != null) remainderAnchor = next else
+                if (prev != null) remainderAnchor = prev else
+                    while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
 
             if (remainderAnchor is ArendCompositeElement) {
                 val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor
@@ -240,12 +243,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Now fix references of "normal" usages
         for (usage in usages) if (usage is ArendUsageInfo) {
             val num = usage.memberNo
-            val enclosingGroup = if (num < newMemberList.size) newMemberList[num] else null
             val referenceElement = usage.reference?.element
-            if (enclosingGroup != null && referenceElement is ArendReferenceElement) {
-                val targetReferable = locateMember(enclosingGroup, usage.memberPath)
-                if (targetReferable is PsiLocatedReferable)
-                    ResolveRefQuickFix.getDecision(targetReferable, referenceElement)?.execute(null)
+            val referenceParent = referenceElement?.parent
+
+            if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) { //Usage in "hiding" list which we simply delete
+                RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
+            } else {
+                val enclosingGroup = if (num < newMemberList.size) newMemberList[num] else null
+                if (enclosingGroup != null && referenceElement is ArendReferenceElement) {
+                    val targetReferable = locateMember(enclosingGroup, usage.memberPath)
+                    if (targetReferable is PsiLocatedReferable)
+                        ResolveRefQuickFix.getDecision(targetReferable, referenceElement)?.execute(null)
+                }
             }
         }
 

@@ -366,7 +366,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \module Bar \where {}
 
-                \func lol => A.foo{-caret-}
+                \func lol => A.Foo.foo{-caret-}
             """, """
                 \import A
                 \open Foo
