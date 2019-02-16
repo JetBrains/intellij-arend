@@ -108,7 +108,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         val insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
-        val memberNames = myMembersToMove.map { it.name!! }.toList()
 
         when (myTargetContainer) {
             is ArendGroup -> {
@@ -183,7 +182,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Prepare "remainder" namespace command (which is inserted in the place where one of the moved definitions was)
         if (holes.isNotEmpty()) {
             val uppermostHole = holes.sorted().first()
-            val remainderAnchor = uppermostHole.anchor
+            var remainderAnchor: PsiElement? = uppermostHole.anchor
+
+            while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null)
+                remainderAnchor = remainderAnchor.parent
 
             if (remainderAnchor is ArendCompositeElement) {
                 val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor

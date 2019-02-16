@@ -75,6 +75,8 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             \func foobar => Foo.foo
             """, """
             \module Foo \where {
+              \open bar (foo)
+
               \func bar => 2 \where {
                 \func foo => 1
               }
@@ -292,4 +294,87 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                 \func foobar => lol'
             """, "Foo", "FooM", "Goo", "GooM.lol")
+
+    fun testMoveFromWhereBlock1() =
+            testMoveRefactoring("""
+                --! A.ard
+
+                \func lol => 1
+
+                --! Main.ard
+
+                \module Bar \where
+                  \func bar{-caret-} => 1
+            """, """
+                \import A
+
+                \module Bar \where
+                  \open lol (bar)
+
+            """, "A", "lol")
+
+    fun testMoveFromWhereBlock2() =
+            testMoveRefactoring("""
+                --! A.ard
+
+                \func lol => 1
+
+                --! Main.ard
+
+                \module Bar \where {
+                  \func bar{-caret-} => 1
+                }
+            """, """
+                \import A
+
+                \module Bar \where {
+                  \open lol (bar)
+                }
+            """, "A", "lol")
+
+    fun testCleanFromHiding1() =
+            testMoveRefactoring("""
+                --! A.ard
+                \func foo => 1
+
+                --! Main.ard
+                \import A \hiding (foo)
+
+                \module Bar \where {}
+
+                \func lol => A.foo{-caret-}
+            """, """
+                \import A
+
+                \module Bar \where {
+                  \func foo => 1
+                }
+
+                \func lol => Bar.foo
+            """, "Main", "Bar", "A", "foo")
+
+    fun testCleanFromHiding2() =
+            testMoveRefactoring("""
+                --! A.ard
+                \module Foo \where {
+                  \func foo => 1
+                }
+
+                --! Main.ard
+                \import A
+                \open Foo \hiding (foo)
+
+                \module Bar \where {}
+
+                \func lol => A.foo{-caret-}
+            """, """
+                \import A
+                \open Foo
+
+                \module Bar \where {
+                  \func foo => 1
+                }
+
+                \func lol => Bar.foo
+            """, "Main", "Bar", "A", "Foo.foo")
  }
