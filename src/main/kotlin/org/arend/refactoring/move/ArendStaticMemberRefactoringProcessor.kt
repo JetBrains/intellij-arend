@@ -281,7 +281,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     myTargetContainer is ArendFile -> myTargetContainer.modulePath?.lastName ?: ""
                     else -> ""
                 }
-                if (name.isNotEmpty()) addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
+                //if (name.isNotEmpty())
+                    addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory,
+                            RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
             for (nsId in nsIdToRemove)

@@ -1,9 +1,11 @@
 package org.arend.refactoring
 
-class ArendMoveStaticMemberTest: ArendMoveTestBase() {
+import org.junit.Ignore
+
+class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =
-        testMoveRefactoring("""
+            testMoveRefactoring("""
              --! Main.ard
             \func abc{-caret-} => 1
             \module def \where {}
@@ -63,7 +65,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, null, "Main", "Foo")
 
-     fun testLongName1() =
+    fun testLongName1() =
             testMoveRefactoring("""
              --! Main.ard
             \module Foo \where {
@@ -132,7 +134,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                   | myCons (n : MyNat)
 
                 \func foo => myCons myZero
-            ""","""
+            """, """
                 \module Foo \where {
                   \data MyNat
                     | myZero
@@ -194,7 +196,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                 }
 
                 \func goo => 4
-            ""","""
+            """, """
                 \import Main
                 \open Nat
                 \open goo (Foo)
@@ -230,7 +232,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                 \module Foo \where { }
 
                 \func lol (L : C) => (C.bar (C.foobar (foo {L})))
-            ""","""
+            """, """
                 \open Foo (C, foo)
 
                 \module Foo \where {
@@ -500,7 +502,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, "A", "FooBar")
 
-     fun testMoveData3() =
+    fun testMoveData3() =
             testMoveRefactoring("""
                 --! Main.ard
                 \module Bar \where {
@@ -666,13 +668,37 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                  \func lol => foo1 + foo2
                }
             """, """
+               \import Bar
                \import Foo ()
+               \open Bar (foo \as foo1, foo \as foo2)
                \open Nat
-               \import Bar (foo \as foo1, foo \as foo2)
 
                \module FooBar \where {
                  \func lol => foo1 + foo2
                }
             """, "Bar", "", "Foo", "foo")
 
+    fun testRenaming() =
+            testMoveRefactoring("""
+               --! Main.ard
+               \module Foo \where {
+                 \open Foo (lol \as lol1)
+
+                 \func lol{-caret-} => 1
+
+                 \func bar => lol1
+               }
+
+               \module Bar \where {}
+                """, """
+               \module Foo \where {
+                 \open Bar (lol, lol \as lol1)
+
+                 \func bar => lol1
+               }
+
+               \module Bar \where {
+                 \func lol => 1
+               }
+                """, "Main", "Bar")
 }

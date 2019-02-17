@@ -149,7 +149,6 @@ class ResolveRefQuickFix {
 
             for (location in locations) {
                 location.getAliases().map { alias ->
-                    /*if (alias.isEmpty()) return null */ // Trivial situation - we are trying to resolve the link to our direct parent :)
                     val isValid = if (alias.isEmpty()) true else {
                         var referable = Scope.Utils.resolveName(correctedScope, alias)
                         if (referable is RedirectingReferable) referable = referable.originalReferable
@@ -172,7 +171,7 @@ class ResolveRefQuickFix {
 
             return if (resultingDecisions.size > 0) {
                 val resultingName = resultingDecisions[0].first
-                val importAction = if (targetFile != currentFile || resultingName == veryLongName)
+                val importAction = if (targetFile != currentFile || resultingName.isNotEmpty() && resultingName == veryLongName)
                     resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
                 if (importAction is ImportFileAction && !importAction.isValid())

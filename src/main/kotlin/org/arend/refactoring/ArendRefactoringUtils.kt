@@ -2,7 +2,6 @@ package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
-import com.intellij.psi.codeStyle.CodeStyleManager
 import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
@@ -62,53 +61,49 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
 
     override fun toString(): String = "Add ${usingListToString(idList)} to the \"using\" list of the namespace command `${statCmd.text}`"
 
-    private fun addId(id: String, newName: String?): ArendNsId? {
-        val project = statCmd.project
-        val using = statCmd.nsUsing
-        if (using != null) {
-            val nsIds = using.nsIdList
-            var anchor = using.lparen
-            var needsCommaBefore = false
+    private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
+        val nsIds = using.nsIdList
+        var anchor = using.lparen
+        var needsCommaBefore = false
 
-            for (nsId in nsIds) {
-                val name = nsId.refIdentifier.referenceName
-                if (name > id) break
-
+        for (nsId in nsIds) {
+            val idRefName = nsId.refIdentifier.referenceName
+            val idDefName = nsId.defIdentifier?.name
+            if (idRefName <= id) {
                 anchor = nsId
                 needsCommaBefore = true
             }
+            if (id == idRefName && newName == idDefName) return null
 
-            val factory = ArendPsiFactory(project)
-            val nsIdStr = if (newName == null) id else "$id \\as $newName"
-            val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
-            val newNsUsing = nsCmd!!.nsUsing!!
-            val nsId = newNsUsing.nsIdList[1]
-
-            if (nsId != null) {
-                val comma = nsId.prevSibling //we will need the comma only once
-
-                if (anchor == null) {
-                    anchor = using.usingKw ?: error("Can't find anchor within namespace command")
-                    anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
-                    anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
-                    anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
-                }
-
-                if (anchor != null) {
-                    if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
-                    val insertedId = anchor.parent.addAfter(nsId, anchor)
-                    if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
-                    return insertedId as ArendNsId
-                }
-            }
         }
+
+        val nsIdStr = if (newName == null) id else "$id \\as $newName"
+        val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
+        val newNsUsing = nsCmd!!.nsUsing!!
+        val nsId = newNsUsing.nsIdList[1]!!
+        val comma = nsId.prevSibling
+
+        if (anchor == null) {
+            anchor = using.usingKw ?: error("Can't find anchor within namespace command")
+            anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
+            anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
+            anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
+        }
+
+        if (anchor != null) {
+            if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
+            val insertedId = anchor.parent.addAfter(nsId, anchor)
+            if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
+            return insertedId as ArendNsId
+        }
+
         return null
     }
 
     override fun execute(editor: Editor?) {
-        for (id in idList) { //TODO: Verify that we do not add the same ID second time
-            addId(id.first, id.second)?.let{ insertedNsIds.add(it) }
-        }
+        val using = statCmd.nsUsing
+        val factory = ArendPsiFactory(statCmd.project)
+        if (using != null) insertedNsIds.addAll(idList.map { addId(it.first, it.second, factory, using) }.filterNotNull())
     }
 }
 
@@ -240,7 +235,7 @@ fun addIdToUsing(groupMember: PsiElement?,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
                  relativePosition: RelativePosition): List<ArendNsId> {
-    val siblingNsCmds = groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
+    groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
         val statCmd = it.statCmd
         if (statCmd != null && statCmd.nsUsing != null) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
