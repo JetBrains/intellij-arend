@@ -366,20 +366,14 @@ class ArendHighlightingAnnotator : Annotator {
                 val pparent = parent.parentSourceNode
                 if (pparent is Group) {
                     val parentRef = if (internal) pparent.referable else null
-                    for (ref in pparent.constructors) {
-                        if (!checkReference(ref.referable, definition, parentRef)) return
-                    }
-                    for (ref in pparent.fields) {
+                    for (ref in pparent.internalReferables) {
                         if (!checkReference(ref.referable, definition, parentRef)) return
                     }
 
                     for (subgroup in pparent.subgroups) {
                         if (!checkReference(subgroup.referable, definition, parentRef)) return
                         if (internal) {
-                            for (ref in subgroup.constructors) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                            for (ref in subgroup.fields) {
+                            for (ref in subgroup.internalReferables) {
                                 if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
                             }
                         }
@@ -387,10 +381,7 @@ class ArendHighlightingAnnotator : Annotator {
                     for (subgroup in pparent.dynamicSubgroups) {
                         if (!checkReference(subgroup.referable, definition, parentRef)) return
                         if (internal) {
-                            for (ref in subgroup.constructors) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                            for (ref in subgroup.fields) {
+                            for (ref in subgroup.internalReferables) {
                                 if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
                             }
                         }
@@ -616,12 +607,7 @@ class ArendHighlightingAnnotator : Annotator {
         val result = HashSet<String>()
         for (subgroup in group.subgroups) {
             result.add(subgroup.referable.textRepresentation())
-            for (ref in subgroup.constructors) {
-                if (ref.isVisible) {
-                    result.add(ref.referable.textRepresentation())
-                }
-            }
-            for (ref in subgroup.fields) {
+            for (ref in subgroup.internalReferables) {
                 if (ref.isVisible) {
                     result.add(ref.referable.textRepresentation())
                 }
@@ -629,21 +615,13 @@ class ArendHighlightingAnnotator : Annotator {
         }
         for (subgroup in group.dynamicSubgroups) {
             result.add(subgroup.referable.textRepresentation())
-            for (ref in subgroup.constructors) {
-                if (ref.isVisible) {
-                    result.add(ref.referable.textRepresentation())
-                }
-            }
-            for (ref in subgroup.fields) {
+            for (ref in subgroup.internalReferables) {
                 if (ref.isVisible) {
                     result.add(ref.referable.textRepresentation())
                 }
             }
         }
-        for (ref in group.constructors) {
-            result.add(ref.referable.textRepresentation())
-        }
-        for (ref in group.fields) {
+        for (ref in group.internalReferables) {
             result.add(ref.referable.textRepresentation())
         }
         return result

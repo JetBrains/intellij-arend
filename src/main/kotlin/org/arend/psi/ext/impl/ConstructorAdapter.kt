@@ -27,7 +27,7 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
-    override fun getReferable(): LocatedReferable = this
+    override fun getReferable() = this
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 

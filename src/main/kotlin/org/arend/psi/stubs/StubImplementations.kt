@@ -45,7 +45,7 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "DEF_DATA" -> ArendDefDataStub.Type
     "DEF_FUNCTION" -> ArendDefFunctionStub.Type
     "DEF_MODULE" -> ArendDefModuleStub.Type
-    else -> error("Unknown element $name")
+    else -> error("Unknown anchor $name")
 }
 
 abstract class ArendStub<T : ArendCompositeElement>(

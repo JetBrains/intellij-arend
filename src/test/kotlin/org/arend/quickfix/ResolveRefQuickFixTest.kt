@@ -1,7 +1,9 @@
 package org.arend.quickfix
 
-import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.openapi.command.WriteCommandAction
+import org.arend.refactoring.AddIdToUsingAction
+import org.arend.refactoring.ImportFileAction
+import org.arend.refactoring.RemoveRefFromStatCmdAction
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -272,7 +274,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """)
 
 
-    fun `test that simple renamings are taking into account`() = simpleImportFixTest(fileA +
+    fun `test that simple renamings are taken into account`() = simpleImportFixTest(fileA +
             """
                 --! B.ard
                 \import A
@@ -656,12 +658,27 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func lol2 => lol
             """)
 
-    fun `test that AddIdToUsingId works in the situation when there is a broken using command`() =  simpleActionTest(
+    fun `test AddIdToUsing action on an incomplete namespace command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
-            "\\import A \\using (a, b, z)") { file ->
+            "\\import A \\using (a, b \\as b', z)") { file ->
         val cmd = file.namespaceCommands.first()
-        val action = AddIdToUsingAction(cmd, listOf("a", "z", "b"))
-        WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { action.execute(myFixture.editor) }, file) }
+        val action = AddIdToUsingAction(cmd, listOf(Pair("a", null), Pair("z", null), Pair("b", "b'")))
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
+
+    fun `test ImportFileAction on empty file`() = simpleActionTest(
+            "{-caret-}", "\\import Main") { file ->
+        val action = ImportFileAction(file, file, null)
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
+
+    fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
+            "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
+            "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
+        val cmd = file.namespaceCommands.first()
+        val ref = cmd.refIdentifierList[1]
+        val action = RemoveRefFromStatCmdAction(cmd, ref)
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file)
+    }
+
 
     fun `test that resolve ref quick fixes are disabled inside class extensions`() =
             checkNoImport("\\func bar => 0\n\\class A {}\n\\func f => \\new A {| bar{-caret-} => 1}")
@@ -683,4 +700,37 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
                 \func foo => C.x
             """)
+
+    fun `test that shorter names are always preferred 2`() =
+            simpleImportFixTest("""
+                --! Foo.ard
+                \module FooM \where {
+                  \func lol => 1
+                }
+
+                --! B.ard
+                \func foo => lol{-caret-}
+            """, """
+                \import Foo
+
+                \func foo => FooM.lol""")
+
+    fun `test that simple renamings are taken into account 2`() =
+            simpleImportFixTest("""
+                --! Foo.ard
+                \module FooM \where {
+                  \func lol => 1
+                }
+
+                --! B.ard
+                \import Foo
+                \open Foo.FooM (lol \as lol')
+
+                \func foo => lol{-caret-}
+            """, """
+                \import Foo
+                \open Foo.FooM (lol \as lol')
+
+                \func foo => lol'""")
+
 }

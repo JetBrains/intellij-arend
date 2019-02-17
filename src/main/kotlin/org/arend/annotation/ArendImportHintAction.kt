@@ -26,7 +26,7 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
-import org.arend.quickfix.ResolveRefFixData
+import org.arend.refactoring.ResolveReferenceAction
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.typechecking.TypeCheckingService
 
@@ -47,7 +47,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         return this.getItemsToImport().isNotEmpty()
     }
 
-    private fun getItemsToImport() : List<ResolveRefFixData> {
+    private fun getItemsToImport() : List<ResolveReferenceAction> {
         if (importQuickFixAllowed(referenceElement)) {
             val project = referenceElement.project
             val name = referenceElement.referenceName
@@ -125,7 +125,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
-            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference element is invalid
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid
             return reference.resolve() == null // return false if already imported
         }
 

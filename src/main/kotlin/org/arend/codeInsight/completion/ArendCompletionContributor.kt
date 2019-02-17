@@ -15,6 +15,7 @@ import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
@@ -102,13 +103,11 @@ class ArendCompletionContributor : CompletionContributor() {
 
         extend(CompletionType.BASIC, WHERE_CONTEXT, onJointOfStatementsCondition(KeywordCompletionProvider(WHERE_KW_LIST), true, false) { jD: JointData ->
             var anc = jD.prevElement
-            while (anc != null && anc !is ArendDefinition && anc !is ArendDefModule && anc !is ArendClassStat) anc = anc.parent
+            while (anc != null && anc !is ArendGroup && anc !is ArendClassStat) anc = anc.parent
             if (anc != null) {
-                val da: ArendDefinition? = anc as? ArendDefinition /* TODO: create WhereHolder concept */
-                val dm: ArendDefModule? = anc as? ArendDefModule
+                val da: ArendGroup? = anc as? ArendGroup
                 (when {
-                    da is DefinitionAdapter<*> -> da.getWhere() == null
-                    dm != null -> dm.where == null
+                    da != null -> da.where == null
                     else -> false
                 })
             } else false
@@ -124,9 +123,7 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java), afterLeaf(ID)), noExtendsCondition)
         extend(CompletionType.BASIC, withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                 ProviderWithCondition({ parameters, _ ->
-                    var nS = parameters.position.parent?.parent?.nextSibling
-                    while (nS is PsiWhiteSpace) nS = nS.nextSibling
-                    nS !is ArendFieldTele
+                    parameters.position.parent?.parent?.findNextSibling() !is ArendFieldTele
                 }, noExtendsCondition))
 
         extend(CompletionType.BASIC, and(DATA_CONTEXT, afterLeaf(COLON)), KeywordCompletionProvider(DATA_UNIVERSE_KW))
@@ -277,8 +274,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 var exprFound = false
                 while (pos2 != null) {
                     if (pos2.nextSibling is PsiWhiteSpace) {
-                        var body = pos2.nextSibling
-                        while (body is PsiWhiteSpace || body is PsiComment) body = body.nextSibling
+                        val body = pos2.findNextSibling()
                         if (body is ArendFunctionBody || body is ArendDataBody) pos2 = body.parent
                     }
 
@@ -580,11 +576,11 @@ class ArendCompletionContributor : CompletionContributor() {
             val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
             System.out.println("")
             System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
-            System.out.println("position: " + parameters.position.javaClass + " text: " + parameters.position.text)
+            System.out.println("kind: " + parameters.position.javaClass + " text: " + parameters.position.text)
             var i = 0
             var pp: PsiElement? = parameters.position
             while (i < 13 && pp != null) {
-                System.out.format("position.parent(%2d): %-40s text: %-50s\n", i, pp.javaClass.simpleName, pp.text)
+                System.out.format("kind.parent(%2d): %-40s text: %-50s\n", i, pp.javaClass.simpleName, pp.text)
                 pp = pp.parent
                 i++
             }

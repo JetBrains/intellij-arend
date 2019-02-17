@@ -119,7 +119,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 simpleReferableConverter.remove(field)
             }
         } else if (referable is DataDefinitionAdapter) {
-            for (constructor in referable.constructors) {
+            for (constructor in referable.internalReferables) {
                 simpleReferableConverter.remove(constructor)
             }
         }

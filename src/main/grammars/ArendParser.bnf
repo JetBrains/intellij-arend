@@ -173,7 +173,7 @@ private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
     pin = 4
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.group.Group.InternalReferable"
+                   "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.naming.reference.FieldReferable"
                    "org.arend.term.abs.Abstract.ClassField" ]
     mixin = "org.arend.psi.ext.impl.ClassFieldAdapter"
@@ -184,7 +184,7 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
 classFieldSyn ::= refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn {
     pin = 1
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.group.Group.InternalReferable"
+                   "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.naming.reference.FieldReferable"
                    "org.arend.term.abs.Abstract.ClassFieldSynonym" ]
     mixin = "org.arend.psi.ext.impl.ClassFieldSynAdapter"
@@ -211,15 +211,14 @@ definition ::= defFunction
     | defClass
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.term.group.ChildGroup" ]
+                   "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
 defModule ::= moduleHeader where? {
     pin = 1
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.abs.Abstract.SourceNode"
-                   "org.arend.term.group.ChildGroup" ]
+    implements = [ "org.arend.psi.ext.impl.ArendGroup"
+                   "org.arend.term.abs.Abstract.SourceNode" ]
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -400,7 +399,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
 constructor ::= prec? defIdentifier_constructor typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.group.Group.InternalReferable"
+                   "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.term.abs.Abstract.Constructor"
                    "org.arend.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.arend.psi.ext.impl.ConstructorAdapter"
@@ -828,7 +827,7 @@ identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 fieldDefIdentifier ::= defIdentifier {
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.group.Group.InternalReferable"
+                   "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.term.abs.Abstract.ClassField"
                    "org.arend.naming.reference.FieldReferable"
                    "org.arend.psi.ext.ArendReferenceElement" ]

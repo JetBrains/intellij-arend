@@ -23,6 +23,8 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
         return body.constructorClauseList.flatMap { it.constructorList } + body.constructorList
     }
 
+    override fun getInternalReferables(): List<ArendInternalReferable> = constructors
+
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 
     override fun getEliminatedExpressions(): List<ArendRefIdentifier>? = dataBody?.elim?.refIdentifierList

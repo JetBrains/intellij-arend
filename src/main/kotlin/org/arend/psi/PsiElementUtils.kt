@@ -2,8 +2,11 @@ package org.arend.psi
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.mapFirstNotNull
 import org.arend.module.ArendModuleType
@@ -52,4 +55,57 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
 fun Group.findGroupByFullName(fullName: List<String>): Group? =
-    if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] } ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
+        if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
+                ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
+
+fun PsiElement.findNextSibling(): PsiElement? = findNextSibling(null)
+
+fun PsiElement.findNextSibling(punctuationType: IElementType?): PsiElement? {
+    var sibling: PsiElement? = this.nextSibling
+    while (sibling is PsiComment || sibling is PsiWhiteSpace ||
+            (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.nextSibling
+    return sibling
+}
+
+fun PsiElement.findPrevSibling(): PsiElement? = findPrevSibling(null)
+
+fun PsiElement.findPrevSibling(punctuationType: IElementType?): PsiElement? {
+    var sibling: PsiElement? = this.prevSibling
+    while (sibling is PsiComment || sibling is PsiWhiteSpace ||
+            (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.prevSibling
+    return sibling
+}
+
+enum class PositionKind {
+    BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
+}
+
+class RelativePosition(val kind: PositionKind, val anchor: PsiElement) : Comparable<RelativePosition> {
+    override fun compareTo(other: RelativePosition): Int {
+        if (kind == PositionKind.INSIDE_EMPTY_ANCHOR && other.kind == PositionKind.INSIDE_EMPTY_ANCHOR)
+            return 0
+        if (kind == PositionKind.INSIDE_EMPTY_ANCHOR)
+            return -1
+        if (other.kind == PositionKind.INSIDE_EMPTY_ANCHOR)
+            return 1
+        val anchorOfs = anchor.textOffset
+        val otherOfs = other.anchor.textOffset
+        if (anchorOfs < otherOfs) return -1
+        if (anchorOfs > otherOfs) return 1
+        if (kind == other.kind) return 0
+        if (kind == PositionKind.BEFORE_ANCHOR) return -1
+        return 1
+    }
+}
+
+fun PsiElement.deleteAndGetPosition(): RelativePosition? {
+    val pS = this.findPrevSibling()
+    val nS = this.findNextSibling()
+    val result: RelativePosition? = when {
+        pS != null -> RelativePosition(PositionKind.AFTER_ANCHOR, pS)
+        nS != null -> RelativePosition(PositionKind.BEFORE_ANCHOR, nS)
+        else -> this.parent?.let { RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, it) }
+    }
+    this.delete()
+    return result
+}

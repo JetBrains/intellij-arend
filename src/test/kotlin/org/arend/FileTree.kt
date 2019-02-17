@@ -170,7 +170,7 @@ private fun findElementInFile(file: PsiFile, marker: String): PsiElement {
     val elementOffset = doc.getLineStartOffset(markerLine - 1) + makerColumn
 
     return file.findElementAt(elementOffset) ?:
-            error { "No element found, offset = $elementOffset" }
+            error { "No anchor found, offset = $elementOffset" }
 }
 
 fun replaceCaretMarker(text: String): String = text.replace("{-caret-}", "<caret>")
