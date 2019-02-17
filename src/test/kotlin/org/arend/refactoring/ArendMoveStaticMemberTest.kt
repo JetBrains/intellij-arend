@@ -459,10 +459,89 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                  }
             """, "Main", "Bar", "A", "Foo.foo", "Foo.bar")
 
-    /* fun testObstructedScopes() =
+     fun testObstructedScopes() = //Should refactoring be prohibited in this situation?
             testMoveRefactoring("""
+            --! A.ard
+            \open Nat
 
+            \module Foo \where {
+              \func lol => 0
+
+              \func foo{-caret-} => lol + Foo.lol + FooBar.lol + A.FooBar.lol
+            }
+
+            \module Bar \where {
+              \func bar => 2
+            }
+
+            \module FooBar \where {
+              \open Bar (bar \as foo)
+
+              \func lol => foo + Foo.foo
+            }
             """, """
+            \open Nat
 
-            """, "", "") */
+            \module Foo \where {
+              \func lol => 0
+
+              \open FooBar (foo)
+            }
+
+            \module Bar \where {
+              \func bar => 2
+            }
+
+            \module FooBar \where {
+              \open Bar (bar \as foo)
+
+              \func lol => foo + foo
+
+              \func foo => Foo.lol + Foo.lol + FooBar.lol + A.FooBar.lol
+            }
+            """, "A", "FooBar")
+
+    fun testMoveData3() =
+            testMoveRefactoring("""
+                --! Main.ard
+                \module Bar \where {
+                  \data MyNat2{-caret-}
+                    | myZero
+                    | myCons MyNat2
+
+                  \func lol => myZero
+                }
+
+                \module Foo \where {
+                  \data MyNat1
+                    | myZero
+                    | myCons MyNat1
+
+                  \open Bar.MyNat2 (myZero \as myZero')
+
+                  \func lol (a : MyNat1) (b : Bar.MyNat2) \elim a, b
+                    | myZero, myZero' => 1
+                    | _, _ => 0
+                }
+            """, """
+                \module Bar \where {
+                  \open Foo (MyNat2)
+
+                  \func lol => MyNat2.myZero
+                }
+
+                \module Foo \where {
+                  \data MyNat1
+                    | myZero
+                    | myCons MyNat1
+
+                  \func lol (a : MyNat1) (b : MyNat2) \elim a, b
+                    | myZero, MyNat2.myZero => 1
+                    | _, _ => 0
+
+                  \data MyNat2
+                    | myZero
+                    | myCons MyNat2
+                }
+            """, "Main", "Foo")
  }

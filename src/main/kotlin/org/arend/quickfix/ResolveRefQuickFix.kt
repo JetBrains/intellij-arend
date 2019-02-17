@@ -25,7 +25,7 @@ class ResolveRefQuickFix {
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
             val (importAction, resultName) = getDecision(location, containingFile, element) ?: return null
-            val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
+            val renameAction = RenameReferenceAction(element, resultName)
 
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
         }
