@@ -701,4 +701,73 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func lol => 1
                }
                 """, "Main", "Bar")
+
+    fun testMultipleMove5() =
+            testMoveRefactoring("""
+                --! Main.ard
+                \open Nat
+                \class C{-caret-} {
+                  | foo : Nat
+
+                  \func bar => foo
+                } \where {
+                  \func foobar => c1
+
+                  \func bar2 => D.lol
+
+                  \func bar3 => f + foobar
+                }
+
+                \func f => D.lol + C.bar2
+
+                \func g => c1
+
+                \data D
+                 | c1
+                 | c2
+                \where {
+                  \func lol => C.bar
+
+                  \func lol' => C.foobar
+
+                  \func lol'' => lol
+
+                  \func goo => c1
+                }
+
+                \module FooBar \where {}
+            """, """
+               \open Nat
+               \open FooBar (C, foo, D, c1, c2)
+
+               \func f => D.lol + C.bar2
+
+               \func g => c1
+
+               \module FooBar \where {
+                 \class C {
+                   | foo : Nat
+
+                   \func bar => foo
+                 } \where {
+                   \func foobar => c1
+
+                   \func bar2 => D.lol
+
+                   \func bar3 => f + foobar
+                 }
+
+                 \data D
+                  | c1
+                  | c2
+                 \where {
+                   \func lol => C.bar
+
+                   \func lol' => C.foobar
+
+                   \func lol'' => lol
+
+                   \func goo => c1
+                 }
+               }""", "Main", "FooBar", "Main", "C", "D")
 }
