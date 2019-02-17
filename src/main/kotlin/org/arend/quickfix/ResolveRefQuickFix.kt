@@ -15,6 +15,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.*
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
+import org.arend.util.LongName
 import java.lang.IllegalStateException
 import java.util.Collections.singletonList
 
@@ -31,13 +32,17 @@ class ResolveRefQuickFix {
 
         class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
             private val myLongName: List<Pair<String, Referable>>
+            private val myContainingFile: ArendFile
+            val myAliases: MutableList<List<String>> = ArrayList()
+            var myFileResolveAction: ResolveRefFixAction? = null
 
             init {
-                var psi: PsiElement = target
+                var psi: PsiElement? = target
                 var skipFlag = skipFirstParent
+                var containingFile: ArendFile? = null
 
                 myLongName = ArrayList()
-                while (psi.parent != null) {
+                while (psi != null) {
                     if (psi is PsiReferable && psi !is ArendFile) {
                         val name = psi.name ?: throw IllegalStateException() //Fix later :)
 
@@ -47,8 +52,11 @@ class ResolveRefQuickFix {
                             myLongName.add(0, Pair(name, psi))
                         }
                     }
+                    if (psi is ArendFile) containingFile = psi
                     psi = psi.parent
                 }
+
+                myContainingFile = containingFile ?: throw IllegalStateException() //Fix later :)
             }
 
             fun getFullName(): List<String> = myLongName.map { it.first }.toList()
@@ -82,7 +90,7 @@ class ResolveRefQuickFix {
             }
 
             fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
-                var result: ArrayList<String>? = null
+                var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
                 for (entry in myLongName) {
                     result?.add(entry.first)
                     if (entry.second == referable) {
@@ -99,7 +107,6 @@ class ResolveRefQuickFix {
             val targetFile = target.containingFile as? ArendFile ?: return null
             val targetModulePath = targetFile.modulePath ?: return null
 
-            //Prepare target item locations
             val defaultLocation = LocationData(target)
             val alternativeLocation = when (target) {
                 is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> LocationData(target, true)
@@ -109,27 +116,15 @@ class ResolveRefQuickFix {
             locations.add(defaultLocation)
             alternativeLocation?.let { locations.add(it) }
 
-
             var modifyingImportsNeeded = false
             var fallbackImportAction: ResolveRefFixAction? = null
-            val importActionMap: HashMap<List<String>, ResolveRefFixAction?> = HashMap()
-
-            val fullNames = HashSet<List<String>>()
-
-            for (location in locations) fullNames.add(location.getFullName())
 
             val fileGroup = object : Group by currentFile {
                 override fun getSubgroups(): Collection<Group> = emptyList()
             }
             val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
-
             val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
-
             var suitableImport: ArendStatCmd? = null
-            val aliases = HashMap<List<String>, HashSet<String>>()
-
-            for (fName in fullNames) aliases[fName] = HashSet()
-
             var preludeImportedManually = false
 
             for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
@@ -139,71 +134,55 @@ class ResolveRefQuickFix {
 
                 if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
                     suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
-
-                    for (fName in fullNames) { //TODO: Could we reuse LocationData.calculateShorterNames() here?
-                        val importedNames = getImportedNames(namespaceCommand, fName[0])
-                        for (name in importedNames) aliases[fName]?.add(name.first)
-                    }
-                }
-            }
-
-            fullNames.clear()
-
-            for ((fName, aliases2) in aliases.entries) {
-                for (alias in aliases2) {
-                    val fName2 = ArrayList<String>()
-                    fName2.addAll(fName)
-                    fName2.removeAt(0)
-                    fName2.add(0, alias)
-                    fullNames.add(fName2)
+                    for (location in locations) location.myAliases.addAll(location.calculateShorterNames(namespaceCommand))
                 }
             }
 
             if (isPrelude(targetFile) && !preludeImportedManually) {
-                fullNames.add(defaultLocation.getFullName()) // items from prelude are visible in any context
+                defaultLocation.myAliases.add(defaultLocation.getFullName()) // items from prelude are visible in any context
                 fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
             }
 
 
-            if (fullNames.isEmpty()) { // target definition is inaccessible in current context
+            if (locations.all { it.myAliases.isEmpty() }) { // target definition is inaccessible in current context
                 modifyingImportsNeeded = true
 
-                fullNames.add(defaultLocation.getFullName())
-                alternativeLocation?.getFullName()?.let { if (importedScope.resolveName(it[0]) == null) fullNames.add(it) }
+                defaultLocation.myAliases.add(defaultLocation.getFullName())
+                if (alternativeLocation != null) {
+                    val alternativeFullName = alternativeLocation.getFullName()
+                    if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.myAliases.add(alternativeFullName)
+                }
 
                 if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
                     val nsUsing = suitableImport.nsUsing
                     val hiddenList = suitableImport.refIdentifierList
 
-                    for (fName in fullNames) {
-                        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == fName[0] }
-                        if (hiddenRef != null)
-                            importActionMap[fName] = RemoveRefFromStatCmdAction(suitableImport, hiddenRef)
-                        else if (nsUsing != null)
-                            importActionMap[fName] = AddIdToUsingAction(suitableImport, singletonList(Pair(fName[0], null)))
+                    for (location in locations) {
+                        val locationFullName = location.getFullName()
+                        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == locationFullName[0] }
+                        location.myFileResolveAction = when {
+                            hiddenRef != null -> RemoveRefFromStatCmdAction(suitableImport, hiddenRef)
+                            nsUsing != null -> AddIdToUsingAction(suitableImport, singletonList(Pair(locationFullName[0], null)))
+                            else -> null
+                        }
                     }
+
                     fallbackImportAction = null
                 } else { // targetFile has not been imported
-                    if (minimalImportMode) {
-                        fallbackImportAction = ImportFileAction(targetFile, currentFile, emptyList())
-                        for (fName in fullNames)
-                            importActionMap[fName] = ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
-                    } else {
-                        fallbackImportAction = ImportFileAction(targetFile, currentFile, null)
-                        for (fName in fullNames)
-                            importActionMap[fName] = fallbackImportAction
+                    fallbackImportAction =
+                            if (minimalImportMode) ImportFileAction(targetFile, currentFile, emptyList())
+                            else ImportFileAction(targetFile, currentFile, null)
+
+                    for (location in locations) {
+                        val fName = location.getFullName()
+                        location.myFileResolveAction =
+                                if (minimalImportMode) ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
+                                else fallbackImportAction
                     }
                 }
             }
 
-
-            var currentBlock: Map<List<String>, ResolveRefFixAction?>
-            //val anchorParentGroups: Sequence<PsiElement>? = anchor.parents().filter{ it is ChildGroup }
-
-            currentBlock = HashMap()
-            for (fName in fullNames) currentBlock.put(fName, importActionMap[fName])
-
-            val nestedOpenCommandBlocks = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
+            val ancestorGroups = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
 
             var psi: PsiElement = anchor
             while (psi.parent != null) { //File also passes well (its parent is a directory)
@@ -219,113 +198,59 @@ class ResolveRefQuickFix {
                 }
 
                 if (statements != null)
-                    nestedOpenCommandBlocks.add(0, Pair(containingGroup, statements.filter { it.openKw != null }))
+                    ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.openKw != null }))
 
                 psi = psi.parent
             }
 
-            for (openCommandBlock in nestedOpenCommandBlocks) {
-                val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+            for (openCommandBlock in ancestorGroups) {
                 val currentGroup = openCommandBlock.first
-                newBlock.putAll(currentBlock)
 
                 for (location in locations) {
-                    val oldFName = location.getFullName()
-
-                    if (currentGroup is PsiLocatedReferable) {
-                        val remainder = location.calculateRemainder(currentGroup)
-                        if (remainder != null) {
-                            newBlock[remainder] = currentBlock[oldFName]
-                        }
-                    }
-
-                    for (openCommand in openCommandBlock.second) {
-                        val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
-                        if (lastRef != null) {
-                            val correctedNames = location.calculateShorterNames(openCommand)
-                            for (name in correctedNames) newBlock[name] = currentBlock[oldFName]
-                        }
-                    }
+                    if (currentGroup is PsiLocatedReferable) location.calculateRemainder(currentGroup)?.let { location.myAliases.add(it) }
+                    for (openCommand in openCommandBlock.second) location.myAliases.addAll(location.calculateShorterNames(openCommand))
                 }
-                currentBlock = newBlock
             }
 
-            val newBlock = HashMap<List<String>, ResolveRefFixAction?>()
+            val elementParent = anchor.parent
+            var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
+            if (modifyingImportsNeeded && defaultLocation.isNotEmpty())
+                correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
-            for (fName in currentBlock.keys) {
-                if (fName.isEmpty()) return null // Trivial situation - we are trying to resolve the link to our direct parent :)
 
-                val elementParent = anchor.parent
-                var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
+            val resultingDecisions = ArrayList<Pair<List<String>, ResolveRefFixAction?>>()
 
-                if (modifyingImportsNeeded && defaultLocation.isNotEmpty())
-                    correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
+            for (location in locations) {
+                location.myAliases.map { alias ->
+                    if (alias.isEmpty()) return null // Trivial situation - we are trying to resolve the link to our direct parent :)
 
-                var referable = Scope.Utils.resolveName(correctedScope, fName)
-                if (referable is RedirectingReferable) {
-                    referable = referable.originalReferable
+                    var referable = Scope.Utils.resolveName(correctedScope, alias)
+                    if (referable is RedirectingReferable) referable = referable.originalReferable
+
+                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
+                        resultingDecisions.add(Pair(alias, location.myFileResolveAction))
                 }
-
-                if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
-                    newBlock[fName] = currentBlock[fName]
             }
-
-            currentBlock = newBlock
-
 
             val veryLongName = ArrayList<String>()
-            if (currentBlock.isEmpty()) {
-                veryLongName.addAll(targetModulePath.toList())
-                veryLongName.addAll(defaultLocation.getFullName())
-                // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
-                // Let us use the "longest possible name" when referring to the anchor
-                currentBlock.put(veryLongName, fallbackImportAction)
+            if (resultingDecisions.isEmpty()) {
+                veryLongName.addAll(targetModulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
+                veryLongName.addAll(defaultLocation.getFullName()) // Let us use the "longest possible name" when referring to the anchor
+                resultingDecisions.add(Pair(veryLongName, fallbackImportAction))
             }
 
-            // Determine shortest possible name in current scope
-            val iterator = currentBlock.keys.iterator()
-            var length = -1
-            val resultNames: MutableList<Pair<List<String>, ResolveRefFixAction?>> = ArrayList()
+            resultingDecisions.sortBy { LongName(it.first) }
 
-            do {
-                val lName = iterator.next()
-
-                if (lName.size < length)
-                    resultNames.clear()
-
-                if (length == -1 || lName.size <= length) {
-                    length = lName.size
-                    resultNames.add(Pair(lName, currentBlock[lName]))
-                }
-            } while (iterator.hasNext())
-
-            val comparator = Comparator<Pair<List<String>, ResolveRefFixAction?>> { o1, o2 ->
-                //TODO: Isolate this piece of code
-                if (o1 == null && o2 == null) return@Comparator 0
-                if (o1 == null) return@Comparator -1
-                if (o2 == null) return@Comparator 1
-
-                val s1 = o1.first
-                val s2 = o2.first
-                (0 until minOf(s1.size, s2.size))
-                        .filter { s1[it] != s2[it] }
-                        .forEach { return@Comparator s1[it].compareTo(s2[it]) }
-                if (s1.size != s2.size) return@Comparator s1.size.compareTo(s2.size)
-                0
-            }
-            resultNames.sortedWith(comparator)
-
-            return if (resultNames.size > 0) {
-                val resultName = resultNames[0].first
-                val importAction = if (targetFile != currentFile || resultName == veryLongName)
-                    resultNames[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
+            return if (resultingDecisions.size > 0) {
+                val resultingName = resultingDecisions[0].first
+                val importAction = if (targetFile != currentFile || resultingName == veryLongName)
+                    resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
                 if (importAction is ImportFileAction && !importAction.isValid())
                     return null //Perhaps current or target directory is not marked as a content root
 
-                return Pair(importAction, resultName)
-            } else
-                null
+                return Pair(importAction, resultingName)
+            } else null
         }
     }
 }
