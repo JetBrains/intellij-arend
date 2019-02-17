@@ -12,4 +12,6 @@ abstract class ArendConstructorClauseImplMixin(node: ASTNode) : ArendSourceNodeI
     override fun getPatterns(): List<ArendPattern> = patternList
 
     override fun getConstructors(): List<ArendConstructor> = constructorList
+
+    override fun isLocal() = false
 }
