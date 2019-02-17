@@ -63,7 +63,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, null, "Main", "Foo")
 
-    fun testLongName1() =
+     fun testLongName1() =
             testMoveRefactoring("""
              --! Main.ard
             \module Foo \where {
@@ -158,7 +158,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
             \func lol => myZero
             """, """
-            \open Foo (MyNat, myZero, myCons)
+            \open Foo (MyNat, myCons)
 
             \module Foo \where {
               \func myZero => 0
@@ -289,7 +289,6 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             """, """
                 \import Foo
                 \import Goo
-
                 \open FooM (lol \as lol')
 
                 \func foobar => lol'
@@ -446,9 +445,9 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
 
                    \func foobar => foo + lol + goo
 
-                   \func bar => 3
-
                    \func foo => 1
+
+                   \func bar => 3
                  }
 
                  \module Fubar \where {
@@ -459,7 +458,7 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
                  }
             """, "Main", "Bar", "A", "Foo.foo", "Foo.bar")
 
-     fun testObstructedScopes() = //Should refactoring be prohibited in this situation?
+    fun testObstructedScopes() = //Should refactoring be prohibited in this situation?
             testMoveRefactoring("""
             --! A.ard
             \open Nat
@@ -501,47 +500,179 @@ class ArendMoveStaticMemberTest: ArendMoveTestBase() {
             }
             """, "A", "FooBar")
 
-    fun testMoveData3() =
+     fun testMoveData3() =
             testMoveRefactoring("""
                 --! Main.ard
                 \module Bar \where {
                   \data MyNat2{-caret-}
-                    | myZero
-                    | myCons MyNat2
+                    | A
+                    | B
 
-                  \func lol => myZero
+                  \func lol => A
+
+                  \func lol2 => Foo.A
                 }
 
                 \module Foo \where {
                   \data MyNat1
-                    | myZero
-                    | myCons MyNat1
+                    | A
+                    | B
 
-                  \open Bar.MyNat2 (myZero \as myZero')
+                  \open Bar.MyNat2 (A \as A')
 
                   \func lol (a : MyNat1) (b : Bar.MyNat2) \elim a, b
-                    | myZero, myZero' => 1
-                    | _, _ => 0
+                    | A, A' => 1
+                    | B, Bar.B => 0
                 }
             """, """
                 \module Bar \where {
                   \open Foo (MyNat2)
 
-                  \func lol => MyNat2.myZero
+                  \func lol => MyNat2.A
+
+                  \func lol2 => Foo.A
                 }
 
                 \module Foo \where {
                   \data MyNat1
-                    | myZero
-                    | myCons MyNat1
+                    | A
+                    | B
+
+                  \open MyNat2 (A \as A')
 
                   \func lol (a : MyNat1) (b : MyNat2) \elim a, b
-                    | myZero, MyNat2.myZero => 1
-                    | _, _ => 0
+                    | A, A' => 1
+                    | B, MyNat2.B => 0
 
                   \data MyNat2
-                    | myZero
-                    | myCons MyNat2
+                    | A
+                    | B
                 }
             """, "Main", "Foo")
- }
+
+    fun testMultipleMove2() =
+            testMoveRefactoring("""
+               --! Foo.ard
+               \import Main
+               \data D1 {-caret-}
+                 | A
+                 | B
+
+               \data D2
+                 | A
+                 | B
+
+               --! Main.ard
+               -- Empty File
+
+            """, """
+               \import Main
+
+
+            """, "Main", "", "Foo", "D1", "D2")
+
+    fun testMultipleMove3() =
+            testMoveRefactoring("""
+               --! Foo.ard
+               \import Main ()
+               \data D1 {-caret-}
+                 | A
+                 | B
+
+               \data D2
+                 | A
+                 | B
+
+               --! Main.ard
+               -- Empty File
+
+            """, """
+               \import Main (D1, D2)
+
+
+            """, "Main", "", "Foo", "D1", "D2")
+
+    fun testMultipleMove4() =
+            testMoveRefactoring("""
+               --! Foo.ard
+               \data D1 {-caret-}
+                 | A
+                 | B
+
+               \data D2
+                 | A
+                 | B
+
+               \func foo (d1 : D1) (d2 : D2) \elim d1, d2
+                 | D1.A, D2.A => 1
+                 | D1.B, D2.B => 0
+
+               --! Main.ard
+               -- Empty File
+
+            """, """
+               \import Main
+
+               \func foo (d1 : D1) (d2 : D2) \elim d1, d2
+                 | A, D2.A => 1
+                 | B, D2.B => 0
+            """, "Main", "", "Foo", "D1", "D2")
+
+    fun testMultipleRenaming1() =
+            testMoveRefactoring("""
+               --! Main.ard
+               \open Nat
+
+               \module Foo \where {
+                 \func foo{-caret-} => 1
+               }
+
+               \module Bar \where {}
+
+               \module FooBar \where {
+                 \open Foo (foo \as foo1, foo \as foo2)
+                 \func lol => foo1 + foo2
+               }
+            """, """
+               \open Nat
+
+               \module Foo \where {
+                 \open Bar (foo)
+               }
+
+               \module Bar \where {
+                 \func foo => 1
+               }
+
+               \module FooBar \where {
+                 \open Bar (foo \as foo1, foo \as foo2)
+
+                 \func lol => foo1 + foo2
+               }
+            """, "Main", "Bar")
+
+    fun testMultipleRenaming2() =
+            testMoveRefactoring("""
+               --! Foo.ard
+               \func foo => 1
+
+               --! Bar.ard
+               {- Empty file -}
+               --! Main.ard
+               \import Foo (foo \as foo1, foo \as foo2)
+               \open Nat {-caret-}
+
+               \module FooBar \where {
+                 \func lol => foo1 + foo2
+               }
+            """, """
+               \import Foo ()
+               \open Nat
+               \import Bar (foo \as foo1, foo \as foo2)
+
+               \module FooBar \where {
+                 \func lol => foo1 + foo2
+               }
+            """, "Bar", "", "Foo", "foo")
+
+}

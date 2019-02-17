@@ -84,7 +84,7 @@ class ResolveRefQuickFix {
                     val nsUsing = suitableImport.nsUsing
                     val hiddenList = suitableImport.refIdentifierList
 
-                    for (location in locations) {
+                    for (location in locations) if (location.getLongName().isNotEmpty()) {
                         val locationFullName = location.getLongName()
                         val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == locationFullName[0] }
                         fileResolveActions[location] = when {
@@ -149,13 +149,15 @@ class ResolveRefQuickFix {
 
             for (location in locations) {
                 location.getAliases().map { alias ->
-                    if (alias.isEmpty()) return null // Trivial situation - we are trying to resolve the link to our direct parent :)
+                    /*if (alias.isEmpty()) return null */ // Trivial situation - we are trying to resolve the link to our direct parent :)
+                    val isValid = if (alias.isEmpty()) true else {
+                        var referable = Scope.Utils.resolveName(correctedScope, alias)
+                        if (referable is RedirectingReferable) referable = referable.originalReferable
 
-                    var referable = Scope.Utils.resolveName(correctedScope, alias)
-                    if (referable is RedirectingReferable) referable = referable.originalReferable
+                        referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == defaultLocation.myTarget
+                    }
 
-                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == defaultLocation.myTarget)
-                        resultingDecisions.add(Pair(alias, fileResolveActions[location]))
+                    if (isValid) resultingDecisions.add(Pair(alias, fileResolveActions[location]))
                 }
             }
 
@@ -184,7 +186,7 @@ class ResolveRefQuickFix {
 
 class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
     private val myLongName: List<Pair<String, Referable>>
-    private val myAliases: MutableList<List<String>> = ArrayList()
+    private val myAliases: MutableSet<List<String>> = HashSet()
     val myContainingFile: ArendFile
     val myTarget = target
 
@@ -235,7 +237,7 @@ class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false
         myAliases.add(getLongName())
     }
 
-    fun getAliases(): List<List<String>> = myAliases
+    fun getAliases(): Set<List<String>> = myAliases
 
     private fun calculateShorterNames(statCmd: ArendStatCmd): List<List<String>> {
         val lastRef = statCmd.longName?.refIdentifierList?.lastOrNull()

@@ -2,6 +2,7 @@ package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.intellij.psi.codeStyle.CodeStyleManager
 import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
@@ -57,9 +58,11 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 }
 
 class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>) : AbstractRefactoringAction {
+    val insertedNsIds = ArrayList<ArendNsId>()
+
     override fun toString(): String = "Add ${usingListToString(idList)} to the \"using\" list of the namespace command `${statCmd.text}`"
 
-    private fun addId(id: String, newName: String?) {
+    private fun addId(id: String, newName: String?): ArendNsId? {
         val project = statCmd.project
         val using = statCmd.nsUsing
         if (using != null) {
@@ -93,26 +96,30 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
 
                 if (anchor != null) {
                     if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
-                    anchor.parent.addAfter(nsId, anchor)
+                    val insertedId = anchor.parent.addAfter(nsId, anchor)
                     if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
+                    return insertedId as ArendNsId
                 }
             }
         }
+        return null
     }
 
     override fun execute(editor: Editor?) {
-        for (id in idList)
-            addId(id.first, id.second)
+        for (id in idList) { //TODO: Verify that we do not add the same ID second time
+            addId(id.first, id.second)?.let{ insertedNsIds.add(it) }
+        }
     }
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : AbstractRefactoringAction {
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier) : AbstractRefactoringAction {
     override fun toString(): String {
         val listType = when (id.parent) {
             is ArendStatCmd -> "\"hiding\" list"
             /* ArendNsUsing */ else -> "\"using\" list"
         }
-        return "Remove " + id.referenceName + " from " + statCmdName(statCmd) + " import's $listType"
+        val name = if (statCmd != null) statCmdName(statCmd) else "???"
+        return "Remove " + id.referenceName + " from " + name + " import's $listType"
     }
 
     override fun execute(editor: Editor?) {
@@ -145,7 +152,10 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: Aren
 
         if (statCmd != null && statCmd.openKw != null) { //Remove open command with null effect
             val nsUsing = statCmd.nsUsing
-            if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) statCmd.delete()
+            if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
+                val statCmdStatement = statCmd.parent
+                statCmdStatement.delete()
+            }
         }
     }
 }
@@ -210,12 +220,12 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
     when (relativePosition.kind) {
         PositionKind.BEFORE_ANCHOR -> {
             insertedStatement = relativePosition.anchor.parent.addBefore(commandStatement, relativePosition.anchor)
-            relativePosition.anchor.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
+            insertedStatement.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
         }
         PositionKind.AFTER_ANCHOR -> {
             insertedStatement = relativePosition.anchor.parent.addAfter(commandStatement, relativePosition.anchor)
-            relativePosition.anchor.parent.addAfter(factory.createWhitespace("\n"), relativePosition.anchor)
-            relativePosition.anchor.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
+            insertedStatement.parent.addAfter(factory.createWhitespace("\n"), relativePosition.anchor)
+            insertedStatement.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
         }
         PositionKind.INSIDE_EMPTY_ANCHOR -> {
             insertedStatement = relativePosition.anchor.add(commandStatement)
@@ -229,20 +239,28 @@ fun addIdToUsing(groupMember: PsiElement?,
                  targetContainerName: String,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
-                 relativePosition: RelativePosition) {
-    val siblingNsCmds = groupMember?.parent?.children?.filterIsInstance<ArendStatCmd>()?.filter {
-        if (it.openKw != null) {
-            val ref = it.longName?.refIdentifierList?.lastOrNull()
+                 relativePosition: RelativePosition): List<ArendNsId> {
+    val siblingNsCmds = groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
+        val statCmd = it.statCmd
+        if (statCmd != null && statCmd.nsUsing != null) {
+            val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
-                target == targetContainer
-            } else false
-        } else false
+                if (target == targetContainer) {
+                    val action = AddIdToUsingAction(statCmd, renamings)
+                    action.execute(null)
+                    return action.insertedNsIds
+                }
+            }
+        }
     }
 
-    if (siblingNsCmds != null && siblingNsCmds.isNotEmpty()) AddIdToUsingAction(siblingNsCmds.first(), renamings).execute(null)
-    else addStatCmd(factory, ArendPsiFactory.StatCmdKind.OPEN,
-            targetContainerName, renamings, relativePosition)
+    if (targetContainerName.isNotEmpty()) {
+        val insertedStatement = addStatCmd(factory, ArendPsiFactory.StatCmdKind.OPEN, targetContainerName, renamings, relativePosition)
+        val statCmd = insertedStatement.childOfType<ArendStatCmd>()
+        return statCmd?.nsUsing?.nsIdList ?: emptyList()
+    }
+    return emptyList()
 }
 
 fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<Pair<String, ArendNsId?>> {

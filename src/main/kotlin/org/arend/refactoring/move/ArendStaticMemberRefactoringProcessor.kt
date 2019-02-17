@@ -19,6 +19,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.LocationData
 import org.arend.quickfix.ResolveRefQuickFix
@@ -53,7 +54,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMembersToMove: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
                                             private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
-    private val movedReferableNames = ArrayList<String>()
+    val referableDescriptors = ArrayList<MovedReferableDescriptor>()
 
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
@@ -68,7 +69,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         for ((i, member) in myMembersToMove.withIndex())
             for (entry in collectRelevantReferables(member)) {
-                entry.key.name?.let{ movedReferableNames.add(it) }
+                val descriptor = MovedReferableDescriptor(i, entry.value, entry.key.name)
+                referableDescriptors.add(descriptor)
 
                 for (psiReference in ReferencesSearch.search(entry.key)) {
                     val referenceElement = psiReference.element
@@ -77,7 +79,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         val statCmd = isStatCmdUsage(psiReference, false)
                         val isUsageInHiding = referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd
                         if (statCmd == null || isUsageInHiding || !statCmdsToFix.contains(statCmd))
-                            usagesList.add(ArendUsageInfo(psiReference, i, entry.value))
+                            usagesList.add(ArendUsageInfo(psiReference, descriptor))
                     }
                 }
             }
@@ -111,7 +113,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
-        val insertAnchor: PsiElement?
+        var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
 
         when (myTargetContainer) {
@@ -163,9 +165,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
-            val mCopy = (if (insertAnchor == null) (myTargetContainer.add(mCopyStatement))
-            else (insertAnchor.parent.addAfter(mCopyStatement, insertAnchor))).childOfType<ArendGroup>()!!
-
+            val mCopyStatementInserted = if (insertAnchor == null)
+                (myTargetContainer.add(mCopyStatement)) else
+                insertAnchor.parent.addAfter(mCopyStatement, insertAnchor)
+            val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
             val members = membersMap[m]
@@ -173,7 +176,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 val oldKey = memberFixInfo.key
                 val refFixDataPack = bodyRefFixData[oldKey]
                 if (refFixDataPack != null) {
-                    val newTarget = locateMember(mCopy, memberFixInfo.value)
+                    val newTarget = locateChild(mCopy, memberFixInfo.value)
                     if (newTarget is PsiLocatedReferable) {
                         bodyRefFixData[newTarget] = refFixDataPack
                         bodyRefFixData.remove(oldKey)
@@ -182,83 +185,119 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             }
 
             mStatement.deleteAndGetPosition()?.let { holes.add(it) }
+            insertAnchor = mCopyStatementInserted
+        }
+        //Create map from descriptors to actual psi elements of members
+        val movedReferablesMap = HashMap<MovedReferableDescriptor, PsiLocatedReferable>()
+        val movedReferablesNamesList = referableDescriptors.map { it.name }.filterNotNull().toList()
+        val movedReferablesNamesSet = movedReferablesNamesList.toSet()
+        val movedReferablesUniqueNames = movedReferablesNamesSet.filter {name -> movedReferablesNamesList.filter { it == name }.size == 1 }
+
+        for (descriptor in referableDescriptors) {
+            val groupNumber = descriptor.groupNumber
+            val group = if (groupNumber < newMemberList.size) newMemberList[groupNumber] else null
+
+            if (group != null) {
+                val targetReferable = locateChild(group, descriptor.childPath)
+                if (targetReferable is PsiLocatedReferable)
+                    movedReferablesMap[descriptor] = targetReferable
+            }
         }
 
-        //Prepare "remainder" namespace command (which is inserted in the place where one of the moved definitions was)
+        val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
+        for (entry in movedReferablesMap) {
+            val name = entry.key.name
+            if (name != null && movedReferablesUniqueNames.contains(name)) referablesWithUniqueNames[name] = entry.value
+        }
+
+        //Prepare the "remainder" namespace command (the one which is inserted in the place where one of the moved definitions was)
         if (holes.isNotEmpty()) {
             val uppermostHole = holes.sorted().first()
             var remainderAnchor: PsiElement? = uppermostHole.anchor
 
-            val next = remainderAnchor?.rightSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
-            val prev = remainderAnchor?.leftSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
-            if (next != null) remainderAnchor = next else
-                if (prev != null) remainderAnchor = prev else
-                    while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
+            if (uppermostHole.kind != PositionKind.INSIDE_EMPTY_ANCHOR) {
+                val next = remainderAnchor?.rightSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
+                val prev = remainderAnchor?.leftSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
+                if (next != null) remainderAnchor = next else
+                if (prev != null) remainderAnchor = prev
+            }
+
+            while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
 
             if (remainderAnchor is ArendCompositeElement) {
-                val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor
                 val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
-                val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), sourceContainerFile, remainderAnchor)
-                if (importData != null) {
-                    val importAction = importData.first
-                    importAction?.execute(null)
+                val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
+                val importData = getDecision(targetLocation, sourceContainerFile, remainderAnchor)
 
-                    val name = LongName(importData.second).toString()
-                    val renamings = movedReferableNames.map { Pair(it, null) }
-                    addIdToUsing(groupMember, myTargetContainer, name, renamings, psiFactory, uppermostHole)
+                if (importData != null) {
+                    val importAction: AbstractRefactoringAction? = importData.first
+                    val openedName: List<String>? = importData.second
+
+                    importAction?.execute(null)
+                    val renamings = movedReferablesUniqueNames.map { Pair(it, null) }
+                    val groupMember =
+                            if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR)  {
+                                if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
+                            }
+                            else remainderAnchor
+
+                    val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
+                    for (nsId in nsIds) {
+                        val target = nsId.refIdentifier.reference?.resolve()
+                        val name = nsId.refIdentifier.referenceName
+                        if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
+                            RemoveRefFromStatCmdAction(null, nsId.refIdentifier).execute(null)
+                    }
                 }
             }
         }
-
 
         //Fix usages of namespace commands
         for (usage in usages) if (usage is ArendStatCmdUsageInfo) {
             val statCmd = usage.command
             val statCmdStatement = statCmd.parent
             val usageFile = statCmd.containingFile as ArendFile
-
-            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd)
-            if (importData != null) {
-                val importAction = importData.first
-                importAction?.execute(null)
-            }
-
             val renamings = ArrayList<Pair<String, String?>>()
-            for (memberName in movedReferableNames) {
+            val nsIdToRemove = HashSet<ArendNsId>()
+
+            for (memberName in movedReferablesNamesSet) {
                 val importedName = getImportedNames(statCmd, memberName)
 
                 for (name in importedName) {
                     val newName = if (name.first == memberName) null else name.first
                     renamings.add(Pair(memberName, newName))
                     val nsId = name.second
-
-                    if (nsId != null) RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
+                    if (nsId != null) nsIdToRemove.add(nsId)
                 }
             }
 
+            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd)
             val currentName: List<String>? = importData?.second
-            if (statCmd.openKw != null && renamings.isNotEmpty() && currentName != null && currentName.isNotEmpty()) {
-                val name = LongName(currentName).toString()
-                addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
+
+            if (renamings.isNotEmpty() && currentName != null) {
+                importData.first?.execute(null)
+                val name = when {
+                    currentName.isNotEmpty() -> LongName(currentName).toString()
+                    myTargetContainer is ArendFile -> myTargetContainer.modulePath?.lastName ?: ""
+                    else -> ""
+                }
+                if (name.isNotEmpty()) addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
+            for (nsId in nsIdToRemove)
+                RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
         }
 
         //Now fix references of "normal" usages
         for (usage in usages) if (usage is ArendUsageInfo) {
-            val num = usage.memberNo
             val referenceElement = usage.reference?.element
             val referenceParent = referenceElement?.parent
 
             if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) { //Usage in "hiding" list which we simply delete
                 RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
-            } else {
-                val enclosingGroup = if (num < newMemberList.size) newMemberList[num] else null
-                if (enclosingGroup != null && referenceElement is ArendReferenceElement) {
-                    val targetReferable = locateMember(enclosingGroup, usage.memberPath)
-                    if (targetReferable is PsiLocatedReferable)
-                        ResolveRefQuickFix.getDecision(targetReferable, referenceElement)?.execute(null)
-                }
+            } else if (referenceElement is ArendReferenceElement) { //Normal usage which we try to fix
+                val targetReferable = movedReferablesMap[usage.referableDescriptor]
+                if (targetReferable != null) ResolveRefQuickFix.getDecision(targetReferable, referenceElement)?.execute(null)
             }
         }
 
@@ -272,11 +311,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
     }
 
-    private fun locateMember(element: PsiElement, prefix: List<Int>): PsiElement? {
-        return if (prefix.isEmpty()) element else {
-            val shorterPrefix = prefix.subList(1, prefix.size)
-            val childElement = element.children[prefix[0]]
-            if (childElement != null) locateMember(childElement, shorterPrefix) else null
+    private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {
+        return if (childPath.isEmpty()) element else {
+            val shorterPrefix = childPath.subList(1, childPath.size)
+            val childElement = element.children[childPath[0]]
+            if (childElement != null) locateChild(childElement, shorterPrefix) else null
         }
     }
 
@@ -370,7 +409,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return null
     }
 
-    class ArendUsageInfo(reference: PsiReference, val memberNo: Int, val memberPath: List<Int>) : UsageInfo(reference)
+    class MovedReferableDescriptor(val groupNumber: Int, val childPath: List<Int>, val name: String?)
+
+    class ArendUsageInfo(reference: PsiReference, val referableDescriptor: MovedReferableDescriptor) : UsageInfo(reference)
 
     class ArendStatCmdUsageInfo(val command: ArendStatCmd, reference: PsiReference) : UsageInfo(reference)
 }
