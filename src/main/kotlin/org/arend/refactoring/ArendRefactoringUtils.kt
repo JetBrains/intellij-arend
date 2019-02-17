@@ -74,7 +74,6 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
                 needsCommaBefore = true
             }
             if (id == idRefName && newName == idDefName) return null
-
         }
 
         val nsIdStr = if (newName == null) id else "$id \\as $newName"

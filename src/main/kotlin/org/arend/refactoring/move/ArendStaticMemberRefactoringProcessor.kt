@@ -19,7 +19,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.LocationData
 import org.arend.quickfix.ResolveRefQuickFix
@@ -54,7 +53,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMembersToMove: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
                                             private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
-    val referableDescriptors = ArrayList<MovedReferableDescriptor>()
+    val referableDescriptors = ArrayList<LocationDescriptor>()
 
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
@@ -69,7 +68,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         for ((i, member) in myMembersToMove.withIndex())
             for (entry in collectRelevantReferables(member)) {
-                val descriptor = MovedReferableDescriptor(i, entry.value, entry.key.name)
+                val descriptor = LocationDescriptor(i, entry.value)
                 referableDescriptors.add(descriptor)
 
                 for (psiReference in ReferencesSearch.search(entry.key)) {
@@ -148,20 +147,19 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Memorize references in members being moved
-        val bodyRefFixData = HashMap<PsiLocatedReferable, Set<Pair<Int, List<Int>>>>()
+        val usagesInMovedBodies = HashMap<PsiLocatedReferable, Set<LocationDescriptor>>()
         val membersMap = HashMap<ArendGroup, Map<PsiLocatedReferable, List<Int>>>()
-        val newMemberList = ArrayList<ArendGroup>()
-
         for ((mIndex, m) in myMembersToMove.withIndex()) {
             val fixData = HashMap<PsiLocatedReferable, MutableSet<List<Int>>>()
             val memberData = HashMap<PsiLocatedReferable, List<Int>>()
             memorizeReferences(emptyList(), m, fixData, memberData)
             membersMap[m] = memberData
-            for (r in fixData) bodyRefFixData[r.key] = r.value.map { Pair(mIndex, it) }.toSet()
+            for (r in fixData) usagesInMovedBodies[r.key] = r.value.map { LocationDescriptor(mIndex, it) }.toSet()
         }
 
         //Do move members
         val holes = ArrayList<RelativePosition>()
+        val newMemberList = ArrayList<ArendGroup>()
         for (m in myMembersToMove) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
@@ -174,12 +172,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val members = membersMap[m]
             if (members != null) for (memberFixInfo in members) {
                 val oldKey = memberFixInfo.key
-                val refFixDataPack = bodyRefFixData[oldKey]
+                val refFixDataPack = usagesInMovedBodies[oldKey]
                 if (refFixDataPack != null) {
                     val newTarget = locateChild(mCopy, memberFixInfo.value)
                     if (newTarget is PsiLocatedReferable) {
-                        bodyRefFixData[newTarget] = refFixDataPack
-                        bodyRefFixData.remove(oldKey)
+                        usagesInMovedBodies[newTarget] = refFixDataPack
+                        usagesInMovedBodies.remove(oldKey)
                     }
                 }
             }
@@ -187,12 +185,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             mStatement.deleteAndGetPosition()?.let { holes.add(it) }
             insertAnchor = mCopyStatementInserted
         }
-        //Create map from descriptors to actual psi elements of members
-        val movedReferablesMap = HashMap<MovedReferableDescriptor, PsiLocatedReferable>()
-        val movedReferablesNamesList = referableDescriptors.map { it.name }.filterNotNull().toList()
-        val movedReferablesNamesSet = movedReferablesNamesList.toSet()
-        val movedReferablesUniqueNames = movedReferablesNamesSet.filter {name -> movedReferablesNamesList.filter { it == name }.size == 1 }
 
+        //Create map from descriptors to actual psi elements of members
+        val movedReferablesMap = LinkedHashMap<LocationDescriptor, PsiLocatedReferable>()
         for (descriptor in referableDescriptors) {
             val groupNumber = descriptor.groupNumber
             val group = if (groupNumber < newMemberList.size) newMemberList[groupNumber] else null
@@ -203,10 +198,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     movedReferablesMap[descriptor] = targetReferable
             }
         }
-
+        val movedReferablesNamesList = movedReferablesMap.values.map { it.name }.filterNotNull().toList()
+        val movedReferablesNamesSet = movedReferablesNamesList.toSet()
+        val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> movedReferablesNamesList.filter { it == name }.size == 1 }
         val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
         for (entry in movedReferablesMap) {
-            val name = entry.key.name
+            val name = entry.value.name
             if (name != null && movedReferablesUniqueNames.contains(name)) referablesWithUniqueNames[name] = entry.value
         }
 
@@ -219,7 +216,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 val next = remainderAnchor?.rightSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
                 val prev = remainderAnchor?.leftSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
                 if (next != null) remainderAnchor = next else
-                if (prev != null) remainderAnchor = prev
+                    if (prev != null) remainderAnchor = prev
             }
 
             while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
@@ -235,11 +232,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
                     importAction?.execute(null)
                     val renamings = movedReferablesUniqueNames.map { Pair(it, null) }
-                    val groupMember =
-                            if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR)  {
-                                if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
-                            }
-                            else remainderAnchor
+                    val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) {
+                        if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
+                    } else remainderAnchor
 
                     val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
                     for (nsId in nsIds) {
@@ -281,9 +276,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     myTargetContainer is ArendFile -> myTargetContainer.modulePath?.lastName ?: ""
                     else -> ""
                 }
-                //if (name.isNotEmpty())
-                    addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory,
-                            RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
+                addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
             for (nsId in nsIdToRemove)
@@ -303,11 +296,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             }
         }
 
-
         //Fix references in the elements that have been moved
         for ((mIndex, m) in newMemberList.withIndex()) {
             val localFixData = HashMap<List<Int>, PsiLocatedReferable>()
-            for (fD in bodyRefFixData) for (p in fD.value) if (p.first == mIndex) localFixData[p.second] = fD.key
+            for (fD in usagesInMovedBodies) for (p in fD.value) if (p.groupNumber == mIndex) localFixData[p.childPath] = fD.key
             restoreReferences(emptyList(), m, localFixData)
         }
 
@@ -411,9 +403,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return null
     }
 
-    class MovedReferableDescriptor(val groupNumber: Int, val childPath: List<Int>, val name: String?)
+    class LocationDescriptor(val groupNumber: Int, val childPath: List<Int>)
 
-    class ArendUsageInfo(reference: PsiReference, val referableDescriptor: MovedReferableDescriptor) : UsageInfo(reference)
+    class ArendUsageInfo(reference: PsiReference, val referableDescriptor: LocationDescriptor) : UsageInfo(reference)
 
     class ArendStatCmdUsageInfo(val command: ArendStatCmd, reference: PsiReference) : UsageInfo(reference)
 }
