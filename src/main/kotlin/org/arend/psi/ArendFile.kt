@@ -5,14 +5,18 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.module.ModulePath
-import org.arend.module.util.sourcesDir
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Reference
+import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
@@ -32,7 +36,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             if (fileName == "/Prelude.ard") {
                 return ModulePath("Prelude")
             }
-            val root = module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
+            val module = module ?: return null
+            val root = ArendModuleConfigService.getConfig(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (root == null || !fileName.startsWith(root)) {
                 return null
             }
@@ -54,7 +59,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getKind() = GlobalReferable.Kind.OTHER
 
     override val scope: Scope
-        get() = ScopeFactory.forGroup(this, moduleScopeProvider)
+        get() = CachedValuesManager.getCachedValue(this) {
+            CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT)
+        }
 
     override fun getLocation() = modulePath
 

@@ -4,9 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import org.arend.mapFirstNotNull
-import org.arend.module.util.availableConfigs
-import org.arend.module.util.findArendFile
-import org.arend.module.util.libraryConfig
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
@@ -28,7 +26,13 @@ interface ResolveRefFixAction {
 class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?): ResolveRefFixAction {
     override fun toString() = "Import file " + importFile.fullName
 
-    override fun isValid() = importFile.modulePath?.let { modulePath -> currentFile.module?.libraryConfig?.availableConfigs?.mapFirstNotNull { it.findArendFile(modulePath) } } == importFile || ResolveRefQuickFix.isPrelude(importFile)
+    private fun isTheSameFile(): Boolean {
+        val modulePath = importFile.modulePath ?: return false
+        val module = currentFile.module ?: return false
+        return ArendModuleConfigService.getConfig(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
+    }
+
+    override fun isValid() = isTheSameFile() || ResolveRefQuickFix.isPrelude(importFile)
 
     override fun execute(editor: Editor?) {
         val fullName = importFile.modulePath?.toString() ?: return
@@ -73,7 +77,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<String>): ResolveRefFixAction {
     override fun toString(): String {
         val name = if (idList.size == 1) idList[0] else idList.toString()
-        return "Add "+ name + " to "+ ResolveRefQuickFix.statCmdName(statCmd)+" import's \"using\" list"
+        return "Add $name to ${ResolveRefQuickFix.statCmdName(statCmd)} import's \"using\" list"
     }
 
     private fun addId(id : String) {

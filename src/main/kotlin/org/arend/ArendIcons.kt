@@ -5,8 +5,13 @@ import javax.swing.Icon
 
 object ArendIcons {
     val AREND: Icon = AllIcons.Nodes.AnonymousClass
+    val AREND_MODULE: Icon = AllIcons.Nodes.AnonymousClass
     val AREND_FILE: Icon = AllIcons.FileTypes.Idl
     val DIRECTORY: Icon = AllIcons.Nodes.Package
+    val LIBRARY_ICON: Icon? = AllIcons.Nodes.PpLib
+    val YAML_KEY: Icon? = AllIcons.Nodes.FieldPK
+
+    val RUN_CONFIGURATION: Icon = AllIcons.RunConfigurations.Application
 
     // Source code elements
 

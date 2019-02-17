@@ -29,6 +29,10 @@ class ArendPsiFactory(private val project: Project) {
         return createArgument("dummy ${if (needsPrefix) "`$name" else name}") as ArendPostfixArgument
     }
 
+    fun createNameTele(name: String?, typeExpr: String): ArendNameTele =
+        createFunction("dummy", listOf("(" + (name ?: "_") + " : " + typeExpr) + ")").nameTeleList.firstOrNull()
+                ?: error("Failed to create name tele " + (name ?: ""))
+
     private fun createFunction(
             name: String,
             teles: List<String> = emptyList(),

@@ -73,6 +73,17 @@ class ArendHighlightingAnnotator : Annotator {
             }
         }
 
+        if (element is ArendIdentifierOrUnknown) {
+            val parent = element.parent
+            if (parent is ArendNameTele && parent.children.size == 1) {
+                val pparent = parent.parent
+                if (pparent is ArendDefFunction || pparent is ArendDefInstance) {
+                    holder.createErrorAnnotation(element, "Parameters of a function must be explicitly typed")
+                }
+            }
+            return
+        }
+
         if (element is LeafPsiElement && element.node.elementType == ArendElementTypes.USE_KW && element.parent?.parent is ArendClassStat) {
             holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed inside a class definition")
             return

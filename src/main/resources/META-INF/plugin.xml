@@ -30,7 +30,6 @@
                 implementation="org.arend.module.util.ArendProjectStructureDetector"/>
         <library.type implementation="org.arend.module.ArendLibraryType"/>
         <sdkType implementation="org.arend.module.ArendSdkType"/>
-        <projectStructureValidator implementation="org.arend.module.ArendProjectStructureValidator"/>
         <moduleConfigurationEditorProvider implementation="org.arend.module.util.ArendModuleConfigEditorProvider"/>
 
         <!-- Startup -->
@@ -139,10 +138,13 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
+        <completion.contributor language="yaml" implementationClass="org.arend.codeInsight.completion.YAMLCompletionContributor"/>
+
         <!-- Annotation -->
 
-        <annotator language="Arend"
-                   implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+        <annotator language="Arend" implementationClass="org.arend.annotation.ArendHighlightingAnnotator"/>
+
+        <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
 
         <!-- Intention Actions -->
         <intentionAction>
@@ -207,12 +209,14 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
+        <moduleService serviceInterface="org.arend.module.config.ArendModuleConfigService"
+                       serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
+
         <!-- Configuration Options -->
 
         <applicationService serviceInterface="org.arend.editor.ArendSmartKeysOptions"
                             serviceImplementation="org.arend.editor.ArendSmartKeysOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
-
     </extensions>
 
     <actions>

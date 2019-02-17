@@ -3,9 +3,7 @@ package org.arend.module
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import org.arend.module.util.availableConfigs
-import org.arend.module.util.libraryConfig
-import org.arend.module.util.sourcesDirFile
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
@@ -19,7 +17,7 @@ import org.arend.util.FileUtils
 class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
     constructor(module: Module) : this(module, null)
 
-    private fun calculateRootDirs() = rootDirs ?: module.libraryConfig?.availableConfigs?.mapNotNull { it.sourcesDirFile } ?: emptyList()
+    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getConfig(module).availableConfigs.mapNotNull { it.sourcesDirFile }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
@@ -47,7 +45,7 @@ class ModuleScope private constructor(private val module: Module, private val ro
     }
 
     override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope {
-        val newRootDirs = (rootDirs ?: calculateRootDirs()).mapNotNull { root ->
+        val newRootDirs = (calculateRootDirs()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {
                     return@mapNotNull if (file.isDirectory) file else null

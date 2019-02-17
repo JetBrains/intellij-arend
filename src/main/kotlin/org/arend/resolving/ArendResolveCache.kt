@@ -1,43 +1,52 @@
 package org.arend.resolving
 
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiTreeChangeAdapter
-import com.intellij.psi.PsiTreeChangeEvent
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.openapi.project.Project
+import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.tree.IElementType
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendElementTypes
+import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
-import com.intellij.openapi.project.Project
+import org.arend.psi.ext.ArendSourceNode
 import java.util.concurrent.ConcurrentMap
 
 interface ArendResolveCache {
     fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable?
-    fun clearCache()
 }
 
-class ArendResolveCacheImpl(project: Project): ArendResolveCache {
-    private val map : ConcurrentMap<ArendReferenceElement, Referable> =
-            ContainerUtil.createConcurrentWeakKeySoftValueMap(100, 0.75f,
-                    Runtime.getRuntime().availableProcessors(), ContainerUtil.canonicalStrategy())
+private fun getDefinitionOfLocalElement(element: PsiElement) =
+    (element as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
 
-    override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable? {
-        var result = map[ref]
+class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
+    private val globalMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
+    private val localMap: ConcurrentMap<ArendDefinition, HashMap<ArendReferenceElement, Referable>> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
-        if (result == null) {
-            result = resolver(ref)
-            if (result != null) {
-                map[ref] = result
+    override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
+        val globalRef = globalMap[ref]
+        if (globalRef != null) {
+            return globalRef
+        }
+
+        val def = getDefinitionOfLocalElement(ref)
+        val defMap = if (def is ArendDefinition) localMap.computeIfAbsent(def) { HashMap() } else null
+        if (defMap != null) {
+            val localRef = defMap[ref]
+            if (localRef != null) {
+                return localRef
+            }
+        }
+
+        val result = resolver(ref)
+        if (result != null) {
+            if (defMap != null) {
+                defMap[ref] = result
+            } else {
+                globalMap[ref] = result
             }
         }
 
         return result
-    }
-
-    override fun clearCache() {
-        map.clear()
     }
 
     init {
@@ -45,27 +54,43 @@ class ArendResolveCacheImpl(project: Project): ArendResolveCache {
     }
 
     private inner class ResolveCacheCleaner : PsiTreeChangeAdapter() {
-        override fun childReplaced(event: PsiTreeChangeEvent) = update(event)
+        override fun beforeChildReplacement(event: PsiTreeChangeEvent) = update(event.oldChild, event.newChild, event.parent)
 
-        override fun childMoved(event: PsiTreeChangeEvent) = update(event)
+        override fun beforeChildMovement(event: PsiTreeChangeEvent) = update(event.child, null, event.oldParent)
 
-        override fun childRemoved(event: PsiTreeChangeEvent) = update(event)
+        override fun beforeChildRemoval(event: PsiTreeChangeEvent) = update(event.child, null, event.parent)
 
-        override fun childAdded(event: PsiTreeChangeEvent) = update(event)
+        override fun beforeChildAddition(event: PsiTreeChangeEvent) = update(event.child, null, event.parent)
 
-        private fun update(event: PsiTreeChangeEvent) {
-            val oldChild = event.oldChild
-            val newChild = event.newChild
-            if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
-                    oldChild is LeafPsiElement && isComment(oldChild.node.elementType) &&
-                    newChild is LeafPsiElement && isComment(newChild.node.elementType)) {
+        private fun update(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement) {
+            if ((oldChild == null ||
+                 oldChild is PsiErrorElement ||
+                 oldChild is PsiWhiteSpace ||
+                 oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType)) &&
+                (newChild == null ||
+                 newChild is PsiErrorElement ||
+                 newChild is PsiWhiteSpace ||
+                 newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType))) {
                 return
             }
 
-            clearCache()
-        }
+            val sourceNode = (parent as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
+            if (sourceNode.isLocal) {
+                if (sourceNode is ArendLongName) {
+                    for (refIdentifier in sourceNode.refIdentifierList) {
+                        globalMap.remove(refIdentifier)
+                    }
+                }
 
-        private fun isComment(element: IElementType) =
-                element == ArendElementTypes.BLOCK_COMMENT || element == ArendElementTypes.LINE_COMMENT
+                val def = getDefinitionOfLocalElement(sourceNode)
+                if (def != null) {
+                    localMap.remove(def)
+                    return
+                }
+            }
+
+            globalMap.clear()
+            localMap.clear()
+        }
     }
 }

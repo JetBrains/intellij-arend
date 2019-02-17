@@ -1,5 +1,6 @@
 {
     parserClass = "org.arend.parser.ArendParser"
+    parserImports = ["static org.arend.parser.ParserMixin.recursion_guard_"]
 
     implements = 'org.arend.psi.ext.ArendCompositeElement'
     extends = 'org.arend.psi.ext.ArendCompositeElementImpl'
@@ -30,8 +31,12 @@
         COMMA               = ','
         UNDERSCORE          = '_'
         PIPE                = '|'
+        LINE_DOC_COMMENT_START = '-- |'
         BLOCK_COMMENT_START = '{-'
         BLOCK_COMMENT_END   = '-}'
+        BLOCK_DOC_COMMENT_START = '{- |'
+        BLOCK_DOC_TEXT      = "regexp:([^{-]|-[^}]|\{[^-])+"
+        LINE_DOC_TEXT       = "regexp:[^\r\n]*"
 
         OPEN_KW             = '\open'
         IMPORT_KW           = '\import'
@@ -79,8 +84,10 @@
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
-        LINE_COMMENT        = "regexp:--[^\r\n]*"
+        LINE_COMMENT        = "regexp:-- ([^|])[^\r\n]*"
         BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
+        // LINE_DOC_COMMENT    = '  '
+
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
@@ -368,7 +375,9 @@ pattern ::= atomPattern | patternConstructor {
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
-private patternConstructor ::= defIdentifier_pattern atomPatternOrPrefix* { pin = 1 }
+private patternConstructor ::= defIdentifier_pattern (private_typeAnnotation | atomPatternOrPrefix*) { pin = 1 }
+
+private private_typeAnnotation ::= COLON expr { pin = 1 }
 
 atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
@@ -376,11 +385,11 @@ atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
     mixin = "org.arend.psi.ext.ArendPatternImplMixin"
 }
 
-private defIdentifier_pattern ::= defIdentifier {
+private defIdentifier_pattern ::= defIdentifier !DOT | longName {
     recoverWhile = defIdentifier_pattern_recover
 }
 
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE) & pattern_recover
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE | COLON) & pattern_recover
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE

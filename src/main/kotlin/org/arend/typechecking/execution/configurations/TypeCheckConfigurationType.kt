@@ -13,7 +13,7 @@ class TypeCheckConfigurationType : ConfigurationTypeBase(
         "TypeCheckRunConfiguration",
         "Arend TypeCheck",
         "Arend type checking run configuration",
-        ArendIcons.AREND
+        ArendIcons.RUN_CONFIGURATION
 ) {
     init {
         addFactory(object : ConfigurationFactory(this) {

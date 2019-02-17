@@ -11,7 +11,7 @@ import com.intellij.refactoring.move.moveFilesOrDirectories.MoveFileHandler
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
 import org.arend.ArendFileType
-import org.arend.module.util.sourcesDir
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.*
 
 class ArendMoveFileHandler: MoveFileHandler() {
@@ -27,7 +27,7 @@ class ArendMoveFileHandler: MoveFileHandler() {
 
         val fileName = file.virtualFile?.name?.removeSuffix('.' + ArendFileType.defaultExtension) ?: return
         val newDirPath = moveDestination.virtualFile.path
-        val srcDir = file.module?.sourcesDir?.let { FileUtil.toSystemIndependentName(it) }
+        val srcDir = file.module?.let { module -> ArendModuleConfigService.getConfig(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) } }
         val newRelativePath = if (srcDir == null || !newDirPath.startsWith(srcDir)) return else newDirPath.removePrefix(srcDir)
         val newModulePath = if (newRelativePath.isEmpty()) fileName else
             newRelativePath.removePrefix("/").replace('/', '.') + "." + fileName

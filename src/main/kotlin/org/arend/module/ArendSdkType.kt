@@ -5,11 +5,11 @@ import com.intellij.openapi.projectRoots.*
 import org.jdom.Element
 
 class ArendSdkType: SdkType("ArendSdkType") {
-    override fun getPresentableName(): String = "Arend libraries"
+    override fun getPresentableName() = "Arend libraries"
 
-    override fun isValidSdkHome(path: String): Boolean = true
+    override fun isValidSdkHome(path: String) = true
 
-    override fun suggestSdkName(currentSdkName: String?, sdkHome: String?): String = currentSdkName ?: presentableName
+    override fun suggestSdkName(currentSdkName: String?, sdkHome: String?) = currentSdkName ?: presentableName
 
     override fun suggestHomePath(): String? = null
 
@@ -20,23 +20,5 @@ class ArendSdkType: SdkType("ArendSdkType") {
     override fun getHomeChooserDescriptor(): FileChooserDescriptor =
         FileChooserDescriptor(false, true, false, false, false, false)
 
-    override fun getVersionString(sdkHome: String?): String? {
-        return "1.0"
-    }
-
-    /* In order to make sourcesDir and outputDir visible in corresponding places, presumably,
-    the method below should be implemented accordingly. The current code makes no effect whatsoever.
-
-    override fun setupSdkPaths(sdk: Sdk) {
-        val homePath = sdk.homePath ?: error(sdk)
-        val jdkHome = File(homePath)
-        val sdkModificator = sdk.sdkModificator
-
-        for (lib in findAllLibrariesInDirectory(jdkHome.toPath())) {
-            sdkModificator.addRoot(lib.toString(), OrderRootType.CLASSES)
-        }
-
-        sdkModificator.commitChanges()
-    }
-    */
+    override fun getVersionString(sdkHome: String?) = "1.0"
 }
