@@ -11,11 +11,11 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.LongName
 import java.util.Collections.singletonList
 
-interface ResolveRefFixAction {
+interface AbstractRefactoringAction {
     fun execute(editor: Editor?)
 }
 
-class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : ResolveRefFixAction {
+class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : AbstractRefactoringAction {
     override fun toString() = "Import file " + importFile.fullName
 
     private fun importFileCanBeFound(): Boolean {
@@ -56,7 +56,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     }
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>) : ResolveRefFixAction {
+class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>) : AbstractRefactoringAction {
     override fun toString(): String = "Add ${usingListToString(idList)} to the \"using\" list of the namespace command `${statCmd.text}`"
 
     private fun addId(id: String, newName: String?) {
@@ -106,7 +106,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : ResolveRefFixAction {
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: ArendRefIdentifier) : AbstractRefactoringAction {
     override fun toString(): String {
         val listType = when (id.parent) {
             is ArendStatCmd -> "\"hiding\" list"
@@ -150,7 +150,7 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd, val id: Aren
     }
 }
 
-class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : ResolveRefFixAction {
+class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
     override fun execute(editor: Editor?) {
@@ -172,13 +172,16 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
     }
 }
 
-class ResolveRefFixData(val target: PsiLocatedReferable,
-                        private val commandFixAction: ResolveRefFixAction?,
-                        private val cursorFixAction: ResolveRefFixAction?) : ResolveRefFixAction {
+class ResolveReferenceAction(val target: PsiLocatedReferable,
+                             private val targetFullName: List<String>,
+                             private val statCmdFixAction: AbstractRefactoringAction?,
+                             private val nameFixAction: AbstractRefactoringAction?) : AbstractRefactoringAction {
+
+    override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" } ?: "")
 
     override fun execute(editor: Editor?) {
-        commandFixAction?.execute(editor)
-        cursorFixAction?.execute(editor)
+        statCmdFixAction?.execute(editor)
+        nameFixAction?.execute(editor)
     }
 }
 

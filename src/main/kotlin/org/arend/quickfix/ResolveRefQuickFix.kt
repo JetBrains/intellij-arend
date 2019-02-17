@@ -21,95 +21,21 @@ import java.util.Collections.singletonList
 
 class ResolveRefQuickFix {
     companion object {
-        fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveRefFixData? {
+        fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val containingFile = element.containingFile as? ArendFile ?: return null
-            val (importAction, resultName) = getDecision(target, containingFile, element) ?: return null
+            val location = LocationData(target)
+            val (importAction, resultName) = getDecision(location, containingFile, element) ?: return null
+            val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName))) RenameReferenceAction(element, resultName) else null
 
-            val renameAction = if ((resultName.size > 1 || (resultName[0] != element.referenceName)))
-                RenameReferenceAction(element, resultName) else null
-            return ResolveRefFixData(target, importAction, renameAction)
+            return ResolveReferenceAction(target, location.getFullName(), importAction, renameAction)
         }
 
-        class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
-            private val myLongName: List<Pair<String, Referable>>
-            private val myContainingFile: ArendFile
-            val myAliases: MutableList<List<String>> = ArrayList()
-            var myFileResolveAction: ResolveRefFixAction? = null
+        fun getDecision(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement): Pair<AbstractRefactoringAction?, List<String>>? {
+            val targetFile = defaultLocation.myContainingFile
+            val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
 
-            init {
-                var psi: PsiElement? = target
-                var skipFlag = skipFirstParent
-                var containingFile: ArendFile? = null
-
-                myLongName = ArrayList()
-                while (psi != null) {
-                    if (psi is PsiReferable && psi !is ArendFile) {
-                        val name = psi.name ?: throw IllegalStateException() //Fix later :)
-
-                        if (skipFlag && myLongName.isNotEmpty()) {
-                            skipFlag = false
-                        } else {
-                            myLongName.add(0, Pair(name, psi))
-                        }
-                    }
-                    if (psi is ArendFile) containingFile = psi
-                    psi = psi.parent
-                }
-
-                myContainingFile = containingFile ?: throw IllegalStateException() //Fix later :)
-            }
-
-            fun getFullName(): List<String> = myLongName.map { it.first }.toList()
-
-            fun isNotEmpty() = myLongName.isNotEmpty()
-
-            fun getComplementScope(): Scope {
-                val targetContainers = myLongName.reversed().map { it.second }
-                return object : ListScope(targetContainers) {
-                    override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
-                            .filterIsInstance<ArendGroup>()
-                            .firstOrNull { name == it.textRepresentation() }
-                            ?.let { LexicalScope.opened(it) }
-                }
-            }
-
-            fun calculateShorterNames(openCommand: ArendStatCmd): List<List<String>> {
-                val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
-                if (lastRef != null) {
-                    val openedGroup = lastRef.reference?.resolve()
-                    if (openedGroup is PsiLocatedReferable) {
-                        val remainder = calculateRemainder(openedGroup)
-                        if (remainder != null && remainder.isNotEmpty()) {
-                            val currName = remainder[0]
-                            val tail = remainder.drop(1).toList()
-                            return getImportedNames(openCommand, currName).map { singletonList(it.first) + tail }
-                        }
-                    }
-                }
-                return emptyList()
-            }
-
-            fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
-                var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
-                for (entry in myLongName) {
-                    result?.add(entry.first)
-                    if (entry.second == referable) {
-                        result = ArrayList()
-                    }
-                }
-                return result
-            }
-        }
-
-        fun getDecision(target: PsiLocatedReferable,
-                        currentFile: ArendFile,
-                        anchor: ArendCompositeElement): Pair<ResolveRefFixAction?, List<String>>? {
-            val targetFile = target.containingFile as? ArendFile ?: return null
-            val targetModulePath = targetFile.modulePath ?: return null
-
-            val defaultLocation = LocationData(target)
-            val alternativeLocation = when (target) {
-                is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> LocationData(target, true)
+            val alternativeLocation = when (defaultLocation.myTarget) {
+                is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.myTarget, true)
                 else -> null
             }
             val locations: MutableList<LocationData> = ArrayList()
@@ -117,7 +43,7 @@ class ResolveRefQuickFix {
             alternativeLocation?.let { locations.add(it) }
 
             var modifyingImportsNeeded = false
-            var fallbackImportAction: ResolveRefFixAction? = null
+            var fallbackImportAction: AbstractRefactoringAction? = null
 
             val fileGroup = object : Group by currentFile {
                 override fun getSubgroups(): Collection<Group> = emptyList()
@@ -218,7 +144,7 @@ class ResolveRefQuickFix {
                 correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
 
-            val resultingDecisions = ArrayList<Pair<List<String>, ResolveRefFixAction?>>()
+            val resultingDecisions = ArrayList<Pair<List<String>, AbstractRefactoringAction?>>()
 
             for (location in locations) {
                 location.myAliases.map { alias ->
@@ -227,7 +153,7 @@ class ResolveRefQuickFix {
                     var referable = Scope.Utils.resolveName(correctedScope, alias)
                     if (referable is RedirectingReferable) referable = referable.originalReferable
 
-                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == target)
+                    if (referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == defaultLocation.myTarget)
                         resultingDecisions.add(Pair(alias, location.myFileResolveAction))
                 }
             }
@@ -252,5 +178,77 @@ class ResolveRefQuickFix {
                 return Pair(importAction, resultingName)
             } else null
         }
+    }
+}
+
+class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
+    private val myLongName: List<Pair<String, Referable>>
+    val myContainingFile: ArendFile
+    val myAliases: MutableList<List<String>> = ArrayList()
+    var myFileResolveAction: AbstractRefactoringAction? = null
+    val myTarget = target
+
+    init {
+        var psi: PsiElement? = target
+        var skipFlag = skipFirstParent
+        var containingFile: ArendFile? = null
+
+        myLongName = ArrayList()
+        while (psi != null) {
+            if (psi is PsiReferable && psi !is ArendFile) {
+                val name = psi.name ?: throw IllegalStateException() //Fix later :)
+
+                if (skipFlag && myLongName.isNotEmpty()) {
+                    skipFlag = false
+                } else {
+                    myLongName.add(0, Pair(name, psi))
+                }
+            }
+            if (psi is ArendFile) containingFile = psi
+            psi = psi.parent
+        }
+
+        myContainingFile = containingFile ?: throw IllegalStateException() //Fix later :)
+    }
+
+    fun getFullName(): List<String> = myLongName.map { it.first }.toList()
+
+    fun isNotEmpty() = myLongName.isNotEmpty()
+
+    fun getComplementScope(): Scope {
+        val targetContainers = myLongName.reversed().map { it.second }
+        return object : ListScope(targetContainers) {
+            override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
+                    .filterIsInstance<ArendGroup>()
+                    .firstOrNull { name == it.textRepresentation() }
+                    ?.let { LexicalScope.opened(it) }
+        }
+    }
+
+    fun calculateShorterNames(openCommand: ArendStatCmd): List<List<String>> {
+        val lastRef = openCommand.longName?.refIdentifierList?.lastOrNull()
+        if (lastRef != null) {
+            val openedGroup = lastRef.reference?.resolve()
+            if (openedGroup is PsiLocatedReferable) {
+                val remainder = calculateRemainder(openedGroup)
+                if (remainder != null && remainder.isNotEmpty()) {
+                    val currName = remainder[0]
+                    val tail = remainder.drop(1).toList()
+                    return getImportedNames(openCommand, currName).map { singletonList(it.first) + tail }
+                }
+            }
+        }
+        return emptyList()
+    }
+
+    fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
+        var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
+        for (entry in myLongName) {
+            result?.add(entry.first)
+            if (entry.second == referable) {
+                result = ArrayList()
+            }
+        }
+        return result
     }
 }

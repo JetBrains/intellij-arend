@@ -20,6 +20,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.quickfix.LocationData
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
 import org.arend.refactoring.*
@@ -197,7 +198,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (remainderAnchor is ArendCompositeElement) {
                 val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) null else remainderAnchor
                 val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
-                val importData = getDecision((myTargetContainer as PsiLocatedReferable), sourceContainerFile, remainderAnchor)
+                val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), sourceContainerFile, remainderAnchor)
                 if (importData != null) {
                     val importAction = importData.first
                     importAction?.execute(null)
@@ -216,7 +217,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val statCmdStatement = statCmd.parent
             val usageFile = statCmd.containingFile as ArendFile
 
-            val importData = getDecision(myTargetContainer as PsiLocatedReferable, usageFile, statCmd)
+            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd)
             if (importData != null) {
                 val importAction = importData.first
                 importAction?.execute(null)
