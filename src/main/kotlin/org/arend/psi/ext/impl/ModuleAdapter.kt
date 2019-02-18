@@ -2,6 +2,7 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendStatCmd
 import org.arend.psi.ancestors
@@ -14,6 +15,9 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefModuleStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+
+    override val scope: Scope
+        get() = groupScope
 
     override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
 

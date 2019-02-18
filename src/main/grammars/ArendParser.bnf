@@ -217,8 +217,7 @@ definition ::= defFunction
 
 defModule ::= moduleHeader where? {
     pin = 1
-    implements = [ "org.arend.psi.ext.impl.ArendGroup"
-                   "org.arend.term.abs.Abstract.SourceNode" ]
+    implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
