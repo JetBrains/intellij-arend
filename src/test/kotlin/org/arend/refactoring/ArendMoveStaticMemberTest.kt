@@ -1,7 +1,5 @@
 package org.arend.refactoring
 
-import org.junit.Ignore
-
 class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =
@@ -65,7 +63,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             }
             """, null, "Main", "Foo")
 
-    /* fun testLongName1() =
+    fun testLongName1() =
             testMoveRefactoring("""
              --! Main.ard
             \module Foo \where {
@@ -85,7 +83,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             }
 
             \func foobar => Foo.bar.foo
-            """, "Main", "Foo.bar") */ //Fixme
+            """, "Main", "Foo.bar")
 
     fun testMoveModule() =
             testMoveRefactoring("""
@@ -202,7 +200,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 \open goo (Foo)
 
                 \module Bar \where {
-                  \open goo.Foo
+                  \open Foo
 
                   \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
                 }
@@ -502,7 +500,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             }
             """, "A", "FooBar")
 
-    /* fun testMoveData3() =
+    fun testMoveData3() =
             testMoveRefactoring("""
                 --! Main.ard
                 \module Bar \where {
@@ -550,7 +548,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     | A
                     | B
                 }
-            """, "Main", "Foo") */ //Fixme
+            """, "Main", "Foo")
 
     fun testMultipleMove2() =
             testMoveRefactoring("""
