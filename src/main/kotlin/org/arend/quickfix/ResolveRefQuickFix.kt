@@ -102,9 +102,8 @@ class ResolveRefQuickFix {
 
                     for (location in locations) {
                         val fName = location.getLongName()
-                        fileResolveActions[location] =
-                                if (minimalImportMode) ImportFileAction(targetFile, currentFile, singletonList(fName[0]))
-                                else fallbackImportAction
+                        val importList = if (fName.isEmpty()) emptyList() else singletonList(fName[0])
+                        fileResolveActions[location] = if (minimalImportMode) ImportFileAction(targetFile, currentFile, importList) else fallbackImportAction
                     }
                 }
             }

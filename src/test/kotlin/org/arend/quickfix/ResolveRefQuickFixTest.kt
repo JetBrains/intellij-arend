@@ -660,9 +660,9 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test AddIdToUsing action on an incomplete namespace command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
-            "\\import A \\using (a, b \\as b', z)") { file ->
+            "\\import A \\using (b \\as b')") { file ->
         val cmd = file.namespaceCommands.first()
-        val action = AddIdToUsingAction(cmd, listOf(Pair("a", null), Pair("z", null), Pair("b", "b'")))
+        val action = AddIdToUsingAction(cmd, listOf(Pair("b", "b'")))
         WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
@@ -730,6 +730,20 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """, """
                 \import Foo
                 \open Foo.FooM (lol \as lol')
+
+                \func foo => lol'""")
+
+    fun `test that simple renamings are taken into account 3`() =
+            simpleImportFixTest("""
+                --! Foo.ard
+                \func lol => 1
+
+                --! B.ard
+                \import Foo \using (lol \as lol')
+
+                \func foo => lol{-caret-}
+            """, """
+                \import Foo \using (lol \as lol')
 
                 \func foo => lol'""")
 

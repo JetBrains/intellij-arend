@@ -182,7 +182,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     movedReferablesMap[descriptor] = targetReferable
             }
         }
-        val movedReferablesNamesList = movedReferablesMap.values.map { it.name }.filterNotNull().toList()
+        val movedReferablesNamesList = movedReferablesMap.values.mapNotNull { it.name }.toList()
         val movedReferablesNamesSet = movedReferablesNamesList.toSet()
         val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> movedReferablesNamesList.filter { it == name }.size == 1 }
         val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
@@ -310,7 +310,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     set.add(LocationDescriptor(groupNumber, prefix))
                 }
             }
-            is ArendLongName ->  element.children.withIndex().filter { (_, m) -> m is ArendReferenceElement }.lastOrNull()?.let{
+            is ArendLongName ->  element.children.withIndex().lastOrNull { (_, m) -> m is ArendReferenceElement }?.let{
                     collectUsagesAndMembers(prefix + singletonList(it.index), it.value, groupNumber, usagesData, memberData)
                 }
             else -> {
@@ -342,7 +342,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val localGroup = HashSet<PsiElement>()
             localGroup.addAll(myTargetContainer.subgroups.filterIsInstance<PsiElement>())
             localGroup.addAll(myTargetContainer.dynamicSubgroups.filterIsInstance<PsiElement>())
-            //TODO: Add verification that constructors names' do not clash
 
             val localNamesMap = HashMap<String, PsiElement>()
             for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi
@@ -391,7 +390,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     private inner class DescriptorTargetReference(val myDescriptor: LocationDescriptor) : TargetReference {
         override fun resolve(): PsiLocatedReferable? {
             val num = myDescriptor.groupNumber
-            val group = if (num < myMembers.size) myMembers.get(num) else null
+            val group = if (num < myMembers.size) myMembers[num] else null
             return if (group != null) locateChild(group, myDescriptor.childPath) as? PsiLocatedReferable else null
         }
     }

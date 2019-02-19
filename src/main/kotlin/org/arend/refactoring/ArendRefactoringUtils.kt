@@ -100,9 +100,18 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 
     override fun execute(editor: Editor?) {
-        val using = statCmd.nsUsing
         val factory = ArendPsiFactory(statCmd.project)
-        if (using != null) insertedNsIds.addAll(idList.map { addId(it.first, it.second, factory, using) }.filterNotNull())
+        val insertAnchor = statCmd.longName
+
+        val actualNsUsing: ArendNsUsing? = statCmd.nsUsing ?: if (idList.any { it.second != null } && insertAnchor != null) {
+            val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
+            val insertedUsing = insertAnchor.parent.addAfter(newUsing, insertAnchor)
+            insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
+            insertedUsing as ArendNsUsing
+        } else null
+
+        val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
+        if (actualNsUsing != null)  insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
     }
 }
 
@@ -236,7 +245,7 @@ fun addIdToUsing(groupMember: PsiElement?,
                  relativePosition: RelativePosition): List<ArendNsId> {
     groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
         val statCmd = it.statCmd
-        if (statCmd != null && statCmd.nsUsing != null) {
+        if (statCmd != null/* && statCmd.nsUsing != null*/) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
@@ -273,7 +282,7 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
             }
         }
 
-        if (nsUsing.usingKw == null) return resultList
+        return resultList
     }
 
     return if (isHidden) emptyList() else singletonList(Pair(shortName, null))

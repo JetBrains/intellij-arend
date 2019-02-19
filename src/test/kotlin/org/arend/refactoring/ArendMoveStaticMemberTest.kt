@@ -666,9 +666,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func lol => foo1 + foo2
                }
             """, """
-               \import Bar
+               \import Bar \using (foo \as foo1, foo \as foo2)
                \import Foo ()
-               \open Bar (foo \as foo1, foo \as foo2)
                \open Nat
 
                \module FooBar \where {
@@ -768,4 +767,59 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                    \func goo => c1
                  }
                }""", "Main", "FooBar", "Main", "C", "D")
+
+    fun testPlainImportFix() =
+            testMoveRefactoring("""
+               --! A.ard
+               \func foo => 1
+               --! B.ard
+               -- Empty file
+               --! Main.ard
+               \import A{-caret-}
+
+               \func lol => foo
+        """, """
+               \import A
+               \import B
+
+               \func lol => foo
+        """, "B", "", "A", "foo")
+
+    fun testMinimalImport1() =
+            testMoveRefactoring("""
+               --! A.ard
+               \func foo => 1
+
+               \func bar => 2
+               --! B.ard
+               \func bar => 3
+               --! Main.ard
+               \import A{-caret-}
+
+               \func lol => foo
+        """, """
+               \import A
+               \import B (foo)
+
+               \func lol => foo
+        """, "B", "", "A", "foo")
+
+    fun testPlainImportFix2() =
+            testMoveRefactoring("""
+               --! A.ard
+               \func foo => 1
+
+               \func bar => 2
+               --! B.ard
+               \func bar => 3
+               --! Main.ard
+               \import A \hiding (bar){-caret-}
+
+               \func lol => foo
+        """, """
+               \import A \hiding (bar)
+               \import B
+
+               \func lol => foo
+        """, "B", "", "A", "foo")
 }
