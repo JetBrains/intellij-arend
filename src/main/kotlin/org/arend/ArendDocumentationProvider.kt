@@ -4,7 +4,11 @@ import com.google.common.html.HtmlEscapers
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil.createHyperlink
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.lang.documentation.AbstractDocumentationProvider
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiTreeUtil
 import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
@@ -22,6 +26,13 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             null
         } else {
             buildString {
+                val docComments = extractDocComments(element)
+                if (!docComments.isEmpty()) {
+                    wrap(CONTENT_START, CONTENT_END) {
+                        append(docComments)
+                    }
+                }
+
                 wrap(DEFINITION_START, DEFINITION_END) {
                     generateDefinition(element)
                 }
@@ -31,6 +42,34 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 }
             }
         }
+
+    private fun getElementJustBeforeReferable(element: PsiReferable): PsiElement? {
+        if (element.parent is ArendClassStat || element.parent is ArendStatement) {
+            return element.parent.prevSibling
+        }
+        return null
+    }
+
+    private fun extractDocComments(element: PsiReferable): String =
+            buildString {
+                var prevElement = getElementJustBeforeReferable(element)
+                if (prevElement is PsiWhiteSpace) {
+                    prevElement = prevElement.prevSibling
+                }
+                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.BLOCK_COMMENT_END) {
+                    prevElement = prevElement.prevSibling
+                    while (prevElement is PsiComment && prevElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
+                        if (prevElement.tokenType != ArendElementTypes.BLOCK_COMMENT) {
+                            append(prevElement.text)
+                        }
+                        prevElement = prevElement.prevSibling
+                    }
+                }
+                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.LINE_DOC_TEXT
+                    && prevElement.prevSibling is PsiComment && (prevElement.prevSibling as PsiComment).tokenType == ArendElementTypes.LINE_DOC_COMMENT_START) {
+                    append(prevElement.text)
+                }
+            }
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
         wrapTag("b") {
@@ -100,6 +139,12 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private inline fun StringBuilder.wrap(prefix: String, postfix: String, crossinline body: () -> Unit) {
+        this.append(prefix)
+        body()
+        this.append(postfix)
+    }
+
+    private inline fun StringBuilder.wrapNonempty(prefix: String, postfix: String, crossinline body: () -> Unit) {
         this.append(prefix)
         body()
         this.append(postfix)
