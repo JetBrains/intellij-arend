@@ -48,12 +48,11 @@ import kotlin.collections.toTypedArray
 import kotlin.collections.withIndex
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
-                                            successfulCallback: () -> Unit,
-                                            myMembersToMove: List<ArendGroup>,
+                                            private val myMoveCallback: () -> Unit,
+                                            private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
-                                            private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
+                                            private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
-    private var myMembers: List<ArendGroup> = myMembersToMove
 
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
@@ -174,16 +173,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Create map from descriptors to actual psi elements of myMembers
         val movedReferablesMap = LinkedHashMap<LocationDescriptor, PsiLocatedReferable>()
-        for (descriptor in myReferableDescriptors) {
-            val groupNumber = descriptor.groupNumber
-            val group = if (groupNumber < newMemberList.size) newMemberList[groupNumber] else null
-
-            if (group != null) {
-                val targetReferable = locateChild(group, descriptor.childPath)
-                if (targetReferable is PsiLocatedReferable)
-                    movedReferablesMap[descriptor] = targetReferable
-            }
-        }
+        for (descriptor in myReferableDescriptors) locateChild(descriptor)?.let { movedReferablesMap[descriptor] = it }
         val movedReferablesNamesList = movedReferablesMap.values.mapNotNull { it.name }.toList()
         val movedReferablesNamesSet = movedReferablesNamesList.toSet()
         val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> movedReferablesNamesList.filter { it == name }.size == 1 }
@@ -283,7 +273,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Fix references in the elements that have been moved
-        for ((mIndex, m) in newMemberList.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
+        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
+
+        myMoveCallback.invoke()
     }
 
     private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {
@@ -292,6 +284,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val childElement = element.children[childPath[0]]
             if (childElement != null) locateChild(childElement, shorterPrefix) else null
         }
+    }
+
+    private fun locateChild(descriptor: LocationDescriptor): PsiLocatedReferable? {
+        val num = descriptor.groupNumber
+        val group = if (num < myMembers.size) myMembers[num] else null
+        return if (group != null) locateChild(group, descriptor.childPath) as? PsiLocatedReferable else null
     }
 
     private fun collectUsagesAndMembers(prefix: List<Int>, element: PsiElement, groupNumber: Int,
@@ -390,9 +388,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         override fun resolve(): PsiLocatedReferable? {
             if (myCachedResult != null) return myCachedResult
-            val num = myDescriptor.groupNumber
-            val group = if (num < myMembers.size) myMembers[num] else null
-            myCachedResult = if (group != null) locateChild(group, myDescriptor.childPath) as? PsiLocatedReferable else null
+            myCachedResult = locateChild(myDescriptor)
             return myCachedResult
         }
     }
