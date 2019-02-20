@@ -26,15 +26,15 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             null
         } else {
             buildString {
+                wrap(DEFINITION_START, DEFINITION_END) {
+                    generateDefinition(element)
+                }
+
                 val docComments = extractDocComments(element)
                 if (!docComments.isEmpty()) {
                     wrap(CONTENT_START, CONTENT_END) {
                         append(docComments)
                     }
-                }
-
-                wrap(DEFINITION_START, DEFINITION_END) {
-                    generateDefinition(element)
                 }
 
                 wrap(CONTENT_START, CONTENT_END) {
