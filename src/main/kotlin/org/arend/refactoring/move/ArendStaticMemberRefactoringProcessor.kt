@@ -1,5 +1,6 @@
 package org.arend.refactoring.move
 
+import com.intellij.ide.util.EditorHelper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
@@ -51,7 +52,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMoveCallback: () -> Unit,
                                             private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
-                                            private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, myMoveCallback) {
+                                            private val myTargetContainer: PsiElement /* and also ChildGroup */,
+                                            private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
 
     override fun findUsages(): Array<UsageInfo> {
@@ -276,6 +278,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
 
         myMoveCallback.invoke()
+
+        if (myOpenInEditor && !myMembers.isEmpty()) {
+            val item = myMembers.first()
+            if (item.isValid) EditorHelper.openInEditor(item)
+        }
     }
 
     private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {

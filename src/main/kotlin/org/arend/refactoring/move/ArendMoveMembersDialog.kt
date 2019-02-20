@@ -76,7 +76,7 @@ class ArendMoveMembersDialog(project: Project,
 
         if (locateResult.second != null)
             CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, locateResult.second, HelpID.MOVE_MEMBERS, myProject) else
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement))
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement, isOpenInEditor))
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
