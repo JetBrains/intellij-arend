@@ -54,7 +54,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, sourceElements)
         val group = myTargetGroup.first
         if (group is PsiElement) {
-            val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, sourceElements, container, group)
+            val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, sourceElements, container, group, false)
             try {
                 processor.run()
             } catch (e: Exception) {

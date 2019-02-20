@@ -1,5 +1,6 @@
 package org.arend.refactoring.move
 
+import com.intellij.ide.util.EditorHelper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
@@ -34,7 +35,6 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import kotlin.collections.MutableMap
 import kotlin.collections.MutableSet
-import kotlin.collections.Set
 import kotlin.collections.any
 import kotlin.collections.emptyList
 import kotlin.collections.filterIsInstance
@@ -49,12 +49,12 @@ import kotlin.collections.toTypedArray
 import kotlin.collections.withIndex
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
-                                            successfulCallback: () -> Unit,
-                                            myMembersToMove: List<ArendGroup>,
+                                            private val myMoveCallback: () -> Unit,
+                                            private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
-                                            private val myTargetContainer: PsiElement /* and also ChildGroup */) : BaseRefactoringProcessor(project, successfulCallback) {
+                                            private val myTargetContainer: PsiElement /* and also ChildGroup */,
+                                            private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
-    private var myMembers: List<ArendGroup> = myMembersToMove
 
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
@@ -144,14 +144,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Memorize references in myMembers being moved
         val descriptorsOfAllMovedMembers = HashMap<PsiLocatedReferable, LocationDescriptor>() //This set may be strictly larger than the set of myReferableDescriptors
         val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
-        for ((mIndex, m) in myMembers.withIndex()) collectUsagesAndMembers(emptyList(), m, mIndex, usagesInMovedBodies, descriptorsOfAllMovedMembers)
+        val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
+        val bodiesRefsFixData = HashMap<LocationDescriptor, TargetReference>()
 
-        val smartUsagesInMovedBodies = HashMap<TargetReference, Set<LocationDescriptor>>()
-        for (usageData in usagesInMovedBodies) {
-            val descriptor = descriptorsOfAllMovedMembers[usageData.key]
-            val reference: TargetReference = if (descriptor != null) DescriptorTargetReference(descriptor) else ReferableTargetReference(usageData.key)
-            smartUsagesInMovedBodies[reference] = usageData.value
-        }
+        for ((mIndex, m) in myMembers.withIndex())
+            collectUsagesAndMembers(emptyList(), m, mIndex, usagesInMovedBodies, descriptorsOfAllMovedMembers)
+
+        for (referable in usagesInMovedBodies.keys)
+            targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) } ?: ReferableTargetReference(referable)
+
+        for (usagePack in usagesInMovedBodies) for (usage in usagePack.value)
+            targetReferences[usagePack.key]?.let{ bodiesRefsFixData[usage] = it }
 
         //Do move myMembers
         val holes = ArrayList<RelativePosition>()
@@ -172,16 +175,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Create map from descriptors to actual psi elements of myMembers
         val movedReferablesMap = LinkedHashMap<LocationDescriptor, PsiLocatedReferable>()
-        for (descriptor in myReferableDescriptors) {
-            val groupNumber = descriptor.groupNumber
-            val group = if (groupNumber < newMemberList.size) newMemberList[groupNumber] else null
-
-            if (group != null) {
-                val targetReferable = locateChild(group, descriptor.childPath)
-                if (targetReferable is PsiLocatedReferable)
-                    movedReferablesMap[descriptor] = targetReferable
-            }
-        }
+        for (descriptor in myReferableDescriptors) locateChild(descriptor)?.let { movedReferablesMap[descriptor] = it }
         val movedReferablesNamesList = movedReferablesMap.values.mapNotNull { it.name }.toList()
         val movedReferablesNamesSet = movedReferablesNamesList.toSet()
         val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> movedReferablesNamesList.filter { it == name }.size == 1 }
@@ -193,7 +187,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Prepare the "remainder" namespace command (the one which is inserted in the place where one of the moved definitions was)
         if (holes.isNotEmpty()) {
-            val uppermostHole = holes.sorted().first()
+            val uppermostHole = holes.asSequence().sorted().first()
             var remainderAnchor: PsiElement? = uppermostHole.anchor
 
             if (uppermostHole.kind != PositionKind.INSIDE_EMPTY_ANCHOR) {
@@ -281,10 +275,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Fix references in the elements that have been moved
-        for ((mIndex, m) in newMemberList.withIndex()) {
-            val localFixData = HashMap<List<Int>, PsiLocatedReferable>()
-            for (usageData in smartUsagesInMovedBodies) for (p in usageData.value) if (p.groupNumber == mIndex) usageData.key.resolve()?.let { localFixData[p.childPath] = it }
-            restoreReferences(emptyList(), m, localFixData)
+        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
+
+        myMoveCallback.invoke()
+
+        if (myOpenInEditor && !myMembers.isEmpty()) {
+            val item = myMembers.first()
+            if (item.isValid) EditorHelper.openInEditor(item)
         }
     }
 
@@ -294,6 +291,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val childElement = element.children[childPath[0]]
             if (childElement != null) locateChild(childElement, shorterPrefix) else null
         }
+    }
+
+    private fun locateChild(descriptor: LocationDescriptor): PsiLocatedReferable? {
+        val num = descriptor.groupNumber
+        val group = if (num < myMembers.size) myMembers[num] else null
+        return if (group != null) locateChild(group, descriptor.childPath) as? PsiLocatedReferable else null
     }
 
     private fun collectUsagesAndMembers(prefix: List<Int>, element: PsiElement, groupNumber: Int,
@@ -320,9 +323,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
     }
 
-    private fun restoreReferences(prefix: List<Int>, element: PsiElement, fixMap: Map<List<Int>, PsiLocatedReferable>) {
+    private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int, fixMap: HashMap<LocationDescriptor, TargetReference>) {
         if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
-            val correctTarget = fixMap[prefix]
+            val correctTarget = fixMap[LocationDescriptor(groupIndex, prefix)]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
                 if (currentTarget != correctTarget) {
@@ -331,7 +334,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
 
             }
-        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, fixMap) }
+        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap) }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
@@ -388,10 +391,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     private inner class DescriptorTargetReference(val myDescriptor: LocationDescriptor) : TargetReference {
+        private var myCachedResult: PsiLocatedReferable? = null
+
         override fun resolve(): PsiLocatedReferable? {
-            val num = myDescriptor.groupNumber
-            val group = if (num < myMembers.size) myMembers[num] else null
-            return if (group != null) locateChild(group, myDescriptor.childPath) as? PsiLocatedReferable else null
+            if (myCachedResult != null) return myCachedResult
+            myCachedResult = locateChild(myDescriptor)
+            return myCachedResult
         }
     }
 }
