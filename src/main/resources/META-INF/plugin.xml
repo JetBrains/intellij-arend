@@ -176,6 +176,7 @@
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
         <refactoring.moveHandler implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
+        <renameHandler implementation="org.arend.refactoring.ArendRenameModuleHandler"/>
 
         <!-- Run Configurations -->
 
