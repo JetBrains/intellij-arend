@@ -2,6 +2,7 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendStatCmd
@@ -30,4 +31,6 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), 0)
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+
+    override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
 }

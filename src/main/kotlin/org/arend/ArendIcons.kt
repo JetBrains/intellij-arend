@@ -22,5 +22,6 @@ object ArendIcons {
     val CONSTRUCTOR = AllIcons.Nodes.AbstractClass!!
     val DATA_DEFINITION = AllIcons.Nodes.EjbCmpField!!
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
+    val MODULE_DEFINITION = AllIcons.Nodes.Method!!
     val MODULE: Icon = AllIcons.Nodes.JavaModule
 }
