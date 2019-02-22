@@ -337,7 +337,7 @@ private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | assoc) & statement_recover
+private def_recover ::= !(ID | LPAREN | assoc) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE) {
     pin = 1
@@ -572,11 +572,20 @@ private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 1 }
 
 private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
-letClause ::= defIdentifier_letClause nameTele* typeAnnotation? FAT_ARROW expr {
+letClause ::= letClauseName FAT_ARROW expr {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+    implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LetClause" ]
     mixin = "org.arend.psi.ext.ArendLetClauseImplMixin"
+}
+
+private letClauseName ::= defIdentifier_letClause nameTele* typeAnnotation? | letClausePattern { pin(".*") = 1 }
+
+letClausePattern ::= defIdentifier typeAnnotation? | LPAREN <<comma_separated_sequence letClausePattern>> RPAREN {
+    pin(".*") = 1
+    implements = [ "org.arend.psi.ext.ArendSourceNode"
+                   "org.arend.term.abs.Abstract.LetClausePattern" ]
+    mixin = "org.arend.psi.ext.ArendLetClausePatternImplMixin"
 }
 
 private defIdentifier_letClause ::= defIdentifier {

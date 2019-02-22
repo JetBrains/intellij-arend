@@ -12,6 +12,7 @@ import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendPatternDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
+import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 
@@ -34,12 +35,19 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         }
     }
 
-    override fun getTypeClassReference(): ClassReferable? =
-        typeOf?.let { ReferableExtractVisitor().findClassReferable(it) }
+    override fun getParameterType(params: List<Boolean>): Any? =
+        ExpectedTypeVisitor.getParameterType((parent as? ArendLetClause)?.parameters ?: emptyList(), typeOf, params, name)
 
-    override fun getParameterType(params: List<Boolean>): Any? = ExpectedTypeVisitor.getParameterType(typeOf, params, name)
+    override fun getTypeClassReference(): ClassReferable? {
+        val parent = parent
+        return if (parent is ArendLetClauseImplMixin) {
+            parent.typeClassReference
+        } else {
+            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
+        }
+    }
 
-    override fun getTypeOf(): ArendExpr? {
+    override fun getTypeOf(): Abstract.Expression? {
         val parent = parent
         return when (parent) {
             is ArendIdentifierOrUnknown -> {
@@ -51,7 +59,8 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
                 }
             }
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
-            is ArendLetClause -> parent.typeAnnotation?.expr
+            is ArendLetClause -> ExpectedTypeVisitor.getTypeOf(parent.parameters, parent.resultType)
+            is ArendLetClausePattern -> parent.typeAnnotation?.expr
             is ArendPatternImplMixin -> parent.getExpr()
             else -> null
         }
@@ -61,6 +70,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         get() {
             val parent = parent
             return when (parent) {
+                is ArendLetClausePattern -> parent.typeAnnotation?.expr
                 is ArendLetClause -> parent.typeAnnotation?.expr
                 is ArendIdentifierOrUnknown -> {
                     val pparent = parent.parent
@@ -76,15 +86,17 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
 
     override fun getUseScope(): SearchScope {
         val parent = parent
-        if (parent != null) when {
-            parent.parent is ArendTypedExpr && parent.parent.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
-            parent.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)
-            parent is ArendAtomPatternOrPrefix && parent.parent != null -> {
+        when {
+            parent is ArendLetClausePattern -> parent.ancestorsUntilFile.filterIsInstance<ArendLetExpr>().firstOrNull()?.let { return LocalSearchScope(it) } // Let clause pattern
+            parent is ArendLetClause -> return LocalSearchScope(parent.parent) // Let clause
+            (parent?.parent as? ArendTypedExpr)?.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
+            parent?.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)
+            (parent as? ArendAtomPatternOrPrefix)?.parent != null -> {
                 var p = parent.parent.parent
                 while (p != null && p !is ArendClause) p = p.parent
                 if (p is ArendClause) return LocalSearchScope(p) // Pattern variables
             }
-            parent is ArendPattern && parent.parent is ArendClause -> return LocalSearchScope(parent.parent)
+            (parent as? ArendPattern)?.parent is ArendClause -> return LocalSearchScope(parent.parent)
         }
         return super.getUseScope()
     }
