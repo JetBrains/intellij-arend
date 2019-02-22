@@ -14,7 +14,7 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 
     override fun getHighlightingLexer(): Lexer = ArendLexerAdapter()
 
-    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> =
+    override fun getTokenHighlights(tokenType: IElementType?): Array<TextAttributesKey> =
             pack(map(tokenType)?.textAttributesKey)
 
     companion object {

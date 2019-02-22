@@ -36,15 +36,15 @@ import static org.arend.psi.ArendElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- (([ ] [^\|] .* | {EOL})? | ([\t`\\] .*) | (-+ ([ \t] .* | {EOL})?))
+LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\r\n] .* | {EOL})?)
 BLOCK_COMMENT_START = "{-"
 BLOCK_COMMENT_END   = "-}"
 
-LINE_DOC_COMMENT_START  = -- [ ] \|
+LINE_DOC_COMMENT_START  = "-- |"
 BLOCK_DOC_COMMENT_START = "{- |"
 
-BLOCK_DOC_TEXT = ([^\{-]|\{[^-]|-[^\}])+
-LINE_DOC_TEXT = (.*|{EOL})
+BLOCK_DOC_TEXT = ([^\{-] | \{[^-] | -[^\}])+
+LINE_DOC_TEXT = .* | {EOL}
 
 NUMBER              = [0-9]+
 NEGATIVE_NUMBER     = -[0-9]+
