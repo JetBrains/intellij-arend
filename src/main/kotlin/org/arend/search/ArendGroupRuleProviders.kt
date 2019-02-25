@@ -47,6 +47,11 @@ class ArendClassFieldSynGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<ArendClassFieldSyn>()
 }
 
+class ArendReferableGroupingRuleProvider : FileStructureGroupRuleProvider {
+    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
+            createGroupingRule<PsiReferable>()
+}
+
 private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {
     return object : SingleParentUsageGroupingRule() {
         override fun getParentGroupFor(usage: Usage, targets: Array<out UsageTarget>): UsageGroup? {

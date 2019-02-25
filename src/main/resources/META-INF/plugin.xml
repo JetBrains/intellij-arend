@@ -90,12 +90,16 @@
 
         <lang.findUsagesProvider language="Arend"
                                  implementationClass="org.arend.search.ArendFindUsagesProvider"/>
+
         <fileStructureGroupRuleProvider
-                implementation="org.arend.search.ArendDefClassGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendReferableGroupingRuleProvider" />
+
+        <!--fileStructureGroupRuleProvider
+                implementation="org.arend.search.ArendDefClassGroupingRuleProvider" />
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefDataGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.arend.search.ArendDefFunctionGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendDefFunctionGroupingRuleProvider">
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
@@ -103,7 +107,7 @@
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.arend.search.ArendConstructorGroupingRuleProvider"/>
+                implementation="org.arend.search.ArendConstructorGroupingRuleProvider"-->
 
         <!-- Navigation -->
 
