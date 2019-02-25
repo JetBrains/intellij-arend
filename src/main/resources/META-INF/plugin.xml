@@ -92,7 +92,7 @@
                                  implementationClass="org.arend.search.ArendFindUsagesProvider"/>
 
         <fileStructureGroupRuleProvider
-                implementation="org.arend.search.ArendReferableGroupingRuleProvider" />
+                implementation="org.arend.search.ArendDefGroupingRuleProvider" />
 
         <!--fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefClassGroupingRuleProvider" />
