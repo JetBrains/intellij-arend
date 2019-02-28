@@ -5,6 +5,9 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.psi.ArendDefIdentifier
+import org.arend.psi.ArendLetClause
+import org.arend.psi.ArendLetClausePattern
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.abs.Abstract
@@ -43,7 +46,10 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
             is Abstract.FunctionDefinition -> Kind.FUNCTION
             is Abstract.InstanceDefinition -> Kind.INSTANCE
             is Abstract.LetClause -> Kind.LET_CLAUSE
-            else -> Kind.REFERENCE
+            else -> {
+                val parent = (ref as? ArendDefIdentifier)?.parent
+                if (parent is ArendLetClause || parent is ArendLetClausePattern) Kind.LET_CLAUSE else Kind.REFERENCE
+            }
         }
 
     private fun getReferenceKind(data: Any?, referent: Referable) : Kind {
