@@ -32,7 +32,6 @@ import java.util.Collections.singletonList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.collections.List
-import kotlin.collections.Map
 import kotlin.collections.MutableMap
 import kotlin.collections.MutableSet
 import kotlin.collections.any
@@ -67,19 +66,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 statCmdsToFix[statCmd] = psiReference
         }
 
-        for ((i, member) in myMembers.withIndex())
-            for (entry in collectRelevantReferables(member)) {
-                val descriptor = LocationDescriptor(i, entry.value)
-                myReferableDescriptors.add(descriptor)
+        for ((index, member) in myMembers.withIndex())
+            for (entry in collectInternalReferablesWithSelf(member, index)) {
+                myReferableDescriptors.add(entry.second)
 
-                for (psiReference in ReferencesSearch.search(entry.key)) {
+                for (psiReference in ReferencesSearch.search(entry.first)) {
                     val referenceElement = psiReference.element
                     val referenceParent = referenceElement.parent
                     if (!isInMovedMember(psiReference.element)) {
                         val statCmd = isStatCmdUsage(psiReference, false)
                         val isUsageInHiding = referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd
                         if (statCmd == null || isUsageInHiding || !statCmdsToFix.contains(statCmd))
-                            usagesList.add(ArendUsageInfo(psiReference, descriptor))
+                            usagesList.add(ArendUsageInfo(psiReference, entry.second))
                     }
                 }
             }
@@ -92,9 +90,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return usageInfos
     }
 
-    private fun collectRelevantReferables(element: ArendGroup): Map<PsiLocatedReferable, List<Int>> {
-        val relevantLocatedReferables = LinkedHashMap<PsiLocatedReferable, List<Int>>()
-        relevantLocatedReferables[element] = emptyList()
+    private fun collectInternalReferablesWithSelf(element: ArendGroup, index: Int): ArrayList<Pair<PsiLocatedReferable, LocationDescriptor>> {
+        val result = ArrayList<Pair<PsiLocatedReferable, LocationDescriptor>>()
+        result.add(Pair(element, LocationDescriptor(index, emptyList())))
         for (internalReferable in element.internalReferables)
             if (internalReferable.isVisible) {
                 val path = ArrayList<Int>()
@@ -104,10 +102,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     path.add(0, i)
                     psi = psi.parent
                 }
-                relevantLocatedReferables[internalReferable] = path
+                result.add(Pair(internalReferable, LocationDescriptor(index, path)))
             }
 
-        return relevantLocatedReferables
+        return result
     }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
