@@ -144,6 +144,25 @@ class ArendCompletionContributor : CompletionContributor() {
                 if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
                     result is ArendSigmaExpr || result is ArendPiExpr
         }
+        val allowedInReturn = { expression: PsiElement ->
+            var result: PsiElement? = expression
+            while (result != null) {
+                if (result is ArendReturnExpr) break
+                result = result?.parent
+            }
+            val resultC = result
+            val resultParent = resultC?.parent
+            when (resultC) {
+                is ArendReturnExpr -> when {
+                    resultC.levelKw != null -> false
+                    resultParent is ArendDefInstance -> false
+                    resultParent is ArendDefFunction -> !resultParent.isCowith
+                    else -> true
+                }
+                else -> true
+            }
+        }
+
         val noExpressionKwsAfter = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
         val afterElimVar = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
 
@@ -151,7 +170,7 @@ class ArendCompletionContributor : CompletionContributor() {
             genericJointCondition({ cP, _, jD ->
 
                 !FIELD_CONTEXT.accepts(jD.prevElement) && //No keyword completion after field
-                        !INSTANCE_CONTEXT.accepts(cP.position) && //No keyword completion in instance type
+                        !(RETURN_CONTEXT.accepts(cP.position) && !allowedInReturn(cP.position)) &&
                         !(ofType(RBRACE).accepts(jD.prevElement) && withParent(ArendCaseExpr::class.java).accepts(jD.prevElement)) && //No keyword completion after \with or } in case expr
                         !(ofType(LAM_KW, LET_KW, WITH_KW).accepts(jD.prevElement)) && //No keyword completion after \lam or \let
                         !(noExpressionKwsAfter.accepts(jD.prevElement)) && //No expression keyword completion after universe literals or \new keyword
@@ -283,7 +302,10 @@ class ArendCompletionContributor : CompletionContributor() {
                         exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
                         exprFound = exprFound &&
                                 if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
-                                else pos2.returnExpr != null // No point of writing cowith keyword if there is no result type
+                                else {
+                                    val returnExpr = pos2.returnExpr
+                                    returnExpr != null && returnExpr.levelKw == null
+                                } // No point of writing cowith keyword if there is no result type or there is already \level keyword in result type
                         exprFound = exprFound && (fBody == null || fBody.cowithKw == null && fBody.elim.let{it == null || it.elimKw == null && it.withKw == null})
                         break
                     }
@@ -371,7 +393,9 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }, KeywordCompletionProvider(CLASSIFYING_KW_LIST)))
 
-        extend(CompletionType.BASIC, LEVEL_CONTEXT, KeywordCompletionProvider(LEVEL_KW_LIST))
+        extend(CompletionType.BASIC, LEVEL_CONTEXT, ProviderWithCondition({cP, _ ->
+            allowedInReturn(cP.position)
+        }, KeywordCompletionProvider(LEVEL_KW_LIST)))
 
         //extend(CompletionType.BASIC, ANY, LoggerCompletionProvider())
     }
@@ -416,9 +440,12 @@ class ArendCompletionContributor : CompletionContributor() {
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
         val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
+        val RETURN_CONTEXT =
+                or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java),
+                        withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java))
+
         val EXPRESSION_CONTEXT = and(or(
-                and(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
-                    not(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))),
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
                 withParentOrGrandParent(ArendFunctionBody::class.java),
                 and(withParentOrGrandParent(ArendExpr::class.java), not(INSIDE_RETURN_EXPR_CONTEXT)),
                 withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
@@ -427,7 +454,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
                 and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                 or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
-                withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendDefInstance::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendCoClauses::class.java, ArendInstanceBody::class.java, ArendDefInstance::class.java),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
                 and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
                 not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
@@ -454,7 +481,6 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
                         ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendTuple::class.java,
                         ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java)
-        val INSTANCE_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendDefInstance::class.java)
         val GOAL_IN_COPATTERN = ArendCompletionContributor.withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
                 ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
         val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
