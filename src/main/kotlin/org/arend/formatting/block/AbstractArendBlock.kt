@@ -39,10 +39,10 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
 
 
     protected fun printChildAttributesContext(newChildIndex: Int) { // Needed for debug only
-        /*
+
         System.out.println(this.javaClass.simpleName+"("+this.node.elementType+").getChildAttributes($newChildIndex)")
         subBlocks.mapIndexed { i, a -> System.out.println("$i $a")}
-        */
+
     }
 
     companion object {

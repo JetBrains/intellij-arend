@@ -131,10 +131,12 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 FUNCTION_BODY -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
             }
 
-            if (nodePsi is ArendDefInstance) when (prevChild.node.psi) {
-                is ArendExpr -> return ChildAttributes(Indent.getNormalIndent(), null)
-                is ArendCoClauses -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                is ArendWhere -> return ChildAttributes(Indent.getNoneIndent(), null)
+            if (nodePsi is ArendDefInstance) {
+                when (prevChild.node.psi) {
+                    is ArendReturnExpr -> return ChildAttributes(Indent.getNormalIndent(), null)
+                    is ArendInstanceBody -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                    is ArendWhere -> return ChildAttributes(Indent.getNoneIndent(), null)
+                }
             }
 
             // Data and function bodies
@@ -142,17 +144,18 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return ChildAttributes(Indent.getNormalIndent(), null)
 
             if (nodePsi is ArendFunctionBody) {
-                val prevBlock = subBlocks[newChildIndex - 1]
-                val indent = if (prevBlock is AbstractArendBlock) {
-                    val eT = prevBlock.node.elementType
-                    if (prevBlock.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                    when (eT) {
+                val indent = if (prevChild.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
+                    when (prevET) {
                         FUNCTION_CLAUSES, CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                         else -> Indent.getNormalIndent()
                     }
-                } else Indent.getNoneIndent()
                 return ChildAttributes(indent, null)
             }
+
+            if (nodePsi is ArendInstanceBody) when (prevET) {
+                CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            }
+
 
             //Expressions
 
