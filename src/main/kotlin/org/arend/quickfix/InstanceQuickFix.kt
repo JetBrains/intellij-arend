@@ -182,9 +182,9 @@ class InstanceQuickFix {
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder): Boolean {
             val classReference = instance.classReference
             if (classReference is ArendDefClass && classReference.recordKw == null || classReference is TCReferable && (TypeCheckingService.getInstance(instance.project).typecheckerState.getTypechecked(classReference) as? ClassDefinition)?.isRecord == false) {
-                val argumentAppExpr = instance.argumentAppExpr
-                if (argumentAppExpr != null)
-                    return !ArendInstanceAnnotator(instance, argumentAppExpr).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
+                val returnExpr = instance.returnExpr
+                if (returnExpr != null)
+                    return !ArendInstanceAnnotator(instance, returnExpr).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
             }
             return false
         }
@@ -272,18 +272,17 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
     }
 }
 
-class ArendInstanceAnnotator(private val instance: InstanceAdapter, argumentAppExpr: ArendArgumentAppExpr) :
-        AbstractEWCCAnnotator(instance,
-                TextRange(instance.instanceKw.textRange.startOffset, argumentAppExpr.textRange.endOffset)) {
+class ArendInstanceAnnotator(private val instance: InstanceAdapter, private val returnExpr: ArendReturnExpr) :
+        AbstractEWCCAnnotator(instance, TextRange(instance.instanceKw.textRange.startOffset, returnExpr.textRange.endOffset)) {
 
-    override fun coClausesList(): List<ArendCoClause> = instance.coClauses?.coClauseList ?: emptyList()
+    override fun coClausesList(): List<ArendCoClause> = instance.instanceBody?.coClauses?.coClauseList ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-        var nodeCoClauses = instance.coClauses
+        var nodeCoClauses = instance.instanceBody?.coClauses
         if (nodeCoClauses == null) {
             val sampleCoClauses = factory.createCoClause(name, "{?}")
-            instance.addAfter(sampleCoClauses, instance.argumentAppExpr)
-            nodeCoClauses = instance.coClauses!!
+            instance.addAfter(sampleCoClauses, instance.instanceBody?.cowithKw ?: returnExpr)
+            nodeCoClauses = instance.instanceBody?.coClauses!!
             nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"), nodeCoClauses)
             moveCaretToEndOffset(editor, nodeCoClauses.lastChild)
         } else if (nodeCoClauses.lbrace != null) {
@@ -291,7 +290,7 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, argumentAppE
             val anchor = nodeCoClauses.lbrace
             nodeCoClauses.addAfter(sampleCoClause, anchor)
             nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
-            val caretAnchor = instance.coClauses?.coClauseList?.first()
+            val caretAnchor = instance.instanceBody?.coClauses?.coClauseList?.first()
             if (caretAnchor != null)
                 moveCaretToEndOffset(editor, caretAnchor)
         }

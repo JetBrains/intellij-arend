@@ -514,6 +514,4 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     override fun visitData(def: Abstract.DataDefinition) = null
 
     override fun visitClass(def: Abstract.ClassDefinition) = null
-
-    override fun visitInstance(def: Abstract.InstanceDefinition) = if (element == def.resultType) Universe else null
 }

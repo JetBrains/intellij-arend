@@ -249,6 +249,15 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
+defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
+    pin = 1
+    implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ClassReferenceHolder" ]
+    mixin = "org.arend.psi.ext.impl.InstanceAdapter"
+    stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
 defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody? where? {
     pin = 1
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
@@ -292,19 +301,6 @@ private recordBody ::= classStats {
     recoverWhile = statement_recover
 }
 
-defInstance ::= INSTANCE_KW defIdentifier_instance nameTele* COLON argumentAppExpr coClauses? where? {
-    pin = 1
-    mixin = "org.arend.psi.ext.impl.InstanceAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
-    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
-}
-
-private defIdentifier_instance ::= defIdentifier {
-    recoverWhile = defIdentifier_instance_recover
-}
-
-private defIdentifier_instance_recover ::= !COLON & nameTele_first & statement_recover
-
 private classBodySyn ::= fat_arrow_def classSynRef classBodySynStats? { pin = 1 }
 
 classSynRef ::= longName
@@ -315,6 +311,13 @@ functionBody ::= functionTermBody
     | COWITH_KW coClauses?
     | elim functionClauses?
     | functionClauses {
+    pin(".*") = 1
+    recoverWhile = statement_recover
+}
+
+instanceBody ::= functionTermBody
+    | elim functionClauses?
+    | COWITH_KW? coClauses? {
     pin(".*") = 1
     recoverWhile = statement_recover
 }

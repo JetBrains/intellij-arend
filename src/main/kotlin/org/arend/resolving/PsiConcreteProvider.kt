@@ -124,9 +124,9 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         return if (psiReferable is ArendDefFunction) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
-    override fun getConcreteInstance(referable: GlobalReferable): Concrete.Instance? {
+    override fun getConcreteInstance(referable: GlobalReferable): Concrete.FunctionDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
-        return if (psiReferable is ArendDefInstance) getConcreteDefinition(psiReferable) as? Concrete.Instance else null
+        return if (psiReferable is ArendDefInstance) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
     override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {

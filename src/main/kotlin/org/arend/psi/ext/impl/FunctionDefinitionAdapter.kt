@@ -42,6 +42,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun isLemma() = lemmaKw != null
 
+    override fun isInstance() = false
+
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
     override fun getIcon(flags: Int): Icon = ArendIcons.FUNCTION_DEFINITION

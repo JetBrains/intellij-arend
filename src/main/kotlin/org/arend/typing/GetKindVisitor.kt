@@ -43,8 +43,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
             is Abstract.Constructor -> if (ref.clauses.isEmpty()) Kind.CONSTRUCTOR else Kind.CONSTRUCTOR_WITH_CONDITIONS
             is Abstract.DataDefinition -> Kind.DATA
             is Abstract.ClassDefinition -> Kind.CLASS
-            is Abstract.FunctionDefinition -> Kind.FUNCTION
-            is Abstract.InstanceDefinition -> Kind.INSTANCE
+            is Abstract.FunctionDefinition -> if (ref.isInstance) Kind.INSTANCE else Kind.FUNCTION
             is Abstract.LetClause -> Kind.LET_CLAUSE
             else -> {
                 val parent = (ref as? ArendDefIdentifier)?.parent
