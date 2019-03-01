@@ -6,9 +6,16 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.HelpID
+import com.intellij.refactoring.classMembers.MemberInfoBase
 import com.intellij.refactoring.move.MoveDialogBase
 import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
+import com.intellij.refactoring.ui.AbstractMemberSelectionPanel
+import com.intellij.refactoring.ui.AbstractMemberSelectionTable
+import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.util.CommonRefactoringUtil
+import com.intellij.ui.RowIcon
+import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SeparatorFactory
 import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
@@ -18,6 +25,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
+import java.awt.BorderLayout
 import javax.swing.*
 
 class ArendMoveMembersDialog(project: Project,
@@ -26,19 +34,22 @@ class ArendMoveMembersDialog(project: Project,
                              private val enclosingModule: Module) : MoveDialogBase(project, false) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
-    private val myPanel: JPanel
-    private val elementPointers: List<SmartPsiElementPointer<ArendGroup>>
+    private val northPanel: JPanel
     private val containerRef: SmartPsiElementPointer<PsiElement>
+    private val memberSelectionPanel: ArendMemberSelectionPanel
 
     init {
         title = "Move Arend static members"
         containerRef = SmartPointerManager.createPointer(container)
+        val memberInfos = ArrayList<ArendMemberInfo>()
 
         val names = when (container) {
             is ArendFile -> {
+                initMemberInfo(container, elements, memberInfos)
                 Pair(container.fullName, "")
             }
             is ArendGroup -> {
+                initMemberInfo(container, elements, memberInfos)
                 val file = container.getContainingFile() as? ArendFile
                 Pair(file?.modulePath.toString(), container.fullName)
             }
@@ -47,12 +58,14 @@ class ArendMoveMembersDialog(project: Project,
             }
         }
 
-        elementPointers = elements.map { SmartPointerManager.createPointer(it) }
-
         targetFileTextField = JTextField(names?.first ?: "")
         targetModuleTextField = JTextField(names?.second ?: "")
+        memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
 
-        myPanel = panel {
+        northPanel = panel {
+            row {
+                memberSelectionPanel()
+            }
             row("Target file: ") {
                 targetFileTextField()
             }
@@ -64,14 +77,21 @@ class ArendMoveMembersDialog(project: Project,
         init()
     }
 
+    private fun initMemberInfo(container: ChildGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
+        for (c in container.subgroups) if (c is ArendGroup) {
+            val memberInfo = ArendMemberInfo(c)
+            if (membersToMove.contains(c)) memberInfo.isChecked = true
+            sink.add(memberInfo)
+        }
+    }
+
     override fun doAction() {
         val sourceGroup = containerRef.element
-        val elementsToMove = elementPointers.mapNotNull { it.element }
+        val elementsToMove = memberSelectionPanel.table.selectedMemberInfos.map { it.member }
 
-        val locateResult: Pair<Group?, String?> = when {
-            sourceGroup !is ChildGroup -> Pair(null, "Source module has invalid type")
-            elementsToMove.size != elementPointers.size -> Pair(null, "Can't locate some of the elements to be moved")
-            else -> locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, sourceGroup, elementPointers.map { it.element })
+        val locateResult: Pair<Group?, String?> = when (sourceGroup) {
+            !is ChildGroup -> Pair(null, "Source module has invalid type")
+            else -> locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, sourceGroup, elementsToMove)
         }
 
         if (locateResult.second != null)
@@ -87,7 +107,7 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun createCenterPanel(): JComponent? = initOpenInEditorCb()
 
-    override fun createNorthPanel(): JComponent? = myPanel
+    override fun createNorthPanel(): JComponent? = northPanel
 
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
@@ -119,4 +139,37 @@ class ArendMoveMembersDialog(project: Project,
         }
     }
 
+}
+
+class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>):
+        AbstractMemberSelectionPanel<ArendGroup, ArendMemberInfo>() {
+    private val myTable: ArendMemberSelectionTable
+
+    init {
+        layout = BorderLayout()
+
+        myTable = ArendMemberSelectionTable(memberInfo)
+        val scrollPane = ScrollPaneFactory.createScrollPane(myTable)
+        add(SeparatorFactory.createSeparator(title, myTable), BorderLayout.NORTH)
+        add(scrollPane, BorderLayout.CENTER)
+    }
+
+    override fun getTable(): AbstractMemberSelectionTable<ArendGroup, ArendMemberInfo> = myTable
+}
+
+class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>):
+        AbstractMemberSelectionTable<ArendGroup, ArendMemberInfo>(memberInfos, null, null) {
+    override fun getOverrideIcon(memberInfo: ArendMemberInfo?): Icon = MemberSelectionTable.EMPTY_OVERRIDE_ICON
+
+    override fun setVisibilityIcon(memberInfo: ArendMemberInfo?, icon: RowIcon?) {}
+
+    override fun getAbstractColumnValue(memberInfo: ArendMemberInfo?): Any? = false
+
+    override fun isAbstractColumnEditable(rowIndex: Int): Boolean = true
+}
+
+class ArendMemberInfo(member: ArendGroup): MemberInfoBase<ArendGroup>(member) {
+    override fun getDisplayName(): String {
+        return member.name?: "???"
+    }
 }
