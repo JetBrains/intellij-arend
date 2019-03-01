@@ -94,6 +94,8 @@
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefGroupingRuleProvider" />
 
+        <usageTypeProvider implementation="org.arend.search.ArendUsageTypeProvider"/>
+
         <!--fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefClassGroupingRuleProvider" />
         <fileStructureGroupRuleProvider
