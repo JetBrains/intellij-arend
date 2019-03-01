@@ -62,6 +62,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
             is ArendLetClause -> ExpectedTypeVisitor.getTypeOf(parent.parameters, parent.resultType)
             is ArendLetClausePattern -> parent.typeAnnotation?.expr
             is ArendPatternImplMixin -> parent.getExpr()
+            is ArendAsPattern -> parent.expr
             else -> null
         }
     }

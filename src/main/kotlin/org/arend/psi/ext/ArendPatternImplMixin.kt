@@ -16,6 +16,8 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
 
     abstract fun getLongName(): ArendLongName?
 
+    open fun getAsPattern(): ArendAsPattern? = null
+
     open fun getExpr(): ArendExpr? = null
 
     open fun getAtomPatternOrPrefixList(): List<ArendAtomPatternOrPrefix> = emptyList()
@@ -81,5 +83,11 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
 
         val patterns = getAtomPattern()?.patternList ?: return null
         return if (patterns.size == 1) patterns.first().expr else null
+    }
+
+    override fun getAsPatterns(): List<Abstract.TypedReferable> {
+        val patterns = getAtomPattern()?.patternList
+        val asPattern = getAsPattern()
+        return (if (patterns == null || patterns.size != 1) emptyList() else patterns[0].asPatterns) + (if (asPattern == null) emptyList() else listOf(asPattern))
     }
 }
