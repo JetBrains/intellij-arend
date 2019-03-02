@@ -11,7 +11,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.core.definition.ClassDefinition
 import org.arend.naming.reference.*
@@ -23,6 +22,7 @@ import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.REMOVE_COCLAUSE
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
+import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToStartOffset
 import org.arend.typechecking.TypeCheckingService
 
 enum class InstanceQuickFixAnnotation {
@@ -169,6 +169,13 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                 IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
             }
         }
+
+        fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
+            if (editor != null) {
+                editor.caretModel.moveToOffset(anchor.textRange.startOffset)
+                IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
+            }
+        }
     }
 }
 
@@ -181,7 +188,8 @@ class InstanceQuickFix {
 
         fun annotateClassInstance(instance: InstanceAdapter, holder: AnnotationHolder): Boolean {
             val classReference = instance.classReference
-            if (classReference is ArendDefClass && classReference.recordKw == null || classReference is TCReferable && (TypeCheckingService.getInstance(instance.project).typecheckerState.getTypechecked(classReference) as? ClassDefinition)?.isRecord == false) {
+            val needsChecking = instance.instanceBody.let { it == null || it.fatArrow == null && it.elim == null }
+            if (needsChecking && classReference is ArendDefClass && classReference.recordKw == null || classReference is TCReferable && (TypeCheckingService.getInstance(instance.project).typecheckerState.getTypechecked(classReference) as? ClassDefinition)?.isRecord == false) {
                 val returnExpr = instance.returnExpr
                 if (returnExpr != null)
                     return !ArendInstanceAnnotator(instance, returnExpr).doAnnotate(holder, IMPLEMENT_MISSING_FIELDS).isEmpty()
@@ -234,7 +242,7 @@ abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
             anchor = lBrace
         }
 
-        val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
+        val sampleCoClause = factory.createCoClause(name, "{?}")
         anchor.parent.addAfter(sampleCoClause, anchor)
         moveCaretToEndOffset(editor, anchor.nextSibling)
 
@@ -250,24 +258,21 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
             ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-        var nodeCoClauses = functionDefinition.functionBody?.coClauses
-        if (nodeCoClauses == null) {
-            val sampleCoClauses = factory.createCoClause(name, "{?}")
-            val functionBody = functionDefinition.functionBody!!
-            functionBody.addAfter(sampleCoClauses, coWithKw)
-            nodeCoClauses = functionDefinition.functionBody?.coClauses!!
-            val firstCoClause = nodeCoClauses.coClauseList.first()
-            nodeCoClauses.addBefore(factory.createWhitespace(" "), firstCoClause)
-            nodeCoClauses.addBefore(factory.createWhitespace("\n"), firstCoClause) // add first clause and crlf
-            moveCaretToEndOffset(editor, nodeCoClauses.coClauseList.last())
-        } else if (nodeCoClauses.lbrace != null) {
-            val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
-            val anchor = nodeCoClauses.lbrace
-            nodeCoClauses.addAfter(sampleCoClause, anchor)
-            nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
-            val caretAnchor = functionDefinition.functionBody?.coClauses?.coClauseList?.first()
-            if (caretAnchor != null)
-                moveCaretToEndOffset(editor, caretAnchor)
+        var functionBody = functionDefinition.functionBody
+        if (functionBody == null) {
+            val functionBodySample = factory.createCoClauseInFunction(name, "{?}").parent as ArendFunctionBody
+            functionBody = functionDefinition.addAfter(functionBodySample, functionDefinition.children.last()) as ArendFunctionBody
+            functionDefinition.addBefore(factory.createWhitespace("\n"), functionBody)
+            moveCaretToEndOffset(editor, functionBody.lastChild)
+        } else {
+            val sampleCoClause = factory.createCoClause(name, "{?}")
+            val anchor = if (functionBody.coClauseList.isNotEmpty()) functionBody.coClauseList.last()
+                    else if (functionBody.lbrace != null) functionBody.lbrace
+                    else if (functionBody.cowithKw != null) functionBody.cowithKw
+                    else null
+            val insertedClause = if (anchor != null) functionBody.addAfter(sampleCoClause, anchor) else functionBody.add(sampleCoClause)
+            functionBody.addBefore(factory.createWhitespace("\n"), insertedClause)
+            if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }
     }
 }
@@ -280,27 +285,20 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, returnExpr: 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         var instanceBody = instance.instanceBody
         if (instanceBody == null) {
-            val newInstanceBody = factory.createCoClause(name, "{?}").parent as ArendInstanceBody
-            instanceBody = instance.addAfter(newInstanceBody, instance.children.last()) as ArendInstanceBody
+            val instanceBodySample = factory.createCoClause(name, "{?}").parent as ArendInstanceBody
+            instanceBody = instance.addAfter(instanceBodySample, instance.children.last()) as ArendInstanceBody
             instance.addBefore(factory.createWhitespace("\n"), instanceBody)
-            val nodeCoClauses = instanceBody.coClauses!!
-            moveCaretToEndOffset(editor, nodeCoClauses.lastChild)
+            moveCaretToEndOffset(editor, instanceBody.lastChild)
         } else {
-            var nodeCoClauses = instance.instanceBody?.coClauses
-            if (nodeCoClauses == null) {
-                val sampleCoClauses = factory.createCoClause(name, "{?}")
-                instance.addBefore(factory.createWhitespace("\n"), instanceBody)
-                nodeCoClauses = instanceBody.add(sampleCoClauses) as ArendCoClauses
-                moveCaretToEndOffset(editor, nodeCoClauses.lastChild)
-            } else {
-                val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
-                val anchor = if (nodeCoClauses.lbrace != null) nodeCoClauses.lbrace else nodeCoClauses.coClauseList.last()
-                nodeCoClauses.addAfter(sampleCoClause, anchor)
-                nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
-                val caretAnchor = instance.instanceBody?.coClauseList?.first()
-                if (caretAnchor != null)
-                    moveCaretToEndOffset(editor, caretAnchor)
-            }
+            val sampleCoClause = factory.createCoClause(name, "{?}")
+            val anchor =  if (instanceBody.coClauseList.isNotEmpty()) instanceBody.coClauseList.last()
+                else if (instanceBody.lbrace != null) instanceBody.lbrace
+                else if (instanceBody.cowithKw != null) instanceBody.cowithKw
+                else null
+
+            val insertedClause = if (anchor != null) instanceBody.addAfter(sampleCoClause, anchor) else instanceBody.add(sampleCoClause)
+            instanceBody.addBefore(factory.createWhitespace("\n"), insertedClause)
+            if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }
     }
 }
@@ -319,7 +317,7 @@ class NewExprAnnotator(private val newExpr: ArendNewExprImplMixin, private val a
             argumentAppExpr.nextSibling.nextSibling
         }
 
-        val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList.first()
+        val sampleCoClause = factory.createCoClause(name, "{?}")
         anchor.parent.addAfter(sampleCoClause, anchor)
 
         moveCaretToEndOffset(editor, anchor.nextSibling)
@@ -337,15 +335,10 @@ class RemoveCoClause(private val coClause: ArendCoClause) : IntentionAction {
     override fun getText() = REMOVE_COCLAUSE
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var startChild: PsiElement = coClause
-        if (startChild.prevSibling is PsiWhiteSpace) startChild = startChild.prevSibling
-        if (startChild.prevSibling != null) moveCaretToEndOffset(editor, startChild.prevSibling)
-
-        val cCP = coClause.parent
-        cCP.deleteChildRange(startChild, coClause)
-        if (cCP is ArendCoClauses && cCP.coClauseList.isEmpty() && cCP.lbrace == null && cCP.rbrace == null) {
-            cCP.delete()
-        }
+        moveCaretToStartOffset(editor, coClause)
+        val parent = coClause.parent
+        coClause.delete()
+        if ((parent is ArendFunctionBody || parent is ArendInstanceBody) && parent.firstChild == null) parent.delete()
     }
 }
 
@@ -371,9 +364,7 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
             caretMoved = true
         } else {
             val anchor = coClauses.last()
-
-            val sampleCoClauses = psiFactory.createCoClause(name, "{?}")
-            val coClause = sampleCoClauses.coClauseList.first()!!
+            val coClause = psiFactory.createCoClause(name, "{?}")
 
             anchor.parent.addAfter(coClause, anchor)
             if (!caretMoved && editor != null) {

@@ -46,8 +46,6 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
         override fun visitDataBody(o: ArendDataBody) = fold(o)
 
-        override fun visitCoClauses(o: ArendCoClauses) = fold(o)
-
         override fun visitConstructor(o: ArendConstructor) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitConstructorClause(o: ArendConstructorClause) = foldBetween(o, o.lbrace, o.rbrace)

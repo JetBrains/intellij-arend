@@ -119,8 +119,8 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """
                 \class Foo (A : Nat)
                 \class Bar \extends Foo
-                \instance FooBar : Bar {{-caret-}
-                  | A => 1
+                \instance FooBar : Bar {
+                  {-caret-}| A => 1
                 }
             """)
 
