@@ -278,21 +278,29 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, private val 
     override fun coClausesList(): List<ArendCoClause> = instance.instanceBody?.coClauses?.coClauseList ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-        var nodeCoClauses = instance.instanceBody?.coClauses
-        if (nodeCoClauses == null) {
-            val sampleCoClauses = factory.createCoClause(name, "{?}")
-            instance.addAfter(sampleCoClauses, instance.instanceBody?.cowithKw ?: returnExpr)
-            nodeCoClauses = instance.instanceBody?.coClauses!!
-            nodeCoClauses.parent.addBefore(factory.createWhitespace("\n"), nodeCoClauses)
+        var instanceBody = instance.instanceBody
+        if (instanceBody == null) {
+            val newInstanceBody = factory.createCoClause(name, "{?}").parent as ArendInstanceBody
+            instanceBody = instance.addAfter(newInstanceBody, instance.children.last()) as ArendInstanceBody
+            instance.addBefore(factory.createWhitespace("\n"), instanceBody)
+            val nodeCoClauses = instanceBody.coClauses!!
             moveCaretToEndOffset(editor, nodeCoClauses.lastChild)
-        } else if (nodeCoClauses.lbrace != null) {
-            val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
-            val anchor = nodeCoClauses.lbrace
-            nodeCoClauses.addAfter(sampleCoClause, anchor)
-            nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
-            val caretAnchor = instance.instanceBody?.coClauses?.coClauseList?.first()
-            if (caretAnchor != null)
-                moveCaretToEndOffset(editor, caretAnchor)
+        } else {
+            var nodeCoClauses = instance.instanceBody?.coClauses
+            if (nodeCoClauses == null) {
+                val sampleCoClauses = factory.createCoClause(name, "{?}")
+                instance.addBefore(factory.createWhitespace("\n"), instanceBody)
+                nodeCoClauses = instanceBody.add(sampleCoClauses) as ArendCoClauses
+                moveCaretToEndOffset(editor, nodeCoClauses.lastChild)
+            } else {
+                val sampleCoClause = factory.createCoClause(name, "{?}").coClauseList[0]!!
+                val anchor = if (nodeCoClauses.lbrace != null) nodeCoClauses.lbrace else nodeCoClauses.coClauseList.last()
+                nodeCoClauses.addAfter(sampleCoClause, anchor)
+                nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
+                val caretAnchor = instance.instanceBody?.coClauses?.coClauseList?.first()
+                if (caretAnchor != null)
+                    moveCaretToEndOffset(editor, caretAnchor)
+            }
         }
     }
 }

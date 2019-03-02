@@ -2,6 +2,8 @@ package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import org.arend.psi.ArendDefInstance
+import org.arend.psi.ArendReturnExpr
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.AbstractEWCCAnnotator
 import org.arend.quickfix.ImplementFieldsQuickFix
@@ -10,6 +12,7 @@ import org.arend.quickfix.NewExprAnnotator
 class ImplementFieldsIntention: SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, AbstractEWCCAnnotator.IMPLEMENT_MISSING_FIELDS){
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int): Boolean {
         val appExpr = element.getArgumentAppExpr()
+        if (element.getNewKw() == null) return false
         return appExpr != null && !NewExprAnnotator(element, appExpr).doAnnotate(null, "").isEmpty()
     }
 
