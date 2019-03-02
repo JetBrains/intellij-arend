@@ -317,7 +317,8 @@ functionBody ::= functionTermBody
 
 instanceBody ::= functionTermBody
     | elim functionClauses?
-    | COWITH_KW? coClauses? {
+    | COWITH_KW coClauses?
+    | coClauseReg+ {
     pin(".*") = 1
     recoverWhile = statement_recover
 }
@@ -543,7 +544,7 @@ private pipe_pattern ::= PIPE {
 
 private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE) & statement_recover
 
-coClauses ::= LBRACE coClauseSequence RBRACE | coClauseReg+ {
+private coClauses ::= LBRACE coClauseSequence RBRACE | coClauseReg+ {
     pin(".*") = 1
     recoverWhile = statement_recover
 }

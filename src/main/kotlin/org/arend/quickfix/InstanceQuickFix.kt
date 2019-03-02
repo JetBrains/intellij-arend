@@ -246,7 +246,7 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
         AbstractEWCCAnnotator(functionDefinition,
                 TextRange(functionDefinition.textRange.startOffset, coWithKw.textRange.endOffset)) {
 
-    override fun coClausesList(): List<ArendCoClause> = functionDefinition.functionBody?.coClauses?.coClauseList
+    override fun coClausesList(): List<ArendCoClause> = functionDefinition.functionBody?.coClauseList
             ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
@@ -272,10 +272,10 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
     }
 }
 
-class ArendInstanceAnnotator(private val instance: InstanceAdapter, private val returnExpr: ArendReturnExpr) :
+class ArendInstanceAnnotator(private val instance: InstanceAdapter, returnExpr: ArendReturnExpr) :
         AbstractEWCCAnnotator(instance, TextRange(instance.instanceKw.textRange.startOffset, returnExpr.textRange.endOffset)) {
 
-    override fun coClausesList(): List<ArendCoClause> = instance.instanceBody?.coClauses?.coClauseList ?: emptyList()
+    override fun coClausesList(): List<ArendCoClause> = instance.instanceBody?.coClauseList ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         var instanceBody = instance.instanceBody
@@ -297,7 +297,7 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, private val 
                 val anchor = if (nodeCoClauses.lbrace != null) nodeCoClauses.lbrace else nodeCoClauses.coClauseList.last()
                 nodeCoClauses.addAfter(sampleCoClause, anchor)
                 nodeCoClauses.addAfter(factory.createWhitespace("\n"), anchor)
-                val caretAnchor = instance.instanceBody?.coClauses?.coClauseList?.first()
+                val caretAnchor = instance.instanceBody?.coClauseList?.first()
                 if (caretAnchor != null)
                     moveCaretToEndOffset(editor, caretAnchor)
             }

@@ -72,7 +72,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauses?.coClauseList ?: emptyList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauseList ?: emptyList()
 
     override val psiElementType: PsiElement?
         get() = resultType

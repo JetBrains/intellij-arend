@@ -74,7 +74,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
     }
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = instanceBody?.coClauses?.coClauseList ?: emptyList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = instanceBody?.coClauseList ?: emptyList()
 
     override val psiElementType: PsiElement?
         get() = resultType
