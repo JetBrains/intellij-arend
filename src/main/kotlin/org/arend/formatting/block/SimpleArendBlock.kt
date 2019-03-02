@@ -152,11 +152,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return ChildAttributes(indent, null)
             }
 
-            /* if (nodePsi is ArendInstanceBody) when (prevET) {
-                CO_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
-            }*/
-
-
             //Expressions
 
             when (node.elementType) {
