@@ -101,7 +101,10 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                 val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO
                 (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
                     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-                        if (emptyGoal) coClause.deleteChildRangeWithNotification(fatArrow, expr)
+                        if (emptyGoal) {
+                            fatArrow?.deleteWithNotification()
+                            expr?.deleteWithNotification()
+                        }
                         super.insertFirstCoClause(name, factory, editor)
                     }
                 }).doAnnotate(holder, message)

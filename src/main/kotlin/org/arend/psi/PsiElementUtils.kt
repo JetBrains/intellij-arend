@@ -130,7 +130,7 @@ fun PsiElement.deleteWithNotification() {
     this.delete()
 }
 
-fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement?, lastChild: PsiElement?) {
+fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChild: PsiElement) {
     this.deleteChildRange(firstChild, lastChild)
 }
 
