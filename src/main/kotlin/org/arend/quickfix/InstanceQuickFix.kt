@@ -101,7 +101,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                 val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO
                 (object : CoClauseAnnotator(coClause, rangeToReport, severity) {
                     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
-                        if (emptyGoal) coClause.deleteChildRange(fatArrow, expr)
+                        if (emptyGoal) coClause.deleteChildRangeWithNotification(fatArrow, expr)
                         super.insertFirstCoClause(name, factory, editor)
                     }
                 }).doAnnotate(holder, message)
@@ -233,9 +233,9 @@ abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
         val lBrace = coClause.getLbrace()
         if (lBrace == null) {
             anchor = coClause.getLongName()!!
-            val pOB = factory.createPairOfBraces()
-            anchor.parent.addAfter(pOB.second, anchor)
-            anchor.parent.addAfter(pOB.first, anchor)
+            val braces = factory.createPairOfBraces()
+            anchor.parent.addAfter(braces.second, anchor)
+            anchor.parent.addAfter(braces.first, anchor)
             anchor.parent.addAfter(factory.createWhitespace(" "), anchor) //separator between lBrace and coClause name
             anchor = anchor.nextSibling.nextSibling
         } else {
@@ -243,14 +243,14 @@ abstract class CoClauseBaseAnnotator(private val coClause: CoClauseBase,
         }
 
         val sampleCoClause = factory.createCoClause(name, "{?}")
-        anchor.parent.addAfter(sampleCoClause, anchor)
+        anchor.parent.addAfterWithNotification(sampleCoClause, anchor)
         moveCaretToEndOffset(editor, anchor.nextSibling)
 
         anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
     }
 }
 
-class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFunction, private val coWithKw: PsiElement) :
+class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFunction, coWithKw: PsiElement) :
         AbstractEWCCAnnotator(functionDefinition,
                 TextRange(functionDefinition.textRange.startOffset, coWithKw.textRange.endOffset)) {
 
@@ -261,16 +261,18 @@ class FunctionDefinitionAnnotator(private val functionDefinition: ArendDefFuncti
         var functionBody = functionDefinition.functionBody
         if (functionBody == null) {
             val functionBodySample = factory.createCoClauseInFunction(name, "{?}").parent as ArendFunctionBody
-            functionBody = functionDefinition.addAfter(functionBodySample, functionDefinition.children.last()) as ArendFunctionBody
+            functionBody = functionDefinition.addAfterWithNotification(functionBodySample, functionDefinition.children.last()) as ArendFunctionBody
             functionDefinition.addBefore(factory.createWhitespace("\n"), functionBody)
             moveCaretToEndOffset(editor, functionBody.lastChild)
         } else {
             val sampleCoClause = factory.createCoClause(name, "{?}")
-            val anchor = if (functionBody.coClauseList.isNotEmpty()) functionBody.coClauseList.last()
-                    else if (functionBody.lbrace != null) functionBody.lbrace
-                    else if (functionBody.cowithKw != null) functionBody.cowithKw
-                    else null
-            val insertedClause = if (anchor != null) functionBody.addAfter(sampleCoClause, anchor) else functionBody.add(sampleCoClause)
+            val anchor = when {
+                functionBody.coClauseList.isNotEmpty() -> functionBody.coClauseList.last()
+                functionBody.lbrace != null -> functionBody.lbrace
+                functionBody.cowithKw != null -> functionBody.cowithKw
+                else -> null
+            }
+            val insertedClause = if (anchor != null) functionBody.addAfterWithNotification(sampleCoClause, anchor) else functionBody.add(sampleCoClause)
             functionBody.addBefore(factory.createWhitespace("\n"), insertedClause)
             if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }
@@ -286,17 +288,19 @@ class ArendInstanceAnnotator(private val instance: InstanceAdapter, returnExpr: 
         var instanceBody = instance.instanceBody
         if (instanceBody == null) {
             val instanceBodySample = factory.createCoClause(name, "{?}").parent as ArendInstanceBody
-            instanceBody = instance.addAfter(instanceBodySample, instance.children.last()) as ArendInstanceBody
+            instanceBody = instance.addAfterWithNotification(instanceBodySample, instance.children.last()) as ArendInstanceBody
             instance.addBefore(factory.createWhitespace("\n"), instanceBody)
             moveCaretToEndOffset(editor, instanceBody.lastChild)
         } else {
             val sampleCoClause = factory.createCoClause(name, "{?}")
-            val anchor =  if (instanceBody.coClauseList.isNotEmpty()) instanceBody.coClauseList.last()
-                else if (instanceBody.lbrace != null) instanceBody.lbrace
-                else if (instanceBody.cowithKw != null) instanceBody.cowithKw
-                else null
+            val anchor = when {
+                instanceBody.coClauseList.isNotEmpty() -> instanceBody.coClauseList.last()
+                instanceBody.lbrace != null -> instanceBody.lbrace
+                instanceBody.cowithKw != null -> instanceBody.cowithKw
+                else -> null
+            }
 
-            val insertedClause = if (anchor != null) instanceBody.addAfter(sampleCoClause, anchor) else instanceBody.add(sampleCoClause)
+            val insertedClause = if (anchor != null) instanceBody.addAfterWithNotification(sampleCoClause, anchor) else instanceBody.add(sampleCoClause)
             instanceBody.addBefore(factory.createWhitespace("\n"), insertedClause)
             if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }
@@ -310,15 +314,15 @@ class NewExprAnnotator(private val newExpr: ArendNewExprImplMixin, private val a
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         val lbrace = newExpr.getLbrace()
         val anchor: PsiElement = if (lbrace != null) lbrace else {
-            val pOB = factory.createPairOfBraces()
-            argumentAppExpr.parent.addAfter(pOB.second, argumentAppExpr)
-            argumentAppExpr.parent.addAfter(pOB.first, argumentAppExpr)
+            val braces = factory.createPairOfBraces()
+            argumentAppExpr.parent.addAfter(braces.second, argumentAppExpr)
+            argumentAppExpr.parent.addAfter(braces.first, argumentAppExpr)
             argumentAppExpr.parent.addAfter(factory.createWhitespace(" "), argumentAppExpr) //separator between name and lbrace
             argumentAppExpr.nextSibling.nextSibling
         }
 
         val sampleCoClause = factory.createCoClause(name, "{?}")
-        anchor.parent.addAfter(sampleCoClause, anchor)
+        anchor.parent.addAfterWithNotification(sampleCoClause, anchor)
 
         moveCaretToEndOffset(editor, anchor.nextSibling)
         anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
@@ -337,8 +341,8 @@ class RemoveCoClause(private val coClause: ArendCoClause) : IntentionAction {
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         moveCaretToStartOffset(editor, coClause)
         val parent = coClause.parent
-        coClause.delete()
-        if ((parent is ArendFunctionBody || parent is ArendInstanceBody) && parent.firstChild == null) parent.delete()
+        coClause.deleteWithNotification()
+        if ((parent is ArendFunctionBody || parent is ArendInstanceBody) && parent.firstChild == null) parent.deleteWithNotification()
     }
 }
 
@@ -366,7 +370,7 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
             val anchor = coClauses.last()
             val coClause = psiFactory.createCoClause(name, "{?}")
 
-            anchor.parent.addAfter(coClause, anchor)
+            anchor.parent.addAfterWithNotification(coClause, anchor)
             if (!caretMoved && editor != null) {
                 moveCaretToEndOffset(editor, anchor.nextSibling)
                 caretMoved = true

@@ -117,19 +117,19 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 val oldWhereImpl = myTargetContainer.where
                 val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
                     val localAnchor = myTargetContainer.lastChild
-                    val insertedWhere = myTargetContainer.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
+                    val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
                     myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
                     insertedWhere
                 }
 
                 if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
-                    val pOB = psiFactory.createPairOfBraces()
+                    val braces = psiFactory.createPairOfBraces()
                     if (actualWhereImpl.lbrace == null) {
-                        actualWhereImpl.addAfter(pOB.first, actualWhereImpl.whereKw)
+                        actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
                         actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
                     }
                     if (actualWhereImpl.rbrace == null) {
-                        actualWhereImpl.addAfter(pOB.second, actualWhereImpl.lastChild)
+                        actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
                     }
                 }
 
@@ -160,9 +160,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (m in myMembers) {
             val mStatement = m.parent
             val mCopyStatement = mStatement.copy()
-            val mCopyStatementInserted = if (insertAnchor == null)
-                (myTargetContainer.add(mCopyStatement)) else
-                insertAnchor.parent.addAfter(mCopyStatement, insertAnchor)
+            val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor) ?: myTargetContainer.addWithNotification(mCopyStatement)
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 

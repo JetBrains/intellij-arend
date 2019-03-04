@@ -106,6 +106,34 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
         nS != null -> RelativePosition(PositionKind.BEFORE_ANCHOR, nS)
         else -> this.parent?.let { RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, it) }
     }
-    this.delete()
+    this.deleteWithNotification()
     return result
+}
+
+fun PsiElement.addBeforeWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
+    return this.addBefore(element, anchor)
+}
+
+fun PsiElement.addAfterWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
+    return this.addAfter(element, anchor)
+}
+
+fun PsiElement.addWithNotification(element: PsiElement): PsiElement {
+    return this.add(element)
+}
+
+fun PsiElement.replaceWithNotification(newElement: PsiElement) {
+    this.replace(newElement)
+}
+
+fun PsiElement.deleteWithNotification() {
+    this.delete()
+}
+
+fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement?, lastChild: PsiElement?) {
+    this.deleteChildRange(firstChild, lastChild)
+}
+
+fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
+    return this.addRangeAfter(firstElement, lastElement, anchor)
 }

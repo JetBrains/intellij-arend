@@ -91,7 +91,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
 
         if (anchor != null) {
             if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
-            val insertedId = anchor.parent.addAfter(nsId, anchor)
+            val insertedId = anchor.parent.addAfterWithNotification(nsId, anchor)
             if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
             return insertedId as ArendNsId
         }
@@ -103,15 +103,16 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
         val factory = ArendPsiFactory(statCmd.project)
         val insertAnchor = statCmd.longName
 
-        val actualNsUsing: ArendNsUsing? = statCmd.nsUsing ?: if (idList.any { it.second != null } && insertAnchor != null) {
-            val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
-            val insertedUsing = insertAnchor.parent.addAfter(newUsing, insertAnchor)
-            insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
-            insertedUsing as ArendNsUsing
-        } else null
+        val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
+                ?: if (idList.any { it.second != null } && insertAnchor != null) {
+                    val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
+                    val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
+                    insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
+                    insertedUsing as ArendNsUsing
+                } else null
 
         val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
-        if (actualNsUsing != null)  insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
+        if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
     }
 }
 
@@ -132,7 +133,7 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
         val prevSibling = elementToRemove.findPrevSibling()
         val nextSibling = elementToRemove.findNextSibling()
 
-        elementToRemove.delete()
+        elementToRemove.deleteWithNotification()
 
         if (prevSibling?.node?.elementType == ArendElementTypes.COMMA) {
             prevSibling?.delete()
@@ -157,7 +158,7 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
             val nsUsing = statCmd.nsUsing
             if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
                 val statCmdStatement = statCmd.parent
-                statCmdStatement.delete()
+                statCmdStatement.deleteWithNotification()
             }
         }
     }
@@ -175,10 +176,10 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
 
         if (longNamePsi != null) {
             if (parent is ArendLongName) {
-                parent.addRangeAfter(longNamePsi.firstChild, longNamePsi.lastChild, element)
-                parent.deleteChildRange(parent.firstChild, element)
+                parent.addRangeAfterWithNotification(longNamePsi.firstChild, longNamePsi.lastChild, element)
+                parent.deleteChildRangeWithNotification(parent.firstChild, element)
             } else if (parent is ArendPattern) {
-                element.replace(longNamePsi)
+                element.replaceWithNotification(longNamePsi)
             }
             editor?.caretModel?.moveToOffset(offset + longNameStr.length)
         }
@@ -190,7 +191,8 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val statCmdFixAction: AbstractRefactoringAction?,
                              private val nameFixAction: AbstractRefactoringAction?) : AbstractRefactoringAction {
 
-    override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" } ?: "")
+    override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" }
+            ?: "")
 
     override fun execute(editor: Editor?) {
         statCmdFixAction?.execute(editor)
@@ -222,16 +224,16 @@ fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, f
 
     when (relativePosition.kind) {
         PositionKind.BEFORE_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.parent.addBefore(commandStatement, relativePosition.anchor)
+            insertedStatement = relativePosition.anchor.parent.addBeforeWithNotification(commandStatement, relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
         }
         PositionKind.AFTER_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.parent.addAfter(commandStatement, relativePosition.anchor)
+            insertedStatement = relativePosition.anchor.parent.addAfterWithNotification(commandStatement, relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace("\n"), relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
         }
         PositionKind.INSIDE_EMPTY_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.add(commandStatement)
+            insertedStatement = relativePosition.anchor.addWithNotification(commandStatement)
         }
     }
     return insertedStatement
