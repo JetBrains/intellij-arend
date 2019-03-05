@@ -45,6 +45,8 @@ interface TypeCheckingService {
 
     fun updateDefinition(referable: LocatedReferable)
 
+    fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
+
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
             val service = ServiceManager.getService(project, TypeCheckingService::class.java)
@@ -68,6 +70,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     private var isInitialized = false
 
+    private val listener = TypeCheckerPsiTreeChangeListener()
+
     override fun initialize(): Boolean {
         if (isInitialized) {
             return false
@@ -82,7 +86,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
-        PsiManager.getInstance(project).addPsiTreeChangeListener(TypeCheckerPsiTreeChangeListener())
+        PsiManager.getInstance(project).addPsiTreeChangeListener(listener)
 
         isInitialized = true
         return true
@@ -133,6 +137,10 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
     }
 
+    override fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
+        listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
+    }
+
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
         override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event, true)
@@ -158,10 +166,12 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
 
         private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
-            if (event.file !is ArendFile) {
-                return
+            if (event.file is ArendFile) {
+                processParent(event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
             }
-            val child = event.child
+        }
+
+        fun processParent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
             if (child is PsiErrorElement ||
                 child is PsiWhiteSpace ||
                 child is ArendWhere ||
@@ -169,8 +179,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 child is LeafPsiElement && AREND_COMMENTS.contains(child.node.elementType)) {
                 return
             }
-            val oldChild = event.oldChild
-            val newChild = event.newChild
             if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
                 (oldChild is ArendWhere || oldChild is PsiErrorElement || isDynamicDef(oldChild)) && (newChild is ArendWhere || newChild is PsiErrorElement || isDynamicDef(newChild)) ||
                 oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
@@ -194,7 +202,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 }
             }
 
-            var elem = event.parent
+            var elem = parent
             while (elem != null) {
                 if (elem is ArendWhere || elem is ArendFile || isDynamicDef(elem)) {
                     return

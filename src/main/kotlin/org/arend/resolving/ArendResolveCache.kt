@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap
 
 interface ArendResolveCache {
     fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable?
+    fun processEvent(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?)
 }
 
 private fun getDefinitionOfLocalElement(element: PsiElement) =
@@ -21,6 +22,7 @@ private fun getDefinitionOfLocalElement(element: PsiElement) =
 class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
     private val globalMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
     private val localMap: ConcurrentMap<ArendDefinition, HashMap<ArendReferenceElement, Referable>> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
+    private val listener = ResolveCacheCleaner()
 
     override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
         val globalRef = globalMap[ref]
@@ -50,19 +52,31 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
     }
 
     init {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(ResolveCacheCleaner())
+        PsiManager.getInstance(project).addPsiTreeChangeListener(listener)
+    }
+
+    override fun processEvent(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?) {
+        listener.update(oldChild, newChild, parent)
     }
 
     private inner class ResolveCacheCleaner : PsiTreeChangeAdapter() {
-        override fun beforeChildReplacement(event: PsiTreeChangeEvent) = update(event.oldChild, event.newChild, event.parent)
+        override fun beforeChildReplacement(event: PsiTreeChangeEvent) {
+            if (event.file is ArendFile) update(event.oldChild, event.newChild, event.parent)
+        }
 
-        override fun beforeChildMovement(event: PsiTreeChangeEvent) = update(event.child, null, event.oldParent)
+        override fun beforeChildMovement(event: PsiTreeChangeEvent) {
+            if (event.file is ArendFile) update(event.child, null, event.oldParent)
+        }
 
-        override fun beforeChildRemoval(event: PsiTreeChangeEvent) = update(event.child, null, event.parent)
+        override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
+            if (event.file is ArendFile) update(event.child, null, event.parent)
+        }
 
-        override fun beforeChildAddition(event: PsiTreeChangeEvent) = update(event.child, null, event.parent)
+        override fun beforeChildAddition(event: PsiTreeChangeEvent) {
+            if (event.file is ArendFile) update(event.child, null, event.parent)
+        }
 
-        private fun update(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement) {
+        fun update(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?) {
             if ((oldChild == null ||
                  oldChild is PsiErrorElement ||
                  oldChild is PsiWhiteSpace ||

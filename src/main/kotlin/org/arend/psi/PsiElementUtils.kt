@@ -1,11 +1,9 @@
 package org.arend.psi
 
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.mapFirstNotNull
@@ -14,6 +12,7 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
+import org.arend.resolving.ArendResolveCache
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 
@@ -110,30 +109,56 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
     return result
 }
 
+private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
+    val project = child?.project ?: oldChild?.project ?: return
+    TypeCheckingService.getInstance(project).processEvent(child, oldChild, newChild, parent, additionOrRemoval)
+    ServiceManager.getService(project, ArendResolveCache::class.java)?.processEvent(child, newChild, parent)
+}
+
+private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
+    val project = parent.project
+    val tcService = TypeCheckingService.getInstance(project)
+    val resolveService = ServiceManager.getService(project, ArendResolveCache::class.java)
+
+    var child: PsiElement? = firstChild
+    while (child != lastChild && child != null) {
+        tcService.processEvent(child, null, null, parent, true)
+        resolveService?.processEvent(child, null, parent)
+        child = child.nextSibling
+    }
+}
+
 fun PsiElement.addBeforeWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
+    notify(element, null, null, this, true)
     return this.addBefore(element, anchor)
 }
 
 fun PsiElement.addAfterWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
+    notify(element, null, null, this, true)
     return this.addAfter(element, anchor)
 }
 
 fun PsiElement.addWithNotification(element: PsiElement): PsiElement {
+    notify(element, null, null, this, true)
     return this.add(element)
 }
 
 fun PsiElement.replaceWithNotification(newElement: PsiElement) {
+    notify(null, this, newElement, parent, false)
     this.replace(newElement)
 }
 
 fun PsiElement.deleteWithNotification() {
+    notify(this, null, null, parent, true)
     this.delete()
 }
 
 fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChild: PsiElement) {
+    notifyRange(firstChild, lastChild, this)
     this.deleteChildRange(firstChild, lastChild)
 }
 
 fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
+    notifyRange(firstElement, lastElement, this)
     return this.addRangeAfter(firstElement, lastElement, anchor)
 }
