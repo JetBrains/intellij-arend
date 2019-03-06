@@ -4,9 +4,7 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY_IDENTIFIER_TRIMMED
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.patterns.ElementPattern
-import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.PsiElementPattern
+import com.intellij.patterns.*
 import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
@@ -23,29 +21,35 @@ import java.util.*
 class ArendCompletionContributor : CompletionContributor() {
 
     init {
-        basic(PREC_CONTEXT, KeywordCompletionProvider(FIXITY_KWS))
+        basic(PREC_CONTEXT, FIXITY_KWS)
 
-        basic(afterLeaf(LEVEL_KW), ACPConditionalProvider(FIXITY_KWS, { parameters ->
-            val p = parameters.prevElement?.parent
-            p is ArendDefFunction && p.useKw != null
-        }))
-        basic(afterLeaf(FAT_ARROW), ConditionalProvider(FIXITY_KWS,
-                {parameters -> withParentOrGrandParent(ArendClassFieldSyn::class.java).accepts(parameters.originalPosition)})) // fixity kws for class field synonym (2nd part)
+        basic(PlatformPatterns.psiElement().afterLeaf(and(ofType(LEVEL_KW), object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                return o.parent.let {it is ArendDefFunction && it.useKw != null}
+            }
+        })), FIXITY_KWS)
 
-        basic(AS_CONTEXT, ConditionalProvider(AS_KW_LIST, { parameters -> (parameters.position.parent.parent as ArendNsId).asKw == null }))
+        basic(afterLeaf(FAT_ARROW), FIXITY_KWS) { parameters ->
+            withParentOrGrandParent(ArendClassFieldSyn::class.java).accepts(parameters.originalPosition)} // fixity kws for class field synonym (2nd part)
 
-        basic(NS_CMD_CONTEXT, ConditionalProvider(HU_KW_LIST, { parameters -> parameters.originalPosition?.parent is ArendFile}))
+        basic(AS_CONTEXT, AS_KW_LIST) { parameters ->
+            (parameters.position.parent.parent as ArendNsId).asKw == null }
+
+        basic(NS_CMD_CONTEXT, HU_KW_LIST) { parameters ->
+            parameters.originalPosition?.parent is ArendFile }
 
         fun noUsing(cmd: ArendStatCmd): Boolean = cmd.nsUsing?.usingKw == null
         fun noHiding(cmd: ArendStatCmd): Boolean = cmd.hidingKw == null
         fun noUsingAndHiding(cmd: ArendStatCmd): Boolean = noUsing(cmd) && noHiding(cmd)
 
-        basic(NS_CMD_CONTEXT, ConditionalProvider(USING_KW_LIST, { parameters -> noUsing(parameters.position.parent.parent as ArendStatCmd) }))
+        basic(NS_CMD_CONTEXT, USING_KW_LIST) { parameters ->
+            noUsing(parameters.position.parent.parent as ArendStatCmd) }
 
-        basic(NS_CMD_CONTEXT, ConditionalProvider(HIDING_KW_LIST, { parameters -> noUsingAndHiding(parameters.position.parent.parent as ArendStatCmd) }))
+        basic(NS_CMD_CONTEXT, HIDING_KW_LIST) { parameters ->
+            noUsingAndHiding(parameters.position.parent.parent as ArendStatCmd) }
 
-        basic(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java),
-                ConditionalProvider(HIDING_KW_LIST, { parameters -> noHiding(parameters.position.parent.parent.parent as ArendStatCmd) }))
+        basic(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java), HIDING_KW_LIST) { parameters ->
+            noHiding(parameters.position.parent.parent.parent as ArendStatCmd) }
 
         basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(STATEMENT_WT_KWS))
 
@@ -88,14 +92,15 @@ class ArendCompletionContributor : CompletionContributor() {
             result2
         }
 
-        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(CLASS_MEMBER_KWS,
-                { parameters -> classOrDataPositionMatcher(parameters.completionParameters.position, false, false) }))
+        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(CLASS_MEMBER_KWS, { parameters ->
+            classOrDataPositionMatcher(parameters.completionParameters.position, false, false) }))
 
-        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(USE_KW_LIST,
-                { parameters -> classOrDataPositionMatcher(parameters.completionParameters.position, true, true) }))
-        basic(afterLeaf(USE_KW), KeywordCompletionProvider(COERCE_LEVEL_KWS))
+        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(USE_KW_LIST, { parameters ->
+            classOrDataPositionMatcher(parameters.completionParameters.position, true, true) }))
 
-        basic(and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), KeywordCompletionProvider(DATA_KW_LIST))//data after \truncated keyword
+        basic(afterLeaf(USE_KW), COERCE_LEVEL_KWS)
+
+        basic(and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), DATA_KW_LIST)//data after \truncated keyword
 
         basic(WHERE_CONTEXT, JointOfStatementsProvider(WHERE_KW_LIST, { arendCompletionParameters: ArendCompletionParameters ->
             var anc = arendCompletionParameters.prevElement
@@ -109,80 +114,97 @@ class ArendCompletionContributor : CompletionContributor() {
             } else false
         }, tailSpaceNeeded = true, noCrlfRequired = true, allowInsideBraces = false))
 
-        val noExtendsCondition = { arendCompletionParameters: ArendCompletionParameters ->
-            val condition = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
-                    and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
-            val dC = arendCompletionParameters.completionParameters.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
-            if (dC != null) dC.extendsKw == null && (condition.accepts(arendCompletionParameters.prevElement)) else false
+        val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
+                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
+
+        val noExtendsPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                val dC = o.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
+                return if (dC != null) dC.extendsKw == null else false
+            }
         }
 
-        basic(and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java), afterLeaf(ID)),
-                ACPConditionalProvider(EXTENDS_KW_LIST, noExtendsCondition))
-        basic(withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
-                ACPConditionalProvider(EXTENDS_KW_LIST, { arendCompletionParameters ->
-                    noExtendsCondition.invoke(arendCompletionParameters) &&
-                            arendCompletionParameters.completionParameters.position.parent?.parent?.findNextSibling() !is ArendFieldTele
-                }))
-
-        basic(and(DATA_CONTEXT, afterLeaf(COLON)), KeywordCompletionProvider(DATA_UNIVERSE_KW))
-
-        val bareSigmaOrPi = { expression: PsiElement ->
-            var result: PsiElement? = expression
-
-            val context = ofType(PI_KW, SIGMA_KW)
-
-            var tele: ArendTypeTele? = null
-            while (result != null) {
-                if (result is ArendTypeTele) tele = result
-                if (result is ArendExpr && result !is ArendUniverseAtom) break
-                result = result.parent
+        val notWithGrandparentFieldTelePattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                return o.parent?.parent?.findNextSibling() !is ArendFieldTele
             }
-
-            if (context.accepts(expression)) true else
-                if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
-                    result is ArendSigmaExpr || result is ArendPiExpr
         }
-        val allowedInReturn = { expression: PsiElement ->
-            var result: PsiElement? = expression
-            while (result != null) {
-                if (result is ArendReturnExpr) break
-                result = result?.parent
+
+        basic(and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+                afterLeaf(ID),
+                noExtendsPattern,
+                PlatformPatterns.psiElement().afterLeaf(inDefClassPattern)),
+                EXTENDS_KW_LIST)
+
+        basic(and(withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
+                noExtendsPattern,
+                PlatformPatterns.psiElement().afterLeaf(inDefClassPattern),
+                notWithGrandparentFieldTelePattern),
+                EXTENDS_KW_LIST)
+
+        basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW)
+
+        val bareSigmaOrPiPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                var result: PsiElement? = o
+
+                val context = ofType(PI_KW, SIGMA_KW)
+
+                var tele: ArendTypeTele? = null
+                while (result != null) {
+                    if (result is ArendTypeTele) tele = result
+                    if (result is ArendExpr && result !is ArendUniverseAtom) break
+                    result = result.parent
+                }
+
+                return if (context.accepts(o)) true else
+                    if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+                        result is ArendSigmaExpr || result is ArendPiExpr
             }
-            val resultC = result
-            val resultParent = resultC?.parent
-            when (resultC) {
-                is ArendReturnExpr -> when {
-                    resultC.levelKw != null -> false
-                    resultParent is ArendDefInstance -> false
-                    resultParent is ArendDefFunction -> !resultParent.isCowith
+        }
+
+        val allowedInReturnPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                var result: PsiElement? = o
+                while (result != null) {
+                    if (result is ArendReturnExpr) break
+                    result = result?.parent
+                }
+                val resultC = result
+                val resultParent = resultC?.parent
+                return when (resultC) {
+                    is ArendReturnExpr -> when {
+                        resultC.levelKw != null -> false
+                        resultParent is ArendDefInstance -> false
+                        resultParent is ArendDefFunction -> !resultParent.isCowith
+                        else -> true
+                    }
                     else -> true
                 }
-                else -> true
             }
         }
 
-        val noExpressionKwsAfter = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
-        val afterElimVar = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
+        val noExpressionKwsAfterPattern = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
+        val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
+        val alwaysTrue = not(PlatformPatterns.alwaysFalse<PsiElement>())
 
-        val expressionFilter = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            { arendCompletionParameters: ArendCompletionParameters ->
-                !FIELD_CONTEXT.accepts(arendCompletionParameters.prevElement) && //No keyword completion after field
-                        !(RETURN_CONTEXT.accepts(arendCompletionParameters.completionParameters.position) && !allowedInReturn(arendCompletionParameters.completionParameters.position)) &&
-                        !(ofType(RBRACE).accepts(arendCompletionParameters.prevElement) && withParent(ArendCaseExpr::class.java).accepts(arendCompletionParameters.prevElement)) && //No keyword completion after \with or } in case expr
-                        !(ofType(LAM_KW, LET_KW, WITH_KW).accepts(arendCompletionParameters.prevElement)) && //No keyword completion after \lam or \let
-                        !(noExpressionKwsAfter.accepts(arendCompletionParameters.prevElement)) && //No expression keyword completion after universe literals or \new keyword
-                        !(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT).accepts(arendCompletionParameters.completionParameters.position)) && //No expression keywords when completing levels in universes
-                        !(afterElimVar.accepts(arendCompletionParameters.prevElement)) && //No expression keywords in \elim expression
-                        (allowInBareSigmaOrPiExpressions || arendCompletionParameters.prevElement == null || !bareSigmaOrPi(arendCompletionParameters.prevElement)) &&  //Only universe expressions allowed inside Sigma or Pi expressions
-                        (allowInArgumentExpressionContext || !ARGUMENT_EXPRESSION.accepts(arendCompletionParameters.completionParameters.position)) // New expressions & universe expressions are allowed in applications
-            }
+        val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
+            and(not(PlatformPatterns.psiElement().afterLeaf(FIELD_CONTEXT)), //No keyword completion after field
+                not(and(RETURN_CONTEXT, not(allowedInReturnPattern))),
+                not(PlatformPatterns.psiElement().afterLeaf(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java)))), //No keyword completion after \with or } in case expr
+                not(PlatformPatterns.psiElement().afterLeaf(ofType(LAM_KW, LET_KW, WITH_KW))), //No keyword completion after \lam or \let
+                not(PlatformPatterns.psiElement().afterLeaf(noExpressionKwsAfterPattern)), //No expression keyword completion after universe literals or \new keyword
+                not(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT)), //No expression keywords when completing levels in universes
+                not(PlatformPatterns.psiElement().afterLeaf(afterElimVarPattern)), //No expression keywords in \elim expression
+                if (allowInBareSigmaOrPiExpressions) alwaysTrue else not(PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern)), //Only universe expressions allowed inside Sigma or Pi expressions
+                if (allowInArgumentExpressionContext) alwaysTrue else not(ARGUMENT_EXPRESSION))
         }
 
-        basic(EXPRESSION_CONTEXT, ACPConditionalProvider(DATA_UNIVERSE_KW, expressionFilter.invoke(true, true)))
-        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), KeywordCompletionProvider(DATA_UNIVERSE_KW))
+        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
+        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW)
 
-        basic(EXPRESSION_CONTEXT, ACPConditionalProvider(BASIC_EXPRESSION_KW, expressionFilter.invoke(false, false)))
-        basic(EXPRESSION_CONTEXT, ACPConditionalProvider(NEW_KW_LIST, expressionFilter.invoke(false, true)))
+        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
+        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, true)), NEW_KW_LIST)
 
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document
@@ -198,7 +220,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(and(DATA_CONTEXT, afterLeaf(COLON)), truncatedTypeCompletionProvider)
-        basic(EXPRESSION_CONTEXT, object : ACPConditionalProvider(FAKE_NTYPE_LIST, expressionFilter.invoke(true, true)) {
+        basic(and(EXPRESSION_CONTEXT, expressionPattern(true, true)), object : KeywordCompletionProvider(FAKE_NTYPE_LIST) {
             override fun insertHandler(keyword: String): InsertHandler<LookupElement> = truncatedTypeInsertHandler
         })
         basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), truncatedTypeCompletionProvider)
@@ -215,23 +237,23 @@ class ArendCompletionContributor : CompletionContributor() {
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         })
 
-        basic(LPH_CONTEXT, ConditionalProvider(LPH_KW_LIST, { cP ->
-            val pp = cP.position.parent.parent
+        basic(LPH_CONTEXT, LPH_KW_LIST) { parameters ->
+            val pp = parameters.position.parent.parent
             when (pp) {
                 is ArendSetUniverseAppExpr, is ArendTruncatedUniverseAppExpr ->
                     pp.children.filterIsInstance<ArendAtomLevelExpr>().isEmpty()
                 else -> pp.children.filterIsInstance<ArendAtomLevelExpr>().size <= 1
             }
-        }))
+        }
 
-        basic(withParent(ArendLevelExpr::class.java), ConditionalProvider(LPH_KW_LIST, { cP ->
-            when (cP.position.parent?.firstChild?.node?.elementType) {
+        basic(withParent(ArendLevelExpr::class.java), LPH_KW_LIST) { parameters ->
+            when (parameters.position.parent?.firstChild?.node?.elementType) {
                 MAX_KW, SUC_KW -> true
                 else -> false
             }
-        }))
+        }
 
-        basic(LPH_LEVEL_CONTEXT, KeywordCompletionProvider(LPH_LEVEL_KWS))
+        basic(LPH_LEVEL_CONTEXT, LPH_LEVEL_KWS)
 
         fun pairingWordCondition(condition: (PsiElement?) -> Boolean, position: PsiElement): Boolean {
             var pos: PsiElement? = position
@@ -250,8 +272,8 @@ class ArendCompletionContributor : CompletionContributor() {
         val pairingInCondition = { pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, pos) }
         val pairingWithCondition = { pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, pos) }
 
-        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW)))),
-                ConditionalProvider(IN_KW_LIST, {parameters -> pairingInCondition.invoke((parameters.position))}))
+        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW)))), IN_KW_LIST) { parameters ->
+            pairingInCondition.invoke((parameters.position))}
 
         val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
 
@@ -279,8 +301,11 @@ class ArendCompletionContributor : CompletionContributor() {
             }, pos)
         }
 
-        basic(caseContext, ConditionalProvider(AS_KW_LIST, { parameters -> argEndCondition.invoke(parameters.position)}))
-        basic(caseContext, ConditionalProvider(RETURN_KW_LIST, { parameters -> returnCondition.invoke(parameters.position)}))
+        basic(caseContext, AS_KW_LIST) { parameters ->
+            argEndCondition.invoke(parameters.position) }
+
+        basic(caseContext, RETURN_KW_LIST) { parameters ->
+            returnCondition.invoke(parameters.position) }
 
         val emptyTeleList = { l: List<Abstract.Parameter> ->
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
@@ -328,7 +353,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(ELIM_CONTEXT, ConditionalProvider(ELIM_KW_LIST, elimOrCoWithCondition.invoke(false)))
+        basic(ELIM_CONTEXT, ELIM_KW_LIST, elimOrCoWithCondition.invoke(false))
         basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), false))
         basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true),  false))
 
@@ -372,33 +397,50 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(ARGUMENT_EXPRESSION, ConditionalProvider(LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2)))
-        basic(ARGUMENT_EXPRESSION, ConditionalProvider(LEVEL_KW_LIST, unifiedLevelCondition.invoke(0, true, 1)))
-        basic(ARGUMENT_EXPRESSION_IN_BRACKETS, ConditionalProvider(LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2)))
+        basic(ARGUMENT_EXPRESSION, LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2))
+        basic(ARGUMENT_EXPRESSION, LEVEL_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
+        basic(ARGUMENT_EXPRESSION_IN_BRACKETS, LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
-        basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java),
-                ConditionalProvider(LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2)))
+        basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2))
 
-        basic(withParent(ArendArgumentAppExpr::class.java), ConditionalProvider(LPH_LEVEL_KWS, { parameters ->
+        basic(withParent(ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS) { parameters ->
             val argumentAppExpr: ArendArgumentAppExpr? = parameters.position.parent as ArendArgumentAppExpr
             argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
-        }))
+        }
 
-        basic(CLASSIFYING_CONTEXT, ConditionalProvider(CLASSIFYING_KW_LIST, { parameters ->
+        basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull().let { defClass ->
                 if (defClass != null) !defClass.fieldTeleList.any { fieldTele -> fieldTele.isClassifying } else false
             }
-        }))
+        }
 
-        basic(LEVEL_CONTEXT, ConditionalProvider(LEVEL_KW_LIST, { parameters ->
-            allowedInReturn(parameters.position)
-        }))
+        basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
 
         //basic(ANY, LoggerCompletionProvider())
     }
 
     private fun basic(pattern: ElementPattern<PsiElement>, provider: CompletionProvider<CompletionParameters>) {
         extend(CompletionType.BASIC, pattern, provider)
+    }
+
+    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>) {
+        basic(place, KeywordCompletionProvider(keywords))
+    }
+
+    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>, condition: (CompletionParameters) -> Boolean) {
+        basic(place, ConditionalProvider(keywords, condition))
+    }
+
+    private abstract class ArendElementPattern: ElementPattern<PsiElement> {
+        abstract fun accept(o: PsiElement): Boolean
+
+        override fun accepts(o: Any?): Boolean = o is PsiElement && accept(o)
+
+        override fun accepts(o: Any?, context: ProcessingContext?): Boolean = accepts(o)
+
+        override fun getCondition() = ElementPatternCondition(object : InitialPatternCondition<PsiElement>(PsiElement::class.java) {
+            override fun accepts(o: Any?, context: ProcessingContext?): Boolean = this@ArendElementPattern.accepts(o, context)
+        })
     }
 
     companion object {

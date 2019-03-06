@@ -55,28 +55,14 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         var failed = false
         var failString = ""
         var successString = ""
-        for (codePiece in code) {
-            //System.out.println("*** Testing: $codePiece ***")
-            val codePieceWithBackSlash = codePiece.replace(CARET_MARKER, "\\$CARET_MARKER", false)
-            var failedTest = false
-            try {
-                checkCompletionVariants(codePiece, variants, condition)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                System.err.flush()
-                failedTest = true
-                failString += "$codePiece\n"
-            }
-            //System.out.println("*** Testing: $codePieceWithBackSlash ***")
 
-            if (!failedTest) successString += "$codePiece\n"
-            failed = failed || failedTest
-            failedTest = false
+        fun completionOk(piece: String) {
+            System.out.println("*** Testing: $piece ***")
+            var succeeded = true
 
-            var succeeded = false
             if (variants.size == 1 && condition != CompletionCondition.DOES_NOT_CONTAIN) {
                 try {
-                    checkSingleCompletion(codePieceWithBackSlash, variants[0])
+                    checkSingleCompletion(piece, variants[0])
                     succeeded = true
                 } catch (e: Exception) {
 
@@ -84,17 +70,21 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
             }
             if (!succeeded) {
                 try {
-                    checkCompletionVariants(codePieceWithBackSlash, variants, condition)
+                    checkCompletionVariants(piece, variants, condition)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     System.err.flush()
-                    failedTest = true
-                    failString += "$codePieceWithBackSlash\n"
+                    failString += "$piece\n"
+                    failed = true
+                    return
                 }
             }
+            successString += "$piece\n"
+        }
 
-            failed = failed || failedTest
-            if (!failedTest) successString += "$codePieceWithBackSlash\n"
+        for (codePiece in code) {
+            completionOk(codePiece)
+            completionOk(codePiece.replace(CARET_MARKER, "\\$CARET_MARKER", false))
         }
 
         if (failed) {
