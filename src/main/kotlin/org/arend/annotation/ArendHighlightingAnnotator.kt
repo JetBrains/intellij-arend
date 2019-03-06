@@ -417,8 +417,11 @@ class ArendHighlightingAnnotator : Annotator {
             }
 
             val scope = element.scope
-            val commandNames = NamespaceCommandNamespace.resolveNamespace(if (element.kind == NamespaceCommand.Kind.IMPORT) scope.importedSubscope else scope, element).elements.map { it.textRepresentation() }.toSet()
-            if (commandNames.isEmpty()) {
+            val commandRefs = HashMap<String,Referable>()
+            for (ref in NamespaceCommandNamespace.resolveNamespace(if (element.kind == NamespaceCommand.Kind.IMPORT) scope.importedSubscope else scope, element).elements) {
+                commandRefs[ref.textRepresentation()] = ref
+            }
+            if (commandRefs.isEmpty()) {
                 return
             }
 
@@ -428,7 +431,8 @@ class ArendHighlightingAnnotator : Annotator {
                 }
                 for (other in NamespaceCommandNamespace.resolveNamespace(if (cmd.kind == NamespaceCommand.Kind.IMPORT) scope.importedSubscope else scope, cmd).elements) {
                     val otherName = other.textRepresentation()
-                    if (commandNames.contains(otherName)) {
+                    val commandRef = commandRefs[otherName]
+                    if (commandRef != null && commandRef != other) {
                         if (defined == null) {
                             defined = (element.parentSourceNode as? Group)?.let { collectDefined(it) }
                         }
