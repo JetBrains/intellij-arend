@@ -62,10 +62,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 when {
                     (c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID || c2et == RPAREN)) ||
                             ((c1et == REF_IDENTIFIER || c1et == NS_ID) && (c2et == COMMA || c2et == RPAREN)) -> noWhitespace
-                    c1et == COMMA -> oneSpaceWrap
+                    c1et == COMMA ||
+                            (c1et == LONG_NAME && c2et == NS_USING) ||
+                            ((c1et == LONG_NAME || c1et == NS_USING) && c2et == HIDING_KW) ||
+                            ((c1et == HIDING_KW || c1et == USING_KW) && c2et == LPAREN) -> oneSpaceWrap
                     else -> null
                 }
-            } else null
+            } else if (myNode.psi is ArendNsId && ((c1et == REF_IDENTIFIER && c2et == AS_KW) || (c1et == AS_KW && c2et == DEF_IDENTIFIER))) oneSpaceWrap
+            else null
         }
 
         return null
@@ -231,8 +235,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     it is ArendTuple && (it.tupleExprList.size > 1 || it.tupleExprList.size == 1 &&
                             it.tupleExprList[0].let { tupleExpr ->
                                 tupleExpr.exprList.size == 1 &&
-                                        tupleExpr.exprList[0].let{ expr ->
-                                          expr is ArendNewExpr && expr.appExpr!= null && expr.newKw == null
+                                        tupleExpr.exprList[0].let { expr ->
+                                            expr is ArendNewExpr && expr.appExpr != null && expr.newKw == null
                                         }
                             })
                 })

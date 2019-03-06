@@ -15,6 +15,9 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func lol1 => 1 \\where {\\open Prelude.TrS \\func lol => 1}",
             "\\func lol1 => 1 \\where {\n  \\open Prelude.TrS\n\n  \\func lol => 1\n}")
 
+    fun testNsCmdSpacing() = checkReformat("\\import Prelude  \\using   ( I , Nat  \\as   Nat' )  \\hiding  ( iso )",
+            "\\import Prelude \\using (I, Nat \\as Nat') \\hiding (iso)")
+
     // Tests on correctness of block subdivision
     fun testArgAppExpr1() = checkReformat(
             "\\func lol2 => Nat -- aa\n-bb",
