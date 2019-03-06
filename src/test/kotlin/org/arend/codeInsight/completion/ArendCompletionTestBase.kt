@@ -57,7 +57,7 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         var successString = ""
 
         fun completionOk(piece: String) {
-            System.out.println("*** Testing: $piece ***")
+            //System.out.println("*** Testing: $piece ***")
             var succeeded = true
 
             if (variants.size == 1 && condition != CompletionCondition.DOES_NOT_CONTAIN) {
