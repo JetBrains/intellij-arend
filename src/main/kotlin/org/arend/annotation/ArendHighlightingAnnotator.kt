@@ -492,7 +492,14 @@ class ArendHighlightingAnnotator : Annotator {
                     if (parent is ArendFile) {
                         holder.createErrorAnnotation(element as PsiElement, "\\use is not allowed on the top level")
                     } else if (parent !is ArendDefData && parent !is ArendDefClass) {
-                        holder.createErrorAnnotation(element as PsiElement, "\\use is allowed only in \\where block of \\data and \\class")
+                        if (parent is ArendDefFunction) {
+                            val coerceElement = element.findNextSibling()
+                            if (coerceElement != null && coerceElement.node.elementType == ArendElementTypes.COERCE_KW) {
+                                holder.createErrorAnnotation(TextRange(element.startOffset, coerceElement.textRange.endOffset), "\\use \\coerce is allowed only in \\where block of \\data or \\class")
+                            }
+                        } else {
+                            holder.createErrorAnnotation(element as PsiElement, "\\use is allowed only in \\where block of \\data, \\class, or \\func")
+                        }
                     }
                 }
                 ArendElementTypes.IMPORT_KW ->
