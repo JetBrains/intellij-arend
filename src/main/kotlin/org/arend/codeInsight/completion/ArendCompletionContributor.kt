@@ -188,15 +188,15 @@ class ArendCompletionContributor : CompletionContributor() {
         val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
 
         val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            and(not(PlatformPatterns.psiElement().afterLeaf(FIELD_CONTEXT)), //No keyword completion after field
-                not(and(RETURN_CONTEXT, not(allowedInReturnPattern))),
-                not(PlatformPatterns.psiElement().afterLeaf(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java)))), //No keyword completion after \with or } in case expr
-                not(PlatformPatterns.psiElement().afterLeaf(ofType(LAM_KW, LET_KW, WITH_KW))), //No keyword completion after \lam or \let
-                not(PlatformPatterns.psiElement().afterLeaf(noExpressionKwsAfterPattern)), //No expression keyword completion after universe literals or \new keyword
-                not(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT)), //No expression keywords when completing levels in universes
-                not(PlatformPatterns.psiElement().afterLeaf(afterElimVarPattern)), //No expression keywords in \elim expression
-                if (allowInBareSigmaOrPiExpressions) PlatformPatterns.psiElement() else not(PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern)), //Only universe expressions allowed inside Sigma or Pi expressions
-                if (allowInArgumentExpressionContext) PlatformPatterns.psiElement() else not(ARGUMENT_EXPRESSION))
+            not(or(PlatformPatterns.psiElement().afterLeaf(FIELD_CONTEXT), //No keyword completion after field
+                and(RETURN_CONTEXT, not(allowedInReturnPattern)),
+                PlatformPatterns.psiElement().afterLeaf(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
+                PlatformPatterns.psiElement().afterLeaf(ofType(LAM_KW, LET_KW, WITH_KW)), //No keyword completion after \lam or \let
+                PlatformPatterns.psiElement().afterLeaf(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
+                or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
+                PlatformPatterns.psiElement().afterLeaf(afterElimVarPattern), //No expression keywords in \elim expression
+                if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
+                if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else ARGUMENT_EXPRESSION))
         }
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
