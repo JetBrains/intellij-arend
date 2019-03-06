@@ -16,11 +16,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
 
     companion object {
-        val noWhitespace: Spacing   = Spacing.createSpacing(0, 0, 0, false, 0)
+        val noWhitespace: Spacing = Spacing.createSpacing(0, 0, 0, false, 0)
         val oneSpaceNoWrap: Spacing = Spacing.createSpacing(1, 1, 0, false, 0)
-        val oneSpaceWrap: Spacing   = Spacing.createSpacing(1, 1, 0, true,  0)
-        val oneCrlf: Spacing        = Spacing.createSpacing(0, 0, 1, false, 0)
-        val oneBlankLine: Spacing   = Spacing.createSpacing(0, 0, 2, false, 1)
+        val oneSpaceWrap: Spacing = Spacing.createSpacing(1, 1, 0, true, 0)
+        val oneCrlf: Spacing = Spacing.createSpacing(0, 0, 1, false, 0)
+        val oneBlankLine: Spacing = Spacing.createSpacing(0, 0, 2, false, 1)
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
@@ -65,8 +65,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     c1et == COMMA -> oneSpaceWrap
                     else -> null
                 }
-            }
-            else null
+            } else null
         }
 
         return null
@@ -160,16 +159,19 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         val sB = subBlocks[newChildIndex - 2]
                         if (sB is AbstractBlock && sB.node.elementType == TYPE_TELE) return ChildAttributes(sB.indent, sB.alignment)
                     }
-                    ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE -> {}
+                    ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE -> {
+                    }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 TUPLE -> when (prevET) {
-                    RPAREN -> {}
+                    RPAREN -> {
+                    }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 NEW_EXPR -> when (prevET) {
-                    LBRACE -> {}
+                    LBRACE -> {
+                    }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 TUPLE_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
@@ -225,6 +227,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val wrap: Wrap? =
                         if (nodeET == FUNCTION_BODY && childPsi is ArendExpr) Wrap.createWrap(WrapType.NORMAL, false) else null
 
+                val tupleArgAppExpr = (myNode.psi.let {
+                    it is ArendTuple && it.tupleExprList.size == 1 &&
+                            it.tupleExprList[0].let { tupleExpr ->
+                                tupleExpr.exprList.size == 1 &&
+                                        tupleExpr.exprList[0] is ArendNewExpr
+                            }
+                })
+
                 val align = when (myNode.elementType) {
                     LET_EXPR ->
                         if (AREND_COMMENTS.contains(childET)) alignment // TODO: If childET is BLOCK_DOC_TEXT, then use a different alignment
@@ -232,10 +242,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             LET_KW, IN_KW -> alignment2
                             else -> null
                         }
-                    TUPLE -> when (childET) {
+                    TUPLE -> if (tupleArgAppExpr) when (childET) {
                         TUPLE_EXPR, RPAREN -> alignment
                         else -> null
-                    }
+                    } else null
                     else -> when (childET) {
                         CO_CLAUSE, CLASS_STAT -> alignment
                         NAME_TELE, TYPE_TELE, FIELD_TELE -> alignment2

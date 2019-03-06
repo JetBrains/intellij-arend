@@ -65,6 +65,10 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\data \\fixr 2 Or (A B : \\Type)\n-- foo\n| inl A\n-- bar\n| inr B\n",
             "\\data \\fixr 2 Or (A B : \\Type)\n  -- foo\n  | inl A\n  -- bar\n  | inr B\n")
 
+    fun testLamInTuple() = checkReformat(
+            "\\func foo => (\\lam a b =>\n    a)",
+            "\\func foo => (\\lam a b =>\n    a)")
+
     /* fun testDocTextIndent() = checkReformat(
             "          {- | Doc Text 1\n          -\n          -  -}\n\n\n" +
                     "\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",

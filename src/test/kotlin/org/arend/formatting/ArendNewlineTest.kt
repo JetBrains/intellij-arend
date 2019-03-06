@@ -184,4 +184,8 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testComments1() = checkNewLine(
             "\\class Foo { | A : Nat }\n\\func bar : Foo \\cowith\n  -- Lol1{-caret-}\n  | A => 101",
             "\\class Foo { | A : Nat }\n\\func bar : Foo \\cowith\n  -- Lol1\n  {-caret-}\n  | A => 101")
+
+    fun testCrlfBeforeParenthesis() = checkNewLine(
+            "\\func foo => 1\n\\func bar =>\n  foo (foo 0\n           1{-caret-})",
+            "\\func foo => 1\n\\func bar =>\n  foo (foo 0\n           1\n       {-caret-})")
 }
