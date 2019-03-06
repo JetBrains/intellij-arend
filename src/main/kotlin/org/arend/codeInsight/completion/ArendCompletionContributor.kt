@@ -186,7 +186,6 @@ class ArendCompletionContributor : CompletionContributor() {
 
         val noExpressionKwsAfterPattern = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW)
         val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
-        val alwaysTrue = not(PlatformPatterns.alwaysFalse<PsiElement>())
 
         val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
             and(not(PlatformPatterns.psiElement().afterLeaf(FIELD_CONTEXT)), //No keyword completion after field
@@ -196,8 +195,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 not(PlatformPatterns.psiElement().afterLeaf(noExpressionKwsAfterPattern)), //No expression keyword completion after universe literals or \new keyword
                 not(or(LPH_CONTEXT, LPH_LEVEL_CONTEXT)), //No expression keywords when completing levels in universes
                 not(PlatformPatterns.psiElement().afterLeaf(afterElimVarPattern)), //No expression keywords in \elim expression
-                if (allowInBareSigmaOrPiExpressions) alwaysTrue else not(PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern)), //Only universe expressions allowed inside Sigma or Pi expressions
-                if (allowInArgumentExpressionContext) alwaysTrue else not(ARGUMENT_EXPRESSION))
+                if (allowInBareSigmaOrPiExpressions) PlatformPatterns.psiElement() else not(PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern)), //Only universe expressions allowed inside Sigma or Pi expressions
+                if (allowInArgumentExpressionContext) PlatformPatterns.psiElement() else not(ARGUMENT_EXPRESSION))
         }
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
@@ -225,9 +224,12 @@ class ArendCompletionContributor : CompletionContributor() {
         })
         basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), truncatedTypeCompletionProvider)
 
-        fun isAfterNumber(element: PsiElement?): Boolean = element?.prevSibling?.text == "\\" && element.node?.elementType == NUMBER
+        val numberCondition = { parameters: CompletionParameters ->
+            val originalPositionParent = parameters.originalPosition?.parent
+            originalPositionParent != null && originalPositionParent.text == "\\" && originalPositionParent.nextSibling?.node?.elementType == NUMBER
+        }
 
-        basic(DATA_OR_EXPRESSION_CONTEXT, object: ACPConditionalProvider(listOf("-Type"), { parameters -> isAfterNumber(parameters.prevElement) }) {
+        basic(and(DATA_OR_EXPRESSION_CONTEXT), object: ConditionalProvider(listOf("-Type"), numberCondition) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
         })
 
@@ -269,43 +271,54 @@ class ArendCompletionContributor : CompletionContributor() {
             return exprFound
         }
 
-        val pairingInCondition = { pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, pos) }
-        val pairingWithCondition = { pos: PsiElement -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, pos) }
+        val pairingInPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                return pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, o)
+            }
+        }
+        val pairingWithPattern = object: ArendElementPattern(){
+            override fun accept(o: PsiElement): Boolean {
+                return pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, o)
+            }
+        }
 
-        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW)))), IN_KW_LIST) { parameters ->
-            pairingInCondition.invoke((parameters.position))}
-
-        val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
-
-        basic(caseContext, ConditionalProvider(WITH_KW_LIST, { parameters -> pairingWithCondition.invoke(parameters.position)}, false))
+        val returnPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                return pairingWordCondition({ position: PsiElement? ->
+                    if (position is ArendCaseArg) {
+                        val pp = position.parent as? ArendCaseExpr
+                        pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
+                    } else false
+                }, o)
+            }
+        }
 
         val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.asKw == null }
+
         val asCondition2 = { position: PsiElement? ->
             //Alternative condition needed to ensure that as is added before semicolon
             var p = position
             if (p != null && p.nextSibling is PsiWhiteSpace) p = p.nextSibling.nextSibling
             p != null && p.node.elementType == COLON
         }
-        val returnCondition = { pos: PsiElement ->
-            pairingWordCondition({ position: PsiElement? ->
-                if (position is ArendCaseArg) {
-                    val pp = position.parent as? ArendCaseExpr
-                    pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
-                } else false
-            }, pos)
+
+        val argEndPattern = object: ArendElementPattern() {
+            override fun accept(o: PsiElement): Boolean {
+                return pairingWordCondition({ position: PsiElement? ->
+                    asCondition1.invoke(position) || (position != null && asCondition2.invoke(position) && asCondition1.invoke(position.parent))
+                }, o)
+            }
         }
 
-        val argEndCondition = { pos: PsiElement ->
-            pairingWordCondition({ position: PsiElement? ->
-                asCondition1.invoke(position) || (position != null && asCondition2.invoke(position) && asCondition1.invoke(position.parent))
-            }, pos)
-        }
+        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW))), pairingInPattern), IN_KW_LIST)
 
-        basic(caseContext, AS_KW_LIST) { parameters ->
-            argEndCondition.invoke(parameters.position) }
+        val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
 
-        basic(caseContext, RETURN_KW_LIST) { parameters ->
-            returnCondition.invoke(parameters.position) }
+        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, false))
+
+        basic(and(caseContext, argEndPattern), AS_KW_LIST)
+
+        basic(and(caseContext, returnPattern), RETURN_KW_LIST)
 
         val emptyTeleList = { l: List<Abstract.Parameter> ->
             l.isEmpty() || l.size == 1 && (l[0].type == null || (l[0].type as PsiElement).text == DUMMY_IDENTIFIER_TRIMMED) &&
@@ -416,7 +429,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
 
-        //basic(ANY, LoggerCompletionProvider())
+        //basic(PlatformPatterns.psiElement(), Logger())
     }
 
     private fun basic(pattern: ElementPattern<PsiElement>, provider: CompletionProvider<CompletionParameters>) {
@@ -457,7 +470,6 @@ class ArendCompletionContributor : CompletionContributor() {
         private fun <T : PsiElement> withParents(vararg et: Class<out T>) = or(*et.map { withParent(it) }.toTypedArray())
         private fun <T : PsiElement> withAncestors(vararg et: Class<out T>): ElementPattern<PsiElement> = and(*et.mapIndexed { i, it -> PlatformPatterns.psiElement().withSuperParent(i + 1, PlatformPatterns.psiElement(it)) }.toTypedArray())
 
-        val ANY: PsiElementPattern.Capture<PsiElement> = PlatformPatterns.psiElement()
         val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
@@ -539,7 +551,7 @@ class ArendCompletionContributor : CompletionContributor() {
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
     }
 
-    class LoggerCompletionProvider : CompletionProvider<CompletionParameters>() {
+    class Logger : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
             val text = parameters.position.containingFile.text
 
@@ -615,16 +627,14 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class ACPConditionalProvider(keywords: List<String>, condition: (ArendCompletionParameters) -> Boolean, tailSpaceNeeded: Boolean = true)
-        : ConditionalProvider(keywords, { parameters ->  condition.invoke(ArendCompletionParameters(parameters)) }, tailSpaceNeeded)
-
     private open class JointOfStatementsProvider(keywords: List<String>, additionalCondition: (ArendCompletionParameters) -> Boolean = { true }, tailSpaceNeeded: Boolean = true, noCrlfRequired: Boolean = false, allowInsideBraces: Boolean = true) :
-            ACPConditionalProvider(keywords, { parameters ->
-                val leftSideOk = (parameters.leftStatement == null || parameters.leftBrace && allowInsideBraces) && !parameters.isBeforeClassFields
-                val rightSideOk = (parameters.rightStatement == null || parameters.rightBrace && !parameters.leftBrace)
-                val correctStatements = leftSideOk || rightSideOk || parameters.betweenStatementsOk
+            ConditionalProvider(keywords, { parameters ->
+                val arendCompletionParameters = ArendCompletionParameters(parameters)
+                val leftSideOk = (arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace && allowInsideBraces) && !arendCompletionParameters.isBeforeClassFields
+                val rightSideOk = (arendCompletionParameters.rightStatement == null || arendCompletionParameters.rightBrace && !arendCompletionParameters.leftBrace)
+                val correctStatements = leftSideOk || rightSideOk || arendCompletionParameters.betweenStatementsOk
 
-                (parameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(parameters) && correctStatements
+                (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
             }, tailSpaceNeeded)
 
     private class ArendCompletionParameters(val completionParameters: CompletionParameters) {
