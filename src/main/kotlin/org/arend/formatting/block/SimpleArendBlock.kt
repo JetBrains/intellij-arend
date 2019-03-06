@@ -228,11 +228,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (nodeET == FUNCTION_BODY && childPsi is ArendExpr) Wrap.createWrap(WrapType.NORMAL, false) else null
 
                 val tupleArgAppExpr = (myNode.psi.let {
-                    it is ArendTuple && it.tupleExprList.size == 1 &&
+                    it is ArendTuple && (it.tupleExprList.size > 1 || it.tupleExprList.size == 1 &&
                             it.tupleExprList[0].let { tupleExpr ->
                                 tupleExpr.exprList.size == 1 &&
-                                        tupleExpr.exprList[0] is ArendNewExpr
-                            }
+                                        tupleExpr.exprList[0].let{ expr ->
+                                          expr is ArendNewExpr && expr.appExpr!= null && expr.newKw == null
+                                        }
+                            })
                 })
 
                 val align = when (myNode.elementType) {

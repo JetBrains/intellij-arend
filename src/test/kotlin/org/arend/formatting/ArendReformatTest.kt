@@ -69,6 +69,9 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func foo => (\\lam a b =>\n    a)",
             "\\func foo => (\\lam a b =>\n    a)")
 
+    fun testNewInTuple() = checkReformat("\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})",
+            "\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})")
+
     /* fun testDocTextIndent() = checkReformat(
             "          {- | Doc Text 1\n          -\n          -  -}\n\n\n" +
                     "\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",
