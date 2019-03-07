@@ -2,6 +2,7 @@ package org.arend.refactoring.move
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
@@ -114,6 +115,17 @@ class ArendMoveMembersDialog(project: Project,
     companion object {
         private const val canNotLocateMessage = "Can not locate target module"
 
+        fun locateParentDirectory(fileName: String, ideaModule: Module): Pair<PsiDirectory?, String>? {
+            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return null
+            val modulePath = ModulePath.fromString(fileName)
+            val list = modulePath.toList()
+            if (list.size == 0) return null
+            val parentDir = list.subList(0, list.size-1)
+            val parentPath = ModulePath(parentDir)
+            val dir = configService.findArendFilesAndDirectories(parentPath).filterIsInstance<PsiDirectory>().lastOrNull()
+            return Pair(dir, list.last())
+        }
+
         fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Group? {
             val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return null
             val targetFile = configService.findArendFile(ModulePath.fromString(fileName)) ?: return null
@@ -123,7 +135,6 @@ class ArendMoveMembersDialog(project: Project,
 
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
                                         sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
-
             val targetModule = simpleLocate(fileName, moduleName, ideaModule) ?: return Pair(null, canNotLocateMessage)
             var m = targetModule as? ChildGroup
             if (m == sourceModule) return Pair(null, "Target module cannot coincide with the source module")
