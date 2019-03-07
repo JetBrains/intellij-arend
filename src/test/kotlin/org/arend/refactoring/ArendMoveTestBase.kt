@@ -37,7 +37,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val sourceElements = ArrayList<ArendGroup>()
 
         for (sourceName in sourceNames.asList()) {
-            val sourceElement = simpleLocate(sourceFile, sourceName, myFixture.module)
+            val sourceElement = simpleLocate(sourceFile, sourceName, myFixture.module).first
             if (sourceElement is ArendGroup) sourceElements.add(sourceElement) else
                 throw IllegalArgumentException("Cannot locate source element named $sourceName")
         }
