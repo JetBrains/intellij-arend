@@ -1,12 +1,16 @@
 package org.arend.refactoring.move
 
+import com.intellij.ide.actions.CreateFileFromTemplateAction.createFileFromTemplate
+import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.HelpID
+import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.classMembers.MemberInfoBase
 import com.intellij.refactoring.move.MoveDialogBase
 import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
@@ -89,14 +93,38 @@ class ArendMoveMembersDialog(project: Project,
     override fun doAction() {
         val sourceGroup = containerRef.element
         val elementsToMove = memberSelectionPanel.table.selectedMemberInfos.map { it.member }
+        val fileName = targetFileTextField.text
+        val moduleName = targetModuleTextField.text
 
-        val locateResult: Pair<Group?, String?> = when (sourceGroup) {
-            !is ChildGroup -> Pair(null, "Source module has invalid type")
-            else -> locateTargetGroupWithChecks(targetFileTextField.text, targetModuleTextField.text, enclosingModule, sourceGroup, elementsToMove)
+        val locateResult: Pair<Group?, LocateResult> = when (sourceGroup) {
+            !is ChildGroup -> Pair(null, LocateResult.OTHER_ERROR)
+            else -> locateTargetGroupWithChecks(fileName, moduleName, enclosingModule, sourceGroup, elementsToMove)
         }
 
-        if (locateResult.second != null)
-            CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, locateResult.second, HelpID.MOVE_MEMBERS, myProject) else
+        if (locateResult.second != LocateResult.LOCATE_OK) {
+            var success = false
+            if (locateResult.second == LocateResult.CANT_FIND_FILE && moduleName.trim() == "") {
+                val dirData = locateParentDirectory(targetFileTextField.text, enclosingModule)
+                val directory = dirData?.first
+                if (dirData != null && directory != null) {
+                    val answer = Messages.showYesNoDialog(
+                            myProject,
+                            RefactoringBundle.message("class.0.does.not.exist", fileName),
+                            MoveMembersImpl.REFACTORING_NAME,
+                            Messages.getQuestionIcon())
+                    if (answer == Messages.YES) {
+                        val template = FileTemplateManager.getInstance(myProject).getInternalTemplate("Arend File")
+                        val targetFile = createFileFromTemplate(dirData.second, template, directory, null, false)
+                        if (targetFile != null) {
+                            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, targetFile, isOpenInEditor))
+                            success = true
+                        }
+                    }
+                }
+
+            }
+            if (!success) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
+        }  else
             invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement, isOpenInEditor))
     }
 
@@ -112,8 +140,22 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
+    enum class LocateResult {
+        LOCATE_OK, CANT_FIND_FILE, CANT_FIND_MODULE, TARGET_EQUALS_SOURCE, TARGET_IS_SUBMODULE_OF_SOURCE, OTHER_ERROR
+    }
+
     companion object {
         private const val canNotLocateMessage = "Can not locate target module"
+        private const val targetEqualsSource = "Target module cannot coincide with the source module"
+        private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
+
+        fun getLocateErrorMessage(lr : LocateResult): String = when (lr) {
+            LocateResult.LOCATE_OK -> "No error"
+            LocateResult.TARGET_EQUALS_SOURCE -> targetEqualsSource
+            LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE -> targetSubmoduleSource
+            LocateResult.CANT_FIND_FILE, LocateResult.CANT_FIND_MODULE -> canNotLocateMessage
+            else -> "Other locate error"
+        }
 
         fun locateParentDirectory(fileName: String, ideaModule: Module): Pair<PsiDirectory?, String>? {
             val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return null
@@ -126,27 +168,33 @@ class ArendMoveMembersDialog(project: Project,
             return Pair(dir, list.last())
         }
 
-        fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Group? {
-            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return null
-            val targetFile = configService.findArendFile(ModulePath.fromString(fileName)) ?: return null
+        fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<Group?, LocateResult> {
+            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return Pair(null, LocateResult.OTHER_ERROR)
+            val targetFile = configService.findArendFile(ModulePath.fromString(fileName)) ?: return Pair(null,LocateResult.CANT_FIND_FILE)
 
-            return if (moduleName.trim() == "") targetFile else targetFile.findGroupByFullName(moduleName.split("."))
+            return if (moduleName.trim() == "") Pair(targetFile, LocateResult.LOCATE_OK) else {
+                val module = targetFile.findGroupByFullName(moduleName.split("."))
+                Pair(module, if (module != null) LocateResult.LOCATE_OK else LocateResult.CANT_FIND_MODULE)
+            }
+
         }
 
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
-                                        sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, String?> {
-            val targetModule = simpleLocate(fileName, moduleName, ideaModule) ?: return Pair(null, canNotLocateMessage)
-            var m = targetModule as? ChildGroup
-            if (m == sourceModule) return Pair(null, "Target module cannot coincide with the source module")
+                                        sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, LocateResult> {
+            val locateResult = simpleLocate(fileName, moduleName, ideaModule)
+            if (locateResult.second != LocateResult.LOCATE_OK) return locateResult
+
+            var m = locateResult as? ChildGroup
+            if (m == sourceModule) return Pair(null, LocateResult.TARGET_EQUALS_SOURCE)
 
             while (m != null) {
                 for (elementP in elementsToMove) if (m == elementP)
-                    return Pair(null, "Target module cannot be a submodule of the member being moved")
+                    return Pair(null, LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE)
 
                 m = m.parentGroup
             }
 
-            return Pair(targetModule, if (targetModule !is PsiElement) canNotLocateMessage else null)
+            return locateResult
         }
     }
 

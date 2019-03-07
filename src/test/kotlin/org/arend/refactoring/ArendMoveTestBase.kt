@@ -7,6 +7,7 @@ import org.arend.psi.ancestors
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.move.ArendMoveHandlerDelegate
 import org.arend.refactoring.move.ArendMoveMembersDialog
+import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.getLocateErrorMessage
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.simpleLocate
 import org.arend.refactoring.move.ArendStaticMemberRefactoringProcessor
 import org.arend.term.group.ChildGroup
@@ -63,7 +64,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
             if (resultingContent != null) myFixture.checkResult(resultingContent.trimIndent(), true)
             else throw AssertionError("Error was expected as a correct test result")
         } else {
-            if (!expectsError) throw AssertionError(myTargetGroup.second)
+            if (!expectsError) throw AssertionError(getLocateErrorMessage(myTargetGroup.second))
         }
     }
 }
