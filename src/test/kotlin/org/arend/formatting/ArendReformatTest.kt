@@ -18,6 +18,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testNsCmdSpacing() = checkReformat("\\import Prelude  \\using   ( I , Nat  \\as   Nat' )  \\hiding  ( iso )",
             "\\import Prelude \\using (I, Nat \\as Nat') \\hiding (iso)")
 
+    fun testDocTextSpacing() = checkReformat("{- | lol\n -foo -}", "{- | lol\n - foo -}")
+
     // Tests on correctness of block subdivision
     fun testArgAppExpr1() = checkReformat(
             "\\func lol2 => Nat -- aa\n-bb",
@@ -30,6 +32,10 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testArgAppExpr3() = checkReformat(
             "\\func foobar (A : \\Type) => (=) 101 Nat.+ 1",
             "\\func foobar (A : \\Type) => (=) 101 Nat.+ 1")
+
+    fun testUnfinishedDocComment() = checkReformat(
+            "{- | Doc comment\n -continues\n -but not finishes",
+            "{- | Doc comment\n - continues\n - but not finishes")
 
     // Indent tests
     fun testFunctionClausesIndent() = checkReformat(
@@ -75,9 +81,10 @@ class ArendReformatTest : ArendFormatterTestBase() {
     fun testNewInTuple() = checkReformat("\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})",
             "\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})")
 
-    /* fun testDocTextIndent() = checkReformat(
+    fun testDocTextIndent() = checkReformat(
             "          {- | Doc Text 1\n          -\n          -  -}\n\n\n" +
                     "\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",
             "{- | Doc Text 1\n -\n -  -}\n\n\n" +
-                    "\\func foo =>\n  \\let\n    {- | Doc Text 2\n     -\n     -  -}\n    | x => 0\n  \\in x") */ //Fixme
+                    "\\func foo =>\n  \\let\n    {- | Doc Text 2\n     -\n     -  -}\n    | x => 0\n  \\in x")
+
 }

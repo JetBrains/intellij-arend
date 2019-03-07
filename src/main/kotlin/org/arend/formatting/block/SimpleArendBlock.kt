@@ -2,6 +2,7 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.TokenType
 import com.intellij.psi.TokenType.ERROR_ELEMENT
@@ -39,7 +40,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val child1node = (child1 as? AbstractArendBlock)?.node
                 val child2node = (child2 as? AbstractArendBlock)?.node?.psi as? ArendFunctionBody
                 if (child1node != null && child2node != null &&
-                        // TODO: If child1node.elementType is BLOCK_DOC_TEXT, then use a different alignment
                         !AREND_COMMENTS.contains(child1node.elementType) && child2node.fatArrow != null) return oneSpaceNoWrap
             } else if (child1 is AbstractArendBlock && child2 is AbstractArendBlock) {
                 val child1et = child1.node.elementType
@@ -208,7 +208,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val childET = child.elementType
 
             if (childET != WHITE_SPACE) {
-                val indent: Indent? =
+                val indent: Indent =
                         if (childPsi is ArendExpr || childPsi is PsiErrorElement) when (nodeET) {
                             CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY, CLASS_IMPLEMENT -> Indent.getNormalIndent()
                             PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
@@ -243,7 +243,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
                 val align = when (myNode.elementType) {
                     LET_EXPR ->
-                        if (AREND_COMMENTS.contains(childET)) alignment // TODO: If childET is BLOCK_DOC_TEXT, then use a different alignment
+                        if (AREND_COMMENTS.contains(childET)) alignment
                         else when (childET) {
                             LET_KW, IN_KW -> alignment2
                             else -> null
@@ -270,6 +270,23 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     }
                 }
 
+                if (childET == BLOCK_DOC_COMMENT_START) {
+                    val commentStart = child
+                    var commentBody: ASTNode? = null
+                    var commentEnd: ASTNode? = null
+                    child = child.treeNext
+                    if (child != null && child.elementType == BLOCK_DOC_TEXT) {
+                        commentBody = child
+                        child = child.treeNext
+                        if (child != null && child.elementType == BLOCK_COMMENT_END) {
+                            commentEnd = child
+                            child = child.treeNext
+                        }
+                    }
+                    blocks.add(processDocComment(settings, this, alignment, indent, commentStart, commentBody, commentEnd))
+                    continue@mainLoop
+                }
+
                 blocks.add(createArendBlock(child, wrap, align, indent))
             }
             child = child.treeNext
@@ -288,5 +305,59 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             currChild = currChild.treeNext
         }
         return null
+    }
+
+    private fun processDocComment(settings: CommonCodeStyleSettings?, parent: AbstractArendBlock,
+                                  globalAlignment: Alignment?, globalIndent: Indent,
+                                  startNode: ASTNode, body: ASTNode?, endNode: ASTNode?): AbstractArendBlock {
+        val blocks = ArrayList<Block>()
+        val oneSpaceIndent = Indent.getSpaceIndent(1)
+        var startOffset = startNode.startOffset
+        var commentText = startNode.text + (body?.text ?: "")
+
+        fun parseCommentPiece(index: Int, indent: Indent?, isDash: Boolean) {
+            val endOffset = startOffset + index
+            blocks.add(CommentPieceBlock(TextRange(startOffset, endOffset), null, indent, isDash))
+            commentText = commentText.substring(index)
+            startOffset = endOffset
+        }
+
+        parseCommentPiece(1, Indent.getNoneIndent(), false)
+        while (commentText.isNotEmpty()) {
+            if (commentText[0] == '-') {
+                parseCommentPiece(1, oneSpaceIndent, true)
+            }
+
+            var k = 0
+            while (k < commentText.length && commentText[k] == ' ') k++
+            commentText = commentText.substring(k)
+            startOffset += k
+
+
+            var i = commentText.indexOf("\n")
+            if (i == -1) i = commentText.length
+            if (i > 0) {
+                parseCommentPiece(i, Indent.getNoneIndent(), false)
+            }
+
+
+            k = 0
+            while (k < commentText.length && commentText[k].isWhitespace()) k++
+            commentText = commentText.substring(k)
+            startOffset += k
+        }
+
+        if (endNode != null)
+            blocks.add(CommentPieceBlock(endNode.textRange, null, oneSpaceIndent, true))
+
+        return object: GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
+            override fun getSpacing(child1: Block?, child2: Block): Spacing? {
+                if (child1 is CommentPieceBlock && child1.isDash &&
+                        !(child2 is CommentPieceBlock && child2.isDash)) {
+                    return oneSpaceWrap
+                }
+                return null
+            }
+        }
     }
 }
