@@ -16,6 +16,7 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
 
     override fun tryToMove(element: PsiElement?, project: Project?, dataContext: DataContext?, reference: PsiReference?, editor: Editor?): Boolean {
         if (project != null && element is ArendGroup && (element !is Abstract.Definition || element.enclosingClass == null)) {
+            if (!ArendMoveMembersDialog.isMovable(element)) return false
             val elements: Array<ArendGroup> = arrayOf(element)
             if (!CommonRefactoringUtil.checkReadOnlyStatus(project, elements.toList(), true)) return true
             return showDialog(project, elements.toList())

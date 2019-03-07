@@ -24,6 +24,7 @@ import com.intellij.ui.SeparatorFactory
 import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
@@ -83,7 +84,7 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     private fun initMemberInfo(container: ChildGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
-        for (c in container.subgroups) if (c is ArendGroup) {
+        for (c in container.subgroups) if (c is ArendGroup && isMovable(c)) {
             val memberInfo = ArendMemberInfo(c)
             if (membersToMove.contains(c)) memberInfo.isChecked = true
             sink.add(memberInfo)
@@ -148,6 +149,8 @@ class ArendMoveMembersDialog(project: Project,
         private const val canNotLocateMessage = "Can not locate target module"
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
+
+        fun isMovable(a : ArendGroup) = (a !is ArendDefFunction || a.useKw == null)
 
         fun getLocateErrorMessage(lr : LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"
