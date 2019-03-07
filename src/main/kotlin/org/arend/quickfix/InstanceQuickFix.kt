@@ -11,7 +11,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import org.arend.codeInsight.completion.ArendCompletionContributor
+import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.definition.ClassDefinition
 import org.arend.naming.reference.*
 import org.arend.naming.scope.CachingScope
@@ -161,9 +161,12 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
         const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
         const val REMOVE_COCLAUSE = "Remove redundant coclause"
 
+        private val GOAL_IN_COPATTERN = withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
+                ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
+
         private fun isEmptyGoal(element: PsiElement): Boolean {
             val goal: ArendGoal? = element.childOfType()
-            return goal != null && ArendCompletionContributor.GOAL_IN_COPATTERN.accepts(goal)
+            return goal != null && GOAL_IN_COPATTERN.accepts(goal)
         }
 
         fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
