@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -30,6 +31,11 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     override fun getClauses(): List<ArendClause> = instanceBody?.functionClauses?.clauseList ?: emptyList()
 
     override fun getPrecedence() = calcPrecedence(prec)
+
+    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+        val def = it.definition
+        if (def is ArendDefFunction && def.useKw != null) def else null
+    } ?: emptyList()
 
     override fun withTerm() = instanceBody?.fatArrow != null
 

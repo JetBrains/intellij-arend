@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefFunctionStub
 import org.arend.term.Precedence
@@ -31,6 +32,11 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     override fun getClauses(): List<ArendClause> = functionBody?.functionClauses?.clauseList ?: emptyList()
 
     override fun getPrecedence(): Precedence = calcPrecedence(prec)
+
+    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+        val def = it.definition
+        if (def is ArendDefFunction && def.useKw != null) def else null
+    } ?: emptyList()
 
     override fun withTerm() = functionBody?.fatArrow != null
 
