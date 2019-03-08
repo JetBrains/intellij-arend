@@ -5,12 +5,8 @@ import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
 import com.intellij.refactoring.HelpID
-import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.classMembers.MemberInfoBase
 import com.intellij.refactoring.move.MoveDialogBase
 import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
@@ -96,37 +92,37 @@ class ArendMoveMembersDialog(project: Project,
         val elementsToMove = memberSelectionPanel.table.selectedMemberInfos.map { it.member }
         val fileName = targetFileTextField.text
         val moduleName = targetModuleTextField.text
+        var targetContainer: PsiElement? = null
 
         val locateResult: Pair<Group?, LocateResult> = when (sourceGroup) {
             !is ChildGroup -> Pair(null, LocateResult.OTHER_ERROR)
             else -> locateTargetGroupWithChecks(fileName, moduleName, enclosingModule, sourceGroup, elementsToMove)
         }
 
+        var showErrorMessage = true
         if (locateResult.second != LocateResult.LOCATE_OK) {
-            var success = false
             if (locateResult.second == LocateResult.CANT_FIND_FILE && moduleName.trim() == "") {
                 val dirData = locateParentDirectory(targetFileTextField.text, enclosingModule)
                 val directory = dirData?.first
+                val newFileName = dirData?.second
                 if (dirData != null && directory != null) {
+                    showErrorMessage = false
                     val answer = Messages.showYesNoDialog(
                             myProject,
-                            RefactoringBundle.message("class.0.does.not.exist", fileName),
+                            "Target file $fileName does not exist.\n Do you want to create the file named $newFileName within the directory ${directory.name}?",
                             MoveMembersImpl.REFACTORING_NAME,
                             Messages.getQuestionIcon())
                     if (answer == Messages.YES) {
                         val template = FileTemplateManager.getInstance(myProject).getInternalTemplate("Arend File")
-                        val targetFile = createFileFromTemplate(dirData.second, template, directory, null, false)
-                        if (targetFile != null) {
-                            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, targetFile, isOpenInEditor))
-                            success = true
-                        }
+                        targetContainer = createFileFromTemplate(newFileName, template, directory, null, false)
                     }
                 }
-
             }
-            if (!success) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
-        }  else
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, locateResult.first as PsiElement, isOpenInEditor))
+        } else targetContainer = locateResult.first as? PsiElement
+
+        if (targetContainer != null)
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, targetContainer, isOpenInEditor)) else
+            if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
@@ -150,9 +146,9 @@ class ArendMoveMembersDialog(project: Project,
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
 
-        fun isMovable(a : ArendGroup) = (a !is ArendDefFunction || a.useKw == null)
+        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.useKw == null)
 
-        fun getLocateErrorMessage(lr : LocateResult): String = when (lr) {
+        fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"
             LocateResult.TARGET_EQUALS_SOURCE -> targetEqualsSource
             LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE -> targetSubmoduleSource
@@ -165,15 +161,17 @@ class ArendMoveMembersDialog(project: Project,
             val modulePath = ModulePath.fromString(fileName)
             val list = modulePath.toList()
             if (list.size == 0) return null
-            val parentDir = list.subList(0, list.size-1)
+            val parentDir = list.subList(0, list.size - 1)
             val parentPath = ModulePath(parentDir)
-            val dir = configService.findArendFilesAndDirectories(parentPath).filterIsInstance<PsiDirectory>().lastOrNull()
+            val dir = configService.findArendDirectory(parentPath)
             return Pair(dir, list.last())
         }
 
         fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<Group?, LocateResult> {
-            val configService = ArendModuleConfigService.getInstance(ideaModule) ?: return Pair(null, LocateResult.OTHER_ERROR)
-            val targetFile = configService.findArendFile(ModulePath.fromString(fileName)) ?: return Pair(null,LocateResult.CANT_FIND_FILE)
+            val configService = ArendModuleConfigService.getInstance(ideaModule)
+                    ?: return Pair(null, LocateResult.OTHER_ERROR)
+            val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
+                    ?: return Pair(null, LocateResult.CANT_FIND_FILE)
 
             return if (moduleName.trim() == "") Pair(targetFile, LocateResult.LOCATE_OK) else {
                 val module = targetFile.findGroupByFullName(moduleName.split("."))
@@ -203,7 +201,7 @@ class ArendMoveMembersDialog(project: Project,
 
 }
 
-class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>):
+class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>) :
         AbstractMemberSelectionPanel<ArendGroup, ArendMemberInfo>() {
     private val myTable: ArendMemberSelectionTable
 
@@ -219,7 +217,7 @@ class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>
     override fun getTable(): AbstractMemberSelectionTable<ArendGroup, ArendMemberInfo> = myTable
 }
 
-class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>):
+class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>) :
         AbstractMemberSelectionTable<ArendGroup, ArendMemberInfo>(memberInfos, null, null) {
     override fun getOverrideIcon(memberInfo: ArendMemberInfo?): Icon = MemberSelectionTable.EMPTY_OVERRIDE_ICON
 
@@ -230,8 +228,8 @@ class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>):
     override fun isAbstractColumnEditable(rowIndex: Int): Boolean = true
 }
 
-class ArendMemberInfo(member: ArendGroup): MemberInfoBase<ArendGroup>(member) {
+class ArendMemberInfo(member: ArendGroup) : MemberInfoBase<ArendGroup>(member) {
     override fun getDisplayName(): String {
-        return member.name?: "???"
+        return member.name ?: "???"
     }
 }

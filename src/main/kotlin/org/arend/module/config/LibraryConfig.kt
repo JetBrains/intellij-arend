@@ -5,6 +5,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
@@ -90,7 +91,14 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun containsModule(modulePath: ModulePath): Boolean =
-        modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
+            modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
+
+    fun findArendDirectory(modulePath: ModulePath): PsiDirectory? {
+        var dir = sourcesDirFile
+        val psiManager = PsiManager.getInstance(project)
+        for (name in modulePath.toList()) dir = dir?.findChild(name)
+        return dir?.let { psiManager.findDirectory(it)}
+    }
 
     fun findArendFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystemItem> {
         var dirs = listOf(sourcesDirFile ?: return emptyList())
@@ -115,7 +123,7 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun findArendFile(modulePath: ModulePath): ArendFile? =
-        findArendFilesAndDirectories(modulePath).filterIsInstance<ArendFile>().firstOrNull()
+            findArendFilesAndDirectories(modulePath).filterIsInstance<ArendFile>().firstOrNull()
 
     // Dependencies
 
@@ -130,7 +138,7 @@ abstract class LibraryConfig(val project: Project) {
             return listOf(this) + deps.mapNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config }
         }
 
-    inline fun <T> forAvailableConfigs(f : (LibraryConfig) -> T?): T? {
+    inline fun <T> forAvailableConfigs(f: (LibraryConfig) -> T?): T? {
         val t = f(this)
         if (t != null) {
             return t
