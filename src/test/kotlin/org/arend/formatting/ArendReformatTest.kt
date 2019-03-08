@@ -15,7 +15,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func lol1 => 1 \\where {\\open Prelude.TrS \\func lol => 1}",
             "\\func lol1 => 1 \\where {\n  \\open Prelude.TrS\n\n  \\func lol => 1\n}")
 
-    fun testNsCmdSpacing() = checkReformat("\\import Prelude  \\using   ( I , Nat  \\as   Nat' )  \\hiding  ( iso )",
+    fun testNsCmdSpacing() = checkReformat(
+            "\\import Prelude  \\using   ( I , Nat  \\as   Nat' )  \\hiding  ( iso )",
             "\\import Prelude \\using (I, Nat \\as Nat') \\hiding (iso)")
 
     fun testDocTextSpacing() = checkReformat("{- | lol\n -foo -}", "{- | lol\n - foo -}")
@@ -26,15 +27,12 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func lol2 => Nat -- aa\n    -bb")
 
     fun testArgAppExpr2() = checkReformat(
-            "\\class C {\n  | foo : Nat \\case foo\n}",
             "\\class C {\n  | foo : Nat \\case foo\n}")
 
     fun testArgAppExpr3() = checkReformat(
-            "\\func foobar (A : \\Type) => (=) 101 Nat.+ 1",
             "\\func foobar (A : \\Type) => (=) 101 Nat.+ 1")
 
     fun testUnfinishedDocComment() = checkReformat(
-            "{- | Doc comment\n -continues\n -but not finishes",
             "{- | Doc comment\n - continues\n - but not finishes")
 
     // Indent tests
@@ -75,10 +73,9 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\data \\fixr 2 Or (A B : \\Type)\n  -- foo\n  | inl A\n  -- bar\n  | inr B\n")
 
     fun testLamInTuple() = checkReformat(
-            "\\func foo => (\\lam a b =>\n    a)",
             "\\func foo => (\\lam a b =>\n    a)")
 
-    fun testNewInTuple() = checkReformat("\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})",
+    fun testNewInTuple() = checkReformat(
             "\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})")
 
     fun testDocTextIndent() = checkReformat(

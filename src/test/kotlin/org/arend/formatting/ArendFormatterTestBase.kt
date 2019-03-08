@@ -14,7 +14,7 @@ abstract class ArendFormatterTestBase : ArendTestBase() {
         testCaret(resultingContent)
     }
 
-    protected fun checkReformat(@Language("Arend") code: String, @Language("Arend") resultingContent: String) {
+    protected fun checkReformat(@Language("Arend") code: String, @Language("Arend") resultingContent: String = code) {
         InlineFile(code.trimIndent())
 
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_REFORMAT)
