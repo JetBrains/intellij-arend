@@ -322,29 +322,25 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             startOffset = endOffset
         }
 
-        parseCommentPiece(1, Indent.getNoneIndent(), false)
-        while (commentText.isNotEmpty()) {
-            if (commentText[0] == '-') {
-                parseCommentPiece(1, oneSpaceIndent, true)
-            }
-
+        fun skipWhitespace(whitespaceCondition: (Char) -> Boolean) {
             var k = 0
-            while (k < commentText.length && commentText[k] == ' ') k++
+            while (k < commentText.length && whitespaceCondition(commentText[k])) k++
             commentText = commentText.substring(k)
             startOffset += k
+        }
 
+        parseCommentPiece(1, Indent.getNoneIndent(), false)
+        while (commentText.isNotEmpty()) {
+            if (commentText[0] == '-')
+                parseCommentPiece(1, oneSpaceIndent, true)
+
+            skipWhitespace { c -> c == ' ' }
 
             var i = commentText.indexOf("\n")
             if (i == -1) i = commentText.length
-            if (i > 0) {
-                parseCommentPiece(i, Indent.getNoneIndent(), false)
-            }
+            if (i > 0) parseCommentPiece(i, Indent.getNoneIndent(), false)
 
-
-            k = 0
-            while (k < commentText.length && commentText[k].isWhitespace()) k++
-            commentText = commentText.substring(k)
-            startOffset += k
+            skipWhitespace { c -> c.isWhitespace() }
         }
 
         if (endNode != null)
