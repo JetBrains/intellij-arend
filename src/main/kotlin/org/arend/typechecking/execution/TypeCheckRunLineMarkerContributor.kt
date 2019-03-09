@@ -18,10 +18,6 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         }
 
         val parent = (element.parent as? ArendDefIdentifier)?.parent as? ArendDefinition ?: return null
-        if (parent is ArendDefClass && parent.fatArrow != null) {
-            return null
-        }
-
         val service = TypeCheckingService.getInstance(parent.project)
         val state = service.getTypechecked(parent)?.status()
         val icon = when (state) {

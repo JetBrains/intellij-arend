@@ -105,8 +105,6 @@
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendClassFieldGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
-                implementation="org.arend.search.ArendClassFieldSynGroupingRuleProvider"/>
-        <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendDefInstanceGroupingRuleProvider"/>
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendConstructorGroupingRuleProvider"-->

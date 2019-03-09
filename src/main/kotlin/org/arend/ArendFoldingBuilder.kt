@@ -52,7 +52,6 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
         override fun visitDefClass(o: ArendDefClass) {
             foldBetween(o, o.lbrace, o.rbrace)
-            foldBetween(o, o.fatArrow, null)
         }
 
         override fun visitNewExpr(o: ArendNewExpr) = foldBetween(o, o.lbrace, o.rbrace)

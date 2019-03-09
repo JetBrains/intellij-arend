@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Reference
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
@@ -27,10 +26,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getLocation() = (containingFile as? ArendFile)?.modulePath
 
     override fun getLocatedReferableParent() = parent.ancestors.filterIsInstance<LocatedReferable>().firstOrNull()
-
-    override fun getUnderlyingReference(): LocatedReferable? = null
-
-    override fun getUnresolvedUnderlyingReference(): Reference? = null
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

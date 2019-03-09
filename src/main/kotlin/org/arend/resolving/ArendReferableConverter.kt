@@ -48,7 +48,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                             val locatedParent = referable.locatedReferableParent
                             val parent = if (locatedParent is ArendFile) locatedParent.modulePath?.let { ModuleReferable(it) } else toDataLocatedReferable(locatedParent)
                             when (referable) {
-                                is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList(), null)
+                                is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList())
                                 is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
                                 else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                             }
@@ -58,7 +58,6 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                     }
 
                     if (referable is ClassReferable && result is ClassDataLocatedReferable && !result.filledIn) {
-                        result.underlyingClass = toDataLocatedReferable(referable.underlyingReference) as? TCClassReferable
                         result.superClasses.clear()
                         for (ref in referable.superClassReferences) {
                             (toDataLocatedReferable(ref) as? TCClassReferable)?.let { result.superClasses.add(it) }
@@ -67,7 +66,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                         for (ref in referable.fieldReferables) {
                             if (ref is FieldReferable && ref is PsiReferable) {
                                 (cache.computeIfAbsent(ref) { state.computeIfAbsent(ref) {
-                                    FieldDataLocatedReferable(project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(ref) }, ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable, (ref.underlyingReference as? PsiElement)?.let { cache[it] })
+                                    FieldDataLocatedReferable(project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(ref) }, ref, result, toDataLocatedReferable(ref.getTypeClassReference()) as? TCClassReferable)
                                 } } as? TCFieldReferable)?.let { result.fieldReferables.add(it) }
                             }
                         }

@@ -67,17 +67,6 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\func h (x y : Nat) | suc t, suc (s : {-caret-})",
             listOf("t", "A", "z", "f", "D", "E", "R", "S", "h", "con1", "con2", "con3") + PRELUDE_DEFINITIONS + DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST)
 
-    fun `test class synonym`() =
-        checkCompletionVariants(
-            "\\class A { | z : Nat }\n" +
-            "\\class B\n" +
-            "\\func f\n" +
-            "\\data D\n" +
-            "\\record R\n" +
-            "\\class S => A\n" +
-            "\\class S' => {-caret-}",
-            listOf("A", "B"))
-
     fun `test new`() =
         checkCompletionVariants(
             "\\class A { | z : Nat }\n" +

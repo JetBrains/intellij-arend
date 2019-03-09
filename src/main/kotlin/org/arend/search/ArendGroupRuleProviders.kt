@@ -42,11 +42,6 @@ class ArendConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
             createGroupingRule<ArendConstructor>()
 }
 
-class ArendClassFieldSynGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendClassFieldSyn>()
-}
-
 class ArendDefGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
             createGroupingRule<ArendDefinition>()

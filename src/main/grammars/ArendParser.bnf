@@ -156,7 +156,10 @@ private ns_refIdentifier ::= refIdentifier {
 
 private ns_refIdentifier_recover ::= !(AS_KW | COMMA | RPAREN) & nsUsing_recover
 
-private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOrImplement* { pin(".*") = 1 }
+private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOrImplement* {
+    pin(".*") = 1
+    recoverWhile = statement_recover
+}
 
 classStat ::= classFieldOrImplement | definition | classFieldStat | defModule { recoverWhile = classStat_recover }
 
@@ -179,21 +182,6 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
     mixin = "org.arend.psi.ext.impl.ClassFieldAdapter"
     stubClass = "org.arend.psi.stubs.ArendClassFieldStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
-}
-
-classFieldSyn ::= refIdentifier fat_arrow_def prec? defIdentifier_classFieldSyn {
-    pin = 1
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.psi.ext.impl.ArendInternalReferable"
-                   "org.arend.naming.reference.FieldReferable"
-                   "org.arend.term.abs.Abstract.ClassFieldSynonym" ]
-    mixin = "org.arend.psi.ext.impl.ClassFieldSynAdapter"
-    stubClass = "org.arend.psi.stubs.ArendClassFieldSynStub"
-    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
-}
-
-private defIdentifier_classFieldSyn ::= defIdentifier {
-    recoverWhile = pipe_seq_recover
 }
 
 classImplement ::= coClausePrivate {
@@ -287,25 +275,11 @@ defClass ::= (defClassClass | defClassRecord) where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-private defClassClass ::= CLASS_KW defClassHeader classBody { pin = 1 }
+private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
-private defClassRecord ::= RECORD_KW defClassHeader recordBody { pin = 1 }
+private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
 private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
-
-private classBody ::= classBodySyn | classStats {
-    recoverWhile = statement_recover
-}
-
-private recordBody ::= classStats {
-    recoverWhile = statement_recover
-}
-
-private classBodySyn ::= fat_arrow_def classSynRef classBodySynStats? { pin = 1 }
-
-classSynRef ::= longName
-
-private classBodySynStats ::= LBRACE classFieldSyn? (pipe_def classFieldSyn)* RBRACE { pin = 1 }
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
@@ -348,10 +322,6 @@ constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pi
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.arend.psi.ext.ArendConstructorClauseImplMixin"
-}
-
-private fat_arrow_def ::= FAT_ARROW {
-    recoverWhile = def_recover
 }
 
 private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {

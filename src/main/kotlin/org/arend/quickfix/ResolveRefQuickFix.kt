@@ -35,7 +35,7 @@ class ResolveRefQuickFix {
             val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
 
             val alternativeLocation = when (defaultLocation.myTarget) {
-                is ArendClassFieldSyn, is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.myTarget, true)
+                is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.myTarget, true)
                 else -> null
             }
             val locations: MutableList<LocationData> = ArrayList()

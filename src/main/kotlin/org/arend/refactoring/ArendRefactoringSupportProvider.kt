@@ -15,8 +15,7 @@ class ArendRefactoringSupportProvider : RefactoringSupportProvider() {
     override fun isMemberInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean {
         if (context is LeafPsiElement && (context.elementType == INFIX || context.elementType == POSTFIX)) return false
 
-        return element is ArendDefClass || element is ArendDefFunction || element is ArendDefData ||
-                element is ArendClassField || element is ArendClassFieldSyn || element is ArendConstructor || element is ArendDefModule ||
-                element is ArendFieldDefIdentifier
+        return element is ArendDefinition || element is ArendDefModule
+            || element is ArendClassField || element is ArendFieldDefIdentifier || element is ArendConstructor
     }
 }

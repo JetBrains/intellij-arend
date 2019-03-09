@@ -38,7 +38,6 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "DEF_CLASS" -> ArendDefClassStub.Type
     "CLASS_FIELD" -> ArendClassFieldStub.Type
     "FIELD_DEF_IDENTIFIER" -> ArendClassFieldParamStub.Type
-    "CLASS_FIELD_SYN" -> ArendClassFieldSynStub.Type
     "CLASS_IMPLEMENT" -> ArendClassImplementStub.Type
     "DEF_INSTANCE" -> ArendDefInstanceStub.Type
     "CONSTRUCTOR" -> ArendConstructorStub.Type
@@ -120,29 +119,6 @@ class ArendClassFieldParamStub(
             ArendClassFieldParamStub(parentStub, this, psi.textRepresentation())
 
         override fun indexStub(stub: ArendClassFieldParamStub, sink: IndexSink) = sink.indexClassFieldParam(stub)
-    }
-}
-
-class ArendClassFieldSynStub(
-        parent: StubElement<*>?,
-        elementType: IStubElementType<*, *>,
-        name: String?
-) : ArendStub<ArendClassFieldSyn>(parent, elementType, name) {
-
-    object Type : ArendStubElementType<ArendClassFieldSynStub, ArendClassFieldSyn>("CLASS_FIELD_SYN") {
-
-        override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?) =
-                ArendClassFieldSynStub(parentStub, this, dataStream.readName()?.string)
-
-        override fun serialize(stub: ArendClassFieldSynStub, dataStream: StubOutputStream) =
-                with(dataStream) { writeName(stub.name) }
-
-        override fun createPsi(stub: ArendClassFieldSynStub): ArendClassFieldSyn = ArendClassFieldSynImpl(stub, this)
-
-        override fun createStub(psi: ArendClassFieldSyn, parentStub: StubElement<*>?): ArendClassFieldSynStub =
-                ArendClassFieldSynStub(parentStub, this, psi.textRepresentation())
-
-        override fun indexStub(stub: ArendClassFieldSynStub, sink: IndexSink) = sink.indexClassFieldSyn(stub)
     }
 }
 

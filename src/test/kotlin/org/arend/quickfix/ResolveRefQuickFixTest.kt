@@ -368,10 +368,6 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \class Test1 (El : \Set) {
                     | \infixl 7 * : El -> El -> El
                 }
-
-                \class Test2 => Test1 {
-                    | * => \infixl 6 +
-                }
             """
 
     fun `test that class fields are supported`() = simpleImportFixTest(fileF +
@@ -383,17 +379,6 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import F
 
                 \func test => 1 * 1
-            """)
-
-    fun `test that class synonyms are supported`() = simpleImportFixTest(fileF +
-            """
-                --! B.ard
-                \func test => 1 +{-caret-} 1
-            """,
-            """
-                \import F
-
-                \func test => 1 + 1
             """)
 
     fun `test that infix quickfixes work for infix operators`() = simpleImportFixTest(fileD +

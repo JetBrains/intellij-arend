@@ -28,10 +28,6 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         })), FIXITY_KWS)
 
-        basic(afterLeaf(FAT_ARROW), FIXITY_KWS) { parameters ->
-            withParentOrGrandParent(ArendClassFieldSyn::class.java).accepts(parameters.originalPosition)
-        } // fixity kws for class field synonym (2nd part)
-
         basic(AS_CONTEXT, AS_KW_LIST) { parameters ->
             (parameters.position.parent.parent as ArendNsId).asKw == null
         }
@@ -458,8 +454,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
-                and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java)), //class field
-                and(afterLeaf(FAT_ARROW), withGrandParent(ArendClassFieldSyn::class.java))) //class field synonym
+                and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java))) //class field
 
         private val AS_CONTEXT = and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java))
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
@@ -687,7 +682,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
             fun parentIsStatementHolder(p: PsiElement?) = when (p?.parent) {
                 is ArendWhere -> true
-                is ArendDefClass -> (p.parent as ArendDefClass).fatArrow == null
+                is ArendDefClass -> true
                 else -> false
             }
 

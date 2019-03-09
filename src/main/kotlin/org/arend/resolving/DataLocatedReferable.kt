@@ -51,8 +51,7 @@ class FieldDataLocatedReferable(
     psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: FieldReferable,
     parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?,
-    private val underlyingField: TCReferable?)
+    typeClassReference: TCClassReferable?)
     : DataLocatedReferable(psiElementPointer, referable, parent, typeClassReference), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
@@ -62,10 +61,6 @@ class FieldDataLocatedReferable(
     override fun isExplicitField() = isExplicit
 
     override fun isParameterField() = isParameter
-
-    override fun getUnderlyingReference() = underlyingField
-
-    override fun getUnresolvedUnderlyingReference(): Reference? = null
 }
 
 class ClassDataLocatedReferable(
@@ -74,8 +69,7 @@ class ClassDataLocatedReferable(
     parent: LocatedReferable?,
     val superClasses: MutableList<TCClassReferable>,
     val fieldReferables: MutableList<TCFieldReferable>,
-    val implementedFields: MutableList<TCReferable>,
-    var underlyingClass: TCClassReferable?)
+    val implementedFields: MutableList<TCReferable>)
     : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
     var filledIn = false
 
@@ -84,10 +78,6 @@ class ClassDataLocatedReferable(
     override fun getFieldReferables(): Collection<TCFieldReferable> = fieldReferables
 
     override fun getImplementedFields(): Collection<TCReferable> = implementedFields
-
-    override fun getUnderlyingReference() = underlyingClass
-
-    override fun getUnresolvedUnderlyingReference(): Reference? = null
 
     override fun getUnresolvedSuperClassReferences(): List<Reference> = emptyList()
 }

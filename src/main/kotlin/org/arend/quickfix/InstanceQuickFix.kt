@@ -40,53 +40,48 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
     private fun annotateClauses(coClauseList: List<ArendCoClause>, holder: AnnotationHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>, fields: MutableSet<FieldReferable>) {
         for (coClause in coClauseList) {
-            val referable = coClause.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
-                    ?: continue
-            val underlyingRef = referable.underlyingReference ?: referable
+            val referable = coClause.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable ?: continue
 
-            if (referable is ClassReferable && underlyingRef is ClassReferable) {
-                if (!underlyingRef.isSynonym) {
-                    val subClauses = if (coClause.fatArrow != null) {
-                        val superClassFields = superClassesFields[underlyingRef]
-                        if (superClassFields != null && !superClassFields.isEmpty()) {
-                            fields.removeAll(superClassFields)
-                            continue
-                        }
-                        emptyList()
-                    } else {
-                        coClause.getCoClauseList()
+            if (referable is ClassReferable) {
+                val subClauses = if (coClause.fatArrow != null) {
+                    val superClassFields = superClassesFields[referable]
+                    if (superClassFields != null && !superClassFields.isEmpty()) {
+                        fields.removeAll(superClassFields)
+                        continue
                     }
+                    emptyList()
+                } else {
+                    coClause.getCoClauseList()
+                }
 
-                    if (subClauses.isEmpty()) {
-                        val warningAnnotation = holder?.createWeakWarningAnnotation(coClause, "Coclause is redundant")
-                        if (warningAnnotation != null) {
-                            warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                            warningAnnotation.registerFix(RemoveCoClause(coClause))
+                if (subClauses.isEmpty()) {
+                    val warningAnnotation = holder?.createWeakWarningAnnotation(coClause, "Coclause is redundant")
+                    if (warningAnnotation != null) {
+                        warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                        warningAnnotation.registerFix(RemoveCoClause(coClause))
 
-                            val fieldToImplement = superClassesFields[underlyingRef]
-                            if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
-                                val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
-                                val scope = CachingScope.make(ClassFieldImplScope(referable, false))
-                                val renamings = ClassReferable.Helper.getRenamings(underlyingRef)
-                                val fieldsList = fieldToImplement.mapNotNull { field -> renamings[field]?.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) } }
-                                warningAnnotation.registerFix(ImplementFieldsQuickFix(
-                                        CoClauseAnnotator(coClause, rangeToReport, InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO),
-                                        fieldsList, IMPLEMENT_MISSING_FIELDS))
-                            }
+                        val fieldToImplement = superClassesFields[referable]
+                        if (coClause.fatArrow == null && coClause.expr == null && fieldToImplement != null && !fieldToImplement.isEmpty()) {
+                            val rangeToReport = coClause.getLongName()?.textRange ?: coClause.textRange
+                            val scope = CachingScope.make(ClassFieldImplScope(referable, false))
+                            val fieldsList = fieldToImplement.map { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
+                            warningAnnotation.registerFix(ImplementFieldsQuickFix(
+                                    CoClauseAnnotator(coClause, rangeToReport, InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO),
+                                    fieldsList, IMPLEMENT_MISSING_FIELDS))
                         }
-                    } else {
-                        annotateClauses(subClauses, holder, superClassesFields, fields)
                     }
+                } else {
+                    annotateClauses(subClauses, holder, superClassesFields, fields)
                 }
                 continue
             }
 
-            if (!fields.remove(underlyingRef)) {
+            if (!fields.remove(referable)) {
                 val annotation = holder?.createErrorAnnotation(coClause, "Field ${referable.textRepresentation()} is already implemented")
                 annotation?.registerFix(RemoveCoClause(coClause))
             }
             for (superClassFields in superClassesFields.values) {
-                superClassFields.remove(underlyingRef)
+                superClassFields.remove(referable)
             }
 
             val expr = coClause.expr
@@ -117,25 +112,21 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
         val classReferenceData = classReferenceHolder.getClassReferenceData()
         if (classReferenceData != null) {
             val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
-            for (field in classReferenceData.implementedFields) {
-                fields.remove(field.underlyingReference ?: field)
-            }
+            fields.removeAll(classReferenceData.implementedFields)
 
-            annotateClauses(coClausesList(), holder, superClassesFields, fields.keys)
+            annotateClauses(coClausesList(), holder, superClassesFields, fields)
 
-            val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
-            val fieldsList = fields.values.mapNotNull { field ->
-                field.firstOrNull()?.let { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
-            }
+            if (fields.isNotEmpty() && !onlyCheckFields) {
+                val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
+                val fieldsList = fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
 
-            if (fieldsList.isNotEmpty() && !onlyCheckFields) {
                 val builder = StringBuilder()
                 val annotation = when (annotationToShow) {
                     InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
                         builder.append(IMPLEMENT_FIELDS_MSG)
                         val iterator = fields.iterator()
                         do {
-                            builder.append(iterator.next().value[0].textRepresentation())
+                            builder.append(iterator.next().textRepresentation())
                             if (iterator.hasNext()) builder.append(", ")
                         } while (iterator.hasNext())
                         holder?.createErrorAnnotation(rangeToReport, builder.toString())
@@ -148,8 +139,8 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
                 val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
                 annotation?.registerFix(quickFix)
+                return fieldsList
             }
-            return fieldsList
         }
         return emptyList()
     }

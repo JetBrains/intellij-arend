@@ -33,7 +33,6 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendDefModule,
         is ArendDefFunction -> false
         is ArendClassField,
-        is ArendClassFieldSyn,
         is ArendClassImplement,
         is ArendConstructor -> true
         else -> error("Unexpected tree anchor")

@@ -9,7 +9,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.term.ClassFieldKind
-import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon

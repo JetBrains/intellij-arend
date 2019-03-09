@@ -35,10 +35,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         var cached = true
         var scope: Scope? = null
         val result = cache.computeIfAbsent(psiReferable) { runReadAction {
-            if (psiReferable is ArendDefClass && psiReferable.fatArrow != null) {
-                return@runReadAction NullDefinition
-            }
-
             cached = false
             if (eventsProcessor != null) {
                 eventsProcessor.onTestStarted(psiReferable)

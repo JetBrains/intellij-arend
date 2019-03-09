@@ -24,7 +24,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
@@ -140,8 +139,7 @@ class TypeCheckProcessHandler(
                         }
                     } else {
                         val ref = runReadAction {
-                            val group = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))
-                            if (group is ArendDefClass && group.fatArrow != null) null else group?.referable
+                            modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable
                         }
                         if (ref == null) {
                             if (modules.isNotEmpty()) {

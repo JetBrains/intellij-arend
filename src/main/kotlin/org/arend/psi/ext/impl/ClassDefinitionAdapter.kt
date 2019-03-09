@@ -11,7 +11,6 @@ import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
@@ -23,8 +22,6 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getReferable() = this
 
     override fun isRecord(): Boolean = recordKw != null
-
-    override fun isSynonym() = fatArrow != null
 
     private fun resolve(ref: Referable?) =
         ExpressionResolveNameVisitor.resolve(ref, parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) as? ClassReferable
@@ -40,16 +37,14 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getInternalReferables(): List<ArendInternalReferable> =
         (parameterFields as List<ArendInternalReferable> ) +
             classStatList.mapNotNull { it.classField } +
-            classFieldList +
-            classFieldSynList
+            classFieldList
 
     override fun getFields() = internalReferables
 
     override fun getFieldReferables(): List<FieldReferable> =
         (parameterFields as List<FieldReferable>) +
             classStatList.mapNotNull { it.classField } +
-            classFieldList +
-            classFieldSynList
+            classFieldList
 
     override fun getImplementedFields(): List<LocatedReferable> =
         classFieldImpls.mapNotNull { it.getLongName().refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
@@ -62,20 +57,13 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getClassFieldImpls(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
 
-    override fun getClassReference() = if (fatArrow == null) this else underlyingReference
+    override fun getClassReference() = this
 
     override fun getClassReferenceData(): ClassReferenceData? {
-        val classRef = classReference ?: return null
-        return ClassReferenceData(classRef, emptyList(), emptyList())
+        return ClassReferenceData(this, emptyList(), emptyList())
     }
 
     override fun getPrecedence() = calcPrecedence(prec)
-
-    override fun getUnderlyingClass() = classSynRef?.longName
-
-    override fun getUnderlyingReference() = resolve(unresolvedUnderlyingReference?.referent)
-
-    override fun getUnresolvedUnderlyingReference(): Reference? = underlyingClass
 
     override fun getUsedDefinitions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if (it is ArendDefFunction && it.useKw != null) it else null }

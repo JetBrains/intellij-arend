@@ -15,7 +15,6 @@ import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Reference
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
@@ -94,10 +93,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun moduleTextRepresentation(): String = name
 
     override fun positionTextRepresentation(): String? = null
-
-    override fun getUnderlyingReference(): LocatedReferable? = null
-
-    override fun getUnresolvedUnderlyingReference(): Reference? = null
 
     override fun getTopmostEquivalentSourceNode() = this
 

@@ -275,7 +275,7 @@ class ArendHighlightingAnnotator : Annotator {
         if (element is ArendDefIdentifier) {
             val definition = element.parent as? PsiLocatedReferable ?: return
 
-            if (definition is Abstract.ReferableDefinition && (definition is Abstract.ClassField || definition is Abstract.ClassFieldSynonym)) {
+            if (definition is Abstract.ReferableDefinition && definition is Abstract.ClassField) {
                 val fieldRef = definition.referable
                 if (fieldRef != null) {
                     val classRef = (definition.parentSourceNode as? Abstract.ClassDefinition)?.referable
@@ -446,14 +446,6 @@ class ArendHighlightingAnnotator : Annotator {
             return
         }
 
-        if (element is ArendFieldTele) {
-            val definition = element.parent
-            if (definition is ArendDefClass && definition.fatArrow != null && definition.fieldTeleList.firstOrNull() == element) {
-                holder.createAnnotation(HighlightSeverity.ERROR, TextRange(element.textRange.startOffset, (definition.fieldTeleList.lastOrNull() ?: element).textRange.endOffset), "Class synonyms cannot have parameters")
-            }
-            return
-        }
-
         if (element is ArendLongName) {
             val parent = element.parent
             when (parent) {
@@ -462,20 +454,7 @@ class ArendHighlightingAnnotator : Annotator {
                     if (superClass != null) {
                         if (superClass !is ArendDefClass) {
                             holder.createErrorAnnotation(element, "Expected a class")
-                        } else if (parent.fatArrow != null) {
-                            nameResolvingChecker.checkSuperClassOfSynonym(superClass, parent.classSynRef?.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ClassReferable, element)
                         }
-                    }
-                }
-                is ArendClassSynRef -> {
-                    val synRef = element.refIdentifierList.lastOrNull()?.reference?.resolve()
-                    if (synRef != null) {
-                        when {
-                            synRef !is ArendDefClass -> "Expected a class"
-                            synRef.recordKw != null -> "Expected a class, got a record"
-                            synRef.fatArrow != null -> "Expected a class, got a class synonym"
-                            else -> null
-                        }?.let { msg -> holder.createAnnotation(HighlightSeverity.ERROR, element.textRange, msg) }
                     }
                 }
                 is Abstract.ClassFieldImpl -> if ((parent is ArendCoClause && parent.getLbrace() != null || parent is ArendClassImplement && parent.getLbrace() != null) && parent.classReference == null) {

@@ -53,15 +53,12 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
     override fun getVariants(): Array<Any> {
         var notARecord = false
-        var notASynonym = false
         var clazz: Class<*>? = null
         val element = element
         val parent = element.parent
         val pparent = (parent as? ArendLongName)?.parent
-        if (pparent is ArendDefClass || pparent is ArendClassSynRef) {
+        if (pparent is ArendDefClass) {
             clazz = ArendDefClass::class.java
-            notARecord = pparent is ArendClassSynRef // inside a class synonym
-            notASynonym = pparent is ArendClassSynRef
         } else {
             val atomFieldsAcc = ((pparent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = ((if (atomFieldsAcc == null) (pparent as? ArendLongNameExpr)?.parent else
@@ -78,7 +75,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         return element.scope.elements.mapNotNull { origElement ->
             val ref = (origElement as? RedirectingReferable)?.originalReferable ?: origElement
             val origRef: Any? = if (ref is DataLocatedReferable) ref.data?.element else ref
-            if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? ArendDefClass)?.recordKw != null || notASynonym && (origRef as? ArendDefClass)?.fatArrow != null)) {
+            if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? ArendDefClass)?.recordKw != null)) {
                 null
             } else when (origRef) {
                 is PsiNamedElement -> {

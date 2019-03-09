@@ -114,9 +114,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun getType(element: PsiElement): String? = when (element) {
-        is ArendDefClass -> if (element.fatArrow == null) "class" else "class synonym"
+        is ArendDefClass -> "class"
         is ArendClassField, is ArendFieldDefIdentifier -> "field"
-        is ArendClassFieldSyn -> "field synonym"
         is ArendDefInstance -> "instance"
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
