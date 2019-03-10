@@ -1,0 +1,4 @@
+\class Foo {| a : Nat | b : Nat}
+\func bar => \new Foo {
+  | a => {?}
+ }

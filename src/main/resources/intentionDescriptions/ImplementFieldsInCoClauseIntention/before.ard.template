@@ -1,0 +1,10 @@
+\record A (x y : Nat)
+
+\record B (z w : Nat) \extends A
+
+\func foo : B \cowith
+ | A {
+   | y => {?}
+ }
+ | z => 0
+ | w => {?}
