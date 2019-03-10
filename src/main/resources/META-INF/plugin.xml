@@ -152,7 +152,12 @@
 
         <!-- Intention Actions -->
         <intentionAction>
-            <className>org.arend.intention.ImplementFieldsIntention</className>
+            <className>org.arend.intention.ImplementFieldsInNewExprIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.ImplementFieldsInCoClauseIntention</className>
             <category>Arend</category>
         </intentionAction>
 
