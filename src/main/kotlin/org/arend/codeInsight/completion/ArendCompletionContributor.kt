@@ -75,31 +75,32 @@ class ArendCompletionContributor : CompletionContributor() {
                     (!parameters.rightBrace || parameters.ancestorsNE.isEmpty() || noWhere(parameters.ancestorsNE.asSequence()))
         }))
 
-        val classOrDataPositionMatcher = { position: PsiElement, insideWhere: Boolean, dataAllowed: Boolean ->
-            var foundWhere = false
-            var ancestor: PsiElement? = position
-            var result2 = false
-            while (ancestor != null) {
-                if (ancestor is ArendWhere) foundWhere = true
-                if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
-                    result2 = !(insideWhere xor foundWhere)
-                    break
-                } else if (ancestor is ArendDefinition && foundWhere) {
-                    result2 = false
-                    break
+        val classOrDataPositionPattern = { insideWhere: Boolean, dataAllowed: Boolean ->
+            object : ArendElementPattern() {
+                override fun accept(o: PsiElement): Boolean {
+                    var foundWhere = false
+                    var result2 = false
+                    var ancestor: PsiElement? = o
+                    while (ancestor != null)
+                    {
+                        if (ancestor is ArendWhere) foundWhere = true
+                        if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
+                            result2 = !(insideWhere xor foundWhere)
+                            break
+                        } else if (ancestor is ArendDefinition && foundWhere) {
+                            result2 = false
+                            break
+                        }
+                        ancestor = ancestor.parent
+                    }
+                    return result2
                 }
-                ancestor = ancestor.parent
             }
-            result2
         }
 
-        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(CLASS_MEMBER_KWS, { parameters ->
-            classOrDataPositionMatcher(parameters.completionParameters.position, false, false)
-        }))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
 
-        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(USE_KW_LIST, { parameters ->
-            classOrDataPositionMatcher(parameters.completionParameters.position, true, true)
-        }))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
 
         basic(afterLeaf(USE_KW), COERCE_LEVEL_KWS)
 
@@ -614,7 +615,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
             }, tailSpaceNeeded)
 
-    private class ArendCompletionParameters(val completionParameters: CompletionParameters) {
+    private class ArendCompletionParameters(completionParameters: CompletionParameters) {
         val prevElement: PsiElement?
         val delimiterBeforeCaret: Boolean
         val nextElement: PsiElement?

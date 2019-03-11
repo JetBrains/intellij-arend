@@ -99,7 +99,7 @@ abstract class SelfTargetingRangeIntention<T : PsiElement>(
 
     abstract fun applicabilityRange(element: T): TextRange?
 
-    override final fun isApplicableTo(element: T, caretOffset: Int): Boolean {
+    final override fun isApplicableTo(element: T, caretOffset: Int): Boolean {
         val range = applicabilityRange(element) ?: return false
         return range.containsOffset(caretOffset)
     }

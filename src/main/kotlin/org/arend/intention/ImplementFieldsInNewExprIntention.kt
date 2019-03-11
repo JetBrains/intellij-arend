@@ -12,7 +12,7 @@ class ImplementFieldsInNewExprIntention:
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int): Boolean {
         if (element.getNewKw() == null) return false
         val data = element.getUserData(CoClausesKey.INSTANCE)
-        setText("Add empty implementations to all fields in \\new ${element.getAppExpr()?.text} expression")
+        text = "Add empty implementations to all fields in \\new ${element.getAppExpr()?.text} expression"
         return data != null && data.isNotEmpty()
     }
 
