@@ -13,7 +13,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data MyNat | {-caret-}myzero",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class AddMonoid => Monoid { | * => {-caret-}+}",
                     "\\class Lol { } \\where { \\use \\level {-caret-} } ")
 
     fun `test no fixity completion`() =
@@ -257,8 +256,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test no keyword completion after with 2`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with { | zero => 0 | suc a' => a'}{-caret-}",
-            "\\class Foo \\extends Bar {-caret-}", /* test no extends */
-            "\\class C\n\\class D => C {-caret-}")
+            "\\class Foo \\extends Bar {-caret-}" /* test no extends */)
 
     fun `test only universe keywords after Sigma or Pi`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
