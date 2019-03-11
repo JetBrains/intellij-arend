@@ -22,11 +22,7 @@ class ArendCompletionContributor : CompletionContributor() {
     init {
         basic(PREC_CONTEXT, FIXITY_KWS)
 
-        basic(PlatformPatterns.psiElement().afterLeaf(and(ofType(LEVEL_KW), object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return o.parent.let { it is ArendDefFunction && it.useKw != null }
-            }
-        })), FIXITY_KWS)
+        basic(after(and(ofType(LEVEL_KW), elementPattern { o -> o.parent.let { it is ArendDefFunction && it.useKw != null } })), FIXITY_KWS)
 
         basic(AS_CONTEXT, AS_KW_LIST) { parameters ->
             (parameters.position.parent.parent as ArendNsId).asKw == null
@@ -76,25 +72,22 @@ class ArendCompletionContributor : CompletionContributor() {
         }))
 
         val classOrDataPositionPattern = { insideWhere: Boolean, dataAllowed: Boolean ->
-            object : ArendElementPattern() {
-                override fun accept(o: PsiElement): Boolean {
-                    var foundWhere = false
-                    var result2 = false
-                    var ancestor: PsiElement? = o
-                    while (ancestor != null)
-                    {
-                        if (ancestor is ArendWhere) foundWhere = true
-                        if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
-                            result2 = !(insideWhere xor foundWhere)
-                            break
-                        } else if (ancestor is ArendDefinition && foundWhere) {
-                            result2 = false
-                            break
-                        }
-                        ancestor = ancestor.parent
+            elementPattern { o ->
+                var foundWhere = false
+                var result2 = false
+                var ancestor: PsiElement? = o
+                while (ancestor != null) {
+                    if (ancestor is ArendWhere) foundWhere = true
+                    if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
+                        result2 = !(insideWhere xor foundWhere)
+                        break
+                    } else if (ancestor is ArendDefinition && foundWhere) {
+                        result2 = false
+                        break
                     }
-                    return result2
+                    ancestor = ancestor.parent
                 }
+                result2
             }
         }
 
@@ -106,8 +99,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), DATA_KW_LIST)//data after \truncated keyword
 
-        basic(WHERE_CONTEXT, JointOfStatementsProvider(WHERE_KW_LIST, { arendCompletionParameters: ArendCompletionParameters ->
-            var anc = arendCompletionParameters.prevElement
+        val wherePattern = elementPattern { o ->
+            var anc: PsiElement? = o
             while (anc != null && anc !is ArendGroup && anc !is ArendClassStat) anc = anc.parent
             if (anc != null) {
                 val da: ArendGroup? = anc as? ArendGroup
@@ -116,75 +109,68 @@ class ArendCompletionContributor : CompletionContributor() {
                     else -> false
                 })
             } else false
-        }, tailSpaceNeeded = true, noCrlfRequired = true, allowInsideBraces = false))
+        }
+
+        basic(and(WHERE_CONTEXT, after(wherePattern)),
+                JointOfStatementsProvider(WHERE_KW_LIST, { true }, tailSpaceNeeded = true, noCrlfRequired = true, allowInsideBraces = false))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
                 and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
 
-        val noExtendsPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                val dC = o.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
-                return if (dC != null) dC.extendsKw == null else false
-            }
+        val noExtendsPattern = elementPattern { o ->
+            val dC = o.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
+            if (dC != null) dC.extendsKw == null else false
         }
 
-        val notWithGrandparentFieldTelePattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return o.parent?.parent?.findNextSibling() !is ArendFieldTele
-            }
-        }
+        val notWithGrandparentFieldTelePattern = elementPattern { o -> o.parent?.parent?.findNextSibling() !is ArendFieldTele }
 
         basic(and(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
                 afterLeaf(ID),
                 noExtendsPattern,
-                PlatformPatterns.psiElement().afterLeaf(inDefClassPattern)),
+                after(inDefClassPattern)),
                 EXTENDS_KW_LIST)
 
         basic(and(withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                 noExtendsPattern,
-                PlatformPatterns.psiElement().afterLeaf(inDefClassPattern),
+                after(inDefClassPattern),
                 notWithGrandparentFieldTelePattern),
                 EXTENDS_KW_LIST)
 
         basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW)
 
-        val bareSigmaOrPiPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                var result: PsiElement? = o
+        val bareSigmaOrPiPattern = elementPattern { o ->
+            var result: PsiElement? = o
 
-                val context = ofType(PI_KW, SIGMA_KW)
+            val context = ofType(PI_KW, SIGMA_KW)
 
-                var tele: ArendTypeTele? = null
-                while (result != null) {
-                    if (result is ArendTypeTele) tele = result
-                    if (result is ArendExpr && result !is ArendUniverseAtom) break
-                    result = result.parent
-                }
-
-                return if (context.accepts(o)) true else
-                    if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
-                        result is ArendSigmaExpr || result is ArendPiExpr
+            var tele: ArendTypeTele? = null
+            while (result != null) {
+                if (result is ArendTypeTele) tele = result
+                if (result is ArendExpr && result !is ArendUniverseAtom) break
+                result = result.parent
             }
+
+            if (context.accepts(o)) true else
+                if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+                    result is ArendSigmaExpr || result is ArendPiExpr
         }
 
-        val allowedInReturnPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                var result: PsiElement? = o
-                while (result != null) {
-                    if (result is ArendReturnExpr) break
-                    result = result?.parent
-                }
-                val resultC = result
-                val resultParent = resultC?.parent
-                return when (resultC) {
-                    is ArendReturnExpr -> when {
-                        resultC.levelKw != null -> false
-                        resultParent is ArendDefInstance -> false
-                        resultParent is ArendDefFunction -> !resultParent.isCowith
-                        else -> true
-                    }
+        val allowedInReturnPattern = elementPattern { o ->
+            var result: PsiElement? = o
+            while (result != null) {
+                if (result is ArendReturnExpr) break
+                result = result?.parent
+            }
+            val resultC = result
+            val resultParent = resultC?.parent
+            when (resultC) {
+                is ArendReturnExpr -> when {
+                    resultC.levelKw != null -> false
+                    resultParent is ArendDefInstance -> false
+                    resultParent is ArendDefFunction -> !resultParent.isCowith
                     else -> true
                 }
+                else -> true
             }
         }
 
@@ -192,14 +178,14 @@ class ArendCompletionContributor : CompletionContributor() {
         val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
 
         val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            not(or(PlatformPatterns.psiElement().afterLeaf(FIELD_CONTEXT), //No keyword completion after field
+            not(or(after(FIELD_CONTEXT), //No keyword completion after field
                     and(RETURN_CONTEXT, not(allowedInReturnPattern)),
-                    PlatformPatterns.psiElement().afterLeaf(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
-                    PlatformPatterns.psiElement().afterLeaf(ofType(LAM_KW, LET_KW, WITH_KW)), //No keyword completion after \lam or \let
-                    PlatformPatterns.psiElement().afterLeaf(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
+                    after(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
+                    after(ofType(LAM_KW, LET_KW, WITH_KW)), //No keyword completion after \lam or \let
+                    after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
-                    PlatformPatterns.psiElement().afterLeaf(afterElimVarPattern), //No expression keywords in \elim expression
-                    if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else PlatformPatterns.psiElement().afterLeaf(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
+                    after(afterElimVarPattern), //No expression keywords in \elim expression
+                    if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else after(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
                     if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else ARGUMENT_EXPRESSION))
         }
 
@@ -237,8 +223,8 @@ class ArendCompletionContributor : CompletionContributor() {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
         })
 
-        basic(DATA_OR_EXPRESSION_CONTEXT, object : ConditionalProvider(listOf("Type"), { cP ->
-            cP.originalPosition?.text?.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?")) ?: false
+        basic(DATA_OR_EXPRESSION_CONTEXT, object : ConditionalProvider(listOf("Type"), { parameters ->
+            parameters.originalPosition?.text?.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?")) ?: false
         }) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
@@ -276,26 +262,16 @@ class ArendCompletionContributor : CompletionContributor() {
             return exprFound
         }
 
-        val pairingInPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, o)
-            }
-        }
-        val pairingWithPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, o)
-            }
-        }
+        val pairingInPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, o) }
+        val pairingWithPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, o) }
 
-        val returnPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return pairingWordCondition({ position: PsiElement? ->
-                    if (position is ArendCaseArg) {
-                        val pp = position.parent as? ArendCaseExpr
-                        pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
-                    } else false
-                }, o)
-            }
+        val returnPattern = elementPattern { o ->
+            pairingWordCondition({ position: PsiElement? ->
+                if (position is ArendCaseArg) {
+                    val pp = position.parent as? ArendCaseExpr
+                    pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
+                } else false
+            }, o)
         }
 
         val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.asKw == null }
@@ -307,12 +283,10 @@ class ArendCompletionContributor : CompletionContributor() {
             p != null && p.node.elementType == COLON
         }
 
-        val argEndPattern = object : ArendElementPattern() {
-            override fun accept(o: PsiElement): Boolean {
-                return pairingWordCondition({ position: PsiElement? ->
-                    asCondition1.invoke(position) || (position != null && asCondition2.invoke(position) && asCondition1.invoke(position.parent))
-                }, o)
-            }
+        val argEndPattern = elementPattern { o ->
+            pairingWordCondition({ position: PsiElement? ->
+                asCondition1.invoke(position) || (position != null && asCondition2.invoke(position) && asCondition1.invoke(position.parent))
+            }, o)
         }
 
         basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW))), pairingInPattern), IN_KW_LIST)
