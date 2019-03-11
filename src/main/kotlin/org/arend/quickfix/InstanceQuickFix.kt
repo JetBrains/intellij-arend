@@ -79,7 +79,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
             val rangeToReport = if (emptyGoal) coClause.textRange else coClause.getLongName()?.textRange ?: coClause.textRange
 
             if (referable is ClassReferable) {
-                val subClauses = if (coClause.fatArrow != null) emptyList() else coClause.getCoClauseList()
+                val subClauses = if (fatArrow != null) emptyList() else coClause.getCoClauseList()
 
                 val fieldToImplement = superClassesFields[referable]
                 if (fieldToImplement != null) {
@@ -88,7 +88,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                     coClause.putUserData(CoClausesKey.INSTANCE, fieldsList)
                 }
 
-                if (subClauses.isEmpty()) {
+                if (subClauses.isEmpty() && fatArrow == null) {
                     val warningAnnotation = holder?.createWeakWarningAnnotation(rangeToReport, "Coclause is redundant")
                     if (warningAnnotation != null) {
                         warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
@@ -126,33 +126,36 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
             findImplementedCoClauses(coClausesList(), holder, superClassesFields, fields)
             annotateCoClauses(coClausesList(), holder, superClassesFields, fields)
 
-            if (fields.isNotEmpty() && !onlyCheckFields) {
-                val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
-                val fieldsList = fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
+            if (!onlyCheckFields) {
+                if (fields.isNotEmpty()) {
+                    val scope = CachingScope.make(ClassFieldImplScope(classReferenceData.classRef, false))
+                    val fieldsList = fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
 
-                val builder = StringBuilder()
-                val annotation = when (annotationToShow) {
-                    InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
-                        builder.append(IMPLEMENT_FIELDS_MSG)
-                        val iterator = fields.iterator()
-                        do {
-                            builder.append(iterator.next().textRepresentation())
-                            if (iterator.hasNext()) builder.append(", ")
-                        } while (iterator.hasNext())
-                        holder?.createErrorAnnotation(rangeToReport, builder.toString())
+                    val builder = StringBuilder()
+                    val annotation = when (annotationToShow) {
+                        InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
+                            builder.append(IMPLEMENT_FIELDS_MSG)
+                            val iterator = fields.iterator()
+                            do {
+                                builder.append(iterator.next().textRepresentation())
+                                if (iterator.hasNext()) builder.append(", ")
+                            } while (iterator.hasNext())
+                            holder?.createErrorAnnotation(rangeToReport, builder.toString())
+                        }
+                        InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO -> {
+                            holder?.createInfoAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
+                        }
+                        InstanceQuickFixAnnotation.NO_ANNOTATION -> {
+                            if (classReferenceHolder is PsiElement) classReferenceHolder.putUserData(CoClausesKey.INSTANCE, fieldsList)
+                            null
+                        }
                     }
-                    InstanceQuickFixAnnotation.REPLACE_WITH_IMPLEMENTATION_INFO -> {
-                        holder?.createInfoAnnotation(rangeToReport, CAN_BE_REPLACED_WITH_IMPLEMENTATION)
-                    }
-                    InstanceQuickFixAnnotation.NO_ANNOTATION -> {
-                        if (classReferenceHolder is PsiElement) classReferenceHolder.putUserData(CoClausesKey.INSTANCE, fieldsList)
-                        null
-                    }
-                }
 
-                val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
-                annotation?.registerFix(quickFix)
-                return fieldsList
+                    val quickFix = ImplementFieldsQuickFix(this, fieldsList, actionText)
+                    annotation?.registerFix(quickFix)
+                    return fieldsList
+                } else if (annotationToShow == InstanceQuickFixAnnotation.NO_ANNOTATION &&
+                        classReferenceHolder is PsiElement) classReferenceHolder.putUserData(CoClausesKey.INSTANCE, null)
             }
         }
         return emptyList()
