@@ -3,7 +3,6 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import org.arend.mapFirstNotNull
-import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
@@ -20,8 +19,8 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 
     private fun importFileCanBeFound(): Boolean {
         val modulePath = importFile.modulePath ?: return false
-        val module = currentFile.module ?: return false
-        return ArendModuleConfigService.getConfig(module).availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
+        val conf = currentFile.libraryConfig ?: return false
+        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
     }
 
     fun isValid() = importFileCanBeFound() || isPrelude(importFile)

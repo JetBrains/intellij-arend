@@ -1,9 +1,8 @@
 package org.arend.module
 
-import com.intellij.openapi.module.Module
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
@@ -14,14 +13,14 @@ import org.arend.psi.ext.PsiModuleReferable
 import org.arend.util.FileUtils
 
 
-class ModuleScope private constructor(private val module: Module, private val rootDirs: List<VirtualFile>?) : Scope {
-    constructor(module: Module) : this(module, null)
+class ModuleScope private constructor(private val libraryConfig: LibraryConfig, private val rootDirs: List<VirtualFile>?) : Scope {
+    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null)
 
-    private fun calculateRootDirs() = rootDirs ?: ArendModuleConfigService.getConfig(module).availableConfigs.mapNotNull { it.sourcesDirFile }
+    private fun calculateRootDirs() = rootDirs ?: libraryConfig.availableConfigs.mapNotNull { it.sourcesDirFile }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
-        val psiManager = PsiManager.getInstance(module.project)
+        val psiManager = PsiManager.getInstance(libraryConfig.project)
         for (root in calculateRootDirs()) {
             for (file in root.children) {
                 if (file.isDirectory) {
@@ -53,6 +52,6 @@ class ModuleScope private constructor(private val module: Module, private val ro
             }
             return@mapNotNull null
         }
-        return if (newRootDirs.isEmpty()) EmptyScope.INSTANCE else ModuleScope(module, newRootDirs)
+        return if (newRootDirs.isEmpty()) EmptyScope.INSTANCE else ModuleScope(libraryConfig, newRootDirs)
     }
 }

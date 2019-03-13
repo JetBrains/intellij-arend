@@ -24,6 +24,6 @@ class ArendModuleType : ArendModuleTypeBase(ID) {
             ModuleTypeManager.getInstance().findByID(ID) as ArendModuleType
         }
 
-        fun has(module: Module) = ModuleType.`is`(module, INSTANCE)
+        fun has(module: Module?) = module != null && ModuleType.`is`(module, INSTANCE)
     }
 }

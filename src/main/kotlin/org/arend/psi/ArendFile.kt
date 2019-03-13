@@ -12,7 +12,6 @@ import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.module.ModulePath
-import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -35,8 +34,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             if (fileName == "/Prelude.ard") {
                 return ModulePath("Prelude")
             }
-            val module = module ?: return null
-            val root = ArendModuleConfigService.getConfig(module).sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
+            val conf = libraryConfig ?: return null
+            val root = conf.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (root == null || !fileName.startsWith(root)) {
                 return null
             }
@@ -48,7 +47,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = modulePath?.toString() ?: name
 
     val libraryName
-        get() = module?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
+        get() = libraryConfig?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)

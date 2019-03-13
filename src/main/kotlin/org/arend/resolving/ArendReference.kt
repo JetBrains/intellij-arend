@@ -6,7 +6,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
 import org.arend.ArendIcons
-import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
@@ -97,9 +96,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (origRef is PsiModuleReferable) {
                         origRef.modules.firstOrNull()
                     } else {
-                        element.module?.let { module ->
-                            ArendModuleConfigService.getConfig(module).forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
-                        }
+                        element.libraryConfig?.forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
                     }
                     module?.let {
                         if (it is ArendFile)
@@ -144,11 +141,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     TypeCheckingService.getInstance(element.project).prelude
                 } else {
-                    element.module?.let { module ->
-                        ArendModuleConfigService.getConfig(module).forAvailableConfigs { conf ->
-                            val list = conf.findArendFilesAndDirectories(ref.path)
-                            list.firstOrNull { it is ArendFile } ?: list.firstOrNull()
-                        }
+                    element.libraryConfig?.forAvailableConfigs { conf ->
+                        val list = conf.findArendFilesAndDirectories(ref.path)
+                        list.firstOrNull { it is ArendFile } ?: list.firstOrNull()
                     }
                 }
             }
@@ -183,9 +178,7 @@ open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendR
                 if (ref.path == Prelude.MODULE_PATH) {
                     TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
                 } else {
-                    element.module?.let { module ->
-                        ArendModuleConfigService.getConfig(module).availableConfigs.flatMap { it.findArendFilesAndDirectories(ref.path) }
-                    }
+                    element.libraryConfig?.availableConfigs?.flatMap { it.findArendFilesAndDirectories(ref.path) }
                 }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()
         }
