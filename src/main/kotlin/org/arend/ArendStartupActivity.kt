@@ -2,6 +2,7 @@ package org.arend
 
 import com.intellij.AppTopics
 import com.intellij.ProjectTopics
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
@@ -14,11 +15,13 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.roots.ModuleRootEvent
 import com.intellij.openapi.roots.ModuleRootListener
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.*
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 
@@ -49,10 +52,22 @@ class ArendStartupActivity : StartupActivity {
             addModule(module)
         }
 
+        var homePath = ProjectRootManager.getInstance(project).projectSdk?.homePath
         project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
             override fun rootsChanged(event: ModuleRootEvent) {
-                for (module in project.arendModules) {
-                    ArendModuleConfigService.getInstance(module)?.updateFromIdea()
+                val newHomePath = ProjectRootManager.getInstance(project).projectSdk?.homePath
+                if (homePath != newHomePath) {
+                    ServiceManager.getService(project, ArendResolveCache::class.java)?.clear()
+                    val service = TypeCheckingService.getInstance(project)
+                    service.libraryManager.unloadExceptPrelude()
+                    for (module in project.arendModules) {
+                        addModule(module)
+                    }
+                    homePath = newHomePath
+                } else {
+                    for (module in project.arendModules) {
+                        ArendModuleConfigService.getInstance(module)?.updateFromIdea()
+                    }
                 }
             }
         })

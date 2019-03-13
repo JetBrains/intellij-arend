@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentMap
 interface ArendResolveCache {
     fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref : ArendReferenceElement) : Referable?
     fun processEvent(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?)
+    fun clear()
 }
 
 private fun getDefinitionOfLocalElement(element: PsiElement) =
@@ -57,6 +58,11 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
 
     override fun processEvent(oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?) {
         listener.update(oldChild, newChild, parent)
+    }
+
+    override fun clear() {
+        globalMap.clear()
+        localMap.clear()
     }
 
     private inner class ResolveCacheCleaner : PsiTreeChangeAdapter() {
