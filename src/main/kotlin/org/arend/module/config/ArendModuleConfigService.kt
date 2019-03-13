@@ -7,7 +7,9 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
 import com.intellij.openapi.roots.*
+import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
+import com.intellij.openapi.roots.libraries.LibraryTable
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
@@ -17,6 +19,8 @@ import org.arend.arendModules
 import org.arend.findExternalLibrary
 import org.arend.findPsiFileByPath
 import org.arend.library.LibraryDependency
+import org.arend.module.ArendLibKind
+import org.arend.module.ArendLibraryType
 import org.arend.module.ArendModuleType
 import org.arend.module.ModulePath
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -135,6 +139,11 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
                         val libConfig = module.project.findExternalLibrary(dependency.name)
                         if (libConfig != null) {
                             val libModel = library.modifiableModel
+
+                            if (libModel is LibraryEx.ModifiableModelEx) {
+                                libModel.kind = ArendLibKind
+                            }
+
                             val srcDir = libConfig.sourcesPath
                             if (srcDir != null) {
                                 libModel.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)

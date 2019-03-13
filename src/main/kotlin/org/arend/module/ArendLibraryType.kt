@@ -26,7 +26,7 @@ import java.nio.file.Paths
 import javax.swing.Icon
 import javax.swing.JComponent
 
-private object ArendLibKind: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
+object ArendLibKind: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
     override fun createDefaultProperties() = LibraryVersionProperties()
 }
 
@@ -62,6 +62,10 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
                 }
             }
         }
+    }
+
+    override fun getExternalRootTypes(): Array<OrderRootType> {
+        return arrayOf(OrderRootType.CLASSES, OrderRootType.SOURCES)
     }
 
     override fun getIcon(properties: LibraryVersionProperties?) = ArendIcons.LIBRARY_ICON
