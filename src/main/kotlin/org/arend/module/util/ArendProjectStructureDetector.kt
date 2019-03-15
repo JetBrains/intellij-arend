@@ -3,6 +3,7 @@ package org.arend.module.util
 import com.intellij.ide.util.importProject.ModuleDescriptor
 import com.intellij.ide.util.importProject.ProjectDescriptor
 import com.intellij.ide.util.projectWizard.ModuleWizardStep
+import com.intellij.ide.util.projectWizard.ProjectJdkStep
 import com.intellij.ide.util.projectWizard.importSources.DetectedProjectRoot
 import com.intellij.ide.util.projectWizard.importSources.DetectedSourceRoot
 import com.intellij.ide.util.projectWizard.importSources.ProjectFromSourcesBuilder
@@ -60,7 +61,7 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             builder: ProjectFromSourcesBuilder,
             projectDescriptor: ProjectDescriptor,
             stepIcon: Icon?
-    ): List<ModuleWizardStep> = listOf(DummyStep)
+    ): List<ModuleWizardStep> = listOf(ProjectJdkStep(builder.context))
 
     private object ConfigurationUpdater : ArendModuleConfigurationUpdater() {
 
@@ -74,17 +75,5 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             return (PsiManager.getInstance(project).findFile(virtualFile) as? YAMLFile)?.binariesDir ?: super.binariesDir(moduleRoot, project)
         }
 
-    }
-
-    object DummyStep : ModuleWizardStep() {
-        override fun updateDataModel() {
-
-        }
-
-        override fun getComponent(): JComponent = panel {}
-
-        override fun isStepVisible(): Boolean {
-            return false
-        }
     }
 }

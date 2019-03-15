@@ -13,9 +13,12 @@ import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.projectRoots.SdkModel
 import com.intellij.openapi.roots.ModuleRootEvent
 import com.intellij.openapi.roots.ModuleRootListener
 import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.*
 import org.arend.module.ArendModuleType
@@ -52,18 +55,18 @@ class ArendStartupActivity : StartupActivity {
             addModule(module)
         }
 
-        var homePath = ProjectRootManager.getInstance(project).projectSdk?.homePath
+        var sdkHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
         project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
             override fun rootsChanged(event: ModuleRootEvent) {
-                val newHomePath = ProjectRootManager.getInstance(project).projectSdk?.homePath
-                if (homePath != newHomePath) {
+                val newHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
+                if (sdkHome != newHome) {
                     ServiceManager.getService(project, ArendResolveCache::class.java)?.clear()
                     val service = TypeCheckingService.getInstance(project)
                     service.libraryManager.unloadExceptPrelude()
                     for (module in project.arendModules) {
                         addModule(module)
                     }
-                    homePath = newHomePath
+                    sdkHome = newHome
                 } else {
                     for (module in project.arendModules) {
                         ArendModuleConfigService.getInstance(module)?.updateFromIdea()
