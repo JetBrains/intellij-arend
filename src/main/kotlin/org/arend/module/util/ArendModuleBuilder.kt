@@ -19,10 +19,7 @@ class ArendModuleBuilder : ModuleBuilder() {
 
     override fun isSuitableSdkType(sdkType: SdkTypeId?): Boolean = true
 
-    override fun getCustomOptionsStep(
-            context: WizardContext,
-            parentDisposable: Disposable
-    ): ModuleWizardStep = ArendProjectStructureDetector.DummyStep
+    override fun getCustomOptionsStep(context: WizardContext, parentDisposable: Disposable) = ProjectJdkStep(context)
 
     override fun validateModuleName(moduleName: String): Boolean {
         if (!FileUtils.isLibraryName(moduleName)) {
