@@ -46,9 +46,16 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
                 break
             }
 
-            val newExpr = (atomFieldsAcc?.parent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr ?: expr as? ArendNewExpr ?: return defaultUsage
+            val ppParent = (atomFieldsAcc?.parent as? ArendArgumentAppExpr)?.parent
+            if (ppParent is ArendNewArg) {
+                return newInstances
+            }
+            val newExpr = ppParent as? ArendNewExpr ?: expr as? ArendNewExpr ?: return defaultUsage
             if (newExpr.newKw != null) {
                 return newInstances
+            }
+            if (!newExpr.coClauseList.isEmpty()) {
+                return classExt
             }
 
             val tupleExpr = newExpr.parent as? ArendTupleExpr
@@ -85,6 +92,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         val usagesInCoClauses = UsageType("Coclauses")
         val usagesInPatterns  = UsageType("Patterns")
         val newInstances      = UsageType("New instances")
+        val classExt          = UsageType("Class extensions")
         val levelProof        = UsageType("Level proof")
         val parameters        = UsageType("Parameter types")
         val resultTypes       = UsageType("Result types")
