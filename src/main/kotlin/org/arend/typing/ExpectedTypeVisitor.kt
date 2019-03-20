@@ -490,7 +490,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == baseClass) null else visitBinOpSequence(data, InferHoleExpression, sequence, errorData, params)
 
-    override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
+    override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) =
         if (element == expression) (data as? ArendExpr)?.let { ExpectedTypeVisitor(it, null).getExpectedType() } else null
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = null

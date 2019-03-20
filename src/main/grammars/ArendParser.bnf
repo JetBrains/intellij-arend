@@ -68,6 +68,7 @@
         SIGMA_KW            = '\Sigma'
         LAM_KW              = '\lam'
         LET_KW              = '\let'
+        LETS_KW             = '\let!'
         IN_KW               = '\in'
         CASE_KW             = '\case'
         RETURN_KW           = '\return'
@@ -498,7 +499,7 @@ lamExpr ::= LAM_KW nameTele+ FAT_ARROW expr {
     mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
 
-letExpr ::= LET_KW <<pipe_separated_sequence letClause>> IN_KW expr {
+letExpr ::= (LET_KW | LETS_KW) <<pipe_separated_sequence letClause>> IN_KW expr {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }

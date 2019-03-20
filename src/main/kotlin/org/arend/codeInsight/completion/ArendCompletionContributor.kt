@@ -181,7 +181,7 @@ class ArendCompletionContributor : CompletionContributor() {
             not(or(after(FIELD_CONTEXT), //No keyword completion after field
                     and(RETURN_CONTEXT, not(allowedInReturnPattern)),
                     after(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
-                    after(ofType(LAM_KW, LET_KW, WITH_KW)), //No keyword completion after \lam or \let
+                    after(ofType(LAM_KW, LET_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
                     after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
                     after(afterElimVarPattern), //No expression keywords in \elim expression
@@ -289,7 +289,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }, o)
         }
 
-        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW))), pairingInPattern), IN_KW_LIST)
+        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW), afterLeaf(LETS_KW))), pairingInPattern), IN_KW_LIST)
 
         val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(COLON))))
 

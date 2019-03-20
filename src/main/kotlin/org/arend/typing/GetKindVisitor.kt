@@ -69,7 +69,7 @@ open class GetKindVisitor : AbstractExpressionVisitor<Void, GetKindVisitor.Kind>
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.GOAL
     override fun visitCase(data: Any?, caseArgs: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, errorData: Abstract.ErrorData?, params: Void?) = Kind.CASE
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, errorData: Abstract.ErrorData?, params: Void?) = Kind.PROJ
-    override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.LET
+    override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = Kind.LET
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, params: Void?) = Kind.NUMBER
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, errorData: Abstract.ErrorData?, params: Void?): Kind = expr.accept(this, null)
 

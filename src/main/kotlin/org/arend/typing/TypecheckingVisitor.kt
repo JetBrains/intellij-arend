@@ -267,7 +267,7 @@ class TypecheckingVisitor(private val element: ArendCompositeElement, private va
         // TODO: Check expected type
     }
 
-    override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {}
+    override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, expectedType: Any?) {}
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, errorData: Abstract.ErrorData?, expectedType: Any?) {
         if (expectedType == null || expectedType == ExpectedTypeVisitor.Data) {

@@ -65,7 +65,7 @@ class TypingVisitor : AbstractExpressionVisitor<Void,Any> {
         TODO("not implemented")
     }
 
-    override fun visitLet(data: Any?, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
+    override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Any? {
         TODO("not implemented")
     }
 

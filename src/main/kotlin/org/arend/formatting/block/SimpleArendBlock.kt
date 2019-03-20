@@ -245,7 +245,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     LET_EXPR ->
                         if (AREND_COMMENTS.contains(childET)) alignment
                         else when (childET) {
-                            LET_KW, IN_KW -> alignment2
+                            LET_KW, LETS_KW, IN_KW -> alignment2
                             else -> null
                         }
                     TUPLE -> if (tupleArgAppExpr) when (childET) {

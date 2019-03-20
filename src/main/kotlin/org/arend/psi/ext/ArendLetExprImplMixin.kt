@@ -8,7 +8,7 @@ import org.arend.psi.ArendLetExpr
 
 abstract class ArendLetExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendLetExpr, Abstract.LetClausesHolder {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitLet(this, letClauseList, expr, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+        visitor.visitLet(this, letsKw != null, letClauseList, expr, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
 
     override fun getLetClauses(): List<ArendLetClause> = letClauseList
 }
