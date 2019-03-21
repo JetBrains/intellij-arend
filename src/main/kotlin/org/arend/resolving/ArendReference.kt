@@ -62,9 +62,6 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             val atomFieldsAcc = ((pparent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = ((if (atomFieldsAcc == null) (pparent as? ArendLongNameExpr)?.parent else
                 if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? ArendArgumentAppExpr)?.parent
-            if (argParent is ArendNewArg || (argParent as? ArendNewExpr)?.newKw != null) {
-                clazz = ArendDefClass::class.java
-            }
             if (((argParent as? ArendNewExpr)?.parent as? ArendReturnExpr)?.parent is ArendDefInstance) {
                 clazz = ArendDefClass::class.java
                 notARecord = true
