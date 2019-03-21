@@ -32,7 +32,7 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<ArendClassImpleme
 
     override fun getClassReference() = CoClauseBase.getClassReference(this)
 
-    override fun getClassReferenceData() = CoClauseBase.getClassReferenceData(this)
+    override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
 
     override fun getIcon(flags: Int) = ArendIcons.IMPLEMENTATION
 }

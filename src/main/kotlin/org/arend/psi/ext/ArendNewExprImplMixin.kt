@@ -3,6 +3,7 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.TypedReferable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -34,14 +35,18 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
     override fun getClassReference(): ClassReferable? {
         val argAppExpr = getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr() ?: return null
         val ref = argAppExpr.accept(ReferableExtractVisitor(), null)
-        return (if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, argAppExpr.scope.globalSubscope) else ref) as? ClassReferable
+        val onlyClassRef = getNewKw() == null
+        val resolvedRef = if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, if (onlyClassRef) argAppExpr.scope.globalSubscope else argAppExpr.scope) else ref
+        return resolvedRef as? ClassReferable ?: if (!onlyClassRef && resolvedRef is TypedReferable) resolvedRef.typeClassReference else null
     }
 
-    override fun getClassReferenceData(): ClassReferenceData? {
+    override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {
         val argAppExpr = getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr() ?: return null
         val visitor = ReferableExtractVisitor(true)
         val ref = argAppExpr.accept(visitor, null)
-        val classRef = (if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, argAppExpr.scope.globalSubscope) else ref) as? ClassReferable ?: return null
+        val realOnlyClassRef = onlyClassRef || getNewKw() == null
+        val resolvedRef = if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, if (realOnlyClassRef) argAppExpr.scope.globalSubscope else argAppExpr.scope) else ref
+        val classRef = resolvedRef as? ClassReferable ?: (if (!realOnlyClassRef && resolvedRef is TypedReferable) resolvedRef.typeClassReference else null) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptyList())
     }
 

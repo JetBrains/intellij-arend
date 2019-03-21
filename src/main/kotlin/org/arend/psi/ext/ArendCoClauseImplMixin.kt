@@ -20,5 +20,5 @@ abstract class ArendCoClauseImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
 
     override fun getClassReference() = CoClauseBase.getClassReference(this)
 
-    override fun getClassReferenceData() = CoClauseBase.getClassReferenceData(this)
+    override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
 }

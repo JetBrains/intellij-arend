@@ -73,7 +73,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return if (isCowith) ReferableExtractVisitor().findReferable(type) as? ClassReferable else ReferableExtractVisitor().findClassReferable(type)
     }
 
-    override fun getClassReferenceData(): ClassReferenceData? {
+    override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {
         val type = resultType ?: return null
         val visitor = ReferableExtractVisitor(true)
         val classRef = (if (isCowith) visitor.findReferable(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null

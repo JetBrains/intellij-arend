@@ -118,7 +118,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
     fun doAnnotate(holder: AnnotationHolder?, actionText: String): List<Pair<LocatedReferable, Boolean>> { //Map<FieldReferable, List<Pair<LocatedReferable, Boolean>>> {
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
-        val classReferenceData = classReferenceHolder.getClassReferenceData()
+        val classReferenceData = classReferenceHolder.getClassReferenceData(true)
         if (classReferenceData != null) {
             val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
             fields.removeAll(classReferenceData.implementedFields)

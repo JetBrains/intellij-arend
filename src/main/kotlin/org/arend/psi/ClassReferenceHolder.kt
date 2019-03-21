@@ -6,9 +6,11 @@ import org.arend.term.abs.Abstract
 
 
 interface ClassReferenceHolder : Abstract.ClassReferenceHolder {
-    fun getClassReferenceData(): ClassReferenceData?
+    // If onlyClassRef is true, getClassReferenceData will try to infer classRef from the type of a referable if it is not a class already.
+    // This is required for expressions of the form \new c { ... }, where c is an instance of a class.
+    fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData?
 
-    override fun getClassReference() = getClassReferenceData()?.classRef
+    override fun getClassReference() = getClassReferenceData(false)?.classRef
 }
 
 class ClassReferenceData(

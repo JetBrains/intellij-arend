@@ -168,7 +168,9 @@ class ArendHighlightingAnnotator : Annotator {
                         return
                     }
                     if (resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
-                        holder.createErrorAnnotation(longName, "Expected a class")
+                        if ((pElement as? ArendNewExprImplMixin)?.classReference == null) {
+                            holder.createErrorAnnotation(longName, "Expected a class")
+                        }
                         return
                     }
                     if (pElement is ArendDefInstance && resolvedRef is ArendDefClass && resolvedRef.recordKw != null) {
