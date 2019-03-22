@@ -11,30 +11,28 @@ import org.arend.psi.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
+import java.util.Collections.singletonList
 
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
 
     override fun tryToMove(element: PsiElement?, project: Project?, dataContext: DataContext?, reference: PsiReference?, editor: Editor?): Boolean {
         if (project != null && element is ArendGroup && (element !is Abstract.Definition || element.enclosingClass == null)) {
             if (!ArendMoveMembersDialog.isMovable(element)) return false
-            val elements: Array<ArendGroup> = arrayOf(element)
-            if (!CommonRefactoringUtil.checkReadOnlyStatus(project, elements.toList(), true)) return true
-            return showDialog(project, elements.toList())
+            if (!CommonRefactoringUtil.checkReadOnlyStatus(project, singletonList(element), true)) return true
+            return showDialog(project, element)
         }
 
         return false
     }
 
-    private fun showDialog(project: Project, elements: List<ArendGroup>): Boolean {
-        if (elements.isNotEmpty()) {
-            val group = getCommonContainer(elements)
-            if (group != null && group is PsiElement) { /* Ensure elements are members of the same group */
-                val module = group.module
-                return if (module != null) {
-                    ArendMoveMembersDialog(project, elements, group, module).show()
-                    true
-                } else false
-            }
+    private fun showDialog(project: Project, element: ArendGroup): Boolean {
+        val group = element.parentGroup
+        if (group is PsiElement) {
+            val module = group.module
+            return if (module != null) {
+                ArendMoveMembersDialog(project, singletonList(element), group, module).show()
+                true
+            } else false
         }
         return false
     }
