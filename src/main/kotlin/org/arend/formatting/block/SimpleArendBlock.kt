@@ -9,6 +9,7 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import org.arend.mapFirstNotNull
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import java.util.ArrayList
@@ -171,6 +172,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 TUPLE -> when (prevET) {
                     RPAREN -> {
                     }
+                    COMMA -> subBlocks.mapFirstNotNull { it.alignment }?.let {
+                        return ChildAttributes(Indent.getNormalIndent(), it)
+                    }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 NEW_EXPR -> when (prevET) {
@@ -223,7 +227,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             if ((blocks.size > 0) && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
                         } else when (childET) {
                             CO_CLAUSE, CONSTRUCTOR_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
-                            NAME_TELE, TYPE_TELE, FIELD_TELE -> Indent.getNormalIndent()
+                            NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> Indent.getNormalIndent()
                             STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         }
@@ -254,7 +258,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     } else null
                     else -> when (childET) {
                         CO_CLAUSE, CLASS_STAT -> alignment
-                        NAME_TELE, TYPE_TELE, FIELD_TELE -> alignment2
+                        NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> alignment2
                         else -> null
                     }
                 }

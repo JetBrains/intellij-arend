@@ -1,7 +1,6 @@
 package org.arend.formatting.block
 
 import com.intellij.formatting.*
-import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 
@@ -22,7 +21,7 @@ open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: Mu
 
     override fun toString(): String {
         var blockText = ""
-        for (b in blocks) blockText += b.toString()+"; "
+        for (b in blocks) blockText += "$b; "
         return "$blockText $textRange"
     }
 

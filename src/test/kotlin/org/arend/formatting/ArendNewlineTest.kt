@@ -149,6 +149,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func foobar (A : \\Type) => (\n  (=) A\n      101{-caret-}\n)",
             "\\func foobar (A : \\Type) => (\n  (=) A\n      101\n      {-caret-}\n)")
 
+    fun testArgAppExpr5() = checkNewLine(
+            "\\class C\n  | f : Nat -> Nat -> Nat\n\n\\func foo (c : C) => c.f 1 {-caret-}2",
+            "\\class C\n  | f : Nat -> Nat -> Nat\n\n\\func foo (c : C) => c.f 1 \n                         2")
+
     fun testPi1() = checkNewLine(
             "\\func foo => \\Pi (A : Nat) ->{-caret-}",
             "\\func foo => \\Pi (A : Nat) ->\n    {-caret-}") //continuation
@@ -164,6 +168,11 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testPi4() = checkNewLine(
             "\\func foo => \\Pi (A : Nat)\n                 (B : Nat){-caret-}",
             "\\func foo => \\Pi (A : Nat)\n                 (B : Nat)\n                 {-caret-}")
+
+    fun testTuple1() = checkNewLine(
+            "\\func lol => (1,{-caret-}\n              2)",
+            "\\func lol => (1,\n              {-caret-}\n              2)"
+    )
 
     fun testNoIndentAfterWhere1() = checkNewLine(
             "\\module Foo \\where {}{-caret-}",

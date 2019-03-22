@@ -85,15 +85,21 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
                 Pair(false, (data as? PsiElement)?.node?.startOffset ?: -1) })
             if (fData is PsiElement) sampleBlockList.add(Pair(true, fData.node.startOffset))
             sampleBlockList.sortBy { it.second }
+
             val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.first().first
+            fun isFirst(argument: Concrete.Argument): Boolean =
+                sampleBlockList.size > 0 && (argument.expression.data as? PsiElement)?.node?.startOffset ?: -1 == sampleBlockList[0].second
 
             val newAlign =  if (cExpr.arguments.size > 1) Alignment.createAlignment() else null
-            val newIndent = if (cExpr.arguments.size >= 1 && isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
+            val newIndent = if (isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
                 val myBounds = getBounds(it.expression, aaeBlocks)
                 val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }
-                transform(it.expression, aaeBlocksFiltered, newAlign, newIndent) })
+                val first = isFirst(it)
+                transform(it.expression, aaeBlocksFiltered,
+                        if (!first) newAlign else null,
+                        if (!first) newIndent else Indent.getNoneIndent()) })
 
 
             if (fData is PsiElement) {
