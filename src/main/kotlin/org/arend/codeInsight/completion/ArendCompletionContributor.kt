@@ -71,15 +71,21 @@ class ArendCompletionContributor : CompletionContributor() {
                     (!parameters.rightBrace || parameters.ancestorsNE.isEmpty() || noWhere(parameters.ancestorsNE.asSequence()))
         }))
 
-        val classOrDataPositionPattern = { insideWhere: Boolean, dataAllowed: Boolean ->
+        val classOrDataPositionPattern = { dataMode: Boolean ->
             elementPattern { o ->
                 var foundWhere = false
+                var foundLbrace = false
                 var result2 = false
                 var ancestor: PsiElement? = o
                 while (ancestor != null) {
+                    if (ancestor is ArendFieldTele && ancestor.lbrace != null) foundLbrace = true
                     if (ancestor is ArendWhere) foundWhere = true
-                    if ((dataAllowed && ancestor is ArendDefData) || ancestor is ArendDefClass) {
-                        result2 = !(insideWhere xor foundWhere)
+                    if (dataMode && ancestor is ArendDefData) {
+                        result2 = foundWhere
+                        break
+                    } else if (ancestor is ArendDefClass) {
+                        if (ancestor.lbrace != null) foundLbrace = true
+                        result2 = if (dataMode) foundWhere else !foundWhere && foundLbrace
                         break
                     } else if (ancestor is ArendDefinition && foundWhere) {
                         result2 = false
@@ -91,9 +97,9 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true)), JointOfStatementsProvider(USE_KW_LIST))
 
         basic(afterLeaf(USE_KW), COERCE_LEVEL_KWS)
 
@@ -186,7 +192,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
                     after(afterElimVarPattern), //No expression keywords in \elim expression
                     if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else after(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
-                    if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else ARGUMENT_EXPRESSION))
+                    if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else ARGUMENT_EXPRESSION2))
         }
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
@@ -480,6 +486,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT)
         private val ARGUMENT_EXPRESSION = or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java))
+        private val ARGUMENT_EXPRESSION2 = or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
         private val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, ArendAtomLevelExpr::class.java))
         private val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),

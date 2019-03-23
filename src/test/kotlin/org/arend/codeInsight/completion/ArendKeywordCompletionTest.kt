@@ -93,8 +93,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test use keyword in class where`() =
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.CONTAINS, *kwSuiteInsideClassWhere)
 
-    fun `test no field and property in class where`() =
-            checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClassWhere)
+    fun `test field and property`() =
+            checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.CONTAINS,
+                    "\\record R {\n  {-caret-}\n}",
+                    "\\record R {\n  | F : Nat\n  {-caret-}\n}")
+
+    fun `test no field and property`() =
+            checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClassWhere + arrayOf(
+                    "\\record R\n  {-caret-}",
+                    "\\record R\n  | F : Nat\n  {-caret-}"))
 
     fun `test no field and property in nested where`() =
             checkKeywordCompletionVariants(CLASS_MEMBER_KWS + USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
@@ -248,6 +255,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test only new & universes in application expression or after new expr 2`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVEL_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f {-caret-}")
+
+    fun `test no basic expression kws in argument position`() =
+            checkKeywordCompletionVariants(BASIC_EXPRESSION_KW, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\func lol (a : Nat) (b : Nat) => lol 1 {-caret-}")
 
     fun `test no keyword completion after with`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with {-caret-}",
