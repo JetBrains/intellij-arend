@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
@@ -46,24 +47,26 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
     }
 
     companion object {
+        fun hasLfBefore(psi: PsiElement): Boolean {
+            var n = psi.prevSibling
+            var r = false
+            while (n is PsiComment || n is PsiWhiteSpace) {
+                if (n is PsiWhiteSpace && n.textContains('\n')) {
+                    r = true
+                    break
+                }
+                n = n.prevSibling
+            }
+            return r
+        }
+
         fun hasLfBefore(currBlock: Block): Boolean {
             var cB: Block? = currBlock
             while (cB is GroupBlock) {
                 cB = cB.subBlocks.firstOrNull()
             }
 
-            return if (cB is AbstractArendBlock) {
-                var n = cB.node.psi.prevSibling
-                var r = false
-                while (n is PsiComment || n is PsiWhiteSpace) {
-                    if (n is PsiWhiteSpace && n.textContains('\n')) {
-                        r = true
-                        break
-                    }
-                    n = n.prevSibling
-                }
-                r
-            } else false
+            return if (cB is AbstractArendBlock) hasLfBefore(cB.node.psi) else false
         }
     }
 

@@ -319,7 +319,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         return null
     }
 
-    fun getChildAttributesInfo(block: Block, index: Int): ChildAttributes {
+    private fun getChildAttributesInfo(block: Block, index: Int): ChildAttributes {
         val childAttributes = block.getChildAttributes(index)
 
         if (childAttributes === ChildAttributes.DELEGATE_TO_PREV_CHILD) {
