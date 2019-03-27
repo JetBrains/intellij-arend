@@ -81,6 +81,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>{-caret-}",
             "\\func lol2 (a : Nat) \\elim a\n  | _ =>\n    {-caret-}")
 
+    fun testExprInClause2() = checkNewLine(
+            "\\func foo (n : Nat) : Nat\n | 0 => 0\n | suc n => bar arg1\n                arg2{-caret-}",
+            "\\func foo (n : Nat) : Nat\n | 0 => 0\n | suc n => bar arg1\n                arg2\n                {-caret-}")
+
     fun testInsideCaseBraces() = checkNewLine(
             "\\func lol2 (a : Nat) => \\case a \\with {{-caret-}}",
             "\\func lol2 (a : Nat) => \\case a \\with {\n  {-caret-}\n}")

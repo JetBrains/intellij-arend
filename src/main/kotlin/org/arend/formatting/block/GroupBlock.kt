@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
+import org.arend.psi.ArendElementTypes.FUNCTION_CLAUSES
 
 open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: MutableList<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent, parentBlock: AbstractArendBlock) :
         AbstractArendBlock(parentBlock.node, settings, wrap, alignment, indent, parentBlock) {
@@ -16,6 +17,10 @@ open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: Mu
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         printChildAttributesContext(newChildIndex)
+        val parentET = node.elementType
+        when (parentET) {
+            FUNCTION_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+        }
         return if (newChildIndex == blocks.size) ChildAttributes(indent, alignment) else super.getChildAttributes(newChildIndex)
     }
 

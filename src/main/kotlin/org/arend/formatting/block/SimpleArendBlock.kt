@@ -12,6 +12,8 @@ import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.mapFirstNotNull
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.jetbrains.annotations.NotNull
+import org.jetbrains.annotations.Nullable
 import java.util.ArrayList
 
 class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
@@ -156,8 +158,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return ChildAttributes(indent, null)
             }
 
-            //Expressions
+            if (nodePsi is ArendFunctionClauses) {
+                val clauseAttributes = getChildAttributesInfo(prevChild, prevChild.subBlocks.size)
+                if (!(clauseAttributes.childIndent?.type == Indent.Type.NONE && clauseAttributes.alignment == null)) return clauseAttributes
+            }
+            if (nodePsi is ArendClause) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
+            //Expressions
             when (node.elementType) {
                 PI_EXPR, LAM_EXPR -> when (prevET) {
                     ERROR_ELEMENT -> if (newChildIndex > 1) {
@@ -193,7 +200,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             return ChildAttributes(indent, prevChild.alignment)
-        }
+        } else if (nodePsi is PsiErrorElement)
+            return ChildAttributes(Indent.getNormalIndent(), null)
 
         return super.getChildAttributes(newChildIndex)
     }
@@ -311,6 +319,17 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         return null
     }
 
+    fun getChildAttributesInfo(block: Block, index: Int): ChildAttributes {
+        val childAttributes = block.getChildAttributes(index)
+
+        if (childAttributes === ChildAttributes.DELEGATE_TO_PREV_CHILD) {
+            val newBlock = block.subBlocks[index - 1]
+            return getChildAttributesInfo(newBlock, newBlock.subBlocks.size)
+        }
+
+        return childAttributes
+    }
+
     private fun processDocComment(settings: CommonCodeStyleSettings?, parent: AbstractArendBlock,
                                   globalAlignment: Alignment?, globalIndent: Indent,
                                   startNode: ASTNode, body: ASTNode?, endNode: ASTNode?): AbstractArendBlock {
@@ -350,7 +369,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         if (endNode != null)
             blocks.add(CommentPieceBlock(endNode.textRange, null, oneSpaceIndent, true))
 
-        return object: GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
+        return object : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
             override fun getSpacing(child1: Block?, child2: Block): Spacing? {
                 if (child1 is CommentPieceBlock && child1.isDash &&
                         !(child2 is CommentPieceBlock && child2.isDash)) {
