@@ -10,7 +10,6 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import org.arend.psi.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.abs.Abstract
-import org.arend.term.group.ChildGroup
 import java.util.Collections.singletonList
 
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
@@ -38,7 +37,7 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
     }
 
     companion object {
-        fun getCommonContainer(elements: List<ArendGroup>): ChildGroup? {
+        fun getCommonContainer(elements: List<ArendGroup>): ArendGroup? {
             val group = elements.first().parentGroup
             return if (group != null && elements.subList(1, elements.size).map { it.parentGroup }.all { it == group }) group else null
         }

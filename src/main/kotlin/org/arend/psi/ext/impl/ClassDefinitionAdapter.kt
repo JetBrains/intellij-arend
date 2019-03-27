@@ -10,7 +10,6 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.term.group.ChildGroup
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
 
@@ -30,7 +29,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList
 
-    override fun getDynamicSubgroups(): List<ChildGroup> = classStatList.mapNotNull { it.definition ?: it.defModule as ChildGroup? }
+    override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: it.defModule }
 
     private inline val parameterFields: List<ArendFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
 

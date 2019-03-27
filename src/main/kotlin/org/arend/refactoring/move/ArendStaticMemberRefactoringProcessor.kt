@@ -15,7 +15,6 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
-import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
@@ -25,7 +24,6 @@ import org.arend.quickfix.LocationData
 import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
 import org.arend.refactoring.*
-import org.arend.term.group.ChildGroup
 import org.arend.util.LongName
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -36,7 +34,6 @@ import kotlin.collections.MutableMap
 import kotlin.collections.MutableSet
 import kotlin.collections.any
 import kotlin.collections.emptyList
-import kotlin.collections.filterIsInstance
 import kotlin.collections.iterator
 import kotlin.collections.lastOrNull
 import kotlin.collections.map
@@ -50,8 +47,8 @@ import kotlin.collections.withIndex
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMoveCallback: () -> Unit,
                                             private var myMembers: List<ArendGroup>,
-                                            private val mySourceContainer: ChildGroup /* and also PsiElement...*/,
-                                            private val myTargetContainer: PsiElement /* and also ChildGroup */,
+                                            private val mySourceContainer: ArendGroup,
+                                            private val myTargetContainer: ArendGroup,
                                             private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
 
@@ -59,7 +56,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val usagesList = ArrayList<UsageInfo>()
         val statCmdsToFix = HashMap<ArendStatCmd, PsiReference>()
 
-        if (mySourceContainer is PsiElement) for (psiReference in ReferencesSearch.search(mySourceContainer)) {
+        for (psiReference in ReferencesSearch.search(mySourceContainer)) {
             val statCmd = isStatCmdUsage(psiReference, true)
             if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(ArendElementTypes.DOT) !is ArendReferenceElement &&
                     myMembers.any { getImportedNames(statCmd, it.name).isNotEmpty() })
@@ -112,31 +109,29 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
 
-        insertAnchor = when (myTargetContainer) {
-            is ArendGroup -> {
-                val oldWhereImpl = myTargetContainer.where
-                val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
-                    val localAnchor = myTargetContainer.lastChild
-                    val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
-                    myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
-                    insertedWhere
-                }
-
-                if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
-                    val braces = psiFactory.createPairOfBraces()
-                    if (actualWhereImpl.lbrace == null) {
-                        actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
-                        actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
-                    }
-                    if (actualWhereImpl.rbrace == null) {
-                        actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
-                    }
-                }
-
-                actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+        insertAnchor = if (myTargetContainer is ArendFile) {
+            myTargetContainer.lastChild //null means file is empty
+        } else {
+            val oldWhereImpl = myTargetContainer.where
+            val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
+                val localAnchor = myTargetContainer.lastChild
+                val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+                myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+                insertedWhere
             }
-            is ArendFile -> myTargetContainer.lastChild //null means file is empty
-            else -> null
+
+            if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
+                val braces = psiFactory.createPairOfBraces()
+                if (actualWhereImpl.lbrace == null) {
+                    actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
+                    actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
+                }
+                if (actualWhereImpl.rbrace == null) {
+                    actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
+                }
+            }
+
+            actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
         }
 
         //Memorize references in myMembers being moved
@@ -337,19 +332,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val conflicts = MultiMap<PsiElement, String>()
         val usages = refUsages.get()
 
-        if (myTargetContainer is ChildGroup) {
-            val localGroup = HashSet<PsiElement>()
-            localGroup.addAll(myTargetContainer.subgroups.filterIsInstance<PsiElement>())
-            localGroup.addAll(myTargetContainer.dynamicSubgroups.filterIsInstance<PsiElement>())
+        val localGroup = HashSet<ArendGroup>(myTargetContainer.subgroups)
+        localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
-            val localNamesMap = HashMap<String, PsiElement>()
-            for (psi in localGroup) if (psi is Referable) localNamesMap[psi.textRepresentation()] = psi
+        val localNamesMap = HashMap<String, ArendGroup>()
+        for (psi in localGroup) localNamesMap[psi.textRepresentation()] = psi
 
-            for (member in myMembers) {
-                val text = member.textRepresentation()
-                val psi = localNamesMap[text]
-                if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
-            }
+        for (member in myMembers) {
+            val text = member.textRepresentation()
+            val psi = localNamesMap[text]
+            if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
         }
 
         return showConflicts(conflicts, usages)

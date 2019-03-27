@@ -19,8 +19,8 @@ import org.arend.module.config.LibraryConfig
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendResolveCache
-import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
@@ -91,7 +91,7 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
-fun Group.findGroupByFullName(fullName: List<String>): Group? =
+fun ArendGroup.findGroupByFullName(fullName: List<String>): ArendGroup? =
         if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
                 ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
 

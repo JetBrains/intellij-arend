@@ -20,14 +20,14 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
-import org.arend.term.group.ChildGroup
 
-class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ChildGroup {
+class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     val modulePath: ModulePath?
         get() {
             val fileName = originalFile.viewProvider.virtualFile.path
@@ -79,15 +79,20 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
-    override fun getParentGroup(): ChildGroup? = null
+    override fun getParentGroup(): ArendGroup? = null
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<ChildGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule as ChildGroup? } }
+    override fun getSubgroups(): List<ArendGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule } }
+
+    override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
+
+    override val where: ArendWhere?
+        get() = null
 
     override fun moduleTextRepresentation(): String = name
 

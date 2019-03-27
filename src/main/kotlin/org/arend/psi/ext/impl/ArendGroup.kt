@@ -9,6 +9,12 @@ import org.arend.term.group.Group
 interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode {
     val where: ArendWhere?
 
+    override fun getParentGroup(): ArendGroup?
+
+    override fun getSubgroups(): List<ArendGroup>
+
+    override fun getDynamicSubgroups(): List<ArendGroup>
+
     override fun getInternalReferables(): Collection<ArendInternalReferable>
 }
 

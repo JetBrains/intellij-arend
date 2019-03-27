@@ -16,6 +16,7 @@ import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
@@ -23,6 +24,7 @@ import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.util.FullName
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -106,12 +108,15 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        val tcReferable = simpleReferableConverter.remove(referable) ?: return null
+        val fullName = FullName(referable)
+        val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
         val data = tcReferable.data
         if (data is SmartPsiElementPointer<*>) {
             val element = data.element
             if (element is LocatedReferable && element != referable) {
-                simpleReferableConverter.putIfAbsent(referable, tcReferable)
+                if (element.isValid && FullName(element) == fullName) {
+                    simpleReferableConverter.putIfAbsent(referable, tcReferable)
+                }
                 return null
             }
         }
@@ -135,6 +140,9 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         for (ref in dependencyListener.update(tcReferable)) {
             removeDefinition(ref)
         }
+        if (referable is ArendDefFunction && referable.useKw != null) {
+            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it) }
+        }
     }
 
     override fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
@@ -155,8 +163,9 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
 
         override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
-            if (event.child is ArendFile) { // whole file has been removed
-                for (child in event.child.children) invalidateChild(child)
+            val child = event.child
+            if (child is ArendFile) { // whole file has been removed
+                invalidateChildren(child)
             } else {
                 processChildren(event)
                 processParent(event, true)
@@ -202,6 +211,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
                 }
             }
 
+            ((parent as? ArendDefIdentifier)?.parent as? ArendGroup)?.let { invalidateChildren(it) }
+
             var elem = parent
             while (elem != null) {
                 if (elem is ArendWhere || elem is ArendFile || isDynamicDef(elem)) {
@@ -215,20 +226,30 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
 
-        private fun invalidateChild(element : PsiElement) {
-            element.accept(object : PsiRecursiveElementVisitor() {
-                override fun visitElement(element: PsiElement?) {
-                    super.visitElement(element)
-                    if (element is LocatedReferable) {
-                        updateDefinition(element)
-                    }
-                }
-            })
+        private fun invalidateChildren(group: ArendGroup) {
+            if (group is ArendDefinition) {
+                updateDefinition(group)
+            }
+            for (subgroup in group.subgroups) {
+                invalidateChildren(subgroup)
+            }
+            for (subgroup in group.dynamicSubgroups) {
+                invalidateChildren(subgroup)
+            }
         }
 
         private fun processChildren(event: PsiTreeChangeEvent) {
-            if (event.file is ArendFile) {
-                invalidateChild(event.child)
+            if (event.file !is ArendFile) {
+                return
+            }
+
+            val child = event.child
+            when (child) {
+                is ArendGroup -> invalidateChildren(child)
+                is ArendStatement -> {
+                    child.definition?.let { invalidateChildren(it) }
+                    child.defModule?.let { invalidateChildren(it) }
+                }
             }
         }
     }

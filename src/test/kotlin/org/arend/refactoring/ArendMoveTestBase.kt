@@ -10,7 +10,6 @@ import org.arend.refactoring.move.ArendMoveMembersDialog
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.getLocateErrorMessage
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.simpleLocate
 import org.arend.refactoring.move.ArendStaticMemberRefactoringProcessor
-import org.arend.term.group.ChildGroup
 import org.intellij.lang.annotations.Language
 import java.lang.IllegalArgumentException
 
@@ -54,7 +53,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
 
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, sourceElements)
         val group = myTargetGroup.first
-        if (group is PsiElement) {
+        if (group != null) {
             val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, sourceElements, container, group, false)
             try {
                 processor.run()

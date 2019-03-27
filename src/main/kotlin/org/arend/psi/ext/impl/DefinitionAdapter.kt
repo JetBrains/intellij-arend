@@ -15,7 +15,6 @@ import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
-import org.arend.term.group.ChildGroup
 
 abstract class DefinitionAdapter<StubT> : ReferableAdapter<StubT>, ArendGroup, Abstract.Definition, PsiConcreteReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -29,18 +28,20 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
         ConcreteBuilder.convert(referableConverter, this, errorReporter)
 
-    override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
+    override fun getParentGroup(): ArendGroup? = parent.ancestors.filterIsInstance<ArendGroup>().firstOrNull()
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
+    override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
+
+    override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
     override fun getEnclosingClass(): ClassReferable? {
-        var prev: ChildGroup = this
+        var prev: ArendGroup = this
         var parent = parentGroup
         while (parent != null && parent !is ArendFile) {
             val ref = parent.referable

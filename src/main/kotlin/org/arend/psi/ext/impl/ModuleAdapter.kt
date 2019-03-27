@@ -8,7 +8,6 @@ import org.arend.psi.ArendDefModule
 import org.arend.psi.ArendStatCmd
 import org.arend.psi.ancestors
 import org.arend.psi.stubs.ArendDefModuleStub
-import org.arend.term.group.ChildGroup
 import org.arend.typing.ExpectedTypeVisitor
 
 
@@ -20,11 +19,13 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     override val scope: Scope
         get() = groupScope
 
-    override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
+    override fun getParentGroup(): ArendGroup? = parent.ancestors.filterIsInstance<ArendGroup>().firstOrNull()
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ChildGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule as ChildGroup? } ?: emptyList()
+    override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
+
+    override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 

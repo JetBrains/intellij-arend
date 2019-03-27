@@ -108,13 +108,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val wherePattern = elementPattern { o ->
             var anc: PsiElement? = o
             while (anc != null && anc !is ArendGroup && anc !is ArendClassStat) anc = anc.parent
-            if (anc != null) {
-                val da: ArendGroup? = anc as? ArendGroup
-                (when {
-                    da != null -> da.where == null
-                    else -> false
-                })
-            } else false
+            anc is ArendGroup && anc !is ArendFile && anc.where == null
         }
 
         basic(and(WHERE_CONTEXT, after(wherePattern)),

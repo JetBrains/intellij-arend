@@ -21,12 +21,9 @@ import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendFile
-import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
-import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
+import org.arend.util.FullName
 import java.awt.BorderLayout
 import javax.swing.*
 
@@ -45,23 +42,15 @@ class ArendMoveMembersDialog(project: Project,
         containerRef = SmartPointerManager.createPointer(container)
         val memberInfos = ArrayList<ArendMemberInfo>()
 
-        val names = when (container) {
-            is ArendFile -> {
-                initMemberInfo(container, elements, memberInfos)
-                Pair(container.fullName, "")
-            }
-            is ArendGroup -> {
-                initMemberInfo(container, elements, memberInfos)
-                val file = container.getContainingFile() as? ArendFile
-                Pair(file?.modulePath.toString(), container.fullName)
-            }
-            else -> {
-                null
-            }
+        val fullName = if (container is ArendGroup) {
+            initMemberInfo(container, elements, memberInfos)
+            FullName(container)
+        } else {
+            null
         }
 
-        targetFileTextField = JTextField(names?.first ?: "")
-        targetModuleTextField = JTextField(names?.second ?: "")
+        targetFileTextField = JTextField(fullName?.modulePath?.toString() ?: "")
+        targetModuleTextField = JTextField(fullName?.longName?.toString() ?: "")
         memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
 
         northPanel = panel {
@@ -79,8 +68,8 @@ class ArendMoveMembersDialog(project: Project,
         init()
     }
 
-    private fun initMemberInfo(container: ChildGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
-        for (c in container.subgroups) if (c is ArendGroup && isMovable(c)) {
+    private fun initMemberInfo(container: ArendGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
+        for (c in container.subgroups) if (isMovable(c)) {
             val memberInfo = ArendMemberInfo(c)
             if (membersToMove.contains(c)) memberInfo.isChecked = true
             sink.add(memberInfo)
@@ -92,10 +81,10 @@ class ArendMoveMembersDialog(project: Project,
         val elementsToMove = memberSelectionPanel.table.selectedMemberInfos.map { it.member }
         val fileName = targetFileTextField.text
         val moduleName = targetModuleTextField.text
-        var targetContainer: PsiElement? = null
+        var targetContainer: ArendGroup? = null
 
-        val locateResult: Pair<Group?, LocateResult> = when (sourceGroup) {
-            !is ChildGroup -> Pair(null, LocateResult.OTHER_ERROR)
+        val locateResult: Pair<ArendGroup?, LocateResult> = when (sourceGroup) {
+            !is ArendGroup -> Pair(null, LocateResult.OTHER_ERROR)
             else -> locateTargetGroupWithChecks(fileName, moduleName, enclosingModule, sourceGroup, elementsToMove)
         }
 
@@ -114,14 +103,16 @@ class ArendMoveMembersDialog(project: Project,
                             Messages.getQuestionIcon())
                     if (answer == Messages.YES) {
                         val template = FileTemplateManager.getInstance(myProject).getInternalTemplate("Arend File")
-                        targetContainer = createFileFromTemplate(newFileName, template, directory, null, false)
+                        targetContainer = createFileFromTemplate(newFileName, template, directory, null, false) as? ArendGroup
                     }
                 }
             }
-        } else targetContainer = locateResult.first as? PsiElement
+        } else {
+            targetContainer = locateResult.first
+        }
 
         if (targetContainer != null)
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ChildGroup, targetContainer, isOpenInEditor)) else
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, isOpenInEditor)) else
             if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
@@ -167,13 +158,13 @@ class ArendMoveMembersDialog(project: Project,
             return Pair(dir, list.last())
         }
 
-        fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<Group?, LocateResult> {
+        fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<ArendGroup?, LocateResult> {
             val configService = ArendModuleConfigService.getInstance(ideaModule)
                     ?: return Pair(null, LocateResult.OTHER_ERROR)
             val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
                     ?: return Pair(null, LocateResult.CANT_FIND_FILE)
 
-            return if (moduleName.trim() == "") Pair(targetFile, LocateResult.LOCATE_OK) else {
+            return if (moduleName.trim().isEmpty()) Pair(targetFile, LocateResult.LOCATE_OK) else {
                 val module = targetFile.findGroupByFullName(moduleName.split("."))
                 Pair(module, if (module != null) LocateResult.LOCATE_OK else LocateResult.CANT_FIND_MODULE)
             }
@@ -181,18 +172,18 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
-                                        sourceModule: ChildGroup, elementsToMove: List<ArendGroup?>): Pair<Group?, LocateResult> {
+                                        sourceModule: ArendGroup, elementsToMove: List<ArendGroup?>): Pair<ArendGroup?, LocateResult> {
             val locateResult = simpleLocate(fileName, moduleName, ideaModule)
             if (locateResult.second != LocateResult.LOCATE_OK) return locateResult
 
-            var m = locateResult as? ChildGroup
-            if (m == sourceModule) return Pair(null, LocateResult.TARGET_EQUALS_SOURCE)
+            var group = locateResult.first
+            if (group == sourceModule) return Pair(null, LocateResult.TARGET_EQUALS_SOURCE)
 
-            while (m != null) {
-                for (elementP in elementsToMove) if (m == elementP)
+            while (group != null) {
+                for (elementP in elementsToMove) if (group == elementP)
                     return Pair(null, LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE)
 
-                m = m.parentGroup
+                group = group.parentGroup
             }
 
             return locateResult
@@ -229,7 +220,5 @@ class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>) :
 }
 
 class ArendMemberInfo(member: ArendGroup) : MemberInfoBase<ArendGroup>(member) {
-    override fun getDisplayName(): String {
-        return member.name ?: "???"
-    }
+    override fun getDisplayName() = member.name ?: "???"
 }
