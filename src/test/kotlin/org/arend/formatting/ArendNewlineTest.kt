@@ -175,8 +175,7 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testTuple1() = checkNewLine(
             "\\func lol => (1,{-caret-}\n              2)",
-            "\\func lol => (1,\n              {-caret-}\n              2)"
-    )
+            "\\func lol => (1,\n              {-caret-}\n              2)")
 
     fun testNoIndentAfterWhere1() = checkNewLine(
             "\\module Foo \\where {}{-caret-}",
@@ -200,9 +199,9 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testCrlfBeforeParenthesis() = checkNewLine(
             "\\func foo => 1\n\\func bar =>\n  foo (foo 0\n           1{-caret-})",
-            "\\func foo => 1\n\\func bar =>\n  foo (foo 0\n           1\n       {-caret-})")
+            "\\func foo => 1\n\\func bar =>\n  foo (foo 0\n           1\n      {-caret-})")
 
     fun testCrlfBeforeParenthesis2() = checkNewLine(
             "\\func lol : \\Sigma (Nat) (Nat) => (1, 2{-caret-})",
-            "\\func lol : \\Sigma (Nat) (Nat) => (1, 2\n                                   {-caret-})")
+            "\\func lol : \\Sigma (Nat) (Nat) => (1, 2\n                                  {-caret-})")
 }

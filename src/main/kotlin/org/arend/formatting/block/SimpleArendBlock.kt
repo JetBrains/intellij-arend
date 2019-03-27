@@ -243,16 +243,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val wrap: Wrap? =
                         if (nodeET == FUNCTION_BODY && childPsi is ArendExpr) Wrap.createWrap(WrapType.NORMAL, false) else null
 
-                val tupleArgAppExpr = (myNode.psi.let {
-                    it is ArendTuple && (it.tupleExprList.size > 1 || it.tupleExprList.size == 1 &&
-                            it.tupleExprList[0].let { tupleExpr ->
-                                tupleExpr.exprList.size == 1 &&
-                                        tupleExpr.exprList[0].let { expr ->
-                                            expr is ArendNewExpr && expr.appExpr != null && expr.newKw == null
-                                        }
-                            })
-                })
-
                 val align = when (myNode.elementType) {
                     LET_EXPR ->
                         if (AREND_COMMENTS.contains(childET)) alignment
@@ -260,7 +250,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             LET_KW, LETS_KW, IN_KW -> alignment2
                             else -> null
                         }
-                    TUPLE -> if (tupleArgAppExpr) when (childET) {
+                    TUPLE -> if ((nodePsi as ArendTuple).tupleExprList.size > 1) when (childET) {
                         TUPLE_EXPR, RPAREN -> alignment
                         else -> null
                     } else null
