@@ -58,7 +58,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    fun `test adding implementation of a new expression`() = simpleQuickFixTest("Add",
+    fun `test adding implementation of a new expression`() = simpleQuickFixTest("Implement",
             """
                --! A.ard
                \class Foo (A : Nat)
@@ -74,7 +74,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                }
             """)
 
-    fun `test completing incomplete implementation`() = simpleQuickFixTest("Add",
+    fun `test completing incomplete implementation`() = simpleQuickFixTest("Implement",
             """
                --! A.ard
                \class Bar { | A : Nat | B : Nat }
@@ -124,7 +124,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    fun `test adding empty implementations to a clause corresponding to an ancestor class`() = simpleQuickFixTest("Add",
+    fun `test adding empty implementations to a clause corresponding to an ancestor class`() = simpleQuickFixTest("Implement",
             """
                 --! A.ard
                 \record A (x y : Nat)
@@ -192,7 +192,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                  }
             """)
 
-    fun `test adding implementation of two fields with clashing names 1`() = simpleQuickFixTest("Add",
+    fun `test adding implementation of two fields with clashing names 1`() = simpleQuickFixTest("Implement",
             """
             --! A.ard
             \class A {| Z : Nat}
@@ -209,7 +209,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             }
             """)
 
-    fun `test adding implementation of two fields with clashing names 2`() = simpleQuickFixTest("Add",
+    fun `test adding implementation of two fields with clashing names 2`() = simpleQuickFixTest("Implement",
             """
             --! A.ard
             \class A {| Z : Nat}

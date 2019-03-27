@@ -58,7 +58,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
                     return tElement
                 }
             }
-            if (!allowCaretInsideElement(element)) {
+            if (forbidCaretInsideElement(element)) {
                 val textRange = element.textRange
                 if (textRange.startOffset < offset && offset < textRange.endOffset) break
             }
@@ -66,7 +66,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
         return null
     }
 
-    protected open fun allowCaretInsideElement(element: PsiElement): Boolean = true
+    protected open fun forbidCaretInsideElement(element: PsiElement): Boolean = false
 
 
     final override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean =
