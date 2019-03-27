@@ -3,7 +3,6 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
 import org.arend.term.abs.AbstractExpressionVisitor
@@ -32,11 +31,9 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {
-        val argAppExpr = getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr() ?: return null
         val visitor = ReferableExtractVisitor(withAdditionalInfo)
-        val ref = argAppExpr.accept(visitor, null)
-        val resolvedRef = (ref as? ArendLongName ?: (ref as? DataContainer)?.data as? ArendLongName)?.refIdentifierList?.lastOrNull()?.reference?.resolve()
-        val classRef = resolvedRef as? ClassReferable ?: (if (!onlyClassRef && getNewKw() != null && resolvedRef is TypedReferable) resolvedRef.typeClassReference else null) ?: return null
+        val ref = visitor.findReferable(getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr())
+        val classRef = ref as? ClassReferable ?: (if (!onlyClassRef && getNewKw() != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptyList())
     }
 

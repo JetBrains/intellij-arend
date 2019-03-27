@@ -1,14 +1,14 @@
 package org.arend.typing
 
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.Referable
-import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendExpr
+import org.arend.psi.ArendLongName
 import org.arend.psi.CoClauseBase
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
@@ -60,10 +60,26 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return findClassReference(expr.accept(this, null), expr.scope)
     }
 
-    fun findReferable(expr: ArendExpr): Referable? {
+    fun findReferableInType(expr: ArendExpr): Referable? {
         mode = Mode.TYPE
-        val ref = expr.accept(this, null)
-        return if (ref is UnresolvedReference) ExpressionResolveNameVisitor.resolve(ref, expr.scope) else ref
+        return findReferable(expr)
+    }
+
+    fun findReferable(expr: Abstract.Expression?): Referable? {
+        val ref = expr?.accept(this, null)
+        if (ref is PsiReferable) {
+            return ref
+        }
+        if (ref is DataContainer) {
+            val data = (ref as? DataContainer)?.data
+            if (data is ArendLongName) {
+                return data.refIdentifierList.lastOrNull()?.reference?.resolve() as? Referable
+            }
+        }
+        if (ref is UnresolvedReference && expr is ArendCompositeElement) {
+            return ExpressionResolveNameVisitor.resolve(ref, expr.scope)
+        }
+        return ref
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {

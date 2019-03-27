@@ -13,7 +13,6 @@ import org.arend.highlight.ArendHighlightingColors
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.NameResolvingChecker
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -300,19 +299,18 @@ class ArendHighlightingAnnotator : Annotator {
                     color = null
                 } else {
                     val visitor = ReferableExtractVisitor()
-                    val scope = definition.scope
                     val parentDef = definition.parentGroup
-                    val isParamDef = ExpressionResolveNameVisitor.resolve(lastParam.expr?.accept(visitor, null), scope) == parentDef
+                    val isParamDef = visitor.findReferable(lastParam.expr) == parentDef
 
                     val defType = definition.resultType
                     var resultDef = if (defType != null) {
-                        ExpressionResolveNameVisitor.resolve(defType.accept(visitor, null), scope)
+                        visitor.findReferable(defType)
                     } else {
                         val term = definition.functionBody?.expr
                         if (term is ArendNewExpr && term.newKw != null) {
-                            ExpressionResolveNameVisitor.resolve(term.argumentAppExpr?.accept(visitor, null), scope)
+                            visitor.findReferable(term.argumentAppExpr)
                         } else {
-                            (ExpressionResolveNameVisitor.resolve(term?.accept(visitor, null), scope) as? ArendConstructor)?.ancestors?.filterIsInstance<ArendDefData>()?.firstOrNull()
+                            (visitor.findReferable(term) as? ArendConstructor)?.ancestors?.filterIsInstance<ArendDefData>()?.firstOrNull()
                         }
                     }
                     if (resultDef is GlobalReferable) {
