@@ -14,7 +14,7 @@ class ArendCreateFileAction : CreateFileFromTemplateAction(CAPTION, "", ArendIco
 
     override fun getActionName(
             directory: PsiDirectory?,
-            newName: String?,
+            newName: String,
             templateName: String?
     ): String = CAPTION
 

@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     idea
     kotlin("jvm") version "1.3.21"
-    id("org.jetbrains.intellij") version "0.4.4"
+    id("org.jetbrains.intellij") version "0.4.7"
     id("org.jetbrains.grammarkit") version "2018.3.1"
 }
 
@@ -50,7 +50,7 @@ idea {
 }
 
 intellij {
-    version = "2018.3"
+    version = "2019.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
