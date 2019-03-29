@@ -54,6 +54,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val psi2 = child2.node.psi
             val c1et = child1.node.elementType
             val c2et = child2.node.elementType
+            val c1comment = child1 is DocCommentBlock
+
+            if ((AREND_COMMENTS.contains(c1et) || c1comment) && psi2 is ArendStatement)
+                return (if ((c1et == LINE_DOC_TEXT || c1comment)) oneCrlf else oneBlankLine)
+            else if (psi1 is ArendStatement && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
@@ -360,14 +365,16 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         if (endNode != null)
             blocks.add(CommentPieceBlock(endNode.textRange, null, oneSpaceIndent, true))
 
-        return object : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
-            override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-                if (child1 is CommentPieceBlock && child1.isDash &&
-                        !(child2 is CommentPieceBlock && child2.isDash)) {
-                    return oneSpaceWrap
-                }
-                return null
+        return DocCommentBlock(settings, blocks, globalAlignment, globalIndent, parent)
+    }
+
+    class DocCommentBlock(settings: CommonCodeStyleSettings?, blocks: ArrayList<Block>, globalAlignment: Alignment?, globalIndent: Indent, parent: AbstractArendBlock) : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
+        override fun getSpacing(child1: Block?, child2: Block): Spacing? {
+            if (child1 is CommentPieceBlock && child1.isDash &&
+                    !(child2 is CommentPieceBlock && child2.isDash)) {
+                return oneSpaceWrap
             }
+            return null
         }
     }
 }

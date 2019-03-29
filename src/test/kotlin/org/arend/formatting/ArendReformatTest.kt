@@ -21,6 +21,14 @@ class ArendReformatTest : ArendFormatterTestBase() {
 
     fun testDocTextSpacing() = checkReformat("{- | lol\n -foo -}", "{- | lol\n - foo -}")
 
+    fun testDocSpacing1() = checkReformat(
+            "\\import Foo\n-- | Foo Bar \n\n\\func lol => 1",
+            "\\import Foo\n\n-- | Foo Bar \n\\func lol => 1")
+
+    fun testDocSpacing2() = checkReformat(
+            "\\import Foo\n{- | Foo Bar -}\n\n\\func lol => 1",
+            "\\import Foo\n\n{- | Foo Bar -}\n\\func lol => 1")
+
     // Tests on correctness of block subdivision
     fun testArgAppExpr1() = checkReformat(
             "\\func lol2 => Nat -- aa\n-bb",
@@ -75,9 +83,7 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func lol => 1 + 1 + 1 + (\\new Foo {\n  | foo => 1\n})")
 
     fun testDocTextIndent() = checkReformat(
-            "          {- | Doc Text 1\n          -\n          -  -}\n\n\n" +
-                    "\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",
-            "{- | Doc Text 1\n -\n -  -}\n\n\n" +
-                    "\\func foo =>\n  \\let\n    {- | Doc Text 2\n     -\n     -  -}\n    | x => 0\n  \\in x")
+            "          {- | Doc Text 1\n          -\n          -  -}\n\n\n\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",
+            "{- | Doc Text 1\n -\n -  -}\n\\func foo =>\n  \\let\n    {- | Doc Text 2\n     -\n     -  -}\n    | x => 0\n  \\in x")
 
 }
