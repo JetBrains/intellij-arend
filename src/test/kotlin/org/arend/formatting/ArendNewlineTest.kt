@@ -204,4 +204,13 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testCrlfBeforeParenthesis2() = checkNewLine(
             "\\func lol : \\Sigma (Nat) (Nat) => (1, 2{-caret-})",
             "\\func lol : \\Sigma (Nat) (Nat) => (1, 2\n                                  {-caret-})")
+
+    // Test newline in docs
+
+    fun testInlineDoc() = checkNewLine("-- | Foo {-caret-} Bar", "-- | Foo \n-- | {-caret-} Bar")
+
+    fun testBlockDoc1() = checkNewLine("{- | Foo{-caret-}\n -}", "{- | Foo\n - {-caret-}\n -}")
+
+    fun testBlockDoc2() = checkNewLine("{- | Foo\n - Bar{-caret-}\n -}", "{- | Foo\n - Bar\n - {-caret-}\n -}")
+
 }

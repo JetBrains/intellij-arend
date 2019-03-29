@@ -12,8 +12,6 @@ import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.mapFirstNotNull
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.jetbrains.annotations.NotNull
-import org.jetbrains.annotations.Nullable
 import java.util.ArrayList
 
 class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
@@ -347,7 +345,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (commentText[0] == '-')
                 parseCommentPiece(1, oneSpaceIndent, true)
 
-            skipWhitespace { c -> c == ' ' }
+            if (commentText[0] == ' ') {
+                commentText = commentText.substring(1)
+                startOffset += 1
+            }
 
             var i = commentText.indexOf("\n")
             if (i == -1) i = commentText.length
