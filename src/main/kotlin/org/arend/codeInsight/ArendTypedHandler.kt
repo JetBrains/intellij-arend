@@ -18,7 +18,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (file !is ArendFile) {
             return super.charTyped(c, project, editor, file)
         }
-        if (c == '{') {
+        if (c == '{' || c == '(') {
             return Result.STOP // To prevent auto-formatting
         }
         if (c != '-') {
