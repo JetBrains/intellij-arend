@@ -635,6 +635,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """,
             """
                 \import A
+
                 {-
                 ---
 
