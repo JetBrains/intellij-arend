@@ -273,7 +273,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd)
+            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
             val currentName: List<String>? = importData?.second
 
             if (renamings.isNotEmpty() && currentName != null) {

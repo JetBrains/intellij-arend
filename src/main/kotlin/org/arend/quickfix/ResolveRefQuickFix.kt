@@ -30,7 +30,7 @@ class ResolveRefQuickFix {
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
         }
 
-        fun getDecision(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement): Pair<AbstractRefactoringAction?, List<String>>? {
+        fun getDecision(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
             val targetFile = defaultLocation.myContainingFile
             val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
 
@@ -168,16 +168,14 @@ class ResolveRefQuickFix {
 
             resultingDecisions.sortBy { LongName(it.first) }
 
-            return if (resultingDecisions.size > 0) {
-                val resultingName = resultingDecisions[0].first
-                val importAction = if (targetFile != currentFile || resultingName.isNotEmpty() && resultingName == veryLongName)
-                    resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
+            val resultingName = resultingDecisions[0].first
+            val importAction = if (targetFile != currentFile || (resultingName.isNotEmpty() || allowSelfImport) && resultingName == veryLongName)
+                resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
-                if (importAction is ImportFileAction && !importAction.isValid())
-                    return null //Perhaps current or target directory is not marked as a content root
+            if (importAction is ImportFileAction && !importAction.isValid())
+                return null //Perhaps current or target directory is not marked as a content root
 
-                return Pair(importAction, resultingName)
-            } else null
+            return Pair(importAction, resultingName)
         }
     }
 }
@@ -257,9 +255,7 @@ class LocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false
         var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
         for (entry in myLongName) {
             result?.add(entry.first)
-            if (entry.second == referable) {
-                result = ArrayList()
-            }
+            if (entry.second == referable) result = ArrayList()
         }
         return result
     }

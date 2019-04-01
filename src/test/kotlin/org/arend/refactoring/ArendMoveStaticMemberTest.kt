@@ -829,7 +829,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func lol => foo
         """, "B", "", "A", "foo")
 
-    /* fun testMoveOutside() =
+    fun testMoveOutside() =
             testMoveRefactoring("""
                --! A.ard
                \module Foo \where {
@@ -840,15 +840,17 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func fooBar{-caret-} => 1
                }
             ""","""
+               \import A
+
                \module Foo \where {
-                 \open A (fooBar) -- A is inaccessible
+                 \open A (fooBar)
                }
 
                \module Bar \where {
                }
 
                \func fooBar => 1
-            """, "A", "") */ //Fixme
+            """, "A", "")
 
     fun testClassField() =
             testMoveRefactoring("""
