@@ -19,13 +19,13 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\import Prelude  \\using   ( I , Nat  \\as   Nat' )  \\hiding  ( iso )",
             "\\import Prelude \\using (I, Nat \\as Nat') \\hiding (iso)")
 
-    fun testDocTextSpacing() = checkReformat("{- | lol\n -foo -}", "{- | lol\n - foo -}")
+    fun testDocTextSpacing1() = checkReformat("{- | lol\n -foo -}", "{- | lol\n - foo -}")
 
-    fun testDocSpacing1() = checkReformat(
+    fun testDocTextSpacing2() = checkReformat(
             "\\import Foo\n-- | Foo Bar \n\n\\func lol => 1",
             "\\import Foo\n\n-- | Foo Bar \n\\func lol => 1")
 
-    fun testDocSpacing2() = checkReformat(
+    fun testDocTextSpacing3() = checkReformat(
             "\\import Foo\n{- | Foo Bar -}\n\n\\func lol => 1",
             "\\import Foo\n\n{- | Foo Bar -}\n\\func lol => 1")
 

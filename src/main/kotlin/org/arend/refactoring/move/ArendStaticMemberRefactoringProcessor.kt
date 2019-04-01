@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
@@ -105,6 +106,34 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return result
     }
 
+    fun getDocumentation(statement: ArendStatement): List<PsiElement> {
+        val result = ArrayList<PsiElement>()
+        var prev0: PsiElement? = statement.prevSibling
+        if (prev0 is PsiWhiteSpace) prev0 = prev0.prevSibling
+        val eT = prev0?.node?.elementType
+        if (eT == ArendElementTypes.LINE_DOC_TEXT) {
+            val prev1 = prev0?.prevSibling
+            val eT1 = prev1?.node?.elementType
+            if (eT1 == ArendElementTypes.LINE_DOC_COMMENT_START) {
+                result.add(prev1!!)
+                result.add(prev0!!)
+            }
+        }
+
+        if (eT == ArendElementTypes.BLOCK_COMMENT_END) {
+            val prev1 = prev0?.prevSibling
+            val eT1 = prev1?.node?.elementType
+            val prev2 = prev1?.prevSibling
+            val eT2 = prev2?.node?.elementType
+            if (eT1 == ArendElementTypes.BLOCK_DOC_TEXT && eT2 == ArendElementTypes.BLOCK_DOC_COMMENT_START) {
+                result.add(prev2!!)
+                result.add(prev1)
+                result.add(prev0!!)
+            }
+        }
+        return result
+    }
+
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
@@ -154,12 +183,19 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val newMemberList = ArrayList<ArendGroup>()
         for (m in myMembers) {
             val mStatement = m.parent
+            val docs = (mStatement as? ArendStatement)?.let{ getDocumentation(it) }
+
             val mCopyStatement = mStatement.copy()
+            val docsCopy = docs?.map { it.copy() }?.toMutableList()
+
             val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor) ?: myTargetContainer.addWithNotification(mCopyStatement)
+            docsCopy?.map { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
+
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
             mStatement.deleteAndGetPosition()?.let { holes.add(it) }
+            if (docs != null) for (doc in docs) doc.delete()
             insertAnchor = mCopyStatementInserted
         }
         myMembers = newMemberList

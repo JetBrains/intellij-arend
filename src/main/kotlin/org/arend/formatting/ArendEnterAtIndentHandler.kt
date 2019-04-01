@@ -54,7 +54,7 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
         if (comment != null && (comment.node.elementType == LINE_DOC_TEXT)) {
             val commentStart = comment.node.treePrev
             if (commentStart.elementType == LINE_DOC_COMMENT_START) {
-                insertLineBreak(editor, commentStart.startOffset, "-- | ")
+                insertLineBreak(editor, commentStart.startOffset, "-- ")
                 return EnterHandlerDelegate.Result.Stop
             }
         }

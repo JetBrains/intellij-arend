@@ -5,12 +5,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
     fun testSimpleMove1() =
             testMoveRefactoring("""
              --! Main.ard
+            {- | Block
+             - Doc -}
             \func abc{-caret-} => 1
             \module def \where {}
             """, """
             \open def (abc)
 
             \module def \where {
+              {- | Block
+               - Doc -}
               \func abc => 1
             }
             """, "Main", "def")
@@ -18,6 +22,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
     fun testSimpleMove2() =
             testMoveRefactoring("""
              --! Main.ard
+             -- | LineDoc 1
             \func abc{-caret-} => 1
             \func foo => 2 \where
               \func bar => 3
@@ -27,6 +32,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \func foo => 2 \where {
               \func bar => 3
 
+              -- | LineDoc 1
               \func abc => 1
             }
             """, "Main", "foo")
@@ -822,4 +828,25 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \func lol => foo
         """, "B", "", "A", "foo")
+
+    /* fun testMoveOutside() =
+            testMoveRefactoring("""
+               --! A.ard
+               \module Foo \where {
+                 \open Bar (fooBar)
+               }
+
+               \module Bar \where {
+                 \func fooBar{-caret-} => 1
+               }
+            ""","""
+               \module Foo \where {
+                 \open A (fooBar) -- A is inaccessible
+               }
+
+               \module Bar \where {
+               }
+
+               \func fooBar => 1
+            """, "A", "") */ //Fixme
 }
