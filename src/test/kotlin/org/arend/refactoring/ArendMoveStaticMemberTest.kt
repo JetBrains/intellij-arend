@@ -849,4 +849,26 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \func fooBar => 1
             """, "A", "") */ //Fixme
+
+    fun testClassField() =
+            testMoveRefactoring("""
+               --! A.ard
+               \class Foo{-caret-} (U : Nat) {
+                 \func foo => U
+               } \where {
+                 \func bar => U
+               }
+
+               \module Bar \where {}
+            """, """
+               \open Bar (Foo)
+
+               \module Bar \where {
+                 \class Foo (U : Nat) {
+                   \func foo => U
+                 } \where {
+                   \func bar => U
+                 }
+               }
+            """, "A", "Bar")
 }

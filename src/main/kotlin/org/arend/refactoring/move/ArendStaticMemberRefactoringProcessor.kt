@@ -106,7 +106,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return result
     }
 
-    fun getDocumentation(statement: ArendStatement): List<PsiElement> {
+    private fun getDocumentation(statement: ArendStatement): List<PsiElement> {
         val result = ArrayList<PsiElement>()
         var prev0: PsiElement? = statement.prevSibling
         if (prev0 is PsiWhiteSpace) prev0 = prev0.prevSibling
@@ -173,23 +173,25 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             collectUsagesAndMembers(emptyList(), m, mIndex, usagesInMovedBodies, descriptorsOfAllMovedMembers)
 
         for (referable in usagesInMovedBodies.keys)
-            targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) } ?: ReferableTargetReference(referable)
+            targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) }
+                    ?: ReferableTargetReference(referable)
 
         for (usagePack in usagesInMovedBodies) for (usage in usagePack.value)
-            targetReferences[usagePack.key]?.let{ bodiesRefsFixData[usage] = it }
+            targetReferences[usagePack.key]?.let { bodiesRefsFixData[usage] = it }
 
         //Do move myMembers
         val holes = ArrayList<RelativePosition>()
         val newMemberList = ArrayList<ArendGroup>()
         for (m in myMembers) {
             val mStatement = m.parent
-            val docs = (mStatement as? ArendStatement)?.let{ getDocumentation(it) }
+            val docs = (mStatement as? ArendStatement)?.let { getDocumentation(it) }
 
             val mCopyStatement = mStatement.copy()
-            val docsCopy = docs?.map { it.copy() }?.toMutableList()
+            val docsCopy = docs?.map { it.copy() }
 
-            val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor) ?: myTargetContainer.addWithNotification(mCopyStatement)
-            docsCopy?.map { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
+            val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
+                    ?: myTargetContainer.addWithNotification(mCopyStatement)
+            docsCopy?.forEach { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
 
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
@@ -330,19 +332,21 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                         usagesData: MutableMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>,
                                         memberData: MutableMap<PsiLocatedReferable, LocationDescriptor>) {
         when (element) {
-            is ArendReferenceElement -> if (element !is ArendDefIdentifier) element.reference?.resolve().let {
-                if (it is PsiLocatedReferable) {
-                    var set = usagesData[it]
-                    if (set == null) {
-                        set = HashSet()
-                        usagesData[it] = set
+            is ArendFieldDefIdentifier -> memberData[element] = LocationDescriptor(groupNumber, prefix)
+            is ArendReferenceElement ->
+                if (element !is ArendDefIdentifier) element.reference?.resolve().let {
+                    if (it is PsiLocatedReferable) {
+                        var set = usagesData[it]
+                        if (set == null) {
+                            set = HashSet()
+                            usagesData[it] = set
+                        }
+                        set.add(LocationDescriptor(groupNumber, prefix))
                     }
-                    set.add(LocationDescriptor(groupNumber, prefix))
                 }
+            is ArendLongName -> element.children.withIndex().lastOrNull { (_, m) -> m is ArendReferenceElement }?.let {
+                collectUsagesAndMembers(prefix + singletonList(it.index), it.value, groupNumber, usagesData, memberData)
             }
-            is ArendLongName ->  element.children.withIndex().lastOrNull { (_, m) -> m is ArendReferenceElement }?.let{
-                    collectUsagesAndMembers(prefix + singletonList(it.index), it.value, groupNumber, usagesData, memberData)
-                }
             else -> {
                 if (element is PsiLocatedReferable) memberData[element] = LocationDescriptor(groupNumber, prefix)
                 element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, usagesData, memberData) }
