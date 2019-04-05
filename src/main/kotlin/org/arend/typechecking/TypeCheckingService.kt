@@ -10,12 +10,14 @@ import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
@@ -109,29 +111,18 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         val fullName = FullName(referable)
-        val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
-        val data = tcReferable.data
-        if (data is SmartPsiElementPointer<*>) {
-            val element = data.element
-            if (element is LocatedReferable && element != referable) {
-                if (element.isValid && FullName(element) == fullName) {
-                    simpleReferableConverter.putIfAbsent(referable, tcReferable)
-                }
-                return null
+        val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
+        val curRef = PsiLocatedReferable.fromReferable(referable)
+        val prevRef = PsiLocatedReferable.fromReferable(tcReferable)
+        if (curRef != null && prevRef != null && prevRef != curRef) {
+            if (FullName(prevRef) == fullName) {
+                simpleReferableConverter.putIfAbsent(referable, tcReferable)
             }
+            return null
         }
 
         val tcTypecheckable = tcReferable.typecheckable ?: return null
         tcTypecheckable.location?.let { updatedModules.add(it) }
-        if (referable is ClassReferable) {
-            for (field in referable.fieldReferables) {
-                simpleReferableConverter.remove(field)
-            }
-        } else if (referable is DataDefinitionAdapter) {
-            for (constructor in referable.internalReferables) {
-                simpleReferableConverter.remove(constructor)
-            }
-        }
         return tcTypecheckable
     }
 
