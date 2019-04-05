@@ -1,5 +1,6 @@
 package org.arend.module
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
 import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
@@ -49,7 +50,7 @@ class ArendRawLibrary(val config: LibraryConfig, typecheckerState: TypecheckerSt
     override fun needsTypechecking() = true
 
     override fun unloadDefinition(referable: LocatedReferable) {
-        TypeCheckingService.getInstance(config.project).updateDefinition(referable)
+        runReadAction { TypeCheckingService.getInstance(config.project).updateDefinition(referable) }
     }
 
     override fun getReferableConverter() = TypeCheckingService.getInstance(config.project).newReferableConverter(true)

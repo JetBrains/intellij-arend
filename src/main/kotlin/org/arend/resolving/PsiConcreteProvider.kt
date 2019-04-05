@@ -95,7 +95,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             if (referable is DataLocatedReferable) {
                 psiReferable = referable.fixPointer(project)
                 if (psiReferable == null) {
-                    TypeCheckingService.getInstance(project).updateDefinition(referable)
+                    runReadAction { TypeCheckingService.getInstance(project).updateDefinition(referable) }
                     errorReporter.report(ProxyError(referable, ReferenceError("Reference is invalid. Try to typecheck the definition again", referable)))
                     return null
                 }
