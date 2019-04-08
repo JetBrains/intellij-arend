@@ -9,8 +9,6 @@ import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
@@ -19,7 +17,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.DataDefinitionAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
@@ -141,7 +138,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-        override fun beforeChildAddition(event: PsiTreeChangeEvent) {
+        override fun childAdded(event: PsiTreeChangeEvent) {
             processParent(event, true)
         }
 
@@ -158,7 +155,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             if (child is ArendFile) { // whole file has been removed
                 invalidateChildren(child)
             } else {
-                processChildren(event)
                 processParent(event, true)
             }
         }
@@ -167,6 +163,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
         private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
             if (event.file is ArendFile) {
+                processChildren(event.child)
+                processChildren(event.oldChild)
                 processParent(event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
             }
         }
@@ -229,17 +227,12 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
 
-        private fun processChildren(event: PsiTreeChangeEvent) {
-            if (event.file !is ArendFile) {
-                return
-            }
-
-            val child = event.child
-            when (child) {
-                is ArendGroup -> invalidateChildren(child)
+        private fun processChildren(element: PsiElement?) {
+            when (element) {
+                is ArendGroup -> invalidateChildren(element)
                 is ArendStatement -> {
-                    child.definition?.let { invalidateChildren(it) }
-                    child.defModule?.let { invalidateChildren(it) }
+                    element.definition?.let { invalidateChildren(it) }
+                    element.defModule?.let { invalidateChildren(it) }
                 }
             }
         }
