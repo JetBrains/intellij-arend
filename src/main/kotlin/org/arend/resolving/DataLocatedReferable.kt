@@ -22,9 +22,11 @@ open class DataLocatedReferable(
 
     override fun getData() = psiElementPointer
 
-    override fun moduleTextRepresentation(): String? = psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } }
+    override fun moduleTextRepresentation(): String? =
+        psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } } ?: location?.toString()
 
-    override fun positionTextRepresentation(): String? = psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
+    override fun positionTextRepresentation(): String? =
+        psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
 
     fun fixPointer(project: Project) =
         if (psiElementPointer == null) {
