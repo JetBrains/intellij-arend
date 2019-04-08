@@ -86,4 +86,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "          {- | Doc Text 1\n          -\n          -  -}\n\n\n\\func foo =>\n  \\let\n           {- | Doc Text 2\n            -\n            -  -}\n    | x => 0\n  \\in x\n",
             "{- | Doc Text 1\n -\n -  -}\n\\func foo =>\n  \\let\n    {- | Doc Text 2\n     -\n     -  -}\n    | x => 0\n  \\in x")
 
+    fun testLetClauseWithoutPipe() = checkReformat(
+            "\\func bar =>\n  \\let\n  x => 1\n  \\in x",
+            "\\func bar =>\n  \\let\n    x => 1\n  \\in x")
+
 }

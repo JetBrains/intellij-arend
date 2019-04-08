@@ -237,7 +237,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             val notFBodyWithClauses = if (childPsi is ArendFunctionBody) childPsi.fatArrow != null else true
                             if ((blocks.size > 0) && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
                         } else when (childET) {
-                            CO_CLAUSE, CONSTRUCTOR_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
+                            CO_CLAUSE, CONSTRUCTOR_CLAUSE, LET_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
                             NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> Indent.getNormalIndent()
                             STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
@@ -251,6 +251,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (AREND_COMMENTS.contains(childET)) alignment
                         else when (childET) {
                             LET_KW, LETS_KW, IN_KW -> alignment2
+                            LET_CLAUSE -> alignment
                             else -> null
                         }
                     TUPLE -> if ((nodePsi as ArendTuple).tupleExprList.size > 1) when (childET) {
