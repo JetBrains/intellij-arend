@@ -38,6 +38,8 @@ interface TypeCheckingService {
 
     val updatedModules: HashSet<ModulePath>
 
+    val isInitialized: Boolean
+
     fun initialize(): Boolean
 
     fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
@@ -69,7 +71,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
-    private var isInitialized = false
+    override var isInitialized = false
+        private set
 
     private val listener = TypeCheckerPsiTreeChangeListener()
 

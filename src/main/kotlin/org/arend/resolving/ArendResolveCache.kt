@@ -5,10 +5,12 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.TCClassReferable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
+import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentMap
 
 interface ArendResolveCache {
@@ -20,7 +22,7 @@ interface ArendResolveCache {
 private fun getDefinitionOfLocalElement(element: PsiElement) =
     (element as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
 
-class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
+class ArendResolveCacheImpl(private val project: Project) : ArendResolveCache {
     private val globalMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
     private val localMap: ConcurrentMap<ArendDefinition, HashMap<ArendReferenceElement, Referable>> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
     private val listener = ResolveCacheCleaner()
@@ -28,7 +30,7 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
     override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, ref: ArendReferenceElement): Referable? {
         val globalRef = globalMap[ref]
         if (globalRef != null) {
-            return globalRef
+            return if (globalRef == TCClassReferable.NULL_REFERABLE) null else globalRef
         }
 
         val def = getDefinitionOfLocalElement(ref)
@@ -36,19 +38,21 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
         if (defMap != null) {
             val localRef = defMap[ref]
             if (localRef != null) {
-                return localRef
+                return if (localRef == TCClassReferable.NULL_REFERABLE) null else localRef
             }
         }
 
         val result = resolver(ref)
-        if (result != null) {
-            if (defMap != null) {
-                defMap[ref] = result
-            } else {
-                globalMap[ref] = result
-            }
+        if (result == null && !TypeCheckingService.getInstance(project).isInitialized) {
+            return null
         }
 
+        val cachedResult = result ?: TCClassReferable.NULL_REFERABLE
+        if (defMap != null) {
+            defMap[ref] = cachedResult
+        } else {
+            globalMap[ref] = cachedResult
+        }
         return result
     }
 
