@@ -52,20 +52,21 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     private fun getItemsToImport() : List<ResolveReferenceAction> {
         if (importQuickFixAllowed(referenceElement)) {
-            return CachedValuesManager.getCachedValue(referenceElement) {
-                val project = referenceElement.project
-                val name = referenceElement.referenceName
+            val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
+            return CachedValuesManager.getCachedValue(refElement) {
+                val project = refElement.project
+                val name = refElement.referenceName
 
                 val prelude = TypeCheckingService.getInstance(project).prelude
                 val preludeItems = HashSet<Referable>()
                 if (prelude != null) {
-                    iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == referenceElement.referenceName }, preludeItems)
+                    iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == refElement.referenceName }, preludeItems)
                 }
 
                 val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
                         union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
 
-                CachedValueProvider.Result(items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }, PsiModificationTracker.MODIFICATION_COUNT)
+                CachedValueProvider.Result(items.mapNotNull { ResolveRefQuickFix.getDecision(it, refElement) }, PsiModificationTracker.MODIFICATION_COUNT)
             }
         }
 
