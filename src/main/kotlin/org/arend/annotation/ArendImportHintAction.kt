@@ -17,6 +17,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
 import org.arend.term.group.Group
@@ -49,19 +52,21 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     private fun getItemsToImport() : List<ResolveReferenceAction> {
         if (importQuickFixAllowed(referenceElement)) {
-            val project = referenceElement.project
-            val name = referenceElement.referenceName
+            return CachedValuesManager.getCachedValue(referenceElement) {
+                val project = referenceElement.project
+                val name = referenceElement.referenceName
 
-            val prelude = TypeCheckingService.getInstance(project).prelude
-            val preludeItems = HashSet<Referable>()
-            if (prelude != null) {
-                iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == referenceElement.referenceName }, preludeItems)
+                val prelude = TypeCheckingService.getInstance(project).prelude
+                val preludeItems = HashSet<Referable>()
+                if (prelude != null) {
+                    iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == referenceElement.referenceName }, preludeItems)
+                }
+
+                val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
+                        union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
+
+                CachedValueProvider.Result(items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }, PsiModificationTracker.MODIFICATION_COUNT)
             }
-
-            val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
-                    union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
-
-            return items.mapNotNull { ResolveRefQuickFix.getDecision(it, referenceElement) }
         }
 
         return emptyList()
