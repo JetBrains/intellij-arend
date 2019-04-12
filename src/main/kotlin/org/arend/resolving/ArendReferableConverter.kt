@@ -48,7 +48,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                             val locatedParent = referable.locatedReferableParent
                             val parent = if (locatedParent is ArendFile) locatedParent.modulePath?.let { ModuleReferable(it) } else toDataLocatedReferable(locatedParent)
                             when (referable) {
-                                is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, ArrayList(), ArrayList(), ArrayList())
+                                is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, referable.isRecord, ArrayList(), ArrayList(), ArrayList())
                                 is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
                                 else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                             }
@@ -76,6 +76,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                                 cache[ref]?.let { result.implementedFields.add(it)  }
                             }
                         }
+                        result.isRecordFlag = referable.isRecord
                         result.filledIn = true
                     }
 

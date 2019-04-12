@@ -69,11 +69,15 @@ class ClassDataLocatedReferable(
     psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: LocatedReferable,
     parent: LocatedReferable?,
+    var isRecordFlag: Boolean,
     val superClasses: MutableList<TCClassReferable>,
     val fieldReferables: MutableList<TCFieldReferable>,
     val implementedFields: MutableList<TCReferable>)
     : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
+
     var filledIn = false
+
+    override fun isRecord() = isRecordFlag
 
     override fun getSuperClassReferences(): List<TCClassReferable> = superClasses
 

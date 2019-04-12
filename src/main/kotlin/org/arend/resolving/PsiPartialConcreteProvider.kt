@@ -1,6 +1,5 @@
 package org.arend.resolving
 
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Reference
 import org.arend.psi.*
@@ -11,8 +10,6 @@ import org.arend.typechecking.typecheckable.provider.PartialConcreteProvider
 object PsiPartialConcreteProvider : PartialConcreteProvider {
     override fun getInstanceTypeReference(instance: GlobalReferable): Reference? =
         (PsiLocatedReferable.fromReferable(instance) as? ArendDefInstance)?.let { getInstanceReference(it) }
-
-    override fun isRecord(classRef: ClassReferable) = (PsiLocatedReferable.fromReferable(classRef) as? ArendDefClass)?.recordKw != null
 
     private fun getInstanceReference(instance: ArendDefInstance): Reference? {
         val returnExpr = instance.returnExpr

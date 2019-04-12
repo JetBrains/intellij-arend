@@ -135,11 +135,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         return if (psiReferable is ArendDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
     }
 
-    override fun isRecord(classRef: ClassReferable): Boolean {
-        val psiReferable = PsiLocatedReferable.fromReferable(classRef)
-        return psiReferable is ArendDefClass && runReadAction { psiReferable.recordKw != null }
-    }
-
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefInstance
 
     override fun isUse(ref: GlobalReferable): Boolean {
