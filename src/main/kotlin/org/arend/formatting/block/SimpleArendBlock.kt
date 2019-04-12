@@ -91,9 +91,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1)
             return ChildAttributes(Indent.getNormalIndent(), null)
 
-        if (node.elementType == CO_CLAUSE && subBlocks.size == newChildIndex)
-            return ChildAttributes(indent, alignment)
-
         val prev2Child = if (newChildIndex > 1) subBlocks[newChildIndex - 2] else null
         val prevChild = if (newChildIndex > 0) subBlocks[newChildIndex - 1] else null
         val nextChild = if (newChildIndex < subBlocks.size) subBlocks[newChildIndex] else null
@@ -155,7 +152,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (nodePsi is ArendFunctionBody) {
                 val indent = if (prevChild.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
                     when (prevET) {
-                        FUNCTION_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                        FUNCTION_CLAUSES, CO_CLAUSE -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                         else -> Indent.getNormalIndent()
                     }
                 return ChildAttributes(indent, null)
@@ -165,7 +162,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val clauseAttributes = getChildAttributesInfo(prevChild, prevChild.subBlocks.size)
                 if (!(clauseAttributes.childIndent?.type == Indent.Type.NONE && clauseAttributes.alignment == null)) return clauseAttributes
             }
-            if (nodePsi is ArendClause) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            if (nodePsi is ArendClause || nodePsi is ArendCoClause) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
             //Expressions
             when (node.elementType) {
