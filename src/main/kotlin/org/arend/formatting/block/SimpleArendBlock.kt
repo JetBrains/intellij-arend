@@ -190,6 +190,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 TUPLE_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                LET_CLAUSE -> if (prevET == FAT_ARROW || prevET == ERROR_ELEMENT && prev2ET == FAT_ARROW) return ChildAttributes(Indent.getNormalIndent(true), null)
             }
 
             //General case

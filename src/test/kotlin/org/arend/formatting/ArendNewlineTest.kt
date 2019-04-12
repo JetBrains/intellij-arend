@@ -204,10 +204,14 @@ class ArendNewlineTest : ArendFormatterTestBase() {
     fun testCrlfBeforeParenthesis2() = checkNewLine(
             "\\func lol : \\Sigma (Nat) (Nat) => (1, 2{-caret-})",
             "\\func lol : \\Sigma (Nat) (Nat) => (1, 2\n                                  {-caret-})")
-    
+
     fun testCrlfInCoClause() = checkNewLine(
             "\\func foo (a b c : Nat) => 0\n\n\\class C | a : Nat | b : Nat\n\n\\func bar : C \\cowith\n  | a => {?}\n  | b => foo 1\n             2{-caret-}",
             "\\func foo (a b c : Nat) => 0\n\n\\class C | a : Nat | b : Nat\n\n\\func bar : C \\cowith\n  | a => {?}\n  | b => foo 1\n             2\n             {-caret-}")
+
+    fun testCrlfInLetClause() = checkNewLine(
+            "\\func bar => \\let x =>{-caret-}",
+            "\\func bar => \\let x =>\n                    {-caret-}")
 
     // Test newline in docs
 
