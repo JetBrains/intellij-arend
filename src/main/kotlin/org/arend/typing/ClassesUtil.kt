@@ -11,7 +11,8 @@ import org.arend.psi.ClassReferenceHolder
 
 
 private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: ClassReferenceHolder?, superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>): Set<FieldReferable> {
-    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefHolder?.getClassReferenceData(false)?.argumentsExplicitness ?: emptyList(), superClassesFields)
+    val classRefData = classRefHolder?.getClassReferenceData(false)
+    val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefData?.argumentsExplicitness ?: emptyList(), classRefData?.withTailImplicits ?: false, superClassesFields)
     if (classRefHolder != null) {
         for (fieldImpl in classRefHolder.classFieldImpls) {
             (fieldImpl as? PsiElement)?.let {

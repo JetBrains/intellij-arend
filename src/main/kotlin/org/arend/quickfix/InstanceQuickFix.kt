@@ -120,7 +120,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val classReferenceData = classReferenceHolder.getClassReferenceData(true)
         if (classReferenceData != null) {
-            val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, superClassesFields)
+            val fields = ClassReferable.Helper.getNotImplementedFields(classReferenceData.classRef, classReferenceData.argumentsExplicitness, classReferenceData.withTailImplicits, superClassesFields)
             fields.removeAll(classReferenceData.implementedFields)
 
             findImplementedCoClauses(coClausesList(), holder, superClassesFields, fields)

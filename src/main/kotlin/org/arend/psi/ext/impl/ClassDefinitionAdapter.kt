@@ -59,7 +59,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getClassReference() = this
 
     override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {
-        return ClassReferenceData(this, emptyList(), emptyList())
+        return ClassReferenceData(this, emptyList(), emptyList(), false)
     }
 
     override fun getPrecedence() = calcPrecedence(prec)

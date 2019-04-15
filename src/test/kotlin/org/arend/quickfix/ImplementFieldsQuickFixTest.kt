@@ -1,6 +1,7 @@
 package org.arend.quickfix
 
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
+import org.arend.quickfix.AbstractEWCCAnnotator.Companion.REMOVE_COCLAUSE
 
 class ImplementFieldsQuickFixTest : QuickFixTestBase() {
     fun `test adding copatterns in instance`() = simpleQuickFixTest("Implement",
@@ -58,7 +59,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    fun `test removing implicitly implemented field`() = simpleQuickFixTest("Remove",
+    fun `test implicitly implemented field`() = checkNoQuickFixes(REMOVE_COCLAUSE,
             """
                 --! A.ard
                 \class Foo (A B : Nat)
@@ -66,12 +67,21 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 \instance FooBar : Bar {
                   | f => {?}{-caret-}
                 }
+            """)
+
+    fun `test removing implicitly implemented field`() = simpleQuickFixTest("Remove",
+            """
+                --! A.ard
+                \class Foo (A B : Nat)
+                \class Bar {f : Foo}
+                \instance FooBar : Bar
+                  | f => {?}{-caret-}
             """,
             """
                 \class Foo (A B : Nat)
                 \class Bar {f : Foo}
-                \instance FooBar : Bar {
-                }
+                \instance FooBar : Bar
+
             """)
 
     fun `test adding implementation of a new expression`() = simpleQuickFixTest("Implement",

@@ -75,7 +75,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         val type = resultType ?: return null
         val visitor = ReferableExtractVisitor(true)
         val classRef = (if (isCowith) visitor.findReferableInType(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null
-        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
+        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
     }
 
     override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauseList ?: emptyList()

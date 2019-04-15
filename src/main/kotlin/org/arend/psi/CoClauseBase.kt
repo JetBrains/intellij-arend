@@ -27,12 +27,12 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
         fun getClassReferenceData(coClauseBase: CoClauseBase): ClassReferenceData? {
             val resolved = coClauseBase.getResolvedImplementedField()
             if (resolved is ClassReferable) {
-                return ClassReferenceData(resolved, emptyList(), emptyList())
+                return ClassReferenceData(resolved, emptyList(), emptyList(), false)
             }
 
             val visitor = ReferableExtractVisitor(true)
             val classRef = visitor.findReferable((resolved as? TypedReferable)?.typeOf) as? ClassReferable ?: return null
-            return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields)
+            return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
         }
     }
 }
