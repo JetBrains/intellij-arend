@@ -626,7 +626,9 @@ onlyLevelExpr ::= atomOnlyLevelExpr
 
 levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
-private levelsLevels ::= LEVEL_KW (PROP_KW | (atomLevelExpr | UNDERSCORE) (atomLevelExpr | UNDERSCORE)) { pin = 1 }
+maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
+
+private levelsLevels ::= LEVEL_KW (PROP_KW | maybeAtomLevelExpr maybeAtomLevelExpr) { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW

@@ -11,9 +11,9 @@ abstract class ArendLongNameExprImplMixin(node: ASTNode) : ArendExprImplMixin(no
         val levels = generateSequence(levelsExpr) { it.levelsExpr }.lastOrNull()
         if (levels != null) {
             levels.propKw?.let { return visitor.visitReference(name, name.referent, 0, -1, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params) }
-            val levelExprList = levels.atomLevelExprList
+            val levelExprList = levels.maybeAtomLevelExprList
             if (levelExprList.size == 2) {
-                return visitor.visitReference(name, name.referent, levelExprList[0], levelExprList[1], if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+                return visitor.visitReference(name, name.referent, levelExprList[0]?.atomLevelExpr, levelExprList[1]?.atomLevelExpr, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
             }
         }
         val levelExprList = atomOnlyLevelExprList
