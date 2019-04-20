@@ -10,6 +10,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCoClauseImplMixin
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ClassFieldImplAdapter
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.term.abs.Abstract
@@ -29,14 +30,18 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
             visitor.visitInferHole(this, null, params)
     }
 
-    class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable?>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
-        override fun getData() = this
+    open class ParameterImpl(private val isExplicit: Boolean, private val referables: List<Referable?>, private val type: Abstract.Expression?) : Abstract.SourceNodeImpl(), Abstract.Parameter {
+        override fun getData(): Any? = this
 
         override fun isExplicit() = isExplicit
 
         override fun getReferableList() = referables
 
         override fun getType() = type
+    }
+
+    class ParameterImplWithData(private val data: Any?, isExplicit: Boolean, referables: List<Referable?>, type: Abstract.Expression?) : ParameterImpl(isExplicit, referables, type) {
+        override fun getData() = data
     }
 
     class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(), Abstract.Expression {
@@ -281,42 +286,60 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
             if (parameters.isEmpty()) expr else PiImpl(parameters, expr)
     }
 
-    private fun dropParameters(parameters: Collection<Abstract.Parameter>, drop: Int): Collection<Abstract.Parameter> {
-        if (drop == 0) {
-            return parameters
-        }
+    private fun reduceParameters(lamParameters: Collection<Abstract.Parameter>, piParameters: Collection<Abstract.Parameter>, holder: AnnotationHolder?): Pair<Collection<Abstract.Parameter>, Collection<Abstract.Parameter>>? {
+        var i = 0
+        var j = 0
+        val lamParams = lamParameters.toMutableList()
+        val piParams = piParameters.toMutableList()
+        while (i < lamParams.size && j < piParams.size) {
+            val lamParam = lamParams[i]
+            val piParam = piParams[j]
+            val lamExplicit = lamParam.isExplicit
+            val piExplicit = piParam.isExplicit
+            if (!lamExplicit && piExplicit) {
+                holder?.createErrorAnnotation(lamParam.data as ArendCompositeElement, "Expected an explicit parameter")
+                return null
+            }
+            if (lamExplicit && !piExplicit) {
+                j++
+                continue
+            }
 
-        var n = drop
-        var toDrop = 0
-        for (parameter in parameters) {
-            toDrop++
-            val m = parameter.referableList.size
-            when {
-                n < m -> return listOf(ParameterImpl(parameter.isExplicit, parameter.referableList.drop(n), parameter.type)) + parameters.drop(toDrop)
-                n == m -> return parameters.drop(toDrop)
-                else -> n -= m
+            val lamRefs = lamParam.referableList
+            val piRefs = piParam.referableList
+            if (lamRefs.size == piRefs.size) {
+                i++
+                j++
+                continue
+            }
+            if (lamRefs.size < piRefs.size) {
+                i++
+                piParams[j] = ParameterImpl(piExplicit, piRefs.drop(lamRefs.size), piParam.type)
+            } else {
+                j++
+                lamParams[i] = ParameterImplWithData(lamParam.data, lamExplicit, lamRefs.drop(piRefs.size), lamParam.type)
             }
         }
-        return emptyList()
+
+        return Pair(lamParams.drop(i), piParams.drop(j))
     }
 
     private fun reduceParameters(parameters: Collection<Abstract.Parameter>, type: Abstract.Expression?, holder: AnnotationHolder?): Abstract.Expression? =
         if (parameters.isEmpty()) {
             type
         } else {
-            var requiredParameters = parameters.sumBy { it.referableList.size }
+            var lamParameters = parameters
             var currentType = type
 
-            while (currentType != null && requiredParameters > 0) {
+            while (currentType != null && !lamParameters.isEmpty()) {
                 val kind = currentType.accept(object : GetKindVisitor() {
                     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Kind {
-                        val availableParameters = parameters.sumBy { it.referableList.size }
-                        if (availableParameters <= requiredParameters) {
-                            requiredParameters -= availableParameters
-                            currentType = codomain
+                        val pair = reduceParameters(lamParameters, parameters, holder) ?: return Kind.UNKNOWN
+                        lamParameters = pair.first
+                        currentType = if (pair.second.isEmpty()) {
+                            codomain
                         } else {
-                            requiredParameters = 0
-                            currentType = ExpectedTypeVisitor.PiImpl(dropParameters(parameters, requiredParameters), codomain)
+                            ExpectedTypeVisitor.PiImpl(pair.second, codomain)
                         }
                         return Kind.PI
                     }
@@ -324,7 +347,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
 
                 if (kind != GetKindVisitor.Kind.PI) {
                     if (holder != null && kind.isWHNF()) {
-                        holder.createErrorAnnotation(TextRange((parameters.first() as ArendNameTele).textRange.startOffset, (parameters.last() as ArendNameTele).textRange.endOffset), "Too many parameters")
+                        holder.createErrorAnnotation(TextRange((parameters.first() as ArendCompositeElement).textRange.startOffset, (parameters.last() as ArendCompositeElement).textRange.endOffset), "Too many parameters")
                     }
                     currentType = null
                     break
