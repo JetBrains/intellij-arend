@@ -4,7 +4,6 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiErrorElement
-import com.intellij.psi.TokenType
 import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
@@ -32,7 +31,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         }
 
         if (myNode.psi is ArendFunctionBody) {
-            if (child1 is AbstractArendBlock && child1.node.elementType == ArendElementTypes.FAT_ARROW) return oneSpaceWrap
+            if (child1 is AbstractArendBlock && child1.node.elementType == FAT_ARROW) return oneSpaceWrap
             return super.getSpacing(child1, child2)
         }
 
@@ -57,7 +56,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val c1comment = child1 is DocCommentBlock
 
             if ((AREND_COMMENTS.contains(c1et) || c1comment) && psi2 is ArendStatement)
-                return (if ((c1et == LINE_DOC_TEXT || c1comment)) oneCrlf else oneBlankLine)
+                return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2.statCmd == null)) oneCrlf else oneBlankLine)
             else if (psi1 is ArendStatement && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
@@ -101,7 +100,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (nodePsi is ArendWhere) {
                 if (prevET == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                if (prevET == WHERE_KW || prevET == LBRACE || prevET == TokenType.ERROR_ELEMENT) return ChildAttributes(Indent.getNormalIndent(), null)
+                if (prevET == WHERE_KW || prevET == LBRACE || prevET == ERROR_ELEMENT) return ChildAttributes(Indent.getNormalIndent(), null)
             }
 
             // Definitions

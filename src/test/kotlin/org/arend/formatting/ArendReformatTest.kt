@@ -90,4 +90,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\func bar =>\n  \\let\n  x => 1\n  \\in x",
             "\\func bar =>\n  \\let\n    x => 1\n  \\in x")
 
+    fun testDocCommentBeforeImport() = checkReformat(
+            "{- | Doc\n - Comment -}\\import Prelude",
+            "{- | Doc\n - Comment -}\n\n\\import Prelude")
+
 }

@@ -98,6 +98,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
                 if (p is ArendClause) return LocalSearchScope(p) // Pattern variables
             }
             (parent as? ArendPattern)?.parent is ArendClause -> return LocalSearchScope(parent.parent)
+            parent is ArendCaseArg -> return LocalSearchScope(parent.parent)
         }
         return super.getUseScope()
     }
