@@ -2,6 +2,7 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.psi.ArendAtomOnlyLevelExpr
+import org.arend.term.abs.AbstractExpressionError
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 
 
@@ -11,7 +12,8 @@ abstract class ArendAtomOnlyLevelExprImplMixin(node: ASTNode) : ArendSourceNodeI
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
         lpKw?.let { return visitor.visitLP(this, params) }
         lhKw?.let { return visitor.visitLH(this, params) }
+        ooKw?.let { return visitor.visitInf(this, params) }
         onlyLevelExpr?.let { return it.accept(visitor, params) }
-        error("Incomplete expression: " + this)
+        throw AbstractExpressionError.Exception(AbstractExpressionError.incomplete(this))
     }
 }

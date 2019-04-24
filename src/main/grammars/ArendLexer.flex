@@ -121,6 +121,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\truncated"           { return TRUNCATED_KW; }
     "\\lp"                  { return LP_KW; }
     "\\lh"                  { return LH_KW; }
+    "\\oo"                  { return OO_KW; }
     "\\suc"                 { return SUC_KW; }
     "\\level"               { return LEVEL_KW; }
     "\\max"                 { return MAX_KW; }

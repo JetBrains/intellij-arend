@@ -12,6 +12,7 @@ abstract class ArendAtomLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
         lpKw?.let { return visitor.visitLP(this, params) }
         lhKw?.let { return visitor.visitLH(this, params) }
+        ooKw?.let { return visitor.visitInf(this, params) }
         number?.text?.toIntOrNull()?.let { return visitor.visitNumber(this, it, params) }
         levelExpr?.let { return it.accept(visitor, params) }
         throw AbstractExpressionError.Exception(AbstractExpressionError.incomplete(this))

@@ -80,6 +80,7 @@
         TRUNCATED_KW        = '\truncated'
         LP_KW               = '\lp'
         LH_KW               = '\lh'
+        OO_KW               = '\oo'
         SUC_KW              = '\suc'
         LEVEL_KW            = '\level'
         MAX_KW              = '\max'
@@ -592,6 +593,7 @@ private levelExpr_recover ::= !RPAREN & statement_recover
 
 atomLevelExpr ::= LP_KW
     | LH_KW
+    | OO_KW
     | NUMBER
     | LPAREN levelExpr RPAREN {
     pin(".*") = 1
@@ -632,6 +634,7 @@ private levelsLevels ::= LEVEL_KW (PROP_KW | maybeAtomLevelExpr maybeAtomLevelEx
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
+    | OO_KW
     | LPAREN onlyLevelExpr RPAREN {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LevelExpression" ]

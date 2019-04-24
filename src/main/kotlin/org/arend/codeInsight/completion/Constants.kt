@@ -9,7 +9,7 @@ val CLASS_MEMBER_KWS = listOf(FIELD_KW, PROPERTY_KW).map { it.toString() }
 val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
 val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, LETS_KW, CASE_KW).map { it.toString() }
 val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
-val LPH_KW_LIST = listOf(LP_KW, LH_KW).map { it.toString() }
+val LPH_KW_LIST = listOf(LP_KW, LH_KW, OO_KW).map { it.toString() }
 val ELIM_WITH_KW_LIST = listOf(ELIM_KW, WITH_KW).map { it.toString() }
 val COERCE_LEVEL_KWS = listOf(COERCE_KW, LEVEL_KW).map { it.toString() }
 
