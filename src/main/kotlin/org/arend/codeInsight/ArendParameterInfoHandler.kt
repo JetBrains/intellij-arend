@@ -25,25 +25,19 @@ import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 
 class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
-    // private var lastAppExpr: ArendArgumentAppExpr? = null
+    private val MAX_NESTEDNESS = 2
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
-        //val types = p?.map { Array(it.referableList.size, {_ -> ConcreteBuilder.convertExpression(it.type).toString()}) }?.toTypedArray()?.flatten()
         if (p == null) return
-        // val params = ConcreteBuilder.convertParams(p)
         var curOffset = 0
         var text = ""
         var hlStart = -1; var hlEnd = -1
         var ind = 0
         for (pm in p) {
-            // val tele = if (pm is Concrete.TelescopeParameter) Array(pm.referableList.size, {_ -> pm.type}) else arrayOf(pm)
+
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (!vars.isEmpty()) {
-
-//                vars.mapTo(nameTypeList) {
- //                   Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
-
                 vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
             } else {
                 nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
@@ -159,7 +153,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun adjustOffset(file: PsiFile, offset: Int): Int {
         val element = file.findElementAt(offset)
 
-        if (element?.text == ")" || element?.text == "}") {
+        if (element?.text == ")" || element?.text == "}" || element?.text == "," || element == null) {
             return offset - 1
         }
 
@@ -271,7 +265,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun isNewArgumentPosition(file: PsiFile, offset: Int): Boolean {
         val element: PsiElement = file.findElementAt(offset) ?: return file.findElementAt(offset - 1) is PsiWhiteSpace
 
-        return (element is PsiWhiteSpace || element.text == ")" || element.text == "}") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
+        return (element is PsiWhiteSpace || element.text == ")" || element.text == "}" || element.text == ",") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
     }
 
     private fun isBinOpSeq(expr: ArendExpr): Boolean =
@@ -287,8 +281,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
         var absNode = node
         var absNodeParent = absNode.parentSourceNode
+        var nestedness = 0
 
-        while (absNodeParent != null) {
+        while (absNodeParent != null && nestedness < MAX_NESTEDNESS) {
             if (absNode is Abstract.Reference) {
                 val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
                 val params = ref?.let { getAllParametersForReferable(it) }
@@ -296,15 +291,20 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                     val isBinOp = isBinOp(ref)
                     val parentAppExprCandidate = absNodeParent.parentSourceNode?.parentSourceNode
                     if (parentAppExprCandidate is ArendExpr) {
-                        if (isBinOpSeq(parentAppExprCandidate) && !isNewArgPos && !isBinOp) {
-                            return (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) }
+                        if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
+                            val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
+                            if (isNewArgPos && isBinOp(loc.second.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope)})) {
+                                return Pair(0, absNode)
+                            }
+                            if (isNewArgPos && nestedness == 0) return Pair(loc.first + 1, loc.second)
+                            return loc
                             //(absNodeParent as Abstract.SourceNode).parentSourceNode as ArendExpr) }
                             //absNode = absNodeParent
                             //absNodeParent = absNodeParent.parentSourceNode
                             //continue
                         }
                     }
-                    if (isNewArgPos) {
+                    if (isNewArgPos && nestedness == 0) {
                        // if (absNodeParent.parentSourceNode?.parentSourceNode is ArendExpr && isBinOpSeq(absNodeParent.parentSourceNode?.parentSourceNode as ArendExpr))
                         //    return Pair(1, absNode)
                         if (!isBinOp)
@@ -320,9 +320,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                                 else locateArg(arg, absNodeParent as ArendExpr)
 
                 if (argLoc != null) {
-                    if (isNewArgPos) return Pair(argLoc.first + 1, argLoc.second)
+                    if (isNewArgPos && nestedness == 0) return Pair(argLoc.first + 1, argLoc.second)
                     return argLoc
                 }
+            }
+            if (absNodeParent !is ArendLongName) {
+                ++nestedness
             }
             absNode = absNodeParent
             absNodeParent = absNodeParent.parentSourceNode
@@ -376,7 +379,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): Abstract.Reference? {
-        val offset = adjustOffset(context.file, context.editor.caretModel.offset)
+        val offset = context.editor.caretModel.offset // adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo: Pair<Int, Abstract.Reference> = findAppExpr(context.file, offset) ?: return null
 
         if (context.parameterOwner != appExprInfo.second) {
