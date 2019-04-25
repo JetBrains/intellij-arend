@@ -22,8 +22,10 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
+import org.arend.psi.ArendDefIdentifier
 import org.arend.term.group.Group
 import org.arend.psi.ArendFieldDefIdentifier
+import org.arend.psi.ArendPattern
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
@@ -128,7 +130,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     companion object {
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) =
-            referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
+            referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode) ||
+                    referenceElement is ArendDefIdentifier && referenceElement.parent is ArendPattern
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
             val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid
@@ -139,10 +142,11 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             if (referenceElement.isValid) referenceElement.reference?.resolve() else null
 
         fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
-            for (sg in group.subgroups) {
-                if (sg is Referable && predicate.invoke(sg)) target.add(sg)
-                iterateOverGroup(sg, predicate, target)
+            for (subgroup in group.subgroups) {
+                if (subgroup is Referable && predicate.invoke(subgroup)) target.add(subgroup)
+                iterateOverGroup(subgroup, predicate, target)
             }
+            for (referable in group.internalReferables) if (predicate.invoke(referable.referable)) target.add(referable.referable)
         }
     }
 }

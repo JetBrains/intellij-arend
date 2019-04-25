@@ -733,4 +733,20 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
                 \func foo => lol'""")
 
+
+    fun `test imports in patterns`() =
+            simpleImportFixTest("""
+               --! Main.ard
+               \import Prelude (Nat)
+
+               \func lol (a : Nat) \with
+               | 0 => 0
+               | suc{-caret-} a' => 1
+            ""","""
+               \import Prelude (Nat)
+
+               \func lol (a : Nat) \with
+               | 0 => 0
+               | Nat.suc a' => 1
+            """)
 }
