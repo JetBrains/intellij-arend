@@ -102,6 +102,42 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
-    //TODO: add longname tests
+
+    fun `test long names`() {
+        val code = "\\class C { x } \n" +
+                "\\func f (x y : Nat) => 0\n" +
+                "\\func h (c : C) => f (c.x{-caret-})"
+        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test implicit params outer`() {
+        val code = "\\func f (x y : Nat) {z : Nat} (w : Nat) => 0\n" +
+                "\\func h (x : Nat) => f 0 0 {x{-caret-}}"
+        val expectedHint = "x : Nat, y : Nat, <highlight>{z : Nat}</highlight>, w : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test implicit params skip implicit`() {
+        val code = "\\func f (x y : Nat) {z : Nat} (w : Nat) => 0\n" +
+                "\\func h (x : Nat) => f 0 0 x{-caret-}"
+        val expectedHint = "x : Nat, y : Nat, {z : Nat}, <highlight>w : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test implicit params inner`() {
+        val code = "\\func f (x y : Nat) {z : Nat} (w : Nat) => 0\n" +
+                "\\func h (x : Nat) => f 0 0 {f x{-caret-}}"
+        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat, {z : Nat}, w : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    /*
+    fun `test class fields`() {
+        val code = "\\class C { \\field f (x y : Nat) : Nat } \n" +
+                "\\func h (c : C) (x : Nat) => c.f {-caret-}x"
+        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        checkParameterInfo(code, expectedHint)
+    } */
 
 }

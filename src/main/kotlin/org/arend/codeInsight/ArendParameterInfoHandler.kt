@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.parentsOfType
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
@@ -25,7 +24,6 @@ import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 
 class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
-    private val MAX_NESTEDNESS = 2
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         if (p == null) return
@@ -254,7 +252,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
-        (ExpressionResolveNameVisitor.resolve(referent, scope) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
+        (ExpressionResolveNameVisitor.resolve(referent, scope, true) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
@@ -278,60 +276,117 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return def is ArendDefFunction && (def.prec?.infixLeftKw != null || def.prec?.infixNonKw != null || def.prec?.infixRightKw != null)
     }
 
-    private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
-        var absNode = node
-        var absNodeParent = absNode.parentSourceNode
-        var nestedness = 0
+    private fun ascendLongName(node: Abstract.SourceNode): Abstract.SourceNode? {
+        if (node.parentSourceNode is ArendLongName) {
+            return node.parentSourceNode
+        }
+        return node
+    }
 
-        while (absNodeParent != null && nestedness < MAX_NESTEDNESS) {
-            if (absNode is Abstract.Reference) {
-                val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
-                val params = ref?.let { getAllParametersForReferable(it) }
-                if (params != null && !params.isEmpty()) {//ref is Abstract.ParametersHolder && !ref.parameters.isEmpty()) {
-                    val isBinOp = isBinOp(ref)
-                    val parentAppExprCandidate = absNodeParent.parentSourceNode?.parentSourceNode
-                    if (parentAppExprCandidate is ArendExpr) {
-                        if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
-                            val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
-                            if (isNewArgPos && isBinOp(loc.second.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope)})) {
-                                return Pair(0, absNode)
-                            }
-                            if (isNewArgPos && nestedness == 0) return Pair(loc.first + 1, loc.second)
-                            return loc
-                            //(absNodeParent as Abstract.SourceNode).parentSourceNode as ArendExpr) }
-                            //absNode = absNodeParent
-                            //absNodeParent = absNodeParent.parentSourceNode
-                            //continue
-                        }
-                    }
-                    if (isNewArgPos && nestedness == 0) {
-                       // if (absNodeParent.parentSourceNode?.parentSourceNode is ArendExpr && isBinOpSeq(absNodeParent.parentSourceNode?.parentSourceNode as ArendExpr))
-                        //    return Pair(1, absNode)
-                        if (!isBinOp)
-                            return Pair(0, absNode)
-                        return Pair(1, absNode)
-                    }
-                    return Pair(-1, absNode)
-                }
-            } else if (absNodeParent is ArendArgument && absNodeParent.parentSourceNode is ArendExpr ||
-                    absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) {
-                val arg: ArendExpr = if (absNodeParent is ArendArgument) absNodeParent.expression as ArendExpr else absNodeParent as ArendExpr
-                val argLoc =  if (absNodeParent is ArendArgument) locateArg(arg, (absNodeParent).parentSourceNode as ArendExpr)
-                                else locateArg(arg, absNodeParent as ArendExpr)
+    private fun ascendToLiteral(node: Abstract.SourceNode): Abstract.SourceNode {
+        if (node.parentSourceNode is ArendLiteral) {
+            return node.parentSourceNode ?: node
+        }
+        return node
+    }
 
-                if (argLoc != null) {
-                    if (isNewArgPos && nestedness == 0) return Pair(argLoc.first + 1, argLoc.second)
-                    return argLoc
-                }
+    private fun ascendLambda(node: Abstract.SourceNode): Abstract.SourceNode? {
+        if (node is ArendLamExpr) {
+            return node
+        }
+        if (node.parentSourceNode is ArendLamExpr) {
+            return node.parentSourceNode
+        }
+        if (node is ArendRefIdentifier) {
+            if (node.parentSourceNode is ArendLamExpr) {
+                return node.parentSourceNode
             }
-            if (absNodeParent !is ArendLongName) {
-                ++nestedness
+            if (node.parentSourceNode is ArendNameTele && node.parentSourceNode?.parentSourceNode is ArendLamExpr) {
+                return node.parentSourceNode?.parentSourceNode
             }
-            absNode = absNodeParent
-            absNodeParent = absNodeParent.parentSourceNode
+        }
+        return null
+    }
+
+    //TODO: remove this function
+    private fun toArgument(node: Abstract.SourceNode): Abstract.SourceNode? {
+        if (node is ArendArgument) {
+            return node
+        }
+
+        if (node is ArendTupleExpr && node.parentSourceNode is ArendArgument) {
+            return node.parentSourceNode
         }
 
         return null
+    }
+
+    private fun tryToLocateAtTheCurrentLevel(absNode: Abstract.SourceNode, isNewArgPos: Boolean, isLowestLevel: Boolean): Pair<Int, Abstract.Reference>? {
+        val absNodeParent = ascendToLiteral(absNode).parentSourceNode ?: return null
+        if (absNode is Abstract.Reference) {
+            val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
+            val params = ref?.let { getAllParametersForReferable(it) }
+            if (params != null && !params.isEmpty()) {
+                val isBinOp = isBinOp(ref)
+                val parentAppExprCandidate = absNodeParent.parentSourceNode
+                if (parentAppExprCandidate is ArendExpr) {
+                    if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
+                        val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
+                        if (isNewArgPos && isBinOp(loc.second.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope)})) {
+                            return Pair(0, absNode)
+                        }
+                        if (isNewArgPos && isLowestLevel) return Pair(loc.first + 1, loc.second)
+                        return loc
+                    }
+                }
+                if (isNewArgPos && isLowestLevel) {
+                    if (!isBinOp)
+                        return Pair(0, absNode)
+                    return Pair(1, absNode)
+                }
+                return Pair(-1, absNode)
+            }
+        }
+
+        val arg = toArgument(absNodeParent)
+        var argLoc: Pair<Int, Abstract.Reference>? = null
+
+        if (arg != null && arg.parentSourceNode is ArendExpr && arg.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
+            argLoc = (arg as ArendArgument).expression?.let{ locateArg(it as ArendExpr, arg.parentSourceNode as ArendExpr) }
+        } else if (absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) { // (absNodeParent.parentSourceNode is ArendExpr && absNodeParent.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
+            argLoc = locateArg(absNodeParent, absNodeParent)
+        }
+
+        if (argLoc != null) {
+            if (isNewArgPos && isLowestLevel) return Pair(argLoc.first + 1, argLoc.second)
+            return argLoc
+        }
+
+        /*
+        if (arg_ != null && arg_.parentSourceNode is ArendExpr && isBinOpSeq(arg_.parentSourceNode) ||
+                absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) {
+            val arg: ArendExpr = if (absNodeParent is ArendArgument) absNodeParent.expression as ArendExpr else absNodeParent as ArendExpr
+            val argLoc =  if (absNodeParent is ArendArgument) locateArg(arg, (absNodeParent).parentSourceNode as ArendExpr)
+                            else locateArg(arg, absNodeParent as ArendExpr)
+
+            if (argLoc != null) {
+                if (isNewArgPos && isLowestLevel) return Pair(argLoc.first + 1, argLoc.second)
+                return argLoc
+            }
+        } */
+
+        return null
+    }
+
+    private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
+        val absNode = ascendLongName(node) ?: return null
+        val res = tryToLocateAtTheCurrentLevel(absNode, isNewArgPos, true)
+
+        if (res != null) {
+            return res
+        }
+
+        return ascendLambda(absNode)?.parentSourceNode?.let{ tryToLocateAtTheCurrentLevel(it, isNewArgPos, false) }
     }
 
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
