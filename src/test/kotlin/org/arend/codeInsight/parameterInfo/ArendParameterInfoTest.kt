@@ -132,12 +132,19 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
-    /*
     fun `test class fields`() {
         val code = "\\class C { \\field f (x y : Nat) : Nat } \n" +
                 "\\func h (c : C) (x : Nat) => c.f {-caret-}x"
         val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
         checkParameterInfo(code, expectedHint)
-    } */
+    }
+
+    fun `test data constructors`() {
+        val code = "\\data D (x : Nat) \n" +
+                    "| cons (y : Nat)\n" +
+                "\\func h (z : Nat) => cons {x} {-caret-}z"
+        val expectedHint = "{x : Nat}, <highlight>y : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
 
 }

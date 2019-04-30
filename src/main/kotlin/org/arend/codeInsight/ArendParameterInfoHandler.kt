@@ -31,8 +31,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         var text = ""
         var hlStart = -1; var hlEnd = -1
         var ind = 0
+        var curParam = context.currentParameterIndex
         for (pm in p) {
-
+            if (pm is ArendNameTele && pm.identifierOrUnknownList.firstOrNull()?.text == "this") {
+                curParam = if (curParam == -1) -1 else curParam - 1
+                continue
+            }
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (!vars.isEmpty()) {
@@ -49,7 +53,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                     varText = "{$varText}"
                 }
                 text += varText
-                if (ind == context.currentParameterIndex) {
+                if (ind == curParam) {
                     hlStart = curOffset
                     hlEnd = text.length + 1
                 }
@@ -62,18 +66,38 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
         val params = mutableListOf<Abstract.Parameter>()
+        val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
         if (def is Abstract.ParametersHolder) {
             params.addAll(def.parameters)
             var resType: ArendExpr? = when(def) {
-                is ClassFieldAdapter -> def.resultType
+                is ClassFieldAdapter ->
+                    {
+                        val defClass = def.parent?.parent as? ArendDefClass
+                        val className = defClass?.name
+                        if (className != null) {
+                            params.add(0, psiFactory.createNameTele("this", className, false))
+                        }
+                        def.resultType
+                    }
                 is FunctionDefinitionAdapter -> def.resultType
                 else -> null
+            }
+            if (def is ArendConstructor) {
+                val defData = def.parent?.parent as? ArendDefData
+                if (defData != null) {
+                    for (tele in defData.typeTeleList.reversed()) {
+                        val type = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, tele.type).toString()
+                        for (p in tele.referableList.reversed()) {
+                            params.add(0, psiFactory.createNameTele(p.textRepresentation(), type, false))
+                        }
+                    }
+                }
             }
             while (resType != null) {
                 resType = when(resType) {
                     is ArendArrExpr -> {
-                        params.add(ArendPsiFactory(ProjectManager.getInstance().openProjects.first()).createNameTele(null,
-                                ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, resType.exprList.first()).toString()))
+                        params.add(psiFactory.createNameTele(null,
+                                ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, resType.exprList.first()).toString(), true))
                         resType.exprList[1]
                     }
                     is ArendPiExpr -> {
