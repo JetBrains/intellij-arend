@@ -24,7 +24,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         val pParent = parent.parent
         when {
             pParent is ArendStatCmd -> return nsUsage
-            pParent is ArendCoClause -> return usagesInCoClauses
+            pParent is CoClauseBase -> return usagesInCoClauses
             pParent is ArendDefClass -> return extendsUsages
             element.rightSiblings.filterIsInstance<ArendRefIdentifier>().firstOrNull() != null -> return leftUsage
         }
@@ -54,7 +54,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             if (newExpr.newKw != null) {
                 return newInstances
             }
-            if (!newExpr.coClauseList.isEmpty()) {
+            if (newExpr.coClauseList.isNotEmpty()) {
                 return classExt
             }
 
