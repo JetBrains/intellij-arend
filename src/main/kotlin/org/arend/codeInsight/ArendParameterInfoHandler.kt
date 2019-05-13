@@ -104,6 +104,16 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                         params.addAll(resType.typeTeleList)
                         resType.expr
                     }
+                    is ArendAtomFieldsAcc -> {
+                        var res: ArendExpr? = null
+                        if (resType.atom.tuple != null) {
+                            val exprList = (resType.atom.tuple as ArendTuple).tupleExprList.firstOrNull()?.exprList
+                            if (exprList?.size == 1) {
+                                res = exprList[0]
+                            }
+                        }
+                        res
+                    }
                     else -> null
                 }
             }

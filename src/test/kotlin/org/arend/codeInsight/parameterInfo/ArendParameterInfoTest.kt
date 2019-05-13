@@ -147,4 +147,11 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
+    fun `test level`() {
+        val code = "\\func f (x : Nat) : \\level (Nat -> Nat) 0\n" +
+                "\\func g (x : Nat) => f x {-caret-}"
+        val expectedHint = "x : Nat, <highlight>_ : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
 }

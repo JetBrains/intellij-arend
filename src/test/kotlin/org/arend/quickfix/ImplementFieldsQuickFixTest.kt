@@ -264,4 +264,22 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
               | {-caret-}b => c
             }
             """)
+
+    fun `test adding implementation in empty instance`() = simpleQuickFixTest("Implement",
+            """
+            --! A.ard
+            \class C (x y : Nat)
+
+            \instance foo : C{-caret-}
+              \where
+                \func bar => 0
+            ""","""
+            \class C (x y : Nat)
+
+            \instance foo : C
+              | x => {?}{-caret-}
+              | y => {?}
+              \where
+                \func bar => 0
+            """)
 }
