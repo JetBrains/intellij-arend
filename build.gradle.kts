@@ -1,17 +1,14 @@
-import org.gradle.api.internal.HasConvention
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.grammarkit.GrammarKitPluginExtension
 import org.jetbrains.grammarkit.tasks.GenerateLexer
 import org.jetbrains.grammarkit.tasks.GenerateParser
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
-    kotlin("jvm") version "1.3.21"
-    id("org.jetbrains.intellij") version "0.4.7"
-    id("org.jetbrains.grammarkit") version "2018.3.1"
+    kotlin("jvm") version "1.3.31"
+    id("org.jetbrains.intellij") version "0.4.8"
+    id("org.jetbrains.grammarkit") version "2019.1"
 }
 
 repositories {
