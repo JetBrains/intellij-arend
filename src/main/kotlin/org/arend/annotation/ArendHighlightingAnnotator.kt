@@ -166,7 +166,7 @@ class ArendHighlightingAnnotator : Annotator {
                         holder.createErrorAnnotation(longName, "Expected a class")
                         return
                     }
-                    if (resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is FieldReferable && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
+                    if (resolvedRef is PsiLocatedReferable && resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is FieldReferable) {
                         if ((pElement as? ArendNewExprImplMixin)?.classReference == null) {
                             holder.createErrorAnnotation(longName, "Expected a class")
                         }
