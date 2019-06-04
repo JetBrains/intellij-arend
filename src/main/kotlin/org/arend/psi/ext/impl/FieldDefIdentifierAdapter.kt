@@ -32,7 +32,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getName(): String = stub?.name ?: text
 
-    override fun getClassFieldKind() = ClassFieldKind.FIELD
+    override fun getClassFieldKind() = ClassFieldKind.ANY
 
     override fun textRepresentation(): String = name
 
