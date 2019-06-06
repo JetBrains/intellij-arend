@@ -2,6 +2,7 @@ package org.arend.typing
 
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendExpr
@@ -19,7 +20,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     private var mode: Mode = Mode.NONE
     var argumentsExplicitness: MutableList<Boolean> = ArrayList()
         private set
-    var implementedFields: MutableList<FieldReferable> = ArrayList()
+    var implementedFields: MutableSet<FieldReferable> = HashSet()
         private set
 
     private fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
@@ -133,9 +134,20 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
             null
         } else {
             if (requiredAdditionalInfo) {
-                val newFields = implementations?.mapNotNull { (it as? CoClauseBase)?.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? FieldReferable }
-                if (newFields != null && !newFields.isEmpty()) {
-                    implementedFields.addAll(0, newFields)
+                val newFields = implementations?.mapNotNull { (it as? CoClauseBase)?.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable }
+                if (newFields != null) {
+                    for (newField in newFields) {
+                        if (newField is FieldReferable) {
+                            implementedFields.add(newField)
+                        } else if (newField is ClassReferable) {
+                            ClassFieldImplScope(newField, false).find {
+                                if (it is FieldReferable) {
+                                    implementedFields.add(it)
+                                }
+                                false
+                            }
+                        }
+                    }
                 }
             }
             baseClass.accept(this, null)

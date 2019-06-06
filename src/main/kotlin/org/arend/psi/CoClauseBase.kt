@@ -27,7 +27,7 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
         fun getClassReferenceData(coClauseBase: CoClauseBase): ClassReferenceData? {
             val resolved = coClauseBase.getResolvedImplementedField()
             if (resolved is ClassReferable) {
-                return ClassReferenceData(resolved, emptyList(), emptyList(), false)
+                return ClassReferenceData(resolved, emptyList(), emptySet(), false)
             }
 
             val visitor = ReferableExtractVisitor(true)

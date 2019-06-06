@@ -34,7 +34,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
         val visitor = ReferableExtractVisitor(withAdditionalInfo)
         val ref = visitor.findReferable(getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr())
         val classRef = ref as? ClassReferable ?: (if (!onlyClassRef && getNewKw() != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
-        return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptyList(), false)
+        return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptySet(), false)
     }
 
     override fun getClassReference() = getClassReference(onlyClassRef = false, withAdditionalInfo = false)?.classRef

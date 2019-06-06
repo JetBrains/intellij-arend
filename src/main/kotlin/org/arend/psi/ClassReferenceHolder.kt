@@ -16,5 +16,5 @@ interface ClassReferenceHolder : Abstract.ClassReferenceHolder {
 class ClassReferenceData(
     val classRef: ClassReferable,
     val argumentsExplicitness: List<Boolean>,
-    val implementedFields: List<LocatedReferable>,
+    val implementedFields: Set<LocatedReferable>,
     val withTailImplicits: Boolean)
