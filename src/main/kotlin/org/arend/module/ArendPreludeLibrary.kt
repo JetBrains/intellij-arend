@@ -1,5 +1,6 @@
 package org.arend.module
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
@@ -100,6 +101,6 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
                 }
             }
         }
-        DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope)
+        runReadAction { DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope) }
     }
 }
