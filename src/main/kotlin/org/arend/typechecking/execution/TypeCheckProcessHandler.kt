@@ -58,7 +58,7 @@ class TypeCheckProcessHandler(
         val eventsProcessor = eventsProcessor ?: return
         ApplicationManager.getApplication().saveAll()
 
-        val typecheckingErrorReporter = TypecheckingErrorReporter(PrettyPrinterConfig.DEFAULT, eventsProcessor)
+        val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService, PrettyPrinterConfig.DEFAULT, eventsProcessor)
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
         if (modulePath != null) {
             eventsProcessor.onSuiteStarted(modulePath)
@@ -300,5 +300,8 @@ class TypeCheckProcessHandler(
 
 private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
     GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
+
     override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
+
+    override fun isTypecheckingError() = false
 }

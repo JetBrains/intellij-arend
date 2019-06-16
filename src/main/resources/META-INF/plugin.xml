@@ -150,6 +150,8 @@
 
         <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
 
+        <externalAnnotator language="Arend" implementationClass="org.arend.annotation.TypecheckerAnnotator"/>
+
         <!-- Intention Actions -->
         <intentionAction>
             <className>org.arend.intention.ImplementFieldsInNewExprIntention</className>

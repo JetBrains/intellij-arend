@@ -1,11 +1,13 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.error.GeneralError
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
@@ -24,6 +26,9 @@ import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FullName
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -50,6 +55,10 @@ interface TypeCheckingService {
 
     fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
 
+    fun reportError(error: GeneralError)
+
+    fun getErrors(file: ArendFile): List<GeneralError>
+
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
             val service = ServiceManager.getService(project, TypeCheckingService::class.java)
@@ -75,6 +84,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         private set
 
     private val listener = TypeCheckerPsiTreeChangeListener()
+
+    private val errorMap = WeakHashMap<SmartPsiElementPointer<PsiLocatedReferable>, MutableList<GeneralError>>()
 
     override fun initialize(): Boolean {
         if (isInitialized) {
@@ -121,6 +132,10 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             return null
         }
 
+        if (curRef != null) {
+            errorMap.remove(SmartPointerManager.createPointer(curRef))
+        }
+
         val tcTypecheckable = tcReferable.typecheckable ?: return null
         tcTypecheckable.location?.let { updatedModules.add(it) }
         return tcTypecheckable
@@ -138,6 +153,32 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     override fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
         listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
+    }
+
+    override fun reportError(error: GeneralError) {
+        if (!error.isTypecheckingError || error.cause !is ArendCompositeElement) {
+            return
+        }
+
+        error.affectedDefinitions.mapNotNull {
+            runReadAction {
+                val ref = PsiLocatedReferable.fromReferable(it)
+                if (ref is PsiLocatedReferable) {
+                    errorMap.computeIfAbsent(SmartPointerManager.createPointer(ref)) { ArrayList() }.add(error)
+                }
+            }
+        }
+    }
+
+    override fun getErrors(file: ArendFile): List<GeneralError> {
+        val list = ArrayList<GeneralError>()
+        for (entry in errorMap) {
+            val ref = entry.key.element
+            if (ref != null && ref.containingFile == file) {
+                list.addAll(entry.value)
+            }
+        }
+        return list
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {

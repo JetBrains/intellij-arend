@@ -19,6 +19,7 @@ import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -29,11 +30,12 @@ private fun levelToContentType(level: Error.Level): ConsoleViewContentType = whe
     Error.Level.INFO -> NORMAL_OUTPUT
 }
 
-class TypecheckingErrorReporter(private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
+class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingService, private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
     private val errorList = ArrayList<GeneralError>()
 
     override fun report(error: GeneralError) {
         errorList.add(error)
+        typeCheckingService.reportError(error)
     }
 
     fun flush() {

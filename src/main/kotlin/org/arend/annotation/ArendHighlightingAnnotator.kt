@@ -617,10 +617,12 @@ class ArendHighlightingAnnotator : Annotator {
         return result
     }
 
-    private fun levelToSeverity(level: Error.Level) = when (level) {
-        Error.Level.ERROR -> HighlightSeverity.ERROR
-        Error.Level.WARNING -> HighlightSeverity.WARNING
-        Error.Level.GOAL -> HighlightSeverity.WARNING
-        Error.Level.INFO -> HighlightSeverity.INFORMATION
+    companion object {
+        fun levelToSeverity(level: Error.Level): HighlightSeverity = when (level) {
+            Error.Level.ERROR -> HighlightSeverity.ERROR
+            Error.Level.WARNING -> HighlightSeverity.WARNING
+            Error.Level.GOAL -> HighlightSeverity.WARNING
+            Error.Level.INFO -> HighlightSeverity.INFORMATION
+        }
     }
 }
