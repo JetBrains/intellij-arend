@@ -33,6 +33,7 @@ import java.util.*
 
 class ArendHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+        /*
         var color: ArendHighlightingColors? = null
         if (element is ArendReferenceElement) {
             val resolved = ArendImportHintAction.getResolved(element)
@@ -497,6 +498,7 @@ class ArendHighlightingAnnotator : Annotator {
             }
             element.accept(TypecheckingVisitor(element, holder), expectedType)
         }
+        */
     }
 
     private fun checkPattern(pattern: ArendCompositeElement, elim: ArendElim?, teleList: List<Abstract.Parameter>, patternList: List<Abstract.Pattern>, holder: AnnotationHolder) {
