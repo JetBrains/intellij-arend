@@ -28,7 +28,7 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precede
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
-class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?) : ConcreteProvider {
+class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, private val resolve: Boolean = true) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.ReferableDefinition> = HashMap()
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
@@ -50,7 +50,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
                 }
                 return@runReadAction NullDefinition
             } else {
-                if (def.resolved == Concrete.Resolved.NOT_RESOLVED) {
+                if (resolve && def.resolved == Concrete.Resolved.NOT_RESOLVED) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
                     def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
                 }
@@ -66,7 +66,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             return result
         }
 
-        if (result.relatedDefinition.resolved != Concrete.Resolved.RESOLVED) {
+        if (resolve && result.relatedDefinition.resolved != Concrete.Resolved.RESOLVED) {
             runReadAction {
                 if (scope == null) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
