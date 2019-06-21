@@ -1,6 +1,5 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
@@ -85,7 +84,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     private val listener = TypeCheckerPsiTreeChangeListener()
 
-    private val errorMap = WeakHashMap<SmartPsiElementPointer<PsiLocatedReferable>, MutableList<GeneralError>>()
+    private val errorMap = WeakHashMap<PsiLocatedReferable, MutableList<GeneralError>>()
 
     override fun initialize(): Boolean {
         if (isInitialized) {
@@ -133,7 +132,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
 
         if (curRef != null) {
-            errorMap.remove(SmartPointerManager.createPointer(curRef))
+            errorMap.remove(curRef)
         }
 
         val tcTypecheckable = tcReferable.typecheckable ?: return null
@@ -161,21 +160,25 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
 
         error.affectedDefinitions.mapNotNull {
-            runReadAction {
-                val ref = PsiLocatedReferable.fromReferable(it)
-                if (ref is PsiLocatedReferable) {
-                    errorMap.computeIfAbsent(SmartPointerManager.createPointer(ref)) { ArrayList() }.add(error)
-                }
+            val ref = PsiLocatedReferable.fromReferable(it)
+            if (ref is PsiLocatedReferable) {
+                errorMap.computeIfAbsent(ref) { ArrayList() }.add(error)
             }
         }
     }
 
     override fun getErrors(file: ArendFile): List<GeneralError> {
         val list = ArrayList<GeneralError>()
-        for (entry in errorMap) {
-            val ref = entry.key.element
-            if (ref != null && ref.containingFile == file) {
-                list.addAll(entry.value)
+        val it = errorMap.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            val ref = entry.key
+            if (ref != null && ref.isValid) {
+                if (ref.containingFile == file) {
+                    list.addAll(entry.value)
+                }
+            } else {
+                it.remove()
             }
         }
         return list
