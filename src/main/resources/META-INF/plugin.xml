@@ -150,8 +150,6 @@
 
         <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
 
-        <externalAnnotator language="Arend" implementationClass="org.arend.annotation.TypecheckerAnnotator"/>
-
         <!-- Intention Actions -->
         <intentionAction>
             <className>org.arend.intention.ImplementFieldsInNewExprIntention</className>
@@ -230,6 +228,12 @@
                             serviceImplementation="org.arend.editor.ArendSmartKeysOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
     </extensions>
+
+    <project-components>
+        <component>
+            <implementation-class>org.arend.highlight.ArendHighlightingPassFactory</implementation-class>
+        </component>
+    </project-components>
 
     <actions>
         <action id="Arend.NewArendFile"
