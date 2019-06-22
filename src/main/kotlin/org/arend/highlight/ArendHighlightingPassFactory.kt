@@ -9,8 +9,13 @@ import com.intellij.codeInsight.daemon.impl.FileStatusMap
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiUtil
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.impl.ArendGroup
 
 class ArendHighlightingPassFactory(private val project: Project, highlightingPassRegistrar: TextEditorHighlightingPassRegistrar) : DirtyScopeTrackingHighlightingPassFactory {
     private val passId = highlightingPassRegistrar.registerTextEditorHighlightingPass(this, null, null, false, -1)
@@ -22,15 +27,22 @@ class ArendHighlightingPassFactory(private val project: Project, highlightingPas
 
         val textRange = FileStatusMap.getDirtyTextRange(editor, passId)
         return if (textRange == null) {
-            object : TextEditorHighlightingPass(project, editor.document, false) {
-                override fun doCollectInformation(progress: ProgressIndicator) {}
-
-                override fun doApplyInformationToEditor() {
-                    DaemonCodeAnalyzerEx.getInstanceEx(myProject).fileStatusMap.markFileUpToDate(document!!, id)
-                }
-            }
+            EmptyHighlightingPass(project, editor.document)
         } else {
-            ArendHighlightingPass(file, editor, textRange, DefaultHighlightInfoProcessor())
+            var psi = PsiUtil.getElementInclusiveRange(file, textRange)
+            if (psi is PsiWhiteSpace || psi is PsiComment) {
+                EmptyHighlightingPass(project, editor.document)
+            } else {
+                var group: ArendGroup = file
+                while (psi is ArendCompositeElement && psi !is ArendFile) {
+                    if (psi is ArendGroup) {
+                        group = psi
+                        break
+                    }
+                    psi = psi.parent
+                }
+                ArendHighlightingPass(file, group, editor, textRange, DefaultHighlightInfoProcessor())
+            }
         }
     }
 

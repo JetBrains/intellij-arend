@@ -1,6 +1,7 @@
 package org.arend.resolving
 
 import org.arend.naming.reference.*
+import org.arend.naming.reference.converter.ReferableConverter
 
 
 abstract class TCReferableWrapper : TCReferable {
@@ -59,4 +60,10 @@ class TCClassReferableWrapper(override val referable: ClassReferable) : TCClassR
     override fun getImplementedFields() = referable.implementedFields.map { if (it is FieldReferable) TCFieldReferableWrapper(it) else it }
 
     override fun isRecord() = referable.isRecord
+}
+
+object WrapperReferableConverter : ReferableConverter {
+    override fun toDataReferable(referable: Referable?) = referable
+
+    override fun toDataLocatedReferable(referable: LocatedReferable?) = TCReferableWrapper.wrap(referable)
 }

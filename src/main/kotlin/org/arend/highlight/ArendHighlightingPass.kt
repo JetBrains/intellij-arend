@@ -8,6 +8,7 @@ import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -21,49 +22,64 @@ import org.arend.error.ListErrorReporter
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
 import org.arend.naming.error.NotInScopeError
-import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.impl.ArendGroup
+import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.resolving.TCReferableWrapper
+import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ProxyError
 
-class ArendHighlightingPass(private val file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
+class ArendHighlightingPass(private val file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
     private val errors = ArrayList<GeneralError>()
 
     override fun getDocument(): Document = super.getDocument()!!
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        val number = numberOfDefinitions(file).toLong() - 1
-        setProgressLimit(number)
+        setProgressLimit(numberOfDefinitions(group).toLong() - 1)
 
+        val project = file.project
         val errorReporter = ListErrorReporter(errors)
-        val referableConverter = object : ReferableConverter {
-            override fun toDataReferable(referable: Referable?) = referable
-
-            override fun toDataLocatedReferable(referable: LocatedReferable?) = TCReferableWrapper.wrap(referable)
-        }
-        val concreteProvider = PsiConcreteProvider(file.project, referableConverter, errorReporter, null, false)
+        val concreteProvider = PsiConcreteProvider(project, WrapperReferableConverter, errorReporter, null, false)
+        val resolverCache = ServiceManager.getService(project, ArendResolveCache::class.java)
         DefinitionResolveNameVisitor(concreteProvider, errorReporter, object : ResolverListener {
-            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression?) { }
+            private fun resolveReference(data: Any?, referent: Referable) {
+                val reference = (data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data as? ArendReferenceElement ?: return
+                resolverCache.resolveCached({ if (referent is ErrorReference) null else referent }, reference)
+            }
 
-            override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern?) { }
+            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression) {
+                resolveReference(refExpr.data, refExpr.referent)
+
+                var arg = argument
+                while (arg is Concrete.AppExpression) {
+                    for (arg1 in arg.arguments) {
+                        (arg1.expression as? Concrete.ReferenceExpression)?.let { resolveReference(it.data, it.referent) }
+                    }
+                    arg = arg.function
+                }
+                (arg as? Concrete.ReferenceExpression)?.let { resolveReference(it.data, it.referent) }
+            }
+
+            override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern) {
+                resolveReference(pattern.data, pattern.constructor)
+            }
 
             override fun definitionResolved(definition: Concrete.Definition?) {
                 progress.checkCanceled()
                 advanceProgress(1)
             }
-        }).resolveGroup(file, null, file.scope)
+        }).resolveGroup(group, null, group.scope)
     }
 
     private fun numberOfDefinitions(group: Group): Int {
@@ -78,20 +94,18 @@ class ArendHighlightingPass(private val file: ArendFile, editor: Editor, textRan
     }
 
     override fun applyInformationWithProgress() {
-        val project = file.project
-
         val holder = AnnotationHolderImpl(AnnotationSession(file))
         for (error in errors) {
             processError(error, holder)
         }
-        for (error in TypeCheckingService.getInstance(project).getErrors(file)) {
+        for (error in TypeCheckingService.getInstance(file.project).getErrors(file)) {
             processError(error, holder)
         }
 
         val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
-                UpdateHighlightersUtil.setHighlightersToEditor(project, document, 0, document.textLength, highlights, colorsScheme, id)
+                UpdateHighlightersUtil.setHighlightersToEditor(file.project, document, 0, document.textLength, highlights, colorsScheme, id)
             }
         }, ModalityState.stateForComponent(editor.component))
     }

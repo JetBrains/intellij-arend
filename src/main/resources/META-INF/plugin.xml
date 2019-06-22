@@ -161,7 +161,9 @@
             <category>Arend</category>
         </intentionAction>
 
-        <!-- <highlightRangeExtension implementation="org.arendannotation.ArendHighlightRangeExtension"/> -->
+        <!-- <highlightRangeExtension implementation="org.arend.annotation.ArendHighlightRangeExtension"/> -->
+
+        <daemon.changeLocalityDetector implementation="org.arend.highlight.ArendChangeLocalityDetector"/>
 
         <referenceImporter implementation="org.arend.annotation.ArendReferenceImporter"/>
 
