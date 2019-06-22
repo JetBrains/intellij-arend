@@ -8,6 +8,7 @@ import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -39,6 +40,8 @@ import org.arend.typechecking.error.ProxyError
 
 class ArendHighlightingPass(private val file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
     private val errors = ArrayList<GeneralError>()
+
+    override fun getDocument(): Document = super.getDocument()!!
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         val number = numberOfDefinitions(file).toLong() - 1
@@ -75,26 +78,22 @@ class ArendHighlightingPass(private val file: ArendFile, editor: Editor, textRan
     }
 
     override fun applyInformationWithProgress() {
-        val document = editor.document
-        val modificationStamp = document.modificationStamp
         val project = file.project
 
         val holder = AnnotationHolderImpl(AnnotationSession(file))
         for (error in errors) {
             processError(error, holder)
         }
-        for (error in TypeCheckingService.getInstance(file.project).getErrors(file)) {
+        for (error in TypeCheckingService.getInstance(project).getErrors(file)) {
             processError(error, holder)
         }
 
         val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
-        if (highlights.isNotEmpty()) {
-            ApplicationManager.getApplication().invokeLater({
-                if (document.modificationStamp == modificationStamp) {
-                    UpdateHighlightersUtil.setHighlightersToEditor(project, document, 0, document.textLength, highlights, colorsScheme, id)
-                }
-            }, ModalityState.stateForComponent(editor.component))
-        }
+        ApplicationManager.getApplication().invokeLater({
+            if (isValid) {
+                UpdateHighlightersUtil.setHighlightersToEditor(project, document, 0, document.textLength, highlights, colorsScheme, id)
+            }
+        }, ModalityState.stateForComponent(editor.component))
     }
 
     private fun levelToSeverity(level: Error.Level): HighlightSeverity =
