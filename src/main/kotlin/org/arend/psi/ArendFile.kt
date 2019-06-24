@@ -61,6 +61,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT)
         }
 
+    override val defIdentifier: ArendDefIdentifier?
+        get() = null
+
     override fun getLocation() = modulePath
 
     override fun getTypecheckable(): PsiLocatedReferable = this

@@ -17,19 +17,24 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import org.arend.annotation.ArendImportHintAction
 import org.arend.error.Error
+import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.error.ListErrorReporter
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.ErrorReference
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
+import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
+import org.arend.psi.ArendRefIdentifier
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
@@ -40,8 +45,8 @@ import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ProxyError
 
-class ArendHighlightingPass(private val file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
-    private val errors = ArrayList<GeneralError>()
+class ArendHighlightingPass(private val file: ArendFile, private val group: ArendGroup, editor: Editor, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
+    private val holder = AnnotationHolderImpl(AnnotationSession(file))
 
     override fun getDocument(): Document = super.getDocument()!!
 
@@ -49,37 +54,60 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
         setProgressLimit(numberOfDefinitions(group).toLong() - 1)
 
         val project = file.project
-        val errorReporter = ListErrorReporter(errors)
+        val errorReporter = ErrorReporter { error -> processError(error) }
         val concreteProvider = PsiConcreteProvider(project, WrapperReferableConverter, errorReporter, null, false)
         val resolverCache = ServiceManager.getService(project, ArendResolveCache::class.java)
         DefinitionResolveNameVisitor(concreteProvider, errorReporter, object : ResolverListener {
-            private fun resolveReference(data: Any?, referent: Referable) {
+            private fun resolveReference(data: Any?, referent: Referable, originalRef: Referable?) {
                 val reference = (data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data as? ArendReferenceElement ?: return
-                resolverCache.resolveCached({ if (referent is ErrorReference) null else referent }, reference)
+                if (reference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
+                    holder.createInfoAnnotation(reference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                }
+                if (data is ArendLongName) {
+                    val nextToLast = reference.prevSibling
+                    if (nextToLast != null) {
+                        holder.createInfoAnnotation(TextRange(data.textRange.startOffset, nextToLast.textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                    }
+                }
+                if (referent != originalRef) {
+                    resolverCache.resolveCached({ if (referent is ErrorReference) null else referent }, reference)
+                }
             }
 
             override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression) {
-                resolveReference(refExpr.data, refExpr.referent)
+                resolveReference(refExpr.data, refExpr.referent, originalRef)
 
                 var arg = argument
                 while (arg is Concrete.AppExpression) {
                     for (arg1 in arg.arguments) {
-                        (arg1.expression as? Concrete.ReferenceExpression)?.let { resolveReference(it.data, it.referent) }
+                        (arg1.expression as? Concrete.ReferenceExpression)?.let {
+                            resolveReference(it.data, it.referent, null)
+                        }
                     }
                     arg = arg.function
                 }
-                (arg as? Concrete.ReferenceExpression)?.let { resolveReference(it.data, it.referent) }
+                (arg as? Concrete.ReferenceExpression)?.let {
+                    resolveReference(it.data, it.referent, null)
+                }
             }
 
             override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern) {
-                resolveReference(pattern.data, pattern.constructor)
+                resolveReference(pattern.data, pattern.constructor, originalRef)
             }
 
-            override fun definitionResolved(definition: Concrete.Definition?) {
+            override fun definitionResolved(definition: Concrete.Definition) {
                 progress.checkCanceled()
+                (definition.data.data as? PsiLocatedReferable)?.defIdentifier?.let {
+                    holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                }
                 advanceProgress(1)
             }
         }).resolveGroup(group, null, group.scope)
+
+        for (error in TypeCheckingService.getInstance(file.project).getErrors(file)) {
+            progress.checkCanceled()
+            processError(error)
+        }
     }
 
     private fun numberOfDefinitions(group: Group): Int {
@@ -94,18 +122,10 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
     }
 
     override fun applyInformationWithProgress() {
-        val holder = AnnotationHolderImpl(AnnotationSession(file))
-        for (error in errors) {
-            processError(error, holder)
-        }
-        for (error in TypeCheckingService.getInstance(file.project).getErrors(file)) {
-            processError(error, holder)
-        }
-
         val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
-                UpdateHighlightersUtil.setHighlightersToEditor(file.project, document, 0, document.textLength, highlights, colorsScheme, id)
+                UpdateHighlightersUtil.setHighlightersToEditor(file.project, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
             }
         }, ModalityState.stateForComponent(editor.component))
     }
@@ -118,12 +138,12 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
             Error.Level.INFO -> HighlightSeverity.INFORMATION
         }
 
-    private fun createAnnotation(error: GeneralError, range: TextRange, holder: AnnotationHolder): Annotation {
+    private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))))
     }
 
-    private fun processError(error: GeneralError, holder: AnnotationHolder) {
+    private fun processError(error: GeneralError) {
         val psi = error.cause as? ArendCompositeElement
         if (psi != null && psi.isValid) {
             val localError = (error as? ProxyError)?.localError
@@ -137,7 +157,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
                     is PsiDirectory -> holder.createErrorAnnotation(ref, "Unexpected reference to a directory")
                     is PsiFile -> holder.createErrorAnnotation(ref, "Unexpected reference to a file")
                     else -> {
-                        val annotation = createAnnotation(error, (ref ?: psi).textRange, holder)
+                        val annotation = createAnnotation(error, (ref ?: psi).textRange)
                         if (resolved == null) {
                             annotation.highlightType = ProblemHighlightType.ERROR
                             if (ref != null && localError.index == 0) {
@@ -151,7 +171,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
                     }
                 }
             } else {
-                createAnnotation(error, psi.textRange, holder)
+                createAnnotation(error, psi.textRange)
             }
         }
     }

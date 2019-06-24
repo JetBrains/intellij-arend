@@ -4,6 +4,7 @@ import com.intellij.openapi.application.runReadAction
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
+import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
 import org.arend.resolving.DataLocatedReferable
@@ -11,6 +12,8 @@ import org.arend.resolving.DataLocatedReferable
 
 interface PsiLocatedReferable : LocatedReferable, PsiReferable {
     override fun getTypecheckable(): PsiLocatedReferable
+
+    val defIdentifier: ArendDefIdentifier?
 
     companion object {
         fun fromReferable(referable: GlobalReferable): PsiLocatedReferable? {
