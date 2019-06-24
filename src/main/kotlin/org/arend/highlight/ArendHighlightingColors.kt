@@ -9,22 +9,23 @@ enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey
     IDENTIFIER("Identifier", Default.IDENTIFIER),
     NUMBER("Number", Default.NUMBER),
     KEYWORD("Keyword", Default.KEYWORD),
-    UNIVERSE("Universe", Default.LABEL),
+    UNIVERSE("Universe", Default.KEYWORD),
     IMPLICIT("Implicit", Default.INSTANCE_FIELD),
     DECLARATION("Declaration", Default.FUNCTION_DECLARATION),
 
-    OPERATORS("Operator sign", Default.COMMA),
-    DOT("Dot", Default.COMMA),
-    COMMA("Comma", Default.COMMA),
-    COLON("Colon", Default.COMMA),
+    OPERATORS("Operator", Default.COMMA),
+    DOT("Separators//Dot", Default.COMMA),
+    COMMA("Separators//Comma", Default.COMMA),
+    PIPE("Separators//Pipe", Default.COMMA),
+    COLON("Separators//Colon", Default.COMMA),
     ARROW("Arrow", Default.COMMA),
 
     BRACES("Braces", Default.BRACES),
     PARENTHESIS("Parenthesis", Default.PARENTHESES),
 
-    BLOCK_COMMENT("Block comment", Default.BLOCK_COMMENT),
-    LINE_COMMENT("Line comment", Default.LINE_COMMENT),
-    DOC_COMMENT("Documentation", Default.DOC_COMMENT),
+    BLOCK_COMMENT("Comments//Block comment", Default.BLOCK_COMMENT),
+    LINE_COMMENT("Comments//Line comment", Default.LINE_COMMENT),
+    DOC_COMMENT("Comments//Documentation", Default.DOC_COMMENT),
     LONG_NAME("Long name", Default.CONSTANT),
 
     BAD_CHARACTER("Bad character", HighlighterColors.BAD_CHARACTER);

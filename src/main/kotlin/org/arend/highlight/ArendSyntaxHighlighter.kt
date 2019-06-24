@@ -21,15 +21,15 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
         fun map(tokenType: IElementType?): ArendHighlightingColors? = when (tokenType) {
             ArendElementTypes.ID -> ArendHighlightingColors.IDENTIFIER
             ArendElementTypes.NUMBER -> ArendHighlightingColors.NUMBER
+            ArendElementTypes.PROP_KW, ArendElementTypes.SET, ArendElementTypes.UNIVERSE, ArendElementTypes.TRUNCATED_UNIVERSE -> ArendHighlightingColors.UNIVERSE
             in AREND_KEYWORDS -> ArendHighlightingColors.KEYWORD
-            ArendElementTypes.SET, ArendElementTypes.UNIVERSE, ArendElementTypes.TRUNCATED_UNIVERSE -> ArendHighlightingColors.UNIVERSE
-            ArendElementTypes.UNDERSCORE, ArendElementTypes.GOAL -> ArendHighlightingColors.IMPLICIT
+            ArendElementTypes.UNDERSCORE -> ArendHighlightingColors.IMPLICIT
 
             ArendElementTypes.INFIX, ArendElementTypes.POSTFIX -> ArendHighlightingColors.OPERATORS
             ArendElementTypes.DOT -> ArendHighlightingColors.DOT
             ArendElementTypes.COMMA -> ArendHighlightingColors.COMMA
             ArendElementTypes.COLON -> ArendHighlightingColors.COLON
-            ArendElementTypes.PIPE -> ArendHighlightingColors.COMMA
+            ArendElementTypes.PIPE -> ArendHighlightingColors.PIPE
             ArendElementTypes.ARROW, ArendElementTypes.FAT_ARROW -> ArendHighlightingColors.ARROW
 
             ArendElementTypes.LBRACE, ArendElementTypes.RBRACE -> ArendHighlightingColors.BRACES
