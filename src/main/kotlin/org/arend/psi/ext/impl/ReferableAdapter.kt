@@ -38,7 +38,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 prec.nonAssocKw != null || prec.infixNonKw != null -> Precedence.Associativity.NON_ASSOC
                 else -> return Precedence.DEFAULT
             }
-            return Precedence(assoc, prec.number?.text?.toByteOrNull() ?: 11, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
+            val priority = prec.number
+            return Precedence(assoc, if (priority == null) 10 else priority.text?.toByteOrNull() ?: 11, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

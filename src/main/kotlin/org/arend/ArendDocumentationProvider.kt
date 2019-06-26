@@ -13,6 +13,7 @@ import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.ReferableAdapter
 
 
 private fun String.htmlEscape(): String = HtmlEscapers.htmlEscaper().escape(this)
@@ -31,7 +32,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 }
 
                 val docComments = extractDocComments(element)
-                if (!docComments.isEmpty()) {
+                if (docComments.isNotEmpty()) {
                     wrap(CONTENT_START, CONTENT_END) {
                         append(docComments)
                     }
@@ -44,30 +45,23 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
     private fun getElementJustBeforeReferable(element: PsiReferable): PsiElement? {
-        if (element.parent is ArendClassStat || element.parent is ArendStatement) {
-            return element.parent.prevSibling
-        }
-        return null
+        val parent = element.parent
+        return if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
     }
 
     private fun extractDocComments(element: PsiReferable): String =
             buildString {
                 var prevElement = getElementJustBeforeReferable(element)
-                if (prevElement is PsiWhiteSpace) {
+                while (prevElement is PsiWhiteSpace || prevElement is PsiComment && (prevElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
                     prevElement = prevElement.prevSibling
                 }
-                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.BLOCK_COMMENT_END) {
-                    prevElement = prevElement.prevSibling
+                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
+                    append(prevElement.text)
+                } else {
                     while (prevElement is PsiComment && prevElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
-                        if (prevElement.tokenType != ArendElementTypes.BLOCK_COMMENT) {
-                            append(prevElement.text)
-                        }
+                        append(prevElement.text)
                         prevElement = prevElement.prevSibling
                     }
-                }
-                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.LINE_DOC_TEXT
-                    && prevElement.prevSibling is PsiComment && (prevElement.prevSibling as PsiComment).tokenType == ArendElementTypes.LINE_DOC_COMMENT_START) {
-                    append(prevElement.text)
                 }
             }
 
@@ -98,9 +92,18 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             resultType?.let { append(" : ${it.text}") }
         }
 
-    fun StringBuilder.generateContent(element: PsiElement, originalElement: PsiElement?) {
+    private fun StringBuilder.generateContent(element: PsiElement, originalElement: PsiElement?) {
         wrapTag("em") {
             getType(element)?.let { append(it.htmlEscape()) }
+        }
+
+        (element as? ReferableAdapter<*>)?.getPrec()?.let {
+            append(", ")
+            append(it.firstChild.text.drop(1))
+            it.number?.let { priority ->
+                append(" ")
+                append(priority.text)
+            }
         }
 
         getSourceFileName(element, originalElement)
@@ -143,72 +146,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         this.append(postfix)
     }
 
-    private inline fun StringBuilder.wrapNonempty(prefix: String, postfix: String, crossinline body: () -> Unit) {
-        this.append(prefix)
-        body()
-        this.append(postfix)
-    }
-
     private inline fun StringBuilder.wrapTag(tag: String, crossinline body: () -> Unit) {
         wrap("<$tag>", "</$tag>", body)
     }
-
-
-    /*  private fun printParameters(parameters: List<Abstract.Parameter>): String? {
-        val list = ConcreteBuilder.convertParams(IdReferableConverter.INSTANCE, parameters)
-        return if (list != null && list.isNotEmpty()) {
-            val builder = StringBuilder()
-            val printer = PrettyPrintVisitor(builder, 0, false)
-            builder.append(' ')
-            printer.prettyPrintParameters(list, 0)
-            builder.toString()
-        } else ""
-    }
-
-    private fun printExpression(anchor: Abstract.Expression): String? {
-        val expression = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, anchor)
-        return if (expression != null) {
-            val builder = StringBuilder()
-            val printer = PrettyPrintVisitor(builder, 0, false)
-            expression.accept(printer, Precedence(0))
-            builder.toString()
-        } else ""
-    }
-
-    fun getConstructorInfo (anchor : ArendConstructor) : String? {
-        val reporter = ListErrorReporter()
-        val concreteElement = anchor.computeConcrete(reporter)
-        val builder = StringBuilder()
-        if (reporter.errorList.isEmpty()) {
-            when (concreteElement) {
-                is Concrete.Constructor -> {
-                    builder.append(' ')
-                    val printer = PrettyPrintVisitor(builder, 0, false)
-                    printer.prettyPrintParameters(concreteElement.parameters, 0)
-                }
-            }
-        }
-        return builder.toString()
-    }
-
-    fun getDefFunctionInfo(anchor : ArendDefFunction) : String? {
-        val reporter = ListErrorReporter()
-        val concreteElement = anchor.computeConcrete(reporter)
-        val builder = StringBuilder()
-        if (reporter.errorList.isEmpty()) {
-            when (concreteElement) {
-                is Concrete.FunctionDefinition -> {
-                    builder.append(' ')
-                    val printer = PrettyPrintVisitor(builder, 0, false)
-                    printer.prettyPrintParameters(concreteElement.parameters, 0)
-                    val resultType = concreteElement.resultType
-                    if (resultType != null) {
-                        builder.append(": ")
-                        resultType.accept(printer, Precedence(0))
-                    }
-                }
-            }
-        }
-        return builder.toString()
-    } */
 }
