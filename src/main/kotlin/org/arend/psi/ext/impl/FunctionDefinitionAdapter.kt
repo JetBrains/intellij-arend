@@ -8,7 +8,6 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefFunctionStub
-import org.arend.term.Precedence
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
@@ -30,8 +29,6 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     override fun getEliminatedExpressions(): List<ArendRefIdentifier> = functionBody?.elim?.refIdentifierList ?: emptyList()
 
     override fun getClauses(): List<ArendClause> = functionBody?.functionClauses?.clauseList ?: emptyList()
-
-    override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition

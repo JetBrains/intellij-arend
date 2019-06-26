@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefModule
+import org.arend.psi.ArendPrec
 import org.arend.psi.ArendStatCmd
 import org.arend.psi.ancestors
 import org.arend.psi.stubs.ArendDefModuleStub
@@ -18,6 +19,8 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     override val scope: Scope
         get() = groupScope
+
+    override fun getPrec(): ArendPrec? = null
 
     override fun getParentGroup(): ArendGroup? = parent.ancestors.filterIsInstance<ArendGroup>().firstOrNull()
 

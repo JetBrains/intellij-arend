@@ -6,7 +6,6 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendConstructorStub
-import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.typing.ExpectedTypeVisitor
 import javax.swing.Icon
@@ -23,8 +22,6 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
     override fun getPatterns(): List<Abstract.Pattern> = emptyList()
 
     override fun getConstructors(): List<ArendConstructor> = listOf(this)
-
-    override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun getReferable() = this
 

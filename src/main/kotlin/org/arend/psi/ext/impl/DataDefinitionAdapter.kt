@@ -7,7 +7,6 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
-import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ExpectedTypeVisitor
@@ -37,8 +36,6 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
         val body = dataBody ?: return emptyList()
         return body.constructorClauseList + body.constructorList
     }
-
-    override fun getPrecedence(): Precedence = calcPrecedence(prec)
 
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition

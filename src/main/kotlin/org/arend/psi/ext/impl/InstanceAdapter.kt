@@ -30,8 +30,6 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getClauses(): List<ArendClause> = instanceBody?.functionClauses?.clauseList ?: emptyList()
 
-    override fun getPrecedence() = calcPrecedence(prec)
-
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition
         if (def is ArendDefFunction && def.useKw != null) def else null

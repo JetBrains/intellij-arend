@@ -3,39 +3,38 @@ package org.arend.highlight
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.Annotation
-import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.annotation.ArendImportHintAction
 import org.arend.error.Error
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
-import org.arend.error.ListErrorReporter
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
+import org.arend.naming.error.NamingError
+import org.arend.naming.error.NamingError.Kind.*
 import org.arend.naming.error.NotInScopeError
-import org.arend.naming.reference.ErrorReference
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.Referable
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendFile
-import org.arend.psi.ArendLongName
-import org.arend.psi.ArendRefIdentifier
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.resolving.WrapperReferableConverter
@@ -111,7 +110,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
     }
 
     private fun numberOfDefinitions(group: Group): Int {
-        var res = 1
+        var res = if (group.referable is ArendDefinition) 1 else 0
         for (subgroup in group.subgroups) {
             res += numberOfDefinitions(subgroup)
         }
@@ -130,13 +129,34 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
         }, ModalityState.stateForComponent(editor.component))
     }
 
-    private fun levelToSeverity(level: Error.Level): HighlightSeverity =
-        when (level) {
-            Error.Level.ERROR -> HighlightSeverity.ERROR
-            Error.Level.WARNING -> HighlightSeverity.WARNING
-            Error.Level.GOAL -> HighlightSeverity.WARNING
-            Error.Level.INFO -> HighlightSeverity.INFORMATION
+    companion object {
+        fun levelToSeverity(level: Error.Level): HighlightSeverity =
+            when (level) {
+                Error.Level.ERROR -> HighlightSeverity.ERROR
+                Error.Level.WARNING -> HighlightSeverity.WARNING
+                Error.Level.GOAL -> HighlightSeverity.WARNING
+                Error.Level.INFO -> HighlightSeverity.INFORMATION
+            }
+
+        private fun getImprovedErrorElement(error: Error?, element: ArendCompositeElement): PsiElement? = when (error) {
+            is NamingError -> when (error.kind) {
+                USE_IN_CLASS -> (element as? ArendDefFunction)?.useKw
+                LEVEL_IN_FIELD -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
+                INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
+                null -> null
+            }
+            is ProxyError -> getImprovedErrorElement(error.localError, element)
+            else -> null
         }
+
+        private fun getCauseElement(error: Error): ArendCompositeElement? {
+            val cause = error.cause?.let { (it as? DataContainer)?.data ?: it }
+            return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? ArendCompositeElement
+        }
+
+        fun getImprovedCause(error: Error) = getCauseElement(error)?.let { getImprovedErrorElement(error, it) }
+    }
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
@@ -144,7 +164,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
     }
 
     private fun processError(error: GeneralError) {
-        val psi = error.cause as? ArendCompositeElement
+        val psi = getCauseElement(error)
         if (psi != null && psi.isValid) {
             val localError = (error as? ProxyError)?.localError
             if (localError is NotInScopeError) {
@@ -171,7 +191,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
                     }
                 }
             } else {
-                createAnnotation(error, psi.textRange)
+                createAnnotation(error, (getImprovedErrorElement(localError, psi) ?: psi).textRange)
             }
         }
     }

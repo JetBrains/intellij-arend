@@ -11,12 +11,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.error.Error
-import org.arend.error.ErrorReporter
-import org.arend.error.GeneralError
+import org.arend.error.*
 import org.arend.error.doc.*
+import org.arend.highlight.ArendHighlightingPass
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.reference.Referable
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.typechecking.TypeCheckingService
@@ -101,14 +101,25 @@ class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingSer
             return null
         }
 
+        private fun replaceReference(ref: Referable): Referable {
+            if (ref is SourceInfoReference) {
+                val newCause = ArendHighlightingPass.getImprovedCause(error)
+                if (newCause != null) {
+                    return SourceInfoReference(newCause as? SourceInfo ?: PsiSourceInfo(runReadAction { SmartPointerManager.createPointer(newCause) }))
+                }
+            }
+            return ref
+        }
+
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val data = (doc.reference as? DataContainer)?.data
+            val reference = replaceReference(doc.reference)
+            val data = (reference as? DataContainer)?.data
             val ref = data as? SmartPsiElementPointer<*> ?:
-                (data as? PsiElement ?: (doc.reference as? PsiElement))?.let { runReadAction { SmartPointerManager.createPointer(it) } }
+                (data as? PsiElement ?: reference as? PsiElement)?.let { runReadAction { SmartPointerManager.createPointer(it) } }
             if (ref == null) {
-                printText(doc.reference.textRepresentation())
+                printText(reference.textRepresentation())
             } else {
-                printHyperlink(doc.reference.textRepresentation(), PsiHyperlinkInfo(ref))
+                printHyperlink(reference.textRepresentation(), PsiHyperlinkInfo(ref))
             }
             if (newLine) printNewLine()
             return null

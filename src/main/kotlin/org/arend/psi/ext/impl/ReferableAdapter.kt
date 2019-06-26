@@ -19,7 +19,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getPrecedence(): Precedence = Precedence.DEFAULT
+    abstract fun getPrec(): ArendPrec?
+
+    override fun getPrecedence() = calcPrecedence(getPrec())
 
     override fun getTypecheckable(): PsiLocatedReferable = ancestors.filterIsInstance<ArendDefinition>().firstOrNull() ?: this
 
@@ -36,7 +38,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 prec.nonAssocKw != null || prec.infixNonKw != null -> Precedence.Associativity.NON_ASSOC
                 else -> return Precedence.DEFAULT
             }
-            return Precedence(assoc, prec.number?.text?.toByteOrNull() ?: 10, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
+            return Precedence(assoc, prec.number?.text?.toByteOrNull() ?: 11, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

@@ -38,7 +38,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getReference(): ArendReference = ArendDefReferenceImpl<ArendFieldDefIdentifier>(this)
 
-    override fun getPrecedence(): Precedence = Precedence.DEFAULT
+    override fun getPrec(): ArendPrec? = null
 
     override fun getReferable() = this
 

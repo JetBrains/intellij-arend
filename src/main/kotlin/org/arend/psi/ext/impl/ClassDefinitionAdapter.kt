@@ -61,8 +61,6 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? =
         ClassReferenceData(this, emptyList(), emptySet(), false)
 
-    override fun getPrecedence() = calcPrecedence(prec)
-
     override fun getUsedDefinitions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if (it is ArendDefFunction && it.useKw != null) it else null }
 

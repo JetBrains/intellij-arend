@@ -29,8 +29,6 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
         }
     }
 
-    override fun getPrecedence() = calcPrecedence(prec)
-
     override fun getReferable() = this
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
