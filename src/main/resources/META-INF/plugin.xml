@@ -238,6 +238,9 @@
         <component>
             <implementation-class>org.arend.highlight.TypecheckerPassFactory</implementation-class>
         </component>
+        <component>
+            <implementation-class>org.arend.highlight.DumbTypecheckerPassFactory</implementation-class>
+        </component>
     </project-components>
 
     <actions>

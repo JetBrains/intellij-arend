@@ -30,16 +30,20 @@ abstract class TCReferableWrapper : TCReferable {
 
     override fun getParameterType(parameters: MutableList<Boolean>?) = referable.getParameterType(parameters)
 
+    override fun equals(other: Any?) = this === other || referable == (other as? TCReferableWrapper)?.referable
+
+    override fun hashCode() = referable.hashCode()
+
     companion object {
-        fun wrap(referable: LocatedReferable?): TCReferable? =
-                when (referable) {
-                    null -> null
-                    is TCReferable -> referable
-                    is FieldReferable -> TCFieldReferableWrapper(referable)
-                    is ClassReferable -> TCClassReferableWrapper(referable)
-                    else -> TCReferableWrapperImpl(referable)
-                }
+        fun wrap(referable: LocatedReferable?) = when (referable) {
+            null -> null
+            is TCReferable -> referable
+            is FieldReferable -> TCFieldReferableWrapper(referable)
+            is ClassReferable -> TCClassReferableWrapper(referable)
+            else -> TCReferableWrapperImpl(referable)
+        }
     }
+
 }
 
 class TCReferableWrapperImpl(override val referable: LocatedReferable) : TCReferableWrapper()

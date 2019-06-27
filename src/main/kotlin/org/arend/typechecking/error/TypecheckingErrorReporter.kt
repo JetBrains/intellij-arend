@@ -13,7 +13,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.*
 import org.arend.error.doc.*
-import org.arend.highlight.ArendHighlightingPass
+import org.arend.highlight.BasePass
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
@@ -103,7 +103,7 @@ class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingSer
 
         private fun replaceReference(ref: Referable): Referable {
             if (ref is SourceInfoReference) {
-                val newCause = ArendHighlightingPass.getImprovedCause(error)
+                val newCause = BasePass.getImprovedCause(error)
                 if (newCause != null) {
                     return SourceInfoReference(newCause as? SourceInfo ?: PsiSourceInfo(runReadAction { SmartPointerManager.createPointer(newCause) }))
                 }

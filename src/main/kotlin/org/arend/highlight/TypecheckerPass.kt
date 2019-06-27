@@ -23,7 +23,7 @@ class TypecheckerPass(private val file: ArendFile, editor: Editor, textRange: Te
         setProgressLimit(errors.size.toLong())
         for (pair in errors) {
             progress.checkCanceled()
-            ArendHighlightingPass.processError(pair.first, pair.second, holder)
+            BasePass.processError(pair.first, pair.second, holder)
             advanceProgress(1)
         }
     }

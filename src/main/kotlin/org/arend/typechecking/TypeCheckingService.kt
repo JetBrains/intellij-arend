@@ -172,7 +172,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     override fun reportError(error: GeneralError) {
-        if (!error.isTypecheckingError || error.cause !is ArendCompositeElement) {
+        if (!error.isTypecheckingError) {
             return
         }
 
