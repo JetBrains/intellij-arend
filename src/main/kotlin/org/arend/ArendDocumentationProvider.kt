@@ -6,9 +6,7 @@ import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
-import com.intellij.psi.util.PsiTreeUtil
 import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
@@ -19,82 +17,72 @@ import org.arend.psi.ext.impl.ReferableAdapter
 private fun String.htmlEscape(): String = HtmlEscapers.htmlEscaper().escape(this)
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
-    override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?): String? =
-        generateDoc(element, originalElement)
+    override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
-    override fun generateDoc(element: PsiElement, originalElement: PsiElement?) =
+    override fun generateDoc(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, true)
+
+    private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean) =
         if (element !is PsiReferable) {
             null
-        } else {
-            buildString {
-                wrap(DEFINITION_START, DEFINITION_END) {
-                    generateDefinition(element)
-                }
+        } else buildString {
+            wrap(DEFINITION_START, DEFINITION_END) {
+                generateDefinition(element)
+            }
 
-                val docComments = extractDocComments(element)
-                if (docComments.isNotEmpty()) {
-                    wrap(CONTENT_START, CONTENT_END) {
-                        append(docComments)
-                    }
-                }
+            wrap(CONTENT_START, CONTENT_END) {
+                generateContent(element, originalElement)
+            }
 
-                wrap(CONTENT_START, CONTENT_END) {
-                    generateContent(element, originalElement)
-                }
+            if (withDocComments) {
+                generateDocComments(element)
             }
         }
 
-    private fun getElementJustBeforeReferable(element: PsiReferable): PsiElement? {
+    private fun StringBuilder.generateDocComments(element: PsiReferable) {
         val parent = element.parent
-        return if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
+        var curElement = if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
+        while (curElement is PsiWhiteSpace || curElement is PsiComment && (curElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
+            curElement = curElement.prevSibling
+        }
+
+        append(CONTENT_START)
+        if (curElement is PsiComment && curElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
+            html(curElement.text)
+        } else {
+            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
+                curElement = curElement.prevSibling
+            }
+
+            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_COMMENT_END) {
+                if (curElement.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
+                    html(curElement.text)
+                    append(" ")
+                }
+                curElement = curElement.nextSibling
+            }
+        }
+        append(CONTENT_END)
     }
 
-    private fun extractDocComments(element: PsiReferable): String =
-            buildString {
-                var prevElement = getElementJustBeforeReferable(element)
-                while (prevElement is PsiWhiteSpace || prevElement is PsiComment && (prevElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
-                    prevElement = prevElement.prevSibling
-                }
-                if (prevElement is PsiComment && prevElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
-                    append(prevElement.text)
-                } else {
-                    while (prevElement is PsiComment && prevElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
-                        append(prevElement.text)
-                        prevElement = prevElement.prevSibling
-                    }
-                }
-            }
+    private fun StringBuilder.html(text: String) = append(text.htmlEscape())
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
         wrapTag("b") {
-            append(element.textRepresentation().htmlEscape())
+            html(element.textRepresentation())
         }
 
-        append(getParametersList(element).htmlEscape())
-        append(getResultType(element).htmlEscape())
-    }
-
-    private fun getParametersList(element: PsiReferable) =
-        buildString {
-            val parameters: List<Abstract.Parameter> =
-                (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()
-
-            for (parameter in parameters) {
-                if (parameter is PsiElement) {
-                    append(" ${parameter.text}")
-                }
+        for (parameter in (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()) {
+            if (parameter is PsiElement) {
+                html(" ${parameter.text}")
             }
         }
 
-    private fun getResultType(element: PsiReferable) =
-        buildString {
-            val resultType = element.psiElementType
-            resultType?.let { append(" : ${it.text}") }
-        }
+        element.psiElementType?.let { html(" : ${it.text}") }
+    }
 
     private fun StringBuilder.generateContent(element: PsiElement, originalElement: PsiElement?) {
         wrapTag("em") {
-            getType(element)?.let { append(it.htmlEscape()) }
+            getType(element)?.let { append(it) }
         }
 
         (element as? ReferableAdapter<*>)?.getPrec()?.let {
@@ -106,14 +94,11 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
         }
 
-        getSourceFileName(element, originalElement)
-            ?.run(String::htmlEscape)
-            ?.let { fileName ->
-                StringBuilder().also {
-                    createHyperlink(it, fileName, fileName, false)
-                    append(", defined in $it")
-                }
-            }
+        getSourceFileName(element, originalElement)?.let {
+            val fileName = it.htmlEscape()
+            append(", defined in ")
+            createHyperlink(this, fileName, fileName, false)
+        }
     }
 
     private fun getType(element: PsiElement): String? = when (element) {
