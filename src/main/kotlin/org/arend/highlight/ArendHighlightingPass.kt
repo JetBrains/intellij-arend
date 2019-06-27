@@ -3,6 +3,7 @@ package org.arend.highlight
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.Annotation
+import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
@@ -41,10 +42,11 @@ import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ProxyError
 
-class ArendHighlightingPass(private val file: ArendFile, private val group: ArendGroup, editor: Editor, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor) : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
+class ArendHighlightingPass(private val file: ArendFile, private val group: ArendGroup, editor: Editor, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+    : ProgressableTextEditorHighlightingPass(file.project, editor.document, "Arend resolver annotator", file, editor, textRange, false, highlightInfoProcessor) {
+
     private val holder = AnnotationHolderImpl(AnnotationSession(file))
 
     override fun getDocument(): Document = super.getDocument()!!
@@ -53,7 +55,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
         setProgressLimit(numberOfDefinitions(group).toLong() - 1)
 
         val project = file.project
-        val errorReporter = ErrorReporter { error -> processError(error) }
+        val errorReporter = ErrorReporter { error -> processError(error, holder) }
         val concreteProvider = PsiConcreteProvider(project, WrapperReferableConverter, errorReporter, null, false)
         val resolverCache = ServiceManager.getService(project, ArendResolveCache::class.java)
         DefinitionResolveNameVisitor(concreteProvider, errorReporter, object : ResolverListener {
@@ -102,11 +104,6 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
                 advanceProgress(1)
             }
         }).resolveGroup(group, null, group.scope)
-
-        for (error in TypeCheckingService.getInstance(file.project).getErrors(file)) {
-            progress.checkCanceled()
-            processError(error)
-        }
     }
 
     private fun numberOfDefinitions(group: Group): Int {
@@ -156,33 +153,37 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
         }
 
         fun getImprovedCause(error: Error) = getCauseElement(error)?.let { getImprovedErrorElement(error, it) }
-    }
 
-    private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
-        val ppConfig = PrettyPrinterConfig.DEFAULT
-        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))))
-    }
+        private fun createAnnotation(error: GeneralError, range: TextRange, holder: AnnotationHolder): Annotation {
+            val ppConfig = PrettyPrinterConfig.DEFAULT
+            return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))))
+        }
 
-    private fun processError(error: GeneralError) {
-        val psi = getCauseElement(error)
-        if (psi != null && psi.isValid) {
+        private fun processError(error: GeneralError, holder: AnnotationHolder) {
+            val psi = getCauseElement(error)
+            if (psi != null && psi.isValid) {
+                processError(error, psi, holder)
+            }
+        }
+
+        fun processError(error: GeneralError, cause: ArendCompositeElement, holder: AnnotationHolder) {
             val localError = (error as? ProxyError)?.localError
             if (localError is NotInScopeError) {
-                val ref = when (psi) {
-                    is ArendReferenceElement -> psi
-                    is ArendLongName -> psi.refIdentifierList.getOrNull(localError.index)
+                val ref = when (cause) {
+                    is ArendReferenceElement -> cause
+                    is ArendLongName -> cause.refIdentifierList.getOrNull(localError.index)
                     else -> null
                 }
                 when (val resolved = ref?.reference?.resolve()) {
                     is PsiDirectory -> holder.createErrorAnnotation(ref, "Unexpected reference to a directory")
                     is PsiFile -> holder.createErrorAnnotation(ref, "Unexpected reference to a file")
                     else -> {
-                        val annotation = createAnnotation(error, (ref ?: psi).textRange)
+                        val annotation = createAnnotation(error, (ref ?: cause).textRange, holder)
                         if (resolved == null) {
                             annotation.highlightType = ProblemHighlightType.ERROR
                             if (ref != null && localError.index == 0) {
                                 val fix = ArendImportHintAction(ref)
-                                val file = psi.containingFile
+                                val file = cause.containingFile
                                 if (fix.isAvailable(file.project, null, file)) {
                                     annotation.registerFix(fix)
                                 }
@@ -191,7 +192,7 @@ class ArendHighlightingPass(private val file: ArendFile, private val group: Aren
                     }
                 }
             } else {
-                createAnnotation(error, (getImprovedErrorElement(localError, psi) ?: psi).textRange)
+                createAnnotation(error, (getImprovedErrorElement(localError, cause) ?: cause).textRange, holder)
             }
         }
     }

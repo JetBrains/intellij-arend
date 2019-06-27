@@ -5,6 +5,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
+import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.DataLocatedReferable
@@ -20,18 +21,27 @@ import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 class TestBasedTypechecking(
     private val eventsProcessor: TypecheckingEventsProcessor,
     instanceProviderSet: PsiInstanceProviderSet,
-    state: TypecheckerState,
+    private val typeCheckingService: TypeCheckingService,
     concreteProvider: ConcreteProvider,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, state, concreteProvider, errorReporter, dependencyListener, PsiElementComparator) {
+    : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, errorReporter, dependencyListener, PsiElementComparator) {
 
     val typecheckedModules = LinkedHashSet<FullModulePath>()
     val typecheckedFiles = LinkedHashSet<SmartPsiElementPointer<ArendFile>>()
 
-    private fun startTimer(definition: TCReferable) {
+    private fun startTypechecking(definition: TCReferable, clearErrors: Boolean) {
         val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
-        (runReadAction { psiPtr.element } as? PsiLocatedReferable)?.let { eventsProcessor.startTimer(it) }
+        val element = runReadAction {
+            val element = psiPtr.element
+            if (clearErrors && element is ArendDefinition) {
+                typeCheckingService.clearErrors(element)
+            }
+            element
+        }
+        if (element is PsiLocatedReferable) {
+            eventsProcessor.startTimer(element)
+        }
     }
 
     private fun stopTimer(definition: TCReferable) {
@@ -40,7 +50,7 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingUnitStarted(definition: TCReferable) {
-        startTimer(definition)
+        startTypechecking(definition, true)
     }
 
     override fun typecheckingUnitFinished(referable: TCReferable, definition: Definition) {
@@ -66,7 +76,7 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingHeaderStarted(definition: TCReferable) {
-        startTimer(definition)
+        startTypechecking(definition, true)
     }
 
     override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition?) {
@@ -74,7 +84,7 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingBodyStarted(definition: TCReferable) {
-        startTimer(definition)
+        startTypechecking(definition, false)
     }
 
     override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {

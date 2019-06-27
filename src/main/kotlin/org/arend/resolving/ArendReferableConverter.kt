@@ -3,6 +3,7 @@ package org.arend.resolving
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.reference.converter.SimpleReferableConverter
@@ -44,7 +45,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                 } else {
                     val result = cache.computeIfAbsent(referable) {
                         val result = state.computeIfAbsent(referable) {
-                            val pointer = project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(referable) }
+                            val pointer: SmartPsiElementPointer<PsiElement>? = project?.let { SmartPointerManager.getInstance(it).createSmartPsiElementPointer(referable) }
                             val locatedParent = referable.locatedReferableParent
                             val parent = if (locatedParent is ArendFile) locatedParent.modulePath?.let { ModuleReferable(it) } else toDataLocatedReferable(locatedParent)
                             when (referable) {

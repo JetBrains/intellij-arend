@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
@@ -10,6 +11,7 @@ import org.arend.error.GeneralError
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
+import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
@@ -56,7 +58,9 @@ interface TypeCheckingService {
 
     fun reportError(error: GeneralError)
 
-    fun getErrors(file: ArendFile): List<GeneralError>
+    fun getErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>>
+
+    fun clearErrors(definition: ArendDefinition)
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -84,7 +88,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     private val listener = TypeCheckerPsiTreeChangeListener()
 
-    private val errorMap = WeakHashMap<PsiLocatedReferable, MutableList<GeneralError>>()
+    private val errorMap = WeakHashMap<ArendFile, MutableList<Pair<GeneralError, SmartPsiElementPointer<*>>>>()
 
     override fun initialize(): Boolean {
         if (isInitialized) {
@@ -119,6 +123,19 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     override fun getTypechecked(definition: ArendDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
+    override fun clearErrors(definition: ArendDefinition) {
+        val errors = (definition.containingFile as? ArendFile)?.let { errorMap[it] }
+        if (errors != null) {
+            val it = errors.iterator()
+            while (it.hasNext()) {
+                val pair = it.next()
+                if (definition == (pair.second.element as? ArendCompositeElement)?.ancestorsUntilFile?.filterIsInstance<ArendDefinition>()?.firstOrNull()) {
+                    it.remove()
+                }
+            }
+        }
+    }
+
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
@@ -131,8 +148,8 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             return null
         }
 
-        if (curRef != null) {
-            errorMap.remove(curRef)
+        if (curRef is ArendDefinition) {
+            clearErrors(curRef)
         }
 
         val tcTypecheckable = tcReferable.typecheckable ?: return null
@@ -159,26 +176,33 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             return
         }
 
-        error.affectedDefinitions.mapNotNull {
-            val ref = PsiLocatedReferable.fromReferable(it)
-            if (ref is PsiLocatedReferable) {
-                errorMap.computeIfAbsent(ref) { ArrayList() }.add(error)
+        val cause = error.cause?.let { cause -> (cause as? DataContainer)?.data ?: cause } ?: return
+        runReadAction {
+            val element: ArendCompositeElement
+            val pointer: SmartPsiElementPointer<*>
+            when (cause) {
+                is ArendCompositeElement -> {
+                    element = cause
+                    pointer = SmartPointerManager.createPointer(cause)
+                }
+                is SmartPsiElementPointer<*> -> {
+                    element = cause.element as? ArendCompositeElement ?: return@runReadAction
+                    pointer = cause
+                }
+                else -> return@runReadAction
             }
+            val file = element.containingFile as? ArendFile ?: return@runReadAction
+            errorMap.computeIfAbsent(file) { LinkedList() }.add(Pair(error, pointer))
         }
     }
 
-    override fun getErrors(file: ArendFile): List<GeneralError> {
-        val list = ArrayList<GeneralError>()
-        val it = errorMap.iterator()
-        while (it.hasNext()) {
-            val entry = it.next()
-            val ref = entry.key
-            if (ref != null && ref.isValid) {
-                if (ref.containingFile == file) {
-                    list.addAll(entry.value)
-                }
-            } else {
-                it.remove()
+    override fun getErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
+        val errors = errorMap[file] ?: return emptyList()
+
+        val list = ArrayList<Pair<GeneralError, ArendCompositeElement>>()
+        for (pair in errors) {
+            (pair.second.element as? ArendCompositeElement)?.let {
+                list.add(Pair(pair.first, it))
             }
         }
         return list
