@@ -302,6 +302,4 @@ private class DefinitionNotFoundError(definitionName: String, modulePath: Module
     GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
 
     override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
-
-    override fun isTypecheckingError() = false
 }

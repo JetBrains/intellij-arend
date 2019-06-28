@@ -29,6 +29,7 @@ import org.arend.naming.reference.DataContainer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.term.concrete.Concrete
@@ -111,16 +112,24 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
                 Error.Level.INFO -> HighlightSeverity.INFORMATION
             }
 
-        private fun getImprovedErrorElement(error: Error?, element: ArendCompositeElement): PsiElement? = when (error) {
-            is NamingError -> when (error.kind) {
-                USE_IN_CLASS -> (element as? ArendDefFunction)?.useKw
-                LEVEL_IN_FIELD -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
-                CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
-                INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
-                null -> null
+        private fun getImprovedErrorElement(error: Error?, element: ArendCompositeElement): PsiElement? {
+            val result = when (error) {
+                is NamingError -> when (error.kind) {
+                    USE_IN_CLASS -> (element as? ArendDefFunction)?.useKw
+                    LEVEL_IN_FIELD -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
+                    INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
+                    null -> null
+                }
+                is ProxyError -> return getImprovedErrorElement(error.localError, element)
+                else -> null
             }
-            is ProxyError -> getImprovedErrorElement(error.localError, element)
-            else -> null
+
+            return result ?: when (element) {
+                is PsiLocatedReferable -> element.defIdentifier
+                is CoClauseBase -> element.getLongName()
+                else -> null
+            }
         }
 
         private fun getCauseElement(error: Error): ArendCompositeElement? {
