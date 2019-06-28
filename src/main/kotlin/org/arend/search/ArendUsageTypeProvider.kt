@@ -5,6 +5,8 @@ import com.intellij.usages.UsageTarget
 import com.intellij.usages.impl.rules.UsageType
 import com.intellij.usages.impl.rules.UsageTypeProviderEx
 import org.arend.psi.*
+import org.arend.term.concrete.Concrete
+import org.arend.typing.parseBinOp
 
 class ArendUsageTypeProvider: UsageTypeProviderEx {
     override fun getUsageType(element: PsiElement?, targets: Array<out UsageTarget>): UsageType? = getUsageType(element)
@@ -30,12 +32,16 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         }
 
         var expr: ArendExpr = ((pParent as? ArendLongNameExpr)?.parent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr ?: pParent as? ArendLiteral ?: return defaultUsage
-        if (((expr as? ArendLiteral)?.parent as? ArendTypeTele)?.parent is ArendDefData) {
+        if (isParameter((expr as? ArendLiteral)?.parent as? ArendTypeTele)) {
             return parameters
         }
 
         while (true) {
             val atomFieldsAcc = (expr.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
+            if (atomFieldsAcc?.fieldAccList?.isNotEmpty() == true) {
+                return leftUsage
+            }
+
             val atomParent = atomFieldsAcc?.parent
             if (atomParent is ArendReturnExpr) {
                 val list = atomParent.atomFieldsAccList
@@ -46,11 +52,28 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
                 break
             }
 
-            val ppParent = (atomFieldsAcc?.parent as? ArendArgumentAppExpr)?.parent
+            val ppParent = (atomParent as? ArendArgumentAppExpr ?: (atomParent as? ArendAtomArgument)?.parent as? ArendArgumentAppExpr)?.parent
+            val newExpr = ppParent as? ArendNewExpr ?: expr as? ArendNewExpr
+            val appExpr = newExpr?.argumentAppExpr ?: (ppParent as? ArendNewArg)?.argumentAppExpr ?: return defaultUsage
+
+            val argList = appExpr.argumentList
+            val cExpr =
+                if (argList.isNotEmpty()) {
+                    (appExpr.atomFieldsAcc ?: appExpr.longNameExpr)?.let { func -> parseBinOp(func, argList) }
+                } else {
+                    null
+                }
+            val topRef = ((cExpr as? Concrete.AppExpression)?.function as? Concrete.ReferenceExpression)?.data
+            if (topRef != null && topRef != parent) {
+                return defaultUsage
+            }
             if (ppParent is ArendNewArg) {
                 return newInstances
             }
-            val newExpr = ppParent as? ArendNewExpr ?: expr as? ArendNewExpr ?: return defaultUsage
+            if (newExpr == null) {
+                return defaultUsage
+            }
+
             if (newExpr.newKw != null) {
                 return newInstances
             }
@@ -73,7 +96,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
 
         val exprParent = expr.parent
         if ((exprParent is ArendNameTele || exprParent is ArendReturnExpr) && exprParent.parent?.let { it is ArendDefFunction || it is ArendDefInstance } == true ||
-                ((exprParent as? ArendTypedExpr)?.parent as? ArendTypeTele)?.parent is ArendDefData) {
+                isParameter(((exprParent as? ArendTypedExpr)?.parent as? ArendTypeTele))) {
             if (exprParent !is ArendReturnExpr) {
                 return parameters
             }
@@ -83,6 +106,15 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         }
 
         return defaultUsage
+    }
+
+    private fun isParameter(typeTele: ArendTypeTele?): Boolean {
+        if (typeTele == null) {
+            return false
+        }
+
+        val parent = typeTele.parent
+        return !(parent is ArendPiExpr || parent is ArendSigmaExpr)
     }
 
     companion object {
