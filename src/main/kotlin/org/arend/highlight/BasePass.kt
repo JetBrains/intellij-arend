@@ -1,5 +1,6 @@
 package org.arend.highlight
 
+import com.google.common.html.HtmlEscapers
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.Annotation
@@ -37,6 +38,7 @@ import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
+import org.arend.typechecking.error.local.ExpectedConstructor
 import org.arend.typechecking.error.local.LocalError
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
@@ -122,6 +124,7 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
                     null -> null
                 }
                 is ProxyError -> return getImprovedErrorElement(error.localError, element)
+                is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
                 else -> null
             }
 
@@ -130,6 +133,16 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
                 is CoClauseBase -> element.getLongName()
                 else -> null
             }
+        }
+
+        private fun getImprovedTextRange(error: Error, element: ArendCompositeElement): TextRange {
+            val improvedElement = getImprovedErrorElement(error, element) ?: element
+            if (error.isTypecheckingError) {
+                ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
+                    return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
+                }
+            }
+            return improvedElement.textRange
         }
 
         private fun getCauseElement(error: Error): ArendCompositeElement? {
@@ -141,7 +154,7 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
 
         private fun createAnnotation(error: Error, range: TextRange, holder: AnnotationHolder): Annotation {
             val ppConfig = PrettyPrinterConfig.DEFAULT
-            return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))))
+            return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
         }
 
         private fun processError(error: Error, holder: AnnotationHolder) {
@@ -177,7 +190,7 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
                     }
                 }
             } else {
-                createAnnotation(error, (getImprovedErrorElement(localError, cause) ?: cause).textRange, holder)
+                createAnnotation(error, getImprovedTextRange(error, cause), holder)
             }
         }
     }
