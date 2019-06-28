@@ -20,7 +20,6 @@ import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.error.ModuleNotFoundError
-import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
@@ -299,7 +298,4 @@ class TypeCheckProcessHandler(
 }
 
 private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
-    GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath") {
-
-    override fun getAffectedDefinitions(): Collection<GlobalReferable> = emptyList()
-}
+    GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath")

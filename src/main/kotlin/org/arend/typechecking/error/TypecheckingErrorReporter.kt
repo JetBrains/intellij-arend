@@ -40,31 +40,31 @@ class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingSer
 
     fun flush() {
         for (error in errorList) {
-            val proxyAction = object : ProxyAction {
-                override fun runAction(p: SMTestProxy) {
-                    DocConsolePrinter(p, error).print()
-                }
-            }
-
             var reported = false
-            error.affectedDefinitions.mapNotNull {
-                val ref = PsiLocatedReferable.fromReferable(it)
-                if (ref is PsiLocatedReferable || it is ModuleReferable) {
+            error.forAffectedDefinitions { globalRef, refError ->
+                val ref = PsiLocatedReferable.fromReferable(globalRef)
+                if (ref is PsiLocatedReferable || globalRef is ModuleReferable) {
                     reported = true
                     if (ref is PsiLocatedReferable) runReadAction {
-                        eventsProcessor.executeProxyAction(ref.typecheckable, proxyAction)
+                        eventsProcessor.executeProxyAction(ref.typecheckable, ErrorProxyAction(refError))
                     }
-                    if (it is ModuleReferable) runReadAction {
-                        eventsProcessor.executeProxyAction(it, proxyAction)
+                    if (globalRef is ModuleReferable) runReadAction {
+                        eventsProcessor.executeProxyAction(globalRef, ErrorProxyAction(refError))
                     }
                 }
             }
 
             if (!reported) {
-                eventsProcessor.executeProxyAction(proxyAction)
+                eventsProcessor.executeProxyAction(ErrorProxyAction(error))
             }
         }
         errorList.clear()
+    }
+
+    private inner class ErrorProxyAction(private val error: GeneralError) : ProxyAction {
+        override fun runAction(p: SMTestProxy) {
+            DocConsolePrinter(p, error).print()
+        }
     }
 
     private inner class DocConsolePrinter(

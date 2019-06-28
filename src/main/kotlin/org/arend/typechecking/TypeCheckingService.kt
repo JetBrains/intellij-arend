@@ -176,23 +176,25 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             return
         }
 
-        val cause = error.cause?.let { cause -> (cause as? DataContainer)?.data ?: cause } ?: return
+        val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         runReadAction {
-            val element: ArendCompositeElement
-            val pointer: SmartPsiElementPointer<*>
-            when (cause) {
-                is ArendCompositeElement -> {
-                    element = cause
-                    pointer = SmartPointerManager.createPointer(cause)
+            loop@ for (data in list) {
+                val element: ArendCompositeElement
+                val pointer: SmartPsiElementPointer<*>
+                when (val cause = (data as? DataContainer)?.data ?: data) {
+                    is ArendCompositeElement -> {
+                        element = cause
+                        pointer = SmartPointerManager.createPointer(cause)
+                    }
+                    is SmartPsiElementPointer<*> -> {
+                        element = cause.element as? ArendCompositeElement ?: continue@loop
+                        pointer = cause
+                    }
+                    else -> continue@loop
                 }
-                is SmartPsiElementPointer<*> -> {
-                    element = cause.element as? ArendCompositeElement ?: return@runReadAction
-                    pointer = cause
-                }
-                else -> return@runReadAction
+                val file = element.containingFile as? ArendFile ?: continue
+                errorMap.computeIfAbsent(file) { LinkedList() }.add(Pair(error, pointer))
             }
-            val file = element.containingFile as? ArendFile ?: return@runReadAction
-            errorMap.computeIfAbsent(file) { LinkedList() }.add(Pair(error, pointer))
         }
     }
 

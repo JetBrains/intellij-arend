@@ -145,8 +145,8 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
             return improvedElement.textRange
         }
 
-        private fun getCauseElement(error: Error): ArendCompositeElement? {
-            val cause = error.cause?.let { (it as? DataContainer)?.data ?: it }
+        private fun getCauseElement(data: Any?): ArendCompositeElement? {
+            val cause = data?.let { (it as? DataContainer)?.data ?: it }
             return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? ArendCompositeElement
         }
 
@@ -158,9 +158,12 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
         }
 
         private fun processError(error: Error, holder: AnnotationHolder) {
-            val psi = getCauseElement(error)
-            if (psi != null && psi.isValid) {
-                processError(error, psi, holder)
+            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
+            for (cause in list) {
+                val psi = getCauseElement(cause)
+                if (psi != null && psi.isValid) {
+                    createAnnotation(error, getImprovedTextRange(error, psi), holder)
+                }
             }
         }
 
