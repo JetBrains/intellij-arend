@@ -14,7 +14,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
 import javax.swing.Icon
 
-class ArendAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveReferenceAction>): QuestionAction {
+class ArendAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveReferenceAction>, private val onTheFly: Boolean) : QuestionAction {
 
     override fun execute(): Boolean {
         PsiDocumentManager.getInstance(project).commitAllDocuments()
@@ -22,8 +22,7 @@ class ArendAddImportAction(val project: Project, val editor: Editor, private val
         if (!currentElement.isValid)
             return false
 
-        resolveData.filterNot { it.target.isValid }
-                .forEach { return false }
+        repeat(resolveData.filterNot { it.target.isValid }.size) { return false }
 
         if (resolveData.size == 1)
             addImport(resolveData[0])
@@ -37,7 +36,7 @@ class ArendAddImportAction(val project: Project, val editor: Editor, private val
         if (!currentElement.isValid) return
 
         DumbService.getInstance(project).withAlternativeResolveEnabled {
-            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(editor) }, currentElement.containingFile) }
+            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(if (onTheFly) null else editor) }, currentElement.containingFile) }
     }
 
     private fun chooseItemAndImport(){

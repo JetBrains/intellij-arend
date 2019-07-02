@@ -1,6 +1,5 @@
 package org.arend.annotation
 
-import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInsight.daemon.impl.DaemonListeners
 import com.intellij.codeInsight.daemon.impl.ShowAutoImportPass
@@ -83,7 +82,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport(project)
             if (fixData.isEmpty()) return@runWriteAction
-            val action = ArendAddImportAction(project, editor, referenceElement, fixData)
+            val action = ArendAddImportAction(project, editor, referenceElement, fixData, false)
             action.execute()
         }
 
@@ -98,7 +97,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             return Result.POPUP_NOT_SHOWN // already imported
         }
 
-        val action = ArendAddImportAction(project, editor, referenceElement, fixes)
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality"))
             !LaterInvocator.isInModalContextForProject(editor.project)
         else
@@ -108,6 +106,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
                 && ArendOptions.getInstance().autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
+            val action = ArendAddImportAction(project, editor, referenceElement, fixes, true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
@@ -117,6 +116,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
                 if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
+                val action = ArendAddImportAction(project, editor, referenceElement, fixes, false)
                 HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN
