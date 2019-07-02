@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.HighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.options.colors.AttributesDescriptor
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
+import com.intellij.ide.highlighter.JavaHighlightingColors as Java
 
 enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey) {
     IDENTIFIER("Identifier", Default.IDENTIFIER),
@@ -12,6 +13,7 @@ enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey
     UNIVERSE("Universe", Default.KEYWORD),
     IMPLICIT("Implicit", Default.INSTANCE_FIELD),
     DECLARATION("Declaration", Default.FUNCTION_DECLARATION),
+    CLASS_PARAMETER("Class parameter", Java.STATIC_FIELD_ATTRIBUTES),
 
     OPERATORS("Operator", Default.COMMA),
     DOT("Separators//Dot", Default.COMMA),

@@ -9,6 +9,7 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -62,11 +63,38 @@ class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, f
                 resolveReference(pattern.data, pattern.constructor, originalRef)
             }
 
+            private fun highlightParameters(definition: Concrete.ReferableDefinition) {
+                for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
+                    if (parameter.type.underlyingTypeClass != null) {
+                        val list = when (val param = parameter.data) {
+                            is ArendFieldTele -> param.fieldDefIdentifierList
+                            is ArendNameTele -> param.identifierOrUnknownList
+                            is ArendTypeTele -> param.typedExpr?.identifierOrUnknownList
+                            is TCReferableWrapper -> (param.data as? ArendFieldDefIdentifier)?.let { listOf(it) }
+                            else -> null
+                        }
+                        for (id in list ?: emptyList()) {
+                            holder.createInfoAnnotation(id, null).textAttributes = ArendHighlightingColors.CLASS_PARAMETER.textAttributesKey
+                        }
+                    }
+                }
+            }
+
             override fun definitionResolved(definition: Concrete.Definition) {
                 progress.checkCanceled()
                 (definition.data.data as? PsiLocatedReferable)?.defIdentifier?.let {
                     holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                 }
+
+                highlightParameters(definition)
+                if (definition is Concrete.DataDefinition) {
+                    for (constructorClause in definition.constructorClauses) {
+                        for (constructor in constructorClause.constructors) {
+                            highlightParameters(constructor)
+                        }
+                    }
+                }
+
                 advanceProgress(1)
             }
         }).resolveGroup(group, WrapperReferableConverter, group.scope)

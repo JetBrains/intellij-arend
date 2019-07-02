@@ -162,7 +162,7 @@ abstract class BasePass(protected val file: ArendFile, protected val group: Aren
             for (cause in list) {
                 val psi = getCauseElement(cause)
                 if (psi != null && psi.isValid) {
-                    createAnnotation(error, getImprovedTextRange(error, psi), holder)
+                    processError(error, psi, holder)
                 }
             }
         }
