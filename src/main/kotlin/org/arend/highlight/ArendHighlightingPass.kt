@@ -9,7 +9,6 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -20,12 +19,12 @@ import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.concrete.Concrete
 
 class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BasePass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
+    : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     override fun collectInfo(progress: ProgressIndicator) {
-        factory.concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, errorReporter, null, false)
+        factory.concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
         val resolverCache = ServiceManager.getService(myProject, ArendResolveCache::class.java)
-        DefinitionResolveNameVisitor(factory.concreteProvider, errorReporter, object : ResolverListener {
+        DefinitionResolveNameVisitor(factory.concreteProvider, this, object : ResolverListener {
             private fun resolveReference(data: Any?, referent: Referable, originalRef: Referable?) {
                 val reference = (data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data as? ArendReferenceElement ?: return
                 if (reference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {

@@ -21,7 +21,7 @@ class TypecheckerPassFactory(highlightingPassRegistrar: TextEditorHighlightingPa
         return if (textRange == null) {
             EmptyHighlightingPass(file.project, editor.document)
         } else {
-            TypecheckerPass(file, editor, textRange, DefaultHighlightInfoProcessor())
+            TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
         }
     }
 

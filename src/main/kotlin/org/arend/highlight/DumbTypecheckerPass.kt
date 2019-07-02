@@ -11,9 +11,9 @@ import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 
 class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BasePass(file, group, editor, "Arend dumb typechecker annotator", textRange, highlightInfoProcessor) {
+    : BaseGroupPass(file, group, editor, "Arend dumb typechecker annotator", textRange, highlightInfoProcessor) {
 
     override fun visitDefinition(definition: Concrete.Definition, concreteProvider: ConcreteProvider, progress: ProgressIndicator) {
-        DesugarVisitor.desugar(definition, concreteProvider, errorReporter)
+        DesugarVisitor.desugar(definition, concreteProvider, this)
     }
 }
