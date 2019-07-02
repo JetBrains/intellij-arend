@@ -165,8 +165,6 @@
 
         <daemon.changeLocalityDetector implementation="org.arend.highlight.ArendChangeLocalityDetector"/>
 
-        <referenceImporter implementation="org.arend.annotation.ArendReferenceImporter"/>
-
         <!-- Line Marker Providers -->
 
         <runLineMarkerContributor language="Arend"
@@ -226,9 +224,10 @@
 
         <!-- Configuration Options -->
 
-        <applicationService serviceInterface="org.arend.editor.ArendSmartKeysOptions"
-                            serviceImplementation="org.arend.editor.ArendSmartKeysOptions"/>
+        <applicationService serviceInterface="org.arend.editor.ArendOptions"
+                            serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
+        <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
     </extensions>
 
     <project-components>

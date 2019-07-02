@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.util.text.CharArrayCharSequence
-import org.arend.editor.ArendSmartKeysOptions
+import org.arend.editor.ArendOptions
 import org.arend.psi.ArendFile
 
 
@@ -24,8 +24,8 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (c != '-') {
             return Result.CONTINUE
         }
-        val style = ArendSmartKeysOptions.getInstance().matchingCommentStyle
-        if (style == ArendSmartKeysOptions.MatchingCommentStyle.DO_NOTHING || style == ArendSmartKeysOptions.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
+        val style = ArendOptions.getInstance().matchingCommentStyle
+        if (style == ArendOptions.MatchingCommentStyle.DO_NOTHING || style == ArendOptions.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
             return Result.CONTINUE
         }
 
@@ -35,7 +35,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
             val offset = editor.caretModel.offset
             val text = editor.document.charsSequence
             if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
-                if (style == ArendSmartKeysOptions.MatchingCommentStyle.INSERT_MINUS) {
+                if (style == ArendOptions.MatchingCommentStyle.INSERT_MINUS) {
                     editor.document.insertString(offset, CharArrayCharSequence('-'))
                 } else {
                     editor.document.deleteString(offset, offset + 1)

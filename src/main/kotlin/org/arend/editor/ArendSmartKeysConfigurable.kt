@@ -8,23 +8,23 @@ import javax.swing.JPanel
 
 
 class ArendSmartKeysConfigurable : UnnamedConfigurable {
-    private var comboBox: ComboBox<ArendSmartKeysOptions.MatchingCommentStyle>? = null
+    private var comboBox: ComboBox<ArendOptions.MatchingCommentStyle>? = null
 
-    override fun isModified() = comboBox?.selectedItem != ArendSmartKeysOptions.getInstance().matchingCommentStyle
+    override fun isModified() = comboBox?.selectedItem != ArendOptions.getInstance().matchingCommentStyle
 
     override fun apply() {
-        ArendSmartKeysOptions.getInstance().matchingCommentStyle = comboBox?.selectedItem as? ArendSmartKeysOptions.MatchingCommentStyle ?: return
+        ArendOptions.getInstance().matchingCommentStyle = comboBox?.selectedItem as? ArendOptions.MatchingCommentStyle ?: return
     }
 
     override fun reset() {
-        comboBox?.selectedItem = ArendSmartKeysOptions.getInstance().matchingCommentStyle
+        comboBox?.selectedItem = ArendOptions.getInstance().matchingCommentStyle
     }
 
     override fun createComponent(): JPanel {
         val combo = ComboBox(arrayOf(
-            ArendSmartKeysOptions.MatchingCommentStyle.DO_NOTHING,
-            ArendSmartKeysOptions.MatchingCommentStyle.REPLACE_BRACE,
-            ArendSmartKeysOptions.MatchingCommentStyle.INSERT_MINUS))
+            ArendOptions.MatchingCommentStyle.DO_NOTHING,
+            ArendOptions.MatchingCommentStyle.REPLACE_BRACE,
+            ArendOptions.MatchingCommentStyle.INSERT_MINUS))
         comboBox = combo
 
         val panel = panel {

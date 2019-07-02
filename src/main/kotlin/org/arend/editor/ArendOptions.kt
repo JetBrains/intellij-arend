@@ -8,10 +8,10 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 
 
 @State(
-    name = "ArendSmartKeysSettings",
+    name = "ArendSettings",
     storages = [Storage("editor.codeinsight.xml")]
 )
-class ArendSmartKeysOptions : PersistentStateComponent<ArendSmartKeysOptions> {
+class ArendOptions : PersistentStateComponent<ArendOptions> {
     enum class MatchingCommentStyle {
         DO_NOTHING { override fun toString() = "Do nothing" },
         INSERT_MINUS { override fun toString() = "Insert another '-'" },
@@ -19,14 +19,15 @@ class ArendSmartKeysOptions : PersistentStateComponent<ArendSmartKeysOptions> {
     }
 
     var matchingCommentStyle = MatchingCommentStyle.REPLACE_BRACE
+    var autoImportOnTheFly = false
 
     override fun getState() = this
 
-    override fun loadState(state: ArendSmartKeysOptions) {
+    override fun loadState(state: ArendOptions) {
         XmlSerializerUtil.copyBean(state, this)
     }
 
     companion object {
-        fun getInstance(): ArendSmartKeysOptions = ServiceManager.getService(ArendSmartKeysOptions::class.java)
+        fun getInstance(): ArendOptions = ServiceManager.getService(ArendOptions::class.java)
     }
 }

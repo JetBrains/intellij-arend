@@ -11,7 +11,6 @@ import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiModuleReferable
 import org.arend.psi.ext.PsiReferable
@@ -20,7 +19,7 @@ import org.arend.term.abs.Abstract
 import org.arend.typechecking.TypeCheckingService
 
 interface ArendReference : PsiReference {
-    override fun getElement(): ArendCompositeElement
+    override fun getElement(): ArendReferenceElement
 
     override fun resolve(): PsiElement?
 }

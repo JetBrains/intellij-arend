@@ -13,13 +13,13 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
+import org.arend.editor.ArendOptions
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendDefIdentifier
@@ -44,21 +44,17 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
     override fun getFamilyName(): String = "arend.reference.resolve"
 
     override fun showHint(editor: Editor): Boolean {
-        val result = doFix(editor, true)
+        val result = doFix(editor)
         return result == Result.POPUP_SHOWN || result == Result.CLASS_AUTO_IMPORTED
     }
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        return this.getItemsToImport().isNotEmpty()
-    }
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = getItemsToImport(project).isNotEmpty()
 
-    private fun getItemsToImport() : List<ResolveReferenceAction> {
+    private fun getItemsToImport(project: Project) : List<ResolveReferenceAction> {
         if (importQuickFixAllowed(referenceElement)) {
             val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
             return CachedValuesManager.getCachedValue(refElement) {
-                val project = refElement.project
                 val name = refElement.referenceName
-
                 val prelude = TypeCheckingService.getInstance(project).prelude
                 val preludeItems = HashSet<Referable>()
                 if (prelude != null) {
@@ -85,7 +81,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         if (!referenceUnresolved(referenceElement)) return // already imported or invalid
 
         ApplicationManager.getApplication().runWriteAction {
-            val fixData = getItemsToImport()
+            val fixData = getItemsToImport(project)
             if (fixData.isEmpty()) return@runWriteAction
             val action = ArendAddImportAction(project, editor, referenceElement, fixData)
             action.execute()
@@ -93,15 +89,14 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     }
 
-    fun doFix(editor: Editor, allowPopup : Boolean) : Result {
+    private fun doFix(editor: Editor): Result {
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
-        val fixes = getItemsToImport()
-        val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
-
-        if (fixes.isEmpty()) return Result.POPUP_NOT_SHOWN // already imported
-
         val psiFile = referenceElement.containingFile
-        val project = referenceElement.project
+        val project = psiFile.project
+        val fixes = getItemsToImport(project)
+        if (fixes.isEmpty()) {
+            return Result.POPUP_NOT_SHOWN // already imported
+        }
 
         val action = ArendAddImportAction(project, editor, referenceElement, fixes)
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality"))
@@ -109,14 +104,15 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         else
             !LaterInvocator.isInModalContext()
 
+        val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
         if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
-                && CodeInsightSettings.getInstance().ADD_UNAMBIGIOUS_IMPORTS_ON_THE_FLY &&
+                && ArendOptions.getInstance().autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (allowPopup && highPriorityFixes.isNotEmpty()) { // thus we prevent showing hint-action for class field names
+        if (highPriorityFixes.isNotEmpty()) { // thus we prevent showing hint-action for class field names
             val hintText = ShowAutoImportPass.getMessage(fixes.size > 1, fixes[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
@@ -137,9 +133,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid
             return reference.resolve() == null // return false if already imported
         }
-
-        fun getResolved(referenceElement: ArendReferenceElement): PsiElement? =
-            if (referenceElement.isValid) referenceElement.reference?.resolve() else null
 
         fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
             for (subgroup in group.subgroups) {
