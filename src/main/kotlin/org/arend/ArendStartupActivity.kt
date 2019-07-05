@@ -2,6 +2,7 @@ package org.arend
 
 import com.intellij.AppTopics
 import com.intellij.ProjectTopics
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -35,7 +36,7 @@ class ArendStartupActivity : StartupActivity {
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun moduleAdded(project: Project, module: Module) {
                 if (ArendModuleType.has(module)) {
-                    addModule(module)
+                    addModule(module, false)
                 }
             }
 
@@ -52,10 +53,10 @@ class ArendStartupActivity : StartupActivity {
         })
 
         for (module in project.arendModules) {
-            addModule(module)
+            addModule(module, false)
         }
 
-        var sdkHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
+        var sdkHome: String? = ProjectRootManager.getInstance(project).projectSdk?.homePath
         project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
             override fun rootsChanged(event: ModuleRootEvent) {
                 val newHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
@@ -64,7 +65,7 @@ class ArendStartupActivity : StartupActivity {
                     val service = TypeCheckingService.getInstance(project)
                     service.libraryManager.unloadExceptPrelude()
                     for (module in project.arendModules) {
-                        addModule(module)
+                        addModule(module, true)
                     }
                     sdkHome = newHome
                 } else {
@@ -79,7 +80,7 @@ class ArendStartupActivity : StartupActivity {
     }
 
     companion object {
-        private fun addModule(module: Module) {
+        private fun addModule(module: Module, fromRootsChanged: Boolean) {
             val project = module.project
             val service = TypeCheckingService.getInstance(project)
 
@@ -97,7 +98,12 @@ class ArendStartupActivity : StartupActivity {
                 })
             }
 
-            ArendModuleConfigService.getInstance(module)?.updateFromYAML()
+            if (fromRootsChanged) {
+                ApplicationManager.getApplication().invokeLater { ArendModuleConfigService.getInstance(module)?.updateFromYAML() }
+            } else {
+                ArendModuleConfigService.getInstance(module)?.updateFromYAML()
+            }
+
             service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
         }
 
