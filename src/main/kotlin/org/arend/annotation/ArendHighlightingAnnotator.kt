@@ -1,34 +1,13 @@
 package org.arend.annotation
 
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
-import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.error.Error
-import org.arend.highlight.ArendHighlightingColors
-import org.arend.naming.error.NotInScopeError
-import org.arend.naming.reference.*
-import org.arend.naming.resolving.NameResolvingChecker
-import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.impl.InstanceAdapter
-import org.arend.quickfix.InstanceQuickFix
-import org.arend.resolving.PsiPartialConcreteProvider
-import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
-import org.arend.term.abs.BaseAbstractExpressionVisitor
-import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
-import org.arend.typechecking.error.local.LocalError
-import org.arend.typing.ExpectedTypeVisitor
-import org.arend.typing.ReferableExtractVisitor
-import org.arend.typing.TypecheckingVisitor
-import org.arend.util.LongName
 import java.util.*
 
 class ArendHighlightingAnnotator : Annotator {

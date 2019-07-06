@@ -24,7 +24,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (c != '-') {
             return Result.CONTINUE
         }
-        val style = ArendOptions.getInstance().matchingCommentStyle
+        val style = ArendOptions.instance.matchingCommentStyle
         if (style == ArendOptions.MatchingCommentStyle.DO_NOTHING || style == ArendOptions.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
             return Result.CONTINUE
         }

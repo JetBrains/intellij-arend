@@ -50,7 +50,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
                 }
                 return@runReadAction NullDefinition
             } else {
-                if (resolve && def.resolved == Concrete.Resolved.NOT_RESOLVED) {
+                if (resolve && def.relatedDefinition.resolved == Concrete.Resolved.NOT_RESOLVED) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
                     def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
                 }
@@ -117,7 +117,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
 
     override fun getConcreteFunction(referable: GlobalReferable): Concrete.FunctionDefinition? {
         val psiReferable = PsiLocatedReferable.fromReferable(referable)
-        return if (psiReferable is ArendDefFunction) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
+        return if (psiReferable is PsiConcreteReferable && (psiReferable is ArendDefFunction || psiReferable is ArendDefInstance)) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
     override fun getConcreteInstance(referable: GlobalReferable): Concrete.FunctionDefinition? {
@@ -136,6 +136,13 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
     }
 
     override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefInstance
+
+    override fun isData(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefData
+
+    override fun isFunction(ref: GlobalReferable): Boolean {
+        val psiRef = PsiLocatedReferable.fromReferable(ref)
+        return psiRef is ArendDefFunction || psiRef is ArendDefInstance
+    }
 
     override fun isUse(ref: GlobalReferable): Boolean {
         val psiReferable = PsiLocatedReferable.fromReferable(ref)

@@ -10,14 +10,14 @@ import javax.swing.JPanel
 class ArendSmartKeysConfigurable : UnnamedConfigurable {
     private var comboBox: ComboBox<ArendOptions.MatchingCommentStyle>? = null
 
-    override fun isModified() = comboBox?.selectedItem != ArendOptions.getInstance().matchingCommentStyle
+    override fun isModified() = comboBox?.selectedItem != ArendOptions.instance.matchingCommentStyle
 
     override fun apply() {
-        ArendOptions.getInstance().matchingCommentStyle = comboBox?.selectedItem as? ArendOptions.MatchingCommentStyle ?: return
+        ArendOptions.instance.matchingCommentStyle = comboBox?.selectedItem as? ArendOptions.MatchingCommentStyle ?: return
     }
 
     override fun reset() {
-        comboBox?.selectedItem = ArendOptions.getInstance().matchingCommentStyle
+        comboBox?.selectedItem = ArendOptions.instance.matchingCommentStyle
     }
 
     override fun createComponent(): JPanel {

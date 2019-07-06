@@ -35,6 +35,8 @@ import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.error.local.ExpectedConstructor
 import org.arend.typechecking.error.local.LocalError
+import org.arend.typechecking.error.local.TypecheckingError
+import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), LocalErrorReporter {
@@ -125,10 +127,15 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         private fun getImprovedErrorElement(error: Error?, element: ArendCompositeElement): PsiElement? {
             val result = when (error) {
                 is NamingError -> when (error.kind) {
-                    USE_IN_CLASS -> (element as? ArendDefFunction)?.useKw
+                    MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
+                    MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.coerceKw
                     LEVEL_IN_FIELD -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
+                    null -> null
+                }
+                is TypecheckingError -> when (error.kind) {
+                    LEVEL_IN_FUNCTION -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
                     null -> null
                 }
                 is ProxyError -> return getImprovedErrorElement(error.localError, element)

@@ -9,14 +9,14 @@ import javax.swing.JComponent
 class ArendAutoImportConfigurable : AutoImportOptionsProvider {
     private var checkBox: JBCheckBox? = null
 
-    override fun isModified() = checkBox?.isSelected != ArendOptions.getInstance().autoImportOnTheFly
+    override fun isModified() = checkBox?.isSelected != ArendOptions.instance.autoImportOnTheFly
 
     override fun apply() {
-        ArendOptions.getInstance().autoImportOnTheFly = checkBox?.isSelected ?: return
+        ArendOptions.instance.autoImportOnTheFly = checkBox?.isSelected ?: return
     }
 
     override fun reset() {
-        checkBox?.isSelected = ArendOptions.getInstance().autoImportOnTheFly
+        checkBox?.isSelected = ArendOptions.instance.autoImportOnTheFly
     }
 
     override fun createComponent(): JComponent? {

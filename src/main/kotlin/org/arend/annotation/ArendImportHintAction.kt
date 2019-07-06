@@ -104,7 +104,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
         if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
-                && ArendOptions.getInstance().autoImportOnTheFly &&
+                && ArendOptions.instance.autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             val action = ArendAddImportAction(project, editor, referenceElement, fixes, true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }

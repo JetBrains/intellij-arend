@@ -28,6 +28,6 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
     }
 
     companion object {
-        fun getInstance(): ArendOptions = ServiceManager.getService(ArendOptions::class.java)
+        val instance: ArendOptions = ServiceManager.getService(ArendOptions::class.java)
     }
 }
