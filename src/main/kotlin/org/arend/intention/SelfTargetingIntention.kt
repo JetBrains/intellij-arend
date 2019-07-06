@@ -10,7 +10,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.psi.ancestorsUntilFile
+import org.arend.psi.ancestors
 
 // code borrowed from kotlin plugin
 
@@ -42,13 +42,13 @@ abstract class SelfTargetingIntention<T : PsiElement>(
 
         var elementsToCheck: Sequence<PsiElement> = emptySequence()
         if (leaf1 != null) {
-            elementsToCheck += leaf1.ancestorsUntilFile.takeWhile { it != commonParent }
+            elementsToCheck += leaf1.ancestors.takeWhile { it != commonParent }
         }
         if (leaf2 != null) {
-            elementsToCheck += leaf2.ancestorsUntilFile.takeWhile { it != commonParent }
+            elementsToCheck += leaf2.ancestors.takeWhile { it != commonParent }
         }
         if (commonParent != null && commonParent !is PsiFile) {
-            elementsToCheck += commonParent.ancestorsUntilFile
+            elementsToCheck += commonParent.ancestors
         }
 
         for (element in elementsToCheck) {

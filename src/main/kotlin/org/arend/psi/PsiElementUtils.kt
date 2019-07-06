@@ -24,9 +24,6 @@ import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
-    get() = generateSequence(this) { it.parent }
-
-val PsiElement.ancestorsUntilFile: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
 
 val PsiElement.module: Module?

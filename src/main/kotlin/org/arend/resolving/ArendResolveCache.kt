@@ -20,7 +20,7 @@ interface ArendResolveCache {
 }
 
 private fun getDefinitionOfLocalElement(element: PsiElement) =
-    (element as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
+    (element as? ArendCompositeElement)?.ancestors?.firstOrNull { it is ArendDefinition || it is ArendStatCmd || it is ArendDefModule } as? ArendDefinition
 
 class ArendResolveCacheImpl(private val project: Project) : ArendResolveCache {
     private val globalMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
@@ -98,7 +98,7 @@ class ArendResolveCacheImpl(private val project: Project) : ArendResolveCache {
                 return
             }
 
-            val sourceNode = (parent as? ArendCompositeElement)?.ancestorsUntilFile?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
+            val sourceNode = (parent as? ArendCompositeElement)?.ancestors?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
             if (sourceNode.isLocal) {
                 if (sourceNode is ArendLongName) {
                     for (refIdentifier in sourceNode.refIdentifierList) {

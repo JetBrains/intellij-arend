@@ -88,7 +88,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun getUseScope(): SearchScope {
         val parent = parent
         when {
-            parent is ArendLetClausePattern -> parent.ancestorsUntilFile.filterIsInstance<ArendLetExpr>().firstOrNull()?.let { return LocalSearchScope(it) } // Let clause pattern
+            parent is ArendLetClausePattern -> parent.ancestors.filterIsInstance<ArendLetExpr>().firstOrNull()?.let { return LocalSearchScope(it) } // Let clause pattern
             parent is ArendLetClause -> return LocalSearchScope(parent.parent) // Let clause
             (parent?.parent as? ArendTypedExpr)?.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
             parent?.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)

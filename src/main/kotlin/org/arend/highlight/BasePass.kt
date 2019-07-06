@@ -129,13 +129,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is NamingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.coerceKw
-                    LEVEL_IN_FIELD -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                    LEVEL_IN_FIELD -> element.ancestors.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
                     null -> null
                 }
                 is TypecheckingError -> when (error.kind) {
-                    LEVEL_IN_FUNCTION -> element.ancestorsUntilFile.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                    LEVEL_IN_FUNCTION -> element.ancestors.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
                     null -> null
                 }
                 is ProxyError -> return getImprovedErrorElement(error.localError, element)
