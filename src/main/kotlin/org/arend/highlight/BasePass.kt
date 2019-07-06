@@ -154,10 +154,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         private fun getImprovedTextRange(error: Error, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
-            if (error.isTypecheckingError) {
-                ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
-                    return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
-                }
+            ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
+                return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
             }
             return improvedElement.textRange
         }
