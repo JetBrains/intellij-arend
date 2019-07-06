@@ -190,11 +190,13 @@ class TypeCheckProcessHandler(
                     } finally {
                         TypecheckingOrderingListener.setDefaultCancellationIndicator()
                         typecheckingErrorReporter.flush()
+                        /* It seems it restarts by itself
                         runReadAction {
                             for (filePtr in typechecking.typecheckedFiles) {
                                 filePtr.element?.let { DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(it) }
                             }
                         }
+                        */
                     }
                 }
             }
