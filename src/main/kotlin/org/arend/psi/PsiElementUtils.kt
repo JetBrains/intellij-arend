@@ -52,7 +52,7 @@ val PsiElement.libraryConfig: LibraryConfig?
         }
         for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
             if (orderEntry is LibraryOrderEntry) {
-                val name = orderEntry.library?.name ?: continue
+                val name = orderEntry.library?.let { TypeCheckingService.getInstance(project).getLibraryName(it) } ?: continue
                 val conf = project.findExternalLibrary(name)
                 if (conf != null) {
                     return conf

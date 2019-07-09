@@ -2,6 +2,7 @@ package org.arend.typechecking
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.libraries.Library
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition
@@ -24,6 +25,7 @@ import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FullName
+import java.util.*
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -49,6 +51,12 @@ interface TypeCheckingService {
     fun updateDefinition(referable: LocatedReferable)
 
     fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
+
+    fun addLibrary(library: Library)
+
+    fun removeLibrary(library: Library): String?
+
+    fun getLibraryName(library: Library): String?
 
     companion object {
         fun getInstance(project: Project): TypeCheckingService {
@@ -240,4 +248,14 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
     }
+
+    private val libraryMap = WeakHashMap<Library, String>()
+
+    override fun addLibrary(library: Library) {
+        library.name?.let { libraryMap.putIfAbsent(library, it) }
+    }
+
+    override fun removeLibrary(library: Library) = libraryMap.remove(library)
+
+    override fun getLibraryName(library: Library) = libraryMap[library]
 }

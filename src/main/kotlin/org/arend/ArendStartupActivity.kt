@@ -42,7 +42,9 @@ class ArendStartupActivity : StartupActivity {
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 val libraryManager = TypeCheckingService.getInstance(project).libraryManager
-                libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
+                ArendRawLibrary.getLibraryFor(libraryManager, module)?.let {
+                    libraryManager.unloadLibrary(it)
+                }
             }
         })
 
@@ -56,11 +58,16 @@ class ArendStartupActivity : StartupActivity {
             addModule(module)
         }
 
-        val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+        val service = TypeCheckingService.getInstance(project)
         LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(object : LibraryTable.Listener {
+            override fun afterLibraryAdded(newLibrary: Library) {
+                service.addLibrary(newLibrary)
+            }
+
             override fun afterLibraryRemoved(library: Library) {
-                libraryManager.getRegisteredLibrary(library.name)?.let {
-                    libraryManager.unloadLibrary(it)
+                val name = service.removeLibrary(library) ?: return
+                ArendRawLibrary.getExternalLibrary(service.libraryManager, name)?.let {
+                    service.libraryManager.unloadLibrary(it)
                 }
             }
         })

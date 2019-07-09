@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ArendIcons
 import org.arend.findPsiFileByPath
 import org.arend.module.config.ExternalLibraryConfig
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Files
@@ -37,7 +38,8 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
     override fun getCreateActionName() = "Arend library"
 
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
-        val projectDependencies = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNullTo(HashSet()) { it.name }
+        val service = TypeCheckingService.getInstance(project)
+        val projectDependencies = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNullTo(HashSet()) { service.getLibraryName(it) }
         val libHome = ProjectRootManager.getInstance(project).projectSdk?.homePath?.let { Paths.get(it) } ?: return null
         val externalLibs =
             Files.newDirectoryStream(libHome) { Files.isDirectory(it) }.use { stream ->

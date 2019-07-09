@@ -2,11 +2,13 @@ package org.arend.module
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.roots.libraries.Library
 import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.LocatedReferable
 import org.arend.source.BinarySource
@@ -60,4 +62,12 @@ class ArendRawLibrary(val config: LibraryConfig, val isExternal: Boolean): Sourc
     override fun getReferableConverter() = TypeCheckingService.getInstance(config.project).newReferableConverter(true)
 
     override fun getDependencyListener() = TypeCheckingService.getInstance(config.project).dependencyListener
+
+    companion object {
+        fun getLibraryFor(libraryManager: LibraryManager, module: Module) =
+            libraryManager.getRegisteredLibrary { ((it as? ArendRawLibrary)?.config as? ArendModuleConfigService)?.module == module } as? ArendRawLibrary
+
+        fun getExternalLibrary(libraryManager: LibraryManager, name: String) =
+            libraryManager.getRegisteredLibrary { ((it as? ArendRawLibrary)?.config as? ExternalLibraryConfig)?.name == name } as? ArendRawLibrary
+    }
 }

@@ -21,6 +21,7 @@ import org.arend.findPsiFileByPath
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendLibKind
 import org.arend.module.ArendModuleType
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -29,7 +30,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Paths
 
 
-class ArendModuleConfigService(private val module: Module) : LibraryConfig(module.project) {
+class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project) {
     private val libraryManager = TypeCheckingService.getInstance(project).libraryManager
 
     override var sourcesDir: String? = null
@@ -59,13 +60,13 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
         }
 
     private val yamlFile
-        get() = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { module.project.findPsiFileByPath(it) as? YAMLFile }
+        get() = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { project.findPsiFileByPath(it) as? YAMLFile }
 
     private fun updateDependencies(newDependencies: List<LibraryDependency>) {
         val oldDependencies = dependencies
         dependencies = newDependencies
 
-        val library = libraryManager.getRegisteredLibrary(name) ?: return
+        val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
         var reload = false
         for (dependency in oldDependencies) {
             if (!newDependencies.contains(dependency) && libraryManager.getRegisteredLibrary(dependency.name) != null) {
@@ -155,7 +156,7 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
         }
 
         // Locate dependencies and create libraries in the project-level table if necessary
-        val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(module.project)
+        val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
         for (dependency in dependencies) {
             val depModule = arendModules[dependency.name]
             if (depModule == module) {
@@ -169,7 +170,7 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
                         val tableModel = projectTable.modifiableModel
                         library = tableModel.createLibrary(dependency.name)
 
-                        val libConfig = module.project.findExternalLibrary(dependency.name)
+                        val libConfig = project.findExternalLibrary(dependency.name)
                         if (libConfig != null) {
                             val libModel = library.modifiableModel
 
@@ -207,10 +208,11 @@ class ArendModuleConfigService(private val module: Module) : LibraryConfig(modul
 
         // Update the module-level library table
         val rootModel = runReadAction { ModuleRootManager.getInstance(module).modifiableModel }
+        val service = TypeCheckingService.getInstance(project)
         try {
             for (entry in rootModel.orderEntries) {
-                val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> lib.name?.let { IdeaDependency(it, null, lib) } } ?:
-                (entry as? ModuleOrderEntry)?.module?.let { IdeaDependency(it.name, it, null) }
+                val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> service.getLibraryName(lib)?.let { IdeaDependency(it, null, lib) } }
+                    ?: (entry as? ModuleOrderEntry)?.module?.let { IdeaDependency(it.name, it, null) }
                 if (ideaDependency != null && !ideaDependencies.remove(ideaDependency)) {
                     rootModel.removeOrderEntry(entry)
                 }
