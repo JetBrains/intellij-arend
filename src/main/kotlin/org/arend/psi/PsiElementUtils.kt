@@ -13,7 +13,6 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.findExternalLibrary
 import org.arend.mapFirstNotNull
-import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.module.scopeprovider.ModuleScopeProvider
@@ -45,7 +44,7 @@ val PsiElement.libraryConfig: LibraryConfig?
 
         val module = fileIndex.getModuleForFile(virtualFile)
         if (module != null) {
-            return if (ArendModuleType.has(module)) ArendModuleConfigService.getInstance(module) else null
+            return ArendModuleConfigService.getInstance(module)
         }
 
         if (!fileIndex.isInLibrarySource(virtualFile)) {

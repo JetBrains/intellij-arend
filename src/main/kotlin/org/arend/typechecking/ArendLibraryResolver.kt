@@ -12,11 +12,10 @@ import org.arend.module.ArendRawLibrary
 class ArendLibraryResolver(private val project: Project): LibraryResolver {
     override fun resolve(name: String): Library? {
         val module = ModuleManager.getInstance(project)?.findModuleByName(name)
-        if (module != null && ArendModuleType.has(module)) {
-            return ArendRawLibrary(module, TypeCheckingService.getInstance(project).typecheckerState)
+        return if (module != null && ArendModuleType.has(module)) {
+            ArendRawLibrary(module)
+        } else {
+            project.findExternalLibrary(name)?.let { ArendRawLibrary(it, true) }
         }
-
-        val library = project.findExternalLibrary(name) ?: return null
-        return ArendRawLibrary(library, TypeCheckingService.getInstance(project).typecheckerState)
     }
 }

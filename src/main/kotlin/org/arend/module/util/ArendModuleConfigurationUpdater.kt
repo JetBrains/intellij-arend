@@ -28,18 +28,13 @@ open class ArendModuleConfigurationUpdater(private val sourceDir: String, privat
         val srcAbsoluteDir = toAbsolute(projectRoot.path, srcDir)
         val outDir = binariesDir(projectRoot, rootModel.project)
 
-        if (projectRoot.fileSystem.findFileByPath(srcAbsoluteDir) == null) {
-            VfsUtil.createDirectories(srcAbsoluteDir)
-        }
-
+        VfsUtil.createDirectories(srcAbsoluteDir)
         contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcAbsoluteDir), false)
         contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(projectRoot.path, outDir)))
 
-        if (projectRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) == null) {
-            projectRoot.createChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE).setBinaryContent(
-                ("$SOURCES: ${toRelative(projectRoot.path, srcDir)}\n" +
-                 "$BINARIES: ${toRelative(projectRoot.path, outDir)}").toByteArray())
-        }
+        projectRoot.findOrCreateChildData(projectRoot, FileUtils.LIBRARY_CONFIG_FILE).setBinaryContent(
+            ("$SOURCES: ${toRelative(projectRoot.path, srcDir)}\n" +
+             "$BINARIES: ${toRelative(projectRoot.path, outDir)}").toByteArray())
     }
 
     private companion object {

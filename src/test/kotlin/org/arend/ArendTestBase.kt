@@ -34,7 +34,7 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
 
         val service = TypeCheckingService.getInstance(myModule.project)
         service.initialize()
-        val library = ArendRawLibrary(myModule, service.typecheckerState)
+        val library = ArendRawLibrary(myModule)
         service.libraryManager.unloadLibrary(library)
         service.libraryManager.loadLibrary(library)
     }
