@@ -30,6 +30,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
@@ -60,11 +61,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     fun report(error: Error, cause: ArendCompositeElement) {
-        if (file != cause.containingFile) {
+        val localError = error.localError
+        if (localError is IncompleteExpressionError || file != cause.containingFile) {
             return
         }
 
-        val localError = error as? LocalError ?: (error as? ProxyError)?.localError
         if (localError is NotInScopeError) {
             val ref = when (cause) {
                 is ArendReferenceElement -> cause
@@ -93,6 +94,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     fun report(error: Error) {
+        if (error is IncompleteExpressionError) {
+            return
+        }
+
         val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         for (cause in list) {
             val psi = getCauseElement(cause)
