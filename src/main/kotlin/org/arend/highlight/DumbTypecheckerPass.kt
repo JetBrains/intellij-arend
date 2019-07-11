@@ -18,6 +18,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
+import org.arend.typechecking.visitor.DumbDefinitionTypechecker
 import org.arend.typechecking.visitor.DumbTypechecker
 
 class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
@@ -56,6 +57,6 @@ class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, te
 
         DesugarVisitor.desugar(definition, concreteProvider, this)
         progress.checkCanceled()
-        definition.accept(DumbTypechecker(typecheckerState, this), null)
+        definition.accept(DumbDefinitionTypechecker(DumbTypechecker(typecheckerState, this)), null)
     }
 }
