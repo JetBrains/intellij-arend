@@ -1,4 +1,4 @@
-package org.arend
+package org.arend.folding
 
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.FoldingBuilderEx

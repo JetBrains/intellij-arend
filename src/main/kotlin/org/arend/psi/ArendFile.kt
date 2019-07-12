@@ -94,6 +94,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
 
+    override val statements
+        get() = children.filterIsInstance<ArendStatement>()
+
     override val where: ArendWhere?
         get() = null
 
