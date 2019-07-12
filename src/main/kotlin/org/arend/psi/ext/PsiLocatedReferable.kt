@@ -16,12 +16,7 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
     val defIdentifier: ArendDefIdentifier?
 
     companion object {
-        fun fromReferable(referable: GlobalReferable): PsiLocatedReferable? {
-            val psiPtr = (referable as? DataLocatedReferable)?.data ?: return referable as? PsiLocatedReferable
-            return runReadAction { psiPtr.element } as? PsiLocatedReferable
-        }
-
-        // fun fromReferable(referable: Referable) = (referable as? GlobalReferable)?.let { fromReferable(it) } ?: referable
+        fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
 
         fun isValid(ref: TCReferable?) = ref != null && (ref !is DataLocatedReferable || ref.data == null || runReadAction { ref.data?.element } != null)
     }

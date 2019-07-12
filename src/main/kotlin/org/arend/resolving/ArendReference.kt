@@ -7,7 +7,6 @@ import com.intellij.psi.*
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -68,14 +67,13 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }
 
         return element.scope.elements.mapNotNull { origElement ->
-            val ref = (origElement as? RedirectingReferable)?.originalReferable ?: origElement
-            val origRef: Any? = if (ref is DataLocatedReferable) ref.data?.element else ref
-            if (origRef !is ModuleReferable && (clazz != null && !clazz.isInstance(origRef) || notARecord && (origRef as? ArendDefClass)?.recordKw != null)) {
+            val ref = origElement.underlyingReferable
+            if (ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
-            } else when (origRef) {
+            } else when (ref) {
                 is PsiNamedElement -> {
-                    var builder = LookupElementBuilder.create(origRef, origElement.textRepresentation()).withIcon(origRef.getIcon(0))
-                    val parameters = (origRef as? Abstract.ParametersHolder)?.parameters ?: emptyList()
+                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ref.getIcon(0))
+                    val parameters = (ref as? Abstract.ParametersHolder)?.parameters ?: emptyList()
                     if (!parameters.isEmpty()) {
                         val stringBuilder = StringBuilder()
                         for (parameter in parameters) {
@@ -85,20 +83,20 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                         }
                         builder = builder.withTailText(stringBuilder.toString(), true)
                     }
-                    (origRef as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.text) }
+                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.text) }
                     builder
                 }
                 is ModuleReferable -> {
-                    val module = if (origRef is PsiModuleReferable) {
-                        origRef.modules.firstOrNull()
+                    val module = if (ref is PsiModuleReferable) {
+                        ref.modules.firstOrNull()
                     } else {
-                        element.libraryConfig?.forAvailableConfigs { it.findArendFilesAndDirectories(origRef.path).firstOrNull() }
+                        element.libraryConfig?.forAvailableConfigs { it.findArendFilesAndDirectories(ref.path).firstOrNull() }
                     }
                     module?.let {
                         if (it is ArendFile)
                             LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.MODULE) else
                             LookupElementBuilder.createWithIcon(it)
-                    } ?: LookupElementBuilder.create(origRef, origElement.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
+                    } ?: LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
                 }
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
@@ -125,12 +123,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        var ref: Any? = if (cache != null) cache.resolveCached(resolver, this.element)
-                        else resolver.invoke(this.element)
-
-        if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data?.element
-        return when (ref) {
+        return when (val ref = (if (cache != null) cache.resolveCached(resolver, this.element) else resolver.invoke(this.element))?.underlyingReferable) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             is ModuleReferable -> {
@@ -163,11 +156,8 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
 }
 
 open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendReferenceImpl<T>(element), PsiPolyVariantReference {
-    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        var ref: Any? = element.scope.resolveName(element.referenceName)
-        if (ref is RedirectingReferable) ref = ref.originalReferable
-        if (ref is DataLocatedReferable) ref = ref.data?.element
-        return when (ref) {
+    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> =
+        when (val ref = element.scope.resolveName(element.referenceName)?.let { (it as? Referable)?.underlyingReferable ?: it}) {
             is PsiElement -> arrayOf(PsiElementResolveResult(ref))
             is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
             is ModuleReferable ->
@@ -178,5 +168,4 @@ open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendR
                 }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
             else -> emptyArray()
         }
-    }
 }

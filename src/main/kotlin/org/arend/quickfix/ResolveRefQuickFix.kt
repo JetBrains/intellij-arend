@@ -1,8 +1,6 @@
 package org.arend.quickfix
 
 import com.intellij.psi.PsiElement
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -148,14 +146,9 @@ class ResolveRefQuickFix {
 
             for (location in locations) {
                 location.getAliases().map { alias ->
-                    val isValid = if (alias.isEmpty()) true else {
-                        var referable = Scope.Utils.resolveName(correctedScope, alias)
-                        if (referable is RedirectingReferable) referable = referable.originalReferable
-
-                        referable is GlobalReferable && PsiLocatedReferable.fromReferable(referable) == defaultLocation.myTarget
+                    if (alias.isEmpty() || Scope.Utils.resolveName(correctedScope, alias)?.underlyingReferable == defaultLocation.myTarget) {
+                        resultingDecisions.add(Pair(alias, fileResolveActions[location]))
                     }
-
-                    if (isValid) resultingDecisions.add(Pair(alias, fileResolveActions[location]))
                 }
             }
 

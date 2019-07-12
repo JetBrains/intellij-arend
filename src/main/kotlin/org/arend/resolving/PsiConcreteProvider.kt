@@ -116,36 +116,36 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
     }
 
     override fun getConcreteFunction(referable: GlobalReferable): Concrete.FunctionDefinition? {
-        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        val psiReferable = referable.underlyingReferable
         return if (psiReferable is PsiConcreteReferable && (psiReferable is ArendDefFunction || psiReferable is ArendDefInstance)) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
     override fun getConcreteInstance(referable: GlobalReferable): Concrete.FunctionDefinition? {
-        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefInstance) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
     override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
-        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
     }
 
     override fun getConcreteData(referable: GlobalReferable): Concrete.DataDefinition? {
-        val psiReferable = PsiLocatedReferable.fromReferable(referable)
+        val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
     }
 
-    override fun isInstance(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefInstance
+    override fun isInstance(ref: GlobalReferable) = ref.underlyingReferable is ArendDefInstance
 
-    override fun isData(ref: GlobalReferable) = PsiLocatedReferable.fromReferable(ref) is ArendDefData
+    override fun isData(ref: GlobalReferable) = ref.underlyingReferable is ArendDefData
 
     override fun isFunction(ref: GlobalReferable): Boolean {
-        val psiRef = PsiLocatedReferable.fromReferable(ref)
+        val psiRef = ref.underlyingReferable
         return psiRef is ArendDefFunction || psiRef is ArendDefInstance
     }
 
     override fun isUse(ref: GlobalReferable): Boolean {
-        val psiReferable = PsiLocatedReferable.fromReferable(ref)
+        val psiReferable = ref.underlyingReferable
         return psiReferable is ArendDefFunction && runReadAction { psiReferable.useKw != null }
     }
 }

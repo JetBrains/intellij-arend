@@ -139,9 +139,9 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
-        val curRef = PsiLocatedReferable.fromReferable(referable)
-        val prevRef = PsiLocatedReferable.fromReferable(tcReferable)
-        if (curRef != null && prevRef != null && prevRef != curRef) {
+        val curRef = referable.underlyingReferable
+        val prevRef = tcReferable.underlyingReferable
+        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
             if (FullName(prevRef) == fullName) {
                 simpleReferableConverter.putIfAbsent(referable, tcReferable)
             }

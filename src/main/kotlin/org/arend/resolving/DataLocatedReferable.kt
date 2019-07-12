@@ -22,6 +22,9 @@ open class DataLocatedReferable(
 
     override fun getData() = psiElementPointer
 
+    override fun getUnderlyingReferable() =
+        psiElementPointer?.let { (runReadAction { it.element } as? Referable)?.underlyingReferable } ?: this
+
     override fun moduleTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } } ?: location?.toString()
 

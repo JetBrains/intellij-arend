@@ -155,7 +155,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         }
 
-        fun getImprovedCause(error: Error) = getCauseElement(error)?.let { getImprovedErrorElement(error, it) }
+        fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
         private fun getImprovedTextRange(error: Error, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element

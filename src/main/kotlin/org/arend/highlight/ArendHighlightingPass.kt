@@ -37,7 +37,7 @@ class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, f
                     }
                 }
                 if (referent != originalRef) {
-                    resolverCache.resolveCached({ if (referent is ErrorReference) null else (referent as? TCReferableWrapper)?.data ?: referent }, reference)
+                    resolverCache.resolveCached({ if (referent is ErrorReference) null else referent.underlyingReferable }, reference)
                 }
             }
 
@@ -81,7 +81,7 @@ class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, f
 
             override fun definitionResolved(definition: Concrete.Definition) {
                 progress.checkCanceled()
-                (definition.data.data as? PsiLocatedReferable)?.defIdentifier?.let {
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.defIdentifier?.let {
                     holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                 }
 

@@ -18,7 +18,9 @@ abstract class TCReferableWrapper : TCReferable {
         return if (tc !== referable && tc is LocatedReferable) (wrap(tc) ?: this) else this
     }
 
-    override fun getData() = referable
+    override fun getData() = referable.underlyingReferable
+
+    override fun getUnderlyingReferable() = referable
 
     override fun textRepresentation() = referable.textRepresentation()
 

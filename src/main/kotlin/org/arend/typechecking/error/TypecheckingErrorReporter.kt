@@ -41,15 +41,15 @@ class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingSer
     fun flush() {
         for (error in errorList) {
             var reported = false
-            error.forAffectedDefinitions { globalRef, refError ->
-                val ref = PsiLocatedReferable.fromReferable(globalRef)
-                if (ref is PsiLocatedReferable || globalRef is ModuleReferable) {
+            error.forAffectedDefinitions { def, refError ->
+                val ref = def.underlyingReferable
+                if (ref is PsiLocatedReferable || ref is ModuleReferable) {
                     reported = true
                     if (ref is PsiLocatedReferable) runReadAction {
                         eventsProcessor.executeProxyAction(ref.typecheckable, ErrorProxyAction(refError))
                     }
-                    if (globalRef is ModuleReferable) runReadAction {
-                        eventsProcessor.executeProxyAction(globalRef, ErrorProxyAction(refError))
+                    if (ref is ModuleReferable) runReadAction {
+                        eventsProcessor.executeProxyAction(ref, ErrorProxyAction(refError))
                     }
                 }
             }

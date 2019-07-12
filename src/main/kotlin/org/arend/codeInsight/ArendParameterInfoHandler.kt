@@ -285,8 +285,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return null
     }
 
-    private fun resolveIfNeeded(referent: Referable, scope: Scope): Referable? =
-        (ExpressionResolveNameVisitor.resolve(referent, scope, true) as? GlobalReferable)?.let { PsiLocatedReferable.fromReferable(it) }
+    private fun resolveIfNeeded(referent: Referable, scope: Scope) =
+        ExpressionResolveNameVisitor.resolve(referent, scope, true)?.underlyingReferable
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
@@ -358,7 +358,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun tryToLocateAtTheCurrentLevel(absNode: Abstract.SourceNode, isNewArgPos: Boolean, isLowestLevel: Boolean): Pair<Int, Abstract.Reference>? {
         val absNodeParent = ascendToLiteral(absNode).parentSourceNode ?: return null
         if (absNode is Abstract.Reference) {
-            val ref = absNode.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope) }
+            val ref = resolveIfNeeded(absNode.referent, (absNode as ArendSourceNode).scope)
             val params = ref?.let { getAllParametersForReferable(it) }
             if (params != null && !params.isEmpty()) {
                 val isBinOp = isBinOp(ref)
@@ -366,7 +366,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                 if (parentAppExprCandidate is ArendExpr) {
                     if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
                         val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
-                        if (isNewArgPos && isBinOp(loc.second.referent.let{ resolveIfNeeded(it, (absNode as ArendSourceNode).scope)})) {
+                        if (isNewArgPos && isBinOp(resolveIfNeeded(loc.second.referent, (absNode as ArendSourceNode).scope))) {
                             return Pair(0, absNode)
                         }
                         if (isNewArgPos && isLowestLevel) return Pair(loc.first + 1, loc.second)

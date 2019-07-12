@@ -29,7 +29,7 @@ class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, te
 
         override fun getTypechecked(ref: TCReferable): Definition? {
             val def = map.computeIfAbsent(ref) {
-                (ref.data as? ArendDefinition)?.let { service.getTypechecked(it) } ?: NullDefinition
+                (ref.underlyingReferable as? ArendDefinition)?.let { service.getTypechecked(it) } ?: NullDefinition
             }
             return if (def === NullDefinition) null else def
         }

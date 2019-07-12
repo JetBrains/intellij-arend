@@ -6,12 +6,16 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.SourceInfo
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.LocalReferable
+import org.arend.naming.reference.Referable
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 
 
 class DataLocalReferable(private val psiElementPointer: SmartPsiElementPointer<PsiElement>, name: String) : LocalReferable(name), DataContainer, SourceInfo {
     override fun getData(): SmartPsiElementPointer<PsiElement> = psiElementPointer
+
+    override fun getUnderlyingReferable() =
+        (runReadAction { psiElementPointer.element } as? Referable)?.underlyingReferable ?: this
 
     override fun moduleTextRepresentation(): String? = runReadAction { psiElementPointer.element?.moduleTextRepresentationImpl() }
 
