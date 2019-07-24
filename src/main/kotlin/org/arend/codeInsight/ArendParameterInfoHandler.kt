@@ -79,7 +79,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                         }
                         def.resultType
                     }
-                is FunctionDefinitionAdapter -> def.resultType
+                is FunctionDefinitionAdapter -> {
+                    val defClass = def.parent?.parent as? ArendDefClass
+                    val className = defClass?.name
+                    if (className != null) {
+                        params.add(0, psiFactory.createNameTele("this", className, false))
+                    }
+                    def.resultType
+                }
                 else -> null
             }
             if (def is ArendConstructor) {
@@ -150,37 +157,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     override fun couldShowInLookup(): Boolean {
         return true
     }
-
-    /*
-    private fun fixedFindElement(file: PsiFile, offset: Int): PsiElement? {
-        var elem: PsiElement? = file.findElementAt(adjustOffset(file, offset))
-        //var shiftedOffset = offset + 1
-
-        //while (shiftedOffset >= 0 && elem == null) {
-        //    --shiftedOffset
-        //    elem = file.findElementAt(shiftedOffset)
-       // }
-
-        //if (elem == null) return null
-
-        if (elem is PsiWhiteSpace && elem.prevSibling !is PsiWhiteSpace) {
-            return elem.prevSibling
-        }
-
-        while (elem is PsiWhiteSpace) {
-            elem = elem.nextSibling
-            /*
-            if (elem.textOffset != shiftedOffset) { //context.editor.caretModel.offset) {
-                // return PsiTreeUtil.getParentOfType(PsiTreeUtil.nextLeaf(arg), ArendArgument::class.java, true, ArendArgumentAppExpr::class.java)
-                return PsiTreeUtil.nextLeaf(elem)
-            } else {
-                // return PsiTreeUtil.getParentOfType(PsiTreeUtil.prevLeaf(arg), ArendArgument::class.java, true, ArendArgumentAppExpr::class.java)
-                return PsiTreeUtil.prevLeaf(elem)
-            }*/
-        }
-
-        return elem
-    } */
 
     private fun adjustOffset(file: PsiFile, offset: Int): Int {
         val element = file.findElementAt(offset)
@@ -396,19 +372,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             return argLoc
         }
 
-        /*
-        if (arg_ != null && arg_.parentSourceNode is ArendExpr && isBinOpSeq(arg_.parentSourceNode) ||
-                absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) {
-            val arg: ArendExpr = if (absNodeParent is ArendArgument) absNodeParent.expression as ArendExpr else absNodeParent as ArendExpr
-            val argLoc =  if (absNodeParent is ArendArgument) locateArg(arg, (absNodeParent).parentSourceNode as ArendExpr)
-                            else locateArg(arg, absNodeParent as ArendExpr)
-
-            if (argLoc != null) {
-                if (isNewArgPos && isLowestLevel) return Pair(argLoc.first + 1, argLoc.second)
-                return argLoc
-            }
-        } */
-
         return null
     }
 
@@ -426,43 +389,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
         val isNewArgPos = isNewArgumentPosition(file, offset)
         val absNode = skipWhitespaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
-        /*
-        var absNodeParent = absNode.parentSourceNode ?: return null
-
-        //if (absNode is Abstract.Pattern || absNodeParent is Abstract.Pattern) {
-         //   return null
-       // }
-
-       // if (absNode is ArendTypeTele || absNodeParent is ArendTypeTele) {
-       //     return null
-       // }
-
-        while (absNode !is Abstract.Expression) {
-            absNode = absNodeParent
-            absNodeParent = absNodeParent.parentSourceNode ?: return null
-        }
-
-        if (absNodeParent is ArendArgument && absNodeParent.parentSourceNode is ArendExpr) {
-            var arg: ArendArgument = absNodeParent
-            val argLoc = arg.expression?.let { locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
-
-            if (argLoc == null && absNodeParent.parentSourceNode?.parentSourceNode is ArendArgument) {
-                arg = absNodeParent.parentSourceNode?.parentSourceNode as ArendArgument
-                return arg.expression?.let{ locateArg(it as ArendExpr, absNodeParent.parentSourceNode as ArendExpr) }
-            }
-
-            return argLoc
-        } else if (absNodeParent is ArendArgumentAppExpr) {
-            val argLoc = locateArg(absNode as ArendExpr, absNodeParent)
-            if (argLoc != null) return argLoc
-
-            if (absNodeParent.parentSourceNode is ArendArgument && absNodeParent.parentSourceNode?.parentSourceNode is ArendExpr) {
-                val arg: ArendArgument = absNodeParent.parentSourceNode as ArendArgument
-                return arg.expression?.let { locateArg(it as ArendExpr, absNodeParent.parentSourceNode?.parentSourceNode as ArendExpr) }
-            }
-
-            return expressionToReference(absNodeParent)?.let { Pair(-1, it) }
-        } */
 
         return ascendTillAppExpr(absNode, isNewArgPos)
     }
@@ -477,17 +403,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
         context.setCurrentParameter(appExprInfo.first)
         return appExprInfo.second
-    }
-
-    private fun extractParametersHolder(appExpr: ArendArgumentAppExpr): Abstract.ParametersHolder? {
-        val longName = appExpr.longNameExpr?.longName ?: appExpr.atomFieldsAcc?.atom?.literal?.longName
-        if (longName != null && longName.headReference != null) {
-            val ref = longName.refIdentifierList.lastOrNull()?.reference?.resolve()
-            if (ref != null && ref is Abstract.ParametersHolder) {
-                return ref
-            }
-        }
-        return null
     }
 
     override fun updateParameterInfo(parameterOwner: Abstract.Reference, context: UpdateParameterInfoContext) {
