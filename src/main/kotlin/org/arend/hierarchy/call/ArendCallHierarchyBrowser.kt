@@ -3,7 +3,6 @@ package org.arend.hierarchy.call
 import com.intellij.ide.hierarchy.CallHierarchyBrowserBase
 import com.intellij.ide.hierarchy.HierarchyBrowserManager
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
-import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.util.treeView.AlphaComparator
 import com.intellij.ide.util.treeView.NodeDescriptor
 import com.intellij.ide.util.treeView.SourceComparator
@@ -15,36 +14,26 @@ import java.util.*
 import javax.swing.JTree
 
 class ArendCallHierarchyBrowser(project: Project, method: PsiElement) : CallHierarchyBrowserBase(project, method) {
-    override fun getComparator(): Comparator<NodeDescriptor<Any>>? {
-        return if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) {
+    override fun getComparator(): Comparator<NodeDescriptor<Any>>? =
+        if (HierarchyBrowserManager.getInstance(myProject).state?.SORT_ALPHABETICALLY == true)
             AlphaComparator.INSTANCE
-        } else {
+        else
             SourceComparator.INSTANCE
-        }
-    }
 
-    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor): PsiElement? {
-        if (descriptor is ArendHierarchyNodeDescriptor) {
-            return descriptor.psiElement
-        }
-        return null
-    }
+    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) =
+        (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 
     override fun createTrees(trees: MutableMap<String, JTree>) {
         trees[CALLEE_TYPE] = createTree(false)
         trees[CALLER_TYPE] = createTree(false)
     }
 
-    override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? {
-        if (type == CALLEE_TYPE) {
-            return ArendCalleeTreeStructure(myProject, psiElement)
-        } else if (type == CALLER_TYPE) {
-            return ArendCallerTreeStructure(myProject, psiElement)
+    override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement) =
+        when (type) {
+            CALLEE_TYPE -> ArendCalleeTreeStructure(myProject, psiElement)
+            CALLER_TYPE -> ArendCallerTreeStructure(myProject, psiElement)
+            else -> null
         }
-        return null
-    }
 
-    override fun isApplicableElement(element: PsiElement): Boolean {
-        return element is PsiLocatedReferable
-    }
+    override fun isApplicableElement(element: PsiElement) = element is PsiLocatedReferable
 }

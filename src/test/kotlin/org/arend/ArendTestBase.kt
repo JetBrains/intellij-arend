@@ -11,7 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.psi.parentOfType
@@ -19,7 +19,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
 
-abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendTestCase {
+abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     override fun getProjectDescriptor(): LightProjectDescriptor = DefaultDescriptor
 
@@ -32,9 +32,10 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
     override fun setUp() {
         super.setUp()
 
-        val service = TypeCheckingService.getInstance(myModule.project)
+        val module = module
+        val service = TypeCheckingService.getInstance(module.project)
         service.initialize()
-        val library = ArendRawLibrary(myModule)
+        val library = ArendRawLibrary(module)
         service.libraryManager.unloadLibrary(library)
         service.libraryManager.loadLibrary(library)
     }
@@ -185,7 +186,7 @@ abstract class ArendTestBase : LightPlatformCodeInsightFixtureTestCase(), ArendT
                     System.err.println("Expected caret kind: \n$rC")
                     System.err.println("Actual caret kind: \n${StringBuilder(contentWithoutMarkers).insert(actualCaret, CARET_MARKER)}")
                 } else {
-                    System.out.println("Expected caret kind: $index\n Actual caret kind: $actualCaret")
+                    println("Expected caret kind: $index\n Actual caret kind: $actualCaret")
                 }
                 assert(false)
             }

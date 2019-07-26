@@ -11,7 +11,6 @@ import com.intellij.ide.util.projectWizard.importSources.ProjectStructureDetecto
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import com.intellij.ui.layout.panel
 import org.arend.module.ArendModuleType
 import org.arend.module.config.binariesDir
 import org.arend.module.config.sourcesDir
@@ -20,7 +19,6 @@ import org.jetbrains.yaml.psi.YAMLFile
 import java.io.File
 import java.util.*
 import javax.swing.Icon
-import javax.swing.JComponent
 
 class ArendProjectStructureDetector : ProjectStructureDetector() {
 
@@ -30,7 +28,7 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
             base: File,
             result: MutableList<DetectedProjectRoot>
     ): DirectoryProcessingResult {
-        val containsConfigFile = dir.listFiles().any { it.name == FileUtils.LIBRARY_CONFIG_FILE }
+        val containsConfigFile = dir.listFiles()?.any { it.name == FileUtils.LIBRARY_CONFIG_FILE } == true
         if (containsConfigFile) {
             result.add(object : DetectedProjectRoot(dir) {
                 override fun getRootTypeName(): String = "Arend"

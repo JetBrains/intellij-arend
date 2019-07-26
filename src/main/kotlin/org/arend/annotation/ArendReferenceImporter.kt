@@ -3,7 +3,6 @@ package org.arend.annotation
 import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.daemon.ReferenceImporter
 import com.intellij.codeInsight.daemon.impl.CollectHighlightsUtil
-import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import org.arend.ArendLanguage
@@ -30,7 +29,7 @@ class ArendReferenceImporter : ReferenceImporter {
     }
 
     override fun autoImportReferenceAtCursor(editor: Editor, file: PsiFile): Boolean {
-        if (!file.viewProvider.languages.contains(JavaLanguage.INSTANCE)) {
+        if (!file.viewProvider.languages.contains(ArendLanguage.INSTANCE)) {
             return false
         }
 

@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
-    kotlin("jvm") version "1.3.31"
-    id("org.jetbrains.intellij") version "0.4.8"
-    id("org.jetbrains.grammarkit") version "2019.1"
+    kotlin("jvm") version "1.3.41"
+    id("org.jetbrains.intellij") version "0.4.9"
+    id("org.jetbrains.grammarkit") version "2019.2"
 }
 
 repositories {
@@ -47,11 +47,11 @@ idea {
 }
 
 intellij {
-    version = "2019.1"
+    version = "2019.2"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml")
+    setPlugins("yaml", "java")
 }
 
 task<GenerateLexer>("generateArendLexer") {
