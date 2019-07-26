@@ -1,15 +1,30 @@
 <idea-plugin>
     <id>org.arend.lang</id>
     <name>Arend</name>
-    <version>0.0.1</version>
-    <vendor url="https://github.com/JetBrains/intellij-arend"/>
+    <version>1.0.0</version>
+    <vendor>JetBrains</vendor>
 
     <description><![CDATA[
-      Arend language support
+      <a href="https://arend-lang.github.io/">Arend</a> is a proof assistant based on homotopy type theory.
+      This plugin adds support for the Arend language.
+      To learn more about this plugin, visit the <a href="https://arend-lang.github.io/about/intellij-features">website</a>.
     ]]></description>
 
     <change-notes><![CDATA[
-      Release 0.0.1: Initial release.<br>
+      The first stable release. It implements the following features:
+      <ul>
+        <li>Syntax highlighting</li>
+        <li>Code completion</li>
+        <li>Find usages</li>
+        <li>Quick documentation</li>
+        <li>Parameter hints</li>
+        <li>Class hierarchy</li>
+        <li>Code formatter</li>
+        <li>Auto import</li>
+        <li>"Implement missing fields" quick fix</li>
+        <li>Move Refactoring</li>
+        <li>Incremental typechecking</li>
+      </ul>
     ]]>
     </change-notes>
 
