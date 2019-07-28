@@ -13,12 +13,13 @@ import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
-import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.projectRoots.SdkModel
 import com.intellij.openapi.roots.ModuleRootEvent
 import com.intellij.openapi.roots.ModuleRootListener
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
+import com.intellij.openapi.roots.libraries.Library
+import com.intellij.openapi.roots.libraries.LibraryTable
+import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.*
 import org.arend.module.ArendModuleType
@@ -41,7 +42,9 @@ class ArendStartupActivity : StartupActivity {
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 val libraryManager = TypeCheckingService.getInstance(project).libraryManager
-                libraryManager.getRegisteredLibrary(module.name)?.let { libraryManager.unloadLibrary(it) }
+                ArendRawLibrary.getLibraryFor(libraryManager, module)?.let {
+                    libraryManager.unloadLibrary(it)
+                }
             }
         })
 
@@ -55,14 +58,27 @@ class ArendStartupActivity : StartupActivity {
             addModule(module)
         }
 
-        var sdkHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
+        val service = TypeCheckingService.getInstance(project)
+        LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(object : LibraryTable.Listener {
+            override fun afterLibraryAdded(newLibrary: Library) {
+                service.addLibrary(newLibrary)
+            }
+
+            override fun afterLibraryRemoved(library: Library) {
+                val name = service.removeLibrary(library) ?: return
+                ArendRawLibrary.getExternalLibrary(service.libraryManager, name)?.let {
+                    service.libraryManager.unloadLibrary(it)
+                }
+            }
+        })
+
+        var sdkHome: String? = ProjectRootManager.getInstance(project).projectSdk?.homePath
         project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {
             override fun rootsChanged(event: ModuleRootEvent) {
                 val newHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
                 if (sdkHome != newHome) {
                     ServiceManager.getService(project, ArendResolveCache::class.java)?.clear()
-                    val service = TypeCheckingService.getInstance(project)
-                    service.libraryManager.unloadExceptPrelude()
+                    TypeCheckingService.getInstance(project).libraryManager.unload()
                     for (module in project.arendModules) {
                         addModule(module)
                     }
@@ -91,14 +107,14 @@ class ArendStartupActivity : StartupActivity {
                             return
                         }
 
-                        val fileModule = ModuleUtilCore.findModuleForFile(file, project) ?: return
-                        ArendModuleConfigService.getInstance(fileModule)?.updateFromYAML()
+                        ArendModuleConfigService.getInstance(ModuleUtilCore.findModuleForFile(file, project))?.updateFromYAML()
                     }
                 })
+                ModuleRootManager.getInstance(module)
             }
 
             ArendModuleConfigService.getInstance(module)?.updateFromYAML()
-            service.libraryManager.loadLibrary(ArendRawLibrary(module, service.typecheckerState))
+            service.libraryManager.loadLibrary(ArendRawLibrary(module))
         }
 
         private class MyVirtualFileListener(private val project: Project) : VirtualFileListener {
@@ -115,8 +131,7 @@ class ArendStartupActivity : StartupActivity {
                     return
                 }
                 if (fileName == FileUtils.LIBRARY_CONFIG_FILE) {
-                    val module = ModuleUtil.findModuleForFile(event.file, project) ?: return
-                    val service = ArendModuleConfigService.getInstance(module) ?: return
+                    val service = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(event.file, project)) ?: return
                     val root = service.root ?: return
                     if (root == oldParent || root == newParent) {
                         service.updateFromYAML()

@@ -3,15 +3,15 @@ package org.arend.annotation
 import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.codeInsight.hint.QuestionAction
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.project.Project
-import org.arend.refactoring.ResolveReferenceAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
+import org.arend.refactoring.ResolveReferenceAction
 import javax.swing.Icon
 
 class ArendAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveReferenceAction>, private val onTheFly: Boolean) : QuestionAction {
@@ -19,10 +19,9 @@ class ArendAddImportAction(val project: Project, val editor: Editor, private val
     override fun execute(): Boolean {
         PsiDocumentManager.getInstance(project).commitAllDocuments()
 
-        if (!currentElement.isValid)
+        if (!currentElement.isValid || resolveData.any { !it.target.isValid }) {
             return false
-
-        repeat(resolveData.filterNot { it.target.isValid }.size) { return false }
+        }
 
         if (resolveData.size == 1)
             addImport(resolveData[0])
@@ -64,7 +63,7 @@ class ArendAddImportAction(val project: Project, val editor: Editor, private val
                     return PopupStep.FINAL_CHOICE
                 }
             }
-            val popup = ListPopupImpl(step)
+            val popup = ListPopupImpl(project, step)
 
             popup.showInBestPositionFor(editor)
         }

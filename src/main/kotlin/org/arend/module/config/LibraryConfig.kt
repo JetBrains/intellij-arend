@@ -71,7 +71,7 @@ abstract class LibraryConfig(val project: Project) {
         val srcPath = sourcesPath
         if (srcPath != null) {
             val list = ArrayList<ModulePath>()
-            FileUtils.getModules(srcPath, FileUtils.EXTENSION, list)
+            FileUtils.getModules(srcPath, FileUtils.EXTENSION, list, TypeCheckingService.getInstance(project).libraryManager.libraryErrorReporter)
             return list
         }
 
@@ -90,40 +90,53 @@ abstract class LibraryConfig(val project: Project) {
         return result
     }
 
-    fun containsModule(modulePath: ModulePath): Boolean =
-            modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
+    fun containsModule(modulePath: ModulePath) =
+        modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
 
-    fun findArendDirectory(modulePath: ModulePath): PsiDirectory? {
-        var dir = sourcesDirFile
-        val psiManager = PsiManager.getInstance(project)
-        for (name in modulePath.toList()) dir = dir?.findChild(name)
-        return dir?.let { psiManager.findDirectory(it)}
+    private fun findParentDirectory(modulePath: ModulePath): VirtualFile? {
+        var dir = sourcesDirFile ?: return null
+        val list = modulePath.toList()
+        var i = 0
+        while (i < list.size - 1) {
+            dir = dir.findChild(list[i++]) ?: return null
+        }
+        return dir
     }
 
-    fun findArendFilesAndDirectories(modulePath: ModulePath): List<PsiFileSystemItem> {
-        var dirs = listOf(sourcesDirFile ?: return emptyList())
-        val path = modulePath.toList()
-        val psiManager = PsiManager.getInstance(project)
-        for ((i, name) in path.withIndex()) {
-            if (i < path.size - 1) {
-                dirs = dirs.mapNotNull { it.findChild(name) }
-                if (dirs.isEmpty()) return emptyList()
-            } else {
-                return dirs.mapNotNull { dir ->
-                    val file = dir.findChild(name + FileUtils.EXTENSION)
-                    if (file == null) {
-                        dir.findChild(name)?.let { psiManager.findDirectory(it) }
-                    } else {
-                        psiManager.findFile(file) as? ArendFile
-                    }
-                }
-            }
+    fun findArendDirectory(modulePath: ModulePath): PsiDirectory? {
+        var dir = sourcesDirFile ?: return null
+        for (name in modulePath.toList()) {
+            dir = dir.findChild(name) ?: return null
         }
-        return emptyList()
+        return PsiManager.getInstance(project).findDirectory(dir)
     }
 
     fun findArendFile(modulePath: ModulePath): ArendFile? =
-            findArendFilesAndDirectories(modulePath).filterIsInstance<ArendFile>().firstOrNull()
+        if (modulePath.size() == 0) {
+            null
+        } else {
+            findParentDirectory(modulePath)?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+                PsiManager.getInstance(project).findFile(it) as? ArendFile
+            }
+        }
+
+    fun findArendFileOrDirectory(modulePath: ModulePath): PsiFileSystemItem? {
+        if (modulePath.size() == 0) {
+            return findArendDirectory(modulePath)
+        }
+
+        val dir = findParentDirectory(modulePath) ?: return null
+
+        val psiManager = PsiManager.getInstance(project)
+        dir.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+            val file = psiManager.findFile(it)
+            if (file is ArendFile) {
+                return file
+            }
+        }
+
+        return dir.findChild(modulePath.lastName)?.let { psiManager.findDirectory(it) }
+    }
 
     // Dependencies
 

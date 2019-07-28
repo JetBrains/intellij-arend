@@ -79,13 +79,13 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
         return prelude != null && super.load(libraryManager)
     }
 
-    override fun unloadGroup(group: Group) {
+    override fun resetGroup(group: Group) {}
 
-    }
+    override fun resetDefinition(referable: LocatedReferable) {}
 
-    override fun unloadDefinition(referable: LocatedReferable) {
+    override fun unload() = false
 
-    }
+    override fun reset() {}
 
     fun resolveNames(referableConverter: ArendReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
         if (scope != null) throw IllegalStateException()

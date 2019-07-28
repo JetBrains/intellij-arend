@@ -28,10 +28,13 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement) :
         }
         for (usage in processor.results) {
             if (usage.element?.parent is ArendLongName && usage.element?.parent?.parent is ArendDefClass) {
-                val subclass = usage.element?.parent?.parent as ArendDefClass
-                //if (subclass.name != classElement.name) {
-                subClasses.add(subclass)
-                //}
+                val parentLongName = usage.element?.parent as ArendLongName
+                if (parentLongName.refIdentifierList.last().text == classElement.name) {
+                    val subclass = usage.element?.parent?.parent as ArendDefClass
+                    //if (subclass.name != classElement.name) {
+                    subClasses.add(subclass)
+                    //}
+                }
             }
         }
         subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }

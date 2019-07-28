@@ -90,7 +90,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (ref is PsiModuleReferable) {
                         ref.modules.firstOrNull()
                     } else {
-                        element.libraryConfig?.forAvailableConfigs { it.findArendFilesAndDirectories(ref.path).firstOrNull() }
+                        element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path) }
                     }
                     module?.let {
                         if (it is ArendFile)
@@ -130,10 +130,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     TypeCheckingService.getInstance(element.project).prelude
                 } else {
-                    element.libraryConfig?.forAvailableConfigs { conf ->
-                        val list = conf.findArendFilesAndDirectories(ref.path)
-                        list.firstOrNull { it is ArendFile } ?: list.firstOrNull()
-                    }
+                    element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path) }
                 }
             }
             else -> null
@@ -153,19 +150,4 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
         else -> error("Unsupported identifier type for `$name`")
     }
     oldNameIdentifier.replace(newNameIdentifier)
-}
-
-open class ArendPolyReferenceImpl<T : ArendReferenceElement>(element: T): ArendReferenceImpl<T>(element), PsiPolyVariantReference {
-    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> =
-        when (val ref = element.scope.resolveName(element.referenceName)?.let { (it as? Referable)?.underlyingReferable ?: it}) {
-            is PsiElement -> arrayOf(PsiElementResolveResult(ref))
-            is PsiModuleReferable -> ref.modules.map { PsiElementResolveResult(it) }.toTypedArray()
-            is ModuleReferable ->
-                if (ref.path == Prelude.MODULE_PATH) {
-                    TypeCheckingService.getInstance(element.project).prelude?.let { listOf(it) }
-                } else {
-                    element.libraryConfig?.availableConfigs?.flatMap { it.findArendFilesAndDirectories(ref.path) }
-                }?.map { PsiElementResolveResult(it) }?.toTypedArray<ResolveResult>() ?: emptyArray()
-            else -> emptyArray()
-        }
 }

@@ -14,12 +14,16 @@ import org.arend.module.ArendModuleType
 import org.arend.util.FileUtils
 
 class ArendModuleBuilder : ModuleBuilder() {
+    private var sdkStep: ProjectJdkStep? = null
 
     override fun getModuleType(): ModuleType<*>? = ArendModuleType.INSTANCE
 
     override fun isSuitableSdkType(sdkType: SdkTypeId?): Boolean = true
 
-    override fun getCustomOptionsStep(context: WizardContext, parentDisposable: Disposable) = ProjectJdkStep(context)
+    override fun getCustomOptionsStep(context: WizardContext, parentDisposable: Disposable): ModuleWizardStep {
+        sdkStep = ProjectJdkStep(context)
+        return sdkStep!!
+    }
 
     override fun validateModuleName(moduleName: String): Boolean {
         if (!FileUtils.isLibraryName(moduleName)) {
@@ -34,6 +38,7 @@ class ArendModuleBuilder : ModuleBuilder() {
     override fun setupRootModel(modifiableRootModel: ModifiableRootModel) {
         val root = doAddContentEntry(modifiableRootModel)?.file ?: return
         modifiableRootModel.inheritSdk()
+        // ProjectRootManager.getInstance(project!!).projectSdk = sdkStep?.jdk
         root.refresh(false, true)
     }
 }
