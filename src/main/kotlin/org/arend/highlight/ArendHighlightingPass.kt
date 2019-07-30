@@ -1,11 +1,13 @@
 package org.arend.highlight
 
-import com.intellij.codeInsight.daemon.impl.*
+import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import org.arend.naming.reference.*
+import org.arend.naming.reference.ErrorReference
+import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -22,9 +24,10 @@ class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, f
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     override fun collectInfo(progress: ProgressIndicator) {
-        factory.concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
+        val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
+        factory.concreteProvider = concreteProvider
         val resolverCache = ServiceManager.getService(myProject, ArendResolveCache::class.java)
-        DefinitionResolveNameVisitor(factory.concreteProvider, this, object : ResolverListener {
+        DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
             private fun resolveReference(data: Any?, referent: Referable, originalRef: Referable?) {
                 val reference = (data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data as? ArendReferenceElement ?: return
                 if (reference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
