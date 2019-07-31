@@ -26,6 +26,8 @@ import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
+import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     val modulePath: ModulePath?
@@ -48,6 +50,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val libraryName
         get() = libraryConfig?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
+
+    var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)

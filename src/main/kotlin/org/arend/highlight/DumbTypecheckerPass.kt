@@ -9,7 +9,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.DumbTypecheckerState
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 
@@ -18,13 +18,18 @@ class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, te
 
     private val typecheckerState = DumbTypecheckerState(TypeCheckingService.getInstance(myProject))
 
-    override fun visitDefinition(definition: Concrete.Definition, concreteProvider: ConcreteProvider, progress: ProgressIndicator) {
+    override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
         if (typecheckerState.getTypechecked(definition.data) != null) {
             return
         }
 
-        DesugarVisitor.desugar(definition, concreteProvider, this)
+        DesugarVisitor.desugar(definition, file.concreteProvider, this)
         progress.checkCanceled()
         definition.accept(DumbTypechecker(this), null)
+    }
+
+    override fun collectInfo(progress: ProgressIndicator) {
+        super.collectInfo(progress)
+        file.concreteProvider = EmptyConcreteProvider.INSTANCE
     }
 }

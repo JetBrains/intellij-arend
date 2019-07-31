@@ -20,12 +20,12 @@ import org.arend.resolving.TCReferableWrapper
 import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.concrete.Concrete
 
-class ArendHighlightingPass(private val factory: ArendHighlightingPassFactory, file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     override fun collectInfo(progress: ProgressIndicator) {
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
-        factory.concreteProvider = concreteProvider
+        file.concreteProvider = concreteProvider
         val resolverCache = ServiceManager.getService(myProject, ArendResolveCache::class.java)
         DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
             private fun resolveReference(data: Any?, referent: Referable, originalRef: Referable?) {
