@@ -11,12 +11,12 @@ import org.arend.quickfix.CoClausesKey
 import org.arend.quickfix.ImplementFieldsQuickFix
 import org.arend.quickfix.InstanceQuickFixAnnotation
 
-class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoClauseImplMixin>(ArendCoClauseImplMixin::class.java, "Implement fields of a super class") {
-
+open class ImplementFieldsInCoClauseIntention() : SelfTargetingIntention<ArendCoClauseImplMixin>(ArendCoClauseImplMixin::class.java, "Implement fields of a super class") {
     override fun isApplicableTo(element: ArendCoClauseImplMixin, caretOffset: Int): Boolean {
         val data = element.getUserData(CoClausesKey.INSTANCE)
         if (data != null && data.isNotEmpty()) {
-            text = "Implement fields of ${element.getLongName()?.text}"
+            text = if (element.fatArrow != null) "Replace {?} with empty implementation of the class"
+                                            else "Implement fields of ${element.getLongName()?.text}"
             return true
         }
         return false
