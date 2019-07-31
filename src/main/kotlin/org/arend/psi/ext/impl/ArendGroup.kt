@@ -11,7 +11,6 @@ interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode {
     val where: ArendWhere?
 
     val statements: List<ArendStatement>
-        get() = where?.statementList ?: emptyList()
 
     override fun getParentGroup(): ArendGroup?
 

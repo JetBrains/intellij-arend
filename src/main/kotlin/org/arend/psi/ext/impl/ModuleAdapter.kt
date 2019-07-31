@@ -4,10 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefModule
-import org.arend.psi.ArendPrec
-import org.arend.psi.ArendStatCmd
-import org.arend.psi.ancestors
+import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
 import org.arend.typing.ExpectedTypeVisitor
 
@@ -19,6 +16,9 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     override val scope: Scope
         get() = groupScope
+
+    override val statements: List<ArendStatement>
+        get() = where?.statementList ?: emptyList()
 
     override fun getPrec(): ArendPrec? = null
 

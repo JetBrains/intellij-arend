@@ -9,6 +9,7 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatCmd
+import org.arend.psi.ArendStatement
 import org.arend.psi.ancestors
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.stubs.ArendNamedStub
@@ -24,6 +25,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override val scope: Scope
         get() = groupScope
+
+    override val statements: List<ArendStatement>
+        get() = where?.statementList ?: emptyList()
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
         ConcreteBuilder.convert(referableConverter, this, errorReporter)
