@@ -1,4 +1,8 @@
-\class Foo {| a : Nat | b : Nat}
-\func bar => \new Foo {
+\class Foo {
+ | a : Nat
+ | b : Nat
+}
+
+\func bar => <spot>\new Foo</spot> {
   | a => {?}
  }

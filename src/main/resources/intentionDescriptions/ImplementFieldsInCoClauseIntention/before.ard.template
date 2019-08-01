@@ -3,7 +3,7 @@
 \record B (z w : Nat) \extends A
 
 \func foo : B \cowith
- | A {
+ | <spot>A</spot> {
    | y => {?}
  }
  | z => 0
