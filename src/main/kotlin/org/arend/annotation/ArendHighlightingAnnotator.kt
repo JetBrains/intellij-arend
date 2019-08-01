@@ -4,8 +4,8 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.psi.*
-import org.arend.psi.ext.*
+import org.arend.psi.ArendElim
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.term.abs.Abstract
 import org.arend.term.group.Group
 import java.util.*
@@ -13,44 +13,6 @@ import java.util.*
 class ArendHighlightingAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         /*
-        if (element is ArendArgumentAppExpr) {
-            val parentElement = element.parent
-            val pElement = ((parentElement as? ArendNewExpr)?.parent as? ArendDefFunction) ?: parentElement
-            if (pElement is ArendNewExprImplMixin) {
-                if (InstanceQuickFix.annotateNewExpr(pElement, holder)) {
-                    return
-                }
-            }
-            if (pElement is ArendNewExpr && (pElement.newKw != null || pElement.lbrace != null) || pElement is ArendNewArg || pElement is ArendDefInstance || (pElement as? ArendDefFunction)?.functionBody?.cowithKw != null) {
-                val longName = element.longNameExpr?.longName ?: run {
-                    val atomFieldsAcc = element.atomFieldsAcc
-                    if (atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isEmpty()) {
-                        atomFieldsAcc.atom.literal?.longName
-                    } else {
-                        null
-                    }
-                }
-                if (longName != null) {
-                    val ref = longName.referent
-                    val resolvedRef = (ref as? UnresolvedReference)?.resolve(element.scope) ?: ref
-                    if ((pElement is ArendDefInstance || pElement is ArendDefFunction) && resolvedRef !is ArendDefClass && resolvedRef !is UnresolvedReference && resolvedRef !is ErrorReference) {
-                        holder.createErrorAnnotation(longName, "Expected a class")
-                        return
-                    }
-                    if (resolvedRef is PsiLocatedReferable && resolvedRef !is ArendDefClass && resolvedRef !is ArendDefFunction && resolvedRef !is ArendDefInstance && resolvedRef !is FieldReferable) {
-                        if ((pElement as? ArendNewExprImplMixin)?.classReference == null) {
-                            holder.createErrorAnnotation(longName, "Expected a class")
-                        }
-                        return
-                    }
-                    if (pElement is ArendDefInstance && resolvedRef is ArendDefClass && resolvedRef.recordKw != null) {
-                        holder.createErrorAnnotation(longName, "Expected a class, got a record")
-                        return
-                    }
-                }
-            }
-        }
-
         if (element is ArendAtomPatternOrPrefix) {
             val parentPattern = element.parent as? ArendPattern ?: return
             val def = parentPattern.defIdentifier?.reference?.resolve() as? ArendConstructor ?: return
@@ -102,170 +64,6 @@ class ArendHighlightingAnnotator : Annotator {
                     if (refList.isEmpty() || refList.last() != element) {
                         color = ArendHighlightingColors.LONG_NAME
                     }
-                }
-            }
-        }
-
-        val nameResolvingChecker = object : NameResolvingChecker(false, false, PsiPartialConcreteProvider) {
-            override fun onDefinitionNamesClash(ref1: LocatedReferable, ref2: LocatedReferable, level: Error.Level) {
-                holder.createAnnotation(levelToSeverity(level), element.textRange, "Duplicate definition name '${ref2.textRepresentation()}'")
-                color = null
-            }
-
-            override fun onFieldNamesClash(ref1: LocatedReferable, superClass1: ClassReferable, ref2: LocatedReferable, superClass2: ClassReferable, currentClass: ClassReferable, level: Error.Level) {
-                holder.createAnnotation(levelToSeverity(level), element.textRange, "Field is already defined in super class '${superClass1.textRepresentation()}'")
-                color = null
-            }
-
-            public override fun onNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
-                annotateNamespacesClash(cmd1, cmd2, name, level)
-                annotateNamespacesClash(cmd2, cmd1, name, level)
-            }
-
-            fun annotateNamespacesClash(cmd1: NamespaceCommand, cmd2: NamespaceCommand, name: String, level: Error.Level) {
-                if (cmd1 is PsiElement) {
-                    holder.createAnnotation(levelToSeverity(level), cmd1.textRange, "Definition '$name' is imported from ${LongName(cmd2.path)}")
-                }
-            }
-
-            override fun onError(error: LocalError) {
-                if (error is NotInScopeError) {
-                    return
-                }
-
-                val cause = error.cause
-                if (cause is PsiElement) {
-                    holder.createAnnotation(levelToSeverity(error.level), ((cause as? ArendDefFunction)?.defIdentifier ?: cause).textRange, error.shortMessage)
-                }
-            }
-        }
-
-        if (element is ArendClassImplement) {
-            InstanceQuickFix.annotateClassImplement(element, holder)
-        }
-
-        if (element is ArendDefIdentifier) {
-            val definition = element.parent as? PsiLocatedReferable ?: return
-
-            if (definition is Abstract.ReferableDefinition && definition is Abstract.ClassField) {
-                val fieldRef = definition.referable
-                if (fieldRef != null) {
-                    val classRef = (definition.parentSourceNode as? Abstract.ClassDefinition)?.referable
-                    nameResolvingChecker.checkField(fieldRef, NameResolvingChecker.collectClassFields(classRef), classRef)
-                }
-            }
-
-            if (definition is InstanceAdapter) {
-                if (InstanceQuickFix.annotateClassInstance(definition, holder)) {
-                    color = null
-                }
-            } else if (definition is ArendDefFunction) {
-                InstanceQuickFix.annotateFunctionDefinitionWithCoWith(definition, holder)
-            }
-
-            if (definition is ArendDefFunction && definition.coerceKw != null) {
-                val lastParam = definition.nameTeleList.lastOrNull()
-                if (lastParam == null) {
-                    holder.createErrorAnnotation(element, "\\coerce must have at least one parameter")
-                    color = null
-                } else {
-                    val visitor = ReferableExtractVisitor()
-                    val parentDef = definition.parentGroup
-                    val isParamDef = visitor.findReferable(lastParam.expr) == parentDef
-
-                    val defType = definition.resultType
-                    var resultDef = if (defType != null) {
-                        visitor.findReferable(defType)
-                    } else {
-                        val term = definition.functionBody?.expr
-                        if (term is ArendNewExpr && term.newKw != null) {
-                            visitor.findReferable(term.argumentAppExpr)
-                        } else {
-                            (visitor.findReferable(term) as? ArendConstructor)?.ancestors?.filterIsInstance<ArendDefData>()?.firstOrNull()
-                        }
-                    }
-                    if (resultDef is GlobalReferable) {
-                        resultDef = PsiLocatedReferable.fromReferable(resultDef)
-                    }
-
-                    val ok = if (isParamDef) {
-                        resultDef != parentDef
-                    } else {
-                        if (resultDef == parentDef) {
-                            true
-                        } else if (resultDef != null) {
-                            resultDef !is ArendDefData && resultDef !is ArendDefClass
-                        } else {
-                            if (defType != null) {
-                                defType.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
-                                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = false
-                                }, null)
-                            } else {
-                                definition.functionBody?.expr?.accept(object : BaseAbstractExpressionVisitor<Void,Boolean>(true) {
-                                    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, errorData: Abstract.ErrorData?, params: Void?) = false
-                                    override fun visitClassExt(data: Any?, isNew: Boolean, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) = false
-                                }, null) ?: true
-                            }
-                        }
-                    }
-
-                    if (!ok) {
-                        holder.createErrorAnnotation(element, "Either the last parameter or the result type (but not both) of \\coerce must be the parent definition")
-                        color = null
-                    }
-                }
-            }
-
-            fun checkReference(oldRef: LocatedReferable?, newRef: LocatedReferable, parentRef: LocatedReferable?): Boolean {
-                if (oldRef == null || oldRef == newRef) {
-                    return true
-                }
-                val newName = newRef.textRepresentation()
-                if (newName.isEmpty() || newName == "_" || newName != oldRef.textRepresentation()) {
-                    return true
-                }
-                return nameResolvingChecker.checkReference(oldRef, newRef, parentRef)
-            }
-
-            fun checkDuplicateDefinitions(parent: Abstract.ReferableDefinition, internal: Boolean) {
-                val pparent = parent.parentSourceNode
-                if (pparent is Group) {
-                    val parentRef = if (internal) pparent.referable else null
-                    for (ref in pparent.internalReferables) {
-                        if (!checkReference(ref.referable, definition, parentRef)) return
-                    }
-
-                    for (subgroup in pparent.subgroups) {
-                        if (!checkReference(subgroup.referable, definition, parentRef)) return
-                        if (internal) {
-                            for (ref in subgroup.internalReferables) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                        }
-                    }
-                    for (subgroup in pparent.dynamicSubgroups) {
-                        if (!checkReference(subgroup.referable, definition, parentRef)) return
-                        if (internal) {
-                            for (ref in subgroup.internalReferables) {
-                                if (ref.isVisible && !checkReference(ref.referable, definition, parentRef)) return
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (definition is Abstract.ReferableDefinition) {
-                checkDuplicateDefinitions(definition, false)
-
-                val parent = definition.parent
-                if (definition !is Abstract.Definition && parent is Abstract.Definition) {
-                    checkDuplicateDefinitions(parent, true)
                 }
             }
         }

@@ -1,17 +1,15 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.naming.reference.Referable
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendExpr
 
 
-abstract class ArendExprImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendExpr {
-    override fun getData(): ArendExprImplMixin = this
+abstract class ArendExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendExpr {
+    override fun getData() = this
 
-    override fun isExplicit(): Boolean = true
+    override fun isExplicit() = true
 
-    override fun getReferableList(): List<Referable?> = listOf(null)
+    override fun getReferableList() = listOf(null)
 
-    override fun getType(): Abstract.Expression = this
+    override fun getType() = this
 }

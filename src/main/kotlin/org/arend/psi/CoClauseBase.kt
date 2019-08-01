@@ -10,22 +10,26 @@ import org.arend.typing.ReferableExtractVisitor
 
 
 interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCompositeElement {
-    fun getCoClauseList(): List<ArendCoClause>
+    val coClauseList: List<ArendCoClause>
 
-    fun getLbrace(): PsiElement?
+    val lbrace: PsiElement?
 
-    fun getLongName(): ArendLongName?
+    val longName: ArendLongName?
 
-    fun getResolvedImplementedField(): Referable?
+    val resolvedImplementedField: Referable?
+
+    val fatArrow: PsiElement?
+
+    val expr: ArendExpr?
 
     companion object {
         fun getClassReference(coClauseBase: CoClauseBase): ClassReferable? {
-            val resolved = coClauseBase.getResolvedImplementedField()
+            val resolved = coClauseBase.resolvedImplementedField
             return resolved as? ClassReferable ?: (resolved as? TypedReferable)?.typeClassReference
         }
 
         fun getClassReferenceData(coClauseBase: CoClauseBase): ClassReferenceData? {
-            val resolved = coClauseBase.getResolvedImplementedField()
+            val resolved = coClauseBase.resolvedImplementedField
             if (resolved is ClassReferable) {
                 return ClassReferenceData(resolved, emptyList(), emptySet(), false)
             }

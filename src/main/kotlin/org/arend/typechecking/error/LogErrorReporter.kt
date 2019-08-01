@@ -13,9 +13,8 @@ class LogErrorReporter(private val ppConfig: PrettyPrinterConfig): ErrorReporter
         val logger = Logger.getInstance(LogErrorReporter::class.java)
         val msg = DocStringBuilder.build(error.getDoc(ppConfig))
         when (error.level) {
-            Level.INFO -> logger.info(msg)
-            Level.WARNING -> logger.warn(msg)
-            Level.GOAL -> logger.info(msg)
+            Level.INFO, Level.GOAL -> logger.info(msg)
+            Level.WARNING, Level.WEAK_WARNING -> logger.warn(msg)
             Level.ERROR -> logger.error(msg)
         }
     }

@@ -5,35 +5,42 @@ import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
+import org.arend.term.Fixity
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.typing.ReferableExtractVisitor
 
 abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ClassReferenceHolder {
-    abstract fun getNewKw(): PsiElement?
+    abstract val newKw: PsiElement?
 
-    abstract fun getLbrace(): PsiElement?
+    abstract val lbrace: PsiElement?
 
-    abstract fun getArgumentAppExpr(): ArendArgumentAppExpr?
+    abstract val argumentAppExpr: ArendArgumentAppExpr?
 
-    open fun getAppExpr(): ArendAppExpr? = null
+    open val appExpr: ArendAppExpr?
+        get() = null
 
-    open fun getArgumentList(): List<ArendArgument> = emptyList()
+    open val argumentList: List<ArendArgument>
+        get() = emptyList()
 
-    abstract fun getCoClauseList(): List<ArendCoClause>
+    abstract val coClauseList: List<ArendCoClause>
+
+    fun getFixity() = Fixity.NONFIX
+
+    fun getExpression() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        val isNew = getNewKw() != null
-        if (!isNew && getLbrace() == null && getArgumentList().isEmpty()) {
-            val expr = getAppExpr() ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+        val isNew = newKw != null
+        if (!isNew && lbrace == null && argumentList.isEmpty()) {
+            val expr = appExpr ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) getErrorData(this) else null, params)
             return expr.accept(visitor, params)
         }
-        return visitor.visitClassExt(this, isNew, if (isNew) getArgumentAppExpr() else getAppExpr(), if (getLbrace() == null) null else getCoClauseList(), getArgumentList(), if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+        return visitor.visitClassExt(this, isNew, if (isNew) argumentAppExpr else appExpr, if (lbrace == null) null else coClauseList, argumentList, if (visitor.visitErrors()) getErrorData(this) else null, params)
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {
         val visitor = ReferableExtractVisitor(withAdditionalInfo)
-        val ref = visitor.findReferable(getAppExpr() as? ArendArgumentAppExpr ?: getArgumentAppExpr())
-        val classRef = ref as? ClassReferable ?: (if (!onlyClassRef && getNewKw() != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
+        val ref = visitor.findReferable(appExpr as? ArendArgumentAppExpr ?: argumentAppExpr)
+        val classRef = ref as? ClassReferable ?: (if (!onlyClassRef && newKw != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptySet(), false)
     }
 
@@ -41,5 +48,5 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
 
     override fun getClassReferenceData(onlyClassRef: Boolean) = getClassReference(onlyClassRef, true)
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = getCoClauseList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
 }

@@ -134,7 +134,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
             null
         } else {
             if (requiredAdditionalInfo) {
-                val newFields = implementations?.mapNotNull { (it as? CoClauseBase)?.getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable }
+                val newFields = implementations?.mapNotNull { (it as? CoClauseBase)?.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable }
                 if (newFields != null) {
                     for (newField in newFields) {
                         if (newField is FieldReferable) {

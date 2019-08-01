@@ -21,12 +21,12 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
     override fun report(error: GeneralError) {
         val group = when (error.level) {
             Level.ERROR -> ERROR_NOTIFICATIONS
-            Level.WARNING, Level.GOAL -> WARNING_NOTIFICATIONS
+            Level.WARNING, Level.WEAK_WARNING, Level.GOAL -> WARNING_NOTIFICATIONS
             Level.INFO -> INFO_NOTIFICATIONS
         }
         val type = when (error.level) {
             Level.ERROR -> NotificationType.ERROR
-            Level.WARNING, Level.GOAL -> NotificationType.WARNING
+            Level.WARNING, Level.WEAK_WARNING, Level.GOAL -> NotificationType.WARNING
             Level.INFO -> NotificationType.INFORMATION
         }
         val title = DocStringBuilder.build(error.getHeaderDoc(ppConfig))

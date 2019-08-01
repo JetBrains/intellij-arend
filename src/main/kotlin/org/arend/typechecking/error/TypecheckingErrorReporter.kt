@@ -17,8 +17,8 @@ import org.arend.highlight.BasePass
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -26,7 +26,7 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
     Error.Level.ERROR -> ERROR_OUTPUT
     Error.Level.GOAL -> USER_INPUT
-    Error.Level.WARNING -> LOG_WARNING_OUTPUT
+    Error.Level.WARNING, Error.Level.WEAK_WARNING -> LOG_WARNING_OUTPUT
     Error.Level.INFO -> NORMAL_OUTPUT
 }
 

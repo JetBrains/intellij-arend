@@ -727,7 +727,7 @@ postfixArgument ::= POSTFIX {
 newArg ::= NEW_KW argumentAppExpr [LBRACE coClauseSequence RBRACE] {
     pin = 1
     implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendNewArgImplMixin"
+    mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {

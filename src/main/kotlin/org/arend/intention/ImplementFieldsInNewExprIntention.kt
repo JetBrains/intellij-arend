@@ -5,25 +5,26 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ext.ArendNewExprImplMixin
+import org.arend.quickfix.AbstractEWCCAnnotator
 import org.arend.quickfix.CoClausesKey
 import org.arend.quickfix.ImplementFieldsQuickFix
-import org.arend.quickfix.NewExprAnnotator
 
 class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
 
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int): Boolean {
-        if (element.getNewKw() == null) return false
-        val data = element.getUserData(CoClausesKey.INSTANCE)
+        if (element.newKw == null) return false
+        val data = element.getUserData(CoClausesKey)
         return data != null && data.isNotEmpty()
     }
 
     override fun applyTo(element: ArendNewExprImplMixin, project: Project?, editor: Editor?) {
-        val appExpr = element.getArgumentAppExpr()
-        val data = element.getUserData(CoClausesKey.INSTANCE)
-        if (data != null && appExpr != null && project != null)
-            ImplementFieldsQuickFix(NewExprAnnotator(element, appExpr), data, "").invoke(project, editor, null)
+        project ?: return
+        val data = element.getUserData(CoClausesKey) ?: return
+        AbstractEWCCAnnotator.makeAnnotator(element)?.let {
+            ImplementFieldsQuickFix(it, data).invoke(project, editor, null)
+        }
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean =
-        element is ArendCoClause && (element.parent as? ArendNewExprImplMixin)?.getNewKw() != null
+        element is ArendCoClause && (element.parent as? ArendNewExprImplMixin)?.newKw != null
 }

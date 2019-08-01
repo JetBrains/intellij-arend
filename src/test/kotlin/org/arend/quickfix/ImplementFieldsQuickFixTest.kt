@@ -11,7 +11,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 | A : Nat
                 | B : Nat
                 }
-                \instance Bar : Foo{-caret-}
+                {-caret-}\instance Bar : Foo
             """,
             """
                 \class Foo {
@@ -29,7 +29,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 \class Foo {
                 | A : Nat
                 }
-                \instance Bar : Foo{-caret-} {}
+                {-caret-}\instance Bar : Foo {}
             """,
             """
                 \class Foo {
@@ -121,7 +121,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                --! A.ard
                \class Foo (A : Nat)
                \class Bar { | f : Foo | B : Nat }
-               \func lol : Bar \cowith{-caret-}
+               {-caret-}\func lol : Bar \cowith
             """,
             """
                \class Foo (A : Nat)
@@ -181,7 +181,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 --! A.ard
                 \record C | x : Nat
                 \record D \extends C | x => 0
-                \func f : D \cowith | x => 1{-caret-}
+                \func f : D \cowith | {-caret-}x => 1
             """,
             """
                 \record C | x : Nat
@@ -270,7 +270,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             --! A.ard
             \class C (x y : Nat)
 
-            \instance foo : C{-caret-}
+            {-caret-}\instance foo : C
               \where
                 \func bar => 0
             ""","""

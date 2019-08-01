@@ -51,7 +51,7 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
-    fun createCoClause(name: String, expr: String): ArendCoClause {
+    fun createCoClause(name: String, expr: String = "{?}"): ArendCoClause {
         val code = buildString {
             append("\\instance Dummy : Dummy\n")
             append("| $name => $expr")
@@ -59,7 +59,7 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
     }
 
-    fun createCoClauseInFunction(name: String, expr: String): ArendCoClause {
+    fun createCoClauseInFunction(name: String, expr: String = "{?}"): ArendCoClause {
         val code = buildString {
             append("\\func Dummy : Dummy \\cowith\n")
             append("| $name => $expr")
@@ -77,7 +77,7 @@ class ArendPsiFactory(private val project: Project) {
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {
         val nestedCoClause = createNestedCoClause("foo")
-        return Pair(nestedCoClause.getLbrace()!!, nestedCoClause.rbrace!!)
+        return Pair(nestedCoClause.lbrace!!, nestedCoClause.rbrace!!)
     }
 
     private fun createArgument(expr: String): ArendArgument =

@@ -2,17 +2,21 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.Referable
-import org.arend.psi.*
+import org.arend.psi.ArendCoClause
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendNameTele
+import org.arend.psi.CoClauseBase
 
 
 abstract class ArendCoClauseImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendCoClause, CoClauseBase {
     override fun getData() = this
 
-    override fun getImplementedField() = getLongName()?.referent
+    override fun getImplementedField() = longName?.referent
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = getCoClauseList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
 
-    override fun getResolvedImplementedField() = getLongName()?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? Referable
+    override val resolvedImplementedField
+        get() = longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? Referable
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 

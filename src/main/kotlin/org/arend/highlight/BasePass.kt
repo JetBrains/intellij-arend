@@ -17,6 +17,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.annotation.ArendImportHintAction
+import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
 import org.arend.error.GeneralError
 import org.arend.error.doc.DocFactory.vHang
@@ -30,14 +31,15 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.quickfix.AbstractEWCCAnnotator
+import org.arend.quickfix.ImplementFieldsQuickFix
+import org.arend.quickfix.RemoveCoClause
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
-import org.arend.typechecking.error.local.ExpectedConstructor
-import org.arend.typechecking.error.local.LocalError
-import org.arend.typechecking.error.local.TypecheckingError
-import org.arend.typechecking.error.local.TypecheckingError.Kind.*
+import org.arend.typechecking.error.local.*
+import org.arend.typechecking.error.local.TypecheckingError.Kind.LEVEL_IN_FUNCTION
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), LocalErrorReporter {
@@ -89,7 +91,25 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 }
             }
         } else {
-            createAnnotation(error, getImprovedTextRange(error, cause))
+            val annotation = createAnnotation(error, getImprovedTextRange(error, cause))
+            when (localError) {
+                is FieldsImplementationError ->
+                    if (localError.alreadyImplemented) {
+                        (localError.cause.data as? ArendCoClause)?.let {
+                            annotation.registerFix(RemoveCoClause(it))
+                        }
+                    } else {
+                        AbstractEWCCAnnotator.makeAnnotator(getCauseElement(localError.cause.data))?.let {
+                            annotation.registerFix(ImplementFieldsQuickFix(it, ImplementFieldsQuickFix.makeFieldList(localError.fields, localError.classReferable)))
+                        }
+                    }
+                is DesugaringError -> if (localError.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
+                    annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                    (getCauseElement(localError.cause.data) as? ArendCoClause)?.let {
+                        annotation.registerFix(RemoveCoClause(it))
+                    }
+                }
+            }
         }
     }
 
@@ -120,6 +140,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             when (level) {
                 Error.Level.ERROR -> HighlightSeverity.ERROR
                 Error.Level.WARNING -> HighlightSeverity.WARNING
+                Error.Level.WEAK_WARNING -> HighlightSeverity.WEAK_WARNING
                 Error.Level.GOAL -> HighlightSeverity.WARNING
                 Error.Level.INFO -> HighlightSeverity.INFORMATION
             }
@@ -150,19 +171,31 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             return result ?: when (element) {
                 is PsiLocatedReferable -> element.defIdentifier
-                is CoClauseBase -> element.getLongName()
+                is CoClauseBase -> element.longName
                 else -> null
             }
         }
 
         fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
-        private fun getImprovedTextRange(error: Error, element: ArendCompositeElement): TextRange {
+        fun getImprovedTextRange(error: Error?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
                 return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
             }
+            ((improvedElement as? ArendLongName)?.parent as? CoClauseBase)?.let { coClause ->
+                val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow ?: coClause.lbrace ?: improvedElement
+                return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
+            }
             return improvedElement.textRange
+        }
+
+        private val GOAL_IN_COPATTERN = withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
+            ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
+
+        fun isEmptyGoal(element: PsiElement): Boolean {
+            val goal: ArendGoal? = element.childOfType()
+            return goal != null && GOAL_IN_COPATTERN.accepts(goal)
         }
     }
 }

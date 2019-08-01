@@ -18,13 +18,14 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<ArendClassImpleme
 
     override fun getData() = this
 
-    override fun getImplementedField() = getLongName().referent
+    override fun getImplementedField() = longName.referent
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = getCoClauseList()
+    override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
 
-    override fun getResolvedImplementedField() = getLongName().refIdentifierList.lastOrNull()?.reference?.resolve() as? Referable
+    override val resolvedImplementedField
+        get() = longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? Referable
 
-    override fun getName() = getLongName().refIdentifierList.lastOrNull()?.referenceName
+    override fun getName() = longName.refIdentifierList.lastOrNull()?.referenceName
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 

@@ -119,7 +119,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
     open class GetKindDefVisitor : GetKindVisitor() {
         var def: ArendDefinition? = null
 
-        override fun getReferenceKind(ref: Referable): GetKindVisitor.Kind {
+        override fun getReferenceKind(ref: Referable): Kind {
             if (ref is ArendDefinition) {
                 def = ref
             }
@@ -339,7 +339,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
                         currentType = if (pair.second.isEmpty()) {
                             codomain
                         } else {
-                            ExpectedTypeVisitor.PiImpl(pair.second, codomain)
+                            PiImpl(pair.second, codomain)
                         }
                         return Kind.PI
                     }
@@ -375,8 +375,7 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
             is Abstract.Parameter -> Universe
             is Abstract.Constructor -> if (element == parent.resultType) Universe else null
             is Abstract.FunctionClause -> {
-                val pparent = parent.topmostEquivalentSourceNode.parentSourceNode
-                when (pparent) {
+                when (val pparent = parent.topmostEquivalentSourceNode.parentSourceNode) {
                     is Abstract.FunctionDefinition -> (pparent.resultType as? ArendExpr)?.let { Substituted(it) }
                     is ArendConstructor -> pparent.ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { Definition(it) }
                     else -> null
@@ -384,14 +383,14 @@ class ExpectedTypeVisitor(private val element: ArendExpr, private val holder: An
             }
             is Abstract.ClassFieldImpl -> {
                 val implemented = when (parent) {
-                    is ClassFieldImplAdapter -> parent.getResolvedImplementedField()
-                    is ArendCoClauseImplMixin -> parent.getResolvedImplementedField()
+                    is ClassFieldImplAdapter -> parent.resolvedImplementedField
+                    is ArendCoClauseImplMixin -> parent.resolvedImplementedField
                     else -> null
                 }
                 when (implemented) {
                     is ArendDefClass -> {
                         val parameters = PsiTreeUtil.getChildrenOfTypeAsList(parent as? PsiElement, ArendNameTele::class.java)
-                        if (!parameters.isEmpty()) {
+                        if (parameters.isNotEmpty()) {
                             holder?.createErrorAnnotation(TextRange(parameters.first().textRange.startOffset, parameters.last().textRange.endOffset), "Class cannot have parameters")
                         }
                         Definition(implemented)
