@@ -5,19 +5,23 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import org.arend.psi.parentOfType
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
-import org.arend.psi.parentOfType
 
 fun fileTree(builder: FileTreeBuilder.() -> Unit): FileTree =
         FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory())
 
 fun fileTreeFromText(@Language("Arend") text: String): FileTree {
     val fileSeparator = """^\s* --! (\S+)\s*$""".toRegex(RegexOption.MULTILINE)
-    val fileNames = fileSeparator.findAll(text).map { it.groupValues[1] }.toList()
+    var fileNames = fileSeparator.findAll(text).map { it.groupValues[1] }.toList()
     val fileTexts = fileSeparator.split(text).filter(String::isNotBlank).map { it.trimIndent() }
 
-    check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
+    if (fileNames.isEmpty() && fileTexts.size == 1) {
+        fileNames = listOf("test.ard")
+    } else {
+        check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
+    }
 
     fun fill(dir: Entry.Directory, path: List<String>, contents: String) {
         val name = path.first()

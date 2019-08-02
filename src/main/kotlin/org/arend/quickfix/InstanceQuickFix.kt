@@ -22,8 +22,6 @@ import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.quickfix.AbstractEWCCAnnotator.Companion.IMPLEMENT_MISSING_FIELDS
-import org.arend.quickfix.AbstractEWCCAnnotator.Companion.REMOVE_COCLAUSE
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToStartOffset
 
@@ -124,7 +122,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                     when (annotationToShow) {
                         InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
                             val message = buildString {
-                                append(IMPLEMENT_FIELDS_MSG)
+                                append("The following fields are not implemented: ")
                                 val iterator = fields.iterator()
                                 do {
                                     append(iterator.next().textRepresentation())
@@ -148,10 +146,6 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
     }
 
     companion object {
-        private const val IMPLEMENT_FIELDS_MSG = "The following fields are not implemented: "
-        const val IMPLEMENT_MISSING_FIELDS = "Implement missing fields"
-        const val REMOVE_COCLAUSE = "Remove redundant coclause"
-
         fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
             if (editor != null) {
                 editor.caretModel.moveToOffset(anchor.textRange.endOffset)
@@ -296,7 +290,7 @@ class RemoveCoClause(private val coClause: ArendCoClause) : IntentionAction {
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
 
-    override fun getText() = REMOVE_COCLAUSE
+    override fun getText() = "Remove redundant coclause"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         moveCaretToStartOffset(editor, coClause)
@@ -315,7 +309,7 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
 
-    override fun getText() = IMPLEMENT_MISSING_FIELDS
+    override fun getText() = "Implement missing fields"
 
     companion object {
         fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
