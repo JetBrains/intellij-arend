@@ -186,7 +186,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
-        private fun nextSibling(element: PsiElement): PsiElement {
+        private fun nextSibling(element: PsiElement?): PsiElement? {
             var next = element
             while (next is PsiWhiteSpace || next is PsiComment) {
                 next = next.nextSibling
@@ -194,7 +194,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return next
         }
 
-        private fun prevSibling(element: PsiElement): PsiElement {
+        private fun prevSibling(element: PsiElement?): PsiElement? {
             var prev = element
             while (prev is PsiWhiteSpace || prev is PsiComment) {
                 prev = prev.prevSibling
@@ -222,7 +222,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             if (improvedElement is ArendClause) {
                 val prev = prevSibling(improvedElement.prevSibling)
-                val startElement = if ((prev as? LeafPsiElement)?.elementType == ArendElementTypes.PIPE) prev else improvedElement
+                val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
                 return TextRange(startElement.textRange.startOffset, improvedElement.textRange.endOffset)
             }
 
@@ -230,7 +230,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 var endElement: ArendPattern = improvedElement
                 while (true) {
                     var next = nextSibling(endElement.nextSibling)
-                    if ((next as? LeafPsiElement)?.elementType == ArendElementTypes.COMMA) {
+                    if (next is LeafPsiElement && next.elementType == ArendElementTypes.COMMA) {
                         next = next.nextSibling
                     }
                     next = nextSibling(next)
