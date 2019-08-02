@@ -12,10 +12,8 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.annotation.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
@@ -42,6 +40,7 @@ import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.LEVEL_IN_FUNCTION
+import org.arend.typechecking.error.local.TypecheckingError.Kind.TOO_MANY_PATTERNS
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), LocalErrorReporter {
@@ -115,6 +114,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         annotation.registerFix(RemoveCoClause(it))
                     }
                 }
+                is TypecheckingError -> if (localError.level == Error.Level.WEAK_WARNING) {
+                    annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                }
             }
         }
     }
@@ -168,7 +170,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 }
                 is TypecheckingError -> when (error.kind) {
                     LEVEL_IN_FUNCTION -> element.ancestors.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
-                    null -> null
+                    else -> null
                 }
                 is ProxyError -> return getImprovedErrorElement(error.localError, element)
                 is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
@@ -184,15 +186,63 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
+        private fun nextSibling(element: PsiElement): PsiElement {
+            var next = element
+            while (next is PsiWhiteSpace || next is PsiComment) {
+                next = next.nextSibling
+            }
+            return next
+        }
+
+        private fun prevSibling(element: PsiElement): PsiElement {
+            var prev = element
+            while (prev is PsiWhiteSpace || prev is PsiComment) {
+                prev = prev.prevSibling
+            }
+            return prev
+        }
+
         fun getImprovedTextRange(error: Error?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
+
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
                 return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
             }
+
             ((improvedElement as? ArendLongName)?.parent as? CoClauseBase)?.let { coClause ->
                 val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow ?: coClause.lbrace ?: improvedElement
                 return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
             }
+
+            if (improvedElement is ArendExpr) {
+                (improvedElement.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let {
+                    return TextRange((it.fatArrow ?: improvedElement).textRange.startOffset, improvedElement.textRange.endOffset)
+                }
+            }
+
+            if (improvedElement is ArendClause) {
+                val prev = prevSibling(improvedElement.prevSibling)
+                val startElement = if ((prev as? LeafPsiElement)?.elementType == ArendElementTypes.PIPE) prev else improvedElement
+                return TextRange(startElement.textRange.startOffset, improvedElement.textRange.endOffset)
+            }
+
+            if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPattern) {
+                var endElement: ArendPattern = improvedElement
+                while (true) {
+                    var next = nextSibling(endElement.nextSibling)
+                    if ((next as? LeafPsiElement)?.elementType == ArendElementTypes.COMMA) {
+                        next = next.nextSibling
+                    }
+                    next = nextSibling(next)
+                    if (next is ArendPattern) {
+                        endElement = next
+                    } else {
+                        break
+                    }
+                }
+                return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
+            }
+
             return improvedElement.textRange
         }
 

@@ -22,7 +22,14 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
 
     open fun getAtomPatternOrPrefixList(): List<ArendAtomPatternOrPrefix> = emptyList()
 
-    override fun isUnnamed() = getAtomPattern()?.underscore != null
+    override fun isUnnamed(): Boolean {
+        val atom = getAtomPattern() ?: return false
+        if (atom.underscore != null) {
+            return true
+        }
+        val patterns = atom.patternList
+        return if (patterns.size == 1) patterns.first().isUnnamed else false
+    }
 
     override fun isExplicit(): Boolean {
         val atom = getAtomPattern() ?: return true
