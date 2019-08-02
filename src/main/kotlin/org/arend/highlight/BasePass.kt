@@ -28,10 +28,12 @@ import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.DataContainer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.AbstractEWCCAnnotator
+import org.arend.quickfix.CoClausesKey
 import org.arend.quickfix.ImplementFieldsQuickFix
 import org.arend.quickfix.RemoveCoClause
 import org.arend.term.abs.IncompleteExpressionError
@@ -99,8 +101,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.registerFix(RemoveCoClause(it))
                         }
                     } else {
-                        AbstractEWCCAnnotator.makeAnnotator(getCauseElement(localError.cause.data))?.let {
+                        val element = getCauseElement(localError.cause.data)
+                        AbstractEWCCAnnotator.makeAnnotator(element)?.let {
                             annotation.registerFix(ImplementFieldsQuickFix(it, ImplementFieldsQuickFix.makeFieldList(localError.fields, localError.classReferable)))
+                        }
+                        if (element is ArendNewExprImplMixin) {
+                            element.putUserData(CoClausesKey, null)
                         }
                     }
                 is DesugaringError -> if (localError.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
