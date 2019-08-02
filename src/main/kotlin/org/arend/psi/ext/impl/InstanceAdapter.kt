@@ -9,7 +9,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ExpectedTypeVisitor
+import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
@@ -60,11 +60,9 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     }
 
     private val allParameters
-        get() = if (enclosingClass == null) parameters else listOf(ExpectedTypeVisitor.ParameterImpl(false, listOf(null), null)) + parameters
+        get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(allParameters, resultType, params, textRepresentation())
-
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, resultType)
+    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, resultType)
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null

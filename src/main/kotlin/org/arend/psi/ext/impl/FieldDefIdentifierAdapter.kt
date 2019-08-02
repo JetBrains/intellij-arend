@@ -7,14 +7,15 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.psi.*
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendFieldDefIdentifier
+import org.arend.psi.ArendFieldTele
+import org.arend.psi.ArendPrec
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.term.ClassFieldKind
-import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
-import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 
 abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParamStub>, ArendFieldDefIdentifier {
@@ -50,13 +51,6 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
-
-    override fun getParameterType(params: List<Boolean>) =
-        when {
-            params[0] -> ExpectedTypeVisitor.getParameterType(resultType, params, name)
-            params.size == 1 -> ancestors.filterIsInstance<ArendDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
-            else -> ExpectedTypeVisitor.getParameterType(resultType, params.drop(1), name)
-        }
 
     override fun getTypeOf() = resultType
 

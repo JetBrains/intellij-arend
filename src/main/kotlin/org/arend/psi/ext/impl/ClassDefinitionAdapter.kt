@@ -10,7 +10,7 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ExpectedTypeVisitor
+import org.arend.typing.Universe
 import javax.swing.Icon
 
 abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, ArendDefClass, Abstract.ClassDefinition, ClassReferenceHolder {
@@ -64,25 +64,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getUsedDefinitions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if (it is ArendDefFunction && it.useKw != null) it else null }
 
-    override fun getParameterType(params: List<Boolean>): Any? {
-        val fields = ClassReferable.Helper.getNotImplementedFields(this)
-        val it = fields.iterator()
-        var i = 0
-        while (it.hasNext()) {
-            val field = it.next()
-            if (field.isExplicitField == params[i]) {
-                i++
-                if (i == params.size) {
-                    return field.typeOf
-                }
-            } else if (!params[i]) {
-                return if (i == params.size - 1) ExpectedTypeVisitor.ImplicitArgumentError(textRepresentation(), params.size) else null
-            }
-        }
-        return ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), fields.size)
-    }
-
-    override fun getTypeOf() = ExpectedTypeVisitor.Universe
+    override fun getTypeOf() = Universe
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 

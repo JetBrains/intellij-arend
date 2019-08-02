@@ -7,7 +7,8 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendConstructorStub
 import org.arend.term.abs.Abstract
-import org.arend.typing.ExpectedTypeVisitor
+import org.arend.typing.ParameterImpl
+import org.arend.typing.ReferenceImpl
 import javax.swing.Icon
 
 abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, ArendConstructor {
@@ -36,11 +37,9 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
     override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
 
     private val allParameters
-        get() = (ancestors.filterIsInstance<DataDefinitionAdapter>().firstOrNull()?.allParameters?.map { ExpectedTypeVisitor.ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
+        get() = (ancestors.filterIsInstance<DataDefinitionAdapter>().firstOrNull()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.getParameterType(allParameters, ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), parameters.sumBy { it.referableList.size }), params, textRepresentation())
-
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) })
+    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { ReferenceImpl(it) })
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CONSTRUCTOR
 

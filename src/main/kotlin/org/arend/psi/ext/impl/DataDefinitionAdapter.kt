@@ -9,7 +9,8 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ExpectedTypeVisitor
+import org.arend.typing.ParameterImpl
+import org.arend.typing.Universe
 import javax.swing.Icon
 
 abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, ArendDefData, Abstract.DataDefinition {
@@ -43,12 +44,9 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
     } ?: emptyList()
 
     internal val allParameters
-        get() = if (enclosingClass == null) parameters else listOf(ExpectedTypeVisitor.ParameterImpl(false, listOf(null), null)) + parameters
+        get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getParameterType(params: List<Boolean>) =
-        ExpectedTypeVisitor.getParameterType(allParameters, ExpectedTypeVisitor.Universe, params, textRepresentation())
-
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(allParameters, ExpectedTypeVisitor.Universe)
+    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, Universe)
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 

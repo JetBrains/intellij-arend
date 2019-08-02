@@ -6,7 +6,6 @@ import org.arend.ArendIcons
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
-import org.arend.typing.ExpectedTypeVisitor
 
 
 abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefModule {
@@ -31,8 +30,6 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
-
-    override fun getParameterType(params: List<Boolean>) = ExpectedTypeVisitor.TooManyArgumentsError(textRepresentation(), 0)
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 

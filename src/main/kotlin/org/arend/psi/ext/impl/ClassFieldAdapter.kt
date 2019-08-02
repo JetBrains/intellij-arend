@@ -6,10 +6,12 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.psi.*
+import org.arend.psi.ArendClassField
+import org.arend.psi.ArendClassStat
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendTypeTele
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.term.ClassFieldKind
-import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
@@ -50,14 +52,7 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getParameterType(params: List<Boolean>) =
-        when {
-            params[0] -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params, textRepresentation())
-            params.size == 1 -> ancestors.filterIsInstance<ArendDefClass>().firstOrNull()?.let { ExpectedTypeVisitor.ReferenceImpl(it) }
-            else -> ExpectedTypeVisitor.getParameterType(parameters, resultType, params.drop(1), textRepresentation())
-        }
-
-    override fun getTypeOf() = ExpectedTypeVisitor.getTypeOf(parameters, resultType)
+    override fun getTypeOf() = org.arend.typing.getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

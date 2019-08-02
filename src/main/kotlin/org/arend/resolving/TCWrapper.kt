@@ -30,8 +30,6 @@ abstract class TCReferableWrapper : TCReferable {
 
     override fun getTypeOf() = referable.typeOf
 
-    override fun getParameterType(parameters: MutableList<Boolean>?) = referable.getParameterType(parameters)
-
     override fun equals(other: Any?) = this === other || referable == (other as? TCReferableWrapper)?.referable
 
     override fun hashCode() = referable.hashCode()

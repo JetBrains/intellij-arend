@@ -13,8 +13,8 @@ import org.arend.resolving.ArendPatternDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.term.abs.Abstract
-import org.arend.typing.ExpectedTypeVisitor
 import org.arend.typing.ReferableExtractVisitor
+import org.arend.typing.getTypeOf
 
 abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), ArendDefIdentifier {
     override val referenceNameElement
@@ -28,15 +28,11 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun textRepresentation(): String = referenceName
 
     override fun getReference(): ArendReference {
-        val parent = parent
-        return when (parent) {
-            is ArendPattern, is ArendAtomPatternOrPrefix -> ArendPatternDefReferenceImpl<ArendDefIdentifier>(this, parent is ArendPattern && !parent.atomPatternOrPrefixList.isEmpty())
+        return when (val parent = parent) {
+            is ArendPattern, is ArendAtomPatternOrPrefix -> ArendPatternDefReferenceImpl<ArendDefIdentifier>(this, parent is ArendPattern && parent.atomPatternOrPrefixList.isNotEmpty())
             else -> ArendDefReferenceImpl<ArendDefIdentifier>(this)
         }
     }
-
-    override fun getParameterType(params: List<Boolean>): Any? =
-        ExpectedTypeVisitor.getParameterType((parent as? ArendLetClause)?.parameters ?: emptyList(), typeOf, params, name)
 
     override fun getTypeClassReference(): ClassReferable? {
         val parent = parent
@@ -48,18 +44,16 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     }
 
     override fun getTypeOf(): Abstract.Expression? {
-        val parent = parent
-        return when (parent) {
+        return when (val parent = parent) {
             is ArendIdentifierOrUnknown -> {
-                val pparent = parent.parent
-                when (pparent) {
+                when (val pparent = parent.parent) {
                     is ArendNameTele -> pparent.expr
                     is ArendTypedExpr -> pparent.expr
                     else -> null
                 }
             }
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
-            is ArendLetClause -> ExpectedTypeVisitor.getTypeOf(parent.parameters, parent.resultType)
+            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
             is ArendLetClausePattern -> parent.typeAnnotation?.expr
             is ArendPatternImplMixin -> parent.getExpr()
             is ArendAsPattern -> parent.expr
@@ -69,13 +63,11 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
 
     override val psiElementType: PsiElement?
         get() {
-            val parent = parent
-            return when (parent) {
+            return when (val parent = parent) {
                 is ArendLetClausePattern -> parent.typeAnnotation?.expr
                 is ArendLetClause -> parent.typeAnnotation?.expr
                 is ArendIdentifierOrUnknown -> {
-                    val pparent = parent.parent
-                    when (pparent) {
+                    when (val pparent = parent.parent) {
                         is ArendNameTele -> pparent.expr
                         is ArendTypedExpr -> pparent.expr
                         else -> null
