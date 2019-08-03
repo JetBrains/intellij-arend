@@ -25,22 +25,15 @@ import org.arend.naming.error.NamingError.Kind.*
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.DataContainer
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.quickfix.AbstractEWCCAnnotator
-import org.arend.quickfix.CoClausesKey
-import org.arend.quickfix.ImplementFieldsQuickFix
-import org.arend.quickfix.RemoveCoClause
+import org.arend.quickfix.*
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
 import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.error.local.*
-import org.arend.typechecking.error.local.TypecheckingError.Kind.LEVEL_IN_FUNCTION
-import org.arend.typechecking.error.local.TypecheckingError.Kind.TOO_MANY_PATTERNS
+import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), LocalErrorReporter {
@@ -114,8 +107,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         annotation.registerFix(RemoveCoClause(it))
                     }
                 }
-                is TypecheckingError -> if (localError.level == Error.Level.WEAK_WARNING) {
-                    annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                is TypecheckingError -> {
+                    if (localError.level == Error.Level.WEAK_WARNING) {
+                        annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+                    }
+                    when (localError.kind) {
+                        TOO_MANY_PATTERNS -> (getCauseElement(localError.cause.data) as? ArendPatternImplMixin)?.let {
+                            annotation.registerFix(RemovePattern(it))
+                        }
+                        else -> {}
+                    }
                 }
             }
         }
@@ -186,22 +187,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
-        private fun nextSibling(element: PsiElement?): PsiElement? {
-            var next = element
-            while (next is PsiWhiteSpace || next is PsiComment) {
-                next = next.nextSibling
-            }
-            return next
-        }
-
-        private fun prevSibling(element: PsiElement?): PsiElement? {
-            var prev = element
-            while (prev is PsiWhiteSpace || prev is PsiComment) {
-                prev = prev.prevSibling
-            }
-            return prev
-        }
-
         fun getImprovedTextRange(error: Error?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
@@ -221,20 +206,19 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
 
             if (improvedElement is ArendClause) {
-                val prev = prevSibling(improvedElement.prevSibling)
+                val prev = improvedElement.prevSibling.skipPrevIrrelevant
                 val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
                 return TextRange(startElement.textRange.startOffset, improvedElement.textRange.endOffset)
             }
 
-            if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPattern) {
-                var endElement: ArendPattern = improvedElement
+            if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
+                var endElement: ArendPatternImplMixin = improvedElement
                 while (true) {
-                    var next = nextSibling(endElement.nextSibling)
+                    var next = endElement.nextSibling.skipNextIrrelevant
                     if (next is LeafPsiElement && next.elementType == ArendElementTypes.COMMA) {
-                        next = next.nextSibling
+                        next = next.nextSibling.skipNextIrrelevant
                     }
-                    next = nextSibling(next)
-                    if (next is ArendPattern) {
+                    if (next is ArendPatternImplMixin) {
                         endElement = next
                     } else {
                         break

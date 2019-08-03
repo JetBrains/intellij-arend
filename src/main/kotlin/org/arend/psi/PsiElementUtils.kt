@@ -109,6 +109,42 @@ fun PsiElement.findPrevSibling(punctuationType: IElementType?): PsiElement? {
     return sibling
 }
 
+val PsiElement?.skipNextIrrelevant: PsiElement?
+    get() {
+        var next = this
+        while (next is PsiWhiteSpace || next is PsiComment) {
+            next = next.nextSibling
+        }
+        return next
+    }
+
+val PsiElement?.skipPrevIrrelevant: PsiElement?
+    get() {
+        var prev = this
+        while (prev is PsiWhiteSpace || prev is PsiComment) {
+            prev = prev.prevSibling
+        }
+        return prev
+    }
+
+val PsiElement.nextRelevant: PsiElement
+    get() {
+        var next = nextSibling
+        while (next is PsiWhiteSpace || next is PsiComment) {
+            next = next.nextSibling
+        }
+        return next ?: this
+    }
+
+val PsiElement.prevRelevant: PsiElement
+    get() {
+        var prev = prevSibling
+        while (prev is PsiWhiteSpace || prev is PsiComment) {
+            prev = prev.prevSibling
+        }
+        return prev ?: this
+    }
+
 enum class PositionKind {
     BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
 }
