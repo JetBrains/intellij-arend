@@ -1,29 +1,21 @@
 package org.arend.quickfix
 
-import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInspection.ProblemHighlightType
-import com.intellij.icons.AllIcons
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Iconable
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import org.arend.highlight.BasePass
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToEndOffset
-import org.arend.quickfix.AbstractEWCCAnnotator.Companion.moveCaretToStartOffset
 
 enum class InstanceQuickFixAnnotation {
     IMPLEMENT_FIELDS_ERROR,
@@ -58,7 +50,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                 continue
             }
 
-            if (!fields.remove(referable)) holder?.createErrorAnnotation(BasePass.getImprovedTextRange(null, coClause), "Field ${referable.textRepresentation()} is already implemented")?.registerFix(RemoveCoClause(coClause))
+            if (!fields.remove(referable)) holder?.createErrorAnnotation(BasePass.getImprovedTextRange(null, coClause), "Field ${referable.textRepresentation()} is already implemented")?.registerFix(RemoveCoClauseQuickFix(coClause))
 
             for (superClassFields in superClassesFields.values) superClassFields.remove(referable)
         }
@@ -90,7 +82,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                     val warningAnnotation = holder.createWeakWarningAnnotation(rangeToReport, "Coclause is redundant")
                     if (warningAnnotation != null) {
                         warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                        warningAnnotation.registerFix(RemoveCoClause(coClause))
+                        warningAnnotation.registerFix(RemoveCoClauseQuickFix(coClause))
                     }
                 } else {
                     annotateCoClauses(subClauses, holder, superClassesFields, fields)
@@ -117,7 +109,7 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
 
             if (!onlyCheckFields) {
                 if (fields.isNotEmpty()) {
-                    val fieldsList = ImplementFieldsQuickFix.makeFieldList(fields, classReferenceData.classRef)
+                    val fieldsList = makeFieldList(fields, classReferenceData.classRef)
 
                     when (annotationToShow) {
                         InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
@@ -175,6 +167,11 @@ abstract class AbstractEWCCAnnotator(private val classReferenceHolder: ClassRefe
                     CoClauseAnnotator(element, BasePass.getImprovedTextRange(null, element), InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
                 else null
             else -> null
+        }
+
+        fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
+            val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
+            return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
         }
     }
 }
@@ -281,78 +278,6 @@ class NewExprAnnotator(private val newExpr: ArendNewExprImplMixin, private val a
         moveCaretToEndOffset(editor, anchor.nextSibling)
         anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
     }
-}
-
-class RemoveCoClause(private val coClause: ArendCoClause) : IntentionAction {
-    override fun startInWriteAction() = true
-
-    override fun getFamilyName() = "arend.instance"
-
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
-
-    override fun getText() = "Remove redundant coclause"
-
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        moveCaretToStartOffset(editor, coClause)
-        val parent = coClause.parent
-        coClause.deleteWithNotification()
-        if ((parent is ArendFunctionBody || parent is ArendInstanceBody) && parent.firstChild == null) parent.deleteWithNotification()
-    }
-}
-
-class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>) : IntentionAction, Iconable {
-    private var caretMoved = false
-
-    override fun startInWriteAction() = true
-
-    override fun getFamilyName() = "arend.instance"
-
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
-
-    override fun getText() = "Implement missing fields"
-
-    companion object {
-        fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
-            val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-            return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
-        }
-    }
-
-    private fun addField(field: Referable, editor: Editor?, psiFactory: ArendPsiFactory, needQualifiedName: Boolean = false) {
-        val coClauses = instance.coClausesList()
-        val fieldClass = (field as? LocatedReferable)?.locatedReferableParent
-        val name = if (needQualifiedName && fieldClass != null) "${fieldClass.textRepresentation()}.${field.textRepresentation()}" else field.textRepresentation()
-
-        if (coClauses.isEmpty()) {
-            instance.insertFirstCoClause(name, psiFactory, editor)
-            caretMoved = true
-        } else {
-            val anchor = coClauses.last()
-            val coClause = psiFactory.createCoClause(name)
-
-            anchor.parent.addAfterWithNotification(coClause, anchor)
-            if (!caretMoved && editor != null) {
-                moveCaretToEndOffset(editor, anchor.nextSibling)
-                caretMoved = true
-            }
-            anchor.parent.addAfter(psiFactory.createWhitespace("\n"), anchor)
-        }
-    }
-
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val psiFactory = ArendPsiFactory(project)
-        for (f in fieldsToImplement) {
-            addField(f.first, editor, psiFactory, f.second)
-        }
-
-        // Add CRLF after last coclause
-        val lastCC = instance.coClausesList().lastOrNull() ?: return
-        if (lastCC.nextSibling?.node?.elementType == ArendElementTypes.RBRACE) {
-            lastCC.parent?.addAfter(psiFactory.createWhitespace("\n"), lastCC)
-        }
-    }
-
-    override fun getIcon(flags: Int) = if (instance.annotationToShow == InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR) null else AllIcons.Actions.IntentionBulb
 }
 
 object CoClausesKey : Key<List<Pair<FieldReferable, Boolean>>>("coClausesInfo")

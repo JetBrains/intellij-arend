@@ -11,7 +11,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
 
-class RemovePattern(private val pattern: ArendPatternImplMixin) : IntentionAction {
+class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.pattern"

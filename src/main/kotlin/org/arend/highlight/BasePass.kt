@@ -28,6 +28,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
+import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
@@ -90,12 +91,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is FieldsImplementationError ->
                     if (localError.alreadyImplemented) {
                         (localError.cause.data as? ArendCoClause)?.let {
-                            annotation.registerFix(RemoveCoClause(it))
+                            annotation.registerFix(RemoveCoClauseQuickFix(it))
                         }
                     } else {
                         val element = getCauseElement(localError.cause.data)
                         AbstractEWCCAnnotator.makeAnnotator(element)?.let {
-                            annotation.registerFix(ImplementFieldsQuickFix(it, ImplementFieldsQuickFix.makeFieldList(localError.fields, localError.classReferable)))
+                            annotation.registerFix(ImplementFieldsQuickFix(it, makeFieldList(localError.fields, localError.classReferable)))
                         }
                         if (element is ArendNewExprImplMixin) {
                             element.putUserData(CoClausesKey, null)
@@ -104,7 +105,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is DesugaringError -> if (localError.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
                     annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     (getCauseElement(localError.cause.data) as? ArendCoClause)?.let {
-                        annotation.registerFix(RemoveCoClause(it))
+                        annotation.registerFix(RemoveCoClauseQuickFix(it))
                     }
                 }
                 is TypecheckingError -> {
@@ -113,7 +114,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     }
                     when (localError.kind) {
                         TOO_MANY_PATTERNS -> (getCauseElement(localError.cause.data) as? ArendPatternImplMixin)?.let {
-                            annotation.registerFix(RemovePattern(it))
+                            annotation.registerFix(RemovePatternsQuickFix(it))
                         }
                         else -> {}
                     }
