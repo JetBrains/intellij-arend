@@ -113,11 +113,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     }
                     when (localError.kind) {
-                        TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN -> (getCauseElement(localError.cause.data) as? ArendPatternImplMixin)?.let { pattern ->
+                        TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> (getCauseElement(localError.cause.data) as? ArendPatternImplMixin)?.let { pattern ->
                             val single = localError.kind == EXPECTED_EXPLICIT_PATTERN
-                            if (single) {
+                            if (localError.kind != TOO_MANY_PATTERNS) {
                                 pattern.atomPattern?.let {
-                                    annotation.registerFix(MakePatternExplicitQuickFix(it))
+                                    annotation.registerFix(MakePatternExplicitQuickFix(it, single))
                                 }
                             }
 

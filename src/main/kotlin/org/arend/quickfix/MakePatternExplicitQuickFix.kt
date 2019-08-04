@@ -4,9 +4,10 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.*
 
-class MakePatternExplicitQuickFix(private val atomPattern: ArendAtomPattern) : IntentionAction {
+class MakePatternExplicitQuickFix(private val atomPattern: ArendAtomPattern, private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.pattern"
@@ -26,7 +27,7 @@ class MakePatternExplicitQuickFix(private val atomPattern: ArendAtomPattern) : I
             atom.patternList.firstOrNull()
         }
 
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+    private fun makeExplicit(atomPattern: ArendAtomPattern) {
         val pattern = getImplicitPattern(atomPattern) ?: return
         val atom = getAtom(pattern)
         if (atom != null) {
@@ -57,6 +58,36 @@ class MakePatternExplicitQuickFix(private val atomPattern: ArendAtomPattern) : I
                     atomPattern.addBefore(parens.second, lbrace)
                     atomPattern.deleteChildRangeWithNotification(lbrace, rbrace)
                 }
+        }
+    }
+
+    private fun makeAllExplicit(): Boolean {
+        val parent = (atomPattern.parent as? ArendPattern)?.parent?.parent ?: return false
+
+        var ok = false
+        var node = parent.firstChild
+        while (node != null) {
+            if (node is ArendClause || node is ArendConstructorClause) {
+                for (pattern in PsiTreeUtil.getChildrenOfTypeAsList(node, ArendPattern::class.java)) {
+                    pattern.atomPattern?.let {
+                        if (it.rbrace != null) {
+                            if (it == atomPattern) {
+                                ok = true
+                            }
+                            makeExplicit(it)
+                        }
+                    }
+                }
+            }
+            node = node.nextSibling
+        }
+
+        return ok
+    }
+
+    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+        if (single || !makeAllExplicit()) {
+            makeExplicit(atomPattern)
         }
     }
 }
