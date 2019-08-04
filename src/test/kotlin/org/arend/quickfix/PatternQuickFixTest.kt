@@ -12,6 +12,16 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
+    fun `test too many patterns no whitespaces`() = simpleQuickFixTest("Remove",
+        """
+            \func test (x y : Nat) : Nat
+              | _, _, {-caret-}_, {_}=> 0
+        """,
+        """
+            \func test (x y : Nat) : Nat
+              | _, _ => 0
+        """)
+
     fun `test too many implicit patterns`() = simpleQuickFixTest("Remove",
         """
             \func test (x y : Nat) : Nat

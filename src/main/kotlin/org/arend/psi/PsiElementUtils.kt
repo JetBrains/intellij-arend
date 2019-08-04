@@ -109,40 +109,56 @@ fun PsiElement.findPrevSibling(punctuationType: IElementType?): PsiElement? {
     return sibling
 }
 
-val PsiElement?.skipNextIrrelevant: PsiElement?
+/** Returns the last irrelevant element (i.e., whitespace or comment) to the right of the given element
+ *  or the element itself if there are no irrelevant elements
+  */
+val PsiElement.extendRight: PsiElement
     get() {
-        var next = this
-        while (next is PsiWhiteSpace || next is PsiComment) {
-            next = next.nextSibling
-        }
-        return next
-    }
-
-val PsiElement?.skipPrevIrrelevant: PsiElement?
-    get() {
-        var prev = this
-        while (prev is PsiWhiteSpace || prev is PsiComment) {
-            prev = prev.prevSibling
-        }
-        return prev
-    }
-
-val PsiElement.nextRelevant: PsiElement
-    get() {
+        var result = this
         var next = nextSibling
         while (next is PsiWhiteSpace || next is PsiComment) {
+            result = next
             next = next.nextSibling
         }
-        return next ?: this
+        return result
     }
 
-val PsiElement.prevRelevant: PsiElement
+/** Returns the last irrelevant element (i.e., whitespace or comment) to the left of the given element
+ *  or the element itself if there are no irrelevant elements
+ */
+val PsiElement.extendLeft: PsiElement
     get() {
+        var result = this
         var prev = prevSibling
         while (prev is PsiWhiteSpace || prev is PsiComment) {
+            result = prev
             prev = prev.prevSibling
         }
-        return prev ?: this
+        return result
+    }
+
+val PsiElement.nextElement: PsiElement?
+    get() {
+        var current: PsiElement? = this
+        while (current != null && current !is PsiFile) {
+            current.nextSibling?.let {
+                return it
+            }
+            current = current.parent
+        }
+        return null
+    }
+
+val PsiElement.prevElement: PsiElement?
+    get() {
+        var current: PsiElement? = this
+        while (current != null && current !is PsiFile) {
+            current.prevSibling?.let {
+                return it
+            }
+            current = current.parent
+        }
+        return null
     }
 
 enum class PositionKind {

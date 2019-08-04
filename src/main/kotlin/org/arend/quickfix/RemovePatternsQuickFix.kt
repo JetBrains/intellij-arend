@@ -40,42 +40,46 @@ class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin) : Inten
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var first = pattern.prevRelevant
-        if (first is LeafPsiElement && first.elementType == ArendElementTypes.COMMA) {
-            val prev = first.prevRelevant // remove irrelevant elements before comma
-            if (prev != first) {
-                first = prev.nextSibling
+        var first = pattern.extendLeft
+        first.prevSibling?.let {
+            if (it is LeafPsiElement && it.elementType == ArendElementTypes.COMMA) {
+                first = it.extendLeft
             }
-        } else {
-            first = pattern
         }
 
-        // if there are no patterns left, remove all clauses
-        if (first == pattern || first is LeafPsiElement && first.elementType == ArendElementTypes.PIPE) {
+        // If we need to remove all patterns, just remove all clauses
+        if (first.prevSibling.let { it == null || it is LeafPsiElement && it.elementType == ArendElementTypes.PIPE }) {
             when (val parent = first.parent) {
-                is ArendClause -> {
-                    removeClauses(parent)
-                    return
-                }
-                is ArendConstructorClause -> {
-                    (parent.parent as? ArendDataBody)?.deleteWithNotification()
-                    return
-                }
+                is ArendClause -> removeClauses(parent)
+                is ArendConstructorClause -> (parent.parent as? ArendDataBody)?.deleteWithNotification()
             }
+            return
         }
 
+        // Remove everything till the next '=>', ')', '}', or '\as'
         var last: PsiElement = pattern
         while (true) {
-            val next = last.nextSibling // remove everything till the next '=>', ')', '}', or '\as'
-            if (next == null || next is LeafPsiElement && (next.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.AS_KW))) {
+            val next = last.nextSibling
+            if (next == null || next is LeafPsiElement && next.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.AS_KW)) {
                 break
             }
             last = next
         }
+
+        // Keep whitespaces and comments
         if (last is PsiWhiteSpace || last is PsiComment) {
-            last = last.prevRelevant
+            last = last.extendLeft
+            last.prevSibling?.let {
+                last = it
+            }
         }
 
-        first.parent.deleteChildRangeWithNotification(first, last)
+        // Add a whitespace before '=>' or '\as'
+        val parent = first.parent
+        if (last.nextElement.let { it is LeafPsiElement && it.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.AS_KW) }) {
+            parent.addAfterWithNotification(ArendPsiFactory(parent.project).createWhitespace(" "), last)
+        }
+
+        parent.deleteChildRangeWithNotification(first, last)
     }
 }
