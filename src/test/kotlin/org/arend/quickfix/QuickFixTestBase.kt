@@ -8,25 +8,30 @@ import org.arend.psi.ArendFile
 abstract class QuickFixTestBase : ArendTestBase() {
     private val importQfName = "Fix import"
 
-    protected fun simpleQuickFixTest (fixName: String,
-                                    @Language("Arend") contents: String,
-                                    @Language("Arend") resultingContent: String) {
-        val fileTree = fileTreeFromText(contents)
-        fileTree.createAndOpenFileWithCaretMarker()
+    protected fun configure(@Language("Arend") contents: String) {
+        fileTreeFromText(contents).createAndOpenFileWithCaretMarker()
         myFixture.doHighlighting()
+    }
 
-        val quickfix = myFixture.findSingleIntention(fixName)
-        myFixture.launchAction(quickfix)
+    protected fun checkNoQuickFixes(fixName: String, @Language("Arend") contents: String? = null) {
+        if (contents != null) {
+            InlineFile(contents).withCaret()
+        }
+        assert(myFixture.getAvailableIntention(fixName, "Main.ard") == null)
+    }
 
+    protected fun checkQuickFix(fixName: String, @Language("Arend") resultingContent: String) {
+        myFixture.launchAction(myFixture.findSingleIntention(fixName))
         testCaret(resultingContent)
     }
 
-    protected fun simpleImportFixTest(@Language("Arend") contents: String, @Language("Arend") resultingContent: String) = simpleQuickFixTest(importQfName, contents, resultingContent)
-
-    protected fun checkNoQuickFixes(fixName: String, @Language("Arend") contents: String) {
-        InlineFile(contents).withCaret()
-        assert(myFixture.getAvailableIntention(fixName, "Main.ard") == null)
+    protected fun simpleQuickFixTest(fixName: String, @Language("Arend") contents: String, @Language("Arend") resultingContent: String) {
+        configure(contents)
+        checkQuickFix(fixName, resultingContent)
     }
+
+    protected fun simpleImportFixTest(@Language("Arend") contents: String, @Language("Arend") resultingContent: String) =
+        simpleQuickFixTest(importQfName, contents, resultingContent)
 
     protected fun checkNoImport(@Language("Arend") contents: String) = checkNoQuickFixes(importQfName, contents)
 

@@ -10,20 +10,20 @@ import org.arend.term.concrete.Concrete
 abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Pattern {
     override fun getData(): Any? = this
 
-    abstract fun getAtomPattern(): ArendAtomPattern?
+    abstract val atomPattern: ArendAtomPattern?
 
-    abstract fun getDefIdentifier(): ArendDefIdentifier?
+    abstract val defIdentifier: ArendDefIdentifier?
 
-    abstract fun getLongName(): ArendLongName?
+    abstract val longName: ArendLongName?
 
-    open fun getAsPattern(): ArendAsPattern? = null
+    open val asPattern: ArendAsPattern? = null
 
-    open fun getExpr(): ArendExpr? = null
+    open val expr: ArendExpr? = null
 
-    open fun getAtomPatternOrPrefixList(): List<ArendAtomPatternOrPrefix> = emptyList()
+    open val atomPatternOrPrefixList: List<ArendAtomPatternOrPrefix> = emptyList()
 
     override fun isUnnamed(): Boolean {
-        val atom = getAtomPattern() ?: return false
+        val atom = atomPattern ?: return false
         if (atom.underscore != null) {
             return true
         }
@@ -32,7 +32,7 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
     }
 
     override fun isExplicit(): Boolean {
-        val atom = getAtomPattern() ?: return true
+        val atom = atomPattern ?: return true
         if (atom.lbrace != null) {
             return false
         }
@@ -41,7 +41,7 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
     }
 
     override fun getNumber(): Int? {
-        val atom = getAtomPattern() ?: return null
+        val atom = atomPattern ?: return null
         val number = atom.number ?: atom.negativeNumber
         if (number != null) {
             val text = number.text
@@ -61,40 +61,38 @@ abstract class ArendPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
     }
 
     override fun getHeadReference(): Referable? {
-        val conName = getDefIdentifier()
-        if (conName != null) {
-            return if (getAtomPatternOrPrefixList().isEmpty()) conName else NamedUnresolvedReference(conName, conName.referenceName)
+        defIdentifier?.let {
+            return if (atomPatternOrPrefixList.isEmpty()) it else NamedUnresolvedReference(it, it.referenceName)
         }
 
-        val longName = getLongName()
-        if (longName != null) {
-            return longName.referent
+        longName?.let {
+            return it.referent
         }
 
-        val patterns = getAtomPattern()?.patternList ?: return null
+        val patterns = atomPattern?.patternList ?: return null
         return if (patterns.size == 1) patterns.first().headReference else null
     }
 
     override fun getArguments(): List<Abstract.Pattern> {
-        if (getDefIdentifier() != null || getLongName() != null) return getAtomPatternOrPrefixList()
+        if (defIdentifier != null || longName != null) {
+            return atomPatternOrPrefixList
+        }
 
-        val patterns = getAtomPattern()?.patternList ?: return emptyList()
+        val patterns = atomPattern?.patternList ?: return emptyList()
         return if (patterns.size == 1) patterns.first().arguments else patterns
     }
 
     override fun getType(): ArendExpr? {
-        val type = getExpr()
-        if (type != null) {
-            return type
+        expr?.let {
+            return it
         }
 
-        val patterns = getAtomPattern()?.patternList ?: return null
+        val patterns = atomPattern?.patternList ?: return null
         return if (patterns.size == 1) patterns.first().expr else null
     }
 
     override fun getAsPatterns(): List<Abstract.TypedReferable> {
-        val patterns = getAtomPattern()?.patternList
-        val asPattern = getAsPattern()
-        return (if (patterns == null || patterns.size != 1) emptyList() else patterns[0].asPatterns) + (if (asPattern == null) emptyList() else listOf(asPattern))
+        val patterns = atomPattern?.patternList
+        return (if (patterns == null || patterns.size != 1) emptyList() else patterns[0].asPatterns) + listOfNotNull(asPattern)
     }
 }

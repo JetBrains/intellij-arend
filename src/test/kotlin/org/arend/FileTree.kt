@@ -18,7 +18,7 @@ fun fileTreeFromText(@Language("Arend") text: String): FileTree {
     val fileTexts = fileSeparator.split(text).filter(String::isNotBlank).map { it.trimIndent() }
 
     if (fileNames.isEmpty() && fileTexts.size == 1) {
-        fileNames = listOf("test.ard")
+        fileNames = listOf("Main.ard")
     } else {
         check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
     }

@@ -94,19 +94,41 @@ fun ArendGroup.findGroupByFullName(fullName: List<String>): ArendGroup? =
 fun PsiElement.findNextSibling(): PsiElement? = findNextSibling(null)
 
 fun PsiElement.findNextSibling(punctuationType: IElementType?): PsiElement? {
-    var sibling: PsiElement? = this.nextSibling
+    var sibling: PsiElement? = nextSibling
     while (sibling is PsiComment || sibling is PsiWhiteSpace ||
             (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.nextSibling
     return sibling
 }
 
+fun PsiElement?.findNextSibling(pred: (PsiElement) -> Boolean): PsiElement? {
+    var next = this
+    while (next != null) {
+        if (pred(next)) {
+            return next
+        }
+        next = next.nextSibling
+    }
+    return next
+}
+
 fun PsiElement.findPrevSibling(): PsiElement? = findPrevSibling(null)
 
 fun PsiElement.findPrevSibling(punctuationType: IElementType?): PsiElement? {
-    var sibling: PsiElement? = this.prevSibling
+    var sibling: PsiElement? = prevSibling
     while (sibling is PsiComment || sibling is PsiWhiteSpace ||
             (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.prevSibling
     return sibling
+}
+
+fun PsiElement?.findPrevSibling(pred: (PsiElement) -> Boolean): PsiElement? {
+    var prev = this
+    while (prev != null) {
+        if (pred(prev)) {
+            return prev
+        }
+        prev = prev.prevSibling
+    }
+    return prev
 }
 
 /** Returns the last irrelevant element (i.e., whitespace or comment) to the right of the given element

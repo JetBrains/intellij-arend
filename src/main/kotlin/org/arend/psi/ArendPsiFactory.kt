@@ -80,6 +80,11 @@ class ArendPsiFactory(private val project: Project) {
         return Pair(nestedCoClause.lbrace!!, nestedCoClause.rbrace!!)
     }
 
+    fun createPairOfParens(): Pair<PsiElement, PsiElement> {
+        val statCmd = createStatCmd("foo")
+        return Pair(statCmd.lparen!!, statCmd.rparen!!)
+    }
+
     private fun createArgument(expr: String): ArendArgument =
         ((createFunction("dummy", emptyList(), expr).returnExpr?.expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
             ?: error("Failed to create expression: `$expr`")

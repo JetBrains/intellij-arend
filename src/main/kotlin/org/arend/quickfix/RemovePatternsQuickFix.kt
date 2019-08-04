@@ -11,7 +11,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
 
-class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin) : IntentionAction {
+class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin, private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.pattern"
@@ -47,30 +47,38 @@ class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin) : Inten
             }
         }
 
-        // If we need to remove all patterns, just remove all clauses
-        if (first.prevSibling.let { it == null || it is LeafPsiElement && it.elementType == ArendElementTypes.PIPE }) {
-            when (val parent = first.parent) {
-                is ArendClause -> removeClauses(parent)
-                is ArendConstructorClause -> (parent.parent as? ArendDataBody)?.deleteWithNotification()
-            }
-            return
-        }
-
-        // Remove everything till the next '=>', ')', '}', or '\as'
         var last: PsiElement = pattern
-        while (true) {
-            val next = last.nextSibling
-            if (next == null || next is LeafPsiElement && next.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.AS_KW)) {
-                break
+        if (single) {
+            last.extendRight.nextSibling?.let {
+                if (it is LeafPsiElement && it.elementType == ArendElementTypes.COMMA) {
+                    last = it
+                }
             }
-            last = next
-        }
+        } else {
+            // If we need to remove all patterns, just remove all clauses
+            if (first.prevSibling.let { it == null || it is LeafPsiElement && it.elementType == ArendElementTypes.PIPE }) {
+                when (val parent = first.parent) {
+                    is ArendClause -> removeClauses(parent)
+                    is ArendConstructorClause -> (parent.parent as? ArendDataBody)?.deleteWithNotification()
+                }
+                return
+            }
 
-        // Keep whitespaces and comments
-        if (last is PsiWhiteSpace || last is PsiComment) {
-            last = last.extendLeft
-            last.prevSibling?.let {
-                last = it
+            // Remove everything till the next '=>', ')', '}', or '\as'
+            while (true) {
+                val next = last.nextSibling
+                if (next == null || next is LeafPsiElement && next.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.AS_KW)) {
+                    break
+                }
+                last = next
+            }
+
+            // Keep whitespaces and comments
+            if (last is PsiWhiteSpace || last is PsiComment) {
+                last = last.extendLeft
+                last.prevSibling?.let {
+                    last = it
+                }
             }
         }
 

@@ -138,7 +138,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
-    fun `test make explicit`() = simpleQuickFixTest("Make explicit",
+    fun `test make explicit`() = simpleQuickFixTest("Make pattern explicit",
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{_}, {_}, _ => 0
@@ -148,27 +148,99 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, {_}, _ => 0
         """)
 
-    fun `test implicit with elim`() = simpleQuickFixTest("Make explicit",
+    fun `test make explicit complex`() = simpleQuickFixTest("Make pattern explicit",
         """
-            \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
-              | _, {-caret-}{_}, _ => 0
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | {-caret-}{suc _}, {_}, _ => 0
         """,
         """
-            \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
-              | _, _, _ => 0
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc _, {_}, _ => 0
         """)
 
-    fun `test many implicits with elim`() = simpleQuickFixTest("Make explicit",
+    fun `test make explicit id`() = simpleQuickFixTest("Make pattern explicit",
         """
-            \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
-              | {0}, 1, 2 => 1
-              | 2, 3, {-caret-}{4} => 2
-              | _, {_}, _ => 0
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | {-caret-}{zero}, {_}, _ => 0
         """,
         """
-            \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
-              | 0, 1, 2 => 1
-              | 2, 3, 4 => 2
-              | _, _, _ => 0
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | zero, {_}, _ => 0
         """)
+
+    fun `test make explicit in constructor`() = simpleQuickFixTest("Make pattern explicit",
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc {-caret-}{_}, {_}, _ => 0
+        """,
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc _, {_}, _ => 0
+        """)
+
+    fun `test make explicit complex in constructor`() = simpleQuickFixTest("Make pattern explicit",
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc {-caret-}{suc _}, {_}, _ => 0
+        """,
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc (suc _), {_}, _ => 0
+        """)
+
+    fun `test make explicit id in constructor`() = simpleQuickFixTest("Make pattern explicit",
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc {-caret-}{zero}, {_}, _ => 0
+        """,
+        """
+            \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+              | suc zero, {_}, _ => 0
+        """)
+
+    fun `test single implicit`() {
+        configure(
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+                  | {-caret-}{_} => 0
+            """)
+        checkNoQuickFixes("Remove")
+        checkQuickFix("Make pattern explicit",
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat
+                  | _ => 0
+            """)
+    }
+
+    fun `test implicit with elim`() {
+        configure(
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
+                  | _, {-caret-}{_}, _ => 0
+            """)
+        checkNoQuickFixes("Remove")
+        checkQuickFix("Make pattern explicit",
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
+                  | _, _, _ => 0
+            """)
+    }
+
+    fun `test many implicits with elim`() {
+        configure(
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
+                  | {0}, 1, 2 => 1
+                  | 2, 3, {-caret-}{4} => 2
+                  | _, {_}, _ => 0
+            """)
+        checkNoQuickFixes("Remove")
+        checkQuickFix("Make pattern explicit",
+            """
+                \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
+                  | 0, 1, 2 => 1
+                  | 2, 3, 4 => 2
+                  | _, _, _ => 0
+            """)
+    }
 }
