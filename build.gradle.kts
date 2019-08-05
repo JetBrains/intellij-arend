@@ -16,7 +16,9 @@ repositories {
 }
 
 dependencies {
-    compile(project(":Arend"))
+    implementation(project(":Arend")) {
+        exclude(module = "antlr")
+    }
     compileOnly(kotlin("stdlib-jdk8"))
 }
 
