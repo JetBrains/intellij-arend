@@ -6,7 +6,6 @@ import org.arend.mapFirstNotNull
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.LongName
 import java.util.Collections.singletonList
 
@@ -182,20 +181,6 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
             }
             editor?.caretModel?.moveToOffset(offset + longNameStr.length)
         }
-    }
-}
-
-class ResolveReferenceAction(val target: PsiLocatedReferable,
-                             private val targetFullName: List<String>,
-                             private val statCmdFixAction: AbstractRefactoringAction?,
-                             private val nameFixAction: AbstractRefactoringAction?) : AbstractRefactoringAction {
-
-    override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" }
-            ?: "")
-
-    override fun execute(editor: Editor?) {
-        statCmdFixAction?.execute(editor)
-        nameFixAction?.execute(editor)
     }
 }
 

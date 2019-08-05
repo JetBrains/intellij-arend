@@ -1,4 +1,4 @@
-package org.arend.quickfix
+package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.Referable
@@ -6,29 +6,18 @@ import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.refactoring.*
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import org.arend.util.LongName
 import java.lang.IllegalStateException
 import java.util.Collections.singletonList
 
-class ResolveRefQuickFix {
+class ArendAliasUtils {
     companion object {
-        fun getDecision(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
-            val containingFile = element.containingFile as? ArendFile ?: return null
-            val location = LocationData(target)
-            val (importAction, resultName) = getDecision(location, containingFile, element) ?: return null
-            val renameAction = RenameReferenceAction(element, resultName)
-
-            return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
-        }
-
-        fun getDecision(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+        fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
             val targetFile = defaultLocation.myContainingFile
             val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
 

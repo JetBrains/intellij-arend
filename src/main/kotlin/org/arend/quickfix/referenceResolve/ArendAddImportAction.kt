@@ -1,4 +1,4 @@
-package org.arend.annotation
+package org.arend.quickfix.referenceResolve
 
 import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.codeInsight.hint.QuestionAction
@@ -11,7 +11,6 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
-import org.arend.refactoring.ResolveReferenceAction
 import javax.swing.Icon
 
 class ArendAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveReferenceAction>, private val onTheFly: Boolean) : QuestionAction {

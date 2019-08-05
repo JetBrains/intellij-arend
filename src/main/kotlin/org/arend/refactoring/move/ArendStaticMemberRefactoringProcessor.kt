@@ -21,9 +21,9 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.quickfix.LocationData
-import org.arend.quickfix.ResolveRefQuickFix
-import org.arend.quickfix.ResolveRefQuickFix.Companion.getDecision
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.refactoring.LocationData
+import org.arend.refactoring.ArendAliasUtils.Companion.computeAliases
 import org.arend.refactoring.*
 import org.arend.util.LongName
 import java.util.ArrayList
@@ -231,7 +231,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (remainderAnchor is ArendCompositeElement) {
                 val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
                 val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
-                val importData = getDecision(targetLocation, sourceContainerFile, remainderAnchor)
+                val importData = computeAliases(targetLocation, sourceContainerFile, remainderAnchor)
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
@@ -273,7 +273,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            val importData = getDecision(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
+            val importData = computeAliases(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
             val currentName: List<String>? = importData?.second
 
             if (renamings.isNotEmpty() && currentName != null) {
@@ -299,7 +299,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
             } else if (referenceElement is ArendReferenceElement) { //Normal usage which we try to fix
                 val targetReferable = movedReferablesMap[usage.referableDescriptor]
-                if (targetReferable != null) ResolveRefQuickFix.getDecision(targetReferable, referenceElement)?.execute(null)
+                if (targetReferable != null) ResolveReferenceAction.getProposedFix(targetReferable, referenceElement)?.execute(null)
             }
         }
 
@@ -308,7 +308,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         myMoveCallback.invoke()
 
-        if (myOpenInEditor && !myMembers.isEmpty()) {
+        if (myOpenInEditor && myMembers.isNotEmpty()) {
             val item = myMembers.first()
             if (item.isValid) EditorHelper.openInEditor(item)
         }
@@ -359,11 +359,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val correctTarget = fixMap[LocationDescriptor(groupIndex, prefix)]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
-                if (currentTarget != correctTarget) {
-                    val action = ResolveRefQuickFix.getDecision(correctTarget, element)
-                    action?.execute(null)
-                }
-
+                if (currentTarget != correctTarget) ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
             }
         } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap) }
     }
@@ -372,7 +368,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val conflicts = MultiMap<PsiElement, String>()
         val usages = refUsages.get()
 
-        val localGroup = HashSet<ArendGroup>(myTargetContainer.subgroups)
+        val localGroup = HashSet(myTargetContainer.subgroups)
         localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
         val localNamesMap = HashMap<String, ArendGroup>()

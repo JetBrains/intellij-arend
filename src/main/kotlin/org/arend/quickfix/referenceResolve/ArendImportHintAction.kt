@@ -1,4 +1,4 @@
-package org.arend.annotation
+package org.arend.quickfix.referenceResolve
 
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInsight.daemon.impl.DaemonListeners
@@ -30,8 +30,6 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
-import org.arend.refactoring.ResolveReferenceAction
-import org.arend.quickfix.ResolveRefQuickFix
 import org.arend.typechecking.TypeCheckingService
 
 enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
@@ -63,7 +61,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
                         union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
 
-                CachedValueProvider.Result(items.mapNotNull { ResolveRefQuickFix.getDecision(it, refElement) }, PsiModificationTracker.MODIFICATION_COUNT)
+                CachedValueProvider.Result(items.mapNotNull { ResolveReferenceAction.getProposedFix(it, refElement) }, PsiModificationTracker.MODIFICATION_COUNT)
             }
         }
 

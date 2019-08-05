@@ -14,7 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.annotation.ArendImportHintAction
+import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
 import org.arend.error.GeneralError
