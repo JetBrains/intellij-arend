@@ -108,6 +108,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         annotation.registerFix(RemoveCoClauseQuickFix(it))
                     }
                 }
+
+                is MissingClausesError -> {
+                    annotation.registerFix(ImplementMissingClausesQuickFix(localError, cause))
+                }
+
                 is TypecheckingError -> {
                     if (localError.level == Error.Level.WEAK_WARNING) {
                         annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL

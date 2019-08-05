@@ -51,6 +51,11 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
+    fun createClause(expr: String): ArendClause {
+        val code = "\\func foo => \\case goo \\with { | $expr => {?} }"
+        return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
+    }
+
     fun createCoClause(name: String, expr: String = "{?}"): ArendCoClause {
         val code = buildString {
             append("\\instance Dummy : Dummy\n")

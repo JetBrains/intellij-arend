@@ -23,7 +23,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.LocationData
-import org.arend.refactoring.ArendAliasUtils.Companion.computeAliases
 import org.arend.refactoring.*
 import org.arend.util.LongName
 import java.util.ArrayList
