@@ -29,7 +29,9 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val location = LocationData(target)
             val (importAction, resultName) = ArendAliasUtils.computeAliases(location, containingFile, element)
                     ?: return null
-            val renameAction = RenameReferenceAction(element, resultName)
+            val renameAction = if (target is ArendFile) {
+                RenameReferenceAction(element, target.modulePath?.toList() ?: return null)
+            } else RenameReferenceAction(element, resultName)
 
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
         }

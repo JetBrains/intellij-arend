@@ -5,6 +5,10 @@ import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.psi.stubs.index.ArendNamedElementIndex
 
+fun IndexSink.indexFile(stub: ArendFileStub) {
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexClass(stub: ArendDefClassStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)
