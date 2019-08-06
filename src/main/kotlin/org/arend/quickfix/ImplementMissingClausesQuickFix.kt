@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import org.arend.core.context.param.DependentLink
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.EmptyPattern
@@ -14,7 +15,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 
-class ImplementMissingClausesQuickFix(private val missingClausesError : MissingClausesError, val cause: ArendCompositeElement) : IntentionAction {
+class ImplementMissingClausesQuickFix(private val missingClausesError : MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
     private val clauses = ArrayList<ArendClause>()
     private var anchor : PsiElement? = null
 
@@ -32,14 +33,16 @@ class ImplementMissingClausesQuickFix(private val missingClausesError : MissingC
             if (error) break
             val clauseText = buildString {
                 val iterator = clause.iterator()
+                var parameter: DependentLink? = if (!missingClausesError.isCase && !missingClausesError.isElim) missingClausesError.parameters else null
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
-                    val str = transformPattern(pattern, occupiedNames, false)
+                    val str = transformPattern(pattern, occupiedNames, if (parameter == null || parameter.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES)
                     if (str != null) append(str) else {
                         error = true
                         break
                     }
                     if (iterator.hasNext()) append(", ")
+                    parameter = if (parameter != null && parameter.hasNext()) parameter.next else null
                 }
             }
             clauses.add(psiFactory.createClause(clauseText))
@@ -63,6 +66,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError : MissingC
     }
 
     companion object {
+        enum class Braces { NO, PAREN, BRACES }
+
         fun insertClauses(psiFactory: ArendPsiFactory, anchor: PsiElement, clauses: List<ArendClause>) {
             val anchorParent = anchor.parent
             if (anchorParent != null) for (clause in clauses) {
@@ -75,11 +80,20 @@ class ImplementMissingClausesQuickFix(private val missingClausesError : MissingC
             }
         }
 
-        fun transformPattern(pattern: Pattern, occupiedNames: HashMap<String, Int>, enforceSurroundWithParen: Boolean): String? {
+        fun transformPattern(pattern: Pattern, occupiedNames: HashMap<String, Int>, paren: Braces): String? {
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition = pattern.definition
-                    val argumentPatterns = pattern.patterns.patternList.map { transformPattern(it, occupiedNames, definition != null) }
+                    val argumentPatterns = ArrayList<String?>()
+                    val patternIterator = pattern.patterns.patternList.iterator()
+                    var constructorArgument: DependentLink? = definition.parameters
+
+                    while (patternIterator.hasNext()) {
+                        val argumentPattern = patternIterator.next()
+                        argumentPatterns.add(transformPattern(argumentPattern, occupiedNames, if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES))
+                        constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                    }
+
                     val returnString = if (definition == null) {
                         buildString {
                             append("(")
@@ -92,25 +106,28 @@ class ImplementMissingClausesQuickFix(private val missingClausesError : MissingC
                             append(")")
                         }
                     } else {
-                        val referable = PsiLocatedReferable.fromReferable(definition.referable) /* debug here */
-                        buildString {
+                        val referable = PsiLocatedReferable.fromReferable(definition.referable)
+                        val result = buildString {
                             append(if (referable != null) referable.name else definition.name)
                             for (argument in argumentPatterns) append(" $argument")
                         }
+                        if (paren == Companion.Braces.PAREN) "($result)" else result
                     }
 
-                    return if (enforceSurroundWithParen) "($returnString)" else returnString
+                    return if (paren == Companion.Braces.BRACES) "{$returnString}" else returnString
                 }
 
                 is BindingPattern -> {
-                    val name = pattern.binding.name ?: return "_"
+                    val name = pattern.binding.name ?: "_"
 
-                    if (name != "_") {
+                    val result = if (name != "_") {
                         var usedNs = occupiedNames[name]
                         if (usedNs == null) usedNs = 1
                         occupiedNames[name] = usedNs + 1
-                        return if (usedNs > 1) "$name$usedNs" else name
-                    }
+                        if (usedNs > 1) "$name$usedNs" else name
+                    } else name
+
+                    return if (paren == Companion.Braces.BRACES) "{$result}" else result
                 }
 
                 is EmptyPattern -> return "()"
