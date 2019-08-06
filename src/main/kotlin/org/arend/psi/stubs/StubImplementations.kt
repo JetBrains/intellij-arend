@@ -4,12 +4,15 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.StubBuilder
 import com.intellij.psi.stubs.*
 import com.intellij.psi.tree.IStubFileElementType
+import org.arend.ArendFileType
 import org.arend.ArendLanguage
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.impl.*
 
-class ArendFileStub(file: ArendFile?) : PsiFileStubImpl<ArendFile>(file) {
+class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubImpl<ArendFile>(file), ArendNamedStub {
+
+    constructor (file: ArendFile?) : this(file, file?.name?.removeSuffix('.' + ArendFileType.defaultExtension))
 
     override fun getType(): Type = Type
 
@@ -31,6 +34,10 @@ class ArendFileStub(file: ArendFile?) : PsiFileStubImpl<ArendFile>(file) {
         ): ArendFileStub = ArendFileStub(null)
 
         override fun getExternalId(): String = "Arend.file"
+
+        override fun indexStub(stub: PsiFileStub<*>, sink: IndexSink) {
+            if (stub is ArendFileStub) sink.indexFile(stub)
+        }
     }
 }
 

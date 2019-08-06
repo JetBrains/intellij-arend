@@ -16,8 +16,14 @@ repositories {
 }
 
 dependencies {
-    compile(project(":Arend"))
+    implementation(project(":Arend")) {
+        isTransitive = false
+    }
     compileOnly(kotlin("stdlib-jdk8"))
+
+    // Transitive dependencies of :Arend
+    implementation("com.google.protobuf:protobuf-java:3.7.1")
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
 }
 
 configure<JavaPluginConvention> {

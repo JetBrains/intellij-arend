@@ -1,17 +1,16 @@
 package org.arend
 
 import com.google.common.html.HtmlEscapers
-import com.intellij.codeInsight.documentation.DocumentationManagerUtil.createHyperlink
-import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.lang.documentation.AbstractDocumentationProvider
+import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import org.arend.term.abs.Abstract
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.term.abs.Abstract
 
 
 private fun String.htmlEscape(): String = HtmlEscapers.htmlEscaper().escape(this)
@@ -84,6 +83,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         wrapTag("em") {
             getType(element)?.let { append(it) }
         }
+        getSuperType(element)?.let { append(it) }
 
         (element as? ReferableAdapter<*>)?.getPrec()?.let {
             append(", ")
@@ -97,20 +97,32 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         getSourceFileName(element, originalElement)?.let {
             val fileName = it.htmlEscape()
             append(", defined in ")
-            createHyperlink(this, fileName, fileName, false)
+            wrapTag("b") {
+                append(fileName)
+            }
+            // createHyperlink(this, fileName, fileName, false)
         }
     }
 
     private fun getType(element: PsiElement): String? = when (element) {
-        is ArendDefClass -> "class"
+        is ArendDefClass -> if (element.isRecord) "record" else "class"
         is ArendClassField, is ArendFieldDefIdentifier -> "field"
         is ArendDefInstance -> "instance"
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
-        is ArendConstructor -> "data constructor"
+        is ArendConstructor -> "constructor"
         is ArendDefFunction -> "function"
         is ArendLetClause -> "let"
         is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
+        else -> null
+    }
+
+    private fun getSuperType(element: PsiElement): String? = when (element) {
+        is ArendClassField, is ArendFieldDefIdentifier ->
+            ((element as PsiLocatedReferable).locatedReferableParent as? ArendDefClass)?.let {
+                " of ${if (it.isRecord) "record" else "class"} <b>${it.name ?: return@let null}</b>"
+            }
+        is ArendConstructor -> (element.locatedReferableParent as? ArendDefData)?.name?.let { " of data <b> $it </b>" }
         else -> null
     }
 

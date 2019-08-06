@@ -25,6 +25,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.NotificationErrorReporter
+import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FullName
@@ -108,7 +109,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider).typecheckLibrary(preludeLibrary)
+        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
         PsiManager.getInstance(project).addPsiTreeChangeListener(listener)

@@ -749,4 +749,20 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                | 0 => 0
                | Nat.suc a' => 1
             """)
+
+    fun `test importing files`() =
+            simpleImportFixTest("""
+            --! Dir/A.ard
+            
+            \func foo => 0
+                        
+            --! B.ard
+            
+            \func bar => A{-caret-}
+            """,
+            """
+            \import Dir.A    
+            
+            \func bar => Dir.A            
+            """)
 }
