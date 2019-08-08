@@ -31,11 +31,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         val psiFactory = ArendPsiFactory(project)
         clauses.clear()
 
-        for (clause in missingClausesError.missingClauses) {
+        for (clause in missingClausesError.missingClauses.reversed()) if (clause != null) {
             val filters = HashMap<ConstructorPattern, List<Boolean>>()
             val previewResults = ArrayList<Pair<PatternKind, List<Variable>>>()
             run {
-                var parameter: DependentLink? = if (!missingClausesError.isCase && !missingClausesError.isElim) missingClausesError.parameters else null
+                var parameter: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
                 val iterator = clause.iterator()
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
@@ -52,7 +52,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             val patternStrings = ArrayList<String>()
             run {
                 val iterator = clause.iterator()
-                var parameter2: DependentLink? = if (!missingClausesError.isCase && !missingClausesError.isElim) missingClausesError.parameters else null
+                var parameter2: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     patternStrings.add(doTransformPattern(pattern, renamer, filters, if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES))
@@ -177,7 +177,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         fun doTransformPattern(pattern: Pattern, renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces): String {
             when (pattern) {
                 is ConstructorPattern -> {
-                    val definition = pattern.definition
+                    val definition = pattern.definition!!
                     val argumentPatterns = ArrayList<String>()
 
                     val patternIterator = pattern.patterns.patternList.iterator()
@@ -190,24 +190,16 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
 
-                    val returnString = if (definition == null) {
-                        buildString {
-                            append("(")
-                            append(concat(argumentPatterns, null))
-                            append(")")
-                        }
-                    } else {
-                        val filter = filters[pattern]
-                        val referable = PsiLocatedReferable.fromReferable(definition.referable)
-                        val result = buildString {
-                            append(if (referable != null) referable.name else definition.name)
-                            val arguments = concat(argumentPatterns, filter, " ")
-                            if (arguments.isNotEmpty()) append(" ")
-                            append(arguments)
-                        }
-                        if (paren == Companion.Braces.PAREN) "($result)" else result
+                    val filter = filters[pattern]
+                    val referable = PsiLocatedReferable.fromReferable(definition.referable)
+                    val arguments = concat(argumentPatterns, filter, " ")
+                    val result = buildString {
+                        append(if (referable != null) referable.name else definition.name)
+                        if (arguments.isNotEmpty()) append(" ")
+                        append(arguments)
                     }
 
+                    val returnString = if (paren == Companion.Braces.PAREN && arguments.isNotEmpty()) "($result)" else result
                     return if (paren == Companion.Braces.BRACES) "{$returnString}" else returnString
                 }
 
