@@ -183,6 +183,41 @@ val PsiElement.prevElement: PsiElement?
         return null
     }
 
+val PsiElement.oneLineText: String
+    get() {
+        val text = text
+        return if (!text.contains('\n')) {
+            text
+        } else buildString {
+            var start = 0
+            var i = 0
+            while (i < text.length) {
+                if (text[i++] != '\n') continue
+                var j = i - 1
+                while (j >= start) {
+                    if (!text[j].isWhitespace()) break
+                    j--
+                }
+                if (j + 1 > start) {
+                    if (start > 0) {
+                        append(' ')
+                    }
+                    append(text.substring(start, j + 1))
+                }
+                i++
+                while (i < text.length) {
+                    if (!text[i].isWhitespace()) break
+                    i++
+                }
+                start = i
+            }
+            if (start < text.length) {
+                append(' ')
+                append(text.substring(start, text.length))
+            }
+        }
+    }
+
 enum class PositionKind {
     BEFORE_ANCHOR, AFTER_ANCHOR, INSIDE_EMPTY_ANCHOR
 }

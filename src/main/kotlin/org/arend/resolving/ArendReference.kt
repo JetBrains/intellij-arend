@@ -58,9 +58,12 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             clazz = ArendDefClass::class.java
         } else {
             val atomFieldsAcc = ((pparent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
-            val argParent = ((if (atomFieldsAcc == null) (pparent as? ArendLongNameExpr)?.parent else
-                if (!atomFieldsAcc.fieldAccList.isEmpty()) null else atomFieldsAcc.parent) as? ArendArgumentAppExpr)?.parent
-            if (((argParent as? ArendNewExpr)?.parent as? ArendReturnExpr)?.parent is ArendDefInstance) {
+            val argParent = when {
+                atomFieldsAcc == null -> (pparent as? ArendLongNameExpr)?.parent
+                atomFieldsAcc.fieldAccList.isNotEmpty() -> null
+                else -> atomFieldsAcc.parent
+            }
+            if ((((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent as? ArendReturnExpr)?.parent is ArendDefInstance) {
                 clazz = ArendDefClass::class.java
                 notARecord = true
             }
@@ -74,16 +77,16 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 is PsiNamedElement -> {
                     var builder = LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ref.getIcon(0))
                     val parameters = (ref as? Abstract.ParametersHolder)?.parameters ?: emptyList()
-                    if (!parameters.isEmpty()) {
+                    if (parameters.isNotEmpty()) {
                         val stringBuilder = StringBuilder()
                         for (parameter in parameters) {
                             if (parameter is PsiElement) {
-                                stringBuilder.append(' ').append(parameter.text)
+                                stringBuilder.append(' ').append(parameter.oneLineText)
                             }
                         }
                         builder = builder.withTailText(stringBuilder.toString(), true)
                     }
-                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.text) }
+                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) }
                     builder
                 }
                 is ModuleReferable -> {
