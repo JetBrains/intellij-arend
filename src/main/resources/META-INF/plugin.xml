@@ -55,9 +55,9 @@
 
         <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler"/>
 
-        <!-- File-type Factory -->
+        <!-- File Type -->
 
-        <fileTypeFactory implementation="org.arend.ArendFileTypeFactory"/>
+        <fileType language="Arend" implementationClass="org.arend.ArendFileType" name="Arend" extensions="ard" />
 
         <!-- Parser -->
 
@@ -233,13 +233,11 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
-        <moduleService serviceInterface="org.arend.module.config.ArendModuleConfigService"
-                       serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
+        <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
         <!-- Configuration Options -->
 
-        <applicationService serviceInterface="org.arend.editor.ArendOptions"
-                            serviceImplementation="org.arend.editor.ArendOptions"/>
+        <applicationService serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
     </extensions>
