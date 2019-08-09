@@ -5,12 +5,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import org.arend.module.ModulePath
 import org.arend.psi.parentOfType
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
 
-fun fileTree(builder: FileTreeBuilder.() -> Unit): FileTree =
-        FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory())
+/* fun fileTree(builder: FileTreeBuilder.() -> Unit): FileTree =
+        FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory()) */
 
 fun fileTreeFromText(@Language("Arend") text: String): FileTree {
     val fileSeparator = """^\s* --! (\S+)\s*$""".toRegex(RegexOption.MULTILINE)
@@ -22,6 +23,8 @@ fun fileTreeFromText(@Language("Arend") text: String): FileTree {
     } else {
         check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
     }
+
+    val modulePaths = fileNames.map { ModulePath(it.removeSuffix('.' + ArendFileType.defaultExtension).split('/'))}
 
     fun fill(dir: Entry.Directory, path: List<String>, contents: String) {
         val name = path.first()
@@ -37,7 +40,7 @@ fun fileTreeFromText(@Language("Arend") text: String): FileTree {
         for ((path, contents) in fileNames.map { it.split("/") }.zip(fileTexts)) {
             fill(this, path, contents)
         }
-    })
+    }, modulePaths)
 }
 
 interface FileTreeBuilder {
@@ -49,7 +52,7 @@ interface FileTreeBuilder {
     fun arend(name: String, @Language("Arend") code: String) = file(name, code)
 }
 
-class FileTree(private val rootDirectory: Entry.Directory) {
+class FileTree(private val rootDirectory: Entry.Directory, val fileNames: List<ModulePath>) {
     fun create(project: Project, directory: VirtualFile): TestProject {
         val filesWithCaret = mutableListOf<String>()
 

@@ -4,10 +4,7 @@ import com.intellij.openapi.editor.Editor
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.refactoring.AbstractRefactoringAction
-import org.arend.refactoring.ArendAliasUtils
-import org.arend.refactoring.LocationData
-import org.arend.refactoring.RenameReferenceAction
+import org.arend.refactoring.*
 import org.arend.util.LongName
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
@@ -23,11 +20,13 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         nameFixAction?.execute(editor)
     }
 
+    fun getFullName(): List<String> = targetFullName
+
     companion object {
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
-            val (importAction, resultName) = ArendAliasUtils.computeAliases(location, containingFile, element)
+            val (importAction, resultName) = computeAliases(location, containingFile, element)
                     ?: return null
             val renameAction = if (target is ArendFile) {
                 RenameReferenceAction(element, target.modulePath?.toList() ?: return null)
