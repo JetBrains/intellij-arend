@@ -29,7 +29,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="182.2574.2"/>
+    <idea-version since-build="192.2549"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -240,6 +240,8 @@
         <applicationService serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
+
+        <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
     </extensions>
 
     <project-components>

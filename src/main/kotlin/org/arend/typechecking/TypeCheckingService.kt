@@ -8,6 +8,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
@@ -33,7 +34,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
-interface TypeCheckingService {
+interface TypeCheckingService : ErrorReporter {
     val libraryManager: LibraryManager
 
     val typecheckerState: TypecheckerState
@@ -57,8 +58,6 @@ interface TypeCheckingService {
     fun updateDefinition(referable: LocatedReferable)
 
     fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
-
-    fun reportError(error: GeneralError)
 
     fun getErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>>
 
@@ -179,7 +178,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
     }
 
-    override fun reportError(error: GeneralError) {
+    override fun report(error: GeneralError) {
         if (!error.isTypecheckingError) {
             return
         }

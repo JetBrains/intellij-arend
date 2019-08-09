@@ -35,7 +35,7 @@ class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingSer
 
     override fun report(error: GeneralError) {
         errorList.add(error)
-        typeCheckingService.reportError(error)
+        typeCheckingService.report(error)
     }
 
     fun flush() {

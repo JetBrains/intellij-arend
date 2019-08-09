@@ -25,7 +25,7 @@ class TestBasedTypechecking(
     concreteProvider: ConcreteProvider,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, errorReporter, dependencyListener, PsiElementComparator) {
+    : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, null, errorReporter, dependencyListener, PsiElementComparator) {
 
     val typecheckedModules = LinkedHashSet<FullModulePath>()
     val typecheckedFiles = LinkedHashSet<SmartPsiElementPointer<ArendFile>>()

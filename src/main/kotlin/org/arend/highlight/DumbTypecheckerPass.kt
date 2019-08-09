@@ -5,26 +5,26 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import org.arend.editor.ArendOptions
+import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.AbstractEWCCAnnotator
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.DumbTypecheckerState
+import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 
 class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BaseGroupPass(file, group, editor, "Arend dumb typechecker annotator", textRange, highlightInfoProcessor) {
+    : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
 
-    private val typecheckerState = DumbTypecheckerState(TypeCheckingService.getInstance(myProject))
+    private val typeCheckingService = TypeCheckingService.getInstance(myProject)
+    private val definitionsToTypecheck = ArrayList<ArendDefinition>()
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
         DesugarVisitor.desugar(definition, file.concreteProvider, this)
-        if (typecheckerState.getTypechecked(definition.data) != null) {
-            return
-        }
 
         progress.checkCanceled()
         definition.accept(object : DumbTypechecker(this) {
@@ -56,7 +56,30 @@ class DumbTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, te
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
-        super.collectInfo(progress)
+        when (ArendOptions.instance.typecheckingMode) {
+            ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
+                val typechecking = SilentTypechecking(myProject, this)
+                for (definition in definitionsToTypecheck) {
+                    (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
+                        typechecking.typecheckDefinitions(listOf(it)) {
+                            progress.isCanceled
+                        }
+                    }
+                }
+            }
+            ArendOptions.TypecheckingMode.DUMB ->
+                for (definition in definitionsToTypecheck) {
+                    visitDefinition(definition, progress)
+                }
+            ArendOptions.TypecheckingMode.OFF -> {}
+        }
+
         file.concreteProvider = EmptyConcreteProvider.INSTANCE
     }
+
+    override fun countDefinition(def: ArendDefinition) =
+        if (typeCheckingService.getTypechecked(def) == null) {
+            definitionsToTypecheck.add(def)
+            true
+        } else false
 }

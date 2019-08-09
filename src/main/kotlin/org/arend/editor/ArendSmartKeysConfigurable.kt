@@ -3,6 +3,7 @@ package org.arend.editor
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.components.Label
 import com.intellij.ui.layout.panel
 import javax.swing.JPanel
 
@@ -28,7 +29,7 @@ class ArendSmartKeysConfigurable : UnnamedConfigurable {
         comboBox = combo
 
         val panel = panel {
-            row("On typing '-' between {}: ") { combo() }
+            row(Label("On typing '-' between {}: ")) { combo() }
         }
         panel.border = IdeBorderFactory.createTitledBorder("Arend")
         return panel

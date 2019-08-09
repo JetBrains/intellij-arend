@@ -18,8 +18,15 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
         REPLACE_BRACE { override fun toString() = "Replace '}' with '-'" }
     }
 
+    enum class TypecheckingMode {
+        SMART { override fun toString() = "Smart" },
+        DUMB { override fun toString() = "Dumb" },
+        OFF { override fun toString() = "Off" }
+    }
+
     var matchingCommentStyle = MatchingCommentStyle.REPLACE_BRACE
     var autoImportOnTheFly = false
+    var typecheckingMode = TypecheckingMode.SMART
 
     override fun getState() = this
 

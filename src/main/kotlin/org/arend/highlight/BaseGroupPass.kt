@@ -4,6 +4,7 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
@@ -15,14 +16,20 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
 
     open fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {}
 
-    private fun visitGroup(group: ArendGroup, progress: ProgressIndicator) {
-        (group.referable as? ArendDefinition)?.let {
-            (file.concreteProvider.getConcrete(it) as? Concrete.Definition)?.let { def ->
-                visitDefinition(def, progress)
-                progress.checkCanceled()
-            }
-            advanceProgress(1)
+    open fun visitDefinition(definition: LocatedReferable, progress: ProgressIndicator) {
+        if (definition !is ArendDefinition) {
+            return
         }
+
+        (file.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let { def ->
+            visitDefinition(def, progress)
+            progress.checkCanceled()
+        }
+        advanceProgress(1)
+    }
+
+    private fun visitGroup(group: ArendGroup, progress: ProgressIndicator) {
+        visitDefinition(group.referable, progress)
         for (subgroup in group.subgroups) {
             visitGroup(subgroup, progress)
         }
@@ -36,20 +43,22 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
     }
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        setProgressLimit(numberOfDefinitions(group).toLong() - 1)
+        setProgressLimit(numberOfDefinitions(group).toLong())
         collectInfo(progress)
     }
 
-    companion object {
-        private fun numberOfDefinitions(group: Group): Int {
-            var res = if (group.referable is ArendDefinition) 1 else 0
-            for (subgroup in group.subgroups) {
-                res += numberOfDefinitions(subgroup)
-            }
-            for (subgroup in group.dynamicSubgroups) {
-                res += numberOfDefinitions(subgroup)
-            }
-            return res
+    protected open fun countDefinition(def: ArendDefinition) = true
+
+    private fun numberOfDefinitions(group: Group): Int {
+        val def = group.referable
+        var res = if (group != this.group && def is ArendDefinition && countDefinition(def)) 1 else 0
+
+        for (subgroup in group.subgroups) {
+            res += numberOfDefinitions(subgroup)
         }
+        for (subgroup in group.dynamicSubgroups) {
+            res += numberOfDefinitions(subgroup)
+        }
+        return res
     }
 }
