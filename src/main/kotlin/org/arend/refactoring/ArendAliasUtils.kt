@@ -24,8 +24,8 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
         else -> null
     }
     val locations: MutableList<LocationData> = ArrayList()
-    locations.add(defaultLocation)
     alternativeLocation?.let { locations.add(it) }
+    locations.add(defaultLocation)
 
     var modifyingImportsNeeded = false
     var fallbackImportAction: AbstractRefactoringAction? = null
@@ -56,7 +56,7 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
     }
 
 
-    if (locations.all { it.getAliases().isEmpty() }) { // target definition is inaccessible in current context
+    if (locations.first().getAliases().isEmpty()) { // target definition is inaccessible in current context
         modifyingImportsNeeded = true
 
         defaultLocation.addLongNameAsAlias()

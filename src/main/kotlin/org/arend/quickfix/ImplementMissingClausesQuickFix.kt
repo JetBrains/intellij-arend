@@ -15,6 +15,9 @@ import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.refactoring.LocationData
+import org.arend.refactoring.computeAliases
+import org.arend.util.LongName
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
     private val clauses = ArrayList<ArendClause>()
@@ -55,7 +58,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 var parameter2: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
-                    patternStrings.add(doTransformPattern(pattern, renamer, filters, if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES))
+                    patternStrings.add(doTransformPattern(pattern, cause, editor, renamer, filters, if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES))
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
                 }
             }
@@ -148,14 +151,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     }
 
                     val resultingBindings : List<Variable>
-                    if (definition == null) {
-                        resultingBindings = ArrayList()
-                        for (previewResult in previewResults) resultingBindings.addAll(previewResult.second)
-                    } else {
+                    if (definition != null) {
                         val filter = computeFilter(previewResults.map { it.first })
                         filters[pattern] = filter
                         resultingBindings = mergePreviewResults(filter, previewResults.map { it.second })
-                    }
+                    } else throw IllegalStateException()
 
                     return Pair(if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT, resultingBindings)
                 }
@@ -174,7 +174,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             throw IllegalStateException()
         }
 
-        fun doTransformPattern(pattern: Pattern, renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces): String {
+        fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?, renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces): String {
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition = pattern.definition!!
@@ -185,7 +185,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
-                        argumentPatterns.add(doTransformPattern(argumentPattern, renamer, filters,
+                        argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, renamer, filters,
                                 if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES))
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
@@ -194,7 +194,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val referable = PsiLocatedReferable.fromReferable(definition.referable)
                     val arguments = concat(argumentPatterns, filter, " ")
                     val result = buildString {
-                        append(if (referable != null) referable.name else definition.name)
+                        append(if (referable != null) {
+                            val location = LocationData(referable)
+                            val file = cause.containingFile as? ArendFile
+                            val aliasData = if (file != null) computeAliases(location, file, cause) else null
+                            if (aliasData != null) {
+                                aliasData.first?.execute(editor)
+                                LongName(aliasData.second).toString()
+                            } else referable.name
+                        } else definition.name)
                         if (arguments.isNotEmpty()) append(" ")
                         append(arguments)
                     }

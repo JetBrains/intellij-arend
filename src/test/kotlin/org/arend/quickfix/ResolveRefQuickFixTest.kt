@@ -427,8 +427,8 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 *{-caret-} 2
             """,
             """
-                \import F (Test1 \as Test)
-                \func test => 1 Test.* 2
+                \import F (*, Test1 \as Test)
+                \func test => 1 * 2
             """)
 
     fun `test that only member is imported if there are no name clashes`() = simpleImportFixTest(fileF +
@@ -743,11 +743,11 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                | 0 => 0
                | suc{-caret-} a' => 1
             ""","""
-               \import Prelude (Nat)
+               \import Prelude (Nat, suc)
 
                \func lol (a : Nat) \with
                | 0 => 0
-               | Nat.suc a' => 1
+               | suc a' => 1
             """)
 
     fun `test importing files`() =

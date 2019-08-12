@@ -145,7 +145,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         """)
 
     fun testCase() = typedQuickFixTest("Implement",
-            """
+        """
         --! Main.ard
         \$orDefinition
         
@@ -160,5 +160,29 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | inr _ => {?}
         }
         """)
-}
 
+    fun testResolveReference() = typedQuickFixTest("Implement",
+        """
+        --! Logic.ard 
+        \data || (A B : \Type)
+          | byLeft A
+          | byRight B
+ 
+        --! Main.ard    
+        \import Logic ()
+
+        \func byLeft => 101
+
+        \func lol{-caret-} {A B : \Type} (a b : Logic.|| A B) : Nat
+          | Logic.byLeft x, Logic.byLeft y => {?} 
+        """, """
+        \import Logic (byRight, ||)
+
+        \func byLeft => 101
+
+        \func lol {A B : \Type} (a b : Logic.|| A B) : Nat
+          | Logic.byLeft x, Logic.byLeft y => {?}
+          | byRight _, b => {?}
+          | ||.byLeft x, byRight _ => {?} 
+        """)
+}
