@@ -185,4 +185,18 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | byRight _, b => {?}
           | ||.byLeft x, byRight _ => {?} 
         """)
+
+    fun testNaturalNumbers() = typedQuickFixTest("Implement",
+        """
+        --! Main.ard    
+        \func plus{-caret-} (a b : Nat) : Nat
+          | 0, 2 => 0        
+        """, """
+        \func plus (a b : Nat) : Nat
+          | 0, 2 => 0
+          | suc _, b => {?}
+          | 0, 0 => {?}
+          | 0, 1 => {?}
+          | 0, suc (suc (suc _)) => {?}    
+        """)
 }

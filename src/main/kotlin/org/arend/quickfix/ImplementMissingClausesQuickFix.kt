@@ -12,11 +12,13 @@ import org.arend.core.pattern.ConstructorPattern
 import org.arend.typechecking.error.local.MissingClausesError
 import org.arend.core.pattern.Pattern
 import org.arend.naming.renamer.StringRenamer
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
+import org.arend.term.concrete.Concrete
 import org.arend.util.LongName
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
@@ -174,10 +176,26 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             throw IllegalStateException()
         }
 
+        private fun getNaturalNumber(pattern: ConstructorPattern): Int? {
+            if (pattern.definition == Prelude.SUC) {
+                val argumentList = pattern.patterns.patternList
+                if (argumentList.size != 1) return null
+                val firstArgument = argumentList.first() as? ConstructorPattern ?: return null
+                val number = getNaturalNumber(firstArgument)
+                return if (number != null) number + 1 else null
+            } else if (pattern.definition == Prelude.ZERO) return 0
+            return null
+        }
+
         fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?, renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces): String {
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition = pattern.definition!!
+                    val naturalNumber = getNaturalNumber(pattern)
+                    if (naturalNumber != null && naturalNumber < Concrete.NumberPattern.MAX_VALUE) {
+                        val result = naturalNumber.toString()
+                        return if (paren == Companion.Braces.BRACES) "{$result}" else result
+                    }
                     val argumentPatterns = ArrayList<String>()
 
                     val patternIterator = pattern.patterns.patternList.iterator()
@@ -192,6 +210,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                     val filter = filters[pattern]
                     val referable = PsiLocatedReferable.fromReferable(definition.referable)
+
                     val arguments = concat(argumentPatterns, filter, " ")
                     val result = buildString {
                         append(if (referable != null) {
