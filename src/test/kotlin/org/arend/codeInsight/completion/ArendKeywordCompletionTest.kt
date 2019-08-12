@@ -66,11 +66,16 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS, *kwSuite1)
 
     fun `test local statement keywords completion in func where block 2`() =
-            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuite1)
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+                    "\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\\func g => 1\n {-caret-}}")
 
-    fun `test keywords after use`() =
-            checkKeywordCompletionVariants(COERCE_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+    fun `test keywords after use in func`() =
+            checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func lol => 1 \\where { \\use {-caret-} }")
+
+    fun `test keywords after use in data`() =
+            checkKeywordCompletionVariants(COERCE_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+                    "\\data Lol \\where {\n \\use {-caret-} }")
 
     fun `test local statement keywords in data`() =
             checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
@@ -91,7 +96,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClass)
 
     fun `test use keyword in class where`() =
-            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.CONTAINS, *kwSuiteInsideClassWhere)
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.CONTAINS, *kwSuiteInsideClassWhere + arrayOf(
+                    "\\func foo => 1 \\where {\n  {-caret-}\n}"))
 
     fun `test field and property`() =
             checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.CONTAINS,
@@ -104,7 +110,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\record R\n  | F : Nat\n  {-caret-}"))
 
     fun `test no field and property in nested where`() =
-            checkKeywordCompletionVariants(CLASS_MEMBER_KWS + USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Lol { \\func lol \\where {\n  {-caret-} } }",
                     "\\class Lol { } \\where { \\func lol \\where {\n {-caret-} } }",
                     "\\class Lol { \\func lol \\where\n  {-caret-} }",

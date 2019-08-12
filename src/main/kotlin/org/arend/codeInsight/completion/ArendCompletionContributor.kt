@@ -16,6 +16,8 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
 import java.util.*
+import kotlin.math.max
+import kotlin.math.min
 
 class ArendCompletionContributor : CompletionContributor() {
 
@@ -71,7 +73,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     (!parameters.rightBrace || parameters.ancestorsNE.isEmpty() || noWhere(parameters.ancestorsNE.asSequence()))
         }))
 
-        val classOrDataPositionPattern = { dataMode: Boolean ->
+        val classOrDataPositionPattern = { allowData: Boolean, allowFunc: Boolean ->
             elementPattern { o ->
                 var foundWhere = false
                 var foundLbrace = false
@@ -80,12 +82,12 @@ class ArendCompletionContributor : CompletionContributor() {
                 while (ancestor != null) {
                     if (ancestor is ArendFieldTele && ancestor.lbrace != null) foundLbrace = true
                     if (ancestor is ArendWhere) foundWhere = true
-                    if (dataMode && ancestor is ArendDefData) {
+                    if ((allowData && ancestor is ArendDefData || allowFunc && ancestor is ArendDefFunction)) {
                         result2 = foundWhere
                         break
                     } else if (ancestor is ArendDefClass) {
                         if (ancestor.lbrace != null) foundLbrace = true
-                        result2 = if (dataMode) foundWhere else !foundWhere && foundLbrace
+                        result2 = if (allowData) foundWhere else !foundWhere && foundLbrace
                         break
                     } else if (ancestor is ArendDefinition && foundWhere) {
                         result2 = false
@@ -97,11 +99,13 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true)), JointOfStatementsProvider(USE_KW_LIST))
+        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
 
-        basic(afterLeaf(USE_KW), COERCE_LEVEL_KWS)
+        basic(and(afterLeaf(USE_KW), classOrDataPositionPattern(true, false)), COERCE_KW_LIST)
+
+        basic(afterLeaf(USE_KW), LEVEL_KW_LIST)
 
         basic(and(DATA_CONTEXT, afterLeaf(TRUNCATED_KW)), DATA_KW_LIST)//data after \truncated keyword
 
@@ -231,8 +235,7 @@ class ArendCompletionContributor : CompletionContributor() {
         })
 
         basic(LPH_CONTEXT, LPH_KW_LIST) { parameters ->
-            val pp = parameters.position.parent.parent
-            when (pp) {
+            when (val pp = parameters.position.parent.parent) {
                 is ArendSetUniverseAppExpr, is ArendTruncatedUniverseAppExpr ->
                     pp.children.filterIsInstance<ArendAtomLevelExpr>().isEmpty()
                 else -> pp.children.filterIsInstance<ArendAtomLevelExpr>().size <= 1
@@ -509,11 +512,11 @@ class ArendCompletionContributor : CompletionContributor() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
             val text = parameters.position.containingFile.text
 
-            val mn = Math.max(0, parameters.position.node.startOffset - 15)
-            val mx = Math.min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
-            System.out.println("")
-            System.out.println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
-            System.out.println("kind: " + parameters.position.javaClass + " text: " + parameters.position.text)
+            val mn = max(0, parameters.position.node.startOffset - 15)
+            val mx = min(text.length, parameters.position.node.startOffset + parameters.position.node.textLength + 15)
+            println("")
+            println("surround text: ${text.substring(mn, mx).replace("\n", "\\n")}")
+            println("kind: " + parameters.position.javaClass + " text: " + parameters.position.text)
             var i = 0
             var pp: PsiElement? = parameters.position
             while (i < 13 && pp != null) {
@@ -521,16 +524,16 @@ class ArendCompletionContributor : CompletionContributor() {
                 pp = pp.parent
                 i++
             }
-            System.out.println("originalPosition.parent: " + parameters.originalPosition?.parent?.javaClass)
-            System.out.println("originalPosition.grandparent: " + parameters.originalPosition?.parent?.parent?.javaClass)
+            println("originalPosition.parent: " + parameters.originalPosition?.parent?.javaClass)
+            println("originalPosition.grandparent: " + parameters.originalPosition?.parent?.parent?.javaClass)
             val jointData = ArendCompletionParameters(parameters)
-            System.out.println("prevElement: ${jointData.prevElement} text: ${jointData.prevElement?.text}")
-            System.out.println("prevElement.parent: ${jointData.prevElement?.parent?.javaClass}")
-            System.out.println("prevElement.grandparent: ${jointData.prevElement?.parent?.parent?.javaClass}")
-            System.out.println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
-            System.out.println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
-            if (parameters.position.parent is PsiErrorElement) System.out.println("errorDescription: " + (parameters.position.parent as PsiErrorElement).errorDescription)
-            System.out.println("")
+            println("prevElement: ${jointData.prevElement} text: ${jointData.prevElement?.text}")
+            println("prevElement.parent: ${jointData.prevElement?.parent?.javaClass}")
+            println("prevElement.grandparent: ${jointData.prevElement?.parent?.parent?.javaClass}")
+            println("nextElement: ${jointData.nextElement} text: ${jointData.nextElement?.text}")
+            println("nextElement.parent: ${jointData.nextElement?.parent?.javaClass}")
+            if (parameters.position.parent is PsiErrorElement) println("errorDescription: " + (parameters.position.parent as PsiErrorElement).errorDescription)
+            println("")
             System.out.flush()
         }
     }
