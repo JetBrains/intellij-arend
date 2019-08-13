@@ -9,11 +9,11 @@ import org.arend.editor.ArendOptions
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
 
-class DumbTypecheckerPassFactory(highlightingPassRegistrar: TextEditorHighlightingPassRegistrar, highlightingPassFactory: ArendHighlightingPassFactory) : BasePassFactory() {
+class SilentTypecheckerPassFactory(highlightingPassRegistrar: TextEditorHighlightingPassRegistrar, highlightingPassFactory: ArendHighlightingPassFactory) : BasePassFactory() {
     private val passId = highlightingPassRegistrar.registerTextEditorHighlightingPass(this, intArrayOf(highlightingPassFactory.passId), null, false, -1)
 
     override fun createPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange) =
-        DumbTypecheckerPass(file, group, editor, textRange, DefaultHighlightInfoProcessor())
+        SilentTypecheckerPass(file, group, editor, textRange, DefaultHighlightInfoProcessor())
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (ArendOptions.instance.typecheckingMode != ArendOptions.TypecheckingMode.OFF) super.createHighlightingPass(file, editor) else null

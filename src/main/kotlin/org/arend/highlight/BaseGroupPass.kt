@@ -49,9 +49,9 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
 
     protected open fun countDefinition(def: ArendDefinition) = true
 
-    private fun numberOfDefinitions(group: Group): Int {
+    protected open fun numberOfDefinitions(group: Group): Int {
         val def = group.referable
-        var res = if (group != this.group && def is ArendDefinition && countDefinition(def)) 1 else 0
+        var res = if (def is ArendDefinition && countDefinition(def)) 1 else 0
 
         for (subgroup in group.subgroups) {
             res += numberOfDefinitions(subgroup)
