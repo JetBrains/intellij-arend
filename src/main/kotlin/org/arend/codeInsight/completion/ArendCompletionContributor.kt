@@ -73,7 +73,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     (!parameters.rightBrace || parameters.ancestorsNE.isEmpty() || noWhere(parameters.ancestorsNE.asSequence()))
         }))
 
-        val classOrDataPositionPattern = { allowData: Boolean, allowFunc: Boolean ->
+        val definitionWhereModulePattern = { allowData: Boolean, allowFunc: Boolean ->
             elementPattern { o ->
                 var foundWhere = false
                 var foundLbrace = false
@@ -99,11 +99,11 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
+        basic(and(STATEMENT_END_CONTEXT, definitionWhereModulePattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
 
-        basic(and(STATEMENT_END_CONTEXT, classOrDataPositionPattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
+        basic(and(STATEMENT_END_CONTEXT, definitionWhereModulePattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
 
-        basic(and(afterLeaf(USE_KW), classOrDataPositionPattern(true, false)), COERCE_KW_LIST)
+        basic(and(afterLeaf(USE_KW), definitionWhereModulePattern(true, false)), COERCE_KW_LIST)
 
         basic(afterLeaf(USE_KW), LEVEL_KW_LIST)
 

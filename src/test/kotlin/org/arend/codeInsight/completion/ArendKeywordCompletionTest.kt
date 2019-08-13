@@ -109,12 +109,19 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\record R\n  {-caret-}",
                     "\\record R\n  | F : Nat\n  {-caret-}"))
 
+    private val kwModuleInsideClass =
+            arrayOf("\\class Foo { \\module Bar { {-caret-} } }")
+
     fun `test no field and property in nested where`() =
             checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN,
+                    *(kwModuleInsideClass + arrayOf(
                     "\\class Lol { \\func lol \\where {\n  {-caret-} } }",
                     "\\class Lol { } \\where { \\func lol \\where {\n {-caret-} } }",
                     "\\class Lol { \\func lol \\where\n  {-caret-} }",
-                    "\\class Lol { } \\where { \\func lol \\where \n {-caret-} }")
+                    "\\class Lol { } \\where { \\func lol \\where \n {-caret-} }")) )
+
+    fun `test no use keyword in nested where`() =
+            checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwModuleInsideClass)
 
     fun `test no root keywords completion`() =
             checkKeywordCompletionVariants(ALL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
