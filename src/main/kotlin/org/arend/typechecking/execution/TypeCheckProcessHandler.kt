@@ -3,6 +3,7 @@ package org.arend.typechecking.execution
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -30,6 +31,7 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
 import org.arend.typechecking.TypeCheckingService
@@ -37,7 +39,6 @@ import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
@@ -173,27 +174,12 @@ class TypeCheckProcessHandler(
                 }
 
                 if (!indicator.isCanceled) {
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, referableConverter, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
-                        if (typechecking.typecheckCollected(collector) { indicator.isCanceled }) {
-                            for (module in typechecking.typecheckedModules) {
-                                val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
-                                    ?: continue
-                                if (library.supportsPersisting()) {
-                                    runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
-                                }
-                            }
-                        }
+                        typechecking.typecheckCollected(collector) { indicator.isCanceled }
+                        ServiceManager.getService(typeCheckerService.project, BinaryFileSaver::class.java).saveAll()
                     } finally {
-                        TypecheckingOrderingListener.setDefaultCancellationIndicator()
                         typecheckingErrorReporter.flush()
-                        /* It seems it restarts by itself
-                        runReadAction {
-                            for (filePtr in typechecking.typecheckedFiles) {
-                                filePtr.element?.let { DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(it) }
-                            }
-                        }
-                        */
                     }
                 }
             }

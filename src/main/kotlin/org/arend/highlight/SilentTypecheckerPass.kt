@@ -60,7 +60,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun collectInfo(progress: ProgressIndicator) {
         when (ArendOptions.instance.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = SilentTypechecking(myProject, typeCheckingService)
+                val typechecking = SilentTypechecking.create(myProject)
                 for (definition in definitionsToTypecheck) {
                     (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
                         typechecking.typecheckDefinitions(listOf(it)) {

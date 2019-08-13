@@ -1,20 +1,54 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import org.arend.core.definition.Definition
 import org.arend.error.ErrorReporter
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.order.dependency.DependencyListener
+import org.arend.typechecking.order.dependency.DummyDependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
-class SilentTypechecking private constructor(service: TypeCheckingService, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter)
-    : TypecheckingOrderingListener(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider, referableConverter, errorReporter, PsiElementComparator) {
+open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
+    : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
-    private constructor(project: Project, service: TypeCheckingService, referableConverter: ReferableConverter, errorReporter: ErrorReporter) : this(service, PsiConcreteProvider(project, referableConverter, service, null, true), referableConverter, errorReporter)
-    private constructor(project: Project, service: TypeCheckingService, errorReporter: ErrorReporter) : this(project, service, service.newReferableConverter(true), errorReporter)
-    private constructor(project: Project, service: TypeCheckingService) : this(project, service, service.newReferableConverter(true), service)
-    constructor(project: Project, errorReporter: ErrorReporter) : this(project, TypeCheckingService.getInstance(project), errorReporter)
-    constructor(project: Project) : this(project, TypeCheckingService.getInstance(project))
+    companion object {
+        fun create(project: Project): SilentTypechecking {
+            val service = TypeCheckingService.getInstance(project)
+            val referableConverter = service.newReferableConverter(true)
+            val concreteProvider = PsiConcreteProvider(project, referableConverter, service, null, true)
+            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service, concreteProvider, referableConverter, service, DummyDependencyListener.INSTANCE)
+        }
+    }
+
+    protected open fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
+        if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+            val status = when {
+                !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_HAS_ERRORS
+                definition.status() == Definition.TypeCheckingStatus.HAS_WARNINGS || definition.status() == Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS
+                else -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_ERRORS
+            }
+            definition.setStatus(status)
+        }
+        runReadAction {
+            val file = ref.containingFile as? ArendFile ?: return@runReadAction
+            ServiceManager.getService(file.project, BinaryFileSaver::class.java).addToQueue(file, referableConverter)
+        }
+    }
+
+    override fun typecheckingUnitFinished(referable: TCReferable, definition: Definition) {
+        typecheckingFinished(PsiLocatedReferable.fromReferable(referable) ?: return, definition)
+    }
+
+    override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {
+        typecheckingFinished(PsiLocatedReferable.fromReferable(referable) ?: return, definition)
+    }
 }
