@@ -75,20 +75,21 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 val typechecking = SilentTypechecking.create(myProject)
                 if (definitionsToTypecheck.size == 1) {
                     val onlyDef = typecheckDefinition(typechecking, definitionsToTypecheck[0], progress)
+
                     // If the only definition is the last modified definition and it was successfully typechecked,
                     // we will collect definitions again and typecheck them.
                     if (onlyDef != null && (typeCheckingService.typecheckerState.getTypechecked(onlyDef.data)?.status() ?: Definition.TypeCheckingStatus.HAS_ERRORS).ordinal >= Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS.ordinal && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
                         file.lastModifiedDefinition = null
-                        definitionsToTypecheck.clear()
                         setProgressLimit(super.numberOfDefinitions(group).toLong())
-                    } else {
-                        return
                     }
+                    definitionsToTypecheck.clear()
                 }
 
                 for (definition in definitionsToTypecheck) {
                     typecheckDefinition(typechecking, definition, progress)
                 }
+
+                DaemonCodeAnalyzer.getInstance(myProject).restart(file) // To update line markers
             }
             ArendOptions.TypecheckingMode.DUMB ->
                 for (definition in definitionsToTypecheck) {
@@ -98,14 +99,6 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         }
 
         file.concreteProvider = EmptyConcreteProvider.INSTANCE
-    }
-
-    override fun applyInformationWithProgress() {
-        if (ArendOptions.instance.typecheckingMode == ArendOptions.TypecheckingMode.SMART) {
-            DaemonCodeAnalyzer.getInstance(myProject).restart(file) // To update line markers
-        } else {
-            super.applyInformationWithProgress()
-        }
     }
 
     override fun countDefinition(def: ArendDefinition) =
