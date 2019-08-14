@@ -12,6 +12,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.arend.editor.ArendOptions
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
@@ -34,6 +35,8 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     override fun setUp() {
         super.setUp()
+
+        ArendOptions.instance.typecheckingMode = ArendOptions.TypecheckingMode.DUMB
 
         val module = module
         val service = TypeCheckingService.getInstance(module.project)
@@ -201,6 +204,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-        SilentTypechecking(project).typecheckModules(targetFiles, null)
+        SilentTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 }

@@ -169,6 +169,10 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     override fun updateDefinition(referable: LocatedReferable) {
+        if (referable is ArendDefinition && referable.isValid) {
+            (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
+        }
+
         val tcReferable = removeDefinition(referable) ?: return
         for (ref in dependencyListener.update(tcReferable)) {
             removeDefinition(ref)
@@ -176,10 +180,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
         if (referable is ArendDefFunction && referable.useKw != null) {
             (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it) }
-        }
-
-        if (referable is ArendDefinition) {
-            (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
         }
     }
 
