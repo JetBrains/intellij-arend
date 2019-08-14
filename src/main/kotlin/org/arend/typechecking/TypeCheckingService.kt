@@ -144,6 +144,10 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
+        if (referable is PsiElement && !referable.isValid) {
+            return null
+        }
+
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
         val curRef = referable.underlyingReferable
@@ -169,8 +173,13 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         for (ref in dependencyListener.update(tcReferable)) {
             removeDefinition(ref)
         }
+
         if (referable is ArendDefFunction && referable.useKw != null) {
             (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it) }
+        }
+
+        if (referable is ArendDefinition) {
+            (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
         }
     }
 
@@ -218,7 +227,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-        override fun childAdded(event: PsiTreeChangeEvent) {
+        override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event, true)
         }
 

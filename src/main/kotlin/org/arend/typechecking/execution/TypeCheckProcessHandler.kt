@@ -128,6 +128,10 @@ class TypeCheckProcessHandler(
                         module
                     }
 
+                    for (module in modules) {
+                        module.lastModifiedDefinition = null
+                    }
+
                     if (command.definitionFullName == "") {
                         for (module in modules) {
                             runReadAction {

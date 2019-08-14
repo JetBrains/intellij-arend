@@ -12,7 +12,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.typechecking.order.dependency.DummyDependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
@@ -25,7 +24,7 @@ open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeC
             val service = TypeCheckingService.getInstance(project)
             val referableConverter = service.newReferableConverter(true)
             val concreteProvider = PsiConcreteProvider(project, referableConverter, service, null, true)
-            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service, concreteProvider, referableConverter, service, DummyDependencyListener.INSTANCE)
+            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service, concreteProvider, referableConverter, service, service.dependencyListener)
         }
     }
 

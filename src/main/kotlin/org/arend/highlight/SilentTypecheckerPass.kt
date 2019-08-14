@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import org.arend.core.definition.Definition
 import org.arend.editor.ArendOptions
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
@@ -57,17 +58,36 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         }, null)
     }
 
+    private fun typecheckDefinition(typechecking: SilentTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
+        val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
+            typechecking.typecheckDefinitions(listOf(it)) {
+                progress.isCanceled
+            }
+            it
+        }
+        advanceProgress(1)
+        return result
+    }
+
     override fun collectInfo(progress: ProgressIndicator) {
         when (ArendOptions.instance.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
                 val typechecking = SilentTypechecking.create(myProject)
-                for (definition in definitionsToTypecheck) {
-                    (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
-                        typechecking.typecheckDefinitions(listOf(it)) {
-                            progress.isCanceled
-                        }
+                if (definitionsToTypecheck.size == 1) {
+                    val onlyDef = typecheckDefinition(typechecking, definitionsToTypecheck[0], progress)
+                    // If the only definition is the last modified definition and it was successfully typechecked,
+                    // we will collect definitions again and typecheck them.
+                    if (onlyDef != null && (typeCheckingService.typecheckerState.getTypechecked(onlyDef.data)?.status() ?: Definition.TypeCheckingStatus.HAS_ERRORS).ordinal >= Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS.ordinal && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
+                        file.lastModifiedDefinition = null
+                        definitionsToTypecheck.clear()
+                        setProgressLimit(super.numberOfDefinitions(group).toLong())
+                    } else {
+                        return
                     }
-                    advanceProgress(1)
+                }
+
+                for (definition in definitionsToTypecheck) {
+                    typecheckDefinition(typechecking, definition, progress)
                 }
             }
             ArendOptions.TypecheckingMode.DUMB ->
@@ -95,5 +115,16 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         } else false
 
     override fun numberOfDefinitions(group: Group): Int =
-        if (ArendOptions.instance.typecheckingMode == ArendOptions.TypecheckingMode.OFF) 0 else super.numberOfDefinitions(group)
+        when (ArendOptions.instance.typecheckingMode) {
+            ArendOptions.TypecheckingMode.OFF -> 0
+            ArendOptions.TypecheckingMode.SMART -> {
+                val def = file.lastModifiedDefinition
+                if (def != null) {
+                    if (countDefinition(def)) 1 else 0
+                } else {
+                    super.numberOfDefinitions(group)
+                }
+            }
+            ArendOptions.TypecheckingMode.DUMB -> super.numberOfDefinitions(group)
+        }
 }

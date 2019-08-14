@@ -53,6 +53,14 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 
+    var lastModifiedDefinition: ArendDefinition? = null
+        get() {
+            if (field?.isValid == false) {
+                field = null
+            }
+            return field
+        }
+
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
 
