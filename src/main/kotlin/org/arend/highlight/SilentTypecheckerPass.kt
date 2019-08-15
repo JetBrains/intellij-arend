@@ -2,6 +2,7 @@ package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -14,6 +15,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.AbstractEWCCAnnotator
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
+import org.arend.typechecking.DefinitionBlacklistService
 import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
@@ -24,6 +26,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
+    private val definitionBlackListService = ServiceManager.getService(DefinitionBlacklistService::class.java)
     private val definitionsToTypecheck = ArrayList<ArendDefinition>()
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
@@ -60,8 +63,10 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
     private fun typecheckDefinition(typechecking: SilentTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
-            typechecking.typecheckDefinitions(listOf(it)) {
-                progress.isCanceled
+            definitionBlackListService.runTimed(definition, progress) {
+                typechecking.typecheckDefinitions(listOf(it)) {
+                    progress.isCanceled
+                }
             }
             it
         }
@@ -102,7 +107,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun countDefinition(def: ArendDefinition) =
-        if (typeCheckingService.getTypechecked(def) == null) {
+        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
             definitionsToTypecheck.add(def)
             true
         } else false

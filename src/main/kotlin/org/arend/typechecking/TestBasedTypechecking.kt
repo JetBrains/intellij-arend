@@ -1,12 +1,12 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.ServiceManager
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.order.dependency.DependencyListener
@@ -23,30 +23,33 @@ class TestBasedTypechecking(
     dependencyListener: DependencyListener)
     : SilentTypechecking(instanceProviderSet, typeCheckingService, concreteProvider, referableConverter, errorReporter, dependencyListener) {
 
-    private fun startTypechecking(definition: TCReferable, clearErrors: Boolean) {
-        val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
-        val element = runReadAction {
-            val element = psiPtr.element
-            if (clearErrors && element is ArendDefinition) {
-                typeCheckingService.clearErrors(element)
+    private val definitionBlacklistService = ServiceManager.getService(DefinitionBlacklistService::class.java)
+
+    private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
+        if (clearErrors && definition is ArendDefinition) {
+            runReadAction {
+                typeCheckingService.clearErrors(definition)
             }
-            element
         }
-        if (element is PsiLocatedReferable) {
-            eventsProcessor.startTimer(element)
-        }
+        eventsProcessor.startTimer(definition)
     }
 
     private fun stopTimer(definition: TCReferable) {
-        val psiPtr = (definition as? DataLocatedReferable)?.data ?: return
-        (runReadAction { psiPtr.element } as? PsiLocatedReferable)?.let { eventsProcessor.stopTimer(it) }
+        PsiLocatedReferable.fromReferable(definition)?.let { eventsProcessor.stopTimer(it) }
     }
 
     override fun typecheckingUnitStarted(definition: TCReferable) {
-        startTypechecking(definition, true)
+        startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
     override fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
+        eventsProcessor.stopTimer(ref)?.let {
+            if (ref is ArendDefinition) {
+                definitionBlacklistService.removeFromBlacklist(ref, (it / 1000).toInt())
+            }
+        }
+
+        errorReporter.flush()
         super.typecheckingFinished(ref, definition)
         if (!definition.status().isOK) {
             eventsProcessor.onTestFailure(ref)
@@ -55,7 +58,7 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingHeaderStarted(definition: TCReferable) {
-        startTypechecking(definition, true)
+        startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
     override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition?) {
@@ -63,20 +66,10 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingBodyStarted(definition: TCReferable) {
-        startTypechecking(definition, false)
+        startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, false)
     }
 
-    override fun typecheckingUnitFinished(referable: TCReferable, definition: Definition) {
-        errorReporter.flush()
-        super.typecheckingUnitFinished(referable, definition)
-    }
-
-    override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {
-        errorReporter.flush()
-        super.typecheckingBodyFinished(referable, definition)
-    }
-
-    override fun typecheckingInterrupted(definition: TCReferable) {
+    override fun typecheckingInterrupted(definition: TCReferable, typechecked: Definition?) {
         val ref = PsiLocatedReferable.fromReferable(definition) ?: return
         eventsProcessor.stopTimer(ref)
         eventsProcessor.onTestFailure(ref, true)

@@ -29,7 +29,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="192.2549"/>
+    <idea-version since-build="192.3645"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -234,6 +234,8 @@
 
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
+
+        <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
