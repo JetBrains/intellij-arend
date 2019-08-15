@@ -48,7 +48,7 @@ class TestBasedTypechecking(
 
     override fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
         super.typecheckingFinished(ref, definition)
-        if (definition.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+        if (!definition.status().isOK) {
             eventsProcessor.onTestFailure(ref)
         }
         eventsProcessor.onTestFinished(ref)

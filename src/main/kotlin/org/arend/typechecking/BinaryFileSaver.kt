@@ -2,6 +2,8 @@ package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.vfs.VirtualFileEvent
 import com.intellij.openapi.vfs.VirtualFileListener
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -27,6 +29,12 @@ class BinaryFileSaver(private val project: Project) {
                 synchronized(project) {
                     saveFile(file, typecheckedModules.remove(file) ?: return@synchronized)
                 }
+            }
+        })
+
+        ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
+            override fun projectClosing(project: Project) {
+                saveAll()
             }
         })
     }

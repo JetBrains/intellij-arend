@@ -11,7 +11,6 @@ import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
-import org.arend.core.definition.Definition
 import org.arend.error.GeneralError
 import org.arend.library.Library
 import org.arend.library.SourceLibrary
@@ -160,7 +159,7 @@ class TypeCheckProcessHandler(
                                 } else {
                                     null
                                 }
-                            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                            if (typechecked == null || !typechecked.status().isOK) {
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
                                     ordering.orderDefinition(definition)
