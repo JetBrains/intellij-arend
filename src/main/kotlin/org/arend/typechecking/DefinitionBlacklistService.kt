@@ -29,9 +29,6 @@ class DefinitionBlacklistService {
 
     fun isBlacklisted(any: Any) = blackList.contains(any)
 
-    fun removeFromBlacklist(any: Any, time: Int) {
-        if (time < ArendOptions.instance.typecheckingTimeLimit) {
-            blackList.remove(any)
-        }
-    }
+    fun removeFromBlacklist(any: Any, time: Int) =
+        time < ArendOptions.instance.typecheckingTimeLimit && blackList.remove(any)
 }

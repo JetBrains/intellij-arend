@@ -6,6 +6,7 @@ import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -24,6 +25,7 @@ class TestBasedTypechecking(
     : SilentTypechecking(instanceProviderSet, typeCheckingService, concreteProvider, referableConverter, errorReporter, dependencyListener) {
 
     private val definitionBlacklistService = ServiceManager.getService(DefinitionBlacklistService::class.java)
+    val filesToRestart = LinkedHashSet<ArendFile>()
 
     private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
         if (clearErrors && definition is ArendDefinition) {
@@ -43,9 +45,15 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
-        eventsProcessor.stopTimer(ref)?.let {
-            if (ref is ArendDefinition) {
-                definitionBlacklistService.removeFromBlacklist(ref, (it / 1000).toInt())
+        eventsProcessor.stopTimer(ref)?.let { diff ->
+            if (ref is ArendDefinition && definitionBlacklistService.removeFromBlacklist(ref, (diff / 1000).toInt())) {
+                runReadAction {
+                    val file = ref.containingFile as? ArendFile ?: return@runReadAction
+                    if (definition.status().withoutErrors()) {
+                        file.lastModifiedDefinition = null
+                    }
+                    filesToRestart.add(file)
+                }
             }
         }
 

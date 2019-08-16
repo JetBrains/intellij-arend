@@ -21,7 +21,8 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         val parent = (element.parent as? ArendDefIdentifier)?.parent as? ArendDefinition ?: return null
         val service = TypeCheckingService.getInstance(parent.project)
-        val icon = when (service.getTypechecked(parent)?.status()) {
+        val def = service.getTypechecked(parent)
+        val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS, MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
             INTERRUPTED, null -> AllIcons.RunConfigurations.TestState.Run

@@ -1,5 +1,6 @@
 package org.arend.typechecking.execution
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -127,16 +128,13 @@ class TypeCheckProcessHandler(
                         module
                     }
 
-                    for (module in modules) {
-                        module.lastModifiedDefinition = null
-                    }
-
                     if (command.definitionFullName == "") {
                         for (module in modules) {
                             runReadAction {
                                 reportParserErrors(module, module, typecheckingErrorReporter)
                             }
                             orderGroup(module, ordering)
+                            module.lastModifiedDefinition = null
                         }
                     } else {
                         val ref = runReadAction {
@@ -162,6 +160,7 @@ class TypeCheckProcessHandler(
                             if (typechecked == null || !typechecked.status().isOK) {
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
+                                    typeCheckerService.dependencyListener.update(definition.data)
                                     ordering.orderDefinition(definition)
                                 } else if (definition != null) error(command.definitionFullName + " is not a definition")
                             } else {
@@ -183,6 +182,9 @@ class TypeCheckProcessHandler(
                         ServiceManager.getService(typeCheckerService.project, BinaryFileSaver::class.java).saveAll()
                     } finally {
                         typecheckingErrorReporter.flush()
+                        for (file in typechecking.filesToRestart) {
+                            DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(file)
+                        }
                     }
                 }
             }
@@ -207,13 +209,8 @@ class TypeCheckProcessHandler(
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
         if (tcReferable != null) {
-            val isValid = PsiLocatedReferable.isValid(tcReferable)
-            if (!isValid) {
-                typeCheckerService.dependencyListener.update(tcReferable)
-            }
-            if (!isValid || ordering.getTypechecked(tcReferable) == null) {
-                (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
-            }
+            typeCheckerService.dependencyListener.update(tcReferable)
+            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
         }
 
         for (subgroup in runReadAction { group.subgroups }) {

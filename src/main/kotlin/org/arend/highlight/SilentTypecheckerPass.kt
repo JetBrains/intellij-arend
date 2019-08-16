@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.core.definition.Definition
 import org.arend.editor.ArendOptions
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
@@ -89,7 +88,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                     // If the only definition is the last modified definition and it was successfully typechecked,
                     // we will collect definitions again and typecheck them.
-                    if (onlyDef != null && (typeCheckingService.typecheckerState.getTypechecked(onlyDef.data)?.status() ?: Definition.TypeCheckingStatus.HAS_ERRORS).ordinal >= Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS.ordinal && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
+                    if (onlyDef != null && (typeCheckingService.typecheckerState.getTypechecked(onlyDef.data)?.status()?.withoutErrors() == true) && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
                         file.lastModifiedDefinition = null
                         setProgressLimit(super.numberOfDefinitions(group).toLong())
                     }
