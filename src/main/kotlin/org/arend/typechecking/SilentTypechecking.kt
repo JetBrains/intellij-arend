@@ -29,14 +29,6 @@ open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeC
     }
 
     protected open fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
-        if (!definition.status().isOK) {
-            val status = when {
-                !definition.status().headerIsOK() -> Definition.TypeCheckingStatus.HEADER_HAS_ERRORS
-                definition.status() == Definition.TypeCheckingStatus.HAS_WARNINGS || definition.status() == Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_WARNINGS
-                else -> Definition.TypeCheckingStatus.MAY_BE_TYPE_CHECKED_WITH_ERRORS
-            }
-            definition.setStatus(status)
-        }
         if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
             runReadAction {
                 val file = ref.containingFile as? ArendFile ?: return@runReadAction
