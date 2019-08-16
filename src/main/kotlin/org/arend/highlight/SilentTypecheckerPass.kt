@@ -109,8 +109,10 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                 val daemon = DaemonCodeAnalyzerEx.getInstanceEx(myProject)
                 daemon.restart(file) // To update line markers
-                for (passId in ignoredPassIds) {
-                    daemon.fileStatusMap.markFileUpToDate(document, passId)
+                if (!progress.isCanceled) {
+                    for (passId in ignoredPassIds) {
+                        daemon.fileStatusMap.markFileUpToDate(document, passId)
+                    }
                 }
             }
             ArendOptions.TypecheckingMode.DUMB ->
