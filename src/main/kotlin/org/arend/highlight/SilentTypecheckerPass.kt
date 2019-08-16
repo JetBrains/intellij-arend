@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.core.definition.Definition
 import org.arend.editor.ArendOptions
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
@@ -126,7 +125,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun countDefinition(def: ArendDefinition) =
-        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def).let { it == null || it.status() == Definition.TypeCheckingStatus.INTERRUPTED }) {
+        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
             definitionsToTypecheck.add(def)
             true
         } else false

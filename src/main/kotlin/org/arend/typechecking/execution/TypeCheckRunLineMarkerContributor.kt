@@ -25,7 +25,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS, MAY_BE_TYPE_CHECKED_WITH_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
-            INTERRUPTED, null -> AllIcons.RunConfigurations.TestState.Run
+            null -> AllIcons.RunConfigurations.TestState.Run
             else -> AllIcons.RunConfigurations.TestState.Red2
         }
 
