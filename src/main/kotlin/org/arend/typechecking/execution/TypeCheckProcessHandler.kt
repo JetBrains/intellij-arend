@@ -209,7 +209,10 @@ class TypeCheckProcessHandler(
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
         if (tcReferable != null) {
-            typeCheckerService.dependencyListener.update(tcReferable)
+            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+            if (typechecked != null && !typechecked.status().isOK) {
+                typeCheckerService.dependencyListener.update(tcReferable)
+            }
             (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
         }
 

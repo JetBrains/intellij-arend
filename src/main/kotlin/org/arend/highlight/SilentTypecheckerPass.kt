@@ -1,12 +1,14 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import org.arend.core.definition.Definition
 import org.arend.editor.ArendOptions
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
@@ -17,11 +19,13 @@ import org.arend.term.group.Group
 import org.arend.typechecking.DefinitionBlacklistService
 import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
+import org.arend.util.FullName
 
-class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor, private val ignoredPassIds: List<Int>)
     : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
@@ -68,8 +72,11 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
-            if (!ok && definitionsToTypecheck.last() != definition) {
-                 DaemonCodeAnalyzer.getInstance(myProject).restart(file)
+            if (!ok) {
+                NotificationErrorReporter(myProject).warn("Typechecking of ${FullName(it.data)} was interrupted after ${ArendOptions.instance.typecheckingTimeLimit} second(s)")
+                if (definitionsToTypecheck.last() != definition) {
+                    DaemonCodeAnalyzer.getInstance(myProject).restart(file)
+                }
             }
 
             it
@@ -88,7 +95,8 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                     // If the only definition is the last modified definition and it was successfully typechecked,
                     // we will collect definitions again and typecheck them.
-                    if (onlyDef != null && (typeCheckingService.typecheckerState.getTypechecked(onlyDef.data)?.status()?.withoutErrors() == true) && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
+                    val typechecked = onlyDef?.let { typeCheckingService.typecheckerState.getTypechecked(it.data) }
+                    if (onlyDef != null && (typechecked?.status()?.withoutErrors() == true) && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
                         file.lastModifiedDefinition = null
                         setProgressLimit(super.numberOfDefinitions(group).toLong())
                     }
@@ -99,7 +107,11 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     typecheckDefinition(typechecking, definition, progress)
                 }
 
-                DaemonCodeAnalyzer.getInstance(myProject).restart(file) // To update line markers
+                val daemon = DaemonCodeAnalyzerEx.getInstanceEx(myProject)
+                daemon.restart(file) // To update line markers
+                for (passId in ignoredPassIds) {
+                    daemon.fileStatusMap.markFileUpToDate(document, passId)
+                }
             }
             ArendOptions.TypecheckingMode.DUMB ->
                 for (definition in definitionsToTypecheck) {
@@ -112,7 +124,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun countDefinition(def: ArendDefinition) =
-        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
+        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def).let { it == null || it.status() == Definition.TypeCheckingStatus.INTERRUPTED }) {
             definitionsToTypecheck.add(def)
             true
         } else false
