@@ -2,10 +2,12 @@ package org.arend
 
 import com.intellij.AppTopics
 import com.intellij.ProjectTopics
+import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
+import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.module.ModuleUtilCore
@@ -28,6 +30,9 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
+import javax.swing.KeyStroke
 
 
 class ArendStartupActivity : StartupActivity {
@@ -92,6 +97,8 @@ class ArendStartupActivity : StartupActivity {
         })
 
         VirtualFileManager.getInstance().addVirtualFileListener(MyVirtualFileListener(project), project)
+        KeymapManager.getInstance().activeKeymap.addShortcut("Arend.ImplementedFields", KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_H,
+                InputEvent.ALT_MASK or InputEvent.SHIFT_MASK), null))
     }
 
     companion object {

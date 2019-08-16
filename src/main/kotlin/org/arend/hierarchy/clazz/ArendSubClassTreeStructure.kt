@@ -15,21 +15,28 @@ import org.arend.psi.ArendLongName
 class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<Any> {
-        val classElement = descriptor.psiElement as ArendDefClass
-        val finder = DefaultFindUsagesHandlerFactory().createFindUsagesHandler(classElement, false)
-        val processor = CommonProcessors.CollectProcessor<UsageInfo>()
-        val subClasses = HashSet<PsiElement>()
+        val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
+        val subClasses = getSubclasses(classElement)
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
+
+        subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
+        return result.toArray()
+    }
+
+    private fun getSubclasses(clazz: ArendDefClass): Set<PsiElement> {
+        val finder = DefaultFindUsagesHandlerFactory().createFindUsagesHandler(clazz, false)
+        val processor = CommonProcessors.CollectProcessor<UsageInfo>()
         val options = FindUsagesOptions(myProject)
+        val subClasses = HashSet<PsiElement>()
         options.isUsages = true
         options.isSearchForTextOccurrences = false
-        if (descriptor.psiElement != null) {
-            finder?.processElementUsages(descriptor.psiElement as PsiElement, processor, options)
-        }
+        //if (clazz != null) {
+        finder?.processElementUsages(clazz, processor, options)
+        //}
         for (usage in processor.results) {
             if (usage.element?.parent is ArendLongName && usage.element?.parent?.parent is ArendDefClass) {
                 val parentLongName = usage.element?.parent as ArendLongName
-                if (parentLongName.refIdentifierList.last().text == classElement.name) {
+                if (parentLongName.refIdentifierList.last().text == clazz.name) {
                     val subclass = usage.element?.parent?.parent as ArendDefClass
                     //if (subclass.name != classElement.name) {
                     subClasses.add(subclass)
@@ -37,7 +44,6 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement) :
                 }
             }
         }
-        subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
-        return result.toArray()
+        return subClasses
     }
 }
