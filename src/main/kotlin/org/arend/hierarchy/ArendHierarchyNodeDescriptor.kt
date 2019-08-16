@@ -36,7 +36,7 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                 myHighlightedText.ending.addText(fullName.longName.toString())
                 myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
             } else if (psiElement is ArendClassImplement) {
-                val name = (psiElement as ArendClassImplement).getLongName()
+                val name = (psiElement as ArendClassImplement).longName
                 val impl = psiElement as ArendClassImplement
                 val clazz = impl.parentOfType<ArendDefClass>()
                 val ref = name.refIdentifierList.lastOrNull()?.reference?.resolve()

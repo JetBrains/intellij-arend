@@ -5,6 +5,7 @@ import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
 
@@ -12,14 +13,14 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
 
     companion object {
-        fun getChildren(descriptor: HierarchyNodeDescriptor, browser: ArendClassHierarchyBrowser, project: Project): Array<ArendHierarchyNodeDescriptor> {
+        fun getChildren(descriptor: HierarchyNodeDescriptor, project: Project): Array<ArendHierarchyNodeDescriptor> {
             val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
-            if (browser.showImplFields) {
+            if (ArendOptions.instance.showImplFields) {
                 classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
             }
-            if (browser.showNonimplFields) {
+            if (ArendOptions.instance.showNonimplFields) {
                 if (descriptor.parentDescriptor == null) {
                     getAllFields(classElement, true).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
                 } else {
@@ -60,9 +61,9 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
     }
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<out Any> {
-        val children = getChildren(descriptor, browser, myProject)
+        val children = getChildren(descriptor, myProject)
         for (node in children) {
-            if (getChildren(node, browser, myProject).isEmpty()) {
+            if (getChildren(node, myProject).isEmpty()) {
                 val tree = browser.getSuperJTree()
                 if (tree != null) {
                     browser.getTreeModel(TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE).expand(node, tree) { }

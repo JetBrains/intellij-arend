@@ -29,6 +29,8 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
     var typecheckingMode = TypecheckingMode.SMART
     var withTimeLimit = true
     var typecheckingTimeLimit = 5
+    var showImplFields: Boolean = true
+    var showNonimplFields: Boolean = true
 
     override fun getState() = this
 

@@ -1,5 +1,6 @@
 package org.arend.hierarchy.clazz
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.hierarchy.HierarchyBrowserManager
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.HierarchyTreeStructure
@@ -13,6 +14,8 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
 import com.intellij.psi.PsiElement
+import com.intellij.ui.IconManager
+import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
 import java.util.*
@@ -21,11 +24,6 @@ import javax.swing.JTree
 
 
 class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
-    var showImplFields: Boolean = true
-        private set
-
-    var showNonimplFields: Boolean = true
-        private set
 
     private var superTree: JTree? = null
 
@@ -66,26 +64,26 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     fun getSuperJTree(): JTree? = superTree
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "",
-            IconLoader.getIcon("icons/showFieldImpl.png")) {
+            IconLoader.getIcon("/icons/showFieldImpl.svg")) {
 
         override fun isSelected(e: AnActionEvent): Boolean {
-            return showImplFields
+            return ArendOptions.instance.showImplFields
         }
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            showImplFields = state
+            ArendOptions.instance.showImplFields = state
             doRefresh(false)
         }
     }
 
-    inner class ArendShowNonimplFieldsAction : ToggleAction("Show non-implemented fields", "", IconLoader.getIcon("icons/showNonImpl.png"))  {
+    inner class ArendShowNonimplFieldsAction : ToggleAction("Show non-implemented fields", "", IconLoader.getIcon("/icons/showNonImpl.svg") )  {
 
         override fun isSelected(e: AnActionEvent): Boolean {
-            return showNonimplFields
+            return ArendOptions.instance.showNonimplFields
         }
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            showNonimplFields = state
+            ArendOptions.instance.showNonimplFields = state
             doRefresh(false)
         }
     }
