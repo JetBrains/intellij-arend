@@ -63,13 +63,19 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
     private fun typecheckDefinition(typechecking: SilentTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
-            definitionBlackListService.runTimed(definition, progress) {
+            val ok = definitionBlackListService.runTimed(definition, progress) {
                 typechecking.typecheckDefinitions(listOf(it)) {
                     progress.isCanceled
                 }
             }
+
+            if (!ok && definitionsToTypecheck.last() != definition) {
+                 DaemonCodeAnalyzer.getInstance(myProject).restart(file)
+            }
+
             it
         }
+
         advanceProgress(1)
         return result
     }

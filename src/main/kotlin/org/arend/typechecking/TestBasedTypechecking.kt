@@ -70,6 +70,7 @@ class TestBasedTypechecking(
     }
 
     override fun typecheckingInterrupted(definition: TCReferable, typechecked: Definition?) {
+        super.typecheckingInterrupted(definition, typechecked)
         val ref = PsiLocatedReferable.fromReferable(definition) ?: return
         eventsProcessor.stopTimer(ref)
         eventsProcessor.onTestFailure(ref, true)
