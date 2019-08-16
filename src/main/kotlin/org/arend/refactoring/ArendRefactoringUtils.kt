@@ -273,3 +273,16 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
 
     return if (isHidden) emptyList() else singletonList(Pair(shortName, null))
 }
+
+fun deleteSuperfluousPatternParentheses(atomPattern: ArendAtomPattern) {
+    if (atomPattern.lparen != null && atomPattern.rparen != null) {
+        val pattern = atomPattern.parent as? ArendPattern
+        if (pattern != null) {
+            val parentAtom = pattern.parent as? ArendAtomPattern
+            if (parentAtom != null && parentAtom.lparen != null && parentAtom.rparen != null) {
+                parentAtom.replaceWithNotification(atomPattern)
+            }
+        }
+    }
+
+}

@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.parentOfType
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
@@ -29,6 +30,10 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
+import org.arend.quickfix.removers.RemoveAsPatternQuickFix
+import org.arend.quickfix.removers.RemoveClauseQuickFix
+import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
+import org.arend.quickfix.removers.ReplaceWithWildcardPatternQuickFix
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.LocalErrorReporter
@@ -129,6 +134,17 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             if (!single || pattern.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
                                 annotation.registerFix(RemovePatternsQuickFix(pattern, single))
                             }
+                        }
+                        AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(cause))
+                        RHS_IGNORED -> {
+                            var clause: PsiElement? = cause
+                            while (clause != null && clause !is ArendClause) clause = clause.parent
+                            if (clause is ArendClause) annotation.registerFix(RemovePatternRightHandSideQuickFix(clause))
+                        }
+                        PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(cause))
+                        REDUNDANT_CLAUSE -> {
+                            val causeElement = getCauseElement(localError.cause.data)
+                            if (causeElement is ArendClause) annotation.registerFix(RemoveClauseQuickFix(causeElement))
                         }
                         else -> {}
                     }

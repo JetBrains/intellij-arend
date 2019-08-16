@@ -243,4 +243,123 @@ class PatternQuickFixTest : QuickFixTestBase() {
                   | _, _, _ => 0
             """)
     }
+
+    fun `test removal of as pattern`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as{-caret-} x, zero, zero => {?} 
+            """,
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | (), zero, zero => {?} 
+            """)
+
+    fun `test removal of as pattern and surrounding parentheses` () = typedQuickFixTest("Remove",
+            """
+               \data Empty 
+                
+               \data D
+                 | con Empty Nat
+
+               \func func (d : D) : Nat
+                 | con (() \as x{-caret-}) (suc n) => 0 
+            """, """
+               \data Empty 
+                
+               \data D
+                 | con Empty Nat
+
+               \func func (d : D) : Nat
+                 | con () (suc n) => 0 
+            """)
+
+    fun `test removing redundant pattern`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, zero{-caret-}, zero => {?} 
+            """,
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, _, zero => {?} 
+            """)
+
+    fun `test removing redundant pattern implicit`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n : Nat) {k : Nat} : Nat
+                 | () \as x, _, {zero}{-caret-} => {?} 
+            """, """
+               \data Empty
+
+               \func lol (m : Empty) (n : Nat) {k : Nat} : Nat
+                 | () \as x, _, {_} => {?} 
+            """)
+
+    fun `test removing pattern inside constructor pattern`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+                
+               \data D
+                 | con Empty Nat
+
+               \func func (d : D) : Nat
+                 | con (() \as x) (suc n{-caret-}) => 0 
+            """, """
+               \data Empty 
+                
+               \data D
+                 | con Empty Nat
+
+               \func func (d : D) : Nat
+                 | con (() \as x) _ => 0  
+            """)
+
+    fun `test removing pattern right hand side`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, zero, zero => {- foo -} 101{-caret-} 
+            """,
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, zero, zero
+            """)
+
+    fun `test removing redundant clause` () = typedQuickFixTest("Remove",
+            """
+               \func foo (n : Nat) : Nat
+                 | zero => 0
+                 | suc _ => 1
+                 | {- foo -} suc (suc _) => {-caret-} 2 
+            """, """
+               \func foo (n : Nat) : Nat
+                 | zero => 0
+                 | suc _ => 1 
+            """)
+
+    fun `test removing pattern right hand side on arrow with empty goal`() = typedQuickFixTest("Remove",
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, zero, zero =>{-caret-}  {?} 
+            """,
+            """
+               \data Empty
+
+               \func lol (m : Empty) (n k : Nat) : Nat
+                 | () \as x, zero, zero
+            """)
 }
