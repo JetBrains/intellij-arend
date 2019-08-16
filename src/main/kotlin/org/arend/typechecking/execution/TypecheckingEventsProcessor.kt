@@ -34,10 +34,11 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
         startTimes[ref] = System.currentTimeMillis()
     }
 
-    fun stopTimer(ref: PsiLocatedReferable) {
-        val startTime = startTimes.remove(ref) ?: return
+    fun stopTimer(ref: PsiLocatedReferable): Long? {
+        val startTime = startTimes.remove(ref) ?: return null
         val duration = System.currentTimeMillis() - startTime
         testsDuration.compute(ref) { _, time -> duration + (time ?: 0) }
+        return duration
     }
 
     override fun onStartTesting() {
@@ -53,7 +54,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             if (isTypeCheckingFinished) return@addToInvokeLater
             isTypeCheckingFinished = true
 
-            val isTreeNotComplete = !GeneralTestEventsProcessor.isTreeComplete(
+            val isTreeNotComplete = !isTreeComplete(
                 definitionToProxy.keys,
                 myTestsRootProxy
             )
@@ -199,7 +200,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
     override fun onTestsReporterAttached() {
         addToInvokeLater {
-            GeneralTestEventsProcessor.fireOnTestsReporterAttached(myTestsRootProxy)
+            fireOnTestsReporterAttached(myTestsRootProxy)
         }
     }
 
@@ -207,7 +208,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
         super.dispose()
         addToInvokeLater {
             disconnectListeners()
-            if (!definitionToProxy.isEmpty()) {
+            if (definitionToProxy.isNotEmpty()) {
                 val application = ApplicationManager.getApplication()
                 if (!application.isHeadlessEnvironment && !application.isUnitTestMode) {
                     logProblem("Not all events were processed!")

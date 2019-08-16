@@ -4,6 +4,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -11,7 +12,6 @@ import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
-import org.arend.core.definition.Definition
 import org.arend.error.GeneralError
 import org.arend.library.Library
 import org.arend.library.SourceLibrary
@@ -31,7 +31,7 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.CancellationIndicator
+import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
 import org.arend.typechecking.TypeCheckingService
@@ -39,7 +39,6 @@ import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
@@ -135,6 +134,7 @@ class TypeCheckProcessHandler(
                                 reportParserErrors(module, module, typecheckingErrorReporter)
                             }
                             orderGroup(module, ordering)
+                            module.lastModifiedDefinition = null
                         }
                     } else {
                         val ref = runReadAction {
@@ -157,9 +157,10 @@ class TypeCheckProcessHandler(
                                 } else {
                                     null
                                 }
-                            if (typechecked == null || typechecked.status() != Definition.TypeCheckingStatus.NO_ERRORS) {
+                            if (typechecked == null || !typechecked.status().isOK) {
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
+                                    typeCheckerService.dependencyListener.update(definition.data)
                                     ordering.orderDefinition(definition)
                                 } else if (definition != null) error(command.definitionFullName + " is not a definition")
                             } else {
@@ -175,28 +176,15 @@ class TypeCheckProcessHandler(
                 }
 
                 if (!indicator.isCanceled) {
-                    TypecheckingOrderingListener.CANCELLATION_INDICATOR = CancellationIndicator { indicator.isCanceled }
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, referableConverter, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
-                        if (typechecking.typecheckCollected(collector)) {
-                            for (module in typechecking.typecheckedModules) {
-                                val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
-                                    ?: continue
-                                if (library.supportsPersisting()) {
-                                    runReadAction { library.persistModule(module.modulePath, referableConverter, typeCheckerService.libraryManager.libraryErrorReporter) }
-                                }
-                            }
-                        }
+                        typechecking.typecheckCollected(collector) { indicator.isCanceled }
+                        ServiceManager.getService(typeCheckerService.project, BinaryFileSaver::class.java).saveAll()
                     } finally {
-                        TypecheckingOrderingListener.setDefaultCancellationIndicator()
                         typecheckingErrorReporter.flush()
-                        /* It seems it restarts by itself
-                        runReadAction {
-                            for (filePtr in typechecking.typecheckedFiles) {
-                                filePtr.element?.let { DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(it) }
-                            }
+                        for (file in typechecking.filesToRestart) {
+                            DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(file)
                         }
-                        */
                     }
                 }
             }
@@ -221,13 +209,11 @@ class TypeCheckProcessHandler(
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
         if (tcReferable != null) {
-            val isValid = PsiLocatedReferable.isValid(tcReferable)
-            if (!isValid) {
+            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+            if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)
             }
-            if (!isValid || ordering.getTypechecked(tcReferable) == null) {
-                (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
-            }
+            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
         }
 
         for (subgroup in runReadAction { group.subgroups }) {
