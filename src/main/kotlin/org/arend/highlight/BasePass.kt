@@ -19,7 +19,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
-import org.arend.error.Error
+import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
@@ -38,13 +38,11 @@ import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
 import org.arend.quickfix.removers.ReplaceWithWildcardPatternQuickFix
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.error.LocalErrorReporter
-import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), LocalErrorReporter {
+    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
 
@@ -59,22 +57,21 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }, ModalityState.stateForComponent(editor.component))
     }
 
-    private fun createAnnotation(error: Error, range: TextRange): Annotation {
+    private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
         @Suppress("UnstableApiUsage")
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
-    fun report(error: Error, cause: ArendCompositeElement) {
-        val localError = error.localError
-        if (localError is IncompleteExpressionError || file != cause.containingFile) {
+    fun report(error: GeneralError, cause: ArendCompositeElement) {
+        if (error is IncompleteExpressionError || file != cause.containingFile) {
             return
         }
 
-        if (localError is NotInScopeError) {
+        if (error is NotInScopeError) {
             val ref = when (cause) {
                 is ArendReferenceElement -> cause
-                is ArendLongName -> cause.refIdentifierList.getOrNull(localError.index)
+                is ArendLongName -> cause.refIdentifierList.getOrNull(error.index)
                 else -> null
             }
             when (val resolved = ref?.reference?.resolve()) {
@@ -84,7 +81,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     val annotation = createAnnotation(error, (ref ?: cause).textRange)
                     if (resolved == null) {
                         annotation.highlightType = ProblemHighlightType.ERROR
-                        if (ref != null && localError.index == 0) {
+                        if (ref != null && error.index == 0) {
                             val fix = ArendImportHintAction(ref)
                             if (fix.isAvailable(myProject, null, file)) {
                                 annotation.registerFix(fix)
@@ -95,37 +92,37 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         } else {
             val annotation = createAnnotation(error, getImprovedTextRange(error, cause))
-            when (localError) {
+            when (error) {
                 is FieldsImplementationError ->
-                    if (localError.alreadyImplemented) {
-                        (localError.cause.data as? ArendCoClause)?.let {
+                    if (error.alreadyImplemented) {
+                        (error.cause.data as? ArendCoClause)?.let {
                             annotation.registerFix(RemoveCoClauseQuickFix(it))
                         }
                     } else {
                         AbstractEWCCAnnotator.makeAnnotator(cause)?.let {
-                            annotation.registerFix(ImplementFieldsQuickFix(it, makeFieldList(localError.fields, localError.classReferable)))
+                            annotation.registerFix(ImplementFieldsQuickFix(it, makeFieldList(error.fields, error.classReferable)))
                         }
                         if (cause is ArendNewExprImplMixin) {
                             cause.putUserData(CoClausesKey, null)
                         }
                     }
-                is DesugaringError -> if (localError.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
+                is DesugaringError -> if (error.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
                     annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     if (cause is ArendCoClause) {
                         annotation.registerFix(RemoveCoClauseQuickFix(cause))
                     }
                 }
 
-                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(localError, cause))
+                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, cause))
 
                 is TypecheckingError -> {
-                    if (localError.level == Error.Level.WEAK_WARNING) {
+                    if (error.level == GeneralError.Level.WEAK_WARNING) {
                         annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     }
-                    when (localError.kind) {
+                    when (error.kind) {
                         TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
-                            val single = localError.kind == EXPECTED_EXPLICIT_PATTERN
-                            if (localError.kind != TOO_MANY_PATTERNS) {
+                            val single = error.kind == EXPECTED_EXPLICIT_PATTERN
+                            if (error.kind != TOO_MANY_PATTERNS) {
                                 cause.atomPattern?.let {
                                     annotation.registerFix(MakePatternExplicitQuickFix(it, single))
                                 }
@@ -149,7 +146,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }
     }
 
-    fun report(error: Error) {
+    override fun report(error: GeneralError) {
         if (error is IncompleteExpressionError) {
             return
         }
@@ -163,22 +160,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }
     }
 
-    override fun report(error: LocalError) {
-        report(error as Error)
-    }
-
-    override fun report(error: GeneralError) {
-        report(error as Error)
-    }
-
     companion object {
-        fun levelToSeverity(level: Error.Level): HighlightSeverity =
+        fun levelToSeverity(level: GeneralError.Level): HighlightSeverity =
             when (level) {
-                Error.Level.ERROR -> HighlightSeverity.ERROR
-                Error.Level.WARNING -> HighlightSeverity.WARNING
-                Error.Level.WEAK_WARNING -> HighlightSeverity.WEAK_WARNING
-                Error.Level.GOAL -> HighlightSeverity.WARNING
-                Error.Level.INFO -> HighlightSeverity.INFORMATION
+                GeneralError.Level.ERROR -> HighlightSeverity.ERROR
+                GeneralError.Level.WARNING -> HighlightSeverity.WARNING
+                GeneralError.Level.WEAK_WARNING -> HighlightSeverity.WEAK_WARNING
+                GeneralError.Level.GOAL -> HighlightSeverity.WARNING
+                GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
             }
 
         private fun getCauseElement(data: Any?): ArendCompositeElement? {
@@ -186,7 +175,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? ArendCompositeElement
         }
 
-        private fun getImprovedErrorElement(error: Error?, element: ArendCompositeElement): PsiElement? {
+        private fun getImprovedErrorElement(error: GeneralError?, element: ArendCompositeElement): PsiElement? {
             val result = when (error) {
                 is NamingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
@@ -200,7 +189,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
-                is ProxyError -> return getImprovedErrorElement(error.localError, element)
                 is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
                 else -> null
             }
@@ -212,9 +200,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         }
 
-        fun getImprovedCause(error: Error) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
+        fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
 
-        fun getImprovedTextRange(error: Error?, element: ArendCompositeElement): TextRange {
+        fun getImprovedTextRange(error: GeneralError?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {

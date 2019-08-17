@@ -19,7 +19,6 @@ import org.arend.term.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.error.ProxyError
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
@@ -96,11 +95,11 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
                 psiReferable = referable.fixPointer(project)
                 if (psiReferable == null) {
                     runReadAction { TypeCheckingService.getInstance(project).updateDefinition(referable) }
-                    errorReporter.report(ProxyError(referable, ReferenceError("Reference is invalid. Try to typecheck the definition again", referable)))
+                    errorReporter.report(ReferenceError("Reference is invalid. Try to typecheck the definition again", referable))
                     return null
                 }
             } else {
-                errorReporter.report(ProxyError(referable, ReferenceError("Unknown type of reference", referable)))
+                errorReporter.report(ReferenceError("Unknown type of reference", referable))
                 return null
             }
         }

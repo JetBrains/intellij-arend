@@ -23,11 +23,11 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
-private fun levelToContentType(level: Error.Level): ConsoleViewContentType = when (level) {
-    Error.Level.ERROR -> ERROR_OUTPUT
-    Error.Level.GOAL -> USER_INPUT
-    Error.Level.WARNING, Error.Level.WEAK_WARNING -> LOG_WARNING_OUTPUT
-    Error.Level.INFO -> NORMAL_OUTPUT
+private fun levelToContentType(level: GeneralError.Level): ConsoleViewContentType = when (level) {
+    GeneralError.Level.ERROR -> ERROR_OUTPUT
+    GeneralError.Level.GOAL -> USER_INPUT
+    GeneralError.Level.WARNING, GeneralError.Level.WEAK_WARNING -> LOG_WARNING_OUTPUT
+    GeneralError.Level.INFO -> NORMAL_OUTPUT
 }
 
 class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingService, private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {

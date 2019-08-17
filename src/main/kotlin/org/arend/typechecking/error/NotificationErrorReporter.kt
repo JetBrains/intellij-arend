@@ -4,7 +4,7 @@ import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
-import org.arend.error.Error.Level
+import org.arend.error.GeneralError.Level
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.error.doc.DocStringBuilder
