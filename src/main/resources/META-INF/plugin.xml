@@ -205,9 +205,9 @@
 
         <programRunner implementation="org.arend.typechecking.execution.TypeCheckRunner"/>
         <configurationType
-                implementation="org.arend.typechecking.execution.configurations.TypeCheckConfigurationType"/>
+                implementation="org.arend.typechecking.execution.configurations.TypecheckRunConfigurationType"/>
         <runConfigurationProducer
-                implementation="org.arend.typechecking.execution.TypeCheckRunConfigurationProducer"/>
+                implementation="org.arend.typechecking.execution.TypecheckRunConfigurationProducer"/>
 
         <!-- Indices -->
 

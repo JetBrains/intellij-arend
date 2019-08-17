@@ -3,7 +3,6 @@ package org.arend.folding
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.FoldingBuilderEx
 import com.intellij.lang.folding.FoldingDescriptor
-import com.intellij.lang.folding.NamedFoldingDescriptor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
@@ -38,7 +37,7 @@ class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {
                     i++
                 }
 
-                val descriptor = NamedFoldingDescriptor(group.node, TextRange(start.textRange.startOffset, statements[i - 1].textRange.endOffset), null, "...", isImport, emptySet())
+                val descriptor = FoldingDescriptor(group.node, TextRange(start.textRange.startOffset, statements[i - 1].textRange.endOffset), null, "...", isImport, emptySet())
                 descriptor.setCanBeRemovedWhenCollapsed(true)
                 descriptors.add(descriptor)
             }

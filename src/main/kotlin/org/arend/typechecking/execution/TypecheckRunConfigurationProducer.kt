@@ -1,17 +1,19 @@
 package org.arend.typechecking.execution
 
 import com.intellij.execution.actions.ConfigurationContext
-import com.intellij.execution.actions.RunConfigurationProducer
+import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.fullName
 import org.arend.psi.parentOfType
+import org.arend.typechecking.execution.configurations.ArendRunConfigurationFactory
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
-import org.arend.typechecking.execution.configurations.TypeCheckConfigurationType
+import org.arend.typechecking.execution.configurations.TypecheckRunConfigurationType
 
-class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfiguration>(TypeCheckConfigurationType()) {
+class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckConfiguration>() {
+    override fun getConfigurationFactory() = ArendRunConfigurationFactory(TypecheckRunConfigurationType())
 
     override fun isConfigurationFromContext(configuration: TypeCheckConfiguration, context: ConfigurationContext): Boolean {
         val myConfiguration = configurationFromContext(context, null) ?: return false
@@ -32,8 +34,7 @@ class TypeCheckRunConfigurationProducer: RunConfigurationProducer<TypeCheckConfi
 
     private fun configurationFromContext(context: ConfigurationContext, sourceElement: Ref<PsiElement>?): MyConfiguration? {
         val element = context.location?.psiElement
-        val definition = element?.parentOfType<ArendDefinition>(false) ?: element?.parentOfType<ArendFile>(false)
-        when (definition) {
+        when (val definition = element?.parentOfType<ArendDefinition>(false) ?: element?.parentOfType<ArendFile>(false)) {
             is ArendDefinition -> {
                 val file = definition.containingFile as? ArendFile ?: return null
                 val modulePath = file.modulePath ?: return null
