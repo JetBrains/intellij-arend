@@ -55,6 +55,22 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | :: x (:: x1 xs) => {?}
         """)
 
+    fun testBasicElim() = typedQuickFixTest("Implement",
+        """
+        \$listDefinition
+    
+        \func length{-caret-} (A : \Type) (l : List A) (n : Nat) : Nat \elim l
+          | nil => n
+          | :: x nil => n
+        """, """ 
+        \$listDefinition
+
+        \func length (A : \Type) (l : List A) (n : Nat) : Nat \elim l
+          | nil => n
+          | :: x nil => n
+          | :: x (:: x1 xs) => {?}
+        """)
+
     fun testImplicitPattern() = typedQuickFixTest("Implement",
         """
         --! Main.ard
