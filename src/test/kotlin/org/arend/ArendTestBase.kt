@@ -12,20 +12,14 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.arend.error.ErrorReporter
+import org.arend.editor.ArendOptions
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.parentOfType
-import org.arend.refactoring.move.ArendMoveMembersDialog
-import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.PsiConcreteProvider
-import org.arend.typechecking.PsiInstanceProviderSet
+import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.execution.PsiElementComparator
-import org.arend.typechecking.instance.provider.EmptyInstanceProvider
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
 
@@ -41,6 +35,8 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     override fun setUp() {
         super.setUp()
+
+        ArendOptions.instance.typecheckingMode = ArendOptions.TypecheckingMode.DUMB
 
         val module = module
         val service = TypeCheckingService.getInstance(module.project)
@@ -200,7 +196,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
                 }
                 assert(false)
             }
-
         } else {
             myFixture.checkResult(rC, true)
         }
@@ -209,12 +204,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-
-        val service = TypeCheckingService.getInstance(project)
-        val referableConverter = service.newReferableConverter(true)
-        val errorReporter = ErrorReporter { service.reportError(it) }
-        val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
-        val typechecking = TypecheckingOrderingListener(PsiInstanceProviderSet(concreteProvider, referableConverter), service.typecheckerState, concreteProvider, errorReporter, PsiElementComparator)
-        typechecking.typecheckModules(targetFiles)
+        SilentTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 }

@@ -11,7 +11,7 @@ import org.arend.error.doc.DocStringBuilder
 import org.arend.term.prettyprint.PrettyPrinterConfig
 
 
-class NotificationErrorReporter(private val project: Project, private val ppConfig: PrettyPrinterConfig): ErrorReporter {
+class NotificationErrorReporter(private val project: Project, private val ppConfig: PrettyPrinterConfig = PrettyPrinterConfig.DEFAULT): ErrorReporter {
     companion object {
         val ERROR_NOTIFICATIONS = NotificationGroup("Arend Error Messages", NotificationDisplayType.STICKY_BALLOON, true)
         val WARNING_NOTIFICATIONS = NotificationGroup("Arend Warning Messages", NotificationDisplayType.BALLOON, true)
@@ -32,5 +32,13 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
         val title = DocStringBuilder.build(error.getHeaderDoc(ppConfig))
         val content = DocStringBuilder.build(error.getBodyDoc(ppConfig))
         group.createNotification(title, content, type, null).notify(project)
+    }
+
+    fun info(msg: String) {
+        INFO_NOTIFICATIONS.createNotification(msg, NotificationType.INFORMATION).notify(project)
+    }
+
+    fun warn(msg: String) {
+        WARNING_NOTIFICATIONS.createNotification(msg, NotificationType.WARNING).notify(project)
     }
 }

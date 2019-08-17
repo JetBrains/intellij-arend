@@ -12,9 +12,11 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.*
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.parentOfType
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
@@ -227,7 +229,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             ((improvedElement as? ArendLongName)?.parent as? CoClauseBase)?.let { coClause ->
                 val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow ?: coClause.lbrace ?: improvedElement
-                return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
+                return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
             if (improvedElement is ArendExpr) {

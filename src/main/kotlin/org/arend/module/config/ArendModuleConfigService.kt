@@ -7,7 +7,10 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
-import com.intellij.openapi.roots.*
+import com.intellij.openapi.roots.LibraryOrderEntry
+import com.intellij.openapi.roots.ModuleOrderEntry
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
@@ -198,9 +201,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                     library
                 }
 
-                if (library != null) {
-                    ideaDependencies.add(IdeaDependency(dependency.name, null, library))
-                }
+                ideaDependencies.add(IdeaDependency(dependency.name, null, library))
             } else {
                 ideaDependencies.add(IdeaDependency(dependency.name, depModule, null))
             }
@@ -260,7 +261,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                 if (service != null) {
                     return service
                 }
-                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR)
+                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR).notify(module.project)
             }
             return EmptyLibraryConfig(module.name, module.project)
         }

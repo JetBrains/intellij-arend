@@ -8,6 +8,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
@@ -33,7 +34,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
-interface TypeCheckingService {
+interface TypeCheckingService : ErrorReporter {
     val libraryManager: LibraryManager
 
     val typecheckerState: TypecheckerState
@@ -57,8 +58,6 @@ interface TypeCheckingService {
     fun updateDefinition(referable: LocatedReferable)
 
     fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
-
-    fun reportError(error: GeneralError)
 
     fun getErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>>
 
@@ -145,6 +144,10 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
+        if (referable is PsiElement && !referable.isValid) {
+            return null
+        }
+
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
         val curRef = referable.underlyingReferable
@@ -166,10 +169,15 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     override fun updateDefinition(referable: LocatedReferable) {
+        if (referable is ArendDefinition && referable.isValid) {
+            (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
+        }
+
         val tcReferable = removeDefinition(referable) ?: return
         for (ref in dependencyListener.update(tcReferable)) {
             removeDefinition(ref)
         }
+
         if (referable is ArendDefFunction && referable.useKw != null) {
             (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it) }
         }
@@ -179,7 +187,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
     }
 
-    override fun reportError(error: GeneralError) {
+    override fun report(error: GeneralError) {
         if (!error.isTypecheckingError) {
             return
         }
@@ -219,7 +227,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
     }
 
     private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-        override fun childAdded(event: PsiTreeChangeEvent) {
+        override fun beforeChildAddition(event: PsiTreeChangeEvent) {
             processParent(event, true)
         }
 
