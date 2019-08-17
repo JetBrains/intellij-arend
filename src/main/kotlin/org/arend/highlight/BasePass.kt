@@ -61,6 +61,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     private fun createAnnotation(error: Error, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
+        @Suppress("UnstableApiUsage")
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
@@ -232,9 +233,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            if (improvedElement is ArendExpr) {
-                (improvedElement.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let {
-                    return TextRange((it.fatArrow ?: improvedElement).textRange.startOffset, improvedElement.textRange.endOffset)
+            (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
+                (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
+                    return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
                 }
             }
 
