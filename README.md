@@ -1,6 +1,6 @@
 # Arend plugin for IntelliJ IDEA
 
-[![JetBrains incubator project](http://jb.gg/badges/incubator.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
+[![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![Build Status][travis-build-status-svg]][travis-build-status] 
 
 Plugin that implements [Arend](https://github.com/JetBrains/Arend) support 
