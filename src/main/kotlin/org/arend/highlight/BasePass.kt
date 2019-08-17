@@ -17,6 +17,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.testFramework.utils.inlays.InlayHintsChecker.Companion.pattern
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
@@ -102,53 +103,46 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.registerFix(RemoveCoClauseQuickFix(it))
                         }
                     } else {
-                        val element = getCauseElement(localError.cause.data)
-                        AbstractEWCCAnnotator.makeAnnotator(element)?.let {
+                        AbstractEWCCAnnotator.makeAnnotator(cause)?.let {
                             annotation.registerFix(ImplementFieldsQuickFix(it, makeFieldList(localError.fields, localError.classReferable)))
                         }
-                        if (element is ArendNewExprImplMixin) {
-                            element.putUserData(CoClausesKey, null)
+                        if (cause is ArendNewExprImplMixin) {
+                            cause.putUserData(CoClausesKey, null)
                         }
                     }
                 is DesugaringError -> if (localError.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
                     annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    (getCauseElement(localError.cause.data) as? ArendCoClause)?.let {
-                        annotation.registerFix(RemoveCoClauseQuickFix(it))
+                    if (cause is ArendCoClause) {
+                        annotation.registerFix(RemoveCoClauseQuickFix(cause))
                     }
                 }
 
-                is MissingClausesError -> {
-                    annotation.registerFix(ImplementMissingClausesQuickFix(localError, cause))
-                }
+                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(localError, cause))
 
                 is TypecheckingError -> {
                     if (localError.level == Error.Level.WEAK_WARNING) {
                         annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     }
                     when (localError.kind) {
-                        TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> (getCauseElement(localError.cause.data) as? ArendPatternImplMixin)?.let { pattern ->
+                        TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
                             val single = localError.kind == EXPECTED_EXPLICIT_PATTERN
                             if (localError.kind != TOO_MANY_PATTERNS) {
-                                pattern.atomPattern?.let {
+                                cause.atomPattern?.let {
                                     annotation.registerFix(MakePatternExplicitQuickFix(it, single))
                                 }
                             }
 
-                            if (!single || pattern.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
-                                annotation.registerFix(RemovePatternsQuickFix(pattern, single))
+                            if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
+                                annotation.registerFix(RemovePatternsQuickFix(cause, single))
                             }
                         }
                         AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(cause))
-                        RHS_IGNORED -> {
-                            var clause: PsiElement? = cause
-                            while (clause != null && clause !is ArendClause) clause = clause.parent
-                            if (clause is ArendClause) annotation.registerFix(RemovePatternRightHandSideQuickFix(clause))
-                        }
+                        RHS_IGNORED ->
+                            cause.ancestors.filterIsInstance<ArendClause>().firstOrNull()?.let {
+                                annotation.registerFix(RemovePatternRightHandSideQuickFix(it))
+                            }
                         PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(cause))
-                        REDUNDANT_CLAUSE -> {
-                            val causeElement = getCauseElement(localError.cause.data)
-                            if (causeElement is ArendClause) annotation.registerFix(RemoveClauseQuickFix(causeElement))
-                        }
+                        REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(cause))
                         else -> {}
                     }
                 }
