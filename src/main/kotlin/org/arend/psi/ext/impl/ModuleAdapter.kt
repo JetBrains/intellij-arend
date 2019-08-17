@@ -21,7 +21,7 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     override fun getPrec(): ArendPrec? = null
 
-    override fun getParentGroup(): ArendGroup? = parent.ancestors.filterIsInstance<ArendGroup>().firstOrNull()
+    override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
     override fun getReferable() = this
 

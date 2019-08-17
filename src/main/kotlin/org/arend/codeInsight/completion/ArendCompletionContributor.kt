@@ -121,9 +121,9 @@ class ArendCompletionContributor : CompletionContributor() {
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
                 and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
 
-        val noExtendsPattern = elementPattern { o ->
-            val dC = o.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
-            if (dC != null) dC.extendsKw == null else false
+        val noExtendsPattern = elementPattern {
+            val dC = it.ancestor<ArendDefClass>()
+            dC != null && dC.extendsKw == null
         }
 
         val notWithGrandparentFieldTelePattern = elementPattern { o -> o.parent?.parent?.findNextSibling() !is ArendFieldTele }
@@ -404,8 +404,8 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
-            parameters.position.ancestors.filterIsInstance<ArendDefClass>().firstOrNull().let { defClass ->
-                if (defClass != null) !defClass.fieldTeleList.any { fieldTele -> fieldTele.isClassifying } else false
+            parameters.position.ancestor<ArendDefClass>().let { defClass ->
+                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
             }
         }
 

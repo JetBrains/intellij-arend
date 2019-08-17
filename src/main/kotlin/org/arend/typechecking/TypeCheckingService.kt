@@ -136,7 +136,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             val it = errors.iterator()
             while (it.hasNext()) {
                 val pair = it.next()
-                if (definition == (pair.second.element as? ArendCompositeElement)?.ancestors?.filterIsInstance<ArendDefinition>()?.firstOrNull()) {
+                if (definition == (pair.second.element as? ArendCompositeElement)?.ancestor<ArendDefinition>()) {
                     it.remove()
                 }
             }

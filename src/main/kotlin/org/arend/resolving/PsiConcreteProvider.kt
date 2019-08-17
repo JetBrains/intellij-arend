@@ -110,7 +110,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         }
 
         cache[psiReferable]?.let { return it }
-        val concreteRef = runReadAction { psiReferable.ancestors.filterIsInstance<PsiConcreteReferable>().firstOrNull() } ?: return null
+        val concreteRef = runReadAction { psiReferable.ancestor<PsiConcreteReferable>() } ?: return null
         getConcreteDefinition(concreteRef) ?: return null
         return cache[psiReferable]
     }

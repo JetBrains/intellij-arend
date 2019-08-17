@@ -46,9 +46,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun getTypeOf(): Abstract.Expression? {
         return when (val parent = parent) {
             is ArendIdentifierOrUnknown -> {
-                when (val pparent = parent.parent) {
-                    is ArendNameTele -> pparent.expr
-                    is ArendTypedExpr -> pparent.expr
+                when (val pParent = parent.parent) {
+                    is ArendNameTele -> pParent.expr
+                    is ArendTypedExpr -> pParent.expr
                     else -> null
                 }
             }
@@ -67,9 +67,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
                 is ArendLetClausePattern -> parent.typeAnnotation?.expr
                 is ArendLetClause -> parent.typeAnnotation?.expr
                 is ArendIdentifierOrUnknown -> {
-                    when (val pparent = parent.parent) {
-                        is ArendNameTele -> pparent.expr
-                        is ArendTypedExpr -> pparent.expr
+                    when (val pParent = parent.parent) {
+                        is ArendNameTele -> pParent.expr
+                        is ArendTypedExpr -> pParent.expr
                         else -> null
                     }
                 }
@@ -80,7 +80,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun getUseScope(): SearchScope {
         val parent = parent
         when {
-            parent is ArendLetClausePattern -> parent.ancestors.filterIsInstance<ArendLetExpr>().firstOrNull()?.let { return LocalSearchScope(it) } // Let clause pattern
+            parent is ArendLetClausePattern -> parent.ancestor<ArendLetExpr>()?.let { return LocalSearchScope(it) } // Let clause pattern
             parent is ArendLetClause -> return LocalSearchScope(parent.parent) // Let clause
             (parent?.parent as? ArendTypedExpr)?.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
             parent?.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)

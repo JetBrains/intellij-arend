@@ -6,7 +6,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendFile
-import org.arend.psi.ancestors
+import org.arend.psi.ancestor
 import org.arend.resolving.DataLocatedReferable
 
 
@@ -23,7 +23,7 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 }
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {
-    val parent = parent?.ancestors?.filterIsInstance<PsiLocatedReferable>()?.firstOrNull()
+    val parent = parent?.ancestor<PsiLocatedReferable>()
     if (!(parent == null || parent is ArendFile)) {
         parent.getFullName(builder)
         builder.append('.')

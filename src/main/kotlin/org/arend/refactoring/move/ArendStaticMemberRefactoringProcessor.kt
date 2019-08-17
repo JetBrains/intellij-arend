@@ -219,8 +219,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             var remainderAnchor: PsiElement? = uppermostHole.anchor
 
             if (uppermostHole.kind != PositionKind.INSIDE_EMPTY_ANCHOR) {
-                val next = remainderAnchor?.rightSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
-                val prev = remainderAnchor?.leftSiblings?.filterIsInstance<ArendCompositeElement>()?.firstOrNull()
+                val next = remainderAnchor?.rightSibling<ArendCompositeElement>()
+                val prev = remainderAnchor?.leftSibling<ArendCompositeElement>()
                 if (next != null) remainderAnchor = next else
                     if (prev != null) remainderAnchor = prev
             }

@@ -37,7 +37,7 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 }
 
 private fun getArendScope(element: ArendCompositeElement): Scope {
-    val sourceNode = element.ancestors.filterIsInstance<ArendSourceNode>().firstOrNull()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+    val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
     val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.libraryConfig?.let { ModuleScope(it) })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
@@ -72,10 +72,8 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
     }
 }
 
-fun getParentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode? {
-    val parent = sourceNode.topmostEquivalentSourceNode.parent
-    return parent as? ArendFile ?: parent.ancestors.filterIsInstance<ArendSourceNode>().firstOrNull()
-}
+fun getParentSourceNode(sourceNode: ArendSourceNode) =
+    sourceNode.topmostEquivalentSourceNode.parent.ancestor<ArendSourceNode>()
 
 private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(SmartPointerManager.createPointer(cause), cause.errorDescription), SourceInfo, DataContainer {
     override fun getData(): Any = cause
@@ -100,11 +98,11 @@ abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(n
 }
 
 abstract class ArendSourceNodeImpl(node: ASTNode) : ArendCompositeElementImpl(node), ArendSourceNode {
-    override fun getTopmostEquivalentSourceNode() = org.arend.psi.ext.getTopmostEquivalentSourceNode(this)
+    override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
-    override fun getParentSourceNode() = org.arend.psi.ext.getParentSourceNode(this)
+    override fun getParentSourceNode() = getParentSourceNode(this)
 
-    override fun getErrorData(): Abstract.ErrorData? = org.arend.psi.ext.getErrorData(this)
+    override fun getErrorData(): Abstract.ErrorData? = getErrorData(this)
 }
 
 abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, ArendSourceNode {
@@ -123,9 +121,9 @@ abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiEle
 
     override fun positionTextRepresentation(): String? = runReadAction { positionTextRepresentationImpl() }
 
-    override fun getTopmostEquivalentSourceNode() = org.arend.psi.ext.getTopmostEquivalentSourceNode(this)
+    override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
-    override fun getParentSourceNode() = org.arend.psi.ext.getParentSourceNode(this)
+    override fun getParentSourceNode() = getParentSourceNode(this)
 
-    override fun getErrorData(): Abstract.ErrorData? = org.arend.psi.ext.getErrorData(this)
+    override fun getErrorData(): Abstract.ErrorData? = getErrorData(this)
 }

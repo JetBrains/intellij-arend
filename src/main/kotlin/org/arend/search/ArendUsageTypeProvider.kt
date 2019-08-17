@@ -28,7 +28,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             pParent is ArendStatCmd -> return nsUsage
             pParent is CoClauseBase -> return usagesInCoClauses
             pParent is ArendDefClass -> return extendsUsages
-            element.rightSiblings.filterIsInstance<ArendRefIdentifier>().firstOrNull() != null -> return leftUsage
+            element.rightSibling<ArendRefIdentifier>() != null -> return leftUsage
         }
 
         var expr: ArendExpr = ((pParent as? ArendLongNameExpr)?.parent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr ?: pParent as? ArendLiteral ?: return defaultUsage

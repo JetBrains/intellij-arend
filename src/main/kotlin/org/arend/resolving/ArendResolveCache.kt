@@ -98,7 +98,7 @@ class ArendResolveCacheImpl(private val project: Project) : ArendResolveCache {
                 return
             }
 
-            val sourceNode = (parent as? ArendCompositeElement)?.ancestors?.firstOrNull { it is ArendSourceNode } as? ArendSourceNode ?: return
+            val sourceNode = (parent as? ArendCompositeElement)?.ancestor<ArendSourceNode>() ?: return
             if (sourceNode.isLocal) {
                 if (sourceNode is ArendLongName) {
                     for (refIdentifier in sourceNode.refIdentifierList) {

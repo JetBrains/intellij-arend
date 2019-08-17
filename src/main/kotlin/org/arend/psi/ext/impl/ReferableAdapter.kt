@@ -3,11 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.naming.reference.LocatedReferable
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendFile
-import org.arend.psi.ArendPrec
-import org.arend.psi.ancestors
+import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.stubs.ArendNamedStub
@@ -23,11 +19,11 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence() = calcPrecedence(getPrec())
 
-    override fun getTypecheckable(): PsiLocatedReferable = ancestors.filterIsInstance<ArendDefinition>().firstOrNull() ?: this
+    override fun getTypecheckable(): PsiLocatedReferable = ancestor<ArendDefinition>() ?: this
 
     override fun getLocation() = (containingFile as? ArendFile)?.modulePath
 
-    override fun getLocatedReferableParent() = parent.ancestors.filterIsInstance<LocatedReferable>().firstOrNull()
+    override fun getLocatedReferableParent() = parent.ancestor<PsiLocatedReferable>()
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

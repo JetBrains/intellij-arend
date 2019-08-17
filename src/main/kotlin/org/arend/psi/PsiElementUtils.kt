@@ -25,6 +25,30 @@ import org.arend.typechecking.TypeCheckingService
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
 
+inline fun <reified T : PsiElement> PsiElement.ancestor(): T? {
+    var element: PsiElement? = this
+    while (element != null && element !is T && element !is PsiFile) {
+        element = element.parent
+    }
+    return element as? T
+}
+
+inline fun <reified T : PsiElement> PsiElement.rightSibling(): T? {
+    var element: PsiElement? = this
+    while (element != null && element !is T) {
+        element = element.nextSibling
+    }
+    return element as? T
+}
+
+inline fun <reified T : PsiElement> PsiElement.leftSibling(): T? {
+    var element: PsiElement? = this
+    while (element != null && element !is T) {
+        element = element.prevSibling
+    }
+    return element as? T
+}
+
 val PsiElement.module: Module?
     get() {
         val file = containingFile

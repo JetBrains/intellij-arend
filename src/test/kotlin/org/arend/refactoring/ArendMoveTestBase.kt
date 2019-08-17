@@ -1,9 +1,8 @@
 package org.arend.refactoring
 
-import com.intellij.psi.PsiElement
 import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
-import org.arend.psi.ancestors
+import org.arend.psi.ancestor
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.move.ArendMoveHandlerDelegate
 import org.arend.refactoring.move.ArendMoveMembersDialog
@@ -20,7 +19,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                             targetName: String) {
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
-        val sourceElement = myFixture.elementAtCaret.ancestors.filterIsInstance<ArendGroup>().firstOrNull() ?: throw AssertionError("Cannot find source anchor")
+        val sourceElement = myFixture.elementAtCaret.ancestor<ArendGroup>() ?: throw AssertionError("Cannot find source anchor")
 
         doPerformMoveRefactoringTest(resultingContent, targetFile, targetName, listOf(sourceElement))
     }

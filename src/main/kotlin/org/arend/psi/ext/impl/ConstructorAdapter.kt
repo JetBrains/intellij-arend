@@ -37,12 +37,12 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
     override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
 
     private val allParameters
-        get() = (ancestors.filterIsInstance<DataDefinitionAdapter>().firstOrNull()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
+        get() = (ancestor<DataDefinitionAdapter>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.let { ReferenceImpl(it) })
+    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, ancestor<ArendDefData>()?.let { ReferenceImpl(it) })
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CONSTRUCTOR
 
     override val psiElementType: ArendDefIdentifier?
-        get() = ancestors.filterIsInstance<ArendDefData>().firstOrNull()?.defIdentifier
+        get() = ancestor<ArendDefData>()?.defIdentifier
 }

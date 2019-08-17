@@ -17,7 +17,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.testFramework.utils.inlays.InlayHintsChecker.Companion.pattern
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.Error
@@ -138,7 +137,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         }
                         AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(cause))
                         RHS_IGNORED ->
-                            cause.ancestors.filterIsInstance<ArendClause>().firstOrNull()?.let {
+                            cause.ancestor<ArendClause>()?.let {
                                 annotation.registerFix(RemovePatternRightHandSideQuickFix(it))
                             }
                         PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(cause))
@@ -192,13 +191,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is NamingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.coerceKw
-                    LEVEL_IN_FIELD -> element.ancestors.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                    LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
                     null -> null
                 }
                 is TypecheckingError -> when (error.kind) {
-                    LEVEL_IN_FUNCTION -> element.ancestors.filterIsInstance<ArendReturnExpr>().firstOrNull()?.levelKw
+                    LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
                 is ProxyError -> return getImprovedErrorElement(error.localError, element)

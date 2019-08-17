@@ -2,14 +2,12 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.NamedUnresolvedReference
-import org.arend.naming.reference.Referable
+import org.arend.psi.ArendNsId
 import org.arend.term.ChildNamespaceCommand
 import org.arend.term.NamespaceCommand
-import org.arend.term.abs.Abstract
-import org.arend.term.group.ChildGroup
-import org.arend.psi.ArendNsId
 import org.arend.psi.ArendStatCmd
-import org.arend.psi.ancestors
+import org.arend.psi.ancestor
+import org.arend.psi.ext.impl.ArendGroup
 
 abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendStatCmd, ChildNamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind {
@@ -18,7 +16,7 @@ abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
         error("Incorrect expression: namespace command")
     }
 
-    override fun getPath(): List<String> = longName?.let { it.refIdentifierList.map { it.referenceName } } ?: emptyList()
+    override fun getPath() = longName?.refIdentifierList?.map { it.referenceName } ?: emptyList()
 
     override fun isUsing(): Boolean {
         val using = nsUsing
@@ -27,9 +25,9 @@ abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
 
     override fun getOpenedReferences(): List<ArendNsId> = nsUsing?.nsIdList ?: emptyList()
 
-    override fun getHiddenReferences(): List<Referable> = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
+    override fun getHiddenReferences() = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
 
-    override fun getParentGroup(): ChildGroup? = parent.ancestors.filterIsInstance<ChildGroup>().firstOrNull()
+    override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
-    override fun getOpenedReference(): Abstract.LongReference? = longName
+    override fun getOpenedReference() = longName
 }

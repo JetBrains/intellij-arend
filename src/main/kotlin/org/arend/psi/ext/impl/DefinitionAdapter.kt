@@ -7,10 +7,7 @@ import org.arend.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendFile
-import org.arend.psi.ArendStatCmd
-import org.arend.psi.ArendStatement
-import org.arend.psi.ancestors
+import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
@@ -32,7 +29,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? =
         ConcreteBuilder.convert(referableConverter, this, errorReporter)
 
-    override fun getParentGroup(): ArendGroup? = parent.ancestors.filterIsInstance<ArendGroup>().firstOrNull()
+    override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
     override fun getReferable() = this
 
