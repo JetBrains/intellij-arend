@@ -226,9 +226,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
-                (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
-                    return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
+            if ((error as? TypecheckingError)?.kind == RHS_IGNORED) {
+                (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
+                    (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
+                        return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
+                    }
                 }
             }
 
