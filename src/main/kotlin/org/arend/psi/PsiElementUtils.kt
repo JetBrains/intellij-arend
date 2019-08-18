@@ -34,7 +34,7 @@ inline fun <reified T : PsiElement> PsiElement.ancestor(): T? {
 }
 
 inline fun <reified T : PsiElement> PsiElement.rightSibling(): T? {
-    var element: PsiElement? = this
+    var element: PsiElement? = nextSibling
     while (element != null && element !is T) {
         element = element.nextSibling
     }
@@ -42,7 +42,7 @@ inline fun <reified T : PsiElement> PsiElement.rightSibling(): T? {
 }
 
 inline fun <reified T : PsiElement> PsiElement.leftSibling(): T? {
-    var element: PsiElement? = this
+    var element: PsiElement? = prevSibling
     while (element != null && element !is T) {
         element = element.prevSibling
     }
