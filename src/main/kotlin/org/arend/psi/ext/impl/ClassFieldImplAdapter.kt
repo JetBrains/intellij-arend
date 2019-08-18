@@ -18,7 +18,7 @@ abstract class ClassFieldImplAdapter : PsiStubbedReferableImpl<ArendClassImpleme
 
     override fun getData() = this
 
-    override fun getImplementedField() = longName.referent
+    override fun getImplementedField() = longName
 
     override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
 

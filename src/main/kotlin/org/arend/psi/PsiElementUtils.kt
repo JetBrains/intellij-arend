@@ -279,18 +279,15 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val project = child?.project ?: oldChild?.project ?: return
     TypeCheckingService.getInstance(project).processEvent(child, oldChild, newChild, parent, additionOrRemoval)
-    ServiceManager.getService(project, ArendResolveCache::class.java)?.processEvent(child, newChild, parent)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
     val project = parent.project
     val tcService = TypeCheckingService.getInstance(project)
-    val resolveService = ServiceManager.getService(project, ArendResolveCache::class.java)
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {
         tcService.processEvent(child, null, null, parent, true)
-        resolveService?.processEvent(child, null, parent)
         child = child.nextSibling
     }
 }

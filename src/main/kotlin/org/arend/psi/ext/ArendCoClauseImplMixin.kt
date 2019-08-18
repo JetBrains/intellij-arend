@@ -11,7 +11,7 @@ import org.arend.psi.CoClauseBase
 abstract class ArendCoClauseImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendCoClause, CoClauseBase {
     override fun getData() = this
 
-    override fun getImplementedField() = longName?.referent
+    override fun getImplementedField() = longName
 
     override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
 

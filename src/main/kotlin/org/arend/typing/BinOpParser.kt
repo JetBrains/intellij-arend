@@ -21,7 +21,7 @@ fun resolveReference(data: Any?, referent: Referable) =
             Concrete.ReferenceExpression(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()))
         } else {
             val refExpr = Concrete.ReferenceExpression(data, referent)
-            val arg = ExpressionResolveNameVisitor.resolve(refExpr, data.scope)
+            val arg = ExpressionResolveNameVisitor.resolve(refExpr, data.scope, null)
             (refExpr.referent as? GlobalReferable)?.let {
                 val psiRef = PsiLocatedReferable.fromReferable(it)
                 if (psiRef != null) {

@@ -7,14 +7,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendSourceNode
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.term.abs.Abstract
@@ -262,7 +260,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun resolveIfNeeded(referent: Referable, scope: Scope) =
-        ExpressionResolveNameVisitor.resolve(referent, scope, true)?.underlyingReferable
+        ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
