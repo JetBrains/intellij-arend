@@ -20,6 +20,7 @@ import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
 import org.arend.term.concrete.Concrete
 import org.arend.util.LongName
+import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
     private val clauses = ArrayList<ArendClause>()
@@ -176,13 +177,19 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             throw IllegalStateException()
         }
 
-        private fun getNaturalNumber(pattern: ConstructorPattern): Int? {
-            if (pattern.definition == Prelude.SUC) {
+        private fun getIntegralNumber(pattern: ConstructorPattern): Int? {
+            val isSuc = pattern.definition == Prelude.SUC
+            val isPos = pattern.definition == Prelude.POS
+            val isNeg = pattern.definition == Prelude.NEG
+            if (isSuc || isPos || isNeg) {
                 val argumentList = pattern.patterns.patternList
                 if (argumentList.size != 1) return null
                 val firstArgument = argumentList.first() as? ConstructorPattern ?: return null
-                val number = getNaturalNumber(firstArgument)
-                return if (number != null) number + 1 else null
+                val number = getIntegralNumber(firstArgument)
+                if (isSuc && number != null) return number + 1
+                if (isPos && number != null) return number
+                if (isNeg && number != null && number != 0) return -number
+                return null
             } else if (pattern.definition == Prelude.ZERO) return 0
             return null
         }
@@ -191,9 +198,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition = pattern.definition!!
-                    val naturalNumber = getNaturalNumber(pattern)
-                    if (naturalNumber != null && naturalNumber < Concrete.NumberPattern.MAX_VALUE) {
-                        val result = naturalNumber.toString()
+                    val integralNumber = getIntegralNumber(pattern)
+                    if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
+                        val result = integralNumber.toString()
                         return if (paren == Companion.Braces.BRACES) "{$result}" else result
                     }
                     val argumentPatterns = ArrayList<String>()
