@@ -47,7 +47,7 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             clazz.implementedFields.mapTo(implFields) { it.textRepresentation() }
             clazz.classFieldList.filter { !excludeImpl || !implFields.contains(it.textRepresentation()) }.mapTo(fields) { it }
             for (supClass in clazz.superClassReferences) {
-                addSuperclassFields(fields, implFields.toMutableSet(), supClass as ArendDefClass, excludeImpl)
+                addSuperclassFields(fields, implFields, supClass as ArendDefClass, excludeImpl)
             }
         }
 
@@ -58,19 +58,13 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             return fields
         }
 
+
+
     }
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<out Any> {
         val children = getChildren(descriptor, myProject)
-        for (node in children) {
-            if (getChildren(node, myProject).isEmpty()) {
-                val tree = browser.getSuperJTree()
-                if (tree != null) {
-                    browser.getTreeModel(TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE).expand(node, tree) { }
-                }
-            }
-        }
-        return children
+        return browser.buildChildren(children, TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE)
     }
 
 }

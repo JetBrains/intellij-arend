@@ -63,4 +63,11 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
         return baseIcon
     }
 
+    companion object {
+        fun nodePath(node: ArendHierarchyNodeDescriptor): String {
+            val parent = node.parentDescriptor?.let { nodePath(it as ArendHierarchyNodeDescriptor) } ?: ""
+            return parent + node.highlightedText.ending.appearance.text
+        }
+    }
+
 }

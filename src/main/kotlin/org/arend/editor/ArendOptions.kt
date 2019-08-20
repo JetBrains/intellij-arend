@@ -1,5 +1,6 @@
 package org.arend.editor
 
+import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
@@ -29,8 +30,11 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
     var typecheckingMode = TypecheckingMode.SMART
     var withTimeLimit = true
     var typecheckingTimeLimit = 5
+
+    // Hierarchy
     var showImplFields: Boolean = true
     var showNonimplFields: Boolean = true
+    var hierarchyViewType: String = TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE
 
     override fun getState() = this
 
