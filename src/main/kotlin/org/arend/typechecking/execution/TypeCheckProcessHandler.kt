@@ -3,12 +3,14 @@ package org.arend.typechecking.execution
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
@@ -35,6 +37,7 @@ import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.order.Ordering
@@ -56,7 +59,8 @@ class TypeCheckProcessHandler(
         val eventsProcessor = eventsProcessor ?: return
         ApplicationManager.getApplication().saveAll()
 
-        val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService, PrettyPrinterConfig.DEFAULT, eventsProcessor)
+        val errorService = ErrorService.getInstance(typeCheckerService.project)
+        val typecheckingErrorReporter = TypecheckingErrorReporter(errorService, PrettyPrinterConfig.DEFAULT, eventsProcessor)
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
         if (modulePath != null) {
             eventsProcessor.onSuiteStarted(modulePath)
@@ -196,6 +200,9 @@ class TypeCheckProcessHandler(
                 typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
                 ApplicationManager.getApplication().executeOnPooledThread {
                     destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
+                }
+                runInEdt {
+                    ToolWindowManager.getInstance(typeCheckerService.project).getToolWindow("Arend Errors").activate {}
                 }
             }
         }

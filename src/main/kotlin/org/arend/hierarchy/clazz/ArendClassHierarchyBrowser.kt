@@ -1,6 +1,5 @@
 package org.arend.hierarchy.clazz
 
-import com.intellij.icons.AllIcons
 import com.intellij.ide.hierarchy.HierarchyBrowserManager
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.HierarchyTreeStructure
@@ -12,9 +11,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.IconLoader
 import com.intellij.psi.PsiElement
-import com.intellij.ui.IconManager
+import org.arend.ArendIcons
 import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
@@ -58,13 +56,12 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     override fun prependActions(actionGroup: DefaultActionGroup) {
         super.prependActions(actionGroup)
         actionGroup.addAction(ArendShowImplFieldsAction())
-        actionGroup.addAction(ArendShowNonimplFieldsAction())
+        actionGroup.addAction(ArendShowNonImplFieldsAction())
     }
 
     fun getSuperJTree(): JTree? = superTree
 
-    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "",
-            IconLoader.getIcon("/icons/showFieldImpl.svg")) {
+    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
         override fun isSelected(e: AnActionEvent): Boolean {
             return ArendOptions.instance.showImplFields
@@ -76,7 +73,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    inner class ArendShowNonimplFieldsAction : ToggleAction("Show non-implemented fields", "", IconLoader.getIcon("/icons/showNonImpl.svg") )  {
+    inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
         override fun isSelected(e: AnActionEvent): Boolean {
             return ArendOptions.instance.showNonimplFields

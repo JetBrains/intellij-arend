@@ -97,7 +97,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     }
                     module?.let {
                         if (it is ArendFile)
-                            LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.MODULE) else
+                            LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.AREND_FILE) else
                             LookupElementBuilder.createWithIcon(it)
                     } ?: LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
                 }

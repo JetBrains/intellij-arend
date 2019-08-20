@@ -20,6 +20,7 @@ import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -138,5 +139,10 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 advanceProgress(1)
             }
         }).resolveGroup(group, WrapperReferableConverter, group.scope)
+    }
+
+    override fun applyInformationWithProgress() {
+        ErrorService.getInstance(myProject).clearNameResolverErrors(file)
+        super.applyInformationWithProgress()
     }
 }

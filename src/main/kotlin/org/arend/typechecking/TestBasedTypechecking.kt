@@ -8,6 +8,7 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.order.dependency.DependencyListener
@@ -30,7 +31,7 @@ class TestBasedTypechecking(
     private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
         if (clearErrors && definition is ArendDefinition) {
             runReadAction {
-                typeCheckingService.clearErrors(definition)
+                ErrorService.getInstance(typeCheckingService.project).clearTypecheckingErrors(definition)
             }
         }
         eventsProcessor.startTimer(definition)

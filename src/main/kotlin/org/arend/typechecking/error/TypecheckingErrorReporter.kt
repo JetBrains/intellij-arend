@@ -11,7 +11,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.error.*
+import org.arend.error.ErrorReporter
+import org.arend.error.GeneralError
+import org.arend.error.SourceInfo
+import org.arend.error.SourceInfoReference
 import org.arend.error.doc.*
 import org.arend.highlight.BasePass
 import org.arend.naming.reference.DataContainer
@@ -19,7 +22,6 @@ import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -30,12 +32,14 @@ private fun levelToContentType(level: GeneralError.Level): ConsoleViewContentTyp
     GeneralError.Level.INFO -> NORMAL_OUTPUT
 }
 
-class TypecheckingErrorReporter(private val typeCheckingService: TypeCheckingService, private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
+class TypecheckingErrorReporter(private val errorService: ErrorService, private val ppConfig: PrettyPrinterConfig, val eventsProcessor: TypecheckingEventsProcessor) : ErrorReporter {
     private val errorList = ArrayList<GeneralError>()
 
     override fun report(error: GeneralError) {
         errorList.add(error)
-        typeCheckingService.report(error)
+        if (error.isTypecheckingError) {
+            errorService.report(error)
+        }
     }
 
     fun flush() {

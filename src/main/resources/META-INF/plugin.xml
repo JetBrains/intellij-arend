@@ -235,6 +235,10 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.ArendMessagesView"/>
+
+        <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
@@ -244,8 +248,11 @@
         <applicationService serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
-
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
+
+        <!-- Tool Windows -->
+
+        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.ArendMessagesFactory"/>
     </extensions>
 
     <project-components>

@@ -12,12 +12,8 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
@@ -32,18 +28,22 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
+import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.RemoveAsPatternQuickFix
 import org.arend.quickfix.removers.RemoveClauseQuickFix
 import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
 import org.arend.quickfix.removers.ReplaceWithWildcardPatternQuickFix
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.error.ArendError
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
+    private val errorService = ErrorService.getInstance(myProject)
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
 
     override fun getDocument(): Document = super.getDocument()!!
@@ -63,7 +63,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
-    fun report(error: GeneralError, cause: ArendCompositeElement) {
+    fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
         if (error is IncompleteExpressionError || file != cause.containingFile) {
             return
         }
@@ -147,15 +147,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     override fun report(error: GeneralError) {
-        if (error is IncompleteExpressionError) {
-            return
-        }
-
         val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         for (cause in list) {
             val psi = getCauseElement(cause)
             if (psi != null && psi.isValid) {
-                report(error, psi)
+                if (error !is IncompleteExpressionError && !error.isTypecheckingError) {
+                    reportToEditor(error, psi)
+                }
+                errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
             }
         }
     }

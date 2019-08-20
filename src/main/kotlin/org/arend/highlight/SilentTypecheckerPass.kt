@@ -18,6 +18,7 @@ import org.arend.term.group.Group
 import org.arend.typechecking.DefinitionBlacklistService
 import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -30,12 +31,13 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
     private val definitionBlackListService = ServiceManager.getService(DefinitionBlacklistService::class.java)
     private val definitionsToTypecheck = ArrayList<ArendDefinition>()
+    private val errorService = ErrorService.getInstance(myProject)
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
-        DesugarVisitor.desugar(definition, file.concreteProvider, this)
+        DesugarVisitor.desugar(definition, file.concreteProvider, errorService)
 
         progress.checkCanceled()
-        definition.accept(object : DumbTypechecker(this) {
+        definition.accept(object : DumbTypechecker(errorService) {
             override fun visitFunction(def: Concrete.FunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
                 AbstractEWCCAnnotator.makeAnnotator(def.data.data as? PsiElement)?.doAnnotate(holder)
@@ -88,7 +90,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun collectInfo(progress: ProgressIndicator) {
         when (ArendOptions.instance.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = SilentTypechecking.create(myProject)
+                val typechecking = SilentTypechecking.create(myProject, this)
                 if (definitionsToTypecheck.size == 1) {
                     val onlyDef = typecheckDefinition(typechecking, definitionsToTypecheck[0], progress)
 

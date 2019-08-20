@@ -20,11 +20,11 @@ open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeC
     : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
     companion object {
-        fun create(project: Project): SilentTypechecking {
-            val service = TypeCheckingService.getInstance(project)
-            val referableConverter = service.newReferableConverter(true)
-            val concreteProvider = PsiConcreteProvider(project, referableConverter, service, null, true)
-            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service, concreteProvider, referableConverter, service, service.dependencyListener)
+        fun create(project: Project, errorReporter: ErrorReporter): SilentTypechecking {
+            val typecheckingService = TypeCheckingService.getInstance(project)
+            val referableConverter = typecheckingService.newReferableConverter(true)
+            val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
+            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckingService, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
         }
     }
 
