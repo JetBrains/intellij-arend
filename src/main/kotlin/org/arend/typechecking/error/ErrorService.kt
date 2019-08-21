@@ -59,8 +59,8 @@ class ErrorService(project: Project) : ErrorReporter {
         }
     }
 
-    val errors: Set<Map.Entry<ArendFile, List<ArendError>>>
-        get() = nameResolverErrors.entries + typecheckingErrors.entries
+    val errors: Map<ArendFile, List<ArendError>>
+        get() = nameResolverErrors + typecheckingErrors
 
     fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()

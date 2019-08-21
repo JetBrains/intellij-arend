@@ -8,7 +8,7 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 
 
-data class ArendError(val error: GeneralError, val pointer: SmartPsiElementPointer<*>) {
+data class ArendError(val error: GeneralError, val pointer: SmartPsiElementPointer<*>) : Comparable<ArendError> {
     val cause
         get() = pointer.element as? ArendCompositeElement
 
@@ -17,4 +17,6 @@ data class ArendError(val error: GeneralError, val pointer: SmartPsiElementPoint
 
     val file
         get() = pointer.element?.containingFile as? ArendFile
+
+    override fun compareTo(other: ArendError) = error.level.compareTo(other.error.level)
 }

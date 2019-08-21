@@ -4,10 +4,14 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.JBSplitter
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.treeStructure.Tree
+import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
+import org.arend.error.GeneralError
 import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendFile
 import org.arend.typechecking.error.ErrorService
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
@@ -21,21 +25,24 @@ class ArendMessagesView(private val project: Project) {
 
     private var root: DefaultMutableTreeNode? = null
     private var treeModel: DefaultTreeModel? = null
+    var tree: ArendErrorTree? = null
     var toolWindow: ToolWindow? = null
 
     private fun createTree(): Tree {
         val root = DefaultMutableTreeNode("Errors")
         val treeModel = DefaultTreeModel(root)
-        this.treeModel = treeModel
-        this.root = root
         val tree = ArendErrorTree(treeModel)
         tree.cellRenderer = ArendErrorTreeCellRenderer(tree)
+
+        this.treeModel = treeModel
+        this.root = root
+        this.tree = tree
         return tree
     }
 
     fun initView(toolWindow: ToolWindow): JBSplitter {
         val splitter = JBSplitter(false, 0.25f)
-        splitter.firstComponent = createTree()
+        splitter.firstComponent = JBScrollPane(createTree())
         splitter.secondComponent = JPanel()
 
         toolWindow.icon = ArendIcons.MESSAGES
@@ -47,27 +54,34 @@ class ArendMessagesView(private val project: Project) {
     }
 
     fun update() {
-        val root = root ?: return
-        root.removeAllChildren()
-        val entries = ErrorService.getInstance(project).errors
-        for (entry in entries) {
-            val fileNode = DefaultMutableTreeNode(entry.key.modulePath)
-            root.add(fileNode)
-            val map = HashMap<ArendDefinition, DefaultMutableTreeNode>()
-            for (arendError in entry.value) {
-                val errorNode = DefaultMutableTreeNode(arendError.error)
-                val definition = arendError.definition
-                if (definition != null) {
-                    map.computeIfAbsent(definition) {
-                        val node = DefaultMutableTreeNode(definition)
-                        fileNode.add(node)
-                        node
-                    }.add(errorNode)
-                } else {
-                    fileNode.add(errorNode)
+        val tree = tree ?: return
+        val expandedPaths = TreeUtil.collectExpandedPaths(tree)
+
+        val errorsMap = ErrorService.getInstance(project).errors
+        val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
+        tree.update(root ?: return) {
+            if (it == root) errorsMap.keys
+            else when (val obj = it.userObject) {
+                is ArendFile -> {
+                    val arendErrors = errorsMap[obj]
+                    val children = HashSet<Any>()
+                    for (arendError in arendErrors ?: emptyList()) {
+                        val def = arendError.definition
+                        if (def == null) {
+                            children.add(arendError.error)
+                        } else {
+                            children.add(def)
+                            map.computeIfAbsent(def) { HashSet() }.add(arendError.error)
+                        }
+                    }
+                    children
                 }
+                is ArendDefinition -> map[obj] ?: emptySet()
+                else -> emptySet()
             }
         }
+
         treeModel?.reload()
+        TreeUtil.restoreExpandedPaths(tree, expandedPaths)
     }
 }
