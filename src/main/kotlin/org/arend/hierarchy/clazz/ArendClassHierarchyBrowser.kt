@@ -131,12 +131,8 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
         val structure = createHierarchyTreeStructure(currentViewType, element)
         val comparator = comparator
-        val myModel = if (comparator == null)
-            StructureTreeModel(structure!!, kotlin.Comparator { _, _ -> 1})
-        else
-            StructureTreeModel(structure!!, comparator)
-        val atm = AsyncTreeModel(myModel, false)
-        tree.model = atm
+        val myModel = StructureTreeModel(structure!!, comparator ?: Comparator { _, _ -> 1})
+        tree.model = AsyncTreeModel(myModel, false)
     }
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "",
