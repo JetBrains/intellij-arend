@@ -1,6 +1,6 @@
 package org.arend.psi
 
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
 import com.intellij.openapi.roots.LibraryOrderEntry
@@ -19,7 +19,6 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
@@ -47,6 +46,13 @@ inline fun <reified T : PsiElement> PsiElement.leftSibling(): T? {
         element = element.prevSibling
     }
     return element as? T
+}
+
+fun PsiElement.navigate(requestFocus: Boolean = true) {
+    val descriptor = EditSourceUtil.getDescriptor(this)
+    if (descriptor?.canNavigate() == true) {
+        descriptor.navigate(requestFocus)
+    }
 }
 
 val PsiElement.module: Module?

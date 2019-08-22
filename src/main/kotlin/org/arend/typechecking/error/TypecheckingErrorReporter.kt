@@ -5,7 +5,6 @@ import com.intellij.execution.testframework.CompositePrintable
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
-import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -21,6 +20,7 @@ import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.navigate
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -151,11 +151,7 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
 
     private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
         override fun navigate(project: Project?) {
-            val psi = runReadAction { sourceElement.element } ?: return
-            val descriptor = EditSourceUtil.getDescriptor(psi)
-            if (descriptor != null && descriptor.canNavigate()) {
-                descriptor.navigate(true)
-            }
+            runReadAction { sourceElement.element }?.navigate()
         }
     }
 }

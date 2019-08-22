@@ -1,11 +1,17 @@
 package org.arend.toolWindow
 
+import com.intellij.codeInsight.hints.presentation.MouseButton
+import com.intellij.codeInsight.hints.presentation.mouseButton
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.error.GeneralError
+import org.arend.highlight.BasePass
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.navigate
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.MutableTreeNode
@@ -17,6 +23,18 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         isRootVisible = false
         emptyText.text = "No errors"
         selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+
+        addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                when (e.mouseButton) {
+                    MouseButton.Left -> if (e.clickCount >= 2) {
+                        ((getPathForLocation(e.x, e.y)?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { BasePass.getImprovedCause(it) }?.navigate()
+                    }
+                    MouseButton.Right -> {}
+                    else -> {}
+                }
+            }
+        })
     }
 
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
