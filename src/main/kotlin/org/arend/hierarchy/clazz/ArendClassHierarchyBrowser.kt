@@ -150,11 +150,11 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
         override fun isSelected(e: AnActionEvent): Boolean {
-            return ArendOptions.instance.showNonimplFields
+            return ArendOptions.instance.showNonImplFields
         }
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            ArendOptions.instance.showNonimplFields = state
+            ArendOptions.instance.showNonImplFields = state
             doRefresh(false)
         }
     }

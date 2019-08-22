@@ -28,7 +28,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
             override fun mouseClicked(e: MouseEvent) {
                 when (e.mouseButton) {
                     MouseButton.Left -> if (e.clickCount >= 2) {
-                        ((getPathForLocation(e.x, e.y)?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { BasePass.getImprovedCause(it) }?.navigate()
+                        navigate(true)
                     }
                     MouseButton.Right -> {}
                     else -> {}
@@ -36,6 +36,9 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
             }
         })
     }
+
+    fun navigate(focus: Boolean) =
+        ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { BasePass.getImprovedCause(it) }?.navigate(focus)
 
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {

@@ -20,7 +20,7 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             if (ArendOptions.instance.showImplFields) {
                 classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
             }
-            if (ArendOptions.instance.showNonimplFields) {
+            if (ArendOptions.instance.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
                     getAllFields(classElement, true).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
                 } else {

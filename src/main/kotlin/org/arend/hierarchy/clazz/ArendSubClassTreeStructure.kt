@@ -25,7 +25,7 @@ class ArendSubClassTreeStructure(val project: Project, baseNode: PsiElement, pri
         if (ArendOptions.instance.showImplFields) {
             classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
         }
-        if (ArendOptions.instance.showNonimplFields) {
+        if (ArendOptions.instance.showNonImplFields) {
             classElement.classFieldList.mapTo(result) {
                 ArendHierarchyNodeDescriptor(project, descriptor, it, false)
             }

@@ -33,8 +33,11 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
 
     // Hierarchy
     var showImplFields: Boolean = true
-    var showNonimplFields: Boolean = true
+    var showNonImplFields: Boolean = true
     var hierarchyViewType: String = TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE
+
+    // Messages
+    var autoScrollToSource: Boolean = true
 
     override fun getState() = this
 
