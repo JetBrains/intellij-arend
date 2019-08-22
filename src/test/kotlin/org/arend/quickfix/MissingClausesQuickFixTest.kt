@@ -215,4 +215,23 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | 0, 1 => {?}
           | 0, suc (suc (suc _)) => {?}    
         """)
+
+    fun testIntegralNumbers() = typedQuickFixTest("Implement",
+        """
+        \func{-caret-} abs (a : Int) : Int
+          | -3 => 3
+          | 3 => 3 
+        """, """
+        \func abs (a : Int) : Int
+          | -3 => 3
+          | 3 => 3
+          | 0 => {?}
+          | 1 => {?}
+          | 2 => {?}
+          | pos (suc (suc (suc (suc _)))) => {?}
+          | neg 0 => {?}
+          | -1 => {?}
+          | -2 => {?}
+          | neg (suc (suc (suc (suc _)))) => {?}    
+        """)
 }
