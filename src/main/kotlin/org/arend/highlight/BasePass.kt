@@ -133,7 +133,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         }
                         AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(cause))
-                        RHS_IGNORED ->
+                        BODY_IGNORED ->
                             cause.ancestor<ArendClause>()?.let {
                                 annotation.registerFix(RemovePatternRightHandSideQuickFix(it))
                             }
@@ -214,7 +214,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            if ((error as? TypecheckingError)?.kind == RHS_IGNORED) {
+            if ((error as? TypecheckingError)?.kind == BODY_IGNORED) {
                 (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
                     (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
                         return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
