@@ -235,6 +235,8 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
+        <projectService serviceImplementation="org.arend.psi.listener.ArendPsiListenerService"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>

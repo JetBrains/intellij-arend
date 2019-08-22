@@ -4,8 +4,9 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.libraries.Library
-import com.intellij.psi.*
-import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.error.ErrorReporter
@@ -18,10 +19,14 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendFile
+import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.listener.ArendPsiListener
+import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
@@ -57,8 +62,6 @@ interface TypeCheckingService : ErrorReporter {
 
     fun updateDefinition(referable: LocatedReferable)
 
-    fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean)
-
     fun getErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>>
 
     fun clearErrors(definition: ArendDefinition)
@@ -77,7 +80,7 @@ interface TypeCheckingService : ErrorReporter {
     }
 }
 
-class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingService {
+class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(), TypeCheckingService {
     override val typecheckerState = SimpleTypecheckerState()
     override val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
@@ -92,8 +95,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
 
     override var isInitialized = false
         private set
-
-    private val listener = TypeCheckerPsiTreeChangeListener()
 
     private val errorMap = WeakHashMap<ArendFile, MutableList<Pair<GeneralError, SmartPsiElementPointer<*>>>>()
 
@@ -111,7 +112,7 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
-        PsiManager.getInstance(project).addPsiTreeChangeListener(listener)
+        ArendPsiListenerService.getInstance(project).addListener(this)
 
         isInitialized = true
         return true
@@ -179,12 +180,12 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
         }
 
         if (referable is ArendDefFunction && referable.useKw != null) {
-            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it) }
+            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it as LocatedReferable) }
         }
     }
 
-    override fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
-        listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
+    override fun updateDefinition(def: ArendDefinition) {
+        updateDefinition(def as LocatedReferable)
     }
 
     override fun report(error: GeneralError) {
@@ -224,107 +225,6 @@ class TypeCheckingServiceImpl(override val project: Project) : TypeCheckingServi
             }
         }
         return list
-    }
-
-    private inner class TypeCheckerPsiTreeChangeListener : PsiTreeChangeAdapter() {
-        override fun beforeChildAddition(event: PsiTreeChangeEvent) {
-            processParent(event, true)
-        }
-
-        override fun beforeChildReplacement(event: PsiTreeChangeEvent) {
-            processParent(event, false)
-        }
-
-        override fun beforeChildMovement(event: PsiTreeChangeEvent) {
-            processParent(event, false)
-        }
-
-        override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
-            val child = event.child
-            if (child is ArendFile) { // whole file has been removed
-                invalidateChildren(child)
-            } else {
-                processParent(event, true)
-            }
-        }
-
-        private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
-
-        private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
-            if (event.file is ArendFile) {
-                processChildren(event.child)
-                processChildren(event.oldChild)
-                processParent(event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
-            }
-        }
-
-        fun processParent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
-            if (child is PsiErrorElement ||
-                child is PsiWhiteSpace ||
-                child is ArendWhere ||
-                isDynamicDef(child) ||
-                child is LeafPsiElement && AREND_COMMENTS.contains(child.node.elementType)) {
-                return
-            }
-            if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
-                (oldChild is ArendWhere || oldChild is PsiErrorElement || isDynamicDef(oldChild)) && (newChild is ArendWhere || newChild is PsiErrorElement || isDynamicDef(newChild)) ||
-                oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
-                return
-            }
-
-            if (checkCommentStart) {
-                var node = (child as? ArendCompositeElement)?.node ?: child as? LeafPsiElement
-                while (node != null && node !is LeafPsiElement) {
-                    val first = node.firstChildNode
-                    if (first == null || node.lastChildNode != first) {
-                        break
-                    }
-                    node = first
-                }
-                if (node is LeafPsiElement && node.textLength == 1) {
-                    val ch = node.charAt(0)
-                    if (ch == '-' || ch == '{' || ch == '}') {
-                        return
-                    }
-                }
-            }
-
-            ((parent as? ArendDefIdentifier)?.parent as? ArendGroup)?.let { invalidateChildren(it) }
-
-            var elem = parent
-            while (elem != null) {
-                if (elem is ArendWhere || elem is ArendFile || isDynamicDef(elem)) {
-                    return
-                }
-                if (elem is ArendDefinition) {
-                    updateDefinition(elem)
-                    return
-                }
-                elem = elem.parent
-            }
-        }
-
-        private fun invalidateChildren(group: ArendGroup) {
-            if (group is ArendDefinition) {
-                updateDefinition(group)
-            }
-            for (subgroup in group.subgroups) {
-                invalidateChildren(subgroup)
-            }
-            for (subgroup in group.dynamicSubgroups) {
-                invalidateChildren(subgroup)
-            }
-        }
-
-        private fun processChildren(element: PsiElement?) {
-            when (element) {
-                is ArendGroup -> invalidateChildren(element)
-                is ArendStatement -> {
-                    element.definition?.let { invalidateChildren(it) }
-                    element.defModule?.let { invalidateChildren(it) }
-                }
-            }
-        }
     }
 
     private val libraryMap = WeakHashMap<Library, String>()
