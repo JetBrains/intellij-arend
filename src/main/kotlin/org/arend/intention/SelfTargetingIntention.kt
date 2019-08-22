@@ -30,7 +30,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
     final override fun getText() = text
     final override fun getFamilyName() = familyName
 
-    abstract fun isApplicableTo(element: T, caretOffset: Int): Boolean
+    abstract fun isApplicableTo(element: T, caretOffset: Int, editor: Editor?): Boolean
 
     abstract fun applyTo(element: T, project: Project?, editor: Editor?)
 
@@ -54,7 +54,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
         for (element in elementsToCheck) {
             if (elementType.isInstance(element)) {
                 val tElement = elementType.cast(element)
-                if (isApplicableTo(tElement, offset)) {
+                if (isApplicableTo(tElement, offset, editor)) {
                     return tElement
                 }
             }
@@ -99,7 +99,7 @@ abstract class SelfTargetingRangeIntention<T : PsiElement>(
 
     abstract fun applicabilityRange(element: T): TextRange?
 
-    final override fun isApplicableTo(element: T, caretOffset: Int): Boolean {
+    final override fun isApplicableTo(element: T, caretOffset: Int, editor: Editor?): Boolean {
         val range = applicabilityRange(element) ?: return false
         return range.containsOffset(caretOffset)
     }

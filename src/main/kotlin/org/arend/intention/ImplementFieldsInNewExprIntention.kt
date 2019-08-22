@@ -11,7 +11,7 @@ import org.arend.quickfix.ImplementFieldsQuickFix
 
 class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
 
-    override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int): Boolean {
+    override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int, editor: Editor?): Boolean {
         if (element.newKw == null) return false
         val data = element.getUserData(CoClausesKey)
         return data != null && data.isNotEmpty()
