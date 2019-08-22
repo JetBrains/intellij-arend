@@ -19,6 +19,7 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.typechecking.TypeCheckingService
 
 val PsiElement.ancestors: Sequence<PsiElement>
@@ -284,12 +285,12 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val project = child?.project ?: oldChild?.project ?: return
-    TypeCheckingService.getInstance(project).processEvent(child, oldChild, newChild, parent, additionOrRemoval)
+    ArendPsiListenerService.getInstance(project).processEvent(child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
     val project = parent.project
-    val tcService = TypeCheckingService.getInstance(project)
+    val tcService = ArendPsiListenerService.getInstance(project)
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {

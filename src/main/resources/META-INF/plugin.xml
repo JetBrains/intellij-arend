@@ -239,6 +239,8 @@
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 
+        <projectService serviceImplementation="org.arend.psi.listener.ArendPsiListenerService"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
