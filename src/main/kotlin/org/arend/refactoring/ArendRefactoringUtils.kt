@@ -2,11 +2,11 @@ package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
-import org.arend.mapFirstNotNull
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.util.LongName
+import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
 interface AbstractRefactoringAction {

@@ -17,10 +17,10 @@ import com.intellij.openapi.roots.ui.configuration.libraryEditor.LibraryEditor
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ArendIcons
-import org.arend.findPsiFileByPath
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.findPsiFileByPath
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Files
 import java.nio.file.Paths

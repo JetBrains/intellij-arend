@@ -11,8 +11,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.findExternalLibrary
-import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.module.scopeprovider.ModuleScopeProvider
@@ -21,6 +19,8 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.findExternalLibrary
+import org.arend.util.mapFirstNotNull
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }

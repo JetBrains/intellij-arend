@@ -30,6 +30,7 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.arendModules
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke

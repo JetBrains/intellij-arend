@@ -9,12 +9,12 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
-import org.arend.mapFirstNotNull
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.mapFirstNotNull
 import java.nio.file.Path
 import java.nio.file.Paths
 
