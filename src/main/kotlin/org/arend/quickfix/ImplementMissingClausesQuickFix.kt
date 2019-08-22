@@ -69,22 +69,44 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             clauses.add(psiFactory.createClause(concat(patternStrings, topLevelFilter)))
         }
 
-        val anchor = when (cause) {
-            is ArendDefFunction -> cause.functionBody?.functionClauses?.lastChild
-            is ArendCaseExpr -> cause.clauseList.lastOrNull() ?: cause.lbrace
-            else -> null
-        }
-
-        if (anchor != null) insertClauses(psiFactory, anchor, clauses)
+        insertClauses(psiFactory, cause, clauses)
     }
 
     companion object {
         enum class Braces { NO, PAREN, BRACES }
         enum class PatternKind { IMPLICIT_ARG, IMPLICIT_EXPR, EXPLICIT }
 
-        fun insertClauses(psiFactory: ArendPsiFactory, anchor: PsiElement, clauses: List<ArendClause>) {
-            val anchorParent = anchor.parent
-            if (anchorParent != null) for (clause in clauses) {
+        fun insertClauses(psiFactory: ArendPsiFactory, cause: ArendCompositeElement, clauses: List<ArendClause>) {
+            var sampleClause: ArendClause? = null
+            val anchor = when (cause) {
+                is ArendDefFunction -> {
+                    val fBody = cause.functionBody
+                    if (fBody != null) {
+                        val fClauses = fBody.functionClauses
+                        if (fClauses != null) {
+                            fClauses.lastChild
+                        } else {
+                            val newClauses = psiFactory.createFunctionClauses()
+                            val lastChild = fBody.lastChild
+                            lastChild.parent?.addAfter(newClauses, lastChild)
+                            lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
+                            sampleClause = fBody.functionClauses!!.lastChild as ArendClause
+                            sampleClause
+                        }
+                    } else {
+                        val newBody = psiFactory.createFunctionClauses().parent as ArendFunctionBody
+                        val lastChild = cause.lastChild
+                        cause.addAfter(newBody, lastChild)
+                        cause.addAfter(psiFactory.createWhitespace(" "), lastChild)
+                        sampleClause = cause.functionBody!!.functionClauses!!.lastChild as ArendClause
+                        sampleClause
+                    }
+                }
+                is ArendCaseExpr -> cause.clauseList.lastOrNull() ?: cause.lbrace
+                else -> null
+            }
+            val anchorParent = anchor?.parent
+             for (clause in clauses) if (anchorParent != null) {
                 val pipe = clause.findPrevSibling()
                 var currAnchor: PsiElement? = null
                 if (pipe != null) currAnchor = anchorParent.addAfter(pipe, anchor)
@@ -92,6 +114,12 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 currAnchor = anchorParent.addAfterWithNotification(clause, currAnchor)
                 anchorParent.addBefore(psiFactory.createWhitespace(" "), currAnchor)
             }
+
+            if (sampleClause != null) {
+                sampleClause.findPrevSibling()?.delete()
+                sampleClause.delete()
+            }
+
         }
 
         private fun computeFilter(input: List<PatternKind>): List<Boolean> {
