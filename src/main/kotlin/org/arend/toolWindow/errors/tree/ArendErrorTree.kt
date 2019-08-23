@@ -102,17 +102,20 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
                 val obj1 = d1.userObject
                 val obj2 = d2.userObject
                 when {
-                    obj1 is ArendFile && obj2 is ArendFile -> (obj1.modulePath?.toString() ?: obj1.name).compareTo(obj2.modulePath?.toString() ?: obj2.name)
-                    obj1 is ArendDefinition && obj2 is ArendDefinition -> obj1.textOffset.compareTo(obj2.textOffset)
-                    obj1 is GeneralError && obj2 is GeneralError -> obj1.level.compareTo(obj2.level) * -1
+                    obj1 == obj2 -> 0
+                    obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.modulePath?.toString() ?: obj1.name).compareTo(obj2.modulePath?.toString() ?: obj2.name))
+                    obj1 is ArendDefinition && obj2 is ArendDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
+                    obj1 is GeneralError && obj2 is GeneralError -> fix(obj1.level.compareTo(obj2.level) * -1)
                     obj1 is GeneralError -> 1
                     obj2 is GeneralError -> -1
                     obj1 is ArendFile -> 1
                     obj2 is ArendFile -> -1
-                    else -> 0
+                    else -> 1
                 }
             }
             update(childNode, childrenFunc)
         }
     }
+
+    private fun fix(cmp: Int) = if (cmp == 0) 1 else cmp
 }
