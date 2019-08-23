@@ -22,7 +22,7 @@ abstract class QuickFixTestBase : ArendTestBase() {
         if (contents != null) {
             InlineFile(contents).withCaret()
         }
-        assert(myFixture.getAvailableIntention(fixName, "Main.ard") == null)
+        assert(myFixture.filterAvailableIntentions(fixName).isEmpty())
     }
 
     protected fun checkQuickFix(fixName: String, @Language("Arend") resultingContent: String) {
@@ -55,6 +55,13 @@ abstract class QuickFixTestBase : ArendTestBase() {
         typecheck(fileTree.fileNames)
         myFixture.doHighlighting()
         checkQuickFix(fixName, resultingContent)
+    }
+
+    protected fun typedCheckNoQuickFixes(fixName: String, @Language("Arend") contents: String) {
+        val fileTree = configure(contents, false)
+        typecheck(fileTree.fileNames)
+        myFixture.doHighlighting()
+        assert(myFixture.filterAvailableIntentions(fixName).isEmpty())
     }
 
 }
