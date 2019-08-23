@@ -111,12 +111,12 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
                     obj2 is GeneralError -> -1
                     obj1 is ArendFile -> 1
                     obj2 is ArendFile -> -1
-                    else -> 1
+                    else -> -1
                 }
             }
             update(childNode, childrenFunc)
         }
     }
 
-    private fun fix(cmp: Int) = if (cmp == 0) 1 else cmp
+    private fun fix(cmp: Int) = if (cmp == 0) -1 else cmp
 }

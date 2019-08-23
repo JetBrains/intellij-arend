@@ -12,6 +12,7 @@ import org.arend.error.GeneralError
 import org.arend.naming.reference.DataContainer
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import java.util.*
 
@@ -90,14 +91,14 @@ class ErrorService(project: Project) : ErrorReporter {
         nameResolverErrors.remove(file)
     }
 
-    fun clearTypecheckingErrors(definition: ArendDefinition) {
-        val file = definition.containingFile as? ArendFile ?: return
+    fun updateTypecheckingErrors(file: ArendFile, definition: ArendDefinition?) {
         val arendErrors = typecheckingErrors[file]
         if (arendErrors != null) {
             val it = arendErrors.iterator()
             while (it.hasNext()) {
                 val arendError = it.next()
-                if (definition == arendError.definition) {
+                val errorCause = arendError.cause
+                if (errorCause == null || definition != null && definition == errorCause.ancestor<ArendDefinition>()) {
                     it.remove()
                 }
             }
@@ -105,6 +106,10 @@ class ErrorService(project: Project) : ErrorReporter {
                 typecheckingErrors.remove(file)
             }
         }
+    }
+
+    fun clearTypecheckingErrors(definition: ArendDefinition) {
+        updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
 
     fun addErrorRange(error: GeneralError, range: RangeHighlighterEx, document: Document) {
