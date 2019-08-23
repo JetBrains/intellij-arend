@@ -43,13 +43,28 @@ import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
-    private val errorService = ErrorService.getInstance(myProject)
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
     private val errorMap = HashMap<Annotation,GeneralError>()
+    private val errorList = ArrayList<GeneralError>()
 
     override fun getDocument(): Document = super.getDocument()!!
 
     override fun applyInformationWithProgress() {
+        val errorService = ErrorService.getInstance(myProject)
+
+        for (error in errorList) {
+            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
+            for (cause in list) {
+                val psi = getCauseElement(cause)
+                if (psi != null && psi.isValid) {
+                    if (error !is IncompleteExpressionError && !error.isTypecheckingError) {
+                        reportToEditor(error, psi)
+                    }
+                    errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
+                }
+            }
+        }
+
         val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
@@ -160,16 +175,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     override fun report(error: GeneralError) {
-        val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
-        for (cause in list) {
-            val psi = getCauseElement(cause)
-            if (psi != null && psi.isValid) {
-                if (error !is IncompleteExpressionError && !error.isTypecheckingError) {
-                    reportToEditor(error, psi)
-                }
-                errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
-            }
-        }
+        errorList.add(error)
     }
 
     companion object {

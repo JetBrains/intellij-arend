@@ -31,13 +31,12 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
     private val definitionBlackListService = ServiceManager.getService(DefinitionBlacklistService::class.java)
     private val definitionsToTypecheck = ArrayList<ArendDefinition>()
-    private val errorService = ErrorService.getInstance(myProject)
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
-        DesugarVisitor.desugar(definition, file.concreteProvider, errorService)
+        DesugarVisitor.desugar(definition, file.concreteProvider, this)
 
         progress.checkCanceled()
-        definition.accept(object : DumbTypechecker(errorService) {
+        definition.accept(object : DumbTypechecker(this) {
             override fun visitFunction(def: Concrete.FunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
                 AbstractEWCCAnnotator.makeAnnotator(def.data.data as? PsiElement)?.doAnnotate(holder)
@@ -90,7 +89,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun collectInfo(progress: ProgressIndicator) {
         when (ArendOptions.instance.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = SilentTypechecking.create(myProject, this)
+                val typechecking = SilentTypechecking.create(myProject, ErrorService.getInstance(myProject))
                 if (definitionsToTypecheck.size == 1) {
                     val onlyDef = typecheckDefinition(typechecking, definitionsToTypecheck[0], progress)
 

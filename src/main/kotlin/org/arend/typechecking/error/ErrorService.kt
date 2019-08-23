@@ -35,6 +35,10 @@ class ErrorService(project: Project) : ErrorReporter {
     }
 
     override fun report(error: GeneralError) {
+        if (!error.isTypecheckingError) {
+            return
+        }
+
         val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         runReadAction {
             loop@ for (data in list) {
@@ -53,11 +57,7 @@ class ErrorService(project: Project) : ErrorReporter {
                 }
 
                 val file = element.containingFile as? ArendFile ?: continue
-                if (error.isTypecheckingError) {
-                    typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
-                } else {
-                    nameResolverErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
-                }
+                typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
             }
         }
     }

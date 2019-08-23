@@ -14,6 +14,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JViewport
 import javax.swing.tree.*
+import kotlin.math.max
 import kotlin.math.min
 
 
@@ -60,7 +61,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         val bounds = getPathBounds(path) ?: return
         val parent = parent
         if (parent is JViewport) {
-            bounds.width = min(bounds.width, parent.width - bounds.x)
+            bounds.width = min(bounds.width, max(parent.width - bounds.x, 0))
         } else {
             bounds.x = 0
         }
