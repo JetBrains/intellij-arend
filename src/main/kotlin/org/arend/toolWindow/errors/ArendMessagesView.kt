@@ -1,4 +1,4 @@
-package org.arend.toolWindow
+package org.arend.toolWindow.errors
 
 import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
@@ -7,19 +7,21 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
-import com.intellij.ui.AutoScrollToSourceHandler
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
-import org.arend.editor.ArendOptions
 import org.arend.error.GeneralError
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.toolWindow.errors.tree.ArendErrorTree
+import org.arend.toolWindow.errors.tree.ArendErrorTreeAutoScrollFromSource
+import org.arend.toolWindow.errors.tree.ArendErrorTreeAutoScrollToSource
+import org.arend.toolWindow.errors.tree.ArendErrorTreeCellRenderer
 import org.arend.typechecking.error.ErrorService
-import java.awt.Component
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -28,6 +30,10 @@ import javax.swing.tree.DefaultTreeModel
 class ArendMessagesView(private val project: Project) {
     companion object {
         fun getInstance(project: Project) = ServiceManager.getService(project, ArendMessagesView::class.java)!!
+
+        fun activate(project: Project, action: () -> Unit) {
+            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate(action)
+        }
     }
 
     private var root: DefaultMutableTreeNode? = null
@@ -54,35 +60,22 @@ class ArendMessagesView(private val project: Project) {
         toolWindow.icon = ArendIcons.MESSAGES
         toolWindow.contentManager.addContent(ContentFactory.SERVICE.getInstance().createContent(splitter, "", false))
 
-        val actionManager = CommonActionsManager.getInstance()
-        val arendOption = ArendOptions.instance
-
         val actionGroup = DefaultActionGroup()
+        val actionManager = CommonActionsManager.getInstance()
         val treeExpander = DefaultTreeExpander(tree)
         actionGroup.add(actionManager.createExpandAllAction(treeExpander, tree))
         actionGroup.add(actionManager.createCollapseAllAction(treeExpander, tree))
         actionGroup.addSeparator()
-        val autoScrollToSource = object : AutoScrollToSourceHandler() {
-            override fun isAutoScrollMode() = arendOption.autoScrollToSource
-
-            override fun setAutoScrollMode(state: Boolean) {
-                arendOption.autoScrollToSource = state
-            }
-
-            override fun scrollToSource(component: Component?) {
-                tree.navigate(false)
-            }
-        }
-        autoScrollToSource.install(tree)
-        actionGroup.add(autoScrollToSource.createToggleAction())
+        actionGroup.add(ArendErrorTreeAutoScrollToSource(tree).createToggleAction())
+        actionGroup.add(ArendErrorTreeAutoScrollFromSource(project, tree).createToggleAction())
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
         toolbar.setTargetComponent(splitter)
 
-        splitter.firstComponent = JBScrollPane(panel {
+        splitter.firstComponent = panel {
             row { toolbar.component() }
-            row { tree() }
-        })
+            row { JBScrollPane(tree)() }
+        }
         splitter.secondComponent = JPanel()
 
         this.toolWindow = toolWindow

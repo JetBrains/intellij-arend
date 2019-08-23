@@ -10,7 +10,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
-import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
@@ -33,6 +32,7 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.toolWindow.errors.ArendMessagesView
 import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
@@ -202,7 +202,7 @@ class TypeCheckProcessHandler(
                     destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
                 }
                 runInEdt {
-                    ToolWindowManager.getInstance(typeCheckerService.project).getToolWindow("Arend Errors").activate {}
+                    ArendMessagesView.activate(typeCheckerService.project) {}
                 }
             }
         }

@@ -235,7 +235,7 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
-        <projectService serviceImplementation="org.arend.toolWindow.ArendMessagesView"/>
+        <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesView"/>
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 
@@ -254,7 +254,7 @@
 
         <!-- Tool Windows -->
 
-        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.ArendMessagesFactory"/>
+        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
     </extensions>
 
     <project-components>

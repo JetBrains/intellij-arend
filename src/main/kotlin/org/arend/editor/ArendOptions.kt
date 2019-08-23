@@ -38,6 +38,7 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
 
     // Messages
     var autoScrollToSource: Boolean = true
+    var autoScrollFromSource: Boolean = true
 
     override fun getState() = this
 

@@ -1,4 +1,4 @@
-package org.arend.toolWindow
+package org.arend.toolWindow.errors
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.DumbAware

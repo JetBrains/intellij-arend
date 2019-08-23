@@ -1,4 +1,4 @@
-package org.arend.toolWindow
+package org.arend.toolWindow.errors.tree
 
 import com.intellij.codeInsight.hints.presentation.MouseButton
 import com.intellij.codeInsight.hints.presentation.mouseButton
@@ -12,10 +12,9 @@ import org.arend.psi.ArendFile
 import org.arend.psi.navigate
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.MutableTreeNode
-import javax.swing.tree.TreeSelectionModel
+import javax.swing.JViewport
+import javax.swing.tree.*
+import kotlin.math.min
 
 
 class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
@@ -39,6 +38,35 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
 
     fun navigate(focus: Boolean) =
         ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { BasePass.getImprovedCause(it) }?.navigate(focus)
+
+    fun select(error: GeneralError): Boolean {
+        val root = model.root as? DefaultMutableTreeNode ?: return false
+        var node: DefaultMutableTreeNode? = null
+        for (any in root.depthFirstEnumeration()) {
+            if (any is DefaultMutableTreeNode && any.userObject == error) {
+                node = any
+                break
+            }
+        }
+
+        val path = node?.path?.let { TreePath(it) } ?: return false
+        selectionModel.selectionPath = path
+        scrollPathToVisibleVertical(path)
+        return true
+    }
+
+    fun scrollPathToVisibleVertical(path: TreePath) {
+        makeVisible(path)
+        val bounds = getPathBounds(path) ?: return
+        val parent = parent
+        if (parent is JViewport) {
+            bounds.width = min(bounds.width, parent.width - bounds.x)
+        } else {
+            bounds.x = 0
+        }
+        scrollRectToVisible(bounds)
+        (accessibleContext as? AccessibleJTree)?.fireVisibleDataPropertyChange()
+    }
 
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {

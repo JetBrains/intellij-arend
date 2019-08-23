@@ -1,4 +1,4 @@
-package org.arend.toolWindow
+package org.arend.toolWindow.errors.tree
 
 import com.intellij.openapi.util.Iconable
 import com.intellij.ui.JBDefaultTreeCellRenderer

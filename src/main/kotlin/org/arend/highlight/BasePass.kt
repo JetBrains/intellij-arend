@@ -45,6 +45,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     private val errorService = ErrorService.getInstance(myProject)
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
+    private val errorMap = HashMap<Annotation,GeneralError>()
 
     override fun getDocument(): Document = super.getDocument()!!
 
@@ -53,6 +54,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
+
+                var i = 0
+                while (i < highlights.size) {
+                    val error = errorMap[holder[i]]
+                    val range = highlights[i].highlighter
+                    if (range != null && error != null) {
+                        errorService.addErrorRange(error, range, document)
+                    }
+                    i++
+                }
             }
         }, ModalityState.stateForComponent(editor.component))
     }
@@ -60,7 +71,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
         @Suppress("UnstableApiUsage")
-        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
+        val annotation = holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
+        errorMap[annotation] = error
+        return annotation
     }
 
     fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
