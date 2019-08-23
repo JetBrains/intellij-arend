@@ -5,6 +5,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
+import org.arend.core.definition.DataDefinition
+import org.arend.core.expr.DataCallExpression
+import org.arend.core.pattern.BindingPattern
+import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
 import org.arend.error.ListErrorReporter
 import org.arend.naming.reference.Referable
@@ -24,17 +28,49 @@ import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import java.util.*
 
-class SplitAtomPatternIntention : SelfTargetingIntention<ArendDefIdentifier>(ArendDefIdentifier::class.java, "Split atomic pattern") {
-    override fun isApplicableTo(element: ArendDefIdentifier, caretOffset: Int, editor: Editor?): Boolean {
-        val parent = element.parent
-        val project = editor?.project
-        if (project != null && (parent is ArendPattern || parent is ArendAtomPatternOrPrefix)) {
-            var patternOwner: PsiElement? = parent
-            while (patternOwner is ArendPattern || patternOwner is ArendAtomPattern || patternOwner is ArendAtomPatternOrPrefix) patternOwner = patternOwner.parent
+class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
+    private var data: DataDefinition? = null
+
+    override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
+        if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix)  {
+            val pattern = checkApplicability(element, editor?.project)
+            if (pattern != null) {
+                val type = pattern.toExpression().type //do we want to normalize this to whnf?
+                if (type is DataCallExpression) {
+                    data = type.definition
+                    return data != null
+                }
+            }
+        }
+        return false
+    }
+
+    override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    private fun checkApplicability(element : PsiElement, project: Project?): Pattern? {
+        if (project != null) {
+            var patternOwner: PsiElement? = element
+            var pattern: PsiElement? = null
+            val indexList = ArrayList<Int>()
+
+            while (patternOwner is ArendPattern || patternOwner is ArendAtomPattern || patternOwner is ArendAtomPatternOrPrefix) {
+                pattern = patternOwner
+                patternOwner = patternOwner.parent
+                if (patternOwner is ArendPattern) {
+                    val i = patternOwner.atomPatternOrPrefixList.indexOf(pattern)
+                    if (i != -1) indexList.add(0, i)
+                }
+                if (patternOwner is ArendClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+                if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+            }
+
             var definition: ArendDefinition? = null
             val ownerParent = patternOwner?.parent
             var abstractPatterns: List<Abstract.Pattern>? = null
-            if (patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
+
+            if (pattern != null && patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
                 val body = ownerParent.parent
                 val func = body?.parent
                 if (body is ArendFunctionBody && func is ArendDefFunction) {
@@ -42,24 +78,30 @@ class SplitAtomPatternIntention : SelfTargetingIntention<ArendDefIdentifier>(Are
                     definition = func
                 }
             }
-            if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
+            if (pattern != null && patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
                 val data = ownerParent.parent
                 abstractPatterns = patternOwner.patterns
                 if (data is ArendDefData) definition = data
             }
+
             if (definition != null) {
                 val typeCheckedDefinition = TypeCheckingService.getInstance(project).getTypechecked(definition)
                 if (typeCheckedDefinition != null && abstractPatterns != null) {
-                    val patterns = computePatterns(abstractPatterns, typeCheckedDefinition.parameters, definition as? Abstract.EliminatedExpressionsHolder, definition.scope, project)
-                    return patterns != null
+                    val (patterns, isElim) = computePatterns(abstractPatterns, typeCheckedDefinition.parameters, definition as? Abstract.EliminatedExpressionsHolder, definition.scope, project)
+                    if (patterns != null) {
+                        val typecheckedPattern = if (isElim) patterns[indexList[0]] else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
+                        if (typecheckedPattern != null) {
+                            val pattern2 = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]])
+                            return pattern2 as? BindingPattern
+                        }
+                    }
                 }
-
             }
         }
-        return false
+        return null
     }
 
-    private fun computePatterns(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, elimExprHolder: Abstract.EliminatedExpressionsHolder?, scope: Scope, project: Project): List<Pattern>? {
+    private fun computePatterns(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, elimExprHolder: Abstract.EliminatedExpressionsHolder?, scope: Scope, project: Project): Pair<List<Pattern>?, Boolean> {
         val listErrorReporter = ListErrorReporter()
         val concreteParameters = elimExprHolder?.parameters?.let { params ->
             ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildTelescopeParameters(params) }
@@ -81,7 +123,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<ArendDefIdentifier>(Are
             val listScope = ListScope(context.keys.toList())
             for (elimVar in elimVars) ExpressionResolveNameVisitor.resolve(elimVar, listScope, null)
 
-            ElimTypechecking.getEliminatedParameters(elimVars, emptyList(), parameters, listErrorReporter, context) ?: return null
+            ElimTypechecking.getEliminatedParameters(elimVars, emptyList(), parameters, listErrorReporter, context) ?: return Pair(null, true)
         } else {
             emptyList()
         }
@@ -93,12 +135,36 @@ class SplitAtomPatternIntention : SelfTargetingIntention<ArendDefIdentifier>(Are
         val patterns = patternTypechecking.typecheckPatterns(concretePatterns, parameters, elimParams)
         val builder = StringBuilder()
         for (error in listErrorReporter.errorList) builder.append(error)
-        if (listErrorReporter.errorList.isNotEmpty()) return null
-        return patterns
+        return Pair(if (listErrorReporter.errorList.isEmpty()) patterns else null, elimParams.isNotEmpty())
     }
 
-    override fun applyTo(element: ArendDefIdentifier, project: Project?, editor: Editor?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    private fun findPattern(indexList: List<Int>, typecheckedPattern: Pattern, abstractPattern: Abstract.Pattern): Pattern? {
+        if (indexList.isEmpty()) return typecheckedPattern
+        if (typecheckedPattern is ConstructorPattern) {
+            val typecheckedPatternChild = findMatchingPattern(abstractPattern.arguments, typecheckedPattern.parameters, typecheckedPattern.patterns.patternList, indexList[0])
+            val abstractPatternChild = abstractPattern.arguments.getOrNull(indexList[0])
+            if (typecheckedPatternChild != null && abstractPatternChild != null)
+                return findPattern(indexList.drop(1), typecheckedPatternChild, abstractPatternChild)
+        }
+        return null
     }
 
+    private fun findMatchingPattern(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, typecheckedPatterns: List<Pattern>, index: Int): Pattern? {
+        var link = parameters
+        var i = 0
+        var j = 0
+
+        while (link.hasNext() && i < abstractPatterns.size) {
+            if (index == i) return typecheckedPatterns[j]
+
+            val isEqual = link.isExplicit == abstractPatterns[i].isExplicit
+            if (isEqual || link.isExplicit) i++
+            if (isEqual || !link.isExplicit) {
+                link = link.next
+                j++
+            }
+        }
+
+        return null
+    }
 }
