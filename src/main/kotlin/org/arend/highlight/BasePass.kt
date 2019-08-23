@@ -57,7 +57,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             for (cause in list) {
                 val psi = getCauseElement(cause)
                 if (psi != null && psi.isValid) {
-                    if (error !is IncompleteExpressionError && !error.isTypecheckingError) {
+                    if (error !is IncompleteExpressionError) {
                         reportToEditor(error, psi)
                     }
                     errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))

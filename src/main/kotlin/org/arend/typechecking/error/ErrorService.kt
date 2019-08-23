@@ -27,12 +27,7 @@ class ErrorService(project: Project) : ErrorReporter {
     private val rangesMap = WeakHashMap<Document, WeakHashMap<RangeHighlighterEx, MutableList<GeneralError>>>()
 
     fun report(error: ArendError) {
-        val file = error.file ?: return
-        if (error.error.isTypecheckingError) {
-            typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(error)
-        } else {
-            nameResolverErrors.computeIfAbsent(file) { ArrayList() }.add(error)
-        }
+        nameResolverErrors.computeIfAbsent(error.file ?: return) { ArrayList() }.add(error)
     }
 
     override fun report(error: GeneralError) {

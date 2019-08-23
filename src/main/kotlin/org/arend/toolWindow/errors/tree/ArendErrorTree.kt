@@ -12,6 +12,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.navigate
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.JScrollPane
 import javax.swing.JViewport
 import javax.swing.tree.*
 import kotlin.math.max
@@ -61,7 +62,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         val bounds = getPathBounds(path) ?: return
         val parent = parent
         if (parent is JViewport) {
-            bounds.width = min(bounds.width, max(parent.width - bounds.x, 0))
+            bounds.width = min(bounds.width, max(parent.width - bounds.x - ((parent.parent as? JScrollPane)?.verticalScrollBar?.width ?: 0), 0))
         } else {
             bounds.x = 0
         }
