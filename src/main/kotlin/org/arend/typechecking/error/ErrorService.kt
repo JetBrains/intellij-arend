@@ -63,7 +63,16 @@ class ErrorService(project: Project) : ErrorReporter {
     }
 
     val errors: Map<ArendFile, List<ArendError>>
-        get() = nameResolverErrors + typecheckingErrors
+        get() {
+            val result = HashMap<ArendFile, ArrayList<ArendError>>()
+            for (entry in nameResolverErrors.entries) {
+                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
+            }
+            for (entry in typecheckingErrors.entries) {
+                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
+            }
+            return result
+        }
 
     fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()
