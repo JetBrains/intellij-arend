@@ -79,6 +79,7 @@ class ArendMessagesView(private val project: Project) {
         splitter.secondComponent = JPanel()
 
         this.toolWindow = toolWindow
+        update()
         return splitter
     }
 
