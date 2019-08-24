@@ -1,7 +1,9 @@
 package org.arend.highlight
 
+import com.intellij.codeHighlighting.Pass
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.codeInsight.daemon.impl.LineMarkersPass
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -30,6 +32,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
     private val definitionBlackListService = ServiceManager.getService(DefinitionBlacklistService::class.java)
     private val definitionsToTypecheck = ArrayList<ArendDefinition>()
+    private var lineMarkersPass: LineMarkersPass? = null
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
         DesugarVisitor.desugar(definition, file.concreteProvider, this)
@@ -109,6 +112,13 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                         typecheckDefinition(typechecking, definition, progress)
                     }
                 }
+
+                val constructor = LineMarkersPass::class.java.declaredConstructors[0]
+                constructor.isAccessible = true
+                val pass = constructor.newInstance(file.project, file, document, textRange, textRange) as LineMarkersPass
+                pass.id = Pass.LINE_MARKERS
+                pass.collectInformation(progress)
+                lineMarkersPass = pass
             }
             ArendOptions.TypecheckingMode.DUMB ->
                 for (definition in definitionsToTypecheck) {
@@ -118,6 +128,11 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         }
 
         file.concreteProvider = EmptyConcreteProvider.INSTANCE
+    }
+
+    override fun applyInformationWithProgress() {
+        super.applyInformationWithProgress()
+        lineMarkersPass?.applyInformationToEditor()
     }
 
     override fun countDefinition(def: ArendDefinition) =

@@ -40,7 +40,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
-abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
