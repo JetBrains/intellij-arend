@@ -17,10 +17,8 @@ import org.arend.ArendIcons
 import org.arend.error.GeneralError
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
-import org.arend.toolWindow.errors.tree.ArendErrorTree
-import org.arend.toolWindow.errors.tree.ArendErrorTreeAutoScrollFromSource
-import org.arend.toolWindow.errors.tree.ArendErrorTreeAutoScrollToSource
-import org.arend.toolWindow.errors.tree.ArendErrorTreeCellRenderer
+import org.arend.settings.ArendProjectSettings
+import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
@@ -64,8 +62,11 @@ class ArendMessagesView(private val project: Project) {
         actionGroup.add(actionManager.createExpandAllAction(treeExpander, tree))
         actionGroup.add(actionManager.createCollapseAllAction(treeExpander, tree))
         actionGroup.addSeparator()
+
         actionGroup.add(ArendErrorTreeAutoScrollToSource(project, tree).createToggleAction())
         actionGroup.add(ArendErrorTreeAutoScrollFromSource(project, tree).createToggleAction())
+        actionGroup.addSeparator()
+        actionGroup.add(ArendMessagesFilterActionGroup(project))
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
         toolbar.setTargetComponent(splitter)
@@ -85,6 +86,11 @@ class ArendMessagesView(private val project: Project) {
         val tree = tree ?: return
         val expandedPaths = TreeUtil.collectExpandedPaths(tree)
 
+        val filterSet = project.service<ArendProjectSettings>().messagesFilterSet.clone()
+        if (filterSet.contains(GeneralError.Level.WARNING)) {
+            filterSet.add(GeneralError.Level.WEAK_WARNING)
+        }
+
         val errorsMap = project.service<ErrorService>().errors
         val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
         tree.update(root ?: return) {
@@ -94,6 +100,10 @@ class ArendMessagesView(private val project: Project) {
                     val arendErrors = errorsMap[obj]
                     val children = HashSet<Any>()
                     for (arendError in arendErrors ?: emptyList()) {
+                        if (!filterSet.contains(arendError.error.level)) {
+                            continue
+                        }
+
                         val def = arendError.definition
                         if (def == null) {
                             children.add(arendError.error)

@@ -27,6 +27,7 @@ object ArendIcons {
     val MODULE_DEFINITION = AllIcons.Nodes.Method!!
 
     val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages!!
+    val FILTER = AllIcons.General.Filter!!
 
     val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
     val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
