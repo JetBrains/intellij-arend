@@ -2,8 +2,6 @@ package org.arend.typechecking.error
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.project.Project
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
@@ -25,7 +23,6 @@ class ErrorService(project: Project) : ErrorReporter {
 
     private val nameResolverErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
     private val typecheckingErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
-    private val rangesMap = WeakHashMap<Document, WeakHashMap<RangeHighlighterEx, MutableList<GeneralError>>>()
 
     fun report(error: ArendError) {
         nameResolverErrors.computeIfAbsent(error.file ?: return) { ArrayList() }.add(error)
@@ -71,6 +68,9 @@ class ErrorService(project: Project) : ErrorReporter {
             return result
         }
 
+    fun getErrors(file: ArendFile) =
+        (nameResolverErrors[file] ?: emptyList<ArendError>()) + (typecheckingErrors[file] ?: emptyList())
+
     fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()
 
@@ -107,10 +107,4 @@ class ErrorService(project: Project) : ErrorReporter {
     fun clearTypecheckingErrors(definition: ArendDefinition) {
         updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
-
-    fun addErrorRange(error: GeneralError, range: RangeHighlighterEx, document: Document) {
-        rangesMap.computeIfAbsent(document) { WeakHashMap() }.computeIfAbsent(range) { ArrayList() }.add(error)
-    }
-
-    fun getRanges(document: Document): Map<RangeHighlighterEx, List<GeneralError>>? = rangesMap[document]
 }

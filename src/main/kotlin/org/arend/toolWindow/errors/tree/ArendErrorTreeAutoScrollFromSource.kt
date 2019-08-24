@@ -9,9 +9,12 @@ import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.AutoScrollFromSourceHandler
+import com.intellij.util.Processor
 import org.arend.editor.ArendOptions
-import org.arend.error.GeneralError
+import org.arend.highlight.BasePass
+import org.arend.psi.ArendFile
 import org.arend.typechecking.error.ErrorService
 
 
@@ -41,23 +44,24 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
         }
 
         val document = editor.document
-        val ranges = ErrorService.getInstance(project).getRanges(document) ?: return
         val offset = editor.caretModel.offset
-        var currentError: GeneralError? = null
-        (DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset) {
-            val errors = ranges[it] ?: return@processRangeHighlightersOverlappingWith true
-            for (error in errors) {
-                if (currentError == null || error.level > currentError!!.level) {
-                    currentError = error
-                }
-                if (currentError?.level == GeneralError.Level.ERROR) {
-                    return@processRangeHighlightersOverlappingWith false
-                }
-            }
-            true
+        // Check that we are in a problem range
+        if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, Processor.FALSE) == true) {
+            return
         }
 
-        currentError?.let { tree.select(it) }
+        val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile ?: return
+        val arendErrors = ErrorService.getInstance(project).getErrors(file)
+        if (arendErrors.isEmpty()) {
+            return
+        }
+
+        for (arendError in arendErrors) {
+            if (BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
+                tree.select(arendError.error)
+                break
+            }
+        }
     }
 
     override fun selectElementFromEditor(editor: FileEditor) {

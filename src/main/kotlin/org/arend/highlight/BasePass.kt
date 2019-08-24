@@ -44,7 +44,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
-    private val errorMap = HashMap<Annotation,GeneralError>()
     private val errorList = ArrayList<GeneralError>()
 
     override fun getDocument(): Document = super.getDocument()!!
@@ -69,16 +68,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
-
-                var i = 0
-                while (i < highlights.size) {
-                    val error = errorMap[holder[i]]
-                    val range = highlights[i].highlighter
-                    if (range != null && error != null) {
-                        errorService.addErrorRange(error, range, document)
-                    }
-                    i++
-                }
             }
         }, ModalityState.stateForComponent(editor.component))
     }
@@ -86,9 +75,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
         @Suppress("UnstableApiUsage")
-        val annotation = holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
-        errorMap[annotation] = error
-        return annotation
+        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
     fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
@@ -219,6 +206,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }
 
         fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) ?: it }
+
+        fun getImprovedTextRange(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedTextRange(error, it) }
 
         fun getImprovedTextRange(error: GeneralError?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
