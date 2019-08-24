@@ -1,22 +1,24 @@
 package org.arend.editor
 
 import com.intellij.application.options.editor.AutoImportOptionsProvider
+import com.intellij.openapi.components.service
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.panel
 import javax.swing.JComponent
 
 class ArendAutoImportConfigurable : AutoImportOptionsProvider {
+    private val arendOptions = service<ArendOptions>()
     private var checkBox: JBCheckBox? = null
 
-    override fun isModified() = checkBox?.isSelected != ArendOptions.instance.autoImportOnTheFly
+    override fun isModified() = checkBox?.isSelected != arendOptions.autoImportOnTheFly
 
     override fun apply() {
-        ArendOptions.instance.autoImportOnTheFly = checkBox?.isSelected ?: return
+        arendOptions.autoImportOnTheFly = checkBox?.isSelected ?: return
     }
 
     override fun reset() {
-        checkBox?.isSelected = ArendOptions.instance.autoImportOnTheFly
+        checkBox?.isSelected = arendOptions.autoImportOnTheFly
     }
 
     override fun createComponent(): JComponent? {

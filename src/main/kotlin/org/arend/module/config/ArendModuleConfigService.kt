@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
 import com.intellij.openapi.roots.LibraryOrderEntry
@@ -34,7 +35,7 @@ import java.nio.file.Paths
 
 
 class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project) {
-    private val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+    private val libraryManager = project.service<TypeCheckingService>().libraryManager
 
     override var sourcesDir: String? = null
     override var binariesDir: String? = null
@@ -209,7 +210,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         // Update the module-level library table
         val rootModel = runReadAction { ModuleRootManager.getInstance(module).modifiableModel }
-        val service = TypeCheckingService.getInstance(project)
+        val service = project.service<TypeCheckingService>()
         try {
             for (entry in rootModel.orderEntries) {
                 val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> service.getLibraryName(lib)?.let { IdeaDependency(it, null, lib) } }

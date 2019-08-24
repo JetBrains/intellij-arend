@@ -1,5 +1,6 @@
 package org.arend.toolWindow.errors.tree
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.CaretEvent
@@ -51,7 +52,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
         }
 
         val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile ?: return
-        val arendErrors = ErrorService.getInstance(project).getErrors(file)
+        val arendErrors = project.service<ErrorService>().getErrors(file)
         if (arendErrors.isEmpty()) {
             return
         }
@@ -69,8 +70,8 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
     }
 
     override fun setAutoScrollEnabled(enabled: Boolean) {
-        ArendOptions.instance.autoScrollFromSource = enabled
+        service<ArendOptions>().autoScrollFromSource = enabled
     }
 
-    override fun isAutoScrollEnabled() = ArendOptions.instance.autoScrollFromSource
+    override fun isAutoScrollEnabled() = service<ArendOptions>().autoScrollFromSource
 }

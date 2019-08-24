@@ -4,7 +4,7 @@ import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
@@ -29,8 +29,6 @@ import javax.swing.tree.DefaultTreeModel
 
 class ArendMessagesView(private val project: Project) {
     companion object {
-        fun getInstance(project: Project) = ServiceManager.getService(project, ArendMessagesView::class.java)!!
-
         fun activate(project: Project, action: () -> Unit) {
             ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate(action)
         }
@@ -87,7 +85,7 @@ class ArendMessagesView(private val project: Project) {
         val tree = tree ?: return
         val expandedPaths = TreeUtil.collectExpandedPaths(tree)
 
-        val errorsMap = ErrorService.getInstance(project).errors
+        val errorsMap = project.service<ErrorService>().errors
         val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
         tree.update(root ?: return) {
             if (it == root) errorsMap.keys

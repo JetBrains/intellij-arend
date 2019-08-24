@@ -2,6 +2,7 @@ package org.arend.module
 
 import com.intellij.framework.library.LibraryVersionProperties
 import com.intellij.ide.util.ChooseElementsDialog
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderRootType
@@ -38,7 +39,7 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
     override fun getCreateActionName() = "Arend library"
 
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
-        val service = TypeCheckingService.getInstance(project)
+        val service = project.service<TypeCheckingService>()
         val projectDependencies = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNullTo(HashSet()) { service.getLibraryName(it) }
         val libHome = ProjectRootManager.getInstance(project).projectSdk?.homePath?.let { Paths.get(it) } ?: return null
         val externalLibs =

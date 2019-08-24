@@ -4,6 +4,7 @@ import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.openapi.application.TransactionGuard
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -24,7 +25,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (c != '-') {
             return Result.CONTINUE
         }
-        val style = ArendOptions.instance.matchingCommentStyle
+        val style = service<ArendOptions>().matchingCommentStyle
         if (style == ArendOptions.MatchingCommentStyle.DO_NOTHING || style == ArendOptions.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
             return Result.CONTINUE
         }

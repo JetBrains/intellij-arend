@@ -1,5 +1,6 @@
 package org.arend.editor
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.JBIntSpinner
@@ -10,6 +11,7 @@ import javax.swing.JComponent
 
 
 class ArendConfigurable : SearchableConfigurable {
+    private val arendOption = service<ArendOptions>()
     private var typecheckingMode: ComboBox<ArendOptions.TypecheckingMode>? = null
     private var timeLimitSwitch: JBCheckBox? = null
     private var timeLimit: JBIntSpinner? = null
@@ -19,26 +21,26 @@ class ArendConfigurable : SearchableConfigurable {
     override fun getDisplayName() = "Arend"
 
     override fun isModified() =
-        typecheckingMode?.selectedItem != ArendOptions.instance.typecheckingMode ||
-        timeLimitSwitch?.isSelected != ArendOptions.instance.withTimeLimit ||
-        timeLimit?.number != ArendOptions.instance.typecheckingTimeLimit
+        typecheckingMode?.selectedItem != arendOption.typecheckingMode ||
+        timeLimitSwitch?.isSelected != arendOption.withTimeLimit ||
+        timeLimit?.number != arendOption.typecheckingTimeLimit
 
     override fun apply() {
         (typecheckingMode?.selectedItem as? ArendOptions.TypecheckingMode)?.let {
-            ArendOptions.instance.typecheckingMode = it
+            arendOption.typecheckingMode = it
         }
         timeLimitSwitch?.let {
-            ArendOptions.instance.withTimeLimit = it.isSelected
+            arendOption.withTimeLimit = it.isSelected
         }
         timeLimit?.let {
-            ArendOptions.instance.typecheckingTimeLimit = it.number
+            arendOption.typecheckingTimeLimit = it.number
         }
     }
 
     override fun reset() {
-        typecheckingMode?.selectedItem = ArendOptions.instance.typecheckingMode
-        timeLimitSwitch?.isSelected = ArendOptions.instance.withTimeLimit
-        timeLimit?.value = ArendOptions.instance.typecheckingTimeLimit
+        typecheckingMode?.selectedItem = arendOption.typecheckingMode
+        timeLimitSwitch?.isSelected = arendOption.withTimeLimit
+        timeLimit?.value = arendOption.typecheckingTimeLimit
 
         if (typecheckingMode?.selectedItem != ArendOptions.TypecheckingMode.SMART) {
             timeLimitSwitch?.isEnabled = false

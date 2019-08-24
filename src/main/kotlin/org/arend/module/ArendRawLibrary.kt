@@ -1,8 +1,8 @@
 package org.arend.module
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.roots.libraries.Library
 import org.arend.error.ErrorReporter
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
@@ -16,7 +16,9 @@ import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
 import org.arend.typechecking.TypeCheckingService
 
-class ArendRawLibrary(val config: LibraryConfig, val isExternal: Boolean): SourceLibrary(TypeCheckingService.getInstance(config.project).typecheckerState) {
+class ArendRawLibrary(val config: LibraryConfig, val isExternal: Boolean)
+    : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
+
     constructor(module: Module): this(ArendModuleConfigService.getConfig(module), false)
 
     override fun getName() = config.name
@@ -56,12 +58,12 @@ class ArendRawLibrary(val config: LibraryConfig, val isExternal: Boolean): Sourc
     override fun needsTypechecking() = true
 
     override fun resetDefinition(referable: LocatedReferable) {
-        runReadAction { TypeCheckingService.getInstance(config.project).updateDefinition(referable) }
+        runReadAction { config.project.service<TypeCheckingService>().updateDefinition(referable) }
     }
 
-    override fun getReferableConverter() = TypeCheckingService.getInstance(config.project).newReferableConverter(true)
+    override fun getReferableConverter() = config.project.service<TypeCheckingService>().newReferableConverter(true)
 
-    override fun getDependencyListener() = TypeCheckingService.getInstance(config.project).dependencyListener
+    override fun getDependencyListener() = config.project.service<TypeCheckingService>().dependencyListener
 
     companion object {
         fun getLibraryFor(libraryManager: LibraryManager, module: Module) =

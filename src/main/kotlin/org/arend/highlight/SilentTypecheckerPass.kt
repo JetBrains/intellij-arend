@@ -4,7 +4,7 @@ import com.intellij.codeHighlighting.Pass
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.codeInsight.daemon.impl.LineMarkersPass
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -29,8 +29,9 @@ import org.arend.util.FullName
 class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
 
-    private val typeCheckingService = TypeCheckingService.getInstance(myProject)
-    private val definitionBlackListService = ServiceManager.getService(DefinitionBlacklistService::class.java)
+    private val typeCheckingService = myProject.service<TypeCheckingService>()
+    private val definitionBlackListService = service<DefinitionBlacklistService>()
+    private val arendOptions = service<ArendOptions>()
     private val definitionsToTypecheck = ArrayList<ArendDefinition>()
     private var lineMarkersPass: LineMarkersPass? = null
 
@@ -75,7 +76,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             }
 
             if (!ok) {
-                NotificationErrorReporter(myProject).warn("Typechecking of ${FullName(it.data)} was interrupted after ${ArendOptions.instance.typecheckingTimeLimit} second(s)")
+                NotificationErrorReporter(myProject).warn("Typechecking of ${FullName(it.data)} was interrupted after ${arendOptions.typecheckingTimeLimit} second(s)")
                 if (definitionsToTypecheck.last() != definition) {
                     DaemonCodeAnalyzer.getInstance(myProject).restart(file)
                 }
@@ -89,9 +90,9 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
-        when (ArendOptions.instance.typecheckingMode) {
+        when (arendOptions.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = SilentTypechecking.create(myProject, ErrorService.getInstance(myProject))
+                val typechecking = SilentTypechecking.create(myProject, myProject.service<ErrorService>())
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {
@@ -142,5 +143,5 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         } else false
 
     override fun numberOfDefinitions(group: Group) =
-        if (ArendOptions.instance.typecheckingMode == ArendOptions.TypecheckingMode.OFF) 0 else super.numberOfDefinitions(group)
+        if (arendOptions.typecheckingMode == ArendOptions.TypecheckingMode.OFF) 0 else super.numberOfDefinitions(group)
 }

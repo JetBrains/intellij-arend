@@ -2,7 +2,6 @@ package org.arend.editor
 
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
@@ -44,9 +43,5 @@ class ArendOptions : PersistentStateComponent<ArendOptions> {
 
     override fun loadState(state: ArendOptions) {
         XmlSerializerUtil.copyBean(state, this)
-    }
-
-    companion object {
-        val instance: ArendOptions = ServiceManager.getService(ArendOptions::class.java)
     }
 }

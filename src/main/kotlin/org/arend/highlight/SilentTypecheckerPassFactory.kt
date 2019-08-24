@@ -2,6 +2,7 @@ package org.arend.highlight
 
 import com.intellij.codeHighlighting.TextEditorHighlightingPassRegistrar
 import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
@@ -13,12 +14,12 @@ class SilentTypecheckerPassFactory(highlightingPassRegistrar: TextEditorHighligh
     private val passId = highlightingPassRegistrar.registerTextEditorHighlightingPass(this, intArrayOf(highlightingPassFactory.passId), null, false, -1)
 
     override fun createPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange): SilentTypecheckerPass {
-        val isSmart = ArendOptions.instance.typecheckingMode == ArendOptions.TypecheckingMode.SMART
+        val isSmart = service<ArendOptions>().typecheckingMode == ArendOptions.TypecheckingMode.SMART
         return SilentTypecheckerPass(file, if (isSmart) file else group, editor, if (isSmart) TextRange(0, editor.document.textLength) else textRange, DefaultHighlightInfoProcessor())
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
-        if (ArendOptions.instance.typecheckingMode != ArendOptions.TypecheckingMode.OFF) super.createHighlightingPass(file, editor) else null
+        if (service<ArendOptions>().typecheckingMode != ArendOptions.TypecheckingMode.OFF) super.createHighlightingPass(file, editor) else null
 
     override fun getPassId() = passId
 }

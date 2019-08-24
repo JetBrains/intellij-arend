@@ -1,5 +1,6 @@
 package org.arend.module.config
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -71,7 +72,7 @@ abstract class LibraryConfig(val project: Project) {
         val srcPath = sourcesPath
         if (srcPath != null) {
             val list = ArrayList<ModulePath>()
-            FileUtils.getModules(srcPath, FileUtils.EXTENSION, list, TypeCheckingService.getInstance(project).libraryManager.libraryErrorReporter)
+            FileUtils.getModules(srcPath, FileUtils.EXTENSION, list, project.service<TypeCheckingService>().libraryManager.libraryErrorReporter)
             return list
         }
 
@@ -147,7 +148,7 @@ abstract class LibraryConfig(val project: Project) {
                 return listOf(this)
             }
 
-            val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+            val libraryManager = project.service<TypeCheckingService>().libraryManager
             return listOf(this) + deps.mapNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config }
         }
 
@@ -162,7 +163,7 @@ abstract class LibraryConfig(val project: Project) {
             return null
         }
 
-        val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+        val libraryManager = project.service<TypeCheckingService>().libraryManager
         return deps.mapFirstNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config?.let { f(it) } }
     }
 }

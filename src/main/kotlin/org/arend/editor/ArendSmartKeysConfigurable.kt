@@ -1,5 +1,6 @@
 package org.arend.editor
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.IdeBorderFactory
@@ -9,16 +10,17 @@ import javax.swing.JPanel
 
 
 class ArendSmartKeysConfigurable : UnnamedConfigurable {
+    private val arendOptions = service<ArendOptions>()
     private var comboBox: ComboBox<ArendOptions.MatchingCommentStyle>? = null
 
-    override fun isModified() = comboBox?.selectedItem != ArendOptions.instance.matchingCommentStyle
+    override fun isModified() = comboBox?.selectedItem != arendOptions.matchingCommentStyle
 
     override fun apply() {
-        ArendOptions.instance.matchingCommentStyle = comboBox?.selectedItem as? ArendOptions.MatchingCommentStyle ?: return
+        arendOptions.matchingCommentStyle = comboBox?.selectedItem as? ArendOptions.MatchingCommentStyle ?: return
     }
 
     override fun reset() {
-        comboBox?.selectedItem = ArendOptions.instance.matchingCommentStyle
+        comboBox?.selectedItem = arendOptions.matchingCommentStyle
     }
 
     override fun createComponent(): JPanel {

@@ -1,6 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -12,7 +13,7 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
     : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        val errors = ErrorService.getInstance(myProject).getTypecheckingErrors(file)
+        val errors = myProject.service<ErrorService>().getTypecheckingErrors(file)
         setProgressLimit(errors.size.toLong())
         for (pair in errors) {
             progress.checkCanceled()
@@ -23,7 +24,7 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
 
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
-        ErrorService.getInstance(myProject).updateTypecheckingErrors(file, null)
-        ArendMessagesView.getInstance(myProject).update()
+        myProject.service<ErrorService>().updateTypecheckingErrors(file, null)
+        myProject.service<ArendMessagesView>().update()
     }
 }

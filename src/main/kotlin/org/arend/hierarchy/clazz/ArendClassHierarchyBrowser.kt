@@ -10,6 +10,7 @@ import com.intellij.ide.util.treeView.SourceComparator
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.ui.tree.AsyncTreeModel
@@ -51,12 +52,12 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     override fun changeView(typeName: String) {
         if (isFirstChangeViewCall) {
-            super.changeView(ArendOptions.instance.hierarchyViewType)
+            super.changeView(service<ArendOptions>().hierarchyViewType)
             isFirstChangeViewCall = false
-            return
+        } else {
+            service<ArendOptions>().hierarchyViewType = typeName
+            super.changeView(typeName)
         }
-        ArendOptions.instance.hierarchyViewType = typeName
-        super.changeView(typeName)
     }
 
     override fun createTrees(trees: MutableMap<String, JTree>) {
@@ -137,24 +138,20 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
-        override fun isSelected(e: AnActionEvent): Boolean {
-            return ArendOptions.instance.showImplFields
-        }
+        override fun isSelected(e: AnActionEvent) = service<ArendOptions>().showImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            ArendOptions.instance.showImplFields = state
+            service<ArendOptions>().showImplFields = state
             doRefresh(false)
         }
     }
 
     inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
-        override fun isSelected(e: AnActionEvent): Boolean {
-            return ArendOptions.instance.showNonImplFields
-        }
+        override fun isSelected(e: AnActionEvent) = service<ArendOptions>().showNonImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            ArendOptions.instance.showNonImplFields = state
+            service<ArendOptions>().showNonImplFields = state
             doRefresh(false)
         }
     }

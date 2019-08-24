@@ -1,7 +1,7 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
@@ -25,13 +25,13 @@ class TestBasedTypechecking(
     dependencyListener: DependencyListener)
     : SilentTypechecking(instanceProviderSet, typeCheckingService, concreteProvider, referableConverter, errorReporter, dependencyListener) {
 
-    private val definitionBlacklistService = ServiceManager.getService(DefinitionBlacklistService::class.java)
+    private val definitionBlacklistService = service<DefinitionBlacklistService>()
     val filesToRestart = LinkedHashSet<ArendFile>()
 
     private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
         if (clearErrors && definition is ArendDefinition) {
             runReadAction {
-                ErrorService.getInstance(typeCheckingService.project).clearTypecheckingErrors(definition)
+                typeCheckingService.project.service<ErrorService>().clearTypecheckingErrors(definition)
             }
         }
         eventsProcessor.startTimer(definition)

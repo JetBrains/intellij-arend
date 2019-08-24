@@ -1,6 +1,7 @@
 package org.arend.resolving
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
@@ -36,7 +37,7 @@ open class DataLocatedReferable(
             runReadAction {
                 LocatedReferable.Helper.resolveReferable(this) { modulePath ->
                     if (modulePath == Prelude.MODULE_PATH) {
-                        TypeCheckingService.getInstance(project).libraryManager.getRegisteredLibrary(Prelude.LIBRARY_NAME)?.moduleScopeProvider?.forModule(modulePath)
+                        project.service<TypeCheckingService>().libraryManager.getRegisteredLibrary(Prelude.LIBRARY_NAME)?.moduleScopeProvider?.forModule(modulePath)
                     } else null
                 } as? PsiLocatedReferable
             }

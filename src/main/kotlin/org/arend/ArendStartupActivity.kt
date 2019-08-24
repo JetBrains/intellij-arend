@@ -3,7 +3,7 @@ package org.arend
 import com.intellij.AppTopics
 import com.intellij.ProjectTopics
 import com.intellij.openapi.actionSystem.KeyboardShortcut
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
@@ -47,7 +47,7 @@ class ArendStartupActivity : StartupActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                val libraryManager = TypeCheckingService.getInstance(project).libraryManager
+                val libraryManager = project.service<TypeCheckingService>().libraryManager
                 ArendRawLibrary.getLibraryFor(libraryManager, module)?.let {
                     libraryManager.unloadLibrary(it)
                 }
@@ -56,7 +56,7 @@ class ArendStartupActivity : StartupActivity {
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
             override fun projectClosed(project: Project) {
-                TypeCheckingService.getInstance(project).libraryManager.unload()
+                project.service<TypeCheckingService>().libraryManager.unload()
             }
         })
 
@@ -64,7 +64,7 @@ class ArendStartupActivity : StartupActivity {
             addModule(module)
         }
 
-        val service = TypeCheckingService.getInstance(project)
+        val service = project.service<TypeCheckingService>()
         LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(object : LibraryTable.Listener {
             override fun afterLibraryAdded(newLibrary: Library) {
                 service.addLibrary(newLibrary)
@@ -83,8 +83,8 @@ class ArendStartupActivity : StartupActivity {
             override fun rootsChanged(event: ModuleRootEvent) {
                 val newHome = ProjectRootManager.getInstance(project).projectSdk?.homePath
                 if (sdkHome != newHome) {
-                    ServiceManager.getService(project, ArendResolveCache::class.java)?.clear()
-                    TypeCheckingService.getInstance(project).libraryManager.unload()
+                    project.service<ArendResolveCache>().clear()
+                    project.service<TypeCheckingService>().libraryManager.unload()
                     for (module in project.arendModules) {
                         addModule(module)
                     }
@@ -105,7 +105,7 @@ class ArendStartupActivity : StartupActivity {
     companion object {
         private fun addModule(module: Module) {
             val project = module.project
-            val service = TypeCheckingService.getInstance(project)
+            val service = project.service<TypeCheckingService>()
 
             if (service.initialize()) {
                 project.messageBus.connect().subscribe(AppTopics.FILE_DOCUMENT_SYNC, object : FileDocumentManagerListener {

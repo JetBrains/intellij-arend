@@ -1,5 +1,6 @@
 package org.arend
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
@@ -38,10 +39,10 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     override fun setUp() {
         super.setUp()
 
-        ArendOptions.instance.typecheckingMode = ArendOptions.TypecheckingMode.DUMB
+        service<ArendOptions>().typecheckingMode = ArendOptions.TypecheckingMode.DUMB
 
         val module = module
-        val service = TypeCheckingService.getInstance(module.project)
+        val service = module.project.service<TypeCheckingService>()
         service.initialize()
         val library = ArendRawLibrary(module)
         service.libraryManager.unloadLibrary(library)
@@ -206,6 +207,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-        SilentTypechecking.create(project, ErrorReporter { if (it.isTypecheckingError) ErrorService.getInstance(project).report(it) }).typecheckModules(targetFiles, null)
+        SilentTypechecking.create(project, ErrorReporter { if (it.isTypecheckingError) project.service<ErrorService>().report(it) }).typecheckModules(targetFiles, null)
     }
 }

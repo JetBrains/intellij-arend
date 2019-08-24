@@ -3,6 +3,7 @@ package org.arend.typechecking.execution
 import com.intellij.execution.lineMarker.ExecutorAction
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.Function
@@ -20,7 +21,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         }
 
         val parent = (element.parent as? ArendDefIdentifier)?.parent as? ArendDefinition ?: return null
-        val service = TypeCheckingService.getInstance(parent.project)
+        val service = parent.project.service<TypeCheckingService>()
         val def = service.getTypechecked(parent)
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2

@@ -1,6 +1,7 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
@@ -15,7 +16,7 @@ import org.arend.typechecking.execution.FullModulePath
 
 
 class BinaryFileSaver(private val project: Project) {
-    private val typeCheckingService = TypeCheckingService.getInstance(project)
+    private val typeCheckingService = project.service<TypeCheckingService>()
     private val typecheckedModules = LinkedHashMap<ArendFile, ReferableConverter>()
 
     init {

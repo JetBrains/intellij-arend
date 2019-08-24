@@ -1,7 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -25,12 +25,12 @@ import org.arend.typechecking.error.ErrorService
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val typecheckingService = TypeCheckingService.getInstance(myProject)
+    private val typecheckingService = myProject.service<TypeCheckingService>()
 
     override fun collectInfo(progress: ProgressIndicator) {
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
         file.concreteProvider = concreteProvider
-        val resolverCache = ServiceManager.getService(myProject, ArendResolveCache::class.java)
+        val resolverCache = myProject.service<ArendResolveCache>()
         DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
@@ -142,7 +142,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun applyInformationWithProgress() {
-        ErrorService.getInstance(myProject).clearNameResolverErrors(file)
+        myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
     }
 }

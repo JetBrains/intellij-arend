@@ -9,6 +9,7 @@ import com.intellij.codeInspection.HintAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.impl.LaterInvocator
 import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
@@ -52,7 +53,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
             return CachedValuesManager.getCachedValue(refElement) {
                 val name = refElement.referenceName
-                val prelude = TypeCheckingService.getInstance(project).prelude
+                val prelude = project.service<TypeCheckingService>().prelude
                 val preludeItems = HashSet<Referable>()
                 if (prelude != null) {
                     iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == refElement.referenceName }, preludeItems)
@@ -102,7 +103,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
         if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
-                && ArendOptions.instance.autoImportOnTheFly &&
+                && service<ArendOptions>().autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
             val action = ArendAddImportAction(project, editor, referenceElement, fixes, true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }

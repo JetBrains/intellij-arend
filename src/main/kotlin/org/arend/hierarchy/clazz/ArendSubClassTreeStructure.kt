@@ -5,6 +5,7 @@ import com.intellij.find.findUsages.FindUsagesOptions
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.usageView.UsageInfo
@@ -22,10 +23,10 @@ class ArendSubClassTreeStructure(val project: Project, baseNode: PsiElement, pri
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
 
         subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
-        if (ArendOptions.instance.showImplFields) {
+        if (service<ArendOptions>().showImplFields) {
             classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
         }
-        if (ArendOptions.instance.showNonImplFields) {
+        if (service<ArendOptions>().showNonImplFields) {
             classElement.classFieldList.mapTo(result) {
                 ArendHierarchyNodeDescriptor(project, descriptor, it, false)
             }

@@ -9,6 +9,7 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
@@ -49,7 +50,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     override fun getDocument(): Document = super.getDocument()!!
 
     override fun applyInformationWithProgress() {
-        val errorService = ErrorService.getInstance(myProject)
+        val errorService = myProject.service<ErrorService>()
 
         for (error in errorList) {
             val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return

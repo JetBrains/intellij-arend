@@ -1,7 +1,7 @@
 package org.arend.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
@@ -107,8 +107,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
     }
 
     override fun resolve(): PsiElement? {
-        val cache = ServiceManager.getService(element.project, ArendResolveCache::class.java)
-        val resolver =  { element : ArendReferenceElement ->
+        val cache = element.project.service<ArendResolveCache>()
+        val resolver = { element : ArendReferenceElement ->
             if (beforeImportDot) {
                 val refName = element.referenceName
                 var result: Referable? = null
@@ -126,12 +126,12 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        return when (val ref = (if (cache != null) cache.resolveCached(resolver, this.element) else resolver.invoke(this.element))?.underlyingReferable) {
+        return when (val ref = cache.resolveCached(resolver, element)?.underlyingReferable) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             is ModuleReferable -> {
                 if (ref.path == Prelude.MODULE_PATH) {
-                    TypeCheckingService.getInstance(element.project).prelude
+                    element.project.service<TypeCheckingService>().prelude
                 } else {
                     element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path) }
                 }

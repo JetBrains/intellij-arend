@@ -1,6 +1,6 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.psi.PsiElement
@@ -59,13 +59,6 @@ interface TypeCheckingService {
     fun removeLibrary(library: Library): String?
 
     fun getLibraryName(library: Library): String?
-
-    companion object {
-        fun getInstance(project: Project): TypeCheckingService {
-            val service = ServiceManager.getService(project, TypeCheckingService::class.java)
-            return checkNotNull(service) { "Failed to get TypeCheckingService for $project" }
-        }
-    }
 }
 
 class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(), TypeCheckingService {
@@ -98,7 +91,7 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
-        ArendPsiListenerService.getInstance(project).addListener(this)
+        project.service<ArendPsiListenerService>().addListener(this)
 
         isInitialized = true
         return true
@@ -134,7 +127,7 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
         }
 
         if (curRef is ArendDefinition) {
-            ErrorService.getInstance(project).clearTypecheckingErrors(curRef)
+            project.service<ErrorService>().clearTypecheckingErrors(curRef)
         }
 
         val tcTypecheckable = tcReferable.typecheckable ?: return null

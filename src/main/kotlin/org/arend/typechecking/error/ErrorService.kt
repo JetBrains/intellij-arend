@@ -17,10 +17,6 @@ import java.util.*
 
 
 class ErrorService(project: Project) : ErrorReporter {
-    companion object {
-        fun getInstance(project: Project) = ServiceManager.getService(project, ErrorService::class.java)!!
-    }
-
     private val nameResolverErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
     private val typecheckingErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
 
