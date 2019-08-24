@@ -29,7 +29,8 @@ import org.arend.typechecking.visitor.DesugarVisitor
 import java.util.*
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
-    private var data: DataDefinition? = null
+    private var dataDefinition: DataDefinition? = null
+    private var clause: ArendClause? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix)  {
@@ -37,8 +38,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (pattern != null) {
                 val type = pattern.toExpression().type //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
-                    data = type.definition
-                    return data != null
+                    dataDefinition = type.definition
+                    return dataDefinition != null && clause != null
                 }
             }
         }
@@ -46,7 +47,27 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val localClause = clause
+        val data = dataDefinition
+
+        if (localClause != null && data != null && project != null) {
+            val factory = ArendPsiFactory(project)
+            if (data.constructors.isEmpty()) {
+                val emptyPattern: PsiElement? = when (element) {
+                    is ArendPattern -> factory.createClause("()").childOfType<ArendPattern>()
+                    is ArendAtomPatternOrPrefix -> factory.createAtomPattern("()")
+                    else -> null
+                }
+                if (emptyPattern != null) element.replaceWithNotification(emptyPattern)
+            } else {
+                var first = true
+                val patterns = localClause.patterns
+
+                for (constructor in data.constructors) {
+
+                }
+            }
+        }
     }
 
     private fun checkApplicability(element : PsiElement, project: Project?): Pattern? {
@@ -73,12 +94,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (pattern != null && patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
                 val body = ownerParent.parent
                 val func = body?.parent
+                clause = patternOwner
                 if (body is ArendFunctionBody && func is ArendDefFunction) {
                     abstractPatterns = patternOwner.patterns
                     definition = func
                 }
             }
             if (pattern != null && patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
+                clause = null
                 val data = ownerParent.parent
                 abstractPatterns = patternOwner.patterns
                 if (data is ArendDefData) definition = data

@@ -19,4 +19,34 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | 0 => 1
          | suc{-caret-} _ => 1    
     """)
+
+    fun testSplitEmptyPattern1() = typedQuickFixTest("Split", """
+       \data Empty 
+        
+       \func foobar (e : Empty) : Nat
+         | e{-caret-} => {?} 
+    """, """
+       \data Empty
+        
+       \func foobar (e : Empty) : Nat
+         | () => {?} 
+    """)
+
+    fun testSplitEmptyPattern2() = typedQuickFixTest("Split", """
+       \data Empty 
+        
+       \data Foo
+         | goo Empty
+
+       \func bar (f : Foo) : Nat
+         | goo e{-caret-} => {?} 
+    """, """
+       \data Empty
+        
+       \data Foo
+         | goo Empty
+
+       \func bar (f : Foo) : Nat
+         | goo () => {?}  
+    """)
 }
