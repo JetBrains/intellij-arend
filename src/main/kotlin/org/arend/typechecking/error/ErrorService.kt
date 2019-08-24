@@ -14,6 +14,7 @@ import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.typechecking.error.local.LocalError
 import java.util.*
 
 
@@ -93,7 +94,7 @@ class ErrorService(project: Project) : ErrorReporter {
             while (it.hasNext()) {
                 val arendError = it.next()
                 val errorCause = arendError.cause
-                if (errorCause == null || definition != null && definition == errorCause.ancestor<ArendDefinition>()) {
+                if (errorCause == null || errorCause.ancestor<ArendDefinition>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
                     it.remove()
                 }
             }
