@@ -10,7 +10,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiUtil
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 
 abstract class BasePassFactory : DirtyScopeTrackingHighlightingPassFactory {
@@ -25,10 +24,11 @@ abstract class BasePassFactory : DirtyScopeTrackingHighlightingPassFactory {
         return if (textRange == null) {
             EmptyHighlightingPass(file.project, editor.document)
         } else {
-            var psi = PsiUtil.getElementInclusiveRange(file, textRange)
+            val psi = PsiUtil.getElementInclusiveRange(file, textRange)
             if (psi is PsiWhiteSpace || psi is PsiComment) {
                 EmptyHighlightingPass(file.project, editor.document)
             } else {
+                /*
                 var group: ArendGroup = file
                 while (psi is ArendCompositeElement && psi !is ArendFile) {
                     if (psi is ArendGroup) {
@@ -37,7 +37,8 @@ abstract class BasePassFactory : DirtyScopeTrackingHighlightingPassFactory {
                     }
                     psi = psi.parent
                 }
-                createPass(file, group, editor, textRange)
+                */
+                createPass(file, file, editor, textRange)
             }
         }
     }

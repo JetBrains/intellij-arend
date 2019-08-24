@@ -1,7 +1,6 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Editor
@@ -25,7 +24,7 @@ import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
 
-class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor, private val ignoredPassIds: List<Int>)
+class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
 
     private val typeCheckingService = TypeCheckingService.getInstance(myProject)
@@ -90,28 +89,24 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         when (ArendOptions.instance.typecheckingMode) {
             ArendOptions.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
                 val typechecking = SilentTypechecking.create(myProject, ErrorService.getInstance(myProject))
-                if (definitionsToTypecheck.size == 1) {
-                    val onlyDef = typecheckDefinition(typechecking, definitionsToTypecheck[0], progress)
-
-                    // If the only definition is the last modified definition and it was successfully typechecked,
-                    // we will collect definitions again and typecheck them.
-                    val typechecked = onlyDef?.let { typeCheckingService.typecheckerState.getTypechecked(it.data) }
-                    if (onlyDef != null && (typechecked?.status()?.withoutErrors() == true) && definitionsToTypecheck[0] == file.lastModifiedDefinition) {
+                val lastModified = file.lastModifiedDefinition
+                if (lastModified != null) {
+                    val typechecked = if (definitionsToTypecheck.remove(lastModified)) {
+                        typecheckDefinition(typechecking, lastModified, progress)?.let { typeCheckingService.typecheckerState.getTypechecked(it.data) }
+                    } else null
+                    if (typechecked?.status()?.withoutErrors() == true) {
                         file.lastModifiedDefinition = null
-                        setProgressLimit(super.numberOfDefinitions(group).toLong())
+                        for (definition in definitionsToTypecheck) {
+                            typecheckDefinition(typechecking, definition, progress)
+                        }
+                    } else {
+                        for (definition in definitionsToTypecheck) {
+                            visitDefinition(definition, progress)
+                        }
                     }
-                    definitionsToTypecheck.clear()
-                }
-
-                for (definition in definitionsToTypecheck) {
-                    typecheckDefinition(typechecking, definition, progress)
-                }
-
-                val daemon = DaemonCodeAnalyzerEx.getInstanceEx(myProject)
-                daemon.restart(file) // To update line markers
-                if (!progress.isCanceled) {
-                    for (passId in ignoredPassIds) {
-                        daemon.fileStatusMap.markFileUpToDate(document, passId)
+                } else {
+                    for (definition in definitionsToTypecheck) {
+                        typecheckDefinition(typechecking, definition, progress)
                     }
                 }
             }
@@ -131,17 +126,6 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             true
         } else false
 
-    override fun numberOfDefinitions(group: Group): Int =
-        when (ArendOptions.instance.typecheckingMode) {
-            ArendOptions.TypecheckingMode.OFF -> 0
-            ArendOptions.TypecheckingMode.SMART -> {
-                val def = file.lastModifiedDefinition
-                if (def != null) {
-                    if (countDefinition(def)) 1 else 0
-                } else {
-                    super.numberOfDefinitions(group)
-                }
-            }
-            ArendOptions.TypecheckingMode.DUMB -> super.numberOfDefinitions(group)
-        }
+    override fun numberOfDefinitions(group: Group) =
+        if (ArendOptions.instance.typecheckingMode == ArendOptions.TypecheckingMode.OFF) 0 else super.numberOfDefinitions(group)
 }
