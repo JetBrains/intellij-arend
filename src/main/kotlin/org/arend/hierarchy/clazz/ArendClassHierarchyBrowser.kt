@@ -17,9 +17,9 @@ import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
-import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
+import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.JPanel
 import javax.swing.JTree
@@ -52,10 +52,10 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     override fun changeView(typeName: String) {
         if (isFirstChangeViewCall) {
-            super.changeView(service<ArendOptions>().hierarchyViewType)
+            super.changeView(myProject.service<ArendProjectSettings>().hierarchyViewType)
             isFirstChangeViewCall = false
         } else {
-            service<ArendOptions>().hierarchyViewType = typeName
+            myProject.service<ArendProjectSettings>().hierarchyViewType = typeName
             super.changeView(typeName)
         }
     }
@@ -138,20 +138,20 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
-        override fun isSelected(e: AnActionEvent) = service<ArendOptions>().showImplFields
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            service<ArendOptions>().showImplFields = state
+            myProject.service<ArendProjectSettings>().showImplFields = state
             doRefresh(false)
         }
     }
 
     inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
-        override fun isSelected(e: AnActionEvent) = service<ArendOptions>().showNonImplFields
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showNonImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            service<ArendOptions>().showNonImplFields = state
+            myProject.service<ArendProjectSettings>().showNonImplFields = state
             doRefresh(false)
         }
     }

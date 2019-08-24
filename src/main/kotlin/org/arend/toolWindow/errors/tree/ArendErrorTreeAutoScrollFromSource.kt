@@ -13,9 +13,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.AutoScrollFromSourceHandler
 import com.intellij.util.Processor
-import org.arend.editor.ArendOptions
 import org.arend.highlight.BasePass
 import org.arend.psi.ArendFile
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.error.ErrorService
 
 
@@ -70,8 +70,8 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
     }
 
     override fun setAutoScrollEnabled(enabled: Boolean) {
-        service<ArendOptions>().autoScrollFromSource = enabled
+        project.service<ArendProjectSettings>().autoScrollFromSource = enabled
     }
 
-    override fun isAutoScrollEnabled() = service<ArendOptions>().autoScrollFromSource
+    override fun isAutoScrollEnabled() = project.service<ArendProjectSettings>().autoScrollFromSource
 }

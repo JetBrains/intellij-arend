@@ -6,9 +6,9 @@ import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
+import org.arend.settings.ArendProjectSettings
 
 class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
@@ -18,10 +18,10 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
-            if (service<ArendOptions>().showImplFields) {
+            if (project.service<ArendProjectSettings>().showImplFields) {
                 classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
             }
-            if (service<ArendOptions>().showNonImplFields) {
+            if (project.service<ArendProjectSettings>().showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
                     getAllFields(classElement, true).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
                 } else {

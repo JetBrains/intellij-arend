@@ -13,7 +13,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.arend.editor.ArendOptions
+import org.arend.settings.ArendSettings
 import org.arend.error.ErrorReporter
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
@@ -39,7 +39,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     override fun setUp() {
         super.setUp()
 
-        service<ArendOptions>().typecheckingMode = ArendOptions.TypecheckingMode.DUMB
+        service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.DUMB
 
         val module = module
         val service = module.project.service<TypeCheckingService>()

@@ -245,9 +245,12 @@
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
+        <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
+
+        <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
+
         <!-- Configuration Options -->
 
-        <applicationService serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>

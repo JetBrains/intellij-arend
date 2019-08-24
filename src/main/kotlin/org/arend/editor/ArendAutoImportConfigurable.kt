@@ -5,20 +5,21 @@ import com.intellij.openapi.components.service
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.panel
+import org.arend.settings.ArendSettings
 import javax.swing.JComponent
 
 class ArendAutoImportConfigurable : AutoImportOptionsProvider {
-    private val arendOptions = service<ArendOptions>()
+    private val arendSettings = service<ArendSettings>()
     private var checkBox: JBCheckBox? = null
 
-    override fun isModified() = checkBox?.isSelected != arendOptions.autoImportOnTheFly
+    override fun isModified() = checkBox?.isSelected != arendSettings.autoImportOnTheFly
 
     override fun apply() {
-        arendOptions.autoImportOnTheFly = checkBox?.isSelected ?: return
+        arendSettings.autoImportOnTheFly = checkBox?.isSelected ?: return
     }
 
     override fun reset() {
-        checkBox?.isSelected = arendOptions.autoImportOnTheFly
+        checkBox?.isSelected = arendSettings.autoImportOnTheFly
     }
 
     override fun createComponent(): JComponent? {

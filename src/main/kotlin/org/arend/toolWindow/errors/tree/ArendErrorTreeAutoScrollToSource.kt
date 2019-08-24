@@ -1,20 +1,21 @@
 package org.arend.toolWindow.errors.tree
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
 import com.intellij.ui.AutoScrollToSourceHandler
-import org.arend.editor.ArendOptions
+import org.arend.settings.ArendProjectSettings
 import java.awt.Component
 
 
-class ArendErrorTreeAutoScrollToSource(private val tree: ArendErrorTree) : AutoScrollToSourceHandler() {
+class ArendErrorTreeAutoScrollToSource(private val project: Project, private val tree: ArendErrorTree) : AutoScrollToSourceHandler() {
     init {
         install(tree)
     }
 
-    override fun isAutoScrollMode() = service<ArendOptions>().autoScrollToSource
+    override fun isAutoScrollMode() = project.service<ArendProjectSettings>().autoScrollToSource
 
     override fun setAutoScrollMode(state: Boolean) {
-        service<ArendOptions>().autoScrollToSource = state
+        project.service<ArendProjectSettings>().autoScrollToSource = state
     }
 
     override fun scrollToSource(component: Component?) {

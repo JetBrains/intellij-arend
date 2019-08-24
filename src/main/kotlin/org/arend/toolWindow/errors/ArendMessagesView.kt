@@ -64,7 +64,7 @@ class ArendMessagesView(private val project: Project) {
         actionGroup.add(actionManager.createExpandAllAction(treeExpander, tree))
         actionGroup.add(actionManager.createCollapseAllAction(treeExpander, tree))
         actionGroup.addSeparator()
-        actionGroup.add(ArendErrorTreeAutoScrollToSource(tree).createToggleAction())
+        actionGroup.add(ArendErrorTreeAutoScrollToSource(project, tree).createToggleAction())
         actionGroup.add(ArendErrorTreeAutoScrollFromSource(project, tree).createToggleAction())
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
