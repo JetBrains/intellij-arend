@@ -41,11 +41,15 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     fun navigate(focus: Boolean) =
         ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { BasePass.getImprovedCause(it) }?.navigate(focus)
 
-    fun select(error: GeneralError): Boolean {
+    fun select(error: GeneralError) = selectNode(error)
+
+    fun selectFirst() = selectNode(null)
+
+    private fun selectNode(error: GeneralError?): Boolean {
         val root = model.root as? DefaultMutableTreeNode ?: return false
         var node: DefaultMutableTreeNode? = null
         for (any in root.depthFirstEnumeration()) {
-            if (any is DefaultMutableTreeNode && any.userObject == error) {
+            if (any is DefaultMutableTreeNode && (error != null && any.userObject == error || error == null && any.userObject is GeneralError)) {
                 node = any
                 break
             }
@@ -110,8 +114,8 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             val child = node.getChildAt(i)
             if (!children.contains((child as? DefaultMutableTreeNode)?.userObject)) {
                 node.remove(i)
+                notifyRemoval(child)
             }
-            notifyRemoval(child)
             i--
         }
 

@@ -62,6 +62,9 @@ class ErrorService : ErrorReporter {
             return result
         }
 
+    val hasErrors: Boolean
+        get() = nameResolverErrors.isNotEmpty() || typecheckingErrors.isNotEmpty()
+
     fun getErrors(file: ArendFile) =
         (nameResolverErrors[file] ?: emptyList<ArendError>()) + (typecheckingErrors[file] ?: emptyList())
 

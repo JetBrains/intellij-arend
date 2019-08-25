@@ -4,6 +4,7 @@ import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -23,6 +24,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -34,17 +36,32 @@ import kotlin.collections.HashSet
 
 class ArendMessagesView(private val project: Project) : ArendErrorTreeListener, TreeSelectionListener {
     companion object {
-        fun activate(project: Project, action: () -> Unit) {
-            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate(action)
+        private var activated = false
+
+        fun activate(project: Project) {
+            if (!activated) {
+                runInEdt {
+                    ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate({
+                        val view = project.service<ArendMessagesView>()
+                        val tree = view.tree
+                        if (tree != null) {
+                            view.update()
+                            tree.selectFirst()
+                        }
+                    }, false, false)
+                }
+                activated = true
+            }
         }
     }
 
     private var root: DefaultMutableTreeNode? = null
     private var treeModel: DefaultTreeModel? = null
-    var splitter: JBSplitter? = null
+    private var splitter: JBSplitter? = null
+    private var emptyPanel: JComponent? = null
+    private var activeEditor: PidginArendEditor? = null
     var tree: ArendErrorTree? = null
     var toolWindow: ToolWindow? = null
-    var currentEditor: PidginArendEditor? = null
 
     private val errorEditors = HashMap<GeneralError, PidginArendEditor>()
 
@@ -88,7 +105,8 @@ class ArendMessagesView(private val project: Project) : ArendErrorTreeListener, 
             row { toolbar.component() }
             row { JBScrollPane(tree)() }
         }
-        splitter.secondComponent = JPanel()
+        this.emptyPanel = JPanel()
+        splitter.secondComponent = emptyPanel
 
         tree.addTreeSelectionListener(this)
 
@@ -99,29 +117,39 @@ class ArendMessagesView(private val project: Project) : ArendErrorTreeListener, 
     override fun valueChanged(e: TreeSelectionEvent?) {
         ((tree?.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
             val arendEditor = errorEditors.computeIfAbsent(error) { PidginArendEditor(DocStringBuilder.build(error.getDoc(PrettyPrinterConfig.DEFAULT)), project) }
-            currentEditor = arendEditor
+            activeEditor = arendEditor
             splitter?.secondComponent = arendEditor.editor.component
         }
     }
 
     override fun errorRemoved(error: GeneralError) {
-        if (errorEditors.remove(error) == currentEditor && currentEditor != null) {
-            splitter?.secondComponent = JPanel()
-            currentEditor?.release()
-            currentEditor = null
+        val removed = errorEditors.remove(error) ?: return
+        if (removed == activeEditor) {
+            splitter?.secondComponent = emptyPanel
+            activeEditor = null
         }
+        removed.release()
     }
 
     fun update() {
-        val tree = tree ?: return
+        val errorService = project.service<ErrorService>()
+        val tree = tree
+        if (tree == null) {
+            if (errorService.hasErrors) {
+                activate(project)
+            }
+            return
+        }
+
         val expandedPaths = TreeUtil.collectExpandedPaths(tree)
+        val selectedPath = tree.selectionPath
 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet.clone()
         if (filterSet.contains(GeneralError.Level.WARNING)) {
             filterSet.add(GeneralError.Level.WEAK_WARNING)
         }
 
-        val errorsMap = project.service<ErrorService>().errors
+        val errorsMap = errorService.errors
         val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
         tree.update(root ?: return) {
             if (it == root) errorsMap.keys
@@ -151,5 +179,6 @@ class ArendMessagesView(private val project: Project) : ArendErrorTreeListener, 
 
         treeModel?.reload()
         TreeUtil.restoreExpandedPaths(tree, expandedPaths)
+        tree.selectionPath = selectedPath
     }
 }

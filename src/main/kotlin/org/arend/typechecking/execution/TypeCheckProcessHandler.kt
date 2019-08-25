@@ -3,7 +3,6 @@ package org.arend.typechecking.execution
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -32,7 +31,6 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.term.prettyprint.PrettyPrinterConfig
-import org.arend.toolWindow.errors.ArendMessagesView
 import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
@@ -198,9 +196,6 @@ class TypeCheckProcessHandler(
                 typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
                 ApplicationManager.getApplication().executeOnPooledThread {
                     destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
-                }
-                runInEdt {
-                    ArendMessagesView.activate(typeCheckerService.project) {}
                 }
             }
         }
