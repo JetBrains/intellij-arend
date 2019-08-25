@@ -19,7 +19,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
+class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErrorTreeListener? = null) : Tree(treeModel) {
     init {
         isRootVisible = false
         emptyText.text = "No errors"
@@ -82,6 +82,9 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         val index = TreeUtil.indexedBinarySearch(parent, child, comparator)
         return if (index < 0) {
             (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index + 1))
+            ((child as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let {
+                listener?.errorAdded(it)
+            }
             child
         } else {
             @Suppress("UNCHECKED_CAST")
@@ -89,13 +92,26 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         }
     }
 
+    private fun notifyRemoval(node: TreeNode) {
+        ((node as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let {
+            listener?.errorRemoved(it)
+        }
+        for (child in node.children()) {
+            if (child is TreeNode) {
+                notifyRemoval(child)
+            }
+        }
+    }
+
     fun update(node: DefaultMutableTreeNode, childrenFunc: (DefaultMutableTreeNode) -> Set<Any?>) {
         val children = childrenFunc(node)
         var i = node.childCount - 1
         while (i >= 0) {
-            if (!children.contains((node.getChildAt(i) as? DefaultMutableTreeNode)?.userObject)) {
+            val child = node.getChildAt(i)
+            if (!children.contains((child as? DefaultMutableTreeNode)?.userObject)) {
                 node.remove(i)
             }
+            notifyRemoval(child)
             i--
         }
 

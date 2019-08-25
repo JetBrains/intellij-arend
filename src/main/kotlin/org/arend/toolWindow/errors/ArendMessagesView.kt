@@ -14,23 +14,25 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
+import org.arend.editor.PidginArendEditor
 import org.arend.error.GeneralError
+import org.arend.error.doc.DocStringBuilder
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
-import java.util.*
-import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.event.TreeSelectionEvent
+import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 
-class ArendMessagesView(private val project: Project) {
+class ArendMessagesView(private val project: Project) : ArendErrorTreeListener, TreeSelectionListener {
     companion object {
         fun activate(project: Project, action: () -> Unit) {
             ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate(action)
@@ -39,15 +41,17 @@ class ArendMessagesView(private val project: Project) {
 
     private var root: DefaultMutableTreeNode? = null
     private var treeModel: DefaultTreeModel? = null
+    var splitter: JBSplitter? = null
     var tree: ArendErrorTree? = null
     var toolWindow: ToolWindow? = null
+    var currentEditor: PidginArendEditor? = null
 
-    private val errorMap = WeakHashMap<GeneralError, JComponent>()
+    private val errorEditors = HashMap<GeneralError, PidginArendEditor>()
 
     private fun createTree(): ArendErrorTree {
         val root = DefaultMutableTreeNode("Errors")
         val treeModel = DefaultTreeModel(root)
-        val tree = ArendErrorTree(treeModel)
+        val tree = ArendErrorTree(treeModel, this)
         tree.cellRenderer = ArendErrorTreeCellRenderer(tree)
 
         this.treeModel = treeModel
@@ -57,7 +61,9 @@ class ArendMessagesView(private val project: Project) {
     }
 
     fun initView(toolWindow: ToolWindow): JBSplitter {
+        this.toolWindow = toolWindow
         val splitter = JBSplitter(false, 0.25f)
+        this.splitter = splitter
         val tree = createTree()
 
         toolWindow.icon = ArendIcons.MESSAGES
@@ -84,15 +90,26 @@ class ArendMessagesView(private val project: Project) {
         }
         splitter.secondComponent = JPanel()
 
-        tree.addTreeSelectionListener {
-            ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
-                splitter.secondComponent = errorMap.computeIfAbsent(error) { JBScrollPane(error.getDoc(PrettyPrinterConfig.DEFAULT).accept(JDocBuilder(project), null)) }
-            }
-        }
+        tree.addTreeSelectionListener(this)
 
-        this.toolWindow = toolWindow
         update()
         return splitter
+    }
+
+    override fun valueChanged(e: TreeSelectionEvent?) {
+        ((tree?.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
+            val arendEditor = errorEditors.computeIfAbsent(error) { PidginArendEditor(DocStringBuilder.build(error.getDoc(PrettyPrinterConfig.DEFAULT)), project) }
+            currentEditor = arendEditor
+            splitter?.secondComponent = arendEditor.editor.component
+        }
+    }
+
+    override fun errorRemoved(error: GeneralError) {
+        if (errorEditors.remove(error) == currentEditor && currentEditor != null) {
+            splitter?.secondComponent = JPanel()
+            currentEditor?.release()
+            currentEditor = null
+        }
     }
 
     fun update() {
