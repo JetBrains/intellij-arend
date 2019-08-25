@@ -90,7 +90,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
             val arendEditor = errorEditors.computeIfAbsent(error) { PidginArendEditor(DocStringBuilder.build(error.getDoc(PrettyPrinterConfig.DEFAULT)), project) }
             activeEditor = arendEditor
-            splitter.secondComponent = arendEditor.editor.component
+            splitter.secondComponent = arendEditor.component ?: emptyPanel
         }
     }
 
