@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
-import org.arend.toolWindow.errors.ArendMessagesView
+import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
 
 class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor)
@@ -25,6 +25,6 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
         myProject.service<ErrorService>().updateTypecheckingErrors(file, null)
-        myProject.service<ArendMessagesView>().update()
+        myProject.service<ArendMessagesService>().update()
     }
 }

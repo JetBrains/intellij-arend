@@ -235,7 +235,7 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
-        <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesView"/>
+        <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesService"/>
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 

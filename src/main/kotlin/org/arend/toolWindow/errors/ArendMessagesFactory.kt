@@ -9,7 +9,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 
 class ArendMessagesFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        ServiceManager.getService(project, ArendMessagesView::class.java).initView(toolWindow)
+        ServiceManager.getService(project, ArendMessagesService::class.java).initView(toolWindow)
     }
 
     override fun isDoNotActivateOnStart() = true

@@ -26,6 +26,6 @@ class ArendMessagesFilterAction(private val project: Project, private val level:
         } else {
             filterSet.remove(level)
         }
-        project.service<ArendMessagesView>().update()
+        project.service<ArendMessagesService>().update()
     }
 }
