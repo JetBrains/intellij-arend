@@ -6,6 +6,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBScrollPane
@@ -28,7 +30,7 @@ import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
-class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener, TreeSelectionListener {
+class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener, TreeSelectionListener, ProjectManagerListener {
     private val root = DefaultMutableTreeNode("Errors")
     private val treeModel = DefaultTreeModel(root)
     val tree = ArendErrorTree(treeModel, this)
@@ -40,6 +42,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val errorEditors = HashMap<GeneralError, PidginArendEditor>()
 
     init {
+        ProjectManager.getInstance().addProjectManagerListener(project, this)
+
         toolWindow.icon = ArendIcons.MESSAGES
         toolWindow.contentManager.addContent(ContentFactory.SERVICE.getInstance().createContent(splitter, "", false))
 
@@ -68,6 +72,18 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         splitter.secondComponent = emptyPanel
 
         update()
+    }
+
+    override fun projectClosing(project: Project) {
+        if (project == this.project) {
+            splitter.secondComponent = emptyPanel
+            activeEditor = null
+            root.removeAllChildren()
+            for (arendEditor in errorEditors.values) {
+                arendEditor.release()
+            }
+            errorEditors.clear()
+        }
     }
 
     override fun valueChanged(e: TreeSelectionEvent?) {
@@ -126,6 +142,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         treeModel.reload()
         TreeUtil.restoreExpandedPaths(tree, expandedPaths)
-        tree.selectionPath = selectedPath
+        tree.selectionPath = tree.getExistingPrefix(selectedPath)
     }
 }

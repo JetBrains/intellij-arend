@@ -34,8 +34,10 @@ class BinaryFileSaver(private val project: Project) {
         })
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
-            override fun projectClosing(project: Project) {
-                saveAll()
+            override fun projectClosing(closedProject: Project) {
+                if (closedProject == project) {
+                    saveAll()
+                }
             }
         })
     }

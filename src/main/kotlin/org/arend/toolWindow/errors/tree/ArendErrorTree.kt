@@ -74,6 +74,19 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         (accessibleContext as? AccessibleJTree)?.fireVisibleDataPropertyChange()
     }
 
+    fun getExistingPrefix(path: TreePath?): TreePath? {
+        var lastCorrect = path
+        var currentPath = path
+        while (currentPath != null) {
+            val parent = currentPath.parentPath
+            if (parent != null && (currentPath.lastPathComponent as? TreeNode)?.parent == null) {
+                lastCorrect = parent
+            }
+            currentPath = parent
+        }
+        return lastCorrect
+    }
+
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
             is ArendFile -> obj.modulePath?.toString() ?: obj.name
