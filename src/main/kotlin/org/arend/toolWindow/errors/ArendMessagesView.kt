@@ -18,11 +18,16 @@ import org.arend.error.GeneralError
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
+import java.util.*
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 
 class ArendMessagesView(private val project: Project) {
@@ -36,6 +41,8 @@ class ArendMessagesView(private val project: Project) {
     private var treeModel: DefaultTreeModel? = null
     var tree: ArendErrorTree? = null
     var toolWindow: ToolWindow? = null
+
+    private val errorMap = WeakHashMap<GeneralError, JComponent>()
 
     private fun createTree(): ArendErrorTree {
         val root = DefaultMutableTreeNode("Errors")
@@ -76,6 +83,12 @@ class ArendMessagesView(private val project: Project) {
             row { JBScrollPane(tree)() }
         }
         splitter.secondComponent = JPanel()
+
+        tree.addTreeSelectionListener {
+            ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
+                splitter.secondComponent = errorMap.computeIfAbsent(error) { JBScrollPane(error.getDoc(PrettyPrinterConfig.DEFAULT).accept(JDocBuilder(project), null)) }
+            }
+        }
 
         this.toolWindow = toolWindow
         update()
