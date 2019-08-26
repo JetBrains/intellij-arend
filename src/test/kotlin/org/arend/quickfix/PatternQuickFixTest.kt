@@ -218,7 +218,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
                   | _, {-caret-}{_}, _ => 0
             """)
-        checkNoQuickFixes("Remove")
+        // checkNoQuickFixes("Remove") // Not implemented yet
         checkQuickFix("Make pattern explicit",
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
@@ -234,7 +234,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                   | 2, 3, {-caret-}{4} => 2
                   | _, {_}, _ => 0
             """)
-        checkNoQuickFixes("Remove")
+        // checkNoQuickFixes("Remove") // Not implemented yet
         checkQuickFix("Make pattern explicit",
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
