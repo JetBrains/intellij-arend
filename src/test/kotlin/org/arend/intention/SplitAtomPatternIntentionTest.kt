@@ -3,7 +3,7 @@ package org.arend.intention
 import org.arend.quickfix.QuickFixTestBase
 
 class SplitAtomPatternIntentionTest: QuickFixTestBase() {
-    fun testBasicSplit() = typedQuickFixTest("Split", """"
+    fun testBasicSplit() = typedQuickFixTest("Split", """
        \func isLessThan2 (a : Nat) : Nat
          | 0 => 1
          | suc _{-caret-} => 1        
@@ -11,7 +11,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func isLessThan2 (a : Nat) : Bool
          | 0 => 1
          | suc zero => 1
-         | suc (suc _) => {?} 
+         | suc (suc _) => 1 
     """)
 
     fun testNoSplitInConstructor() = typedCheckNoQuickFixes("Split", """
