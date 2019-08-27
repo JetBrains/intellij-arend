@@ -15,9 +15,10 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
-import org.arend.editor.PidginArendEditor
 import org.arend.error.GeneralError
-import org.arend.error.doc.DocStringBuilder
+import org.arend.error.doc.DocFactory
+import org.arend.injection.CollectingDocStringBuilder
+import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
@@ -37,9 +38,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val splitter = JBSplitter(false, 0.25f)
     private val emptyPanel = JPanel()
-    private var activeEditor: PidginArendEditor? = null
+    private var activeEditor: InjectedArendEditor? = null
 
-    private val errorEditors = HashMap<GeneralError, PidginArendEditor>()
+    private val errorEditors = HashMap<GeneralError, InjectedArendEditor>()
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -88,7 +89,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     override fun valueChanged(e: TreeSelectionEvent?) {
         ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
-            val arendEditor = errorEditors.computeIfAbsent(error) { PidginArendEditor(DocStringBuilder.build(error.getDoc(PrettyPrinterConfig.DEFAULT)), project) }
+            val arendEditor = errorEditors.computeIfAbsent(error) {
+                val builder = StringBuilder()
+                val visitor = CollectingDocStringBuilder(builder)
+                val ppConfig = PrettyPrinterConfig.DEFAULT
+                DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
+                InjectedArendEditor(builder.toString(), visitor.textRanges, project)
+            }
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
         }

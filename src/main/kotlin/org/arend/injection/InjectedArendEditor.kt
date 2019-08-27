@@ -1,18 +1,20 @@
-package org.arend.editor
+package org.arend.injection
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
-import org.arend.ArendLanguage
+import org.arend.InjectionTextLanguage
 import javax.swing.JComponent
 
-class PidginArendEditor(text: CharSequence, project: Project) {
+class InjectedArendEditor(text: CharSequence, textRanges: List<List<TextRange>>, project: Project) {
     private val editor: Editor?
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText("Dummy.ard", ArendLanguage.INSTANCE, text)
+        val psi = PsiFileFactory.getInstance(project).createFileFromText("Dummy.itxt", InjectionTextLanguage.INSTANCE, text)
+        (psi as? PsiInjectionTextFile)?.injectionRanges = textRanges
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let {

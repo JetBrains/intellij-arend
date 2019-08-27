@@ -13,7 +13,7 @@ class ArendMessagesService(private val project: Project) {
 
     private fun activate(project: Project) {
         runInEdt {
-            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors").activate({
+            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors")?.activate({
                 val service = project.service<ArendMessagesService>()
                 val view = service.view
                 if (view != null) {

@@ -61,8 +61,14 @@
 
         <!-- Parser -->
 
-        <lang.parserDefinition language="Arend"
-                               implementationClass="org.arend.parser.ArendParserDefinition"/>
+        <lang.parserDefinition language="Arend" implementationClass="org.arend.parser.ArendParserDefinition"/>
+
+        <!-- Injection -->
+
+        <fileType language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextFileType" name="INJECTION_TEXT" extensions="itxt" />
+        <lang.parserDefinition language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextParserDefinition"/>
+        <lang.ast.factory language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextASTFactory"/>
+        <multiHostInjector implementation="org.arend.injection.ArendLanguageInjector"/>
 
         <!-- Name Validator -->
 
