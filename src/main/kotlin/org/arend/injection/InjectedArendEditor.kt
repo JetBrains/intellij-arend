@@ -13,12 +13,13 @@ class InjectedArendEditor(text: CharSequence, textRanges: List<List<TextRange>>,
     private val editor: Editor?
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText("Dummy.itxt", InjectionTextLanguage.INSTANCE, text)
+        val psi = PsiFileFactory.getInstance(project).createFileFromText("Dummy.ard", InjectionTextLanguage.INSTANCE, text)
         (psi as? PsiInjectionTextFile)?.injectionRanges = textRanges
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
+            virtualFile.isWritable = false
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let {
-                EditorFactory.getInstance().createEditor(it, project, virtualFile, true)
+                EditorFactory.getInstance().createEditor(it, project, virtualFile, false)
             }
         } else null
     }
