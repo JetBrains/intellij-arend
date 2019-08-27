@@ -17,7 +17,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
@@ -32,6 +31,7 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
+import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.RemoveAsPatternQuickFix
 import org.arend.quickfix.removers.RemoveClauseQuickFix
 import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
@@ -183,13 +183,23 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
-                    null -> null
+                    MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
+                    else -> null
                 }
                 is TypecheckingError -> when (error.kind) {
                     LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
+                    TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
+                    CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseKw
+                    PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
+                    LEMMA_LEVEL -> if (element is ArendDefFunction) element.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
                 is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
+                is AnotherClassifyingFieldError ->
+                    (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
+                        (it.parent as? ArendFieldTele)?.classifyingKw ?: it
+                    }
+                is ImplicitLambdaError -> error.parameter.underlyingReferable as? PsiElement
                 else -> null
             }
 
