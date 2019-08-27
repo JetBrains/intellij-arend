@@ -59,6 +59,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2.statCmd == null)) oneCrlf else oneBlankLine)
             else if (psi1 is ArendStatement && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
+            if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
+
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||

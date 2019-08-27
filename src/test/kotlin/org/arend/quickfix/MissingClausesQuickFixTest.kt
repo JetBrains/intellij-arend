@@ -234,4 +234,32 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | -2 => {?}
           | neg (suc (suc (suc (suc _)))) => {?}    
         """)
+
+    fun testEmpty1() = typedQuickFixTest("Implement",
+            """
+                \func foo{-caret-} (x : Nat) : Nat
+            """, """
+                \func foo (x : Nat) : Nat
+                  | 0 => {?}
+                  | suc _ => {?}
+            """)
+
+    fun testEmpty2() = typedQuickFixTest("Implement",
+            """
+                \func foo (x : Nat) : Nat => \case x {-caret-}\with {  }
+            """, """
+                \func foo (x : Nat) : Nat => \case x \with {
+                  | 0 => {?}
+                  | suc _ => {?}
+                }
+            """)
+
+    fun testEmpty3() = typedQuickFixTest("Implement",
+            """
+                \func foo{-caret-} (x : Nat) : Nat \elim x
+            """, """
+                \func foo (x : Nat) : Nat \elim x
+                  | 0 => {?}
+                  | suc _ => {?}
+            """)
 }

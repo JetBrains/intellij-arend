@@ -56,6 +56,11 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
+    fun createFunctionClauses(): ArendFunctionClauses {
+        val code = "\\func foo (a : Nat) : Nat\n  | 0 => {?}"
+        return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
+    }
+
     fun createAtomPattern(expr: String): ArendAtomPatternOrPrefix {
         val code = "\\func foo (n : Nat) => \\case n \\with { | suc $expr => {?} }"
         return createFromText(code)?.childOfType() ?: error("Failed to create atom pattern/prefix: `$code`")
