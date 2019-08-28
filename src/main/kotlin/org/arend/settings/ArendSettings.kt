@@ -31,6 +31,13 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
     var withTimeLimit = true
     var typecheckingTimeLimit = 5
 
+    // Other settings
+    var withClauseLimit = true
+    var clauseLimit = 10
+
+    val clauseActualLimit: Int?
+        get() = if (withClauseLimit) clauseLimit else null
+
     override fun getState() = this
 
     override fun loadState(state: ArendSettings) {

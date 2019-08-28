@@ -9,10 +9,10 @@ import org.arend.term.abs.AbstractExpressionVisitor
 
 
 private fun <P : Any?, R : Any?> acceptSet(data: ArendCompositeElement, setElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
+    visitor.visitUniverse(data, setElem.text.substring("\\Set".length).toIntOrNull(), 0, pLevel, null, if (visitor.visitErrors()) getErrorData(data) else null, params)
 
 private fun <P : Any?, R : Any?> acceptUniverse(data: ArendCompositeElement, universeElem: PsiElement, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
+    visitor.visitUniverse(data, universeElem.text.substring("\\Type".length).toIntOrNull(), null, pLevel, hLevel, if (visitor.visitErrors()) getErrorData(data) else null, params)
 
 private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val uniText = truncatedElem.text
@@ -23,23 +23,25 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, tr
         else                             -> null
     }
     val pLevelNum = if (hLevelNum != null) uniText.substring(index + "-Type".length).toIntOrNull() else null
-    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(data) else null, params)
+    return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, if (visitor.visitErrors()) getErrorData(data) else null, params)
 }
 
 
 abstract class ArendSetUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendSetUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptSet(this, set, atomLevelExpr, visitor, params)
+        acceptSet(this, set, maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
 }
 
 abstract class ArendTruncatedUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendTruncatedUniverseAppExpr {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptTruncated(this, truncatedUniverse, atomLevelExpr, visitor, params)
+        acceptTruncated(this, truncatedUniverse, maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
 }
 
 abstract class ArendUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendUniverseAppExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptUniverse(this, universe, atomLevelExprList.getOrNull(0), atomLevelExprList.getOrNull(1), visitor, params)
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
+        val list = maybeAtomLevelExprList
+        return acceptUniverse(this, universe, list.getOrNull(0)?.atomLevelExpr, list.getOrNull(1)?.atomLevelExpr, visitor, params)
+    }
 }
 
 abstract class ArendUniverseAtomImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendUniverseAtom {

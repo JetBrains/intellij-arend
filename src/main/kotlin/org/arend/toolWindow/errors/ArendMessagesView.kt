@@ -22,9 +22,11 @@ import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
+import org.arend.settings.ArendSettings
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
+import org.arend.typechecking.error.local.MissingClausesError
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -90,6 +92,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) {
         ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
             val arendEditor = errorEditors.computeIfAbsent(error) {
+                configureError(error)
                 val builder = StringBuilder()
                 val visitor = CollectingDocStringBuilder(builder)
                 val ppConfig = PrettyPrinterConfig.DEFAULT
@@ -98,6 +101,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
+        }
+    }
+
+    private fun configureError(error: GeneralError) {
+        if (error is MissingClausesError) {
+            error.setMaxListSize(service<ArendSettings>().clauseActualLimit)
         }
     }
 

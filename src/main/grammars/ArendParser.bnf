@@ -500,7 +500,13 @@ lamExpr ::= LAM_KW nameTele+ FAT_ARROW expr {
     mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
 
-letExpr ::= (LET_KW | LETS_KW) <<pipe_separated_sequence letClause>> IN_KW expr {
+private pipe_def_un ::= PIPE {
+    recoverWhile = def_un_recover
+}
+
+private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recover
+
+letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* IN_KW expr {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }
@@ -564,7 +570,7 @@ letClause ::= letClauseName FAT_ARROW expr {
 
 private letClauseName ::= defIdentifier_letClause nameTele* typeAnnotation? | letClausePattern { pin(".*") = 1 }
 
-letClausePattern ::= defIdentifier typeAnnotation? | LPAREN <<comma_separated_sequence letClausePattern>> RPAREN {
+letClausePattern ::= defIdentifier typeAnnotation? | LPAREN <<comma_separated_sequence letClausePattern>> RPAREN | UNDERSCORE {
     pin(".*") = 1
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LetClausePattern" ]
@@ -602,17 +608,17 @@ atomLevelExpr ::= LP_KW
     mixin = "org.arend.psi.ext.ArendAtomLevelExprImplMixin"
 }
 
-universeAppExpr ::= UNIVERSE [atomLevelExpr atomLevelExpr?] {
+universeAppExpr ::= UNIVERSE [maybeAtomLevelExpr maybeAtomLevelExpr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendUniverseAppExprImplMixin"
 }
 
-setUniverseAppExpr ::= SET atomLevelExpr? {
+setUniverseAppExpr ::= SET maybeAtomLevelExpr? {
     pin = 1
     mixin = "org.arend.psi.ext.ArendSetUniverseAppExprImplMixin"
 }
 
-truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE atomLevelExpr? {
+truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE maybeAtomLevelExpr? {
     pin = 1
     mixin = "org.arend.psi.ext.ArendTruncatedUniverseAppExprImplMixin"
 }
