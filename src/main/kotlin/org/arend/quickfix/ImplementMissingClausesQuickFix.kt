@@ -1,6 +1,7 @@
 package org.arend.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -9,7 +10,6 @@ import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
-import org.arend.typechecking.error.local.MissingClausesError
 import org.arend.core.pattern.Pattern
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
@@ -18,7 +18,9 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
+import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
+import org.arend.typechecking.error.local.MissingClausesError
 import org.arend.util.LongName
 import kotlin.math.abs
 
@@ -37,7 +39,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         val psiFactory = ArendPsiFactory(project)
         clauses.clear()
 
-        for (clause in missingClausesError.missingClauses.reversed()) if (clause != null) {
+        missingClausesError.setMaxListSize(service<ArendSettings>().clauseActualLimit)
+        for (clause in missingClausesError.limitedMissingClauses.reversed()) if (clause != null) {
             val filters = HashMap<ConstructorPattern, List<Boolean>>()
             val previewResults = ArrayList<Pair<PatternKind, List<Variable>>>()
             run {
