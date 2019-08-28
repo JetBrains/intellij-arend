@@ -1,16 +1,19 @@
 package org.arend.editor
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.Label
 import com.intellij.ui.layout.panel
+import org.arend.settings.ArendSettings
 import javax.swing.JComponent
 
 
 class ArendConfigurable : SearchableConfigurable {
-    private var typecheckingMode: ComboBox<ArendOptions.TypecheckingMode>? = null
+    private val arendOption = service<ArendSettings>()
+    private var typecheckingMode: ComboBox<ArendSettings.TypecheckingMode>? = null
     private var timeLimitSwitch: JBCheckBox? = null
     private var timeLimit: JBIntSpinner? = null
 
@@ -19,28 +22,28 @@ class ArendConfigurable : SearchableConfigurable {
     override fun getDisplayName() = "Arend"
 
     override fun isModified() =
-        typecheckingMode?.selectedItem != ArendOptions.instance.typecheckingMode ||
-        timeLimitSwitch?.isSelected != ArendOptions.instance.withTimeLimit ||
-        timeLimit?.number != ArendOptions.instance.typecheckingTimeLimit
+        typecheckingMode?.selectedItem != arendOption.typecheckingMode ||
+        timeLimitSwitch?.isSelected != arendOption.withTimeLimit ||
+        timeLimit?.number != arendOption.typecheckingTimeLimit
 
     override fun apply() {
-        (typecheckingMode?.selectedItem as? ArendOptions.TypecheckingMode)?.let {
-            ArendOptions.instance.typecheckingMode = it
+        (typecheckingMode?.selectedItem as? ArendSettings.TypecheckingMode)?.let {
+            arendOption.typecheckingMode = it
         }
         timeLimitSwitch?.let {
-            ArendOptions.instance.withTimeLimit = it.isSelected
+            arendOption.withTimeLimit = it.isSelected
         }
         timeLimit?.let {
-            ArendOptions.instance.typecheckingTimeLimit = it.number
+            arendOption.typecheckingTimeLimit = it.number
         }
     }
 
     override fun reset() {
-        typecheckingMode?.selectedItem = ArendOptions.instance.typecheckingMode
-        timeLimitSwitch?.isSelected = ArendOptions.instance.withTimeLimit
-        timeLimit?.value = ArendOptions.instance.typecheckingTimeLimit
+        typecheckingMode?.selectedItem = arendOption.typecheckingMode
+        timeLimitSwitch?.isSelected = arendOption.withTimeLimit
+        timeLimit?.value = arendOption.typecheckingTimeLimit
 
-        if (typecheckingMode?.selectedItem != ArendOptions.TypecheckingMode.SMART) {
+        if (typecheckingMode?.selectedItem != ArendSettings.TypecheckingMode.SMART) {
             timeLimitSwitch?.isEnabled = false
             timeLimit?.isEnabled = false
         } else if (timeLimitSwitch?.isSelected != true) {
@@ -50,9 +53,9 @@ class ArendConfigurable : SearchableConfigurable {
 
     override fun createComponent(): JComponent? {
         val comboBox = ComboBox(arrayOf(
-            ArendOptions.TypecheckingMode.SMART,
-            ArendOptions.TypecheckingMode.DUMB,
-            ArendOptions.TypecheckingMode.OFF))
+            ArendSettings.TypecheckingMode.SMART,
+            ArendSettings.TypecheckingMode.DUMB,
+            ArendSettings.TypecheckingMode.OFF))
         comboBox.renderer = ToolTipListCellRenderer(listOf("Completely typecheck definitions", "Perform only basic checks", "Do not typecheck anything at all"))
         typecheckingMode = comboBox
 
@@ -64,8 +67,8 @@ class ArendConfigurable : SearchableConfigurable {
         checkBox.text = "Stop typechecking after "
 
         comboBox.addActionListener {
-            checkBox.isEnabled = comboBox.selectedItem == ArendOptions.TypecheckingMode.SMART
-            spinner.isEnabled = comboBox.selectedItem == ArendOptions.TypecheckingMode.SMART
+            checkBox.isEnabled = comboBox.selectedItem == ArendSettings.TypecheckingMode.SMART
+            spinner.isEnabled = comboBox.selectedItem == ArendSettings.TypecheckingMode.SMART
         }
         checkBox.addActionListener {
             spinner.isEnabled = checkBox.isSelected

@@ -4,12 +4,13 @@ import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.openapi.application.TransactionGuard
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.util.text.CharArrayCharSequence
-import org.arend.editor.ArendOptions
+import org.arend.settings.ArendSettings
 import org.arend.psi.ArendFile
 
 
@@ -24,8 +25,8 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (c != '-') {
             return Result.CONTINUE
         }
-        val style = ArendOptions.instance.matchingCommentStyle
-        if (style == ArendOptions.MatchingCommentStyle.DO_NOTHING || style == ArendOptions.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
+        val style = service<ArendSettings>().matchingCommentStyle
+        if (style == ArendSettings.MatchingCommentStyle.DO_NOTHING || style == ArendSettings.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
             return Result.CONTINUE
         }
 
@@ -35,7 +36,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
             val offset = editor.caretModel.offset
             val text = editor.document.charsSequence
             if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
-                if (style == ArendOptions.MatchingCommentStyle.INSERT_MINUS) {
+                if (style == ArendSettings.MatchingCommentStyle.INSERT_MINUS) {
                     editor.document.insertString(offset, CharArrayCharSequence('-'))
                 } else {
                     editor.document.deleteString(offset, offset + 1)

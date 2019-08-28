@@ -1,5 +1,7 @@
 package org.arend.psi
 
+import com.intellij.ide.util.EditSourceUtil
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
 import com.intellij.openapi.roots.LibraryOrderEntry
@@ -10,8 +12,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.findExternalLibrary
-import org.arend.mapFirstNotNull
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.module.scopeprovider.ModuleScopeProvider
@@ -20,6 +20,8 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.findExternalLibrary
+import org.arend.util.mapFirstNotNull
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
@@ -48,6 +50,13 @@ inline fun <reified T : PsiElement> PsiElement.leftSibling(): T? {
     return element as? T
 }
 
+fun PsiElement.navigate(requestFocus: Boolean = true) {
+    val descriptor = EditSourceUtil.getDescriptor(this)
+    if (descriptor?.canNavigate() == true) {
+        descriptor.navigate(requestFocus)
+    }
+}
+
 val PsiElement.module: Module?
     get() {
         val file = containingFile
@@ -72,7 +81,7 @@ val PsiElement.libraryConfig: LibraryConfig?
         }
         for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
             if (orderEntry is LibraryOrderEntry) {
-                val name = orderEntry.library?.let { TypeCheckingService.getInstance(project).getLibraryName(it) } ?: continue
+                val name = orderEntry.library?.let { project.service<TypeCheckingService>().getLibraryName(it) } ?: continue
                 val conf = project.findExternalLibrary(name)
                 if (conf != null) {
                     return conf
@@ -86,7 +95,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
         val containingFile = containingFile
         val config = containingFile.libraryConfig
-        val typecheckingService = TypeCheckingService.getInstance(containingFile.project)
+        val typecheckingService = containingFile.project.service<TypeCheckingService>()
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude
@@ -277,12 +286,12 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val project = child?.project ?: oldChild?.project ?: return
-    ArendPsiListenerService.getInstance(project).processEvent(child, oldChild, newChild, parent, additionOrRemoval)
+    project.service<ArendPsiListenerService>().processEvent(child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
     val project = parent.project
-    val tcService = ArendPsiListenerService.getInstance(project)
+    val tcService = project.service<ArendPsiListenerService>()
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {

@@ -1,7 +1,7 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
 import org.arend.error.ErrorReporter
@@ -20,11 +20,11 @@ open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeC
     : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
     companion object {
-        fun create(project: Project): SilentTypechecking {
-            val service = TypeCheckingService.getInstance(project)
-            val referableConverter = service.newReferableConverter(true)
-            val concreteProvider = PsiConcreteProvider(project, referableConverter, service, null, true)
-            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), service, concreteProvider, referableConverter, service, service.dependencyListener)
+        fun create(project: Project, errorReporter: ErrorReporter): SilentTypechecking {
+            val typecheckingService = project.service<TypeCheckingService>()
+            val referableConverter = typecheckingService.newReferableConverter(true)
+            val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
+            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckingService, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
         }
     }
 
@@ -32,7 +32,7 @@ open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeC
         if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
             runReadAction {
                 val file = ref.containingFile as? ArendFile ?: return@runReadAction
-                ServiceManager.getService(file.project, BinaryFileSaver::class.java).addToQueue(file, referableConverter)
+                file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
             }
         }
     }

@@ -1,4 +1,4 @@
-package org.arend
+package org.arend.util
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
@@ -11,7 +11,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ExternalLibraryConfig
-import org.arend.util.FileUtils
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Path
 import java.nio.file.Paths

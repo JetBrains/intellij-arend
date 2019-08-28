@@ -16,8 +16,7 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerUIActionsHandler
 import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.execution.ui.ConsoleView
-import com.intellij.openapi.util.Disposer
-import org.arend.typechecking.TypeCheckingService
+import com.intellij.openapi.components.service
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckProcessHandler
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -27,10 +26,7 @@ class TypeCheckRunState(
         private val command: TypeCheckCommand
 ) : CommandLineState(environment) {
 
-    override fun startProcess(): TypeCheckProcessHandler {
-        val service = TypeCheckingService.getInstance(environment.project)
-        return TypeCheckProcessHandler(service, command)
-    }
+    override fun startProcess() = TypeCheckProcessHandler(environment.project.service(), command)
 
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
         val processHandler = startProcess()

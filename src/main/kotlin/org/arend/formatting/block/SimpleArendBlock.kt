@@ -8,10 +8,10 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
-import org.arend.mapFirstNotNull
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import java.util.ArrayList
+import org.arend.util.mapFirstNotNull
+import java.util.*
 
 class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {

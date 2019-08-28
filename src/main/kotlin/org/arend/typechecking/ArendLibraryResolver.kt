@@ -2,11 +2,11 @@ package org.arend.typechecking
 
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import org.arend.findExternalLibrary
 import org.arend.library.Library
 import org.arend.library.resolver.LibraryResolver
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
+import org.arend.util.findExternalLibrary
 
 
 class ArendLibraryResolver(private val project: Project): LibraryResolver {

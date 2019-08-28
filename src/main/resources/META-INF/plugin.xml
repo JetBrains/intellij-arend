@@ -29,7 +29,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="192.3645"/>
+    <idea-version since-build="192.5118"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -61,8 +61,14 @@
 
         <!-- Parser -->
 
-        <lang.parserDefinition language="Arend"
-                               implementationClass="org.arend.parser.ArendParserDefinition"/>
+        <lang.parserDefinition language="Arend" implementationClass="org.arend.parser.ArendParserDefinition"/>
+
+        <!-- Injection -->
+
+        <fileType language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextFileType" name="INJECTION_TEXT" extensions="itxt" />
+        <lang.parserDefinition language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextParserDefinition"/>
+        <lang.ast.factory language="INJECTION_TEXT" implementationClass="org.arend.injection.InjectionTextASTFactory"/>
+        <multiHostInjector implementation="org.arend.injection.ArendLanguageInjector"/>
 
         <!-- Name Validator -->
 
@@ -240,19 +246,29 @@
         <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
                         serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesService"/>
+
+        <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
+
         <projectService serviceImplementation="org.arend.psi.listener.ArendPsiListenerService"/>
 
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
+        <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
+
+        <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
+
         <!-- Configuration Options -->
 
-        <applicationService serviceImplementation="org.arend.editor.ArendOptions"/>
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
-
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
+
+        <!-- Tool Windows -->
+
+        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
     </extensions>
 
     <project-components>

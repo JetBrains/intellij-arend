@@ -1,5 +1,6 @@
 package org.arend
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
@@ -12,7 +13,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.arend.editor.ArendOptions
+import org.arend.settings.ArendSettings
+import org.arend.error.ErrorReporter
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
@@ -20,6 +22,7 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.parentOfType
 import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
 
@@ -36,10 +39,10 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     override fun setUp() {
         super.setUp()
 
-        ArendOptions.instance.typecheckingMode = ArendOptions.TypecheckingMode.DUMB
+        service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.DUMB
 
         val module = module
-        val service = TypeCheckingService.getInstance(module.project)
+        val service = module.project.service<TypeCheckingService>()
         service.initialize()
         val library = ArendRawLibrary(module)
         service.libraryManager.unloadLibrary(library)
@@ -204,6 +207,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-        SilentTypechecking.create(project).typecheckModules(targetFiles, null)
+        SilentTypechecking.create(project, ErrorReporter { if (it.isTypecheckingError) project.service<ErrorService>().report(it) }).typecheckModules(targetFiles, null)
     }
 }

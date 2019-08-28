@@ -9,15 +9,12 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
@@ -32,23 +29,42 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
 import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
+import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.RemoveAsPatternQuickFix
 import org.arend.quickfix.removers.RemoveClauseQuickFix
 import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
 import org.arend.quickfix.removers.ReplaceWithWildcardPatternQuickFix
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.error.ArendError
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.*
 
-abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, private val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
+    private val errorList = ArrayList<GeneralError>()
 
     override fun getDocument(): Document = super.getDocument()!!
 
     override fun applyInformationWithProgress() {
+        val errorService = myProject.service<ErrorService>()
+
+        for (error in errorList) {
+            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
+            for (cause in list) {
+                val psi = getCauseElement(cause)
+                if (psi != null && psi.isValid) {
+                    if (error !is IncompleteExpressionError) {
+                        reportToEditor(error, psi)
+                    }
+                    errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
+                }
+            }
+        }
+
         val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
@@ -63,7 +79,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
-    fun report(error: GeneralError, cause: ArendCompositeElement) {
+    fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
         if (error is IncompleteExpressionError || file != cause.containingFile) {
             return
         }
@@ -147,17 +163,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     override fun report(error: GeneralError) {
-        if (error is IncompleteExpressionError) {
-            return
-        }
-
-        val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
-        for (cause in list) {
-            val psi = getCauseElement(cause)
-            if (psi != null && psi.isValid) {
-                report(error, psi)
-            }
-        }
+        errorList.add(error)
     }
 
     companion object {
@@ -183,13 +189,23 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
-                    null -> null
+                    MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
+                    else -> null
                 }
                 is TypecheckingError -> when (error.kind) {
                     LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
+                    TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
+                    CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseKw
+                    PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
+                    LEMMA_LEVEL -> if (element is ArendDefFunction) element.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
                 is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
+                is AnotherClassifyingFieldError ->
+                    (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
+                        (it.parent as? ArendFieldTele)?.classifyingKw ?: it
+                    }
+                is ImplicitLambdaError -> error.parameter.underlyingReferable as? PsiElement
                 else -> null
             }
 
@@ -200,7 +216,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         }
 
-        fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) }
+        fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) ?: it }
+
+        fun getImprovedTextRange(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedTextRange(error, it) }
 
         fun getImprovedTextRange(error: GeneralError?, element: ArendCompositeElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element

@@ -5,16 +5,17 @@ import com.intellij.find.findUsages.FindUsagesOptions
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
-import org.arend.editor.ArendOptions
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendLongName
+import org.arend.settings.ArendProjectSettings
 
-class ArendSubClassTreeStructure(val project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
+class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
     private fun getChildren(descriptor: HierarchyNodeDescriptor): Array<ArendHierarchyNodeDescriptor> {
         val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
@@ -22,12 +23,12 @@ class ArendSubClassTreeStructure(val project: Project, baseNode: PsiElement, pri
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
 
         subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
-        if (ArendOptions.instance.showImplFields) {
-            classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
+        if (myProject.service<ArendProjectSettings>().showImplFields) {
+            classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
         }
-        if (ArendOptions.instance.showNonimplFields) {
+        if (myProject.service<ArendProjectSettings>().showNonImplFields) {
             classElement.classFieldList.mapTo(result) {
-                ArendHierarchyNodeDescriptor(project, descriptor, it, false)
+                ArendHierarchyNodeDescriptor(myProject, descriptor, it, false)
             }
         }
         return result.toTypedArray()

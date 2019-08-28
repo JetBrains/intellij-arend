@@ -1,6 +1,7 @@
 package org.arend.resolving
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.error.ErrorReporter
 import org.arend.naming.error.ReferenceError
@@ -94,7 +95,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             if (referable is DataLocatedReferable) {
                 psiReferable = referable.fixPointer(project)
                 if (psiReferable == null) {
-                    runReadAction { TypeCheckingService.getInstance(project).updateDefinition(referable) }
+                    runReadAction { project.service<TypeCheckingService>().updateDefinition(referable) }
                     errorReporter.report(ReferenceError("Reference is invalid. Try to typecheck the definition again", referable))
                     return null
                 }

@@ -4,7 +4,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -56,7 +56,7 @@ class TypeCheckProcessHandler(
         val eventsProcessor = eventsProcessor ?: return
         ApplicationManager.getApplication().saveAll()
 
-        val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService, PrettyPrinterConfig.DEFAULT, eventsProcessor)
+        val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService.project.service(), PrettyPrinterConfig.DEFAULT, eventsProcessor)
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
         if (modulePath != null) {
             eventsProcessor.onSuiteStarted(modulePath)
@@ -179,7 +179,7 @@ class TypeCheckProcessHandler(
                     val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, referableConverter, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
                         typechecking.typecheckCollected(collector) { indicator.isCanceled }
-                        ServiceManager.getService(typeCheckerService.project, BinaryFileSaver::class.java).saveAll()
+                        typeCheckerService.project.service<BinaryFileSaver>().saveAll()
                     } finally {
                         typecheckingErrorReporter.flush()
                         for (file in typechecking.filesToRestart) {

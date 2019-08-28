@@ -1,5 +1,6 @@
 package org.arend.resolving
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.Referable
@@ -15,7 +16,7 @@ interface ArendResolveCache {
 }
 
 class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
-    private val typeCheckingService = TypeCheckingService.getInstance(project)
+    private val typeCheckingService = project.service<TypeCheckingService>()
     private val refMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
     override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement): Referable? {

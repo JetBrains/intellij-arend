@@ -10,15 +10,16 @@ import com.intellij.ide.util.treeView.SourceComparator
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.IconLoader
 import com.intellij.psi.PsiElement
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
-import org.arend.editor.ArendOptions
+import org.arend.ArendIcons
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
+import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.JPanel
 import javax.swing.JTree
@@ -51,12 +52,12 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     override fun changeView(typeName: String) {
         if (isFirstChangeViewCall) {
-            super.changeView(ArendOptions.instance.hierarchyViewType)
+            super.changeView(myProject.service<ArendProjectSettings>().hierarchyViewType)
             isFirstChangeViewCall = false
-            return
+        } else {
+            myProject.service<ArendProjectSettings>().hierarchyViewType = typeName
+            super.changeView(typeName)
         }
-        ArendOptions.instance.hierarchyViewType = typeName
-        super.changeView(typeName)
     }
 
     override fun createTrees(trees: MutableMap<String, JTree>) {
@@ -82,10 +83,10 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     override fun prependActions(actionGroup: DefaultActionGroup) {
         super.prependActions(actionGroup)
         actionGroup.addAction(ArendShowImplFieldsAction())
-        actionGroup.addAction(ArendShowNonimplFieldsAction())
+        actionGroup.addAction(ArendShowNonImplFieldsAction())
     }
 
-    fun getJTree(type: String): JTree? = typeToTree!![type]
+    fun getJTree(type: String): JTree? = typeToTree?.get(type)
 
     fun buildChildren(children: Array<ArendHierarchyNodeDescriptor>, treeType: String): Array<ArendHierarchyNodeDescriptor> {
         for (node in children) {
@@ -131,31 +132,26 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
         val structure = createHierarchyTreeStructure(currentViewType, element)
         val comparator = comparator
-        val myModel = StructureTreeModel(structure!!, comparator ?: Comparator { _, _ -> 1})
-        tree.model = AsyncTreeModel(myModel, false)
+        val myModel = StructureTreeModel(structure!!, comparator ?: Comparator { _, _ -> 1}, myProject)
+        tree.model = AsyncTreeModel(myModel, false, myProject)
     }
 
-    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "",
-            IconLoader.getIcon("/icons/showFieldImpl.svg")) {
+    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
-        override fun isSelected(e: AnActionEvent): Boolean {
-            return ArendOptions.instance.showImplFields
-        }
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            ArendOptions.instance.showImplFields = state
+            myProject.service<ArendProjectSettings>().showImplFields = state
             doRefresh(false)
         }
     }
 
-    inner class ArendShowNonimplFieldsAction : ToggleAction("Show non-implemented fields", "", IconLoader.getIcon("/icons/showNonImpl.svg") )  {
+    inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
-        override fun isSelected(e: AnActionEvent): Boolean {
-            return ArendOptions.instance.showNonimplFields
-        }
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showNonImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            ArendOptions.instance.showNonimplFields = state
+            myProject.service<ArendProjectSettings>().showNonImplFields = state
             doRefresh(false)
         }
     }

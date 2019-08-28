@@ -1,7 +1,8 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
-import org.arend.editor.ArendOptions
+import org.arend.settings.ArendSettings
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -13,11 +14,12 @@ class DefinitionBlacklistService {
 
     fun runTimed(any: Any, progress: ProgressIndicator, action: () -> Unit): Boolean {
         var timedOut = false
-        val handler = if (ArendOptions.instance.withTimeLimit) {
+        val arendSettings = service<ArendSettings>()
+        val handler = if (arendSettings.withTimeLimit) {
             scheduler.schedule({
                 progress.cancel()
                 timedOut = true
-            }, ArendOptions.instance.typecheckingTimeLimit.toLong(), TimeUnit.SECONDS)
+            }, arendSettings.typecheckingTimeLimit.toLong(), TimeUnit.SECONDS)
         } else null
         action()
         handler?.cancel(true)
@@ -30,5 +32,5 @@ class DefinitionBlacklistService {
     fun isBlacklisted(any: Any) = blackList.contains(any)
 
     fun removeFromBlacklist(any: Any, time: Int) =
-        time < ArendOptions.instance.typecheckingTimeLimit && blackList.remove(any)
+        time < service<ArendSettings>().typecheckingTimeLimit && blackList.remove(any)
 }

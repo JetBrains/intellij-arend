@@ -1,12 +1,14 @@
 package org.arend
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.util.IconLoader
+import org.arend.error.GeneralError
 import javax.swing.Icon
 
 object ArendIcons {
     val AREND: Icon = AllIcons.Nodes.AnonymousClass
     val AREND_MODULE: Icon = AllIcons.Nodes.AnonymousClass
-    val AREND_FILE: Icon = AllIcons.FileTypes.Idl
+    val AREND_FILE: Icon = IconLoader.getIcon("/icons/arend.svg")
     val DIRECTORY: Icon = AllIcons.Nodes.Package
     val LIBRARY_ICON: Icon? = AllIcons.Nodes.PpLib
     val YAML_KEY: Icon? = AllIcons.Nodes.FieldPK
@@ -23,5 +25,23 @@ object ArendIcons {
     val DATA_DEFINITION = AllIcons.Nodes.EjbCmpField!!
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
     val MODULE_DEFINITION = AllIcons.Nodes.Method!!
-    val MODULE: Icon = AllIcons.Nodes.JavaModule
+
+    val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages!!
+    val FILTER = AllIcons.General.Filter!!
+
+    val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
+    val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
+
+    val ERROR = AllIcons.RunConfigurations.ToolbarError!!
+    val WARNING = AllIcons.RunConfigurations.ToolbarFailed!!
+    val GOAL = IconLoader.getIcon("/icons/goal.svg")
+    val INFO = AllIcons.General.NotificationInfo!!
+
+    fun getErrorLevelIcon(level: GeneralError.Level) = when (level) {
+        GeneralError.Level.INFO -> INFO
+        GeneralError.Level.WEAK_WARNING -> WARNING
+        GeneralError.Level.WARNING -> WARNING
+        GeneralError.Level.GOAL -> GOAL
+        GeneralError.Level.ERROR -> ERROR
+    }
 }

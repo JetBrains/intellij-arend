@@ -1,13 +1,14 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.service
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.order.dependency.DependencyListener
@@ -24,13 +25,13 @@ class TestBasedTypechecking(
     dependencyListener: DependencyListener)
     : SilentTypechecking(instanceProviderSet, typeCheckingService, concreteProvider, referableConverter, errorReporter, dependencyListener) {
 
-    private val definitionBlacklistService = ServiceManager.getService(DefinitionBlacklistService::class.java)
+    private val definitionBlacklistService = service<DefinitionBlacklistService>()
     val filesToRestart = LinkedHashSet<ArendFile>()
 
     private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
         if (clearErrors && definition is ArendDefinition) {
             runReadAction {
-                typeCheckingService.clearErrors(definition)
+                typeCheckingService.project.service<ErrorService>().clearTypecheckingErrors(definition)
             }
         }
         eventsProcessor.startTimer(definition)
