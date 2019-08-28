@@ -237,8 +237,8 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(LPH_CONTEXT, LPH_KW_LIST) { parameters ->
             when (val pp = parameters.position.parent.parent) {
                 is ArendSetUniverseAppExpr, is ArendTruncatedUniverseAppExpr ->
-                    pp.children.filterIsInstance<ArendAtomLevelExpr>().isEmpty()
-                else -> pp.children.filterIsInstance<ArendAtomLevelExpr>().size <= 1
+                    pp.children.filterIsInstance<ArendMaybeAtomLevelExpr>().isEmpty()
+                else -> pp.children.filterIsInstance<ArendMaybeAtomLevelExpr>().size <= 1
             }
         }
 
