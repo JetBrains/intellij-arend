@@ -8,7 +8,6 @@ import com.intellij.psi.tree.IElementType
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ArendElementTypes
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors as Default
 
 class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 
@@ -20,7 +19,7 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
     companion object {
         fun map(tokenType: IElementType?): ArendHighlightingColors? = when (tokenType) {
             ArendElementTypes.ID -> ArendHighlightingColors.IDENTIFIER
-            ArendElementTypes.NUMBER -> ArendHighlightingColors.NUMBER
+            ArendElementTypes.NUMBER, ArendElementTypes.NEGATIVE_NUMBER -> ArendHighlightingColors.NUMBER
             ArendElementTypes.PROP_KW, ArendElementTypes.SET, ArendElementTypes.UNIVERSE, ArendElementTypes.TRUNCATED_UNIVERSE -> ArendHighlightingColors.UNIVERSE
             in AREND_KEYWORDS -> ArendHighlightingColors.KEYWORD
             ArendElementTypes.UNDERSCORE -> ArendHighlightingColors.IMPLICIT
