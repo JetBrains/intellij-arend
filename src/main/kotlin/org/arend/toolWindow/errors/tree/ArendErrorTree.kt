@@ -95,17 +95,29 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             else -> obj?.toString() ?: ""
         }
 
-    private fun <T : MutableTreeNode> insertNode(child: T, parent: T, comparator: (T, T) -> Int): T {
-        val index = TreeUtil.indexedBinarySearch(parent, child, comparator)
-        return if (index < 0) {
-            (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index + 1))
-            ((child as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let {
-                listener?.errorAdded(it)
+    private fun <T : MutableTreeNode> insertNode(child: T, parent: T, comparator: Comparator<T>): T {
+        val error = (child as? DefaultMutableTreeNode)?.userObject as? GeneralError
+        return if (error != null) {
+            var i = parent.childCount - 1
+            while (i >= 0) {
+                val anotherError = (parent.getChildAt(i) as? DefaultMutableTreeNode)?.userObject as? GeneralError
+                if (anotherError == null || error.level <= anotherError.level) {
+                    break
+                }
+                i--
             }
+            (treeModel as DefaultTreeModel).insertNodeInto(child, parent, i + 1)
+            listener?.errorAdded(error)
             child
         } else {
-            @Suppress("UNCHECKED_CAST")
-            parent.getChildAt(index) as T
+            val index = TreeUtil.indexedBinarySearch(parent, child, comparator)
+            if (index < 0) {
+                (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index + 1))
+                child
+            } else {
+                @Suppress("UNCHECKED_CAST")
+                parent.getChildAt(index) as T
+            }
         }
     }
 
@@ -121,11 +133,14 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     }
 
     fun update(node: DefaultMutableTreeNode, childrenFunc: (DefaultMutableTreeNode) -> Set<Any?>) {
-        val children = childrenFunc(node)
+        val children = childrenFunc(node).let { it as? HashSet ?: LinkedHashSet(it) }
+
         var i = node.childCount - 1
         while (i >= 0) {
             val child = node.getChildAt(i)
-            if (!children.contains((child as? DefaultMutableTreeNode)?.userObject)) {
+            if (child is DefaultMutableTreeNode && children.remove(child.userObject)) {
+                update(child, childrenFunc)
+            } else {
                 node.remove(i)
                 notifyRemoval(child)
             }
@@ -133,24 +148,27 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         }
 
         for (child in children) {
-            val childNode = insertNode(DefaultMutableTreeNode(child), node) { d1, d2 ->
-                val obj1 = d1.userObject
-                val obj2 = d2.userObject
-                when {
-                    obj1 == obj2 -> 0
-                    obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.modulePath?.toString() ?: obj1.name).compareTo(obj2.modulePath?.toString() ?: obj2.name))
-                    obj1 is ArendDefinition && obj2 is ArendDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
-                    obj1 is GeneralError && obj2 is GeneralError -> fix(obj1.level.compareTo(obj2.level) * -1)
-                    obj1 is GeneralError -> 1
-                    obj2 is GeneralError -> -1
-                    obj1 is ArendFile -> 1
-                    obj2 is ArendFile -> -1
-                    else -> -1
-                }
-            }
-            update(childNode, childrenFunc)
+            update(insertNode(DefaultMutableTreeNode(child), node, TreeNodeComparator), childrenFunc)
         }
     }
 
-    private fun fix(cmp: Int) = if (cmp == 0) -1 else cmp
+    private object TreeNodeComparator : Comparator<DefaultMutableTreeNode> {
+        override fun compare(d1: DefaultMutableTreeNode, d2: DefaultMutableTreeNode): Int {
+            val obj1 = d1.userObject
+            val obj2 = d2.userObject
+            return when {
+                obj1 == obj2 -> 0
+                obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.modulePath?.toString() ?: obj1.name).compareTo(obj2.modulePath?.toString() ?: obj2.name))
+                obj1 is ArendDefinition && obj2 is ArendDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
+                obj1 is GeneralError && obj2 is GeneralError -> fix(obj1.level.compareTo(obj2.level) * -1)
+                obj1 is GeneralError -> 1
+                obj2 is GeneralError -> -1
+                obj1 is ArendFile -> 1
+                obj2 is ArendFile -> -1
+                else -> -1
+            }
+        }
+
+        private fun fix(cmp: Int) = if (cmp == 0) -1 else cmp
+    }
 }

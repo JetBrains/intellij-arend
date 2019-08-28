@@ -126,7 +126,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             else when (val obj = it.userObject) {
                 is ArendFile -> {
                     val arendErrors = errorsMap[obj]
-                    val children = HashSet<Any>()
+                    val children = LinkedHashSet<Any>()
                     for (arendError in arendErrors ?: emptyList()) {
                         if (!filterSet.contains(arendError.error.level)) {
                             continue
@@ -137,7 +137,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                             children.add(arendError.error)
                         } else {
                             children.add(def)
-                            map.computeIfAbsent(def) { HashSet() }.add(arendError.error)
+                            map.computeIfAbsent(def) { LinkedHashSet() }.add(arendError.error)
                         }
                     }
                     children
