@@ -3,7 +3,10 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.psi.*
+import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPrec
+import org.arend.psi.ancestor
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.stubs.ArendNamedStub
@@ -17,7 +20,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     abstract fun getPrec(): ArendPrec?
 
-    override fun getPrecedence() = calcPrecedence(getPrec())
+    override fun getPrecedence() = stub?.precedence ?: calcPrecedence(getPrec())
 
     override fun getTypecheckable(): PsiLocatedReferable = ancestor<ArendDefinition>() ?: this
 
@@ -35,7 +38,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 else -> return Precedence.DEFAULT
             }
             val priority = prec.number
-            return Precedence(assoc, if (priority == null) 10 else priority.text?.toByteOrNull() ?: 11, prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
+            return Precedence(assoc, if (priority == null) Precedence.MAX_PRIORITY else priority.text?.toByteOrNull() ?: (Precedence.MAX_PRIORITY + 1).toByte(), prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

@@ -188,7 +188,8 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
 
 classImplement ::= coClausePrivate {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
+                   "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.ClassFieldImpl"
                    "org.arend.psi.CoClauseBase" ]
     mixin = "org.arend.psi.ext.impl.ClassFieldImplAdapter"
