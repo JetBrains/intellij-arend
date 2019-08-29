@@ -141,4 +141,50 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | :: x nil => (foo nil) Nat.+ x 
          | :: x (:: _x _x1) => (foo (_x :: _x1)) Nat.+ x
     """)
+
+    fun testSimpleResolving() = typedQuickFixTest("Split", """
+       --! A.ard
+       \data List (A : \Type)
+         | nil
+         | \infixr 5 :: A (List A)
+  
+       --! Main.ard
+       \import A (List)
+       
+       \func foo (xs : List Nat) : Nat
+         | xs{-caret-} => 0 
+    """, """
+       \import A (::, List, nil) 
+        
+       \func foo (xs : List Nat) : Nat
+         | nil => 0
+         | :: _x _x1 => 0 
+    """)
+
+    fun testLongName() = typedQuickFixTest("Split", """
+       --! MyNat.ard
+       \module Foo \where { 
+         \data MyNatural
+           | myZero
+           | mySuc (MyNatural)
+       } 
+        
+       \open Foo 
+       
+       \data Vec (A : \Type) (n : MyNatural) \elim n
+         | myZero => nil
+         | mySuc n => cons A (Vec A n) 
+         
+       --! Main.ard
+       \import MyNat
+       
+       \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural
+         | {A}, n{-caret-}, xs : Vec A n => (Foo.mySuc n, n) 
+    """, """
+       \import MyNat
+
+       \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural
+         | {A}, Foo.myZero, xs : Vec A Foo.myZero => (Foo.mySuc Foo.myZero, Foo.myZero)
+         | {A}, Foo.mySuc _x, xs : Vec A (Foo.mySuc _x) => (Foo.mySuc (Foo.mySuc _x), Foo.mySuc _x)
+    """)
 }

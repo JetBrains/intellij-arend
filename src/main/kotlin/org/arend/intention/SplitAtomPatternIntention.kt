@@ -21,6 +21,9 @@ import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.refactoring.LocationData
+import org.arend.refactoring.computeAliases
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.typechecking.TypeCheckingService
@@ -29,6 +32,7 @@ import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking.Flag
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
+import org.arend.util.LongName
 import java.util.*
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
@@ -70,7 +74,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 var first = true
                 val clauseCopy = localClause.copy()
                 val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
-
                 var currAnchor: PsiElement = localClause
 
                 for (constructor in localConstructors) {
@@ -78,9 +81,19 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     localSet.addAll(localNames)
                     val renamer = StringRenamer()
                     val listParams = ArrayList<String>()
+                    val containingFile = localClause.containingFile
+                    val constructorReferable = PsiLocatedReferable.fromReferable(constructor.definition.referable)
+                    val locationData = if (constructorReferable != null) LocationData(constructorReferable) else null
+                    val aliasData = if (locationData != null && containingFile is ArendFile) computeAliases(locationData, containingFile, localClause) else null
+
+                    val constructorName = if (aliasData != null) {
+                        aliasData.first?.execute(editor)
+                        LongName(aliasData.second).toString()
+                    } else constructor.definition.name
+
                     var patternString = buildString {
                         var parameter = constructor.definition.parameters
-                        append("${constructor.definition.name} ")
+                        append("$constructorName ")
                         while (parameter.hasNext()) {
                             val name = renamer.generateFreshName(parameter, localNames)
                             localNames.add(parameter)
@@ -92,8 +105,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         }
                     }
                     patternString = patternString.trim()
+
                     val expressionString = if (constructor.definition.referable.precedence.isInfix && listParams.size == 2)
-                        "${listParams[0]} ${constructor.definition.name} ${listParams[1]}" else patternString
+                        "${listParams[0]} $constructorName ${listParams[1]}" else patternString
 
                     if (first) {
                         replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
@@ -120,26 +134,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
     }
 
-    private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, mayNeedParentheses: Boolean) {
-        val replacementPattern: PsiElement? = when (elementToReplace) {
-            is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()
-            is ArendAtomPatternOrPrefix -> factory.createAtomPattern(if (mayNeedParentheses) "($patternLine)" else patternLine)
-            else -> null
-        }
-
-        if (replacementPattern != null) {
-            elementToReplace.replaceWithNotification(replacementPattern)
-        }
-    }
-
-    private fun replaceUsages(factory: ArendPsiFactory, elementToReplace: Abstract.Pattern, expression: PsiElement, expressionLine: String, requiresParentheses: Boolean) {
-        if (elementToReplace is PsiElement) {
-            val defIdentifier = elementToReplace.childOfType<ArendDefIdentifier>()
-            val substitutedExpression = factory.createExpression(expressionLine) as ArendNewExpr
-            val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionLine)").childOfType<ArendAtom>() else substitutedExpression.childOfType()
-            if (defIdentifier != null) doSubstitute(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
-        }
-    }
 
     private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
         if (project != null) {
@@ -209,84 +203,105 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         return null
     }
 
-    private fun computePatterns(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, elimExprHolder: Abstract.EliminatedExpressionsHolder?, scope: Scope, project: Project): Pair<List<Pattern>?, Boolean> {
-        val listErrorReporter = ListErrorReporter()
-        val concreteParameters = elimExprHolder?.parameters?.let { params ->
-            ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildTelescopeParameters(params) }
-        }
-        val elimVars = elimExprHolder?.eliminatedExpressions?.let { vars ->
-            ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildReferences(vars) }
-        }
-        val elimParams = if (concreteParameters != null && elimVars != null) {
-            val context = LinkedHashMap<Referable, Binding>()
-            var link = parameters
-            loop@ for (parameter in concreteParameters) {
-                for (referable in parameter.referableList) {
-                    if (!link.hasNext()) break@loop
+    companion object {
+        private fun computePatterns(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, elimExprHolder: Abstract.EliminatedExpressionsHolder?, scope: Scope, project: Project): Pair<List<Pattern>?, Boolean> {
+            val listErrorReporter = ListErrorReporter()
+            val concreteParameters = elimExprHolder?.parameters?.let { params ->
+                ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildTelescopeParameters(params) }
+            }
+            val elimVars = elimExprHolder?.eliminatedExpressions?.let { vars ->
+                ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildReferences(vars) }
+            }
+            val elimParams = if (concreteParameters != null && elimVars != null) {
+                val context = LinkedHashMap<Referable, Binding>()
+                var link = parameters
+                loop@ for (parameter in concreteParameters) {
+                    for (referable in parameter.referableList) {
+                        if (!link.hasNext()) break@loop
 
-                    context[referable] = link
+                        context[referable] = link
+                        link = link.next
+                    }
+                }
+                val listScope = ListScope(context.keys.toList())
+                for (elimVar in elimVars) ExpressionResolveNameVisitor.resolve(elimVar, listScope, null)
+
+                ElimTypechecking.getEliminatedParameters(elimVars, emptyList(), parameters, listErrorReporter, context)
+                        ?: return Pair(null, true)
+            } else {
+                emptyList()
+            }
+
+            val concretePatterns = ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildPatterns(abstractPatterns) }
+            DesugarVisitor.desugarPatterns(concretePatterns, listErrorReporter)
+            ExpressionResolveNameVisitor(EmptyConcreteProvider.INSTANCE, ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(true), scope), ArrayList(), listErrorReporter, null).visitPatterns(concretePatterns)
+            val patternTypechecking = PatternTypechecking(listErrorReporter, EnumSet.of(Flag.ALLOW_INTERVAL, Flag.ALLOW_CONDITIONS), null)
+            val patterns = patternTypechecking.typecheckPatterns(concretePatterns, parameters, elimParams)
+            val builder = StringBuilder()
+            for (error in listErrorReporter.errorList) builder.append(error)
+            return Pair(if (listErrorReporter.errorList.isEmpty()) patterns else null, elimParams.isNotEmpty())
+        }
+
+        private fun findPattern(indexList: List<Int>, typecheckedPattern: Pattern, abstractPattern: Abstract.Pattern): Pattern? {
+            if (indexList.isEmpty()) return typecheckedPattern
+            if (typecheckedPattern is ConstructorPattern) {
+                val typecheckedPatternChild = findMatchingPattern(abstractPattern.arguments, typecheckedPattern.parameters, typecheckedPattern.patterns.patternList, indexList[0])
+                val abstractPatternChild = abstractPattern.arguments.getOrNull(indexList[0])
+                if (typecheckedPatternChild != null && abstractPatternChild != null)
+                    return findPattern(indexList.drop(1), typecheckedPatternChild, abstractPatternChild)
+            }
+            return null
+        }
+
+        private fun findAbstractPattern(indexList: List<Int>, abstractPattern: Abstract.Pattern?): Abstract.Pattern? {
+            if (indexList.isEmpty()) return abstractPattern
+            val abstractPatternChild = abstractPattern?.arguments?.getOrNull(indexList[0])
+            if (abstractPatternChild != null) return findAbstractPattern(indexList.drop(1), abstractPatternChild)
+            return null
+        }
+
+        private fun findMatchingPattern(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, typecheckedPatterns: List<Pattern>, index: Int): Pattern? {
+            var link = parameters
+            var i = 0
+            var j = 0
+
+            while (link.hasNext() && i < abstractPatterns.size) {
+                val isEqual = link.isExplicit == abstractPatterns[i].isExplicit
+                if (isEqual && index == i) return typecheckedPatterns[j]
+
+                if (isEqual || link.isExplicit) i++
+                if (isEqual || !link.isExplicit) {
                     link = link.next
+                    j++
                 }
             }
-            val listScope = ListScope(context.keys.toList())
-            for (elimVar in elimVars) ExpressionResolveNameVisitor.resolve(elimVar, listScope, null)
 
-            ElimTypechecking.getEliminatedParameters(elimVars, emptyList(), parameters, listErrorReporter, context)
-                    ?: return Pair(null, true)
-        } else {
-            emptyList()
+            return null
         }
 
-        val concretePatterns = ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildPatterns(abstractPatterns) }
-        DesugarVisitor.desugarPatterns(concretePatterns, listErrorReporter)
-        ExpressionResolveNameVisitor(EmptyConcreteProvider.INSTANCE, ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(true), scope), ArrayList(), listErrorReporter, null).visitPatterns(concretePatterns)
-        val patternTypechecking = PatternTypechecking(listErrorReporter, EnumSet.of(Flag.ALLOW_INTERVAL, Flag.ALLOW_CONDITIONS), null)
-        val patterns = patternTypechecking.typecheckPatterns(concretePatterns, parameters, elimParams)
-        val builder = StringBuilder()
-        for (error in listErrorReporter.errorList) builder.append(error)
-        return Pair(if (listErrorReporter.errorList.isEmpty()) patterns else null, elimParams.isNotEmpty())
-    }
+        private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, mayNeedParentheses: Boolean) {
+            val replacementPattern: PsiElement? = when (elementToReplace) {
+                is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()
+                is ArendAtomPatternOrPrefix -> factory.createAtomPattern(if (mayNeedParentheses) "($patternLine)" else patternLine)
+                else -> null
+            }
 
-    private fun findPattern(indexList: List<Int>, typecheckedPattern: Pattern, abstractPattern: Abstract.Pattern): Pattern? {
-        if (indexList.isEmpty()) return typecheckedPattern
-        if (typecheckedPattern is ConstructorPattern) {
-            val typecheckedPatternChild = findMatchingPattern(abstractPattern.arguments, typecheckedPattern.parameters, typecheckedPattern.patterns.patternList, indexList[0])
-            val abstractPatternChild = abstractPattern.arguments.getOrNull(indexList[0])
-            if (typecheckedPatternChild != null && abstractPatternChild != null)
-                return findPattern(indexList.drop(1), typecheckedPatternChild, abstractPatternChild)
-        }
-        return null
-    }
-
-    private fun findAbstractPattern(indexList: List<Int>, abstractPattern: Abstract.Pattern?): Abstract.Pattern? {
-        if (indexList.isEmpty()) return abstractPattern
-        val abstractPatternChild = abstractPattern?.arguments?.getOrNull(indexList[0])
-        if (abstractPatternChild != null) return findAbstractPattern(indexList.drop(1), abstractPatternChild)
-        return null
-    }
-
-    private fun findMatchingPattern(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, typecheckedPatterns: List<Pattern>, index: Int): Pattern? {
-        var link = parameters
-        var i = 0
-        var j = 0
-
-        while (link.hasNext() && i < abstractPatterns.size) {
-            val isEqual = link.isExplicit == abstractPatterns[i].isExplicit
-            if (isEqual && index == i) return typecheckedPatterns[j]
-
-            if (isEqual || link.isExplicit) i++
-            if (isEqual || !link.isExplicit) {
-                link = link.next
-                j++
+            if (replacementPattern != null) {
+                elementToReplace.replaceWithNotification(replacementPattern)
             }
         }
 
-        return null
-    }
+        private fun replaceUsages(factory: ArendPsiFactory, elementToReplace: Abstract.Pattern, expression: PsiElement, expressionLine: String, requiresParentheses: Boolean) {
+            if (elementToReplace is PsiElement) {
+                val defIdentifier = elementToReplace.childOfType<ArendDefIdentifier>()
+                val substitutedExpression = factory.createExpression(expressionLine) as ArendNewExpr
+                val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionLine)").childOfType<ArendAtom>() else substitutedExpression.childOfType()
+                if (defIdentifier != null) doSubstitute(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
+            }
+        }
 
-    companion object {
-        fun doSubstitute(elementToReplace: ArendDefIdentifier, element: PsiElement,
-                         substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
+        private fun doSubstitute(elementToReplace: ArendDefIdentifier, element: PsiElement,
+                                 substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null
                 if (atom != null) {
