@@ -1,4 +1,4 @@
 \func isLessThan2 (a : Nat) : Bool
   | 0 => 1
-  <spot>| suc zero => 1
-  | suc (suc x) => {?}</spot>
+  <spot>| suc zero => zero
+  | suc (suc _x) => suc _x</spot>

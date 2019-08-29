@@ -49,9 +49,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (type is DataCallExpression) {
                     val constructors = type.matchedConstructors
                     this.matchedConstructors = constructors
-                    if (constructors == null || clause == null) return false
-                    if (constructors.isEmpty()) return type.definition.constructors.isEmpty()
-                    return clause != null
+                    return clause != null && constructors != null
+
                 }
             }
         }
@@ -91,7 +90,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         LongName(aliasData.second).toString()
                     } else constructor.definition.name
 
-                    var patternString = buildString {
+                    val patternString = buildString {
                         var parameter = constructor.definition.parameters
                         append("$constructorName ")
                         while (parameter.hasNext()) {
@@ -103,8 +102,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             }
                             parameter = parameter.next
                         }
-                    }
-                    patternString = patternString.trim()
+                    }.trim()
 
                     val expressionString = if (constructor.definition.referable.precedence.isInfix && listParams.size == 2)
                         "${listParams[0]} $constructorName ${listParams[1]}" else patternString
@@ -167,10 +165,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
             }
             if (pattern != null && patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
-                clause = null
-                val data = ownerParent.parent
+                /* val data = ownerParent.parent
                 abstractPatterns = patternOwner.patterns
-                if (data is ArendDefData) definition = data
+                if (data is ArendDefData) definition = data */
+                return null // TODO: Implement some behavior for constructor clauses as well
             }
 
             if (definition != null) {
@@ -279,10 +277,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, mayNeedParentheses: Boolean) {
+        private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean) {
             val replacementPattern: PsiElement? = when (elementToReplace) {
                 is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()
-                is ArendAtomPatternOrPrefix -> factory.createAtomPattern(if (mayNeedParentheses) "($patternLine)" else patternLine)
+                is ArendAtomPatternOrPrefix -> factory.createAtomPattern(if (requiresParentheses) "($patternLine)" else patternLine)
                 else -> null
             }
 

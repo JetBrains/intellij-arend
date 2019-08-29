@@ -1,3 +1,3 @@
 \func isLessThan2 (a : Nat) : Nat
   | 0 => 1
-  | suc <spot>x</spot> => 1
+  | suc <spot>a</spot> => a
