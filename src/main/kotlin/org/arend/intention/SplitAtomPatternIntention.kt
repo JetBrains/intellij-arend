@@ -20,6 +20,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
@@ -40,6 +41,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     private var clause: ArendClause? = null
     private var names: HashSet<DependentLink>? = null
     private var indexList: List<Int>? = null
+    private var containingTypecheckedPattern: Pattern? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
@@ -62,8 +64,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         val localConstructors = matchedConstructors
         val localIndexList = indexList
         val localNames = names
+        val localTypeCheckedPattern = containingTypecheckedPattern
 
-        if (project != null && localClause != null && localConstructors != null && localIndexList != null && localNames != null && element is Abstract.Pattern) {
+        if (project != null && localClause != null && localConstructors != null &&
+                localIndexList != null && localNames != null && element is Abstract.Pattern && localTypeCheckedPattern != null) {
             val factory = ArendPsiFactory(project)
             if (localConstructors.isEmpty()) {
                 doReplacePattern(factory, element, "()", false)
@@ -109,7 +113,29 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                     if (first) {
                         replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
-                        doReplacePattern(factory, element, patternString, listParams.isNotEmpty())
+
+                        var inserted = false
+                        if (constructor.definition == Prelude.ZERO) {
+                            var number = 0
+                            val abstractPattern = localClause.patternList[localIndexList[0]]
+                            var path = localIndexList.drop(1)
+                            while (path.isNotEmpty()) {
+                                val pattern = findPattern(path.dropLast(1), localTypeCheckedPattern, abstractPattern)
+                                if (pattern !is ConstructorPattern || pattern.definition.referable != Prelude.SUC.referable) {
+                                    break
+                                }
+                                path = path.dropLast(1)
+                                number += 1
+                            }
+                            val patternToReplace = findAbstractPattern(path, abstractPattern)
+                            if (patternToReplace is PsiElement) {
+                                doReplacePattern(factory, patternToReplace, number.toString(), false)
+                                inserted = true
+                            }
+                        }
+
+                        if (!inserted)
+                            doReplacePattern(factory, element, patternString, listParams.isNotEmpty())
                     } else {
                         val anchorParent = currAnchor.parent
                         currAnchor = anchorParent.addAfter(pipe, currAnchor)
@@ -177,6 +203,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val (patterns, isElim) = computePatterns(abstractPatterns, typeCheckedDefinition.parameters, definition as? Abstract.EliminatedExpressionsHolder, definition.scope, project)
                     if (patterns != null) {
                         val typecheckedPattern = if (isElim) patterns[indexList[0]] else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
+                        this.containingTypecheckedPattern = typecheckedPattern
                         if (typecheckedPattern != null) {
                             val pattern2 = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
                                     ?: return null
@@ -279,8 +306,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean) {
             val replacementPattern: PsiElement? = when (elementToReplace) {
-                is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()
-                is ArendAtomPatternOrPrefix -> factory.createAtomPattern(if (requiresParentheses) "($patternLine)" else patternLine)
+                is ArendPattern ->
+                    factory.createClause(if (!elementToReplace.isExplicit) "{$patternLine}" else patternLine).childOfType<ArendPattern>()
+                is ArendAtomPatternOrPrefix ->
+                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$patternLine}" else if (requiresParentheses) "($patternLine)" else patternLine)
                 else -> null
             }
 

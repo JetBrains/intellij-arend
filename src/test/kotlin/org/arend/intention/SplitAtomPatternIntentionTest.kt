@@ -10,8 +10,19 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        \func isLessThan2 (a : Nat) : Nat
          | 0 => 1
-         | suc zero => 1
+         | 1 => 1
          | suc (suc _x) => 1 
+    """)
+
+    fun testBasicSplitWithImplicitArgs() = typedQuickFixTest("Split", """
+       \func isLessThan2 {a : Nat} : Nat
+         | {0} => 1
+         | {suc _{-caret-}} => 1
+    """, """
+       \func isLessThan2 {a : Nat} : Nat
+         | {0} => 1
+         | {1} => 1
+         | {suc (suc _x)} => 1 
     """)
 
     fun testNoSplitInConstructor() = typedCheckNoQuickFixes("Split", """
@@ -63,7 +74,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc n => cons A (Vec A n)
   
        \func foo {A : \Type} (n : Nat) (xs : Vec A n) : \Sigma Nat Nat
-         | {A}, zero, xs : Vec A zero => (suc zero, zero)
+         | {A}, 0, xs : Vec A zero => (suc zero, zero)
          | {A}, suc _x, xs : Vec A (suc _x) => (suc (suc _x), suc _x) 
     """)
 
@@ -79,7 +90,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | foo1 (a : Nat) (b : A)
 
        \func foo3 {A : \Type} (f : Foo A) : Nat
-         | foo1 zero b => {?} 
+         | foo1 0 b => {?} 
          | foo1 (suc _x) b => {?}
     """)
 
@@ -186,5 +197,15 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural
          | {A}, Foo.myZero, xs : Vec A Foo.myZero => (Foo.mySuc Foo.myZero, Foo.myZero)
          | {A}, Foo.mySuc _x, xs : Vec A (Foo.mySuc _x) => (Foo.mySuc (Foo.mySuc _x), Foo.mySuc _x)
+    """)
+
+    fun testNaturalNumbers() = typedQuickFixTest("Split",
+    """
+       \func plus {a : Nat} (b : Nat) : Nat \with
+         | {a{-caret-}}, b => 0 
+    """, """
+       \func plus {a : Nat} (b : Nat) : Nat \with
+         | {0}, b => 0 
+         | {suc _x}, b => 0
     """)
 }
