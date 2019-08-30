@@ -93,7 +93,7 @@
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
-    extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
+    extends("(arr|new|pi|sigma|lam|let|case|section)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument|infixArgument|postfixArgument") = argument
 }
@@ -405,6 +405,7 @@ expr ::= arrExpr
     | piExpr
     | lamExpr
     | letExpr
+    | sectionExpr
     | newExpr
     | caseExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
@@ -414,6 +415,11 @@ expr ::= arrExpr
 }
 
 private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
+
+sectionExpr ::= postfixArgument newExpr {
+    pin = 1
+    mixin = "org.arend.psi.ext.ArendSectionExprImplMixin"
+}
 
 arrExpr ::= expr ARROW expr {
     pin = 2

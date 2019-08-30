@@ -2,6 +2,7 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.NamedUnresolvedReference
+import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.term.Fixity
@@ -39,7 +40,10 @@ abstract class ArendPostfixArgumentImplMixin(node: ASTNode) : ArendExprImplMixin
     override fun getExpression() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, NamedUnresolvedReference(this, referenceName), null, null, if (visitor.visitErrors()) getErrorData(this) else null, params)
+        visitor.visitReference(this, referent, null, null, if (visitor.visitErrors()) getErrorData(this) else null, params)
+
+    val referent: Referable
+        get() = NamedUnresolvedReference(this, referenceName)
 
     override val referenceNameElement
         get() = this
