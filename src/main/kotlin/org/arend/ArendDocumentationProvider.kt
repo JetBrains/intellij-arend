@@ -1,11 +1,11 @@
 package org.arend
 
-import com.google.common.html.HtmlEscapers
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.xml.util.XmlStringUtil
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -13,7 +13,7 @@ import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.term.abs.Abstract
 
 
-private fun String.htmlEscape(): String = HtmlEscapers.htmlEscaper().escape(this)
+private fun String.htmlEscape(): String = XmlStringUtil.escapeString(this)
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
@@ -23,7 +23,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean) =
         if (element !is PsiReferable) {
             null
-        } else buildString {
+        } else buildString { wrapTag("html") { wrapTag("body") {
             wrap(DEFINITION_START, DEFINITION_END) {
                 generateDefinition(element)
             }
@@ -35,7 +35,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             if (withDocComments) {
                 generateDocComments(element)
             }
-        }
+        } } }
 
     private fun StringBuilder.generateDocComments(element: PsiReferable) {
         val parent = element.parent

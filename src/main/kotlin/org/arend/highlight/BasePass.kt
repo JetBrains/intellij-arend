@@ -1,6 +1,5 @@
 package org.arend.highlight
 
-import com.google.common.html.HtmlEscapers
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.Annotation
@@ -15,6 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
@@ -75,8 +75,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfig.DEFAULT
-        @Suppress("UnstableApiUsage")
-        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, HtmlEscapers.htmlEscaper().escape(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
+        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
     fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
