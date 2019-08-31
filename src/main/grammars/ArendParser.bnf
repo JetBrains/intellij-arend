@@ -750,7 +750,9 @@ longName ::= refIdentifier (DOT refIdentifier)* {
     mixin = "org.arend.psi.ext.ArendLongNameImplMixin"
 }
 
-literal ::= longName
+private longNameIP ::= longName [DOT (infixArgument | postfixArgument)] { pin = 1 }
+
+literal ::= longNameIP
     | PROP_KW
     | UNDERSCORE
     | goal {

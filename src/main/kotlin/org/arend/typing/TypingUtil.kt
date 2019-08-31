@@ -19,7 +19,7 @@ class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitReference(this, referable, null, null, null, params)
+        visitor.visitReference(this, referable, null, null, null, null, params)
 
     override fun toString() = referable.textRepresentation()
 }

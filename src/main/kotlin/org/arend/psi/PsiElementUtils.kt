@@ -14,6 +14,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
+import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
@@ -59,14 +60,14 @@ fun PsiElement.navigate(requestFocus: Boolean = true) {
 
 val PsiElement.module: Module?
     get() {
-        val file = containingFile
+        val file = containingFile ?: return null
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
 val PsiElement.libraryConfig: LibraryConfig?
     get() {
-        val file = containingFile
+        val file = containingFile ?: return null
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile ?: return null
         val project = project
         val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
@@ -93,7 +94,7 @@ val PsiElement.libraryConfig: LibraryConfig?
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
-        val containingFile = containingFile
+        val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
         val config = containingFile.libraryConfig
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
         return ModuleScopeProvider { modulePath ->

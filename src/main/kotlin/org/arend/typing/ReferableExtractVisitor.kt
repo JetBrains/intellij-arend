@@ -10,6 +10,7 @@ import org.arend.psi.ArendLongName
 import org.arend.psi.CoClauseBase
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
+import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
@@ -94,7 +95,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return (expr as? Concrete.ReferenceExpression)?.referent
     }
 
-    override fun visitReference(data: Any?, referent: Referable, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
 

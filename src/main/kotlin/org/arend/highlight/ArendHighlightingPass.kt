@@ -9,6 +9,7 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
+import org.arend.psi.ext.ArendFixityArgumentImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -48,15 +49,32 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             }
 
             private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
-                val list = (data as? ArendLongName)?.refIdentifierList ?: listOfNotNull(data as? ArendReferenceElement)
+                val list = when (data) {
+                    is ArendLongName -> data.refIdentifierList
+                    is ArendFixityArgumentImplMixin -> {
+                        val last: List<ArendReferenceElement> = listOf(data)
+                        (data.parent as? ArendLiteral)?.longName?.let { it.refIdentifierList + last } ?: last
+                    }
+                    is ArendReferenceElement -> listOf(data)
+                    else -> return
+                }
                 val lastReference = list.lastOrNull() ?: return
                 if (lastReference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
                     holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
                 }
-                if (data is ArendLongName) {
-                    val nextToLast = lastReference.prevSibling
-                    if (nextToLast != null) {
-                        holder.createInfoAnnotation(TextRange(data.textRange.startOffset, nextToLast.textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                when (data) {
+                    is ArendLongName -> {
+                        val nextToLast = lastReference.prevSibling
+                        if (nextToLast != null) {
+                            holder.createInfoAnnotation(TextRange(data.textRange.startOffset, nextToLast.textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                        }
+                    }
+                    is ArendFixityArgumentImplMixin -> {
+                        val literal = data.parent as? ArendLiteral
+                        val longName = literal?.longName
+                        if (longName != null) {
+                            holder.createInfoAnnotation(TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                        }
                     }
                 }
 
