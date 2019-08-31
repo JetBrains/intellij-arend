@@ -1,6 +1,7 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
@@ -56,6 +57,15 @@ abstract class ArendInfixArgumentImplMixin(node: ASTNode) : ArendFixityArgumentI
 
     override val referenceName: String
         get() = infix.text.removeSurrounding("`")
+
+    override val rangeInElement: TextRange
+        get() {
+            val text = text
+            val len = text.length
+            val start = if (len > 0 && text[0] == '`') 1 else 0
+            val end = if (len > 0 && text[len-1] == '`') len-1 else len
+            return if (start > end) TextRange(0, 1) else TextRange(start, end)
+        }
 }
 
 abstract class ArendPostfixArgumentImplMixin(node: ASTNode) : ArendFixityArgumentImplMixin(node), ArendPostfixArgument {
@@ -63,6 +73,13 @@ abstract class ArendPostfixArgumentImplMixin(node: ASTNode) : ArendFixityArgumen
 
     override val referenceName: String
         get() = postfix.text.removePrefix("`")
+
+    override val rangeInElement: TextRange
+        get() {
+            val text = text
+            val len = text.length
+            return if (len > 0 && text[0] == '`') TextRange(1, len) else TextRange(0, 0)
+        }
 }
 
 abstract class ArendAtomArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendAtomArgument {

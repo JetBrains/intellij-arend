@@ -1,6 +1,7 @@
 package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.IStubElementType
@@ -66,4 +67,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override val psiElementType: PsiElement?
         get() = resultType
+
+    override val rangeInElement: TextRange
+        get() = TextRange(0, text.length)
 }

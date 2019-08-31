@@ -81,7 +81,7 @@ class RenameTest : ArendTestBase() {
             "**",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo` _
+                \func _ : _ `{-caret-}foo` _
             """,
             """
                 \func **
@@ -93,7 +93,7 @@ class RenameTest : ArendTestBase() {
             "bar",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo` _
+                \func _ : _ `{-caret-}foo` _
             """,
             """
                 \func bar
@@ -105,7 +105,7 @@ class RenameTest : ArendTestBase() {
             "bar",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo
+                \func _ : _ `{-caret-}foo
             """,
             """
                 \func bar
@@ -117,7 +117,7 @@ class RenameTest : ArendTestBase() {
             "**",
             """
                 \func foo
-                \func _ : _ {-caret-}`foo
+                \func _ : _ `{-caret-}foo
             """,
             """
                 \func **
@@ -129,7 +129,7 @@ class RenameTest : ArendTestBase() {
             "bar",
             """
                 \func ++
-                \func _ : _ {-caret-}`++
+                \func _ : _ `{-caret-}++
             """,
             """
                 \func bar
@@ -141,7 +141,7 @@ class RenameTest : ArendTestBase() {
             "**",
             """
                 \func ++
-                \func _ : _ {-caret-}`++
+                \func _ : _ `{-caret-}++
             """,
             """
                 \func **

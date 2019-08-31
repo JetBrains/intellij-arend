@@ -1,6 +1,7 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
@@ -94,6 +95,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         }
         return super.getUseScope()
     }
+
+    override val rangeInElement: TextRange
+        get() = TextRange(0, text.length)
 }
 
 abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendRefIdentifier {
@@ -115,4 +119,7 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         val last = if (isImport) parent?.refIdentifierList?.lastOrNull() else null
         return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this)
     }
+
+    override val rangeInElement: TextRange
+        get() = TextRange(0, text.length)
 }

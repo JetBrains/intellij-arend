@@ -38,15 +38,13 @@ open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, priv
     override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false): PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
     }
 
-    override fun bindToElement(element: PsiElement): PsiElement {
-        return element
-    }
+    override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {
         var notARecord = false
@@ -143,7 +141,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
 private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     val name = rawName.removeSuffix('.' + ArendFileType.defaultExtension)
-    if (!ArendNamesValidator().isIdentifier(name, oldNameIdentifier.project)) return
+    if (!ArendNamesValidator.isIdentifier(name, oldNameIdentifier.project)) return
     val factory = ArendPsiFactory(oldNameIdentifier.project)
     val newNameIdentifier = when (oldNameIdentifier) {
         is ArendDefIdentifier -> factory.createDefIdentifier(name)
