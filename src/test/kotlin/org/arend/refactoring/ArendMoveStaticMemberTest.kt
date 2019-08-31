@@ -873,4 +873,26 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  }
                }
             """, "A", "Bar")
+
+    fun testInfixArguments1() =
+            testMoveRefactoring("""
+               --! A.ard
+               \module Bar \where {
+                 \func foo{-caret-} (a b : Nat) => 101
+ 
+                 \module FooBar
+               }
+
+               \func bar : Nat -> Nat => (1 Bar.`foo` 1) Bar.`foo
+            """, """
+               \module Bar \where {
+                 \open FooBar (foo)
+
+                 \module FooBar \where {
+                   \func foo (a b : Nat) => 101
+                 }
+               }
+
+               \func bar : Nat -> Nat => (1 Bar.FooBar.`foo` 1) Bar.FooBar.`foo 
+            """, "A", "Bar.FooBar")
 }

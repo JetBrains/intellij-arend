@@ -381,7 +381,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 * 1
             """)
 
-    fun `test that infix quickfixes work for infix operators`() = simpleImportFixTest(fileD +
+    fun `test that quickfixes work for infix operators`() = simpleImportFixTest(fileD +
             """
                 --! B.ard
                 \func test => 1 `++`{-caret-} 1
@@ -390,6 +390,17 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import D
                 
                 \func test => 1 `++` 1
+            """)
+
+    fun `test that quickfixes work for postfix operators`() = simpleImportFixTest(fileD +
+            """
+                --! B.ard
+                \func test => 1 `++{-caret-}
+            """,
+            """
+                \import D
+                
+                \func test => 1 `++
             """)
 
     fun `test that possible name clashes are prevented by using empty imports`() = simpleImportFixTest(fileA + fileE +
@@ -752,17 +763,42 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test importing files`() =
             simpleImportFixTest("""
-            --! Dir/A.ard
-            
-            \func foo => 0
-                        
-            --! B.ard
-            
-            \func bar => A{-caret-}
+                --! Dir/A.ard 
+                \func foo => 0 
+                --! B.ard 
+                \func bar => A{-caret-}
             """,
             """
-            \import Dir.A    
+                \import Dir.A    
             
-            \func bar => Dir.A            
+                \func bar => Dir.A            
+            """)
+
+    fun `test importing infix functions`() =
+            simpleImportFixTest("""
+                \func test => 0 `mod`{-caret-} 1
+            """, """
+                \func test => 0 Nat.`mod` 1 
+            """)
+
+    fun `test importing postfix function 1`() =
+            simpleImportFixTest("""
+                \func test => 0 `mod{-caret-} 1
+            """, """
+                \func test => 0 Nat.`mod 1 
+            """)
+
+    fun `test importing postfix function 2`() =
+            simpleImportFixTest("""
+                --! A.ard
+                \module Foo \where {
+                  \func lol (a b : Nat) => a
+                }
+                --! Main.ard
+                \func foo (a : Nat) => a `lol{-caret-}
+            """, """
+                \import A
+                
+                \func foo (a : Nat) => a Foo.`lol{-caret-}
             """)
 }

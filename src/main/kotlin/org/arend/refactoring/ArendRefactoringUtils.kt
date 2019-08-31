@@ -88,7 +88,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
         }
 
         if (anchor != null) {
-            if (!needsCommaBefore && !nsIds.isEmpty()) anchor.parent.addAfter(comma, anchor)
+            if (!needsCommaBefore && nsIds.isNotEmpty()) anchor.parent.addAfter(comma, anchor)
             val insertedId = anchor.parent.addAfterWithNotification(nsId, anchor)
             if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
             return insertedId as ArendNsId
@@ -168,18 +168,53 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
     override fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
-        val longNameStr = LongName(id).toString()
-        val longNamePsi = factory.createLiteral(longNameStr).longName
-        val offset = element.textOffset
+        when (element) {
+            is ArendInfixArgument, is ArendPostfixArgument -> {
+                var isAtomArgument = false
+                val argumentStr = buildString {
+                    if (id.size > 1) {
+                        append(LongName(id.dropLast(1)))
+                        append(".")
+                        isAtomArgument = true
+                    }
+                    append("`")
+                    append(id.last())
+                    if (element is ArendInfixArgument) append("`")
 
-        if (longNamePsi != null) {
-            if (parent is ArendLongName) {
-                parent.addRangeAfterWithNotification(longNamePsi.firstChild, longNamePsi.lastChild, element)
-                parent.deleteChildRangeWithNotification(parent.firstChild, element)
-            } else if (parent is ArendPattern) {
-                element.replaceWithNotification(longNamePsi)
+                }
+                when (parent) {
+                    is ArendLiteral -> {
+                        val newLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()!!
+                        parent.replaceWithNotification(newLiteral)
+
+                    }
+                    is ArendArgumentAppExpr, is ArendNewExpr -> {
+                        val newArgument : ArendArgument? = factory.createExpression("0 $argumentStr").let {
+                            when {
+                                isAtomArgument -> it.childOfType<ArendAtomArgument>()
+                                element is ArendInfixArgument -> it.childOfType<ArendInfixArgument>()
+                                element is ArendPostfixArgument -> it.childOfType<ArendPostfixArgument>()
+                                else -> null
+                            }
+                        }
+                        if (newArgument != null) element.replaceWithNotification(newArgument)
+                    }
+                }
             }
-            editor?.caretModel?.moveToOffset(offset + longNameStr.length)
+            else -> {
+                val longNameStr = LongName(id).toString()
+                val offset = element.textOffset
+                val longName = factory.createLongName(longNameStr)
+                when (parent) {
+                    is ArendLongName -> {
+                        parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
+                        parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                    }
+                    is ArendPattern -> element.replaceWithNotification(longName)
+                }
+                editor?.caretModel?.moveToOffset(offset + longNameStr.length)
+            }
+
         }
     }
 }

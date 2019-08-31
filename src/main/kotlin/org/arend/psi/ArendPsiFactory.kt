@@ -110,12 +110,10 @@ class ArendPsiFactory(private val project: Project) {
             ?: error("Failed to create expression: `$expr`")
 
     fun createLiteral(expr: String): ArendLiteral =
-        ((createFunction("dummy", emptyList(), expr).returnExpr?.expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal
-            ?: error("Failed to create literal: `$expr`")
+        (createFunction("dummy", emptyList(), expr).childOfType() ?: error("Failed to create literal: `$expr`"))
 
     private fun createStatCmd(name: String): ArendStatCmd =
-        createFromText("\\open X \\hiding ($name)")?.childOfType()
-            ?: error("Failed to create stat cmd: `$name`")
+        createFromText("\\open X \\hiding ($name)")?.childOfType() ?: error("Failed to create stat cmd: `$name`")
 
     fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStatement {
         val prefix = when (cmdKind) {
