@@ -384,23 +384,27 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
     fun `test that quickfixes work for infix operators`() = simpleImportFixTest(fileD +
             """
                 --! B.ard
+                \import D(++ \as +)
+                
                 \func test => 1 `++`{-caret-} 1
             """,
             """
-                \import D
+                \import D(++ \as +)
                 
-                \func test => 1 `++` 1
+                \func test => 1 `+` 1
             """)
 
     fun `test that quickfixes work for postfix operators`() = simpleImportFixTest(fileD +
             """
                 --! B.ard
+                \import D(++ \as +)
+                
                 \func test => 1 `++{-caret-}
             """,
             """
-                \import D
+                \import D(++ \as +)
                 
-                \func test => 1 `++
+                \func test => 1 `+
             """)
 
     fun `test that possible name clashes are prevented by using empty imports`() = simpleImportFixTest(fileA + fileE +
@@ -800,5 +804,12 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \import A
                 
                 \func foo (a : Nat) => a Foo.`lol{-caret-}
+            """)
+
+    fun `test importing postfix function 3`() =
+            simpleImportFixTest("""
+               \func test3 => `mod{-caret-} 1 
+            """, """
+               \func test3 => Nat.`mod 1 
             """)
 }

@@ -25,6 +25,7 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendDefIdentifier
 import org.arend.term.group.Group
 import org.arend.psi.ArendFieldDefIdentifier
+import org.arend.psi.ArendIPName
 import org.arend.psi.ArendPattern
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -124,9 +125,12 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
     }
 
     companion object {
-        fun importQuickFixAllowed(referenceElement: ArendReferenceElement) =
-            referenceElement is ArendSourceNode && referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode) ||
-                    referenceElement is ArendDefIdentifier && referenceElement.parent is ArendPattern
+        fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
+            is ArendSourceNode -> referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
+            is ArendIPName -> referenceUnresolved(referenceElement)
+            is ArendDefIdentifier -> referenceElement.parent is ArendPattern
+            else -> false
+        }
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
             val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid

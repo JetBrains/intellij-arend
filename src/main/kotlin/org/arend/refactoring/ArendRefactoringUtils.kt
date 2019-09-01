@@ -4,7 +4,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.term.Fixity
 import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
@@ -168,38 +170,21 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
     override fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
+
         when (element) {
-            is ArendInfixArgument, is ArendPostfixArgument -> {
-                var isAtomArgument = false
+            is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
                 val argumentStr = buildString {
                     if (id.size > 1) {
                         append(LongName(id.dropLast(1)))
                         append(".")
-                        isAtomArgument = true
                     }
-                    append("`")
+                    if (element.fixity == Fixity.INFIX || element.fixity == Fixity.POSTFIX) append("`")
                     append(id.last())
-                    if (element is ArendInfixArgument) append("`")
+                    if (element.fixity == Fixity.INFIX) append("`")
 
                 }
-                when (parent) {
-                    is ArendLiteral -> {
-                        val newLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()!!
-                        parent.replaceWithNotification(newLiteral)
-
-                    }
-                    is ArendArgumentAppExpr, is ArendNewExpr -> {
-                        val newArgument : ArendArgument? = factory.createExpression("0 $argumentStr").let {
-                            when {
-                                isAtomArgument -> it.childOfType<ArendAtomArgument>()
-                                element is ArendInfixArgument -> it.childOfType<ArendInfixArgument>()
-                                element is ArendPostfixArgument -> it.childOfType<ArendPostfixArgument>()
-                                else -> null
-                            }
-                        }
-                        if (newArgument != null) element.replaceWithNotification(newArgument)
-                    }
-                }
+                val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
+                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral)
             }
             else -> {
                 val longNameStr = LongName(id).toString()
@@ -214,7 +199,6 @@ class RenameReferenceAction(private val element: ArendReferenceElement, private 
                 }
                 editor?.caretModel?.moveToOffset(offset + longNameStr.length)
             }
-
         }
     }
 }
