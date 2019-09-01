@@ -62,19 +62,30 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 if (lastReference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
                     holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
                 }
-                when (data) {
-                    is ArendLongName -> {
-                        val nextToLast = lastReference.prevSibling
-                        if (nextToLast != null) {
-                            holder.createInfoAnnotation(TextRange(data.textRange.startOffset, nextToLast.textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+
+                var index = 0
+                while (index < resolvedRefs.size - 1 && resolvedRefs[index] !is ErrorReference) {
+                    index++
+                }
+
+                if (index > 0) {
+                    val last = list[index]
+                    val textRange = if (last is ArendFixityArgumentImplMixin) {
+                        (last.parent as? ArendLiteral)?.let { literal ->
+                            literal.longName?.let { longName ->
+                                TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset)
+                            }
+                        }
+                    } else {
+                        (last.parent as? ArendLongName)?.let { longName ->
+                            last.extendLeft.prevSibling?.let { nextToLast ->
+                                TextRange(longName.textRange.startOffset, nextToLast.textRange.endOffset)
+                            }
                         }
                     }
-                    is ArendFixityArgumentImplMixin -> {
-                        val literal = data.parent as? ArendLiteral
-                        val longName = literal?.longName
-                        if (longName != null) {
-                            holder.createInfoAnnotation(TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
-                        }
+
+                    if (textRange != null) {
+                        holder.createInfoAnnotation(textRange, null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
                     }
                 }
 
