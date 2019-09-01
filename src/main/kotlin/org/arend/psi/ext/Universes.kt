@@ -3,7 +3,6 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.*
-import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 
@@ -47,7 +46,7 @@ abstract class ArendUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin
 abstract class ArendUniverseAtomImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendUniverseAtom {
     override fun isExplicit(): Boolean = true
 
-    override fun getFixity(): Fixity = Fixity.NONFIX
+    override fun isVariable() = false
 
     override fun getExpression(): ArendExpr = this
 

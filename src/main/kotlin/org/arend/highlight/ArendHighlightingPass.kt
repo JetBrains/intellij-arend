@@ -9,7 +9,7 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendFixityArgumentImplMixin
+import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -51,9 +51,9 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
                 val list = when (data) {
                     is ArendLongName -> data.refIdentifierList
-                    is ArendFixityArgumentImplMixin -> {
+                    is ArendIPNameImplMixin -> {
                         val last: List<ArendReferenceElement> = listOf(data)
-                        (data.parent as? ArendLiteral)?.longName?.let { it.refIdentifierList + last } ?: last
+                        data.parentLongName?.let { it.refIdentifierList + last } ?: last
                     }
                     is ArendReferenceElement -> listOf(data)
                     else -> return
@@ -70,8 +70,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                 if (index > 0) {
                     val last = list[index]
-                    val textRange = if (last is ArendFixityArgumentImplMixin) {
-                        (last.parent as? ArendLiteral)?.let { literal ->
+                    val textRange = if (last is ArendIPNameImplMixin) {
+                        last.parentLiteral?.let { literal ->
                             literal.longName?.let { longName ->
                                 TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset)
                             }

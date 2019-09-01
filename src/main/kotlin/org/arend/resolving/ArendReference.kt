@@ -51,13 +51,13 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         var clazz: Class<*>? = null
         val element = element
         val parent = element.parent
-        val pparent = (parent as? ArendLongName)?.parent
-        if (pparent is ArendDefClass) {
+        val pParent = (parent as? ArendLongName)?.parent
+        if (pParent is ArendDefClass) {
             clazz = ArendDefClass::class.java
         } else {
-            val atomFieldsAcc = ((pparent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
+            val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = when {
-                atomFieldsAcc == null -> (pparent as? ArendLongNameExpr)?.parent
+                atomFieldsAcc == null -> (pParent as? ArendLongNameExpr)?.parent
                 atomFieldsAcc.fieldAccList.isNotEmpty() -> null
                 else -> atomFieldsAcc.parent
             }
@@ -146,8 +146,7 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     val newNameIdentifier = when (oldNameIdentifier) {
         is ArendDefIdentifier -> factory.createDefIdentifier(name)
         is ArendRefIdentifier -> factory.createRefIdentifier(name)
-        is ArendInfixArgument -> factory.createInfixName(name)
-        is ArendPostfixArgument -> factory.createPostfixName(name)
+        is ArendIPName -> if (oldNameIdentifier.postfix != null) factory.createPostfixName(name) else factory.createInfixName(name)
         else -> error("Unsupported identifier type for `$name`")
     }
     oldNameIdentifier.replace(newNameIdentifier)

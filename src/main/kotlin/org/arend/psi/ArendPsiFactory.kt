@@ -5,30 +5,27 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
-import org.arend.refactoring.ArendNamesValidator
 
 class ArendPsiFactory(private val project: Project) {
     enum class StatCmdKind {OPEN, IMPORT}
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
-            createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
+        createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
 
     fun createRefIdentifier(name: String): ArendRefIdentifier =
-            createStatCmd(name).refIdentifierList.getOrNull(0)
-                    ?: error("Failed to create ref identifier: `$name`")
+        createStatCmd(name).refIdentifierList.getOrNull(0)
+            ?: error("Failed to create identifier: $name")
 
     fun createLongName(name: String): ArendLongName =
-            createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
+        createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
 
-    fun createInfixName(name: String): ArendInfixArgument {
-        val needsPrefix = !ArendNamesValidator.isInfixName(name)
-        return createArgument("dummy ${if (needsPrefix) "`$name`" else name} dummy") as ArendInfixArgument
-    }
+    private fun createIPName(name: String): ArendIPName =
+        ((createFunction("dummy", emptyList(), name).returnExpr?.expr as? ArendNewExpr)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal?.ipName
+            ?: error("Failed to create identifier: $name")
 
-    fun createPostfixName(name: String): ArendPostfixArgument {
-        val needsPrefix = !ArendNamesValidator.isPostfixName(name)
-        return createArgument("dummy ${if (needsPrefix) "`$name" else name}") as ArendPostfixArgument
-    }
+    fun createInfixName(name: String) = createIPName("`$name`")
+
+    fun createPostfixName(name: String) = createIPName("`$name")
 
     fun createNameTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendNameTele {
         val lparen = if (isExplicit) "(" else "{"
@@ -105,13 +102,6 @@ class ArendPsiFactory(private val project: Project) {
         return Pair(statCmd.lparen!!, statCmd.rparen!!)
     }
 
-    private fun createArgument(expr: String): ArendArgument =
-        ((createFunction("dummy", emptyList(), expr).returnExpr?.expr as ArendNewExpr?)?.appExpr as ArendArgumentAppExpr?)?.argumentList?.let { it[0] }
-            ?: error("Failed to create expression: `$expr`")
-
-    fun createLiteral(expr: String): ArendLiteral =
-        (createFunction("dummy", emptyList(), expr).childOfType() ?: error("Failed to create literal: `$expr`"))
-
     private fun createStatCmd(name: String): ArendStatCmd =
         createFromText("\\open X \\hiding ($name)")?.childOfType() ?: error("Failed to create stat cmd: `$name`")
 
@@ -130,12 +120,9 @@ class ArendPsiFactory(private val project: Project) {
     fun createFromText(code: String): ArendFile? =
         PsiFileFactory.getInstance(project).createFileFromText("DUMMY.ard", ArendFileType, code) as? ArendFile
 
-    fun createWhitespace(symbol: String): PsiElement {
-        return PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
-    }
+    fun createWhitespace(symbol: String): PsiElement =
+        PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
 
-    fun createWhere(): ArendWhere {
-        val code = "\\module Test \\where { }"
-        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
-    }
+    fun createWhere(): ArendWhere =
+        createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
 }

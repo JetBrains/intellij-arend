@@ -95,7 +95,7 @@
     extends("def(Function|Data|Class|Instance)") = definition
     extends("(arr|new|pi|sigma|lam|let|case|section)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
-    extends("atomArgument|newArg|universeAtom|implicitArgument|infixArgument|postfixArgument") = argument
+    extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
 }
 
 statements ::= (topStatement | topStatement_recovery)*
@@ -405,7 +405,6 @@ expr ::= arrExpr
     | piExpr
     | lamExpr
     | letExpr
-    | sectionExpr
     | newExpr
     | caseExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
@@ -415,11 +414,6 @@ expr ::= arrExpr
 }
 
 private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
-
-sectionExpr ::= postfixArgument newExpr {
-    pin = 1
-    mixin = "org.arend.psi.ext.ArendSectionExprImplMixin"
-}
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -702,13 +696,10 @@ atomFieldsAcc ::= atom fieldAcc* {
 argument ::= atomArgument
     | newArg
     | universeAtom
-    | implicitArgument
-    | infixArgument
-    | postfixArgument {
+    | implicitArgument {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Argument"
                    "org.arend.term.abs.Abstract.BinOpSequenceElem" ]
-    mixin = "org.arend.psi.ext.ArendArgumentImplMixin"
 }
 
 private argumentRecovery ::= argument_recover {
@@ -727,16 +718,6 @@ implicitArgument ::= LBRACE expr RBRACE {
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
 
-infixArgument ::= INFIX {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendInfixArgumentImplMixin"
-}
-
-postfixArgument ::= POSTFIX {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendPostfixArgumentImplMixin"
-}
-
 newArg ::= NEW_KW argumentAppExpr [LBRACE coClauseSequence RBRACE] {
     pin = 1
     implements = "org.arend.psi.ArendExpr"
@@ -750,11 +731,17 @@ longName ::= refIdentifier (DOT refIdentifier)* {
     mixin = "org.arend.psi.ext.ArendLongNameImplMixin"
 }
 
-private longNameIP ::= longName [DOT (infixArgument | postfixArgument)] { pin = 1 }
+IPName ::= INFIX | POSTFIX {
+    implements = "org.arend.psi.ext.ArendReferenceElement"
+    mixin = "org.arend.psi.ext.ArendIPNameImplMixin"
+}
+
+private longNameIP ::= longName [DOT IPName] { pin = 1 }
 
 literal ::= longNameIP
     | PROP_KW
     | UNDERSCORE
+    | IPName
     | goal {
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendLiteralImplMixin"

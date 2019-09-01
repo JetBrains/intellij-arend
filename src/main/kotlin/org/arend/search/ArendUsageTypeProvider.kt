@@ -12,14 +12,14 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
     override fun getUsageType(element: PsiElement?, targets: Array<out UsageTarget>): UsageType? = getUsageType(element)
 
     override fun getUsageType(element: PsiElement?): UsageType? {
-        val parent = element?.parent
+        val parent = element as? ArendIPName ?: element?.parent
 
         when {
             parent is ArendStatCmd || (parent is ArendNsId && parent.parent is ArendNsUsing) -> return nsUsageInList
             parent is ArendPattern || parent is ArendAtomPatternOrPrefix -> return usagesInPatterns
         }
 
-        if (parent !is ArendLongName) {
+        if (!(parent is ArendLongName || parent is ArendIPName)) {
             return defaultUsage
         }
 
@@ -28,7 +28,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             pParent is ArendStatCmd -> return nsUsage
             pParent is CoClauseBase -> return usagesInCoClauses
             pParent is ArendDefClass -> return extendsUsages
-            element.rightSibling<ArendRefIdentifier>() != null -> return leftUsage
+            element?.rightSibling<ArendRefIdentifier>() != null || parent is ArendLongName && (pParent as? ArendLiteral)?.ipName != null -> return leftUsage
         }
 
         var expr: ArendExpr = ((pParent as? ArendLongNameExpr)?.parent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr ?: pParent as? ArendLiteral ?: return defaultUsage

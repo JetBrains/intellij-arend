@@ -24,7 +24,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
 
     abstract val coClauseList: List<ArendCoClause>
 
-    fun getFixity() = Fixity.NONFIX
+    fun isVariable() = false
 
     fun getExpression() = this
 

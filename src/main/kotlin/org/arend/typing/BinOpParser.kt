@@ -6,10 +6,9 @@ import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.psi.ArendLiteral
 import org.arend.psi.ArendLongName
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFixityArgumentImplMixin
+import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
@@ -18,7 +17,7 @@ import org.arend.term.concrete.Concrete
 
 
 private fun isShort(element: ArendCompositeElement) =
-    (element !is ArendLongName || element.refIdentifierList.size == 1) && (element !is ArendFixityArgumentImplMixin || element.parent !is ArendLiteral)
+    (element !is ArendLongName || element.refIdentifierList.size == 1) && (element !is ArendIPNameImplMixin || element.parentLongName == null)
 
 fun resolveReference(data: Any?, referent: Referable) =
     if (data is ArendCompositeElement) {
@@ -26,7 +25,7 @@ fun resolveReference(data: Any?, referent: Referable) =
             Concrete.ReferenceExpression(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()))
         } else {
             val refExpr = Concrete.ReferenceExpression(data, referent)
-            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendFixityArgumentImplMixin)?.parent as? ArendCompositeElement ?: data).scope, null)
+            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, null)
             (refExpr.referent as? GlobalReferable)?.let {
                 val psiRef = PsiLocatedReferable.fromReferable(it)
                 if (psiRef != null) {
@@ -39,24 +38,20 @@ fun resolveReference(data: Any?, referent: Referable) =
         null
     }
 
-private fun addExpression(expr: Abstract.Expression?, binOpSeq: MutableList<Concrete.BinOpSequenceElem>, fixity: Fixity, isExplicit: Boolean) {
+private fun getExpression(expr: Abstract.Expression?): Concrete.Expression {
     val ref = expr?.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression?>(null) {
         override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?) = resolveReference(data, referent)
         override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?) = resolveReference(data, referent)
     }, null)
 
-    if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) {
-        binOpSeq.add(Concrete.BinOpSequenceElem(ref, fixity, isExplicit))
-    } else {
-        binOpSeq.add(Concrete.BinOpSequenceElem(Concrete.HoleExpression(expr), fixity, isExplicit))
-    }
+    return if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) ref else Concrete.HoleExpression(expr)
 }
 
 fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>): Concrete.Expression {
     val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem>()
-    addExpression(left, concreteSeq, (left as? Abstract.BinOpSequenceElem)?.fixity ?: Fixity.NONFIX, true)
+    concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left)))
     for (elem in sequence) {
-        addExpression(elem.expression, concreteSeq, elem.fixity, elem.isExplicit)
+        concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
     return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(null, concreteSeq))
 }

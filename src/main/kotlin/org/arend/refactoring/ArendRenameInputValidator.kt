@@ -12,5 +12,5 @@ class ArendRenameInputValidator : RenameInputValidator {
         PlatformPatterns.psiElement(PsiReferable::class.java)
 
     override fun isInputValid(newName: String, element: PsiElement, context: ProcessingContext) =
-        ArendNamesValidator.isPrefixName(newName)
+        ArendNamesValidator.isIdentifier(newName, null)
 }
