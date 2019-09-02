@@ -7,6 +7,7 @@ import com.intellij.openapi.util.Comparing
 import com.intellij.psi.PsiElement
 import com.intellij.ui.RowIcon
 import org.arend.hierarchy.clazz.ArendSuperClassTreeStructure
+import org.arend.naming.reference.ClassReferable
 import org.arend.psi.ArendClassField
 import org.arend.psi.ArendClassImplement
 import org.arend.psi.ArendDefClass
@@ -40,7 +41,7 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                 val impl = psiElement as ArendClassImplement
                 val clazz = impl.parentOfType<ArendDefClass>()
                 val ref = name.refIdentifierList.lastOrNull()?.reference?.resolve()
-                if (ref is ArendClassField && clazz != null && ArendSuperClassTreeStructure.getAllFields(clazz, false).contains<Any>(ref)) {
+                if (ref is ArendClassField && clazz != null && !clazz.fields.contains<Any>(ref)) {
                     val fullName = FullName(ref as PsiLocatedReferable)
                     myHighlightedText.ending.addText(fullName.longName.toString())
                     myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())

@@ -194,6 +194,8 @@
         <runLineMarkerContributor language="Arend"
                                   implementationClass="org.arend.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
+        <codeInsight.lineMarkerProvider language="Arend" implementationClass="org.arend.codeInsight.ArendLineMarkerProvider"/>
+
         <!-- Color Settings -->
 
         <colorSettingsPage implementation="org.arend.editor.ArendColorSettingsPage"/>

@@ -7,6 +7,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
+import org.arend.naming.reference.ClassReferable
+import org.arend.psi.ArendClassField
 import org.arend.psi.ArendDefClass
 import org.arend.settings.ArendProjectSettings
 
@@ -23,7 +25,7 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             }
             if (project.service<ArendProjectSettings>().showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
-                    getAllFields(classElement, true).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
+                    ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as PsiElement, false) }
                 } else {
                     val implFields = HashSet<String>()
                     implInAncestors(descriptor, implFields)
@@ -44,20 +46,24 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             }
         }
 
-        private fun addSuperclassFields(fields: MutableSet<PsiElement>, implFields: MutableSet<String>, clazz: ArendDefClass, excludeImpl: Boolean) {
+        /*
+        private fun addSuperclassFields(fields: MutableSet<ArendClassField>, implFields: MutableSet<String>, clazz: ArendDefClass) {
             clazz.implementedFields.mapTo(implFields) { it.textRepresentation() }
-            clazz.classFieldList.filter { !excludeImpl || !implFields.contains(it.textRepresentation()) }.mapTo(fields) { it }
+            clazz.classFieldList.mapTo(fields) { it }
             for (supClass in clazz.superClassReferences) {
-                addSuperclassFields(fields, implFields, supClass as ArendDefClass, excludeImpl)
+                addSuperclassFields(fields, implFields, supClass as ArendDefClass)
             }
         }
 
         fun getAllFields(clazz: ArendDefClass, excludeImpl: Boolean): Set<PsiElement> {
-            val fields = HashSet<PsiElement>()
+            val fields = HashSet<ArendClassField>()
             val implFields = HashSet<String>()
-            addSuperclassFields(fields, implFields, clazz, excludeImpl)
+            addSuperclassFields(fields, implFields, clazz)
+            if (excludeImpl) {
+                return fields.filterNot { implFields.contains(it.textRepresentation()) }.toSet()
+            }
             return fields
-        }
+        } */
 
 
 
