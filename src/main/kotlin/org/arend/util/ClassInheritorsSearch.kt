@@ -2,6 +2,7 @@ package org.arend.util
 
 import com.intellij.find.findUsages.DefaultFindUsagesHandlerFactory
 import com.intellij.find.findUsages.FindUsagesOptions
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
@@ -16,7 +17,7 @@ class ClassInheritorsSearch(val project: Project) {
     private val cache = ConcurrentHashMap<ArendDefClass, List<ArendDefClass>>()
 
     init {
-        ArendPsiListenerService.getInstance(project).addListener(ClassesChangedListener())
+        project.service<ArendPsiListenerService>().addListener(ClassesChangedListener())
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefClass> {
