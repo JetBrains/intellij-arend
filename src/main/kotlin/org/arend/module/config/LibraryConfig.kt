@@ -2,6 +2,7 @@ package org.arend.module.config
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
@@ -35,7 +36,10 @@ abstract class LibraryConfig(val project: Project) {
 
     abstract val name: String
 
-    abstract val rootPath: Path?
+    abstract val rootDir: String?
+
+    val rootPath: Path?
+        get() = rootDir?.let { Paths.get(FileUtil.toSystemDependentName(it)) }
 
     // Sources directory
 

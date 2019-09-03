@@ -1,9 +1,6 @@
 package org.arend.module.config
 
-import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.yaml.psi.YAMLFile
-import java.nio.file.Path
-import java.nio.file.Paths
 
 
 class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : LibraryConfig(yaml.project) {
@@ -12,5 +9,5 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val modules = yaml.modules
     override val dependencies = yaml.dependencies
 
-    override val rootPath: Path = Paths.get(FileUtil.toSystemDependentName(yaml.virtualFile.parent.path))
+    override val rootDir = yaml.virtualFile?.parent?.path
 }

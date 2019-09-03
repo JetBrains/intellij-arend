@@ -18,9 +18,12 @@ import java.nio.file.Paths
 val Project.arendModules: List<Module>
     get() = runReadAction { ModuleManager.getInstance(this).modules.filter { ArendModuleType.has(it) } }
 
+val Project.librariesRoot: String?
+    get() = ProjectRootManager.getInstance(this).projectSdk?.homePath
+
 fun Project.findExternalLibrary(libName: String): ExternalLibraryConfig? {
-    val homePath = ProjectRootManager.getInstance(this).projectSdk?.homePath ?: return null
-    val yaml = findPsiFileByPath(Paths.get(homePath).resolve(Paths.get(libName, FileUtils.LIBRARY_CONFIG_FILE))) as? YAMLFile ?: return null
+    val root = librariesRoot ?: return null
+    val yaml = findPsiFileByPath(Paths.get(root).resolve(Paths.get(libName, FileUtils.LIBRARY_CONFIG_FILE))) as? YAMLFile ?: return null
     return ExternalLibraryConfig(libName, yaml)
 }
 

@@ -6,14 +6,13 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
+import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
@@ -21,8 +20,9 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.typechecking.TypeCheckingService
-import org.arend.util.findExternalLibrary
+import org.arend.util.FileUtils
 import org.arend.util.mapFirstNotNull
+import org.jetbrains.yaml.psi.YAMLFile
 
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
@@ -65,32 +65,39 @@ val PsiElement.module: Module?
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
-val PsiElement.libraryConfig: LibraryConfig?
-    get() {
-        val file = containingFile ?: return null
-        val virtualFile = file.virtualFile ?: file.originalFile.virtualFile ?: return null
-        val project = project
-        val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
+fun PsiElement.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
+    val containingFile = containingFile ?: return null
+    val virtualFile = containingFile.virtualFile ?: containingFile.originalFile.virtualFile ?: return null
+    val project = project
+    val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
-        val module = fileIndex.getModuleForFile(virtualFile)
-        if (module != null) {
-            return ArendModuleConfigService.getInstance(module)
-        }
+    val module = fileIndex.getModuleForFile(virtualFile)
+    if (module != null) {
+        return ArendModuleConfigService.getInstance(module)
+    }
 
-        if (!fileIndex.isInLibrarySource(virtualFile)) {
-            return null
-        }
-        for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
-            if (orderEntry is LibraryOrderEntry) {
-                val name = orderEntry.library?.let { project.service<TypeCheckingService>().getLibraryName(it) } ?: continue
-                val conf = project.findExternalLibrary(name)
-                if (conf != null) {
-                    return conf
-                }
-            }
-        }
+    if (onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
         return null
     }
+
+    for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
+        if (orderEntry is LibraryOrderEntry) {
+            for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
+                val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
+                if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
+                    continue
+                }
+                val name = yaml.virtualFile?.parent?.name ?: continue
+                return ExternalLibraryConfig(name, yaml)
+            }
+        }
+    }
+
+    return null
+}
+
+val PsiElement.libraryConfig: LibraryConfig?
+    get() = getLibraryConfig(false)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {

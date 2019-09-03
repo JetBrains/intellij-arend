@@ -38,7 +38,7 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 
 private fun getArendScope(element: ArendCompositeElement): Scope {
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
-    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, sourceNode.libraryConfig?.let { ModuleScope(it) })
+    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it) } ?: EmptyScope.INSTANCE })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is ArendDefClass) {

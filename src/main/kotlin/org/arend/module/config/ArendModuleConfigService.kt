@@ -11,7 +11,9 @@ import com.intellij.openapi.module.ModuleServiceManager
 import com.intellij.openapi.roots.*
 import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
+import com.intellij.openapi.roots.libraries.LibraryTable
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -21,14 +23,14 @@ import org.arend.module.ArendLibraryKind
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
+import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.FileUtils
-import org.arend.util.arendModules
-import org.arend.util.findExternalLibrary
-import org.arend.util.findPsiFileByPath
+import org.arend.util.*
 import org.jetbrains.yaml.psi.YAMLFile
+import java.io.File
 import java.nio.file.Paths
+import kotlin.Pair
 
 
 class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project) {
@@ -42,8 +44,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
 
-    override val rootPath
-        get() = root?.let { Paths.get(it.path) }
+    override val rootDir
+        get() = root?.path
 
     override val name
         get() = module.name
@@ -96,34 +98,26 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     fun updateFromYAML() {
         val yaml = yamlFile
-        var updated = false
 
         val newDependencies = yaml?.dependencies ?: emptyList()
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies)
-            updated = true
+            updateIdeaDependencies()
         }
 
         val newModules = yaml?.modules
-        if (updated || modules != newModules) {
+        if (modules != newModules) {
             modules = newModules
-            updated = true
         }
 
         val newBinariesDir = yaml?.binariesDir
-        if (updated || binariesDir != newBinariesDir) {
+        if (binariesDir != newBinariesDir) {
             binariesDir = newBinariesDir
-            updated = true
         }
 
         val newSourcesDir = yaml?.sourcesDir
-        if (updated || sourcesDir != newSourcesDir) {
+        if (sourcesDir != newSourcesDir) {
             sourcesDir = newSourcesDir
-            updated = true
-        }
-
-        if (updated) {
-            updateIdea()
         }
     }
 
@@ -149,7 +143,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
     }
 
-    private fun updateIdea() {
+    private fun updateIdeaDependencies() {
+        val librariesRoot = project.librariesRoot ?: return
+
         val ideaDependencies = ArrayList<IdeaDependency>()
         val arendModules = HashMap<String,Module>()
         for (depModule in project.arendModules) {
@@ -166,35 +162,25 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
             if (depModule == null) {
                 val library = runReadAction {
-                    var library = projectTable.getLibraryByName(dependency.name)
+                    val pair = findLibraryName(projectTable, dependency.name)
+                    var library = pair.first
                     if (library == null) {
                         val tableModel = projectTable.modifiableModel
-                        library = tableModel.createLibrary(dependency.name)
+                        library = tableModel.createLibrary(pair.second)
 
-                        val libConfig = project.findExternalLibrary(dependency.name)
-                        if (libConfig != null) {
-                            val libModel = library.modifiableModel
-
-                            if (libModel is LibraryEx.ModifiableModelEx) {
-                                libModel.kind = ArendLibraryKind
-                            }
-
-                            val srcDir = libConfig.sourcesPath
-                            if (srcDir != null) {
-                                libModel.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
-                            }
-                            val outDir = libConfig.binariesPath
-                            if (outDir != null) {
-                                libModel.addRoot(VfsUtil.pathToUrl(outDir.toString()), OrderRootType.CLASSES)
-                            }
-                            ApplicationManager.getApplication()
-                            runInEdt { runWriteAction {
-                                libModel.commit()
-                                tableModel.commit()
-                            } }
-                        } else {
-                            runInEdt { runWriteAction { tableModel.commit() } }
+                        val libModel = library.modifiableModel
+                        if (libModel is LibraryEx.ModifiableModelEx) {
+                            libModel.kind = ArendLibraryKind
                         }
+
+                        libModel.addRoot(VfsUtil.pathToUrl(FileUtil.join(librariesRoot, dependency.name, FileUtils.LIBRARY_CONFIG_FILE)), ArendConfigOrderRootType)
+                        project.findExternalLibrary(dependency.name)?.sourcesPath?.let {
+                            libModel.addRoot(VfsUtil.pathToUrl(it.toString()), OrderRootType.SOURCES)
+                        }
+                        runInEdt { runWriteAction {
+                            libModel.commit()
+                            tableModel.commit()
+                        } }
                     }
                     library
                 }
@@ -207,10 +193,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         // Update the module-level library table
         val rootModel = runReadAction { ModuleRootManager.getInstance(module).modifiableModel }
-        val service = project.service<TypeCheckingService>()
         try {
             for (entry in rootModel.orderEntries) {
-                val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> service.getLibraryName(lib)?.let { IdeaDependency(it, null, lib) } }
+                val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> entry.name?.let { IdeaDependency(it, null, lib) } }
                     ?: entry.module?.let { IdeaDependency(it.name, it, null) }
                 if (ideaDependency != null && !ideaDependencies.remove(ideaDependency)) {
                     rootModel.removeOrderEntry(entry)
@@ -236,13 +221,25 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
     }
 
+    private fun findLibraryName(projectTable: LibraryTable, startName: String): Pair<Library?,String> {
+        var index = 0
+        while (true) {
+            val name = if (index == 0) startName else startName + "_" + index
+            val library = projectTable.getLibraryByName(name) ?: return Pair(null,name)
+            if (library.getFiles(ArendConfigOrderRootType).firstOrNull()?.parent?.name == startName) {
+                return Pair(library,name)
+            }
+            index++
+        }
+    }
+
     fun updateFromIdea() {
         val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-        val entries = orderEntries.mapNotNull { entry -> entry.name?.let { LibraryDependency(it) } }
+        val newDependencies = orderEntries.mapNotNull { entry -> entry.name?.let { LibraryDependency(it) } }
 
-        if (entries != dependencies) {
-            ApplicationManager.getApplication().invokeLater { yamlFile?.dependencies = entries }
-            updateDependencies(entries)
+        if (newDependencies != dependencies) {
+            updateDependencies(newDependencies)
+            ApplicationManager.getApplication().invokeLater { yamlFile?.dependencies = newDependencies }
         }
     }
 
@@ -258,7 +255,17 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             get() = when (this) {
                 // is ModuleSourceOrderEntry -> rootModel.module.name
                 is ModuleOrderEntry -> moduleName
-                is LibraryOrderEntry -> libraryName
+                is LibraryOrderEntry -> getRootUrls(ArendConfigOrderRootType).firstOrNull()?.let {
+                    val path = VfsUtil.urlToPath(it)
+                    val suffix = File.separator + FileUtils.LIBRARY_CONFIG_FILE
+                    if (path.endsWith(suffix)) {
+                        val parent = path.removeSuffix(suffix)
+                        val index = parent.lastIndexOf('/')
+                        if (index >= 0 && index + 1 < parent.length) {
+                            parent.substring(index + 1, parent.length)
+                        } else null
+                    } else null
+                }
                 else -> null
             }
 

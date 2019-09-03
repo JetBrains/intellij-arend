@@ -19,9 +19,6 @@ import com.intellij.openapi.roots.ModuleRootEvent
 import com.intellij.openapi.roots.ModuleRootListener
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.libraries.Library
-import com.intellij.openapi.roots.libraries.LibraryTable
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.*
 import org.arend.module.ArendModuleType
@@ -59,24 +56,6 @@ class ArendStartupActivity : StartupActivity {
                 project.service<TypeCheckingService>().libraryManager.unload()
             }
         })
-
-        val service = project.service<TypeCheckingService>()
-        val libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
-        libraryTable.addListener(object : LibraryTable.Listener {
-            override fun afterLibraryAdded(newLibrary: Library) {
-                service.addLibrary(newLibrary)
-            }
-
-            override fun afterLibraryRemoved(library: Library) {
-                val name = service.removeLibrary(library) ?: return
-                ArendRawLibrary.getExternalLibrary(service.libraryManager, name)?.let {
-                    service.libraryManager.unloadLibrary(it)
-                }
-            }
-        })
-        for (library in libraryTable.libraries) {
-            service.addLibrary(library)
-        }
 
         for (module in project.arendModules) {
             addModule(module)
