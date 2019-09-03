@@ -60,12 +60,9 @@ class ArendStartupActivity : StartupActivity {
             }
         })
 
-        for (module in project.arendModules) {
-            addModule(module)
-        }
-
         val service = project.service<TypeCheckingService>()
-        LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(object : LibraryTable.Listener {
+        val libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
+        libraryTable.addListener(object : LibraryTable.Listener {
             override fun afterLibraryAdded(newLibrary: Library) {
                 service.addLibrary(newLibrary)
             }
@@ -77,6 +74,13 @@ class ArendStartupActivity : StartupActivity {
                 }
             }
         })
+        for (library in libraryTable.libraries) {
+            service.addLibrary(library)
+        }
+
+        for (module in project.arendModules) {
+            addModule(module)
+        }
 
         var sdkHome: String? = ProjectRootManager.getInstance(project).projectSdk?.homePath
         project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, object : ModuleRootListener {

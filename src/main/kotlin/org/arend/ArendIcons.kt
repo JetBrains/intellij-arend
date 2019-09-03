@@ -14,6 +14,7 @@ object ArendIcons {
     val YAML_KEY: Icon? = AllIcons.Nodes.FieldPK
 
     val RUN_CONFIGURATION: Icon = AllIcons.RunConfigurations.Application
+    val LIBRARY_CONFIG: Icon = AllIcons.General.GearPlain
 
     // Source code elements
 

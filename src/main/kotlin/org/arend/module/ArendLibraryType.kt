@@ -2,12 +2,10 @@ package org.arend.module
 
 import com.intellij.framework.library.LibraryVersionProperties
 import com.intellij.ide.util.ChooseElementsDialog
-import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.roots.libraries.LibraryType
 import com.intellij.openapi.roots.libraries.NewLibraryConfiguration
 import com.intellij.openapi.roots.libraries.PersistentLibraryKind
@@ -19,7 +17,8 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ArendIcons
 import org.arend.module.config.ExternalLibraryConfig
-import org.arend.typechecking.TypeCheckingService
+import org.arend.module.orderRoot.ArendConfigOrderRootType
+import org.arend.module.orderRoot.ArendLibraryRootsComponentDescriptor
 import org.arend.util.FileUtils
 import org.arend.util.findPsiFileByPath
 import org.jetbrains.yaml.psi.YAMLFile
@@ -28,48 +27,43 @@ import java.nio.file.Paths
 import javax.swing.Icon
 import javax.swing.JComponent
 
-object ArendLibKind: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
+object ArendLibraryKind: PersistentLibraryKind<LibraryVersionProperties>("Arend") {
     override fun createDefaultProperties() = LibraryVersionProperties()
+
+    override fun getAdditionalRootTypes() = arrayOf(ArendConfigOrderRootType)
 }
 
-class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibKind) {
+class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibraryKind) {
 
     override fun createPropertiesEditor(editorComponent: LibraryEditorComponent<LibraryVersionProperties>): LibraryPropertiesEditor? = null
 
     override fun getCreateActionName() = "Arend library"
 
+    override fun createLibraryRootsComponentDescriptor() = ArendLibraryRootsComponentDescriptor
+
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
-        val service = project.service<TypeCheckingService>()
-        val projectDependencies = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNullTo(HashSet()) { service.getLibraryName(it) }
         val libHome = ProjectRootManager.getInstance(project).projectSdk?.homePath?.let { Paths.get(it) } ?: return null
         val externalLibs =
             Files.newDirectoryStream(libHome) { Files.isDirectory(it) }.use { stream ->
                 stream.mapNotNull { subDir -> if (Files.isRegularFile(subDir.resolve(FileUtils.LIBRARY_CONFIG_FILE))) subDir.fileName.toString() else null }
-            }.filter { !projectDependencies.contains(it) }
+            }
 
-        val libNameDialog = ChooseLibrariesDialog(project, externalLibs)
-        libNameDialog.show()
-
-        val libName = libNameDialog.chosenElements.firstOrNull() ?: return null
-        val library = ExternalLibraryConfig(libName, project.findPsiFileByPath(libHome.resolve(Paths.get(libName, FileUtils.LIBRARY_CONFIG_FILE))) as? YAMLFile ?: return null)
+        val libName = ChooseLibrariesDialog(project, externalLibs).apply { show() }.chosenElements.firstOrNull() ?: return null
+        val yaml = project.findPsiFileByPath(libHome.resolve(Paths.get(libName, FileUtils.LIBRARY_CONFIG_FILE))) as? YAMLFile ?: return null
+        val library = ExternalLibraryConfig(libName, yaml)
 
         return object : NewLibraryConfiguration(libName, this, kind.createDefaultProperties()) {
             override fun addRoots(editor: LibraryEditor) {
+                editor.addRoot(VfsUtil.pathToUrl(yaml.virtualFile.path), ArendConfigOrderRootType)
                 val srcDir = if (library.sourcesDir != null) library.sourcesPath else null
                 if (srcDir != null) {
                     editor.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
-                }
-                val outDir = if (library.binariesDir != null) library.binariesPath else null
-                if (outDir != null) {
-                    editor.addRoot(VfsUtil.pathToUrl(outDir.toString()), OrderRootType.CLASSES)
                 }
             }
         }
     }
 
-    override fun getExternalRootTypes(): Array<OrderRootType> {
-        return arrayOf(OrderRootType.CLASSES, OrderRootType.SOURCES)
-    }
+    override fun getExternalRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES)
 
     override fun getIcon(properties: LibraryVersionProperties?) = ArendIcons.LIBRARY_ICON
 

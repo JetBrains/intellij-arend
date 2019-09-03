@@ -8,10 +8,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
-import com.intellij.openapi.roots.LibraryOrderEntry
-import com.intellij.openapi.roots.ModuleOrderEntry
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.OrderRootType
+import com.intellij.openapi.roots.*
 import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
@@ -20,7 +17,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import org.arend.library.LibraryDependency
-import org.arend.module.ArendLibKind
+import org.arend.module.ArendLibraryKind
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
@@ -179,7 +176,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                             val libModel = library.modifiableModel
 
                             if (libModel is LibraryEx.ModifiableModelEx) {
-                                libModel.kind = ArendLibKind
+                                libModel.kind = ArendLibraryKind
                             }
 
                             val srcDir = libConfig.sourcesPath
@@ -214,7 +211,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         try {
             for (entry in rootModel.orderEntries) {
                 val ideaDependency = (entry as? LibraryOrderEntry)?.library?.let { lib -> service.getLibraryName(lib)?.let { IdeaDependency(it, null, lib) } }
-                    ?: (entry as? ModuleOrderEntry)?.module?.let { IdeaDependency(it.name, it, null) }
+                    ?: entry.module?.let { IdeaDependency(it.name, it, null) }
                 if (ideaDependency != null && !ideaDependencies.remove(ideaDependency)) {
                     rootModel.removeOrderEntry(entry)
                 }
@@ -241,13 +238,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     fun updateFromIdea() {
         val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-        val entries = orderEntries.mapNotNull { entry ->
-            when (entry) {
-                is LibraryOrderEntry -> entry.libraryName
-                is ModuleOrderEntry -> entry.moduleName
-                else -> null
-            }?.let { LibraryDependency(it) }
-        }
+        val entries = orderEntries.mapNotNull { entry -> entry.name?.let { LibraryDependency(it) } }
 
         if (entries != dependencies) {
             ApplicationManager.getApplication().invokeLater { yamlFile?.dependencies = entries }
@@ -256,6 +247,21 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     companion object {
+        private val OrderEntry.module: Module?
+            get() = when (this) {
+                // is ModuleSourceOrderEntry -> rootModel.module
+                is ModuleOrderEntry -> module
+                else -> null
+            }
+
+        private val OrderEntry.name: String?
+            get() = when (this) {
+                // is ModuleSourceOrderEntry -> rootModel.module.name
+                is ModuleOrderEntry -> moduleName
+                is LibraryOrderEntry -> libraryName
+                else -> null
+            }
+
         fun getConfig(module: Module): LibraryConfig {
             if (ArendModuleType.has(module)) {
                 val service = ModuleServiceManager.getService(module, ArendModuleConfigService::class.java)

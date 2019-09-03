@@ -238,6 +238,11 @@
 
         <problemFileHighlightFilter implementation="org.arend.highlight.ArendProblemHighlightFilter"/>
 
+        <!-- Order Root types -->
+
+        <orderRootType implementation="org.arend.module.orderRoot.ArendConfigOrderRootType"/>
+        <OrderRootTypeUI key="AREND_CONFIG" implementationClass="org.arend.module.orderRoot.ArendConfigOrderRootTypeUIFactory"/>
+
         <!-- Services -->
 
         <projectService serviceInterface="org.arend.typechecking.TypeCheckingService"
