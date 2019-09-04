@@ -55,7 +55,7 @@ class ArendLibraryType: LibraryType<LibraryVersionProperties>(ArendLibraryKind) 
         return object : NewLibraryConfiguration(libName, this, kind.createDefaultProperties()) {
             override fun addRoots(editor: LibraryEditor) {
                 editor.addRoot(VfsUtil.pathToUrl(yaml.virtualFile.path), ArendConfigOrderRootType)
-                val srcDir = if (library.sourcesDir != null) library.sourcesPath else null
+                val srcDir = if (library.sourcesDir.isNotEmpty()) library.sourcesPath else null
                 if (srcDir != null) {
                     editor.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
                 }

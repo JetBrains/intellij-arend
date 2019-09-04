@@ -24,22 +24,41 @@ import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.orderRoot.ArendConfigOrderRootType
+import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.*
+import org.arend.util.FileUtils
+import org.arend.util.arendModules
+import org.arend.util.findExternalLibrary
+import org.arend.util.findPsiFileByPath
 import org.jetbrains.yaml.psi.YAMLFile
 import java.io.File
 import java.nio.file.Paths
-import kotlin.Pair
 
 
 class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project) {
     private val libraryManager = project.service<TypeCheckingService>().libraryManager
 
-    override var sourcesDir: String? = null
-    override var binariesDir: String? = null
+    var librariesRoot = service<ArendSettings>().librariesRoot
+        set(value) {
+            field = value
+            service<ArendSettings>().librariesRoot = value
+        }
+
+    override var sourcesDir = ""
+    var withBinaries = false
+    var binariesDirectory: String = ""
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
+
+    override var binariesDir: String?
+        get() = if (withBinaries) binariesDirectory else null
+        set(value) {
+            withBinaries = value != null
+            if (value != null) {
+                binariesDirectory = value
+            }
+        }
 
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
@@ -52,7 +71,11 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     override val sourcesDirFile: VirtualFile?
         get() {
-            val dir = sourcesDir ?: return root
+            val dir = sourcesDir
+            if (dir.isEmpty()) {
+                return root
+            }
+
             val root = root
             val path = when {
                 root != null -> Paths.get(root.path).resolve(dir).toString()
@@ -97,25 +120,25 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     fun updateFromYAML() {
-        val yaml = yamlFile
+        val yaml = yamlFile ?: return
 
-        val newDependencies = yaml?.dependencies ?: emptyList()
+        val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies)
             updateIdeaDependencies()
         }
 
-        val newModules = yaml?.modules
+        val newModules = yaml.modules
         if (modules != newModules) {
             modules = newModules
         }
 
-        val newBinariesDir = yaml?.binariesDir
+        val newBinariesDir = yaml.binariesDir
         if (binariesDir != newBinariesDir) {
             binariesDir = newBinariesDir
         }
 
-        val newSourcesDir = yaml?.sourcesDir
+        val newSourcesDir = yaml.sourcesDir ?: ""
         if (sourcesDir != newSourcesDir) {
             sourcesDir = newSourcesDir
         }
@@ -144,7 +167,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     private fun updateIdeaDependencies() {
-        val librariesRoot = module.librariesRoot ?: return
+        val librariesRoot = librariesRoot.let { if (it.isEmpty()) "." else it }
 
         val ideaDependencies = ArrayList<IdeaDependency>()
         val arendModules = HashMap<String,Module>()
@@ -234,6 +257,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     fun updateFromIdea() {
+        // TODO: Update sources and binaries directories
         val orderEntries = ModuleRootManager.getInstance(module).orderEntries
         val newDependencies = orderEntries.mapNotNull { entry -> entry.name?.let { LibraryDependency(it) } }
 

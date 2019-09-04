@@ -25,8 +25,8 @@ const val DEFAULT_SOURCES_DIR = "src"
 const val DEFAULT_BINARIES_DIR = ".bin"
 
 abstract class LibraryConfig(val project: Project) {
-    open val sourcesDir: String?
-        get() = null
+    open val sourcesDir: String
+        get() = ""
     open val binariesDir: String?
         get() = null
     open val modules: List<ModulePath>?
@@ -45,7 +45,12 @@ abstract class LibraryConfig(val project: Project) {
 
     val sourcesPath: Path?
         get() {
-            val path = Paths.get(sourcesDir ?: return rootPath)
+            val sources = sourcesDir
+            if (sources.isEmpty()) {
+                return rootPath
+            }
+
+            val path = Paths.get(sources)
             return if (path.isAbsolute) path else rootPath?.resolve(path)
         }
 
@@ -56,7 +61,7 @@ abstract class LibraryConfig(val project: Project) {
 
     val binariesPath: Path?
         get() {
-            val path = Paths.get(binariesDir ?: DEFAULT_BINARIES_DIR)
+            val path = binariesDir?.let { Paths.get(it) } ?: return null
             return if (path.isAbsolute) path else rootPath?.resolve(path)
         }
 

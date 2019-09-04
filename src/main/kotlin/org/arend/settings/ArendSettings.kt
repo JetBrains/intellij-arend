@@ -35,6 +35,8 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
     var withClauseLimit = true
     var clauseLimit = 10
 
+    var librariesRoot = ""
+
     val clauseActualLimit: Int?
         get() = if (withClauseLimit) clauseLimit else null
 

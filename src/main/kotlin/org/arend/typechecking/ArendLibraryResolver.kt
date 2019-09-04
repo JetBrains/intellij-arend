@@ -10,7 +10,6 @@ import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
-import org.arend.util.librariesRoot
 import java.nio.file.Paths
 
 
@@ -29,11 +28,11 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
             return null
         }
 
-        val module = (library.config as? ArendModuleConfigService)?.module
-        val root = if (module == null) {
-            library.config.rootPath?.parent
+        val config = library.config
+        val root = if (config is ArendModuleConfigService) {
+            config.librariesRoot.let { if (it.isEmpty()) null else Paths.get(it) }
         } else {
-            module.librariesRoot?.let { Paths.get(it) }
+            library.config.rootPath?.parent
         } ?: return null
 
         return project.findExternalLibrary(root, name)?.let { ArendRawLibrary(it) }
