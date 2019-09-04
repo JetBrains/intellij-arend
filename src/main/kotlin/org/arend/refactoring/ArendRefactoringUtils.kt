@@ -164,7 +164,12 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
     }
 }
 
-class RenameReferenceAction(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
+class RenameReferenceAction private constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
+    companion object {
+        fun create(element: ArendReferenceElement, id: List<String>) =
+            if (element.longName == id) null else RenameReferenceAction(element, id)
+    }
+
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
     override fun execute(editor: Editor?) {

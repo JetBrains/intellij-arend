@@ -6,4 +6,5 @@ interface ArendReferenceElement : ArendCompositeElement {
     val referenceNameElement: ArendCompositeElement?
     val referenceName: String
     val rangeInElement: TextRange
+    val longName: List<String>
 }

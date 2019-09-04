@@ -32,6 +32,9 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override val referenceName: String
         get() = name
 
+    override val longName: List<String>
+        get() = listOf(referenceName)
+
     override fun getName(): String = stub?.name ?: text
 
     override fun getClassFieldKind() = ClassFieldKind.ANY

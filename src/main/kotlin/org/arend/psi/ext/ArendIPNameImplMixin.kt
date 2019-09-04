@@ -33,6 +33,9 @@ abstract class ArendIPNameImplMixin(node: ASTNode) : ArendCompositeElementImpl(n
             ?: postfix?.text?.removePrefix("`")
             ?: error("ArendIPName (referenceName): incorrect expression")
 
+    override val longName: List<String>
+        get() = parentLongName?.let { it.refIdentifierList.map { ref -> ref.referenceName } + listOf(referenceName) } ?: listOf(referenceName)
+
     override val rangeInElement: TextRange
         get() {
             infix?.text?.let { text ->

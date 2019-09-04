@@ -16,6 +16,7 @@ import org.arend.resolving.ArendReferenceImpl
 import org.arend.term.abs.Abstract
 import org.arend.typing.ReferableExtractVisitor
 import org.arend.typing.getTypeOf
+import org.arend.util.mapUntilNotNull
 
 abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), ArendDefIdentifier {
     override val referenceNameElement
@@ -23,6 +24,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
 
     override val referenceName: String
         get() = text
+
+    override val longName: List<String>
+        get() = listOf(referenceName)
 
     override fun getName(): String = referenceName
 
@@ -106,6 +110,10 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
 
     override val referenceName: String
         get() = text
+
+    override val longName: List<String>
+        get() = (parent as? ArendLongName)?.refIdentifierList?.mapUntilNotNull { if (it == this) null else it.referenceName }?.apply { add(referenceName) }
+            ?: listOf(referenceName)
 
     override fun getName(): String = referenceName
 
