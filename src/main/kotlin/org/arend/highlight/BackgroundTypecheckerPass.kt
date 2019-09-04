@@ -9,15 +9,15 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.settings.ArendSettings
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.AbstractEWCCAnnotator
+import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
+import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.DefinitionBlacklistService
-import org.arend.typechecking.SilentTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -26,8 +26,8 @@ import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
 
-class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BaseGroupPass(file, group, editor, "Arend silent typechecker annotator", textRange, highlightInfoProcessor) {
+class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+    : BaseGroupPass(file, group, editor, "Arend background typechecker annotator", textRange, highlightInfoProcessor) {
 
     private val typeCheckingService = myProject.service<TypeCheckingService>()
     private val definitionBlackListService = service<DefinitionBlacklistService>()
@@ -67,7 +67,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         }, null)
     }
 
-    private fun typecheckDefinition(typechecking: SilentTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
+    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
             val ok = definitionBlackListService.runTimed(definition, progress) {
                 typechecking.typecheckDefinitions(listOf(it)) {
@@ -92,7 +92,7 @@ class SilentTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun collectInfo(progress: ProgressIndicator) {
         when (arendSettings.typecheckingMode) {
             ArendSettings.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = SilentTypechecking.create(myProject, myProject.service<ErrorService>())
+                val typechecking = ArendTypechecking.create(myProject, myProject.service<ErrorService>())
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {

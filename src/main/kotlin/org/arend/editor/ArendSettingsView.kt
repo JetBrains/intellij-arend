@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.Label
 import com.intellij.ui.layout.panel
 import org.arend.settings.ArendSettings
 
@@ -12,7 +11,7 @@ import org.arend.settings.ArendSettings
 class ArendSettingsView {
     private val arendSettings = service<ArendSettings>()
 
-    // Silent typechecking
+    // Background typechecking
     private val typecheckingMode = ComboBox(arrayOf(
         ArendSettings.TypecheckingMode.SMART,
         ArendSettings.TypecheckingMode.DUMB,
@@ -25,7 +24,7 @@ class ArendSettingsView {
     private val clauseLimit = JBIntSpinner(10, 1, 1000)
 
     init {
-        // Silent typechecking
+        // Background typechecking
         typecheckingMode.renderer = ToolTipListCellRenderer(listOf("Completely typecheck definitions", "Perform only basic checks", "Do not typecheck anything at all"))
         typecheckingMode.addActionListener {
             updateTypecheckingMode()
@@ -55,7 +54,7 @@ class ArendSettingsView {
 
     val isModified: Boolean
         get() =
-            // Silent typechecking
+            // Background typechecking
             typecheckingMode.selectedItem != arendSettings.typecheckingMode ||
             timeLimitSwitch.isSelected != arendSettings.withTimeLimit ||
             timeLimit.number != arendSettings.typecheckingTimeLimit ||
@@ -64,7 +63,7 @@ class ArendSettingsView {
             clauseLimit.number != arendSettings.clauseLimit
 
     fun apply() {
-        // Silent typechecking
+        // Background typechecking
         (typecheckingMode.selectedItem as? ArendSettings.TypecheckingMode)?.let {
             arendSettings.typecheckingMode = it
         }
@@ -77,7 +76,7 @@ class ArendSettingsView {
     }
 
     fun reset() {
-        // Silent typechecking
+        // Background typechecking
         typecheckingMode.selectedItem = arendSettings.typecheckingMode
         timeLimitSwitch.isSelected = arendSettings.withTimeLimit
         timeLimit.value = arendSettings.typecheckingTimeLimit
@@ -90,11 +89,9 @@ class ArendSettingsView {
     }
 
     fun createComponent() = panel {
-        titledRow("Silent typechecking") {
+        titledRow("Background typechecking") {
             row { cell {
-                val label = Label("Typechecking mode: ")
-                label.toolTipText = "Silent typechecking runs in a background thread"
-                label()
+                label("Typechecking mode: ")
                 typecheckingMode()
             } }
 

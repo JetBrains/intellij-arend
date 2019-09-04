@@ -16,15 +16,15 @@ import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
-open class SilentTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
+open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
     : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
     companion object {
-        fun create(project: Project, errorReporter: ErrorReporter): SilentTypechecking {
+        fun create(project: Project, errorReporter: ErrorReporter): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
             val referableConverter = typecheckingService.newReferableConverter(true)
             val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
-            return SilentTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckingService, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
+            return ArendTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckingService, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
         }
     }
 

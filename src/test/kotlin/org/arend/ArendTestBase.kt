@@ -13,14 +13,13 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.arend.settings.ArendSettings
-import org.arend.error.ErrorReporter
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.parentOfType
-import org.arend.typechecking.SilentTypechecking
+import org.arend.settings.ArendSettings
+import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.FileUtils
@@ -207,6 +206,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-        SilentTypechecking.create(project, ErrorReporter { if (it.isTypecheckingError) project.service<ErrorService>().report(it) }).typecheckModules(targetFiles, null)
+        ArendTypechecking.create(project, project.service<ErrorService>()).typecheckModules(targetFiles, null)
     }
 }
