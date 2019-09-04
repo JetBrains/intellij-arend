@@ -26,7 +26,7 @@ import org.arend.typechecking.error.ErrorService
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val typecheckingService = myProject.service<TypeCheckingService>()
+    private val typecheckingService = myProject.service<TypeCheckingService>().apply { initialize() }
 
     override fun collectInfo(progress: ProgressIndicator) {
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
