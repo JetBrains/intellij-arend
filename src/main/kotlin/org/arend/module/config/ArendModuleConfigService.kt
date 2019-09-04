@@ -86,7 +86,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                 if (!oldDependencies.contains(dependency)) {
                     var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
                     if (depLibrary == null) {
-                        depLibrary = libraryManager.loadLibrary(dependency.name)
+                        depLibrary = libraryManager.loadDependency(library, dependency.name)
                     }
                     if (depLibrary != null) {
                         libraryManager.registerDependency(library, depLibrary)
@@ -144,7 +144,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     private fun updateIdeaDependencies() {
-        val librariesRoot = project.librariesRoot ?: return
+        val librariesRoot = module.librariesRoot ?: return
 
         val ideaDependencies = ArrayList<IdeaDependency>()
         val arendModules = HashMap<String,Module>()
@@ -174,7 +174,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                         }
 
                         libModel.addRoot(VfsUtil.pathToUrl(FileUtil.join(librariesRoot, dependency.name, FileUtils.LIBRARY_CONFIG_FILE)), ArendConfigOrderRootType)
-                        project.findExternalLibrary(dependency.name)?.sourcesPath?.let {
+                        project.findExternalLibrary(Paths.get(librariesRoot), dependency.name)?.sourcesPath?.let {
                             libModel.addRoot(VfsUtil.pathToUrl(it.toString()), OrderRootType.SOURCES)
                         }
                         runInEdt { runWriteAction {

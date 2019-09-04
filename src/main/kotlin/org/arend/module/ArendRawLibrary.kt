@@ -16,10 +16,13 @@ import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
 import org.arend.typechecking.TypeCheckingService
 
-class ArendRawLibrary(val config: LibraryConfig, val isExternal: Boolean)
+class ArendRawLibrary(val config: LibraryConfig)
     : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
 
-    constructor(module: Module): this(ArendModuleConfigService.getConfig(module), false)
+    constructor(module: Module): this(ArendModuleConfigService.getConfig(module))
+
+    val isExternal: Boolean
+        get() = config is ExternalLibraryConfig
 
     override fun getName() = config.name
 
