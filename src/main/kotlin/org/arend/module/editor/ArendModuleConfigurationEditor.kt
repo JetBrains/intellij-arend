@@ -10,19 +10,19 @@ class ArendModuleConfigurationEditor(private val moduleConfig: ArendModuleConfig
 
     override fun getDisplayName() = "Arend module configuration"
 
-    override fun isModified() = view?.isModified(moduleConfig) == true
+    override fun isModified() = view?.compare(moduleConfig) == false
 
     override fun apply() {
-        view?.apply(moduleConfig)
+        view?.let { moduleConfig.updateFromIDEA(it) }
     }
 
     override fun reset() {
-        view?.reset(moduleConfig)
+        view?.copyFrom(moduleConfig)
     }
 
     override fun createComponent(): JComponent? {
-        view = ArendModuleConfigurationView(moduleConfig.project, moduleConfig.name)
-        view?.reset(moduleConfig)
+        view = ArendModuleConfigurationView(moduleConfig.project, moduleConfig.rootDir, moduleConfig.name)
+        view?.copyFrom(moduleConfig)
         return view?.createComponent()
     }
 }

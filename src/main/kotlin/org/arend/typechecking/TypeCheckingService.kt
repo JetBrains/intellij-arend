@@ -1,6 +1,8 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.components.service
+import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
@@ -8,6 +10,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
+import org.arend.module.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
@@ -27,6 +30,9 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FullName
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
+import javax.swing.KeyStroke
 
 interface TypeCheckingService {
     val libraryManager: LibraryManager
@@ -83,6 +89,11 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
 
         // Set the listener that updates typechecked definitions
         project.service<ArendPsiListenerService>().addListener(this)
+
+        // Listen for YAML files changes
+        YAMLFileListener(project).register()
+
+        KeymapManager.getInstance().activeKeymap.addShortcut("Arend.ImplementedFields", KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.ALT_MASK or InputEvent.SHIFT_MASK), null))
 
         isInitialized = true
         return true

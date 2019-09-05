@@ -30,7 +30,7 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
 
         val config = library.config
         val root = if (config is ArendModuleConfigService) {
-            config.librariesRoot.let { if (it.isEmpty()) null else Paths.get(it) }
+            config.librariesRootDef?.let { Paths.get(it) }
         } else {
             library.config.rootPath?.parent
         } ?: return null

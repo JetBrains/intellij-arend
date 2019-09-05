@@ -1,7 +1,6 @@
 package org.arend.module.config
 
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
@@ -27,38 +26,30 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.FileUtils
-import org.arend.util.arendModules
-import org.arend.util.findExternalLibrary
-import org.arend.util.findPsiFileByPath
+import org.arend.util.*
 import org.jetbrains.yaml.psi.YAMLFile
 import java.io.File
 import java.nio.file.Paths
+import kotlin.Pair
 
 
-class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project) {
+class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project), ArendModuleConfiguration {
     private val libraryManager = project.service<TypeCheckingService>().libraryManager
 
-    var librariesRoot = service<ArendSettings>().librariesRoot
+    override var librariesRoot = service<ArendSettings>().librariesRoot
         set(value) {
             field = value
             service<ArendSettings>().librariesRoot = value
         }
 
     override var sourcesDir = ""
-    var withBinaries = false
-    var binariesDirectory: String = ""
+    override var withBinaries = false
+    override var binariesDirectory = ""
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
 
-    override var binariesDir: String?
-        get() = if (withBinaries) binariesDirectory else null
-        set(value) {
-            withBinaries = value != null
-            if (value != null) {
-                binariesDirectory = value
-            }
-        }
+    override val binariesDir: String?
+        get() = flaggedBinariesDir
 
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
@@ -87,6 +78,14 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     private val yamlFile
         get() = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { project.findPsiFileByPath(it) as? YAMLFile }
+
+    val librariesRootDef: String?
+        get() {
+            val librariesRoot = librariesRoot
+            return if (librariesRoot.isEmpty()) {
+                root?.parent?.path?.let { FileUtil.toSystemDependentName(it) }
+            } else librariesRoot
+        }
 
     private fun updateDependencies(newDependencies: List<LibraryDependency>) {
         val oldDependencies = dependencies
@@ -117,31 +116,21 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                 }
             }
         }
+
+        updateIdeaDependencies()
     }
 
-    fun updateFromYAML() {
+    fun copyFromYAML() {
         val yaml = yamlFile ?: return
 
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies)
-            updateIdeaDependencies()
         }
 
-        val newModules = yaml.modules
-        if (modules != newModules) {
-            modules = newModules
-        }
-
-        val newBinariesDir = yaml.binariesDir
-        if (binariesDir != newBinariesDir) {
-            binariesDir = newBinariesDir
-        }
-
-        val newSourcesDir = yaml.sourcesDir ?: ""
-        if (sourcesDir != newSourcesDir) {
-            sourcesDir = newSourcesDir
-        }
+        modules = yaml.modules
+        flaggedBinariesDir = yaml.binariesDir
+        sourcesDir = yaml.sourcesDir ?: ""
     }
 
     private class IdeaDependency(val name: String, val module: Module?, val library: Library?) {
@@ -167,7 +156,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     private fun updateIdeaDependencies() {
-        val librariesRoot = librariesRoot.let { if (it.isEmpty()) "." else it }
+        val librariesRoot = librariesRootDef ?: return
 
         val ideaDependencies = ArrayList<IdeaDependency>()
         val arendModules = HashMap<String,Module>()
@@ -256,14 +245,43 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
     }
 
-    fun updateFromIdea() {
-        // TODO: Update sources and binaries directories
-        val orderEntries = ModuleRootManager.getInstance(module).orderEntries
-        val newDependencies = orderEntries.mapNotNull { entry -> entry.name?.let { LibraryDependency(it) } }
+    fun updateFromIDEA(config: ArendModuleConfiguration) {
+        val newLibrariesRoot = config.librariesRoot
+        val reload = librariesRoot != newLibrariesRoot
+        var updateYAML = false
 
-        if (newDependencies != dependencies) {
-            updateDependencies(newDependencies)
-            ApplicationManager.getApplication().invokeLater { yamlFile?.dependencies = newDependencies }
+        val newDependencies = config.dependencies
+        if (dependencies != newDependencies) {
+            if (reload) {
+                dependencies = newDependencies
+            } else {
+                updateDependencies(newDependencies)
+            }
+            updateYAML = true
+        }
+
+        val newSourcesDir = config.sourcesDir
+        if (sourcesDir != newSourcesDir) {
+            sourcesDir = newSourcesDir
+            updateYAML = true
+        }
+
+        val newBinariesDir = config.flaggedBinariesDir
+        if (flaggedBinariesDir != newBinariesDir) {
+            updateYAML = true
+        }
+        withBinaries = config.withBinaries
+        binariesDirectory = config.binariesDirectory
+
+        if (updateYAML) yamlFile?.write {
+            sourcesDir = newSourcesDir
+            binariesDir = newBinariesDir
+            dependencies = newDependencies
+        }
+
+        if (reload) {
+            librariesRoot = newLibrariesRoot
+            project.reload()
         }
     }
 

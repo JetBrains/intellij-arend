@@ -40,9 +40,9 @@
         <!-- Module -->
 
         <moduleType id="AREND_MODULE" implementationClass="org.arend.module.ArendModuleType"/>
-        <moduleBuilder builderClass="org.arend.module.util.ArendModuleBuilder"/>
+        <moduleBuilder builderClass="org.arend.module.ArendModuleBuilder"/>
         <projectStructureDetector
-                implementation="org.arend.module.util.ArendProjectStructureDetector"/>
+                implementation="org.arend.module.ArendProjectStructureDetector"/>
         <library.type implementation="org.arend.module.ArendLibraryType"/>
         <sdkType implementation="org.arend.module.ArendSdkType"/>
         <moduleConfigurationEditorProvider implementation="org.arend.module.editor.ArendModuleConfigEditorProvider"/>

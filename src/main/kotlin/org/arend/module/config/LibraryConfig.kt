@@ -21,9 +21,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 
-const val DEFAULT_SOURCES_DIR = "src"
-const val DEFAULT_BINARIES_DIR = ".bin"
-
 abstract class LibraryConfig(val project: Project) {
     open val sourcesDir: String
         get() = ""
