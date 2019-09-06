@@ -47,15 +47,7 @@ class ImplementFieldsQuickFix(val instance: AbstractCoClauseInserter, private va
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
-        for (f in fieldsToImplement) {
-            addField(f.first, editor, psiFactory, f.second)
-        }
-
-        // Add CRLF after last coclause
-        val lastCC = instance.coClausesList.lastOrNull() ?: return
-        if (lastCC.nextSibling?.node?.elementType == ArendElementTypes.RBRACE) {
-            lastCC.parent?.addAfter(psiFactory.createWhitespace("\n"), lastCC)
-        }
+        for (f in fieldsToImplement) addField(f.first, editor, psiFactory, f.second)
     }
 
     override fun getIcon(flags: Int) = if (needsBulb) AllIcons.Actions.IntentionBulb else null

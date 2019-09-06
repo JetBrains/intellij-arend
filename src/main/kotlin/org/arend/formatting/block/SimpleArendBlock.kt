@@ -4,6 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
@@ -25,15 +26,24 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        if (myNode.psi is ArendFunctionClauses) {
-            if (child2 is SimpleArendBlock && child2.node.elementType == PIPE)
-                return oneCrlf
+        val nodePsi = myNode.psi
+
+        if (nodePsi is ArendFunctionClauses) {
+            if (child2 is SimpleArendBlock && child2.node.elementType == PIPE) return oneCrlf
         }
 
-        if (myNode.psi is ArendFunctionBody) {
+        if (nodePsi is ArendFunctionBody) {
             if (child1 is AbstractArendBlock && child1.node.elementType == FAT_ARROW) return oneSpaceWrap
+            if (needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
             return super.getSpacing(child1, child2)
         }
+
+        if (nodePsi is ArendNewExpr && needsCrlfInCoClausesBlock(child1, child2)) {
+            val whitespace = nodePsi.lbrace?.nextSibling as? PsiWhiteSpace
+            return if (whitespace != null && !whitespace.textContains('\n')) oneSpaceWrap else oneCrlf
+        }
+
+        if (nodePsi is ArendCoClause && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
 
         if (myNode.psi is ArendDefFunction) {
             if (child2 is AbstractArendBlock && child2.node.elementType == FUNCTION_BODY) {
@@ -367,6 +377,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         return DocCommentBlock(settings, blocks, globalAlignment, globalIndent, parent)
     }
+
+    private fun needsCrlfInCoClausesBlock(child1: Block?, child2: Block?): Boolean =
+            child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
+                    (child1.node.elementType == LBRACE && child2.node.psi is ArendCoClause
+                            || child1.node.psi is ArendCoClause && child2.node.elementType == RBRACE)
+
+
 
     class DocCommentBlock(settings: CommonCodeStyleSettings?, blocks: ArrayList<Block>, globalAlignment: Alignment?, globalIndent: Indent, parent: AbstractArendBlock) : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
         override fun getSpacing(child1: Block?, child2: Block): Spacing? {
