@@ -1,4 +1,4 @@
-package org.arend.quickfix
+package org.arend.quickfix.removers
 
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor

@@ -17,6 +17,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.AbstractCoClauseInserter.Companion.makeFirstCoClauseInserter
+import org.arend.quickfix.removers.RemoveCoClauseQuickFix
 import org.arend.refactoring.moveCaretToEndOffset
 
 enum class InstanceQuickFixAnnotation {
@@ -111,7 +112,7 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
 
         if (!onlyCheckFields) {
             if (fields.isNotEmpty()) {
-                val fieldsList = AbstractCoClauseInserter.makeFieldList(fields, classReferenceData.classRef)
+                val fieldsList = makeFieldList(fields, classReferenceData.classRef)
 
                 when (annotationToShow) {
                     InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
@@ -139,6 +140,11 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
         }
     }
     return emptyList()
+}
+
+fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
+    val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
+    return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
 }
 
 fun doAnnotate(element: PsiElement?, holder: AnnotationHolder) {
@@ -173,11 +179,6 @@ abstract class AbstractCoClauseInserter {
                 if (element.fatArrow == null) CoClauseInserter(element)
                 else null
             else -> null
-        }
-
-        fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
-            val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-            return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
         }
     }
 }

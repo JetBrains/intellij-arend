@@ -28,12 +28,8 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
-import org.arend.quickfix.AbstractCoClauseInserter.Companion.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
-import org.arend.quickfix.removers.RemoveAsPatternQuickFix
-import org.arend.quickfix.removers.RemoveClauseQuickFix
-import org.arend.quickfix.removers.RemovePatternRightHandSideQuickFix
-import org.arend.quickfix.removers.ReplaceWithWildcardPatternQuickFix
+import org.arend.quickfix.removers.*
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.ArendError
