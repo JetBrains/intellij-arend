@@ -48,9 +48,13 @@ interface ArendModuleConfiguration {
 
     fun toAbsolute(root: String?, str: String): String {
         val dStr = FileUtil.toSystemDependentName(str)
-        return if (root == null || str.isEmpty()) dStr else {
-            val path = Paths.get(dStr)
-            if (path.isAbsolute) dStr else Paths.get(root).resolve(path).toString()
+        return when {
+            root == null -> dStr
+            str.isEmpty() -> root
+            else -> {
+                val path = Paths.get(dStr)
+                if (path.isAbsolute) dStr else Paths.get(root).resolve(path).toString()
+            }
         }
     }
 }

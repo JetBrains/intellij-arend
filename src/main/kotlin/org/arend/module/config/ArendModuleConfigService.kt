@@ -87,31 +87,33 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             } else librariesRoot
         }
 
-    private fun updateDependencies(newDependencies: List<LibraryDependency>) {
+    private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean) {
         val oldDependencies = dependencies
         dependencies = newDependencies
 
-        val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
-        var reload = false
-        for (dependency in oldDependencies) {
-            if (!newDependencies.contains(dependency) && libraryManager.getRegisteredLibrary(dependency.name) != null) {
-                reload = true
-                break
-            }
-        }
-
         if (reload) {
-            libraryManager.unloadLibrary(library)
-            libraryManager.loadLibrary(library)
-        } else {
-            for (dependency in newDependencies) {
-                if (!oldDependencies.contains(dependency)) {
-                    var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
-                    if (depLibrary == null) {
-                        depLibrary = libraryManager.loadDependency(library, dependency.name)
-                    }
-                    if (depLibrary != null) {
-                        libraryManager.registerDependency(library, depLibrary)
+            val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
+            var reloadLib = false
+            for (dependency in oldDependencies) {
+                if (!newDependencies.contains(dependency) && libraryManager.getRegisteredLibrary(dependency.name) != null) {
+                    reloadLib = true
+                    break
+                }
+            }
+
+            if (reloadLib) {
+                libraryManager.unloadLibrary(library)
+                libraryManager.loadLibrary(library)
+            } else {
+                for (dependency in newDependencies) {
+                    if (!oldDependencies.contains(dependency)) {
+                        var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
+                        if (depLibrary == null) {
+                            depLibrary = libraryManager.loadDependency(library, dependency.name)
+                        }
+                        if (depLibrary != null) {
+                            libraryManager.registerDependency(library, depLibrary)
+                        }
                     }
                 }
             }
@@ -120,17 +122,19 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         updateIdeaDependencies()
     }
 
-    fun copyFromYAML() {
-        val yaml = yamlFile ?: return
-
+    fun copyFromYAML(yaml: YAMLFile, update: Boolean) {
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
-            updateDependencies(newDependencies)
+            updateDependencies(newDependencies, update)
         }
 
         modules = yaml.modules
         flaggedBinariesDir = yaml.binariesDir
         sourcesDir = yaml.sourcesDir ?: ""
+    }
+
+    fun copyFromYAML() {
+        copyFromYAML(yamlFile ?: return, true)
     }
 
     private class IdeaDependency(val name: String, val module: Module?, val library: Library?) {
@@ -252,11 +256,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         val newDependencies = config.dependencies
         if (dependencies != newDependencies) {
-            if (reload) {
-                dependencies = newDependencies
-            } else {
-                updateDependencies(newDependencies)
-            }
+            updateDependencies(newDependencies, !reload)
             updateYAML = true
         }
 
