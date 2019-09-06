@@ -5,10 +5,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextComponentAccessor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.panel
 import org.arend.library.LibraryDependency
 import org.arend.module.config.ArendModuleConfiguration
+import org.arend.ui.DualList
+import org.arend.ui.content
 import org.arend.util.checked
 import org.arend.util.labeled
 import javax.swing.BorderFactory
@@ -38,6 +41,8 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         addBrowseFolderListener("Path to libraries", "Select the directory in which dependencies${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor())
     }
 
+    private val dualList = DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true)
+
     override var librariesRoot: String
         get() = libRootTextField.text
         set(value) {
@@ -62,7 +67,11 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
             binariesTextField.text = value
         }
 
-    override var dependencies: List<LibraryDependency> = emptyList() // TODO
+    override var dependencies: List<LibraryDependency>
+        get() = dualList.selectedList.content
+        set(value) {
+            dualList.selectedList.content = value
+        }
 
     fun createComponent() = panel {
         labeled("Sources directory: ", sourcesTextField)
@@ -70,6 +79,8 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
         titledRow("Libraries") {
             labeled("Path to libraries: ", libRootTextField)
+            dualList.selectedList.setEmptyText("No dependencies")
+            row { ScrollPaneFactory.createScrollPane(dualList, true)() }
         }
     }.apply {
         border = BorderFactory.createEmptyBorder(0, 10, 0, 10)

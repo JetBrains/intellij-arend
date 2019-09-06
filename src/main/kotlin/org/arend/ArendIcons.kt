@@ -16,6 +16,15 @@ object ArendIcons {
     val RUN_CONFIGURATION: Icon = AllIcons.RunConfigurations.Application
     val LIBRARY_CONFIG: Icon = AllIcons.General.GearPlain
 
+    val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages!!
+    val FILTER = AllIcons.General.Filter!!
+
+    val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
+    val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
+
+    val MOVE_LEFT = IconLoader.getIcon("/icons/moveLeft.svg")
+    val MOVE_RIGHT = IconLoader.getIcon("/icons/moveRight.svg")
+
     // Source code elements
 
     val CLASS_DEFINITION = AllIcons.Nodes.Class!!
@@ -27,11 +36,7 @@ object ArendIcons {
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
     val MODULE_DEFINITION = AllIcons.Nodes.Method!!
 
-    val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages!!
-    val FILTER = AllIcons.General.Filter!!
-
-    val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
-    val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
+    // Errors
 
     val ERROR = AllIcons.RunConfigurations.ToolbarError!!
     val WARNING = AllIcons.RunConfigurations.ToolbarFailed!!
