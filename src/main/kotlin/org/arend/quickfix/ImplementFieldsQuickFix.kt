@@ -25,7 +25,7 @@ class ImplementFieldsQuickFix(val instance: AbstractCoClauseInserter, private va
     override fun getText() = "Implement missing fields"
 
     private fun addField(field: Referable, editor: Editor?, psiFactory: ArendPsiFactory, needQualifiedName: Boolean = false) {
-        val coClauses = instance.coClausesList()
+        val coClauses = instance.coClausesList
         val fieldClass = (field as? LocatedReferable)?.locatedReferableParent
         val name = if (needQualifiedName && fieldClass != null) "${fieldClass.textRepresentation()}.${field.textRepresentation()}" else field.textRepresentation()
 
@@ -52,7 +52,7 @@ class ImplementFieldsQuickFix(val instance: AbstractCoClauseInserter, private va
         }
 
         // Add CRLF after last coclause
-        val lastCC = instance.coClausesList().lastOrNull() ?: return
+        val lastCC = instance.coClausesList.lastOrNull() ?: return
         if (lastCC.nextSibling?.node?.elementType == ArendElementTypes.RBRACE) {
             lastCC.parent?.addAfter(psiFactory.createWhitespace("\n"), lastCC)
         }

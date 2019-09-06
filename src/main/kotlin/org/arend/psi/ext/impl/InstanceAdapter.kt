@@ -7,14 +7,20 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendFunctionalBody
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
-abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendDefInstance {
+abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendDefInstance, ArendFunctionalDefinition {
     constructor(node: ASTNode) : super(node)
+
+    override val body: ArendFunctionalBody? get() = instanceBody
+
+    override val kw: PsiElement? get() = instanceKw
 
     constructor(stub: ArendDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 

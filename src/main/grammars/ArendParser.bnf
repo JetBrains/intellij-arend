@@ -222,7 +222,8 @@ private moduleHeader ::= MODULE_KW defIdentifier {
 defFunction ::= (FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ClassReferenceHolder" ]
+                   "org.arend.psi.ClassReferenceHolder"
+                   "org.arend.psi.ext.ArendFunctionalDefinition" ]
     mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -243,7 +244,8 @@ private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW
 defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ClassReferenceHolder" ]
+                   "org.arend.psi.ClassReferenceHolder"
+                   "org.arend.psi.ext.ArendFunctionalDefinition" ]
     mixin = "org.arend.psi.ext.impl.InstanceAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -290,6 +292,7 @@ functionBody ::= functionTermBody
     | functionClauses {
     pin(".*") = 1
     recoverWhile = statement_recover
+    implements = "org.arend.psi.ext.ArendFunctionalBody"
 }
 
 instanceBody ::= functionTermBody
@@ -298,6 +301,7 @@ instanceBody ::= functionTermBody
     | coClauseReg+ {
     pin(".*") = 1
     recoverWhile = statement_recover
+    implements = "org.arend.psi.ext.ArendFunctionalBody"
 }
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }

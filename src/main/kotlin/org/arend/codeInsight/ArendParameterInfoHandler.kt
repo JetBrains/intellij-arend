@@ -281,7 +281,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         }, null)
 
     private fun isBinOp(def: Referable?): Boolean {
-        return def is ArendDefFunction && (def.prec?.infixLeftKw != null || def.prec?.infixNonKw != null || def.prec?.infixRightKw != null)
+        return def is ArendDefFunction && (def.getPrec()?.infixLeftKw != null || def.getPrec()?.infixNonKw != null || def.getPrec()?.infixRightKw != null)
     }
 
     private fun ascendLongName(node: Abstract.SourceNode): Abstract.SourceNode? {

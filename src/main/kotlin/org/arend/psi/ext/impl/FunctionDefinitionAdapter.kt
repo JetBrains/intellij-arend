@@ -7,13 +7,15 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendFunctionalBody
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefFunctionStub
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
-abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStub>, ArendDefFunction {
+abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStub>, ArendDefFunction, ArendFunctionalDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -21,6 +23,10 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
+
+    override val body: ArendFunctionalBody? get() = functionBody
+
+    override val kw: PsiElement? get() = functionKw
 
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
 
