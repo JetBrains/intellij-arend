@@ -1,6 +1,7 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -309,4 +310,18 @@ fun deleteSuperfluousPatternParentheses(atomPattern: ArendAtomPattern) {
         }
     }
 
+}
+
+fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
+    if (editor != null) {
+        editor.caretModel.moveToOffset(anchor.textRange.endOffset)
+        IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
+    }
+}
+
+fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
+    if (editor != null) {
+        editor.caretModel.moveToOffset(anchor.textRange.startOffset)
+        IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
+    }
 }

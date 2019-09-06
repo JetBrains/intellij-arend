@@ -12,7 +12,7 @@ import com.intellij.psi.PsiElement
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.quickfix.AbstractEWCCAnnotator
+import org.arend.quickfix.doAnnotate
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
@@ -42,25 +42,24 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         definition.accept(object : DumbTypechecker(this) {
             override fun visitFunction(def: Concrete.FunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
-                AbstractEWCCAnnotator.makeAnnotator(def.data.data as? PsiElement)?.doAnnotate(holder)
+                doAnnotate(def.data.data as? PsiElement, holder)
                 return null
             }
 
             override fun visitClassFieldImpl(classFieldImpl: Concrete.ClassFieldImpl, params: Void?) {
-                AbstractEWCCAnnotator.makeAnnotator(classFieldImpl.data as? PsiElement)?.doAnnotate(holder)
+                doAnnotate(classFieldImpl.data as? PsiElement, holder)
                 super.visitClassFieldImpl(classFieldImpl, params)
             }
 
             override fun visitClassExt(expr: Concrete.ClassExtExpression, params: Void?): Void? {
-                AbstractEWCCAnnotator.makeAnnotator(expr.data as? PsiElement)?.doAnnotate(holder)
+                doAnnotate(expr.data as? PsiElement, holder)
                 super.visitClassExt(expr, params)
                 return null
             }
 
             override fun visitNew(expr: Concrete.NewExpression, params: Void?): Void? {
-                if (expr.expression !is Concrete.ClassExtExpression) {
-                    AbstractEWCCAnnotator.makeAnnotator(expr.data as? PsiElement)?.doAnnotate(holder)
-                }
+                if (expr.expression !is Concrete.ClassExtExpression)
+                    doAnnotate(expr.data as? PsiElement, holder)
                 super.visitNew(expr, params)
                 return null
             }

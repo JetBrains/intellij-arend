@@ -6,10 +6,9 @@ import com.intellij.psi.PsiElement
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ArendExpr
 import org.arend.psi.ext.ArendCoClauseImplMixin
-import org.arend.quickfix.CoClauseAnnotator
+import org.arend.quickfix.CoClauseInserter
 import org.arend.quickfix.CoClausesKey
 import org.arend.quickfix.ImplementFieldsQuickFix
-import org.arend.quickfix.InstanceQuickFixAnnotation
 
 open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoClauseImplMixin>(ArendCoClauseImplMixin::class.java, "Implement fields of a super class") {
     override fun isApplicableTo(element: ArendCoClauseImplMixin, caretOffset: Int, editor: Editor?): Boolean {
@@ -26,7 +25,7 @@ open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoCl
         val data = element.getUserData(CoClausesKey)
         val rangeToReport = element.longName?.textRange
         if (data != null && rangeToReport != null && project != null)
-            ImplementFieldsQuickFix(CoClauseAnnotator(element, rangeToReport, InstanceQuickFixAnnotation.NO_ANNOTATION), data).invoke(project, editor, null)
+            ImplementFieldsQuickFix(CoClauseInserter(element), false, data).invoke(project, editor, null)
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean = element is ArendExpr || element is ArendCoClause

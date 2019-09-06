@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.quickfix.AbstractEWCCAnnotator
+import org.arend.quickfix.AbstractCoClauseInserter
 import org.arend.quickfix.CoClausesKey
 import org.arend.quickfix.ImplementFieldsQuickFix
 
@@ -20,8 +20,8 @@ class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImp
     override fun applyTo(element: ArendNewExprImplMixin, project: Project?, editor: Editor?) {
         project ?: return
         val data = element.getUserData(CoClausesKey) ?: return
-        AbstractEWCCAnnotator.makeAnnotator(element)?.let {
-            ImplementFieldsQuickFix(it, data).invoke(project, editor, null)
+        AbstractCoClauseInserter.makeFirstCoClauseInserter(element)?.let {
+            ImplementFieldsQuickFix(it, false, data).invoke(project, editor, null)
         }
     }
 

@@ -11,8 +11,9 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.addAfterWithNotification
+import org.arend.refactoring.moveCaretToEndOffset
 
-class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>) : IntentionAction, Iconable {
+class ImplementFieldsQuickFix(val instance: AbstractCoClauseInserter, private val needsBulb: Boolean, private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>) : IntentionAction, Iconable {
     private var caretMoved = false
 
     override fun startInWriteAction() = true
@@ -37,7 +38,7 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
 
             anchor.parent.addAfterWithNotification(coClause, anchor)
             if (!caretMoved && editor != null) {
-                AbstractEWCCAnnotator.moveCaretToEndOffset(editor, anchor.nextSibling)
+                moveCaretToEndOffset(editor, anchor.nextSibling)
                 caretMoved = true
             }
             anchor.parent.addAfter(psiFactory.createWhitespace("\n"), anchor)
@@ -57,5 +58,5 @@ class ImplementFieldsQuickFix(val instance: AbstractEWCCAnnotator, private val f
         }
     }
 
-    override fun getIcon(flags: Int) = if (instance.annotationToShow == InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR) null else AllIcons.Actions.IntentionBulb
+    override fun getIcon(flags: Int) = if (needsBulb) AllIcons.Actions.IntentionBulb else null
 }

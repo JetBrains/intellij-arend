@@ -28,7 +28,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.quickfix.*
-import org.arend.quickfix.AbstractEWCCAnnotator.Companion.makeFieldList
+import org.arend.quickfix.AbstractCoClauseInserter.Companion.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.RemoveAsPatternQuickFix
 import org.arend.quickfix.removers.RemoveClauseQuickFix
@@ -115,8 +115,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.registerFix(RemoveCoClauseQuickFix(it))
                         }
                     } else {
-                        AbstractEWCCAnnotator.makeAnnotator(cause)?.let {
-                            annotation.registerFix(ImplementFieldsQuickFix(it, makeFieldList(error.fields, error.classReferable)))
+                        AbstractCoClauseInserter.makeFirstCoClauseInserter(cause)?.let {
+                            annotation.registerFix(ImplementFieldsQuickFix(it, false, makeFieldList(error.fields, error.classReferable)))
                         }
                         if (cause is ArendNewExprImplMixin) {
                             cause.putUserData(CoClausesKey, null)
