@@ -219,7 +219,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         while (true) {
             val name = if (index == 0) startName else startName + "_" + index
             val library = projectTable.getLibraryByName(name) ?: return Pair(null,name)
-            if ((library as? LibraryEx)?.kind == ArendLibraryKind && library.getFiles(ArendConfigOrderRootType).firstOrNull()?.parent?.name == startName) {
+            if ((library as? LibraryEx)?.kind is ArendLibraryKind && library.getFiles(ArendConfigOrderRootType).firstOrNull()?.parent?.name == startName) {
                 return Pair(library,name)
             }
             index++
