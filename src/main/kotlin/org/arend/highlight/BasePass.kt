@@ -196,7 +196,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     LEMMA_LEVEL -> if (element is ArendDefFunction) element.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
-                is ExpectedConstructor -> (element as? ArendPattern)?.firstChild
+                is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
                 is AnotherClassifyingFieldError ->
                     (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
                         (it.parent as? ArendFieldTele)?.classifyingKw ?: it
