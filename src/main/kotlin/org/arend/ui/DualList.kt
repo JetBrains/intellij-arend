@@ -39,6 +39,17 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
             add(ToolbarDecorator.createDecorator(selectedList).apply { disableRemoveAction() }.createPanel())
         }
 
+        // This must be invoked after the ToolbarDecorator panel is created since it installs its own drag and drop support
+        ListsDnD<T>().apply {
+            add(availableList, false) { _, element ->
+                availableList.content = (availableList.content + element).sorted()
+            }
+            add(selectedList, true) { index, element ->
+                (selectedList.model as SimpleListModel).add(index, element)
+            }
+            install()
+        }
+
         add(if (swapped) selectedPane else availablePane, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, dim, dim, dim, 0, false))
 
         add(JPanel().apply {
