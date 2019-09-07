@@ -26,7 +26,7 @@ interface ArendModuleConfiguration {
         sourcesDir = another.sourcesDir
         withBinaries = another.withBinaries
         binariesDirectory = another.binariesDirectory
-        dependencies = another.dependencies
+        dependencies = ArrayList(another.dependencies)
     }
 
     fun compare(another: ArendModuleConfiguration) =

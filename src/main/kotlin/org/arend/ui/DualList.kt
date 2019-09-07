@@ -42,10 +42,14 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
         // This must be invoked after the ToolbarDecorator panel is created since it installs its own drag and drop support
         ListsDnD<T>().apply {
             add(availableList, false) { _, element ->
-                availableList.content = (availableList.content + element).sorted()
+                if (isAvailable(element)) {
+                    availableList.content = (availableList.content + element).sorted()
+                }
             }
             add(selectedList, true) { index, element ->
-                (selectedList.model as SimpleListModel).add(index, element)
+                if (isAvailable(element)) {
+                    (selectedList.model as SimpleListModel).add(index, element)
+                }
             }
             install()
         }
