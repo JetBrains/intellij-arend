@@ -9,17 +9,11 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentMap
 
-interface ArendResolveCache {
-    fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement) : Referable?
-    fun replaceCache(newRef: Referable?, reference: ArendReferenceElement): Referable?
-    fun clear()
-}
-
-class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
+class ArendResolveCache(project: Project) {
     private val typeCheckingService = project.service<TypeCheckingService>()
     private val refMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
-    override fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement): Referable? {
+    fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement): Referable? {
         val globalRef = refMap[reference]
         if (globalRef != null) {
             return if (globalRef == TCClassReferable.NULL_REFERABLE) null else globalRef
@@ -34,10 +28,10 @@ class ArendResolveCacheImpl(project: Project) : ArendResolveCache {
         return result
     }
 
-    override fun replaceCache(newRef: Referable?, reference: ArendReferenceElement) =
+    fun replaceCache(newRef: Referable?, reference: ArendReferenceElement) =
         refMap.put(reference, newRef ?: TCClassReferable.NULL_REFERABLE)
 
-    override fun clear() {
+    fun clear() {
         refMap.clear()
     }
 }

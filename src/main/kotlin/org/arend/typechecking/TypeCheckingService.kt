@@ -5,11 +5,11 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModulePath
+import org.arend.module.ModuleSynchronizer
 import org.arend.module.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
@@ -28,53 +28,28 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
-import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.util.FullName
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
-interface TypeCheckingService {
-    val libraryManager: LibraryManager
-
-    val typecheckerState: TypecheckerState
-
-    val dependencyListener: DependencyListener
-
-    val project: Project
-
-    val prelude: ArendFile?
-
-    val updatedModules: HashSet<ModulePath>
-
-    val isInitialized: Boolean
-
-    fun initialize(): Boolean
-
-    fun newReferableConverter(withPsiReferences: Boolean): ArendReferableConverter
-
-    fun getTypechecked(definition: ArendDefinition): Definition?
-
-    fun updateDefinition(referable: LocatedReferable)
-}
-
-class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(), TypeCheckingService {
-    override val typecheckerState = SimpleTypecheckerState()
-    override val dependencyListener = DependencyCollector(typecheckerState)
+class TypeCheckingService(val project: Project) : ArendPsiListener() {
+    val typecheckerState = SimpleTypecheckerState()
+    val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
-    override val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter)
+    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter)
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
-    override val updatedModules = HashSet<ModulePath>()
+    val updatedModules = HashSet<ModulePath>()
 
-    override fun newReferableConverter(withPsiReferences: Boolean) =
+    fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
-    override var isInitialized = false
+    var isInitialized = false
         private set
 
-    override fun initialize(): Boolean {
+    fun initialize(): Boolean {
         if (isInitialized) {
             return false
         }
@@ -95,11 +70,13 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
 
         KeymapManager.getInstance().activeKeymap.addShortcut("Arend.ImplementedFields", KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.ALT_MASK or InputEvent.SHIFT_MASK), null))
 
+        ModuleSynchronizer(project).install()
+
         isInitialized = true
         return true
     }
 
-    override val prelude: ArendFile?
+    val prelude: ArendFile?
         get() {
             for (library in libraryManager.registeredLibraries) {
                 if (library is ArendPreludeLibrary) {
@@ -109,7 +86,7 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
             return null
         }
 
-    override fun getTypechecked(definition: ArendDefinition) =
+    fun getTypechecked(definition: ArendDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
@@ -137,7 +114,7 @@ class TypeCheckingServiceImpl(override val project: Project) : ArendPsiListener(
         return tcTypecheckable
     }
 
-    override fun updateDefinition(referable: LocatedReferable) {
+    fun updateDefinition(referable: LocatedReferable) {
         if (referable is ArendDefinition && referable.isValid) {
             (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
         }

@@ -244,13 +244,11 @@
 
         <!-- Services -->
 
-        <projectService serviceInterface="org.arend.typechecking.TypeCheckingService"
-                        serviceImplementation="org.arend.typechecking.TypeCheckingServiceImpl"/>
+        <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/>
 
         <projectService serviceImplementation="org.arend.typechecking.BinaryFileSaver"/>
 
-        <projectService serviceInterface="org.arend.resolving.ArendResolveCache"
-                        serviceImplementation="org.arend.resolving.ArendResolveCacheImpl"/>
+        <projectService serviceImplementation="org.arend.resolving.ArendResolveCache"/>
 
         <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesService"/>
 
