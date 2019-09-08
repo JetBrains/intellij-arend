@@ -10,7 +10,7 @@ import org.arend.psi.ext.impl.ArendGroup
 abstract class ArendPsiListener : PsiTreeChangeAdapter() {
     protected abstract fun updateDefinition(def: ArendDefinition)
 
-    override fun beforeChildAddition(event: PsiTreeChangeEvent) {
+    override fun childAdded(event: PsiTreeChangeEvent) {
         processParent(event, true)
     }
 
