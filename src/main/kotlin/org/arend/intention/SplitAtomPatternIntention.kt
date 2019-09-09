@@ -201,8 +201,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val typeCheckedDefinition = project.service<TypeCheckingService>().getTypechecked(definition)
                 if (typeCheckedDefinition != null && abstractPatterns != null) {
                     val (patterns, isElim) = computePatterns(abstractPatterns, typeCheckedDefinition.parameters, definition as? Abstract.EliminatedExpressionsHolder, definition.scope, project)
-                    if (patterns != null) {
-                        val typecheckedPattern = if (isElim) patterns[indexList[0]] else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
+                    if (patterns != null && indexList.size > 0) {
+                        val typecheckedPattern = if (isElim)  patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         this.containingTypecheckedPattern = typecheckedPattern
                         if (typecheckedPattern != null) {
                             val pattern2 = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
@@ -292,7 +292,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             while (link.hasNext() && i < abstractPatterns.size) {
                 val isEqual = link.isExplicit == abstractPatterns[i].isExplicit
-                if (isEqual && index == i) return typecheckedPatterns[j]
+                if (isEqual && index == i) return typecheckedPatterns.getOrNull(j)
 
                 if (isEqual || link.isExplicit) i++
                 if (isEqual || !link.isExplicit) {
