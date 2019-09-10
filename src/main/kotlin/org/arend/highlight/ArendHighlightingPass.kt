@@ -5,7 +5,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import org.arend.naming.reference.*
+import org.arend.naming.reference.ErrorReference
+import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.reference.TCClassReferable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -13,6 +16,7 @@ import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.listener.ArendPsiListenerService
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.resolving.TCReferableWrapper
@@ -26,7 +30,11 @@ import org.arend.typechecking.error.ErrorService
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val typecheckingService = myProject.service<TypeCheckingService>().apply { initialize() }
+    private val psiListenerService = myProject.service<ArendPsiListenerService>()
+
+    init {
+        myProject.service<TypeCheckingService>().initialize()
+    }
 
     override fun collectInfo(progress: ProgressIndicator) {
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
@@ -147,8 +155,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 progress.checkCanceled()
 
                 if (resetDefinition) {
-                    (definition.data.underlyingReferable as? LocatedReferable)?.let {
-                        typecheckingService.updateDefinition(it)
+                    (definition.data.underlyingReferable as? ArendDefinition)?.let {
+                        psiListenerService.externalUpdate(it)
                     }
                 }
 

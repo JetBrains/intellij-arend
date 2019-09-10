@@ -3,6 +3,7 @@ package org.arend.psi.listener
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
+import org.arend.psi.ArendDefinition
 
 
 class ArendPsiListenerService(private val project: Project) {
@@ -21,6 +22,12 @@ class ArendPsiListenerService(private val project: Project) {
     fun processEvent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
         for (listener in listeners) {
             listener.processParent(child, oldChild, newChild, parent, additionOrRemoval)
+        }
+    }
+
+    fun externalUpdate(definition: ArendDefinition) {
+        for (listener in listeners) {
+            listener.updateDefinition(definition, true)
         }
     }
 }

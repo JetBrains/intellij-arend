@@ -114,9 +114,19 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
         return tcTypecheckable
     }
 
-    fun updateDefinition(referable: LocatedReferable) {
-        if (referable is ArendDefinition && referable.isValid) {
-            (referable.containingFile as? ArendFile)?.lastModifiedDefinition = referable
+    enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
+
+    fun updateDefinition(referable: LocatedReferable, mode: LastModifiedMode) {
+        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is ArendDefinition && referable.isValid) {
+            (referable.containingFile as? ArendFile)?.let {
+                if (mode == LastModifiedMode.SET) {
+                    it.lastModifiedDefinition = referable
+                } else {
+                    if (it.lastModifiedDefinition != referable) {
+                        it.lastModifiedDefinition = null
+                    }
+                }
+            }
         }
 
         val tcReferable = removeDefinition(referable) ?: return
@@ -125,11 +135,11 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
         }
 
         if (referable is ArendDefFunction && referable.useKw != null) {
-            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it as LocatedReferable) }
+            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it, LastModifiedMode.DO_NOT_TOUCH) }
         }
     }
 
-    override fun updateDefinition(def: ArendDefinition) {
-        updateDefinition(def as LocatedReferable)
+    override fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean) {
+        updateDefinition(def, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
 }

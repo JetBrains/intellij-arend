@@ -8,7 +8,7 @@ import org.arend.psi.ext.impl.ArendGroup
 
 
 abstract class ArendPsiListener : PsiTreeChangeAdapter() {
-    protected abstract fun updateDefinition(def: ArendDefinition)
+    abstract fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean)
 
     override fun childAdded(event: PsiTreeChangeEvent) {
         processParent(event, true)
@@ -80,7 +80,7 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
                 return
             }
             if (elem is ArendDefinition) {
-                updateDefinition(elem)
+                updateDefinition(elem, false)
                 return
             }
             elem = elem.parent
@@ -89,7 +89,7 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
 
     private fun invalidateChildren(group: ArendGroup) {
         if (group is ArendDefinition) {
-            updateDefinition(group)
+            updateDefinition(group, false)
         }
         for (subgroup in group.subgroups) {
             invalidateChildren(subgroup)

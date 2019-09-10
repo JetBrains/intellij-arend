@@ -55,7 +55,7 @@ class ClassInheritorsSearch(val project: Project) {
     }
 
     private inner class ClassesChangedListener : ArendPsiListener() {
-        override fun updateDefinition(def: ArendDefinition) {
+        override fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean) {
             if (def is ArendDefClass) {
                 cache.clear()
             }

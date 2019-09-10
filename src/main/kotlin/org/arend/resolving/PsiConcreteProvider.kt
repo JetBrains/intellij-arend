@@ -1,7 +1,6 @@
 package org.arend.resolving
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.error.ErrorReporter
 import org.arend.naming.error.ReferenceError
@@ -19,7 +18,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
@@ -95,7 +93,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             if (referable is DataLocatedReferable) {
                 psiReferable = referable.fixPointer(project)
                 if (psiReferable == null) {
-                    runReadAction { project.service<TypeCheckingService>().updateDefinition(referable) }
                     errorReporter.report(ReferenceError("Reference is invalid. Try to typecheck the definition again", referable))
                     return null
                 }

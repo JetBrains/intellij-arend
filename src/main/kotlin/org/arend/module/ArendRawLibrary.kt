@@ -61,7 +61,7 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun needsTypechecking() = true
 
     override fun resetDefinition(referable: LocatedReferable) {
-        runReadAction { config.project.service<TypeCheckingService>().updateDefinition(referable) }
+        runReadAction { config.project.service<TypeCheckingService>().updateDefinition(referable, TypeCheckingService.LastModifiedMode.DO_NOT_TOUCH) }
     }
 
     override fun getReferableConverter() = config.project.service<TypeCheckingService>().newReferableConverter(true)
