@@ -2,6 +2,7 @@ package org.arend.toolWindow.errors.tree
 
 import com.intellij.codeInsight.hints.presentation.MouseButton
 import com.intellij.codeInsight.hints.presentation.mouseButton
+import com.intellij.psi.PsiElement
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.error.GeneralError
@@ -91,7 +92,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
             is ArendFile -> obj.modulePath?.toString() ?: obj.name
             is GeneralError -> obj.shortMessage
-            is Referable -> obj.textRepresentation()
+            is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
             else -> obj?.toString() ?: ""
         }
 
