@@ -8,9 +8,9 @@ import org.arend.psi.ext.impl.ArendGroup
 
 
 abstract class ArendPsiListener : PsiTreeChangeAdapter() {
-    abstract fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean)
+    abstract fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean)
 
-    override fun childAdded(event: PsiTreeChangeEvent) {
+    override fun beforeChildAddition(event: PsiTreeChangeEvent) {
         processParent(event, true)
     }
 
@@ -25,7 +25,7 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
     override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
         val child = event.child
         if (child is ArendFile) { // whole file has been removed
-            invalidateChildren(child)
+            invalidateChildren(child, child)
         } else {
             processParent(event, true)
         }
@@ -34,14 +34,14 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
     private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
-        if (event.file is ArendFile) {
-            processChildren(event.child)
-            processChildren(event.oldChild)
-            processParent(event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
+        (event.file as? ArendFile)?.let {
+            processChildren(event.child, it)
+            processChildren(event.oldChild, it)
+            processParent(it, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
         }
     }
 
-    fun processParent(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
+    fun processParent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
         if (child is PsiErrorElement ||
             child is PsiWhiteSpace ||
             child is ArendWhere ||
@@ -72,7 +72,7 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
             }
         }
 
-        ((parent as? ArendDefIdentifier)?.parent as? ArendGroup)?.let { invalidateChildren(it) }
+        ((parent as? ArendDefIdentifier)?.parent as? ArendGroup)?.let { invalidateChildren(it, file) }
 
         var elem = parent
         while (elem != null) {
@@ -80,31 +80,31 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
                 return
             }
             if (elem is ArendDefinition) {
-                updateDefinition(elem, false)
+                updateDefinition(elem, file, false)
                 return
             }
             elem = elem.parent
         }
     }
 
-    private fun invalidateChildren(group: ArendGroup) {
+    private fun invalidateChildren(group: ArendGroup, file: ArendFile) {
         if (group is ArendDefinition) {
-            updateDefinition(group, false)
+            updateDefinition(group, file, false)
         }
         for (subgroup in group.subgroups) {
-            invalidateChildren(subgroup)
+            invalidateChildren(subgroup, file)
         }
         for (subgroup in group.dynamicSubgroups) {
-            invalidateChildren(subgroup)
+            invalidateChildren(subgroup, file)
         }
     }
 
-    private fun processChildren(element: PsiElement?) {
+    private fun processChildren(element: PsiElement?, file: ArendFile) {
         when (element) {
-            is ArendGroup -> invalidateChildren(element)
+            is ArendGroup -> invalidateChildren(element, file)
             is ArendStatement -> {
-                element.definition?.let { invalidateChildren(it) }
-                element.defModule?.let { invalidateChildren(it) }
+                element.definition?.let { invalidateChildren(it, file) }
+                element.defModule?.let { invalidateChildren(it, file) }
             }
         }
     }

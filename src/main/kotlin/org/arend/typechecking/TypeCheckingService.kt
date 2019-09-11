@@ -116,11 +116,12 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
 
     enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
 
-    fun updateDefinition(referable: LocatedReferable, mode: LastModifiedMode) {
-        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is ArendDefinition && referable.isValid) {
-            (referable.containingFile as? ArendFile)?.let {
+    fun updateDefinition(referable: LocatedReferable, file: ArendFile?, mode: LastModifiedMode) {
+        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is ArendDefinition) {
+            val isValid = referable.isValid
+            (file ?: if (isValid) referable.containingFile as? ArendFile else null)?.let {
                 if (mode == LastModifiedMode.SET) {
-                    it.lastModifiedDefinition = referable
+                    it.lastModifiedDefinition = if (isValid) referable else null
                 } else {
                     if (it.lastModifiedDefinition != referable) {
                         it.lastModifiedDefinition = null
@@ -135,11 +136,11 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
         }
 
         if (referable is ArendDefFunction && referable.useKw != null) {
-            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it, LastModifiedMode.DO_NOT_TOUCH) }
+            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH) }
         }
     }
 
-    override fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean) {
-        updateDefinition(def, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
+    override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+        updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
 }

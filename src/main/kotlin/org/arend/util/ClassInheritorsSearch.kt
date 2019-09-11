@@ -8,6 +8,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefinition
+import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
 import org.arend.psi.listener.ArendPsiListener
 import org.arend.psi.listener.ArendPsiListenerService
@@ -55,7 +56,7 @@ class ClassInheritorsSearch(val project: Project) {
     }
 
     private inner class ClassesChangedListener : ArendPsiListener() {
-        override fun updateDefinition(def: ArendDefinition, isExternalUpdate: Boolean) {
+        override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
             if (def is ArendDefClass) {
                 cache.clear()
             }

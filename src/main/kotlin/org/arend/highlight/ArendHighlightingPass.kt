@@ -156,7 +156,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                 if (resetDefinition) {
                     (definition.data.underlyingReferable as? ArendDefinition)?.let {
-                        psiListenerService.externalUpdate(it)
+                        psiListenerService.externalUpdate(it, file)
                     }
                 }
 

@@ -293,19 +293,20 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 }
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
-    val project = child?.project ?: oldChild?.project ?: return
-    project.service<ArendPsiListenerService>().processEvent(child, oldChild, newChild, parent, additionOrRemoval)
+    val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
+    file.project.service<ArendPsiListenerService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
-    val project = parent.project
-    val tcService = project.service<ArendPsiListenerService>()
+    val file = parent.containingFile as? ArendFile ?: return
+    val service = file.project.service<ArendPsiListenerService>()
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {
-        tcService.processEvent(child, null, null, parent, true)
+        service.processEvent(file, child, null, null, parent, true)
         child = child.nextSibling
     }
+    service.processEvent(file, lastChild, null, null, parent, true)
 }
 
 fun PsiElement.addBeforeWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
