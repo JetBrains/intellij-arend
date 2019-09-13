@@ -375,7 +375,7 @@ private defIdentifier_pattern ::= defIdentifier !DOT | longName {
     recoverWhile = defIdentifier_pattern_recover
 }
 
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | UNDERSCORE | COLON | AS_KW) & pattern_recover
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE | COLON | AS_KW) & pattern_recover
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
@@ -710,7 +710,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | NUMBER | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"
