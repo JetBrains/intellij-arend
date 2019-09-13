@@ -18,8 +18,19 @@ class ErrorService : ErrorReporter {
     private val nameResolverErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
     private val typecheckingErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
 
+    private fun isValid(file: ArendFile) = file.isWritable
+
+    private fun checkValid(file: ArendFile) = if (isValid(file)) true else {
+        nameResolverErrors.remove(file)
+        typecheckingErrors.remove(file)
+        false
+    }
+
     fun report(error: ArendError) {
-        nameResolverErrors.computeIfAbsent(error.file ?: return) { ArrayList() }.add(error)
+        val file = error.file ?: return
+        if (checkValid(file)) {
+            nameResolverErrors.computeIfAbsent(file) { ArrayList() }.add(error)
+        }
     }
 
     override fun report(error: GeneralError) {
@@ -45,7 +56,21 @@ class ErrorService : ErrorReporter {
                 }
 
                 val file = element.containingFile as? ArendFile ?: continue
-                typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
+                if (checkValid(file)) {
+                    typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
+                }
+            }
+        }
+    }
+
+    private fun getErrors(map: WeakHashMap<ArendFile, MutableList<ArendError>>, result: HashMap<ArendFile, ArrayList<ArendError>>) {
+        val iter = map.entries.iterator()
+        while (iter.hasNext()) {
+            val entry = iter.next()
+            if (isValid(entry.key)) {
+                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
+            } else {
+                iter.remove()
             }
         }
     }
@@ -53,20 +78,33 @@ class ErrorService : ErrorReporter {
     val errors: Map<ArendFile, List<ArendError>>
         get() {
             val result = HashMap<ArendFile, ArrayList<ArendError>>()
-            for (entry in nameResolverErrors.entries) {
-                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
-            }
-            for (entry in typecheckingErrors.entries) {
-                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
-            }
+            getErrors(nameResolverErrors, result)
+            getErrors(typecheckingErrors, result)
             return result
         }
 
-    val hasErrors: Boolean
-        get() = nameResolverErrors.isNotEmpty() || typecheckingErrors.isNotEmpty()
+    private fun hasErrors(map: WeakHashMap<ArendFile, MutableList<ArendError>>): Boolean {
+        val iter = map.entries.iterator()
+        while (iter.hasNext()) {
+            val entry = iter.next()
+            if (isValid(entry.key)) {
+                return true
+            } else {
+                iter.remove()
+            }
+        }
+        return false
+    }
 
-    fun getErrors(file: ArendFile) =
-        (nameResolverErrors[file] ?: emptyList<ArendError>()) + (typecheckingErrors[file] ?: emptyList())
+    val hasErrors: Boolean
+        get() = hasErrors(nameResolverErrors) || hasErrors(typecheckingErrors)
+
+    fun getErrors(file: ArendFile): List<ArendError> =
+        if (checkValid(file)) {
+            (nameResolverErrors[file] ?: emptyList<ArendError>()) + (typecheckingErrors[file] ?: emptyList())
+        } else {
+            emptyList()
+        }
 
     fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()
