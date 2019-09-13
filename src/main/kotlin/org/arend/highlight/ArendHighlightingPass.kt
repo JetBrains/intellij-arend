@@ -16,7 +16,7 @@ import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.listener.ArendPsiListenerService
+import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.resolving.TCReferableWrapper
@@ -30,7 +30,7 @@ import org.arend.typechecking.error.ErrorService
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val psiListenerService = myProject.service<ArendPsiListenerService>()
+    private val psiListenerService = myProject.service<ArendDefinitionChangeListenerService>()
 
     init {
         myProject.service<TypeCheckingService>().initialize()
@@ -156,7 +156,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                 if (resetDefinition) {
                     (definition.data.underlyingReferable as? ArendDefinition)?.let {
-                        psiListenerService.externalUpdate(it, file)
+                        psiListenerService.updateDefinition(it, file, true)
                     }
                 }
 

@@ -1,5 +1,6 @@
 package org.arend.psi.listener
 
+import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
@@ -7,8 +8,32 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 
 
-abstract class ArendPsiListener : PsiTreeChangeAdapter() {
-    abstract fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean)
+class ArendDefinitionChangeListenerService(project: Project) : PsiTreeChangeAdapter() {
+    private val listeners = HashSet<ArendDefinitionChangeListener>()
+
+    init {
+        PsiManager.getInstance(project).addPsiTreeChangeListener(this)
+    }
+
+    fun addListener(listener: ArendDefinitionChangeListener) {
+        listeners.add(listener)
+    }
+
+    fun removeListener(listener: ArendDefinitionChangeListener) {
+        listeners.remove(listener)
+    }
+
+    fun processEvent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
+        for (listener in listeners) {
+            processParent(file, child, oldChild, newChild, parent, additionOrRemoval)
+        }
+    }
+
+    fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+        for (listener in listeners) {
+            listener.updateDefinition(def, file, isExternalUpdate)
+        }
+    }
 
     override fun beforeChildAddition(event: PsiTreeChangeEvent) {
         processParent(event, true)
@@ -41,7 +66,7 @@ abstract class ArendPsiListener : PsiTreeChangeAdapter() {
         }
     }
 
-    fun processParent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
+    private fun processParent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
         if (child is PsiErrorElement ||
             child is PsiWhiteSpace ||
             child is ArendWhere ||

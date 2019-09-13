@@ -23,7 +23,7 @@ class TestBasedTypechecking(
     referableConverter: ReferableConverter,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : ArendTypechecking(instanceProviderSet, typeCheckingService, concreteProvider, referableConverter, errorReporter, dependencyListener) {
+    : ArendTypechecking(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener) {
 
     private val definitionBlacklistService = service<DefinitionBlacklistService>()
     val filesToRestart = LinkedHashSet<ArendFile>()

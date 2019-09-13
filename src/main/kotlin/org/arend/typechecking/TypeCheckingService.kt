@@ -19,8 +19,8 @@ import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.listener.ArendPsiListener
-import org.arend.psi.listener.ArendPsiListenerService
+import org.arend.psi.listener.ArendDefinitionChangeListener
+import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
@@ -28,12 +28,13 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FullName
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
-class TypeCheckingService(val project: Project) : ArendPsiListener() {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
@@ -63,7 +64,7 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
-        project.service<ArendPsiListenerService>().addListener(this)
+        project.service<ArendDefinitionChangeListenerService>().addListener(this)
 
         // Listen for YAML files changes
         YAMLFileListener(project).register()
@@ -131,7 +132,10 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
         }
 
         val tcReferable = removeDefinition(referable) ?: return
-        for (ref in dependencyListener.update(tcReferable)) {
+        val dependencies = synchronized(project) {
+            dependencyListener.update(tcReferable)
+        }
+        for (ref in dependencies) {
             removeDefinition(ref)
         }
 
@@ -141,6 +145,13 @@ class TypeCheckingService(val project: Project) : ArendPsiListener() {
     }
 
     override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+        if (TypecheckingOrderingListener.getCancellationIndicator() is ArendCancellationIndicator) {
+            synchronized(typecheckerState) {
+                (TypecheckingOrderingListener.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
+                TypecheckingOrderingListener.resetCancellationIndicator()
+            }
+        }
+
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
 }

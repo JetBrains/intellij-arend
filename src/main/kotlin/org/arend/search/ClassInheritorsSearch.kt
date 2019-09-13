@@ -10,21 +10,15 @@ import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
-import org.arend.psi.listener.ArendPsiListener
-import org.arend.psi.listener.ArendPsiListenerService
+import org.arend.psi.listener.ArendDefinitionChangeListener
+import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import java.util.concurrent.ConcurrentHashMap
 
-class ClassInheritorsSearch(val project: Project) {
+class ClassInheritorsSearch(val project: Project) : ArendDefinitionChangeListener {
     private val cache = ConcurrentHashMap<ArendDefClass, List<ArendDefClass>>()
 
     init {
-        project.service<ArendPsiListenerService>().addListener(object : ArendPsiListener() {
-            override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
-                if (def is ArendDefClass) {
-                    cache.clear()
-                }
-            }
-        })
+        project.service<ArendDefinitionChangeListenerService>().addListener(this)
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefClass> {
@@ -55,5 +49,11 @@ class ClassInheritorsSearch(val project: Project) {
 
         res = subClasses.toList()
         return cache.putIfAbsent(clazz, res) ?: res
+    }
+
+    override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+        if (def is ArendDefClass) {
+            cache.clear()
+        }
     }
 }

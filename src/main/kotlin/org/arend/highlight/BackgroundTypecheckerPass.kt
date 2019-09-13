@@ -16,10 +16,7 @@ import org.arend.quickfix.doAnnotate
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
-import org.arend.typechecking.ArendTypechecking
-import org.arend.typechecking.DefinitionBlacklistService
-import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.error.ErrorService
+import org.arend.typechecking.*
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -69,9 +66,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     private fun typecheckDefinition(typechecking: ArendTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
             val ok = definitionBlackListService.runTimed(definition, progress) {
-                typechecking.typecheckDefinitions(listOf(it)) {
-                    progress.isCanceled
-                }
+                typechecking.typecheckDefinitions(listOf(it), ArendCancellationIndicator(progress))
             }
 
             if (!ok) {
@@ -91,7 +86,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     override fun collectInfo(progress: ProgressIndicator) {
         when (arendSettings.typecheckingMode) {
             ArendSettings.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
-                val typechecking = ArendTypechecking.create(myProject, myProject.service<ErrorService>())
+                val typechecking = ArendTypechecking.create(myProject, BackgroundTypecheckerState(typeCheckingService.typecheckerState))
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {

@@ -10,21 +10,23 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.typecheckable.provider.ConcreteProvider
 
 
-open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
+open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
+    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
     companion object {
-        fun create(project: Project, errorReporter: ErrorReporter): ArendTypechecking {
+        fun create(project: Project, typecheckerState: TypecheckerState? = null): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
             val referableConverter = typecheckingService.newReferableConverter(true)
+            val errorReporter = project.service<ErrorService>()
             val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
-            return ArendTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckingService, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
+            return ArendTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState ?: typecheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
         }
     }
 

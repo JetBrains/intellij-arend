@@ -21,7 +21,6 @@ import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.error.ErrorService
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
 
@@ -206,6 +205,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it) }
-        ArendTypechecking.create(project, project.service<ErrorService>()).typecheckModules(targetFiles, null)
+        ArendTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 }
