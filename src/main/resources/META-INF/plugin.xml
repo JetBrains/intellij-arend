@@ -248,6 +248,8 @@
 
         <projectService serviceImplementation="org.arend.typechecking.BinaryFileSaver"/>
 
+        <projectService serviceImplementation="org.arend.search.ClassInheritorsSearch"/>
+
         <projectService serviceImplementation="org.arend.resolving.ArendResolveCache"/>
 
         <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesService"/>

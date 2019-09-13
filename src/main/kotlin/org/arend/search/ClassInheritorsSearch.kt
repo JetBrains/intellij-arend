@@ -1,4 +1,4 @@
-package org.arend.util
+package org.arend.search
 
 import com.intellij.find.findUsages.DefaultFindUsagesHandlerFactory
 import com.intellij.find.findUsages.FindUsagesOptions
@@ -18,7 +18,13 @@ class ClassInheritorsSearch(val project: Project) {
     private val cache = ConcurrentHashMap<ArendDefClass, List<ArendDefClass>>()
 
     init {
-        project.service<ArendPsiListenerService>().addListener(ClassesChangedListener())
+        project.service<ArendPsiListenerService>().addListener(object : ArendPsiListener() {
+            override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+                if (def is ArendDefClass) {
+                    cache.clear()
+                }
+            }
+        })
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefClass> {
@@ -38,33 +44,16 @@ class ClassInheritorsSearch(val project: Project) {
         finder?.processElementUsages(clazz, processor, options)
 
         for (usage in processor.results) {
-            if (usage.element?.parent is ArendLongName && usage.element?.parent?.parent is ArendDefClass) {
-                val parentLongName = usage.element?.parent as ArendLongName
-                if (parentLongName.refIdentifierList.last().text == clazz.name) {
-                    val subclass = usage.element?.parent?.parent as ArendDefClass
-
-                    subClasses.add(subclass)
-
+            (usage.element?.parent as? ArendLongName)?.let { longName ->
+                (longName.parent as? ArendDefClass)?.let { defClass ->
+                    if (longName.refIdentifierList.lastOrNull()?.reference?.resolve() == clazz) {
+                        subClasses.add(defClass)
+                    }
                 }
             }
         }
 
         res = subClasses.toList()
-        cache[clazz] = res
-
-        return res
-    }
-
-    private inner class ClassesChangedListener : ArendPsiListener() {
-        override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
-            if (def is ArendDefClass) {
-                cache.clear()
-            }
-        }
-
-    }
-
-    companion object {
-        fun getInstance(project: Project) = ClassInheritorsSearch(project)
+        return cache.putIfAbsent(clazz, res) ?: res
     }
 }
