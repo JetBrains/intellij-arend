@@ -8,7 +8,6 @@ import com.intellij.openapi.util.Iconable
 import com.intellij.psi.PsiFile
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.addAfterWithNotification
 import org.arend.refactoring.moveCaretToEndOffset

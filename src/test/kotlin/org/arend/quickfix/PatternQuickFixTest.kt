@@ -362,4 +362,14 @@ class PatternQuickFixTest : QuickFixTestBase() {
                \func lol (m : Empty) (n k : Nat) : Nat
                  | () \as x, zero, zero
             """)
+
+    fun `test quickfix for unexpected empty pattern error`() = typedQuickFixTest("Replace",
+            """
+               \func test (x : Nat) : Nat
+                 | (){-caret-} => 0 
+            """, """
+               \func test (x : Nat) : Nat
+                 | 0 => 0
+                 | suc _x => 0 
+            """)
 }

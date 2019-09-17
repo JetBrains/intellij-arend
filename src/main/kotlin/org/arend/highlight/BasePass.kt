@@ -127,6 +127,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, cause))
 
+                is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix())
+
                 is TypecheckingError -> {
                     if (error.level == GeneralError.Level.WEAK_WARNING) {
                         annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL

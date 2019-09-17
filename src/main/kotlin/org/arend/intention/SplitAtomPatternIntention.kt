@@ -5,13 +5,13 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.context.binding.Binding
+import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
-import org.arend.core.expr.ConCallExpression
+import org.arend.core.definition.Constructor
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
-import org.arend.core.pattern.Patterns
 import org.arend.error.ListErrorReporter
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
@@ -22,6 +22,7 @@ import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ext.ArendDefIdentifierImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
@@ -37,10 +38,7 @@ import org.arend.util.LongName
 import java.util.*
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
-    private var matchedConstructors: List<ConCallExpression>? = null
-    private var clause: ArendClause? = null
-    private var names: HashSet<DependentLink>? = null
-    private var indexList: List<Int>? = null
+    private var matchedConstructors: List<Constructor>? = null
     private var containingTypecheckedPattern: Pattern? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
@@ -50,9 +48,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val type = pattern.toExpression().type //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
                     val constructors = type.matchedConstructors
-                    this.matchedConstructors = constructors
-                    return clause != null && constructors != null
-
+                    this.matchedConstructors = constructors.map { it.definition }
+                    return constructors != null
                 }
             }
         }
@@ -60,14 +57,16 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
-        val localClause = clause
+        val (localClause, localIndexList) = locatePattern(element) ?: return
+        if (localClause !is ArendClause) return
+
         val localConstructors = matchedConstructors
-        val localIndexList = indexList
-        val localNames = names
+        val localNames = HashSet<Variable>()
+        localNames.addAll(findAllVariablePatterns(localClause, element).map{ object: Variable{
+            override fun getName(): String = it.name ?: "" } } ) //names
         val localTypeCheckedPattern = containingTypecheckedPattern
 
-        if (project != null && localClause != null && localConstructors != null &&
-                localIndexList != null && localNames != null && element is Abstract.Pattern && localTypeCheckedPattern != null) {
+        if (project != null && localConstructors != null && element is Abstract.Pattern) {
             val factory = ArendPsiFactory(project)
             if (localConstructors.isEmpty()) {
                 doReplacePattern(factory, element, "()", false)
@@ -80,22 +79,22 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 var currAnchor: PsiElement = localClause
 
                 for (constructor in localConstructors) {
-                    val localSet = HashSet<DependentLink>()
+                    val localSet = HashSet<Variable>()
                     localSet.addAll(localNames)
                     val renamer = StringRenamer()
                     val listParams = ArrayList<String>()
                     val containingFile = localClause.containingFile
-                    val constructorReferable = PsiLocatedReferable.fromReferable(constructor.definition.referable)
+                    val constructorReferable = PsiLocatedReferable.fromReferable(constructor.referable)
                     val locationData = if (constructorReferable != null) LocationData(constructorReferable) else null
                     val aliasData = if (locationData != null && containingFile is ArendFile) computeAliases(locationData, containingFile, localClause) else null
 
                     val constructorName = if (aliasData != null) {
                         aliasData.first?.execute(editor)
                         LongName(aliasData.second).toString()
-                    } else constructor.definition.name
+                    } else constructor.name
 
                     val patternString = buildString {
-                        var parameter = constructor.definition.parameters
+                        var parameter = constructor.parameters
                         append("$constructorName ")
                         while (parameter.hasNext()) {
                             val name = renamer.generateFreshName(parameter, localNames)
@@ -108,14 +107,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         }
                     }.trim()
 
-                    val expressionString = if (constructor.definition.referable.precedence.isInfix && listParams.size == 2)
+                    val expressionString = if (constructor.referable.precedence.isInfix && listParams.size == 2)
                         "${listParams[0]} $constructorName ${listParams[1]}" else patternString
 
                     if (first) {
                         replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
 
                         var inserted = false
-                        if (constructor.definition == Prelude.ZERO) {
+                        if (constructor == Prelude.ZERO && localTypeCheckedPattern != null) {
                             var number = 0
                             val abstractPattern = localClause.patternList[localIndexList[0]]
                             var path = localIndexList.drop(1)
@@ -158,39 +157,22 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
     }
 
-
     private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
         if (project != null) {
-            var patternOwner: PsiElement? = element
-            var pattern: PsiElement? = null
-            val indexList = ArrayList<Int>()
-            this.indexList = indexList
-
-            while (patternOwner is ArendPattern || patternOwner is ArendAtomPattern || patternOwner is ArendAtomPatternOrPrefix) {
-                pattern = patternOwner
-                patternOwner = patternOwner.parent
-                if (patternOwner is ArendPattern) {
-                    val i = patternOwner.atomPatternOrPrefixList.indexOf(pattern)
-                    if (i != -1) indexList.add(0, i)
-                }
-                if (patternOwner is ArendClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
-                if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
-            }
-
             var definition: ArendDefinition? = null
-            val ownerParent = patternOwner?.parent
+            val (patternOwner, indexList) = locatePattern(element) ?: return null
+            val ownerParent = (patternOwner as PsiElement).parent
             var abstractPatterns: List<Abstract.Pattern>? = null
 
-            if (pattern != null && patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
+            if (patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
                 val body = ownerParent.parent
                 val func = body?.parent
-                clause = patternOwner
                 if (body is ArendFunctionBody && func is ArendDefFunction) {
                     abstractPatterns = patternOwner.patterns
                     definition = func
                 }
             }
-            if (pattern != null && patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
+            if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
                 /* val data = ownerParent.parent
                 abstractPatterns = patternOwner.patterns
                 if (data is ArendDefData) definition = data */
@@ -205,20 +187,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         val typecheckedPattern = if (isElim)  patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         this.containingTypecheckedPattern = typecheckedPattern
                         if (typecheckedPattern != null) {
-                            val pattern2 = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
+                            return findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
                                     ?: return null
-
-                            val localNames = HashSet<DependentLink>()
-                            var link = Patterns(patterns).firstBinding
-                            while (link.hasNext()) {
-                                if (pattern2.binding != link) {
-                                    localNames.add(link)
-                                }
-                                link = link.next
-                            }
-                            names = localNames
-
-                            return pattern2
                         }
                     }
                 }
@@ -229,6 +199,54 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     companion object {
+        private fun findAllVariablePatterns(clause: ArendClause, element: PsiElement): HashSet<ArendDefIdentifier> {
+            val result = HashSet<ArendDefIdentifier>()
+            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, element)
+
+            val functionClauses = clause.parent
+            val functionBody = functionClauses?.parent
+            val defFunction = functionBody?.parent
+            if (functionClauses is ArendFunctionClauses && functionBody is ArendFunctionBody && defFunction is ArendDefFunction) {
+                val elim = functionBody.elim
+                if (elim?.elimKw != null) {
+                    val allParams = defFunction.parameters.flatMap { it.referableList }
+                    val eliminatedParams = elim.refIdentifierList.mapNotNull { it.reference?.resolve() as Referable }
+                    result.addAll((allParams - eliminatedParams).filterIsInstance<ArendDefIdentifier>())
+                }
+            }
+
+            return result
+        }
+
+        private fun doFindVariablePatterns(variables: MutableSet<ArendDefIdentifier>, node: PsiElement, element: PsiElement) {
+            if (node is ArendDefIdentifierImplMixin && node.reference.resolve() == node) {
+                variables.add(node)
+            } else if (node != element)
+                for (child in node.children)
+                    doFindVariablePatterns(variables, child, element)
+        }
+
+        private fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
+            var pattern: PsiElement? = null
+            var patternOwner: PsiElement? = element
+            val indexList = ArrayList<Int>()
+
+            while (patternOwner is ArendPattern || patternOwner is ArendAtomPattern || patternOwner is ArendAtomPatternOrPrefix) {
+                pattern = patternOwner
+                patternOwner = patternOwner.parent
+                if (patternOwner is ArendPattern) {
+                    val i = patternOwner.atomPatternOrPrefixList.indexOf(pattern)
+                    if (i != -1) indexList.add(0, i)
+                }
+                if (patternOwner is ArendClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+                if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+            }
+
+            if (pattern == null) return null
+            val clause : Abstract.Clause = patternOwner as? Abstract.Clause ?: return null
+            return Pair(clause, indexList)
+        }
+
         private fun computePatterns(abstractPatterns: List<Abstract.Pattern>, parameters: DependentLink, elimExprHolder: Abstract.EliminatedExpressionsHolder?, scope: Scope, project: Project): Pair<List<Pattern>?, Boolean> {
             val listErrorReporter = ListErrorReporter()
             val concreteParameters = elimExprHolder?.parameters?.let { params ->
