@@ -4,8 +4,11 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import org.arend.core.definition.Constructor
+import org.arend.intention.SplitAtomPatternIntention
+import org.arend.psi.ext.ArendCompositeElement
 
-class ReplaceAbsurdPatternQuickFix: IntentionAction {
+class ReplaceAbsurdPatternQuickFix(private val constructors: Collection<Constructor>, private val cause: ArendCompositeElement): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = "arend.pattern"
@@ -15,6 +18,6 @@ class ReplaceAbsurdPatternQuickFix: IntentionAction {
     override fun getText(): String  = "Replace with expected pattern constructors"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        SplitAtomPatternIntention.doSplitPattern(cause, project, editor, constructors)
     }
 }

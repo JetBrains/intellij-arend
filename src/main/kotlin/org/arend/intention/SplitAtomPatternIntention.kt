@@ -14,6 +14,7 @@ import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
 import org.arend.error.ListErrorReporter
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -23,6 +24,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendDefIdentifierImplMixin
+import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
@@ -39,7 +41,6 @@ import java.util.*
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
     private var matchedConstructors: List<Constructor>? = null
-    private var containingTypecheckedPattern: Pattern? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
@@ -57,104 +58,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
-        val (localClause, localIndexList) = locatePattern(element) ?: return
-        if (localClause !is ArendClause) return
-
-        val localConstructors = matchedConstructors
-        val localNames = HashSet<Variable>()
-        localNames.addAll(findAllVariablePatterns(localClause, element).map{ object: Variable{
-            override fun getName(): String = it.name ?: "" } } ) //names
-        val localTypeCheckedPattern = containingTypecheckedPattern
-
-        if (project != null && localConstructors != null && element is Abstract.Pattern) {
-            val factory = ArendPsiFactory(project)
-            if (localConstructors.isEmpty()) {
-                doReplacePattern(factory, element, "()", false)
-                localClause.expr?.deleteWithNotification()
-                localClause.fatArrow?.delete()
-            } else {
-                var first = true
-                val clauseCopy = localClause.copy()
-                val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
-                var currAnchor: PsiElement = localClause
-
-                for (constructor in localConstructors) {
-                    val localSet = HashSet<Variable>()
-                    localSet.addAll(localNames)
-                    val renamer = StringRenamer()
-                    val listParams = ArrayList<String>()
-                    val containingFile = localClause.containingFile
-                    val constructorReferable = PsiLocatedReferable.fromReferable(constructor.referable)
-                    val locationData = if (constructorReferable != null) LocationData(constructorReferable) else null
-                    val aliasData = if (locationData != null && containingFile is ArendFile) computeAliases(locationData, containingFile, localClause) else null
-
-                    val constructorName = if (aliasData != null) {
-                        aliasData.first?.execute(editor)
-                        LongName(aliasData.second).toString()
-                    } else constructor.name
-
-                    val patternString = buildString {
-                        var parameter = constructor.parameters
-                        append("$constructorName ")
-                        while (parameter.hasNext()) {
-                            val name = renamer.generateFreshName(parameter, localNames)
-                            localNames.add(parameter)
-                            if (parameter.isExplicit) {
-                                listParams.add(name)
-                                append("$name ")
-                            }
-                            parameter = parameter.next
-                        }
-                    }.trim()
-
-                    val expressionString = if (constructor.referable.precedence.isInfix && listParams.size == 2)
-                        "${listParams[0]} $constructorName ${listParams[1]}" else patternString
-
-                    if (first) {
-                        replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
-
-                        var inserted = false
-                        if (constructor == Prelude.ZERO && localTypeCheckedPattern != null) {
-                            var number = 0
-                            val abstractPattern = localClause.patternList[localIndexList[0]]
-                            var path = localIndexList.drop(1)
-                            while (path.isNotEmpty()) {
-                                val pattern = findPattern(path.dropLast(1), localTypeCheckedPattern, abstractPattern)
-                                if (pattern !is ConstructorPattern || pattern.definition.referable != Prelude.SUC.referable) {
-                                    break
-                                }
-                                path = path.dropLast(1)
-                                number += 1
-                            }
-                            val patternToReplace = findAbstractPattern(path, abstractPattern)
-                            if (patternToReplace is PsiElement) {
-                                doReplacePattern(factory, patternToReplace, number.toString(), false)
-                                inserted = true
-                            }
-                        }
-
-                        if (!inserted)
-                            doReplacePattern(factory, element, patternString, listParams.isNotEmpty())
-                    } else {
-                        val anchorParent = currAnchor.parent
-                        currAnchor = anchorParent.addAfter(pipe, currAnchor)
-                        anchorParent.addBefore(factory.createWhitespace("\n"), currAnchor)
-                        currAnchor = anchorParent.addAfterWithNotification(clauseCopy, currAnchor)
-                        anchorParent.addBefore(factory.createWhitespace(" "), currAnchor)
-
-                        if (currAnchor is ArendClause) {
-                            val elementCopy = findAbstractPattern(localIndexList.drop(1), currAnchor.patternList.getOrNull(localIndexList[0]))
-                            if (elementCopy is PsiElement) {
-                                replaceUsages(factory, elementCopy, currAnchor, expressionString, listParams.isNotEmpty())
-                                doReplacePattern(factory, elementCopy, patternString, listParams.isNotEmpty())
-                            }
-                        }
-                    }
-
-                    first = false
-                }
-            }
-        }
+        val constructors = matchedConstructors
+        if (constructors != null) doSplitPattern(element, project, editor, constructors)
     }
 
     private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
@@ -184,8 +89,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (typeCheckedDefinition != null && abstractPatterns != null) {
                     val (patterns, isElim) = computePatterns(abstractPatterns, typeCheckedDefinition.parameters, definition as? Abstract.EliminatedExpressionsHolder, definition.scope, project)
                     if (patterns != null && indexList.size > 0) {
-                        val typecheckedPattern = if (isElim)  patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
-                        this.containingTypecheckedPattern = typecheckedPattern
+                        val typecheckedPattern = if (isElim) patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         if (typecheckedPattern != null) {
                             return findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
                                     ?: return null
@@ -199,6 +103,117 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     companion object {
+        fun doSplitPattern(element: PsiElement, project: Project?, editor: Editor?, localConstructors: Collection<Constructor>) {
+            val (localClause, localIndexList) = locatePattern(element) ?: return
+            if (localClause !is ArendClause) return
+
+            val localNames = HashSet<Variable>()
+            localNames.addAll(findAllVariablePatterns(localClause, element).map {
+                object : Variable {
+                    override fun getName(): String = it.name ?: ""
+                }
+            })
+
+            if (project != null && element is Abstract.Pattern) {
+                val factory = ArendPsiFactory(project)
+                if (localConstructors.isEmpty()) {
+                    doReplacePattern(factory, element, "()", false)
+                    localClause.expr?.deleteWithNotification()
+                    localClause.fatArrow?.delete()
+                } else {
+                    var first = true
+                    val clauseCopy = localClause.copy()
+                    val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
+                    var currAnchor: PsiElement = localClause
+
+                    for (constructor in localConstructors) {
+                        val localSet = HashSet<Variable>()
+                        localSet.addAll(localNames)
+                        val renamer = StringRenamer()
+                        val listParams = ArrayList<String>()
+                        val containingFile = localClause.containingFile
+                        val constructorReferable = PsiLocatedReferable.fromReferable(constructor.referable)
+                        val locationData = if (constructorReferable != null) LocationData(constructorReferable) else null
+                        val aliasData = if (locationData != null && containingFile is ArendFile) computeAliases(locationData, containingFile, localClause) else null
+
+                        val constructorName = if (aliasData != null) {
+                            aliasData.first?.execute(editor)
+                            LongName(aliasData.second).toString()
+                        } else constructor.name
+
+                        val patternString = buildString {
+                            var parameter = constructor.parameters
+                            append("$constructorName ")
+                            while (parameter.hasNext()) {
+                                val name = renamer.generateFreshName(parameter, localNames)
+                                localNames.add(parameter)
+                                if (parameter.isExplicit) {
+                                    listParams.add(name)
+                                    append("$name ")
+                                }
+                                parameter = parameter.next
+                            }
+                        }.trim()
+
+                        val expressionString = if (constructor.referable.precedence.isInfix && listParams.size == 2)
+                            "${listParams[0]} $constructorName ${listParams[1]}" else patternString
+
+                        if (first) {
+                            replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
+
+                            var inserted = false
+                            if (constructor == Prelude.ZERO) {
+                                var number = 0
+                                val abstractPattern = localClause.patternList[localIndexList[0]]
+                                var path = localIndexList.drop(1)
+                                while (path.isNotEmpty()) {
+                                    val patternPiece = findAbstractPattern(path.dropLast(1), abstractPattern)
+                                    if (patternPiece !is PsiElement || !isSucPattern(patternPiece, project)) break
+                                    path = path.dropLast(1)
+                                    number += 1
+                                }
+                                val patternToReplace = findAbstractPattern(path, abstractPattern)
+                                if (patternToReplace is PsiElement) {
+                                    doReplacePattern(factory, patternToReplace, number.toString(), false)
+                                    inserted = true
+                                }
+                            }
+
+                            if (!inserted)
+                                doReplacePattern(factory, element, patternString, listParams.isNotEmpty())
+                        } else {
+                            val anchorParent = currAnchor.parent
+                            currAnchor = anchorParent.addAfter(pipe, currAnchor)
+                            anchorParent.addBefore(factory.createWhitespace("\n"), currAnchor)
+                            currAnchor = anchorParent.addAfterWithNotification(clauseCopy, currAnchor)
+                            anchorParent.addBefore(factory.createWhitespace(" "), currAnchor)
+
+                            if (currAnchor is ArendClause) {
+                                val elementCopy = findAbstractPattern(localIndexList.drop(1), currAnchor.patternList.getOrNull(localIndexList[0]))
+                                if (elementCopy is PsiElement) {
+                                    replaceUsages(factory, elementCopy, currAnchor, expressionString, listParams.isNotEmpty())
+                                    doReplacePattern(factory, elementCopy, patternString, listParams.isNotEmpty())
+                                }
+                            }
+                        }
+
+                        first = false
+                    }
+                }
+            }
+        }
+
+        private fun isSucPattern(pattern: PsiElement, project: Project): Boolean {
+            if (pattern !is ArendPatternImplMixin || pattern.arguments.size != 1) {
+                return false
+            }
+
+            val constructor = (pattern.headReference as? UnresolvedReference)?.resolve(pattern.scope, null) as? ArendConstructor
+                    ?: return false
+            return constructor.name == Prelude.SUC.name && project.service<TypeCheckingService>().getTypechecked(constructor.ancestor<ArendDefData>()
+                    ?: return false) == Prelude.NAT
+        }
+
         private fun findAllVariablePatterns(clause: ArendClause, element: PsiElement): HashSet<ArendDefIdentifier> {
             val result = HashSet<ArendDefIdentifier>()
             for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, element)
@@ -243,7 +258,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (pattern == null) return null
-            val clause : Abstract.Clause = patternOwner as? Abstract.Clause ?: return null
+            val clause: Abstract.Clause = patternOwner as? Abstract.Clause ?: return null
             return Pair(clause, indexList)
         }
 

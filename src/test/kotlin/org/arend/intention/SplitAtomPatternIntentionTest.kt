@@ -211,11 +211,17 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
     fun testElim() = typedQuickFixTest("Split",
     """
-       \func plus {a : Nat} (b : Nat) : Nat \elim b 
-         | b{-caret-} => b 
+       \data Foo
+         | foo Nat
+          
+       \func plus {a : Nat} (b : Foo) : Nat \elim b 
+         | foo ((suc ((Nat.suc b{-caret-})))) => b 
     """, """
-       \func plus {a : Nat} (b : Nat) : Nat \elim b
-         | 0 => zero
-         | suc _x => suc _x 
+       \data Foo
+         | foo Nat
+         
+       \func plus {a : Nat} (b : Foo) : Nat \elim b
+         | foo 2 => zero
+         | foo ((suc ((Nat.suc (suc _x))))) => suc _x 
     """)
 }
