@@ -3,6 +3,8 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
+import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.type.Type
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
@@ -324,4 +326,13 @@ fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
         editor.caretModel.moveToOffset(anchor.textRange.startOffset)
         IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
     }
+}
+
+fun getDataTypeStartingCharacter(data: Type): Char? {
+    val expr = data.expr
+    if (expr is DataCallExpression) {
+        val dataName = expr.definition.name
+        return dataName.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }?.toLowerCase()
+    }
+    return null
 }

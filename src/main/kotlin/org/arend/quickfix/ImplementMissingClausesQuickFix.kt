@@ -11,6 +11,7 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
+import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -18,6 +19,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
+import org.arend.refactoring.getDataTypeStartingCharacter
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
@@ -54,9 +56,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             }
 
             val topLevelFilter = computeFilter(previewResults.map { it.first })
-            val resultingBindings = mergePreviewResults(topLevelFilter, previewResults.map { it.second })
+            val resultingBindings = mergePreviewResults(topLevelFilter, previewResults.map { it.second }).reversed()
             val renamer = StringRenamer()
-            renamer.generateFreshNames(resultingBindings.reversed())
+            renamer.generateFreshNames(resultingBindings)
 
             val patternStrings = ArrayList<String>()
             run {
@@ -64,7 +66,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 var parameter2: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
-                    patternStrings.add(doTransformPattern(pattern, cause, editor, renamer, filters, if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES))
+                    val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES
+                    patternStrings.add(doTransformPattern(pattern, cause, editor, renamer, filters, braces, resultingBindings))
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
                 }
             }
@@ -145,8 +148,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         }
 
         private fun mergePreviewResults(filter: List<Boolean>, previewResults: List<List<Variable>>): List<Variable> {
-            if (filter.size != previewResults.size)
-                throw IllegalStateException()
+            check(filter.size == previewResults.size)
 
             val filteredIterator = filter.iterator()
             val previewResultsIterator = previewResults.iterator()
@@ -225,7 +227,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return null
         }
 
-        fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?, renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces): String {
+        fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?,
+                               renamer: StringRenamer, filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces, bindings: List<Variable>): String {
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition = pattern.definition!!
@@ -242,7 +245,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
                         argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, renamer, filters,
-                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES))
+                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES, bindings))
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
 
@@ -269,8 +272,12 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
 
                 is BindingPattern -> {
-                    val name = pattern.binding.name ?: "_"
-                    val result = if (name != "_") renamer.getNewName(pattern.binding) else name
+                    val binding = pattern.binding
+                    val result = renamer.getNewName(binding) ?: {
+                        renamer.setUnnamed(getDataTypeStartingCharacter(binding.type)?.toString() ?: Renamer.UNNAMED)
+                        renamer.generateFreshName(binding, bindings)
+                    }.invoke()
+
                     return if (paren == Companion.Braces.BRACES) "{$result}" else result
                 }
             }

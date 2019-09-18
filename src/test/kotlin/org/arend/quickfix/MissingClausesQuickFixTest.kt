@@ -85,7 +85,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         \func length {A : \Type} (l : List A) : Nat \with
           | nil => 0
           | :: {x} nil => 1
-          | :: (:: _) => {?}
+          | :: (:: l) => {?}
         """)
 
     fun testImplicitPattern2() = typedQuickFixTest("Implement",
@@ -157,7 +157,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             
         \func Or-to-|| {A B : \Prop} (a-or-b : Or A B) : Or A B \elim a-or-b
           | inl a => inl a
-          | inr _ => {?}
+          | inr _x => {?}
         """)
 
     fun testCase() = typedQuickFixTest("Implement",
@@ -173,7 +173,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             
         \func Or-to-|| {A B : \Prop} (a-or-b : Or A B) : Or A B => \case a-or-b \with {
           | inl a => inl a
-          | inr _ => {?}
+          | inr _x => {?}
         }
         """)
 
@@ -198,8 +198,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
         \func lol {A B : \Type} (a b : Logic.|| A B) : Nat
           | Logic.byLeft x, Logic.byLeft y => {?}
-          | byRight _, b => {?}
-          | ||.byLeft x, byRight _ => {?} 
+          | byRight _x, b => {?}
+          | ||.byLeft x, byRight _x => {?} 
         """)
 
     fun testNaturalNumbers() = typedQuickFixTest("Implement",
@@ -210,10 +210,10 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         """, """
         \func plus (a b : Nat) : Nat
           | 0, 2 => 0
-          | suc _, b => {?}
+          | suc n, b => {?}
           | 0, 0 => {?}
           | 0, 1 => {?}
-          | 0, suc (suc (suc _)) => {?}    
+          | 0, suc (suc (suc n)) => {?}    
         """)
 
     fun testIntegralNumbers() = typedQuickFixTest("Implement",
@@ -228,11 +228,11 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | 0 => {?}
           | 1 => {?}
           | 2 => {?}
-          | pos (suc (suc (suc (suc _)))) => {?}
+          | pos (suc (suc (suc (suc n)))) => {?}
           | neg 0 => {?}
           | -1 => {?}
           | -2 => {?}
-          | neg (suc (suc (suc (suc _)))) => {?}    
+          | neg (suc (suc (suc (suc n)))) => {?}    
         """)
 
     fun testEmpty1() = typedQuickFixTest("Implement",
@@ -241,7 +241,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                 \func foo (x : Nat) : Nat
                   | 0 => {?}
-                  | suc _ => {?}
+                  | suc n => {?}
             """)
 
     fun testEmpty2() = typedQuickFixTest("Implement",
@@ -250,7 +250,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                 \func foo (x : Nat) : Nat => \case x \with {
                   | 0 => {?}
-                  | suc _ => {?}
+                  | suc n => {?}
                 }
             """)
 
@@ -260,6 +260,6 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                 \func foo (x : Nat) : Nat \elim x
                   | 0 => {?}
-                  | suc _ => {?}
+                  | suc n => {?}
             """)
 }

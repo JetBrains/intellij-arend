@@ -16,6 +16,7 @@ import org.arend.error.ListErrorReporter
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.reference.converter.IdReferableConverter
+import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ConvertingScope
@@ -29,6 +30,7 @@ import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
+import org.arend.refactoring.getDataTypeStartingCharacter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.typechecking.TypeCheckingService
@@ -155,6 +157,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             var parameter = constructor.parameters
                             append("$constructorName ")
                             while (parameter.hasNext()) {
+                                renamer.setUnnamed(getDataTypeStartingCharacter(parameter.type)?.toString() ?: Renamer.UNNAMED)
                                 val name = renamer.generateFreshName(parameter, localNames)
                                 localNames.add(parameter)
                                 if (parameter.isExplicit) {

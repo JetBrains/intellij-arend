@@ -11,7 +11,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func isLessThan2 (a : Nat) : Nat
          | 0 => 1
          | 1 => 1
-         | suc (suc _x) => 1 
+         | suc (suc n) => 1 
     """)
 
     fun testBasicSplitWithImplicitArgs() = typedQuickFixTest("Split", """
@@ -22,7 +22,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func isLessThan2 {a : Nat} : Nat
          | {0} => 1
          | {1} => 1
-         | {suc (suc _x)} => 1 
+         | {suc (suc n)} => 1 
     """)
 
     fun testNoSplitInConstructor() = typedCheckNoQuickFixes("Split", """
@@ -75,7 +75,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
   
        \func foo {A : \Type} (n : Nat) (xs : Vec A n) : \Sigma Nat Nat
          | {A}, 0, xs : Vec A zero => (suc zero, zero)
-         | {A}, suc _x, xs : Vec A (suc _x) => (suc (suc _x), suc _x) 
+         | {A}, suc n, xs : Vec A (suc n) => (suc (suc n), suc n) 
     """)
 
     fun testMatchingPattern() = typedQuickFixTest("Split",
@@ -91,7 +91,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
        \func foo3 {A : \Type} (f : Foo A) : Nat
          | foo1 0 b => {?} 
-         | foo1 (suc _x) b => {?}
+         | foo1 (suc n) b => {?}
     """)
 
     fun testRenaming() = typedQuickFixTest("Split", """
@@ -110,7 +110,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l : List A) : Nat
          | nil => 0
          | cons x nil => 1
-         | cons x (cons _x _x1) => 1
+         | cons x (cons _x l) => 1
     """)
 
     fun testRenaming2() = typedQuickFixTest("Split", """
@@ -121,7 +121,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l l2 : List A) : Nat
          | nil, _ => 0
          | _, nil => 0
-         | cons x xs{-caret-}, cons _x _x1 => foo xs _x1 
+         | cons x xs{-caret-}, cons _x l => foo xs l 
     """, """
        \data List (A : \Type)
          | nil
@@ -130,8 +130,8 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l l2 : List A) : Nat
          | nil, _ => 0
          | _, nil => 0
-         | cons x nil, cons _x _x1 => foo nil _x1
-         | cons x (cons _x2 _x3), cons _x _x1 => foo (cons _x2 _x3) _x1
+         | cons x nil, cons _x l => foo nil l
+         | cons x (cons _x1 l1), cons _x l => foo (cons _x1 l1) l
     """)
 
     fun testInfixNotation() = typedQuickFixTest("Split", """
@@ -150,7 +150,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo (l : List Nat) : Nat
          | nil => 0
          | :: x nil => (foo nil) Nat.+ x 
-         | :: x (:: _x _x1) => (foo (_x :: _x1)) Nat.+ x
+         | :: x (:: _x l) => (foo (_x :: l)) Nat.+ x
     """)
 
     fun testSimpleResolving() = typedQuickFixTest("Split", """
@@ -169,7 +169,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         
        \func foo (xs : List Nat) : Nat
          | nil => 0
-         | :: _x _x1 => 0 
+         | :: _x l => 0 
     """)
 
     fun testLongName() = typedQuickFixTest("Split", """
@@ -196,7 +196,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
        \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural
          | {A}, Foo.myZero, xs : Vec A Foo.myZero => (Foo.mySuc Foo.myZero, Foo.myZero)
-         | {A}, Foo.mySuc _x, xs : Vec A (Foo.mySuc _x) => (Foo.mySuc (Foo.mySuc _x), Foo.mySuc _x)
+         | {A}, Foo.mySuc m, xs : Vec A (Foo.mySuc m) => (Foo.mySuc (Foo.mySuc m), Foo.mySuc m)
     """)
 
     fun testNaturalNumbers() = typedQuickFixTest("Split",
@@ -206,7 +206,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        \func plus {a : Nat} (b : Nat) : Nat \with
          | {0}, b => 0 
-         | {suc _x}, b => 0
+         | {suc n}, b => 0
     """)
 
     fun testElim() = typedQuickFixTest("Split",
@@ -222,6 +222,6 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          
        \func plus {a : Nat} (b : Foo) : Nat \elim b
          | foo 2 => zero
-         | foo ((suc ((Nat.suc (suc _x))))) => suc _x 
+         | foo ((suc ((Nat.suc (suc n))))) => suc n 
     """)
 }

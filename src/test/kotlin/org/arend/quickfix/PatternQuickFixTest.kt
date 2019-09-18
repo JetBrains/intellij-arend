@@ -370,7 +370,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             """, """
                \func test (x : Nat) : Nat
                  | 0 => 0
-                 | suc _x => 0 
+                 | suc n => 0 
             """)
 
     fun `test quickfix for unexpected empty pattern error with empty clause body`() = typedQuickFixTest("Replace",
@@ -380,6 +380,6 @@ class PatternQuickFixTest : QuickFixTestBase() {
             """, """
                \func test (x : Nat) : Nat
                  | 0 => {?}
-                 | suc _x => {?} 
+                 | suc n => {?} 
             """)
 }
