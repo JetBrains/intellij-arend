@@ -18,6 +18,6 @@ class ReplaceAbsurdPatternQuickFix(private val constructors: Collection<Construc
     override fun getText(): String  = "Replace with expected pattern constructors"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        SplitAtomPatternIntention.doSplitPattern(cause, project, editor, constructors)
+        SplitAtomPatternIntention.doSplitPattern(cause, project, editor, constructors, generateBody = true)
     }
 }

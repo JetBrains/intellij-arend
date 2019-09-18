@@ -71,6 +71,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
+            if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW)) return oneSpaceWrap
+
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||

@@ -24,6 +24,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendDefIdentifierImplMixin
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.LocationData
@@ -72,9 +73,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
                 val body = ownerParent.parent
                 val func = body?.parent
-                if (body is ArendFunctionBody && func is ArendDefFunction) {
+                if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
                     abstractPatterns = patternOwner.patterns
-                    definition = func
+                    definition = func as? ArendDefinition
                 }
             }
             if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
@@ -103,7 +104,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     companion object {
-        fun doSplitPattern(element: PsiElement, project: Project?, editor: Editor?, localConstructors: Collection<Constructor>) {
+        fun doSplitPattern(element: PsiElement, project: Project?, editor: Editor?, localConstructors: Collection<Constructor>, generateBody: Boolean = false) {
             val (localClause, localIndexList) = locatePattern(element) ?: return
             if (localClause !is ArendClause) return
 
@@ -122,6 +123,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     localClause.fatArrow?.delete()
                 } else {
                     var first = true
+                    if (generateBody && localClause.fatArrow == null) {
+                        var currAnchor = localClause.lastChild
+                        val sampleClause = factory.createClause("()")
+                        currAnchor = localClause.addAfter(sampleClause.fatArrow!!, currAnchor)
+                        localClause.addBefore(factory.createWhitespace(" "), currAnchor)
+                        localClause.addAfterWithNotification(sampleClause.expr!!, currAnchor)
+                        localClause.addAfter(factory.createWhitespace(" "), currAnchor)
+                    }
+
                     val clauseCopy = localClause.copy()
                     val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
                     var currAnchor: PsiElement = localClause
@@ -221,10 +231,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val functionClauses = clause.parent
             val functionBody = functionClauses?.parent
             val defFunction = functionBody?.parent
-            if (functionClauses is ArendFunctionClauses && functionBody is ArendFunctionBody && defFunction is ArendDefFunction) {
+            if (functionClauses is ArendFunctionClauses && functionBody is ArendFunctionBody && defFunction is ArendFunctionalDefinition) {
                 val elim = functionBody.elim
                 if (elim?.elimKw != null) {
-                    val allParams = defFunction.parameters.flatMap { it.referableList }
+                    val allParams = defFunction.nameTeleList.flatMap { it.referableList }
                     val eliminatedParams = elim.refIdentifierList.mapNotNull { it.reference?.resolve() as Referable }
                     result.addAll((allParams - eliminatedParams).filterIsInstance<ArendDefIdentifier>())
                 }

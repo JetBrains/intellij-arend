@@ -372,4 +372,14 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | 0 => 0
                  | suc _x => 0 
             """)
+
+    fun `test quickfix for unexpected empty pattern error with empty clause body`() = typedQuickFixTest("Replace",
+            """
+               \func test (x : Nat) : Nat
+                 | (){-caret-}
+            """, """
+               \func test (x : Nat) : Nat
+                 | 0 => {?}
+                 | suc _x => {?} 
+            """)
 }
