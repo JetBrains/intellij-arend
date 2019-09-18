@@ -157,7 +157,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             
         \func Or-to-|| {A B : \Prop} (a-or-b : Or A B) : Or A B \elim a-or-b
           | inl a => inl a
-          | inr _x => {?}
+          | inr b => {?}
         """)
 
     fun testCase() = typedQuickFixTest("Implement",
@@ -173,7 +173,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             
         \func Or-to-|| {A B : \Prop} (a-or-b : Or A B) : Or A B => \case a-or-b \with {
           | inl a => inl a
-          | inr _x => {?}
+          | inr b => {?}
         }
         """)
 
@@ -198,8 +198,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
         \func lol {A B : \Type} (a b : Logic.|| A B) : Nat
           | Logic.byLeft x, Logic.byLeft y => {?}
-          | byRight _x, b => {?}
-          | ||.byLeft x, byRight _x => {?} 
+          | byRight b1, b => {?}
+          | ||.byLeft x, byRight b => {?} 
         """)
 
     fun testNaturalNumbers() = typedQuickFixTest("Implement",

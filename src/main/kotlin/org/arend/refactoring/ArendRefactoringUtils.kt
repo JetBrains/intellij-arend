@@ -4,6 +4,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.DefCallExpression
+import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.Type
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -329,10 +331,13 @@ fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
 }
 
 fun getDataTypeStartingCharacter(data: Type): Char? {
-    val expr = data.expr
-    if (expr is DataCallExpression) {
-        val dataName = expr.definition.name
-        return dataName.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }?.toLowerCase()
+    val name = when (val expr = data.expr) {
+        is DefCallExpression -> expr.definition.name
+        is ReferenceExpression -> expr.binding.name
+        else -> null
     }
+
+    if (name != null) return name.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }?.toLowerCase()
+
     return null
 }

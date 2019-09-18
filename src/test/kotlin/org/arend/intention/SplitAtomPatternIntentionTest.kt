@@ -110,7 +110,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l : List A) : Nat
          | nil => 0
          | cons x nil => 1
-         | cons x (cons _x l) => 1
+         | cons x (cons a l) => 1
     """)
 
     fun testRenaming2() = typedQuickFixTest("Split", """
@@ -121,7 +121,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l l2 : List A) : Nat
          | nil, _ => 0
          | _, nil => 0
-         | cons x xs{-caret-}, cons _x l => foo xs l 
+         | cons x xs{-caret-}, cons a l => foo xs l 
     """, """
        \data List (A : \Type)
          | nil
@@ -130,8 +130,8 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l l2 : List A) : Nat
          | nil, _ => 0
          | _, nil => 0
-         | cons x nil, cons _x l => foo nil l
-         | cons x (cons _x1 l1), cons _x l => foo (cons _x1 l1) l
+         | cons x nil, cons a l => foo nil l
+         | cons x (cons a1 l1), cons a l => foo (cons a1 l1) l
     """)
 
     fun testInfixNotation() = typedQuickFixTest("Split", """
@@ -150,7 +150,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo (l : List Nat) : Nat
          | nil => 0
          | :: x nil => (foo nil) Nat.+ x 
-         | :: x (:: _x l) => (foo (_x :: l)) Nat.+ x
+         | :: x (:: a l) => (foo (a :: l)) Nat.+ x
     """)
 
     fun testSimpleResolving() = typedQuickFixTest("Split", """
@@ -169,7 +169,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         
        \func foo (xs : List Nat) : Nat
          | nil => 0
-         | :: _x l => 0 
+         | :: a l => 0 
     """)
 
     fun testLongName() = typedQuickFixTest("Split", """
