@@ -16,12 +16,16 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettings> {
 
     // Messages
     var autoScrollToSource = true
-    var autoScrollFromSource = true
-    var messagesFilterSet = EnumSet.of(GeneralError.Level.ERROR, GeneralError.Level.WARNING, GeneralError.Level.GOAL)!!
+    var autoScrollFromSource = EnumSet.copyOf(levels)!!
+    var messagesFilterSet = EnumSet.copyOf(levels)!!
 
     override fun getState() = this
 
     override fun loadState(state: ArendProjectSettings) {
         XmlSerializerUtil.copyBean(state, this)
+    }
+
+    companion object {
+        val levels = listOf(GeneralError.Level.ERROR, GeneralError.Level.WARNING, GeneralError.Level.GOAL)
     }
 }

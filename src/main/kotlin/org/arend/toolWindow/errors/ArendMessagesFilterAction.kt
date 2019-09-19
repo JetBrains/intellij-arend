@@ -8,8 +8,9 @@ import com.intellij.openapi.project.Project
 import org.arend.ArendIcons
 import org.arend.error.GeneralError
 import org.arend.settings.ArendProjectSettings
+import org.arend.toolWindow.errors.tree.ArendErrorTreeAutoScrollFromSource
 
-class ArendMessagesFilterAction(private val project: Project, private val level: GeneralError.Level)
+class ArendMessagesFilterAction(private val project: Project, private val level: GeneralError.Level, private val autoScrollFromSource: ArendErrorTreeAutoScrollFromSource)
     : ToggleAction("Show ${level.toString().toLowerCase()}s", null, ArendIcons.getErrorLevelIcon(level)), DumbAware {
 
     override fun isSelected(e: AnActionEvent) =
@@ -21,6 +22,7 @@ class ArendMessagesFilterAction(private val project: Project, private val level:
             return
         }
 
+        autoScrollFromSource.setEnabled(level, state)
         if (state) {
             filterSet.add(level)
         } else {
