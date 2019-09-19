@@ -44,9 +44,13 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override var binariesDirectory = ""
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
+    override var langVersionString: String = ""
 
     override val binariesDir: String?
         get() = flaggedBinariesDir
+
+    override val langVersion: Range<String>
+        get() = Range.parseRange(langVersionString) ?: Range.unbound()
 
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
@@ -130,6 +134,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         modules = yaml.modules
         flaggedBinariesDir = yaml.binariesDir
         sourcesDir = yaml.sourcesDir ?: ""
+        langVersionString = yaml.langVersion ?: ""
     }
 
     fun copyFromYAML() {
@@ -160,7 +165,14 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         withBinaries = config.withBinaries
         binariesDirectory = config.binariesDirectory
 
+        val newLangVersion = config.langVersionString
+        if (langVersionString != newLangVersion) {
+            langVersionString = newLangVersion
+            updateYAML = true
+        }
+
         if (updateYAML) yamlFile?.write {
+            langVersion = newLangVersion
             sourcesDir = newSourcesDir
             binariesDir = newBinariesDir
             dependencies = newDependencies

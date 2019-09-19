@@ -28,15 +28,10 @@ class ArendRawLibrary(val config: LibraryConfig)
 
     override fun getModuleGroup(modulePath: ModulePath) = config.findArendFile(modulePath)
 
-    override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(), config.dependencies)
+    override fun mustBeLoaded() = !isExternal
 
-    override fun load(libraryManager: LibraryManager?): Boolean {
-        if (!super.load(libraryManager)) {
-            setLoaded()
-        }
-        return true
-    }
+    override fun loadHeader(errorReporter: ErrorReporter) =
+        LibraryHeader(config.findModules(), config.dependencies, config.langVersion)
 
     override fun unload() =
         if (isExternal) {

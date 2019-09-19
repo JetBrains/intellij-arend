@@ -16,6 +16,7 @@ import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.Range
 import org.arend.util.mapFirstNotNull
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,6 +31,8 @@ abstract class LibraryConfig(val project: Project) {
         get() = null
     open val dependencies: List<LibraryDependency>
         get() = emptyList()
+    open val langVersion: Range<String>
+        get() = Range.unbound()
 
     abstract val name: String
 

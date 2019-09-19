@@ -21,8 +21,9 @@ const val SOURCES = "sourcesDir"
 const val BINARIES = "binariesDir"
 const val MODULES = "modules"
 const val DEPENDENCIES = "dependencies"
+const val LANG_VERSION = "langVersion"
 
-val KEYS = setOf(SOURCES, BINARIES, MODULES, DEPENDENCIES)
+val KEYS = setOf(SOURCES, BINARIES, MODULES, DEPENDENCIES, LANG_VERSION)
 
 private fun YAMLFile.getProp(name: String) = (documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey(name)?.value
 
@@ -68,6 +69,12 @@ var YAMLFile.dependencies
         } else {
             setProp(DEPENDENCIES, yamlSeqFromList(deps.map { it.name }))
         }
+    }
+
+var YAMLFile.langVersion
+    get() = (getProp(LANG_VERSION) as? YAMLScalar)?.textValue
+    set(value) {
+        setProp(LANG_VERSION, value)
     }
 
 fun YAMLFile.write(block: YAMLFile.() -> Unit) {

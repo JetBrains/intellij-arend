@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.module.ArendModuleBuilder
 import org.arend.module.config.ArendModuleConfigurationUpdater
+import org.arend.prelude.Prelude
 import org.arend.settings.ArendSettings
 
 class ArendModuleWizardStep(project: Project?, private val builder: ArendModuleBuilder) : ModuleWizardStep() {
@@ -13,6 +14,7 @@ class ArendModuleWizardStep(project: Project?, private val builder: ArendModuleB
         sourcesDir = "src"
         withBinaries = true
         binariesDirectory = ".bin"
+        langVersionString = Prelude.VERSION
     }
 
     override fun getComponent() = view.createComponent()

@@ -12,7 +12,6 @@ import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
 import org.arend.module.config.ArendModuleConfiguration
 import org.arend.ui.DualList
-import org.arend.ui.TextFieldChangeListener
 import org.arend.ui.addBrowseAndChangeListener
 import org.arend.ui.content
 import org.arend.util.FileUtils
@@ -45,6 +44,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     private val binariesTextField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener("Binaries directory", "Select the directory in which the binary files${if (name == null) "" else " of module $name"} will be put", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
+    private val langVersionField = JTextField()
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
         override fun isAvailable(t: LibraryDependency) = Files.isRegularFile(Paths.get(librariesRoot, t.name, FileUtils.LIBRARY_CONFIG_FILE))
@@ -92,6 +92,12 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
             dualList.availableList.content -= value
         }
 
+    override var langVersionString: String
+        get() = langVersionField.text
+        set(value) {
+            langVersionField.text = value
+        }
+
     private val librariesList: List<LibraryDependency>
         get() = try {
             Files.list(Paths.get(librariesRoot)).toList().mapNotNull {
@@ -104,6 +110,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         }
 
     fun createComponent() = panel {
+        labeled("Language version: ", langVersionField)
         labeled("Sources directory: ", sourcesTextField)
         checked(binariesSwitch, binariesTextField)
 

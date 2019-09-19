@@ -11,6 +11,7 @@ interface ArendModuleConfiguration {
     var withBinaries: Boolean
     var binariesDirectory: String
     var dependencies: List<LibraryDependency>
+    var langVersionString: String
 
     var flaggedBinariesDir: String?
         get() = if (withBinaries) binariesDirectory else null
@@ -27,6 +28,7 @@ interface ArendModuleConfiguration {
         withBinaries = another.withBinaries
         binariesDirectory = another.binariesDirectory
         dependencies = ArrayList(another.dependencies)
+        langVersionString = another.langVersionString
     }
 
     fun compare(another: ArendModuleConfiguration) =
@@ -34,7 +36,8 @@ interface ArendModuleConfiguration {
         sourcesDir == another.sourcesDir &&
         withBinaries == another.withBinaries &&
         binariesDirectory == another.binariesDirectory &&
-        dependencies == another.dependencies
+        dependencies == another.dependencies &&
+        langVersionString == another.langVersionString
 
     fun toRelative(root: String?, str: String) = if (root == null || str.isEmpty()) str else {
         val rootPath = Paths.get(root)
