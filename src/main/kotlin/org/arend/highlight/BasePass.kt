@@ -16,6 +16,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.error.doc.DocFactory.vHang
@@ -36,6 +37,8 @@ import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.TypecheckingError.Kind.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
@@ -70,7 +73,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
-        val ppConfig = PrettyPrinterConfig.DEFAULT
+        val ppConfig = object : PrettyPrinterConfig {
+            override fun getExpressionFlags() = EnumSet.noneOf(ToAbstractVisitor.Flag::class.java)
+        }
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
