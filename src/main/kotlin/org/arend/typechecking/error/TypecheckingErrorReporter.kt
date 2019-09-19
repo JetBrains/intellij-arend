@@ -6,21 +6,11 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
-import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
-import org.arend.error.SourceInfo
-import org.arend.error.SourceInfoReference
 import org.arend.error.doc.*
-import org.arend.highlight.BasePass
-import org.arend.naming.reference.DataContainer
 import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.Referable
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.navigate
 import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -105,25 +95,12 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
             return null
         }
 
-        private fun replaceReference(ref: Referable): Referable {
-            if (ref is SourceInfoReference) {
-                val newCause = BasePass.getImprovedCause(error)
-                if (newCause != null) {
-                    return SourceInfoReference(newCause as? SourceInfo ?: PsiSourceInfo(runReadAction { SmartPointerManager.createPointer(newCause) }))
-                }
-            }
-            return ref
-        }
-
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val reference = replaceReference(doc.reference)
-            val data = (reference as? DataContainer)?.data
-            val ref = data as? SmartPsiElementPointer<*> ?:
-                (data as? PsiElement ?: reference as? PsiElement)?.let { runReadAction { SmartPointerManager.createPointer(it) } }
-            if (ref == null) {
+            val (hyperlink, reference) = PsiHyperlinkInfo.create(doc.reference, error)
+            if (hyperlink == null) {
                 printText(reference.textRepresentation())
             } else {
-                printHyperlink(reference.textRepresentation(), PsiHyperlinkInfo(ref))
+                printHyperlink(reference.textRepresentation(), hyperlink)
             }
             if (newLine) printNewLine()
             return null
@@ -147,11 +124,5 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
         }
 
         private fun printNewLine() = printText(CompositePrintable.NEW_LINE)
-    }
-
-    private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
-        override fun navigate(project: Project?) {
-            runReadAction { sourceElement.element }?.navigate()
-        }
     }
 }

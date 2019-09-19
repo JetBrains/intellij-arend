@@ -100,10 +100,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             val arendEditor = errorEditors.computeIfAbsent(error) {
                 configureError(error)
                 val builder = StringBuilder()
-                val visitor = CollectingDocStringBuilder(builder)
+                val visitor = CollectingDocStringBuilder(builder, error)
                 val ppConfig = PrettyPrinterConfig.DEFAULT
                 DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
-                InjectedArendEditor(builder.toString(), visitor.textRanges, project, error)
+                InjectedArendEditor(builder.toString(), visitor.textRanges, visitor.hyperlinks, project, error)
             }
 
             if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {

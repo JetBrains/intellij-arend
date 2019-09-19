@@ -1,17 +1,24 @@
 package org.arend.injection
 
+import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.openapi.util.TextRange
+import org.arend.error.GeneralError
 import org.arend.error.doc.*
+import org.arend.typechecking.error.PsiHyperlinkInfo
 
 
-class CollectingDocStringBuilder(private val builder: StringBuilder) : DocStringBuilder(builder) {
+class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError?) : DocStringBuilder(builder) {
     val textRanges = ArrayList<List<TextRange>>()
+    val hyperlinks = ArrayList<Pair<TextRange,HyperlinkInfo>>()
     private var last: ArrayList<TextRange>? = null
 
     override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
         val start = builder.length
         super.visitReference(doc, newLine)
-        textRanges.add(listOf(TextRange(start, builder.length)))
+        val hyperlink = PsiHyperlinkInfo.create(doc.reference, error).first
+        if (hyperlink != null) {
+            hyperlinks.add(Pair(TextRange(start, builder.length), hyperlink))
+        }
         last = null
         return null
     }
