@@ -37,6 +37,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val root = DefaultMutableTreeNode("Errors")
     private val treeModel = DefaultTreeModel(root)
     val tree = ArendErrorTree(treeModel, this)
+    private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
     private val splitter = JBSplitter(false, 0.25f)
     private val emptyPanel = JPanel()
@@ -60,7 +61,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.add(actionManager.createCollapseAllAction(treeExpander, tree))
         actionGroup.addSeparator()
 
-        val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
         actionGroup.add(ArendErrorTreeAutoScrollToSource(project, tree).createToggleAction())
         actionGroup.add(autoScrollFromSource.createActionGroup())
         actionGroup.addSeparator()
@@ -80,13 +80,18 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     override fun projectClosing(project: Project) {
         if (project == this.project) {
-            splitter.secondComponent = emptyPanel
-            activeEditor = null
             root.removeAllChildren()
             for (arendEditor in errorEditors.values) {
                 arendEditor.release()
+                if (arendEditor == activeEditor) {
+                    activeEditor = null
+                }
             }
             errorEditors.clear()
+
+            splitter.secondComponent = emptyPanel
+            activeEditor?.release()
+            activeEditor = null
         }
     }
 
@@ -98,8 +103,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 val visitor = CollectingDocStringBuilder(builder)
                 val ppConfig = PrettyPrinterConfig.DEFAULT
                 DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
-                InjectedArendEditor(builder.toString(), visitor.textRanges, project)
+                InjectedArendEditor(builder.toString(), visitor.textRanges, project, error)
             }
+
+            if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {
+                activeEditor?.release()
+            }
+
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
         }
@@ -113,11 +123,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     override fun errorRemoved(error: GeneralError) {
         val removed = errorEditors.remove(error) ?: return
-        if (removed == activeEditor) {
-            splitter.secondComponent = emptyPanel
-            activeEditor = null
+        if (removed != activeEditor) {
+            removed.release()
         }
-        removed.release()
+
+        if (autoScrollFromSource.isAutoScrollEnabled) {
+            autoScrollFromSource.updateCurrentSelection()
+        }
     }
 
     fun update() {

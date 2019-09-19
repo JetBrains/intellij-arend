@@ -7,13 +7,14 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
+import org.arend.error.GeneralError
 import javax.swing.JComponent
 
-class InjectedArendEditor(text: CharSequence, textRanges: List<List<TextRange>>, project: Project) {
+class InjectedArendEditor(text: CharSequence, textRanges: List<List<TextRange>>, project: Project, val error: GeneralError) {
     private val editor: Editor?
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText("Dummy.ard", InjectionTextLanguage.INSTANCE, text)
+        val psi = PsiFileFactory.getInstance(project).createFileFromText("Error Message", InjectionTextLanguage.INSTANCE, text)
         (psi as? PsiInjectionTextFile)?.injectionRanges = textRanges
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {

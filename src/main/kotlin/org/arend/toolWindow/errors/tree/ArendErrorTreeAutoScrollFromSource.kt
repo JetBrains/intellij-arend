@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -59,10 +60,12 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
         }
     }
 
-    private fun updateCurrentSelection() {
+    fun updateCurrentSelection() {
         val selectedEditor = (FileEditorManager.getInstance(myProject).selectedEditor as? TextEditor)?.editor
         if (selectedEditor != null) {
-            ApplicationManager.getApplication().invokeLater(Runnable { selectInAlarm(selectedEditor) }, ModalityState.NON_MODAL, myProject.disposed)
+            runInEdt(ModalityState.NON_MODAL) {
+                selectInAlarm(selectedEditor)
+            }
         }
     }
 
@@ -99,7 +102,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
     override fun setAutoScrollEnabled(enabled: Boolean) {}
 
-    override fun isAutoScrollEnabled(): Boolean {
+    public override fun isAutoScrollEnabled(): Boolean {
         val service = project.service<ArendProjectSettings>()
         return ArendProjectSettings.levels.any { service.autoScrollFromSource.contains(it) && service.messagesFilterSet.contains(it) }
     }
