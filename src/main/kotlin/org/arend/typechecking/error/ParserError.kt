@@ -15,4 +15,6 @@ class ParserError(private val psiElement: SmartPsiElementPointer<PsiErrorElement
     }
 
     override fun getCause() = PsiSourceInfo(psiElement)
+
+    override fun getStage() = Stage.PARSER
 }

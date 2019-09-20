@@ -34,7 +34,7 @@ class ErrorService : ErrorReporter {
     }
 
     override fun report(error: GeneralError) {
-        if (!error.isTypecheckingError) {
+        if (error.stage != GeneralError.Stage.TYPECHECKER) {
             return
         }
 

@@ -19,10 +19,10 @@ import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
+import org.arend.error.ParsingError
+import org.arend.error.ParsingError.Kind.*
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
-import org.arend.naming.error.NamingError
-import org.arend.naming.error.NamingError.Kind.*
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.DataContainer
 import org.arend.psi.*
@@ -56,9 +56,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             for (cause in list) {
                 val psi = getCauseElement(cause)
                 if (psi != null && psi.isValid) {
-                    if (error !is IncompleteExpressionError) {
-                        reportToEditor(error, psi)
-                    }
+                    reportToEditor(error, psi)
                     errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
                 }
             }
@@ -123,12 +121,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             cause.putUserData(CoClausesKey, null)
                         }
                     }
-                is DesugaringError -> if (error.kind == DesugaringError.Kind.REDUNDANT_COCLAUSE) {
-                    annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    if (cause is ArendCoClause) {
-                        annotation.registerFix(RemoveCoClauseQuickFix(cause))
-                    }
-                }
 
                 is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, cause))
 
@@ -158,6 +150,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(cause))
                         REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(cause))
+                        REDUNDANT_COCLAUSE -> if (cause is ArendCoClause) annotation.registerFix(RemoveCoClauseQuickFix(cause))
                         else -> {}
                     }
                 }
@@ -186,7 +179,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         private fun getImprovedErrorElement(error: GeneralError?, element: ArendCompositeElement): PsiElement? {
             val result = when (error) {
-                is NamingError -> when (error.kind) {
+                is ParsingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.coerceKw
                     LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw

@@ -3,6 +3,7 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import org.arend.error.ErrorReporter
+import org.arend.error.GeneralError
 import org.arend.naming.error.ReferenceError
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
@@ -93,11 +94,11 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             if (referable is DataLocatedReferable) {
                 psiReferable = referable.fixPointer(project)
                 if (psiReferable == null) {
-                    errorReporter.report(ReferenceError("Reference is invalid. Try to typecheck the definition again", referable))
+                    errorReporter.report(ReferenceError(GeneralError.Stage.OTHER, "Reference is invalid. Try to typecheck the definition again", referable))
                     return null
                 }
             } else {
-                errorReporter.report(ReferenceError("Unknown type of reference", referable))
+                errorReporter.report(ReferenceError(GeneralError.Stage.OTHER, "Unknown type of reference", referable))
                 return null
             }
         }
