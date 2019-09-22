@@ -3,20 +3,17 @@ package org.arend.quickfix.removers
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
 
-class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin, private val single: Boolean) : IntentionAction {
+class RemovePatternsQuickFix(private val patternPointer: SmartPsiElementPointer<ArendPatternImplMixin>, private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.pattern"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = patternPointer.element != null
 
     override fun getText() = "Remove excessive patterns"
 
@@ -40,6 +37,7 @@ class RemovePatternsQuickFix(private val pattern: ArendPatternImplMixin, private
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+        val pattern = patternPointer.element ?: return
         var first = pattern.extendLeft
         first.prevSibling?.let {
             if (it is LeafPsiElement && it.elementType == ArendElementTypes.COMMA) {

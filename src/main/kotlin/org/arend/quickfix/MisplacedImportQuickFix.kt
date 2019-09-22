@@ -10,7 +10,7 @@ import org.arend.psi.*
 import org.arend.refactoring.addStatCmd
 import org.arend.refactoring.findPlaceForNsCmd
 
-class MisplacedImportQuickFix(val misplacedStatCmdPointer: SmartPsiElementPointer<ArendStatCmd>): IntentionAction {
+class MisplacedImportQuickFix(private val misplacedStatCmdPointer: SmartPsiElementPointer<ArendStatCmd>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = "arend.import"
