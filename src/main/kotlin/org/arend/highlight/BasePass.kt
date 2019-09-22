@@ -108,6 +108,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         } else {
             val annotation = createAnnotation(error, getImprovedTextRange(error, cause))
             when (error) {
+                is ParsingError -> when (error.kind) {
+                     MISPLACED_IMPORT -> {
+                         val errorCause = error.cause
+                         if (errorCause is ArendStatCmd) {
+                             annotation.registerFix(MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
+                         }
+                     }
+                    else -> {}
+                }
+
                 is FieldsImplementationError ->
                     if (error.alreadyImplemented) {
                         (error.cause.data as? ArendCoClause)?.let {

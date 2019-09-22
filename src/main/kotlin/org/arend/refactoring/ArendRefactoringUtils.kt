@@ -3,10 +3,10 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
-import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.Type
+import org.arend.module.ModulePath
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
@@ -33,31 +33,11 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
 
     override fun execute(editor: Editor?) {
         val factory = ArendPsiFactory(importFile.project)
-        val fullName = importFile.modulePath?.toString() ?: return
+        val modulePath = importFile.modulePath ?: return
 
-        var anchor: PsiElement = currentFile
-        val relativePosition = if (currentFile.children.isEmpty()) PositionKind.INSIDE_EMPTY_ANCHOR else {
-            anchor = currentFile.children[0]
-            var after = false
-
-            val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
-            if (currFileCommands.isNotEmpty()) {
-                val name = LongName(currFileCommands[0].path).toString()
-                anchor = currFileCommands[0].parent
-                if (fullName >= name)
-                    after = true
-            }
-
-            if (after) for (nC in currFileCommands.drop(1)) {
-                val name = LongName(nC.path).toString()
-                if (fullName >= name)
-                    anchor = nC.parent else break
-            }
-
-            if (after) PositionKind.AFTER_ANCHOR else PositionKind.BEFORE_ANCHOR
-        }
-
-        addStatCmd(factory, ArendPsiFactory.StatCmdKind.IMPORT, fullName, usingList?.map { Pair(it, null) }?.toList(), RelativePosition(relativePosition, anchor))
+        addStatCmd(factory,
+                createStatCmdStatement(factory, modulePath.toString(), usingList?.map {Pair(it, null)}?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
+                findPlaceForNsCmd(currentFile, modulePath))
     }
 }
 
@@ -172,7 +152,7 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
 class RenameReferenceAction private constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
     companion object {
         fun create(element: ArendReferenceElement, id: List<String>) =
-            if (element.longName == id) null else RenameReferenceAction(element, id)
+                if (element.longName == id) null else RenameReferenceAction(element, id)
     }
 
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
@@ -231,8 +211,35 @@ fun usingListToString(usingList: List<Pair<String, String?>>?): String {
     return buffer.toString()
 }
 
-fun addStatCmd(factory: ArendPsiFactory, command: ArendPsiFactory.StatCmdKind, fullName: String, usingList: List<Pair<String, String?>>?, relativePosition: RelativePosition): PsiElement {
-    val commandStatement = factory.createImportCommand(fullName + " " + usingListToString(usingList), command)
+fun findPlaceForNsCmd(currentFile: ArendFile, fileToImport: ModulePath): RelativePosition =
+        if (currentFile.children.isEmpty()) RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, currentFile) else {
+            var anchor: PsiElement = currentFile.children[0]
+            val fullName = fileToImport.toString()
+            var after = false
+
+            val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
+            if (currFileCommands.isNotEmpty()) {
+                val name = LongName(currFileCommands[0].path).toString()
+                anchor = currFileCommands[0].parent
+                if (fullName >= name)
+                    after = true
+            }
+
+            if (after) for (nC in currFileCommands.drop(1)) {
+                val name = LongName(nC.path).toString()
+                if (fullName >= name)
+                    anchor = nC.parent else break
+            }
+
+            RelativePosition(if (after) PositionKind.AFTER_ANCHOR else PositionKind.BEFORE_ANCHOR, anchor)
+        }
+
+fun createStatCmdStatement(factory: ArendPsiFactory, fullName: String, usingList: List<Pair<String, String?>>?, kind: ArendPsiFactory.StatCmdKind) =
+        factory.createImportCommand(fullName + " " + usingListToString(usingList), kind)
+
+fun addStatCmd(factory: ArendPsiFactory,
+               commandStatement: ArendStatement,
+               relativePosition: RelativePosition): PsiElement {
     val insertedStatement: PsiElement
 
     when (relativePosition.kind) {
@@ -274,7 +281,9 @@ fun addIdToUsing(groupMember: PsiElement?,
     }
 
     if (targetContainerName.isNotEmpty()) {
-        val insertedStatement = addStatCmd(factory, ArendPsiFactory.StatCmdKind.OPEN, targetContainerName, renamings, relativePosition)
+        val insertedStatement = addStatCmd(factory,
+                createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
+                relativePosition)
         val statCmd = insertedStatement.childOfType<ArendStatCmd>()
         return statCmd?.nsUsing?.nsIdList ?: emptyList()
     }
