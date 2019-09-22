@@ -3,11 +3,11 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.quickfix.AbstractCoClauseInserter
-import org.arend.quickfix.CoClausesKey
-import org.arend.quickfix.ImplementFieldsQuickFix
+import org.arend.quickfix.implementCoClause.CoClausesKey
+import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 
 class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
 
@@ -20,9 +20,7 @@ class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImp
     override fun applyTo(element: ArendNewExprImplMixin, project: Project?, editor: Editor?) {
         project ?: return
         val data = element.getUserData(CoClausesKey) ?: return
-        AbstractCoClauseInserter.makeFirstCoClauseInserter(element)?.let {
-            ImplementFieldsQuickFix(it, false, data).invoke(project, editor, null)
-        }
+        ImplementFieldsQuickFix(SmartPointerManager.createPointer(element), false, data).invoke(project, editor, null)
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean =

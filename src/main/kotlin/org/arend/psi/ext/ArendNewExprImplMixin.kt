@@ -5,7 +5,6 @@ import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
-import org.arend.term.Fixity
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.typing.ReferableExtractVisitor
 

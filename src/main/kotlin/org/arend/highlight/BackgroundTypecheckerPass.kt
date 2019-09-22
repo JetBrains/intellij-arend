@@ -12,7 +12,7 @@ import com.intellij.psi.PsiElement
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.quickfix.doAnnotate
+import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
