@@ -33,7 +33,6 @@ class ImplementFieldsQuickFix(val instancePointer: SmartPsiElementPointer<PsiEle
         val name = if (needQualifiedName && fieldClass != null) "${fieldClass.textRepresentation()}.${field.textRepresentation()}" else field.textRepresentation()
 
         if (coClauses.isEmpty()) {
-
             inserter.insertFirstCoClause(name, psiFactory, editor)
             caretMoved = true
         } else {

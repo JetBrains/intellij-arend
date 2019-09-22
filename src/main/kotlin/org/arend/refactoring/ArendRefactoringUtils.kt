@@ -101,7 +101,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier) : AbstractRefactoringAction {
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
     override fun toString(): String {
         val listType = when (id.parent) {
             is ArendStatCmd -> "\"hiding\" list"
@@ -139,7 +139,7 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
             if (grandParent is ArendStatCmd) grandParent else null
         }
 
-        if (statCmd != null && statCmd.openKw != null) { //Remove open command with null effect
+        if (statCmd != null && statCmd.openKw != null && deleteEmptyCommands) { //Remove open command with null effect
             val nsUsing = statCmd.nsUsing
             if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
                 val statCmdStatement = statCmd.parent

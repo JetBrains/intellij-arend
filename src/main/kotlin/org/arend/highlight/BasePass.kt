@@ -23,6 +23,8 @@ import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.error.doc.DocFactory.vHang
 import org.arend.error.doc.DocStringBuilder
+import org.arend.naming.error.DuplicateOpenedNameError
+import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.DataContainer
 import org.arend.psi.*
@@ -119,6 +121,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                          }
                      }
                     else -> {}
+                }
+
+                is DuplicateOpenedNameError -> {
+                    annotation.registerFix(RenameDuplicateNameQuickFix(error.cause as? PsiElement,  error.referable))
+                }
+
+                is ExistingOpenedNameError -> {
+                    annotation.registerFix(RenameDuplicateNameQuickFix(error.cause as? PsiElement, null))
                 }
 
                 is FieldsImplementationError ->

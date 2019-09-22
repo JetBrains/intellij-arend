@@ -23,8 +23,6 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         nameFixAction?.execute(editor)
     }
 
-    fun getFullName(): List<String> = targetFullName
-
     companion object {
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val containingFile = element.containingFile as? ArendFile ?: return null
