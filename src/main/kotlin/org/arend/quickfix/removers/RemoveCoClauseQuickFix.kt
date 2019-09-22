@@ -4,24 +4,22 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ArendFunctionBody
 import org.arend.psi.ArendInstanceBody
 import org.arend.psi.deleteWithNotification
 import org.arend.refactoring.moveCaretToStartOffset
 
-class RemoveCoClauseQuickFix(private val coClausePointer: SmartPsiElementPointer<ArendCoClause>) : IntentionAction {
+class RemoveCoClauseQuickFix(private val coClause: ArendCoClause) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = coClausePointer.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
 
     override fun getText() = "Remove redundant coclause"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val coClause = coClausePointer.element ?: return
         moveCaretToStartOffset(editor, coClause)
         val parent = coClause.parent
         coClause.deleteWithNotification()

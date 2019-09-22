@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.implementCoClause.CoClausesKey
@@ -20,7 +19,7 @@ class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImp
     override fun applyTo(element: ArendNewExprImplMixin, project: Project?, editor: Editor?) {
         project ?: return
         val data = element.getUserData(CoClausesKey) ?: return
-        ImplementFieldsQuickFix(SmartPointerManager.createPointer(element), false, data).invoke(project, editor, null)
+        ImplementFieldsQuickFix(element, false, data).invoke(project, editor, null)
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean =

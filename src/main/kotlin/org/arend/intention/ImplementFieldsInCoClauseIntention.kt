@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ArendExpr
 import org.arend.psi.ext.ArendCoClauseImplMixin
@@ -25,7 +24,7 @@ open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoCl
         val data = element.getUserData(CoClausesKey)
         val rangeToReport = element.longName?.textRange
         if (data != null && rangeToReport != null && project != null)
-            ImplementFieldsQuickFix(SmartPointerManager.createPointer(element), false, data).invoke(project, editor, null)
+            ImplementFieldsQuickFix(element, false, data).invoke(project, editor, null)
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean = element is ArendExpr || element is ArendCoClause

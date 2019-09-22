@@ -11,7 +11,6 @@ import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.ArendNsId
 import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
-import org.arend.psi.deleteWithNotification
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.RemoveRefFromStatCmdAction
 
