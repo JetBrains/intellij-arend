@@ -136,11 +136,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         val expandedPaths = TreeUtil.collectExpandedPaths(tree)
         val selectedPath = tree.selectionPath
 
-        val filterSet = project.service<ArendProjectSettings>().messagesFilterSet.clone()
-        if (filterSet.contains(GeneralError.Level.WARNING)) {
-            filterSet.add(GeneralError.Level.WEAK_WARNING)
-        }
-
+        val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
         val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
         tree.update(root) {
@@ -150,7 +146,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     val arendErrors = errorsMap[obj]
                     val children = LinkedHashSet<Any>()
                     for (arendError in arendErrors ?: emptyList()) {
-                        if (!filterSet.contains(arendError.error.level)) {
+                        if (!arendError.error.satisfies(filterSet)) {
                             continue
                         }
 

@@ -4,7 +4,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
@@ -23,12 +22,14 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.AutoScrollFromSourceHandler
 import com.intellij.ui.UIBundle
 import com.intellij.util.Processor
-import org.arend.ArendIcons
-import org.arend.error.GeneralError
 import org.arend.highlight.BasePass
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
+import org.arend.toolWindow.errors.MessageType
+import org.arend.toolWindow.errors.satisfies
 import org.arend.typechecking.error.ErrorService
+import java.util.*
+import kotlin.collections.HashMap
 
 
 class ArendErrorTreeAutoScrollFromSource(private val project: Project, private val tree: ArendErrorTree) : AutoScrollFromSourceHandler(project, tree, project) {
@@ -36,11 +37,16 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
         install()
     }
 
-    private var actionMap = HashMap<GeneralError.Level, MyAction>()
+    private var actionMap = HashMap<MessageType, MyAction>()
 
-    fun setEnabled(level: GeneralError.Level, enabled: Boolean) {
-        actionMap[level]?.templatePresentation?.isEnabled = enabled
-        if (enabled && project.service<ArendProjectSettings>().autoScrollFromSource.contains(level)) {
+    fun setEnabled(types: EnumSet<MessageType>, enabled: Boolean) {
+        val filterSet = project.service<ArendProjectSettings>().autoScrollFromSource
+        for (type in types) {
+            if (!enabled || (!(type == MessageType.RESOLVING || type == MessageType.PARSING) || filterSet.contains(MessageType.SHORT))) {
+                actionMap[type]?.templatePresentation?.isEnabled = enabled
+            }
+        }
+        if (enabled && filterSet.intersect(types).isNotEmpty()) {
             updateCurrentSelection()
         }
     }
@@ -89,7 +95,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
         val service = project.service<ArendProjectSettings>()
         for (arendError in arendErrors) {
-            if (service.autoScrollFromSource.contains(arendError.error.level) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
+            if (arendError.error.satisfies(service.autoScrollFromSource) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
                 tree.select(arendError.error)
                 break
             }
@@ -104,32 +110,49 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
     public override fun isAutoScrollEnabled(): Boolean {
         val service = project.service<ArendProjectSettings>()
-        return ArendProjectSettings.levels.any { service.autoScrollFromSource.contains(it) && service.messagesFilterSet.contains(it) }
+        return MessageType.values().any { service.autoScrollFromSource.contains(it) && service.messagesFilterSet.contains(it) }
     }
 
-    private inner class MyAction(private val level: GeneralError.Level) : ToggleAction("Autoscroll from ${level.toString().toLowerCase()}s", null, ArendIcons.getErrorLevelIcon(level)), DumbAware {
+    private inner class MyAction(private val type: MessageType) : ToggleAction("Autoscroll from ${type.toText()}s", null, null), DumbAware {
         override fun isSelected(e: AnActionEvent): Boolean {
-            val service = project.service<ArendProjectSettings>()
-            return service.autoScrollFromSource.contains(level) && service.messagesFilterSet.contains(level)
+            val settings = project.service<ArendProjectSettings>()
+            return settings.autoScrollFromSource.contains(type) && settings.messagesFilterSet.contains(type) &&
+                (!(type == MessageType.RESOLVING || type == MessageType.PARSING) || settings.autoScrollFromSource.contains(MessageType.SHORT) && settings.messagesFilterSet.contains(MessageType.SHORT))
         }
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            val service = project.service<ArendProjectSettings>()
+            val settings = project.service<ArendProjectSettings>()
             if (state) {
-                service.autoScrollFromSource.add(level)
+                settings.autoScrollFromSource.add(type)
                 updateCurrentSelection()
             } else {
-                service.autoScrollFromSource.remove(level)
+                settings.autoScrollFromSource.remove(type)
+            }
+
+            for (type in EnumSet.of(MessageType.RESOLVING, MessageType.PARSING)) {
+                if (!state || settings.messagesFilterSet.contains(type)) {
+                    actionMap[type]?.templatePresentation?.isEnabled = state
+                }
             }
         }
     }
 
     fun createActionGroup() = DefaultActionGroup(UIBundle.message("autoscroll.from.source.action.description"), true).apply {
         templatePresentation.icon = AllIcons.General.AutoscrollFromSource
-        for (level in ArendProjectSettings.levels) {
-            val action = MyAction(level)
+        for (type in MessageType.values()) {
+            val action = MyAction(type)
             add(action)
-            actionMap[level] = action
+            actionMap[type] = action
+        }
+
+        val settings = project.service<ArendProjectSettings>()
+        for (type in MessageType.values()) {
+            val enabled = settings.messagesFilterSet.contains(type) &&
+                (!(type == MessageType.RESOLVING || type == MessageType.PARSING) ||
+                    settings.autoScrollFromSource.contains(MessageType.SHORT) && settings.messagesFilterSet.contains(MessageType.SHORT))
+            if (!enabled) {
+                actionMap[type]?.templatePresentation?.isEnabled = false
+            }
         }
     }
 }
