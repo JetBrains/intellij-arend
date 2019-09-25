@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.naming.reference.ClassReferable
-import org.arend.psi.ArendClassField
 import org.arend.psi.ArendDefClass
 import org.arend.settings.ArendProjectSettings
 
@@ -20,10 +19,10 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
-            if (project.service<ArendProjectSettings>().showImplFields) {
+            if (project.service<ArendProjectSettings>().data.showImplFields) {
                 classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
             }
-            if (project.service<ArendProjectSettings>().showNonImplFields) {
+            if (project.service<ArendProjectSettings>().data.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
                     ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as PsiElement, false) }
                 } else {

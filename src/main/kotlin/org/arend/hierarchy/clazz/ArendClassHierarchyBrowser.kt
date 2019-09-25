@@ -52,10 +52,10 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     override fun changeView(typeName: String) {
         if (isFirstChangeViewCall) {
-            super.changeView(myProject.service<ArendProjectSettings>().hierarchyViewType)
+            super.changeView(myProject.service<ArendProjectSettings>().data.hierarchyViewType)
             isFirstChangeViewCall = false
         } else {
-            myProject.service<ArendProjectSettings>().hierarchyViewType = typeName
+            myProject.service<ArendProjectSettings>().data.hierarchyViewType = typeName
             super.changeView(typeName)
         }
     }
@@ -138,20 +138,20 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
-        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showImplFields
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            myProject.service<ArendProjectSettings>().showImplFields = state
+            myProject.service<ArendProjectSettings>().data.showImplFields = state
             doRefresh(false)
         }
     }
 
     inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
-        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().showNonImplFields
+        override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showNonImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
-            myProject.service<ArendProjectSettings>().showNonImplFields = state
+            myProject.service<ArendProjectSettings>().data.showNonImplFields = state
             doRefresh(false)
         }
     }
