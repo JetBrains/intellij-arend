@@ -10,6 +10,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefInstanceStub
+import org.arend.term.FunctionKind
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
@@ -19,8 +20,6 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     constructor(node: ASTNode) : super(node)
 
     override val body: ArendFunctionalBody? get() = instanceBody
-
-    override val kw: PsiElement? get() = instanceKw
 
     constructor(stub: ArendDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
@@ -48,13 +47,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return body == null || body.elim == null && body.fatArrow == null
     }
 
-    override fun isCoerce() = false
-
-    override fun isLevel() = false
-
-    override fun isLemma() = false
-
-    override fun isInstance() = true
+    override fun getFunctionKind() = FunctionKind.INSTANCE
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 

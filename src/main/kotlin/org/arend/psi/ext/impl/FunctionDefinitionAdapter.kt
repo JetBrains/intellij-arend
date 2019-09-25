@@ -10,6 +10,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefFunctionStub
+import org.arend.term.FunctionKind
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
@@ -25,8 +26,6 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
 
     override val body: ArendFunctionalBody? get() = functionBody
-
-    override val kw: PsiElement? get() = functionKw
 
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
 
@@ -45,13 +44,13 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun isCowith() = functionBody?.cowithKw != null
 
-    override fun isCoerce() = coerceKw != null
-
-    override fun isLevel() = levelKw != null
-
-    override fun isLemma() = lemmaKw != null
-
-    override fun isInstance() = false
+    override fun getFunctionKind() = when {
+        lemmaKw != null -> FunctionKind.LEMMA
+        sfunctionKw != null -> FunctionKind.SFUNC
+        levelKw != null -> FunctionKind.LEVEL
+        coerceKw != null -> FunctionKind.COERCE
+        else -> FunctionKind.FUNC
+    }
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 

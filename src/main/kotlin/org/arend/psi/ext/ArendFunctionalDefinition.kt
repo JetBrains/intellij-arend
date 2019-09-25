@@ -21,6 +21,4 @@ interface ArendFunctionalDefinition : ArendCompositeElement {
     val where: ArendWhere?
 
     val colon: PsiElement?
-
-    val kw: PsiElement?
 }
