@@ -471,7 +471,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
                 and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                 or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
-                withAncestors(PsiErrorElement::class.java, ArendInstanceBody::class.java, ArendDefInstance::class.java),
+                and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
                 and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
                 and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
                 not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
