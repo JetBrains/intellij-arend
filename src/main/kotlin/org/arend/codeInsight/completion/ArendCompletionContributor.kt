@@ -433,7 +433,7 @@ class ArendCompletionContributor : CompletionContributor() {
     companion object {
         const val KEYWORD_PRIORITY = 0.0
 
-        private val PREC_CONTEXT = or(afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
+        private val PREC_CONTEXT = or(afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), /*afterLeaf(COERCE_KW),*/ afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java))) //class field
@@ -453,7 +453,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
                         afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW),
-                        afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE), afterLeaf(LEVEL_KW))),
+                        afterLeaf(CASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE), afterLeaf(LEVEL_KW), afterLeaf(COERCE_KW))),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
         private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)

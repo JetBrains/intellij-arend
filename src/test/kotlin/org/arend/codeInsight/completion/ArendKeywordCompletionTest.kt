@@ -12,14 +12,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\import B (lol \\as {-caret-}+)",
                     "\\data MyNat | {-caret-}myzero",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
-                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class Lol { } \\where { \\use \\level {-caret-} } ")
+                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func foo (n : Nat) \\elim n | {-caret-}zero =>",
                     "\\func foo (n : Nat) => {-caret-}n ",
-                    "\\func lol (a : Nat) => \\case a \\as {-caret-} \\with { }")
+                    "\\func lol (a : Nat) => \\case a \\as {-caret-} \\with { }",
+                    "\\class Lol { } \\where { \\use \\level {-caret-} } ",
+                    "\\class Lol { } \\where { \\use \\coerce {-caret-} }")
 
     fun `test as completion in namespace command`() =
             checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.SAME_ELEMENTS, "\\import B (lol {-caret-})")
