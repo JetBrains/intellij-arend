@@ -11,7 +11,7 @@ import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
 
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int, editor: Editor?): Boolean {
-        if (element.newKw == null) return false
+        if (element.appPrefix?.newKw == null) return false
         val data = element.getUserData(CoClausesKey)
         return data != null && data.isNotEmpty()
     }
@@ -23,5 +23,5 @@ class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImp
     }
 
     override fun forbidCaretInsideElement(element: PsiElement): Boolean =
-        element is ArendCoClause && (element.parent as? ArendNewExprImplMixin)?.newKw != null
+        element is ArendCoClause && (element.parent as? ArendNewExprImplMixin)?.appPrefix?.newKw != null
 }

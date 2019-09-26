@@ -96,7 +96,7 @@
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
-    extends("(arr|new|pi|sigma|lam|let|case|eval)Expr") = expr
+    extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
 }
@@ -415,7 +415,6 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | newExpr
-    | evalExpr
     | caseExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.Expression"
@@ -431,10 +430,14 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.arend.psi.ext.ArendArrExprImplMixin"
 }
 
-newExpr ::= NEW_KW argumentAppExpr newExprTail
+newExpr ::= appPrefix argumentAppExpr newExprTail
     | appExpr newExprTail {
     pin(".*") = 1
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
+}
+
+appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
+    pin(".*") = 1
 }
 
 private coClauseSequence ::= coClauseReg* {
@@ -465,11 +468,6 @@ caseExpr ::= CASE_KW <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_K
     implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
     recoverWhile = expr_recover
-}
-
-evalExpr ::= (EVAL_KW | PEVAL_KW) argumentAppExpr {
-    pin = 1
-    mixin = "org.arend.psi.ext.ArendEvalExprImplMixin"
 }
 
 private returnCaseExpr ::= RETURN_KW returnExpr {
@@ -722,7 +720,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | NUMBER | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"
@@ -734,7 +732,7 @@ implicitArgument ::= LBRACE expr RBRACE {
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
 
-newArg ::= NEW_KW argumentAppExpr [LBRACE coClauseSequence RBRACE] {
+newArg ::= appPrefix argumentAppExpr [LBRACE coClauseSequence RBRACE] {
     pin = 1
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"

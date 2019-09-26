@@ -26,13 +26,13 @@ abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImp
 
     val typeClassReference: ClassReferable?
         get() {
-            val type = resultType ?: (expr as? ArendNewExpr)?.let { if (it.newKw != null) it.argumentAppExpr else null } ?: return null
+            val type = resultType ?: (expr as? ArendNewExpr)?.let { if (it.appPrefix?.newKw != null) it.argumentAppExpr else null } ?: return null
             return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
         }
 
-    override fun getTopmostEquivalentSourceNode() = org.arend.psi.ext.getTopmostEquivalentSourceNode(this)
+    override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
-    override fun getParentSourceNode() = org.arend.psi.ext.getParentSourceNode(this)
+    override fun getParentSourceNode() = getParentSourceNode(this)
 
-    override fun getErrorData(): Abstract.ErrorData? = org.arend.psi.ext.getErrorData(this)
+    override fun getErrorData() = getErrorData(this)
 }
