@@ -32,6 +32,8 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
 
     override fun getImplementation() = expr
 
+    override fun hasImplementation() = fatArrow != null
+
     override fun getClassReference() = CoClauseBase.getClassReference(this)
 
     override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
