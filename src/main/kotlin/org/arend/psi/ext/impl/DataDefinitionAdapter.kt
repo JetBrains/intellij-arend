@@ -40,7 +40,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
 
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition
-        if (def is ArendDefFunction && def.useKw != null) def else null
+        if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
     internal val allParameters

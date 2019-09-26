@@ -37,19 +37,21 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition
-        if (def is ArendDefFunction && def.useKw != null) def else null
+        if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
     override fun withTerm() = functionBody?.fatArrow != null
 
     override fun isCowith() = functionBody?.cowithKw != null
 
-    override fun getFunctionKind() = when {
-        lemmaKw != null -> FunctionKind.LEMMA
-        sfunctionKw != null -> FunctionKind.SFUNC
-        levelKw != null -> FunctionKind.LEVEL
-        coerceKw != null -> FunctionKind.COERCE
-        else -> FunctionKind.FUNC
+    override fun getFunctionKind() = functionKw.let {
+        when {
+            it.lemmaKw != null -> FunctionKind.LEMMA
+            it.sfuncKw != null -> FunctionKind.SFUNC
+            it.levelKw != null -> FunctionKind.LEVEL
+            it.coerceKw != null -> FunctionKind.COERCE
+            else -> FunctionKind.FUNC
+        }
     }
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)

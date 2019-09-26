@@ -44,8 +44,8 @@
         USING_KW            = '\using'
         AS_KW               = '\as'
         MODULE_KW           = '\module'
-        FUNCTION_KW         = '\func'
-        SFUNCTION_KW        = '\sfunc'
+        FUNC_KW             = '\func'
+        SFUNC_KW            = '\sfunc'
         LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
         PROPERTY_KW         = '\property'
@@ -107,7 +107,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | SFUNCTION_KW | FUNCTION_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -220,7 +220,7 @@ private moduleHeader ::= MODULE_KW defIdentifier {
     recoverWhile = statement_recover
 }
 
-defFunction ::= (SFUNCTION_KW | FUNCTION_KW | LEMMA_KW | useMod) prec? defIdentifier_func nameTele* functionType? functionBody? where? {
+defFunction ::= functionKw prec? defIdentifier_func nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder"
@@ -229,6 +229,8 @@ defFunction ::= (SFUNCTION_KW | FUNCTION_KW | LEMMA_KW | useMod) prec? defIdenti
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
 
 private functionType ::= COLON returnExpr { pin = 1 }
 

@@ -5,7 +5,10 @@ import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.*
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.HelpID
 import com.intellij.refactoring.classMembers.MemberInfoBase
 import com.intellij.refactoring.move.MoveDialogBase
@@ -25,7 +28,10 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.util.FullName
 import java.awt.BorderLayout
-import javax.swing.*
+import javax.swing.Icon
+import javax.swing.JComponent
+import javax.swing.JPanel
+import javax.swing.JTextField
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
@@ -137,7 +143,7 @@ class ArendMoveMembersDialog(project: Project,
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
 
-        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.useKw == null)
+        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null)
 
         fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"

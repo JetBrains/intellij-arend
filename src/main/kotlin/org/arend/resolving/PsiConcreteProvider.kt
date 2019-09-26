@@ -144,6 +144,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
 
     override fun isUse(ref: GlobalReferable): Boolean {
         val psiReferable = ref.underlyingReferable
-        return psiReferable is ArendDefFunction && runReadAction { psiReferable.useKw != null }
+        return psiReferable is ArendDefFunction && runReadAction { psiReferable.functionKw.useKw != null }
     }
 }

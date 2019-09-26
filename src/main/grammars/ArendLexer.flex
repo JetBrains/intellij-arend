@@ -85,8 +85,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\using"               { return USING_KW; }
     "\\as"                  { return AS_KW; }
     "\\module"              { return MODULE_KW; }
-    "\\func"                { return FUNCTION_KW; }
-    "\\sfunc"               { return SFUNCTION_KW; }
+    "\\func"                { return FUNC_KW; }
+    "\\sfunc"               { return SFUNC_KW; }
     "\\lemma"               { return LEMMA_KW; }
     "\\coerce"              { return COERCE_KW; }
     "\\use"                 { return USE_KW; }

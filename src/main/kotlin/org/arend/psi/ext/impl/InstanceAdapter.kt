@@ -37,7 +37,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
         val def = it.definition
-        if (def is ArendDefFunction && def.useKw != null) def else null
+        if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
     override fun withTerm() = instanceBody?.fatArrow != null

@@ -139,7 +139,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
             removeDefinition(ref)
         }
 
-        if (referable is ArendDefFunction && referable.useKw != null) {
+        if ((referable as? ArendDefFunction)?.functionKw?.useKw != null) {
             (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH) }
         }
     }

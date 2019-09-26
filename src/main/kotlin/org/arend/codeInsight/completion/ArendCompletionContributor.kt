@@ -4,9 +4,13 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY_IDENTIFIER_TRIMMED
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.patterns.*
+import com.intellij.patterns.ElementPattern
+import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.*
-import com.intellij.psi.*
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
@@ -24,7 +28,7 @@ class ArendCompletionContributor : CompletionContributor() {
     init {
         basic(PREC_CONTEXT, FIXITY_KWS)
 
-        basic(after(and(ofType(LEVEL_KW), elementPattern { o -> o.parent.let { it is ArendDefFunction && it.useKw != null } })), FIXITY_KWS)
+        basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
 
         basic(AS_CONTEXT, AS_KW_LIST) { parameters ->
             (parameters.position.parent.parent as ArendNsId).asKw == null
@@ -429,7 +433,7 @@ class ArendCompletionContributor : CompletionContributor() {
     companion object {
         const val KEYWORD_PRIORITY = 0.0
 
-        private val PREC_CONTEXT = or(afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
+        private val PREC_CONTEXT = or(afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java))) //class field
@@ -486,7 +490,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ARGUMENT_EXPRESSION2 = or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
         private val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, ArendAtomLevelExpr::class.java))
-        private val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNCTION_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
+        private val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),

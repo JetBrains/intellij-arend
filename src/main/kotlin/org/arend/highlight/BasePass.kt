@@ -201,8 +201,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         private fun getImprovedErrorElement(error: GeneralError?, element: ArendCompositeElement): PsiElement? {
             val result = when (error) {
                 is ParsingError -> when (error.kind) {
-                    MISPLACED_USE -> (element as? ArendDefFunction)?.useKw
-                    MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.coerceKw
+                    MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
+                    MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw
                     LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
@@ -214,7 +214,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseKw
                     PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
-                    LEMMA_LEVEL -> if (element is ArendDefFunction) element.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
+                    LEMMA_LEVEL -> if (element is ArendDefFunction) element.functionKw.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
