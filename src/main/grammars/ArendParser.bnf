@@ -72,6 +72,8 @@
         LETS_KW             = '\let!'
         IN_KW               = '\in'
         CASE_KW             = '\case'
+        EVAL_KW             = '\eval'
+        PEVAL_KW            = '\peval'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
         CLASS_KW            = '\class'
@@ -94,7 +96,7 @@
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
-    extends("(arr|new|pi|sigma|lam|let|case|section)Expr") = expr
+    extends("(arr|new|pi|sigma|lam|let|case|eval)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
 }
@@ -413,6 +415,7 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | newExpr
+    | evalExpr
     | caseExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.Expression"
@@ -459,8 +462,14 @@ appExpr ::= universeAppExpr
 
 caseExpr ::= CASE_KW <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_KW clausesWithBraces {
     pin = 1
+    implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
     recoverWhile = expr_recover
+}
+
+evalExpr ::= (EVAL_KW | PEVAL_KW) argumentAppExpr {
+    pin = 1
+    mixin = "org.arend.psi.ext.ArendEvalExprImplMixin"
 }
 
 private returnCaseExpr ::= RETURN_KW returnExpr {

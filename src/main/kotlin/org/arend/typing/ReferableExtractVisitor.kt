@@ -99,23 +99,6 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
 
-    override fun visitSection(data: Any?, referent: Referable, argument: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
-        if (mode != Mode.EXPRESSION || argument == null) {
-            return null
-        }
-
-        if (requiredAdditionalInfo) {
-            if (1 < argumentsExplicitness.size) {
-                argumentsExplicitness.subList(0, 1).clear()
-            } else {
-                argumentsExplicitness.clear()
-            }
-            argumentsExplicitness.addAll(0, listOf(true, true))
-        }
-
-        return referent
-    }
-
     override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
         if (mode != Mode.EXPRESSION || body == null) {
             return null
