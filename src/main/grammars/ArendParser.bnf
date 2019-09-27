@@ -72,6 +72,7 @@
         LETS_KW             = '\let!'
         IN_KW               = '\in'
         CASE_KW             = '\case'
+        SCASE_KW            = '\scase'
         EVAL_KW             = '\eval'
         PEVAL_KW            = '\peval'
         RETURN_KW           = '\return'
@@ -414,8 +415,8 @@ expr ::= arrExpr
     | piExpr
     | lamExpr
     | letExpr
-    | newExpr
-    | caseExpr {
+    | caseExpr
+    | newExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.Expression"
                    "org.arend.term.abs.Abstract.Parameter" ]
@@ -463,12 +464,16 @@ appExpr ::= universeAppExpr
     recoverWhile = expr_recover
 }
 
-caseExpr ::= CASE_KW <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_KW clausesWithBraces {
-    pin = 1
+caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_KW clausesWithBraces {
+    pin = 2
     implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
     recoverWhile = expr_recover
 }
+
+casePrefix ::= [EVAL_KW | PEVAL_KW]
+
+caseOpt ::= CASE_KW | SCASE_KW
 
 private returnCaseExpr ::= RETURN_KW returnExpr {
     pin = 1
