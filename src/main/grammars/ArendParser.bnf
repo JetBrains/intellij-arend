@@ -435,6 +435,7 @@ newExpr ::= appPrefix argumentAppExpr newExprTail
     | appExpr newExprTail {
     pin(".*") = 1
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
+    recoverWhile = expr_recover
 }
 
 appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
@@ -468,7 +469,6 @@ caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseE
     pin = 2
     implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
-    recoverWhile = expr_recover
 }
 
 casePrefix ::= [EVAL_KW | PEVAL_KW]
