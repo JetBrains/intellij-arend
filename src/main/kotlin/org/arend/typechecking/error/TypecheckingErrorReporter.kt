@@ -67,7 +67,9 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
         private val stringBuilder = StringBuilder()
 
         fun print() {
-            error.getDoc(ppConfig).accept(this, true)
+            runReadAction {
+                error.getDoc(ppConfig).accept(this, true)
+            }
             printNewLine()
             flushText()
             if (contentType in setOf(ERROR_OUTPUT, LOG_WARNING_OUTPUT)) {
