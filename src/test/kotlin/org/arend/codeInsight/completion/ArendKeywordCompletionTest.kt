@@ -1,5 +1,7 @@
 package org.arend.codeInsight.completion
 
+import org.arend.psi.ArendElementTypes
+
 class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.SAME_ELEMENTS,
@@ -274,6 +276,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(BASIC_EXPRESSION_KW, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func lol (a : Nat) (b : Nat) => lol 1 {-caret-}")
 
+    fun `test eval after new`() =
+        checkKeywordCompletionVariants(listOf(ArendElementTypes.EVAL_KW.toString()), CompletionCondition.SAME_KEYWORDS,
+            "\\func test => \\new {-caret-}")
+
+    fun `test scase after new`() =
+        checkKeywordCompletionVariants(listOf(ArendElementTypes.SCASE_KW.toString()), CompletionCondition.SAME_KEYWORDS,
+            "\\func test => \\eval {-caret-}",
+            "\\func test2 => \\peval {-caret-}")
+
     fun `test no keyword completion after with`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_ELEMENTS,
             "\\func lol (a : Nat) => \\case a \\with {-caret-}",
             "\\func lol (a : Nat) => \\case a \\with {-caret-} { | zero => 0 | suc a' => a'}",
@@ -290,9 +301,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => \\Pi {-caret-} -> \\Type",
                     "\\func lol (a : Nat) => \\Pi \\Type {-caret-} -> \\Type")
 
-    fun `test no keywords after new, let or lam`() =
+    fun `test no keywords after let or lam`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
-                    "\\func lol (a : Nat) => (\\new {-caret-})",
                     "\\func lol (a : Nat) => (\\let {-caret-})",
                     "\\func lol (a : Nat) => (\\lam {-caret-})")
 

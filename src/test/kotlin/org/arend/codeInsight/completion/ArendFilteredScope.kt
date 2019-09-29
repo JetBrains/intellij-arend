@@ -80,7 +80,7 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h ' => \\new {-caret-}",
-            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"))
+            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"), withKeywords = false)
 
     fun `test new with args`() =
         checkCompletionVariants(
@@ -92,7 +92,7 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h ' => \\new {-caret-} f B",
-            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"))
+            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"), withKeywords = false)
 
     fun `test new arg with level args`() =
         checkCompletionVariants(
@@ -104,7 +104,7 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h ' => f \\new {-caret-} \\lp",
-            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"))
+            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"), withKeywords = false)
 
     fun `test new arg`() =
         checkCompletionVariants(
@@ -116,5 +116,5 @@ class ArendFilteredScope : ArendCompletionTestBase() {
             "\\record R\n" +
             "\\class S => A\n" +
             "\\func h ' => f \\new {-caret-}",
-            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"))
+            listOf("A", "B", "R", "S", "D", "f", "h", "z", "Prelude"), withKeywords = false)
 }

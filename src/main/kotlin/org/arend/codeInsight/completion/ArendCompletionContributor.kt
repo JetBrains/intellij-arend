@@ -400,6 +400,9 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(ARGUMENT_EXPRESSION, LEVEL_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
         basic(ARGUMENT_EXPRESSION_IN_BRACKETS, LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
+        basic(afterLeaf(NEW_KW), listOf(EVAL_KW.toString()))
+        basic(or(afterLeaf(EVAL_KW), afterLeaf(PEVAL_KW)), listOf(SCASE_KW.toString()))
+
         basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2))
 
         basic(withParent(ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS) { parameters ->
