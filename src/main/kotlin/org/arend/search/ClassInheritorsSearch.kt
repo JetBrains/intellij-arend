@@ -51,6 +51,26 @@ class ClassInheritorsSearch(val project: Project) : ArendDefinitionChangeListene
         return cache.putIfAbsent(clazz, res) ?: res
     }
 
+    fun getAllInheritors(clazz: ArendDefClass): List<ArendDefClass> {
+        val visited = mutableSetOf<ArendDefClass>()
+        val toBeVisited = mutableSetOf(clazz)
+
+        while (!toBeVisited.isEmpty()) {
+            val newToBeVisited = mutableSetOf<ArendDefClass>()
+            for (cur in toBeVisited) {
+                if (!visited.contains(cur)) {
+                    newToBeVisited.addAll(search(cur))
+                    visited.add(cur)
+                }
+            }
+            toBeVisited.clear()
+            toBeVisited.addAll(newToBeVisited)
+        }
+
+        visited.remove(clazz)
+        return visited.toList()
+    }
+
     override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         if (def is ArendDefClass) {
             cache.clear()

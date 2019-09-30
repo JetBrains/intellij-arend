@@ -30,12 +30,8 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                     myHighlightedText.ending.addText(fullName.longName.lastName.toString())
                 } else {
                     myHighlightedText.ending.addText(fullName.longName.toString())
+                    myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
                 }
-                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
-            } else if (psiElement is PsiLocatedReferable) {
-                val fullName = FullName(psiElement as PsiLocatedReferable)
-                myHighlightedText.ending.addText(fullName.longName.toString())
-                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
             } else if (psiElement is ArendClassImplement) {
                 val name = (psiElement as ArendClassImplement).longName
                 val impl = psiElement as ArendClassImplement
@@ -48,6 +44,10 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                 } else {
                     myHighlightedText.ending.addText(name.text)
                 }
+            } else if (psiElement is PsiLocatedReferable) {
+                val fullName = FullName(psiElement as PsiLocatedReferable)
+                myHighlightedText.ending.addText(fullName.longName.toString())
+                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
             }
         }
 
