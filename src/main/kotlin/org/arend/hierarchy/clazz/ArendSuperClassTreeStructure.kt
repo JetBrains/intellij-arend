@@ -28,8 +28,10 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
                 } else {
                     val implFields = HashSet<String>()
                     implInAncestors(descriptor, implFields)
-                    classElement.classFieldList.filter { !implFields.contains(it.textRepresentation()) }.mapTo(result) {
-                        ArendHierarchyNodeDescriptor(project, descriptor, it, false)
+                    classElement.fieldReferables.mapNotNullTo(result) {
+                        if (it is PsiElement && !implFields.contains(it.textRepresentation()))
+                            ArendHierarchyNodeDescriptor(project, descriptor, it, false)
+                        else null
                     }
                 }
             }
