@@ -6,9 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.psi.PsiElement
 import com.intellij.ui.RowIcon
-import org.arend.hierarchy.clazz.ArendSuperClassTreeStructure
-import org.arend.naming.reference.ClassReferable
-import org.arend.psi.ArendClassField
+import org.arend.naming.reference.FieldReferable
 import org.arend.psi.ArendClassImplement
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
@@ -22,32 +20,33 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
     override fun update(): Boolean {
         val oldText = myHighlightedText
 
-        if (myHighlightedText.ending.appearance.text == "") {
-            if (psiElement is ArendClassField) {
-                val fullName = FullName(psiElement as PsiLocatedReferable)
+        if (myHighlightedText.ending.appearance.text == "") when (val element = psiElement) {
+            is FieldReferable -> {
+                val fullName = FullName(element)
                 val clazz = (parentDescriptor as? ArendHierarchyNodeDescriptor)?.psiElement as? ArendDefClass
-                if (parentDescriptor?.parentDescriptor != null || clazz?.classFieldList?.contains(psiElement as ArendClassField) == true) {
+                if (parentDescriptor?.parentDescriptor != null || clazz?.fieldReferables?.contains(element) == true) {
                     myHighlightedText.ending.addText(fullName.longName.lastName.toString())
                 } else {
                     myHighlightedText.ending.addText(fullName.longName.toString())
+                    myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
                 }
-                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
-            } else if (psiElement is PsiLocatedReferable) {
-                val fullName = FullName(psiElement as PsiLocatedReferable)
-                myHighlightedText.ending.addText(fullName.longName.toString())
-                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
-            } else if (psiElement is ArendClassImplement) {
-                val name = (psiElement as ArendClassImplement).longName
-                val impl = psiElement as ArendClassImplement
-                val clazz = impl.parentOfType<ArendDefClass>()
+            }
+            is ArendClassImplement -> {
+                val name = element.longName
+                val clazz = element.parentOfType<ArendDefClass>()
                 val ref = name.refIdentifierList.lastOrNull()?.reference?.resolve()
-                if (ref is ArendClassField && clazz != null && !clazz.fields.contains<Any>(ref)) {
-                    val fullName = FullName(ref as PsiLocatedReferable)
+                if (ref is FieldReferable && clazz != null && !clazz.fieldReferables.contains<Any>(ref)) {
+                    val fullName = FullName(ref)
                     myHighlightedText.ending.addText(fullName.longName.toString())
-                    myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', HierarchyNodeDescriptor.getPackageNameAttributes())
+                    myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
                 } else {
                     myHighlightedText.ending.addText(name.text)
                 }
+            }
+            is PsiLocatedReferable -> {
+                val fullName = FullName(element)
+                myHighlightedText.ending.addText(fullName.longName.toString())
+                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
             }
         }
 
@@ -56,12 +55,11 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
 
     override fun getIcon(element: PsiElement): Icon? {
         val baseIcon = super.getIcon(element)
-        if (element is ArendClassImplement) {
-            return RowIcon(AllIcons.Hierarchy.MethodDefined, baseIcon)
-        } else if (element is ArendClassField) {
-            return RowIcon(AllIcons.Hierarchy.MethodNotDefined, baseIcon)
+        return when (element) {
+            is ArendClassImplement -> RowIcon(AllIcons.Hierarchy.MethodDefined, baseIcon)
+            is FieldReferable -> RowIcon(AllIcons.Hierarchy.MethodNotDefined, baseIcon)
+            else -> baseIcon
         }
-        return baseIcon
     }
 
     companion object {

@@ -47,7 +47,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             object : LineMarkerNavigator() {
                 override fun browse(e: MouseEvent, element: PsiElement) {
                     val clazz = element.parent.parent as? ArendDefClass ?: return
-                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassInheritorsSearch>().search(clazz).toArray(arrayOf()), "Subclasses of " + clazz.name,
+                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassInheritorsSearch>().getAllInheritors(clazz).toArray(arrayOf()), "Subclasses of " + clazz.name,
                         CodeInsightBundle.message("goto.implementation.findUsages.title", clazz.name), MyListCellRenderer, null as BackgroundUpdaterTask?)
                 }
             })

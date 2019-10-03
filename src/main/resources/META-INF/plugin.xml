@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>org.arend.lang</id>
     <name>Arend</name>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <vendor>JetBrains</vendor>
 
     <description><![CDATA[
@@ -11,19 +11,22 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      The first stable release. It implements the following features:
+      Language updates:
       <ul>
-        <li>Syntax highlighting</li>
-        <li>Code completion</li>
-        <li>Find usages</li>
-        <li>Quick documentation</li>
-        <li>Parameter hints</li>
-        <li>Class hierarchy</li>
-        <li>Code formatter</li>
-        <li>Auto import</li>
-        <li>"Implement missing fields" quick fix</li>
-        <li>Move Refactoring</li>
-        <li>Incremental typechecking</li>
+        <li>Proof irrelevant \Prop</li>
+        <li>Right operator sections</li>
+        <li>New function and \case forms: \sfunc and \scase</li>
+        <li>Improved error messages</li>
+      </ul>
+
+      Plugin updates:
+      <ul>
+        <li>Implemented background typechecking</li>
+        <li>Implemented pattern generator for missing clauses and case analysis</li>
+        <li>Improved class hierarchy</li>
+        <li>Added gutter icons for subclasses</li>
+        <li>Improved module configuration dialog</li>
+        <li>Fixed completion and inline renaming for infix and postfix notation</li>
       </ul>
     ]]>
     </change-notes>
@@ -34,6 +37,7 @@
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
     <depends>org.jetbrains.plugins.yaml</depends>
+    <depends>com.intellij.modules.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
 

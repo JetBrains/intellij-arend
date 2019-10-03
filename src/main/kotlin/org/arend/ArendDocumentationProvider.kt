@@ -6,6 +6,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.xml.util.XmlStringUtil
+import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -106,7 +107,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
     private fun getType(element: PsiElement): String? = when (element) {
         is ArendDefClass -> if (element.isRecord) "record" else "class"
-        is ArendClassField, is ArendFieldDefIdentifier -> "field"
+        is FieldReferable -> "field"
         is ArendDefInstance -> "instance"
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
@@ -118,8 +119,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun getSuperType(element: PsiElement): String? = when (element) {
-        is ArendClassField, is ArendFieldDefIdentifier ->
-            ((element as PsiLocatedReferable).locatedReferableParent as? ArendDefClass)?.let {
+        is FieldReferable ->
+            (element.locatedReferableParent as? ArendDefClass)?.let {
                 " of ${if (it.isRecord) "record" else "class"} <b>${it.name ?: return@let null}</b>"
             }
         is ArendConstructor -> (element.locatedReferableParent as? ArendDefData)?.name?.let { " of data <b> $it </b>" }

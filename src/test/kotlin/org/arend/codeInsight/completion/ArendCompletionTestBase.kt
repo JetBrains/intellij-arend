@@ -27,10 +27,12 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
 
     enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN}
 
-    protected fun checkCompletionVariants(@Language("Arend") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS) {
+    protected fun checkCompletionVariants(@Language("Arend") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS, withKeywords: Boolean = true) {
         InlineFile(code).withCaret()
 
-        val result : List<String> = myFixture.getCompletionVariants("Main.ard") ?: error("Null completion variants")
+        val result : List<String> = (myFixture.getCompletionVariants("Main.ard") ?: error("Null completion variants")).let { list ->
+            if (withKeywords) list else list.filter { !it.startsWith('\\') }
+        }
 
         fun symDiff(required: List<String>, actual: List<String>): String? {
             if (HashSet(required) == HashSet(actual)) return null

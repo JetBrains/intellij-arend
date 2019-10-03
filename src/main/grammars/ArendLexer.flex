@@ -113,6 +113,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\let!"                { return LETS_KW; }
     "\\in"                  { return IN_KW; }
     "\\case"                { return CASE_KW; }
+    "\\scase"               { return SCASE_KW; }
     "\\eval"                { return EVAL_KW; }
     "\\peval"               { return PEVAL_KW; }
     "\\return"              { return RETURN_KW; }

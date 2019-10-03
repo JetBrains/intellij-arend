@@ -8,6 +8,7 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.editor.Editor
 import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
+import org.arend.naming.reference.FieldReferable
 import org.arend.navigation.getPresentationForStructure
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -32,7 +33,7 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendDefInstance,
         is ArendDefModule,
         is ArendDefFunction -> false
-        is ArendClassField,
+        is FieldReferable,
         is ArendClassImplement,
         is ArendConstructor -> true
         else -> error("Unexpected tree anchor")

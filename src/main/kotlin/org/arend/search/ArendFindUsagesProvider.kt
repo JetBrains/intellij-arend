@@ -4,6 +4,7 @@ import com.intellij.lang.HelpID
 import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
+import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -20,7 +21,7 @@ class ArendFindUsagesProvider : FindUsagesProvider {
     override fun getType(element: PsiElement): String = when (element) {
         is ArendDefClass -> "class"
         is ArendDefModule -> "module"
-        is ArendClassField -> "class field"
+        is FieldReferable -> "class field"
         is ArendDefInstance -> "class instance"
         is ArendDefData -> "data"
         is ArendConstructor -> "constructor"
