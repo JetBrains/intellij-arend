@@ -18,6 +18,7 @@ import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
@@ -181,21 +182,32 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Do move myMembers
         val holes = ArrayList<RelativePosition>()
         val newMemberList = ArrayList<ArendGroup>()
-        for (m in myMembers) {
-            val mStatement = m.parent
-            val docs = (mStatement as? ArendStatement)?.let { getDocumentation(it) }
+        val addThisLater = ArrayList<ArendDefinition>()
 
-            val mCopyStatement = mStatement.copy()
+        for (m in myMembers) {
+            val mStatementOrClassStat = m.parent
+            val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
+            var addingThisRequired: Boolean = false
+
+            val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
+                val classDefinition = mStatementOrClassStat.parent as? ArendDefClass
+                val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
+                statementContainer!!.definition!!.replace(m.copy())
+                addingThisRequired = true
+                statementContainer
+            } else mStatementOrClassStat.copy()
             val docsCopy = docs?.map { it.copy() }
 
             val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
                     ?: myTargetContainer.addWithNotification(mCopyStatement)
+            if (addingThisRequired && mCopyStatementInserted is ArendStatement)
+                mCopyStatementInserted.definition?.let { addThisLater.add(it) }
             docsCopy?.forEach { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
 
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
-            mStatement.deleteAndGetPosition()?.let { holes.add(it) }
+            mStatementOrClassStat.deleteAndGetPosition()?.let { holes.add(it) }
             if (docs != null) for (doc in docs) doc.delete()
             insertAnchor = mCopyStatementInserted
         }
@@ -304,6 +316,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Fix references in the elements that have been moved
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
+
+        //Add this modifier for items moved out of a class
+        for (mCopy in addThisLater) if (mCopy is ArendDefFunction && mySourceContainer is ArendDefClass) {
+            val anchor = mCopy.defIdentifier
+            val className = mySourceContainer.defIdentifier?.textRepresentation() ?: "foo"
+            val thisTele = mCopy.addAfterWithNotification(psiFactory.createNameTele("this", className, false), anchor)
+            mCopy.addBefore(psiFactory.createWhitespace(" "), thisTele)
+            val refIdentifier = thisTele.childOfType<ArendRefIdentifier>()!!
+            ResolveReferenceAction.getProposedFix(mySourceContainer, refIdentifier)?.execute(null)
+        }
 
         myMoveCallback.invoke()
 

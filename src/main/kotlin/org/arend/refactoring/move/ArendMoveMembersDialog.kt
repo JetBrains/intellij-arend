@@ -23,6 +23,7 @@ import com.intellij.ui.SeparatorFactory
 import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
@@ -75,11 +76,16 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     private fun initMemberInfo(container: ArendGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
-        for (c in container.subgroups) if (isMovable(c)) {
-            val memberInfo = ArendMemberInfo(c)
-            if (membersToMove.contains(c)) memberInfo.isChecked = true
-            sink.add(memberInfo)
+        val addToSink = {c: ArendGroup ->
+            if (isMovable(c)) {
+                val memberInfo = ArendMemberInfo(c)
+                if (membersToMove.contains(c)) memberInfo.isChecked = true
+                sink.add(memberInfo)
+            }
         }
+
+        container.subgroups.forEach { c -> addToSink(c) }
+        if (container is ArendDefClass) container.classStatList.forEach { c -> c.definition?.let{ addToSink(it) } }
     }
 
     override fun doAction() {

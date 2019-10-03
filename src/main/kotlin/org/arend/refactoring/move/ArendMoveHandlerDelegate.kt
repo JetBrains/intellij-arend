@@ -15,7 +15,7 @@ import java.util.Collections.singletonList
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
 
     override fun tryToMove(element: PsiElement?, project: Project?, dataContext: DataContext?, reference: PsiReference?, editor: Editor?): Boolean {
-        if (project != null && element is ArendGroup && (element !is Abstract.Definition || element.enclosingClass == null)) {
+        if (project != null && element is ArendGroup) {
             if (!ArendMoveMembersDialog.isMovable(element)) return false
             if (!CommonRefactoringUtil.checkReadOnlyStatus(project, singletonList(element), true)) return true
             return showDialog(project, element)
