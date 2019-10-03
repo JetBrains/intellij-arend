@@ -28,6 +28,7 @@ import org.arend.psi.ext.ArendDefIdentifierImplMixin
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
 import org.arend.refactoring.getDataTypeStartingCharacter
@@ -143,15 +144,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         localSet.addAll(localNames)
                         val renamer = StringRenamer()
                         val listParams = ArrayList<String>()
-                        val containingFile = localClause.containingFile
                         val constructorReferable = PsiLocatedReferable.fromReferable(constructor.referable)
-                        val locationData = if (constructorReferable != null) LocationData(constructorReferable) else null
-                        val aliasData = if (locationData != null && containingFile is ArendFile) computeAliases(locationData, containingFile, localClause) else null
-
-                        val constructorName = if (aliasData != null) {
-                            aliasData.first?.execute(editor)
-                            LongName(aliasData.second).toString()
-                        } else constructor.name
+                        val constructorName = getTargetName(constructorReferable, localClause) ?: constructor.name
 
                         val patternString = buildString {
                             var parameter = constructor.parameters

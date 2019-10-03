@@ -23,6 +23,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
 import org.arend.util.LongName
@@ -319,18 +320,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Add this modifier for items moved out of a class
         for (mCopy in addThisLater) if ((mCopy is ArendFunctionalDefinition || mCopy is ArendDefData) && mySourceContainer is ArendDefClass) {
             val anchor = mCopy.defIdentifier
-            val className = mySourceContainer.defIdentifier?.textRepresentation() ?: "foo"
-            val thisTele : PsiElement = when (mCopy) {
-                is ArendFunctionalDefinition -> {psiFactory.createNameTele("this", className, false)}
-                is ArendDefData -> {psiFactory.createTypeTele("this", className, false)}
-                else -> throw IllegalStateException()
+            val className = getTargetName(mySourceContainer, mCopy) ?: mySourceContainer.defIdentifier?.textRepresentation()
+
+            if (className != null) {
+                val thisTele : PsiElement = when (mCopy) {
+                    is ArendFunctionalDefinition -> {psiFactory.createNameTele("this", className, false)}
+                    is ArendDefData -> {psiFactory.createTypeTele("this", className, false)}
+                    else -> throw IllegalStateException()
+                }
+
+                mCopy.addAfterWithNotification(thisTele, anchor)
+                mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
             }
-
-            mCopy.addAfterWithNotification(thisTele, anchor)
-            mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
-
-            val refIdentifier = thisTele.childOfType<ArendRefIdentifier>()!!
-            ResolveReferenceAction.getProposedFix(mySourceContainer, refIdentifier)?.execute(null)
         }
 
         myMoveCallback.invoke()

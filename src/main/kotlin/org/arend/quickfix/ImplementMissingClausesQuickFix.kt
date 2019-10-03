@@ -17,6 +17,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.computeAliases
 import org.arend.refactoring.getDataTypeStartingCharacter
@@ -254,15 +255,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                     val arguments = concat(argumentPatterns, filter, " ")
                     val result = buildString {
-                        append(if (referable != null) {
-                            val location = LocationData(referable)
-                            val file = cause.containingFile as? ArendFile
-                            val aliasData = if (file != null) computeAliases(location, file, cause) else null
-                            if (aliasData != null) {
-                                aliasData.first?.execute(editor)
-                                LongName(aliasData.second).toString()
-                            } else referable.name
-                        } else definition.name)
+                        append(if (referable != null) { getTargetName(referable, cause) ?: referable.name } else definition.name)
                         if (arguments.isNotEmpty()) append(" ")
                         append(arguments)
                     }

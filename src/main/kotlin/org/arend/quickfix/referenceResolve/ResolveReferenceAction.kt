@@ -1,7 +1,9 @@
 package org.arend.quickfix.referenceResolve
 
 import com.intellij.openapi.editor.Editor
+import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.AbstractRefactoringAction
@@ -36,6 +38,15 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             }
 
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
+        }
+
+
+        fun getTargetName(target: PsiLocatedReferable?, element: ArendCompositeElement): String? {
+            val containingFile = element.containingFile as? ArendFile ?: return null
+            val location = LocationData(target ?: return null)
+            val (importAction, resultName) = computeAliases(location, containingFile, element) ?: return null
+            importAction?.execute(null)
+            return LongName(resultName).toString()
         }
     }
 }

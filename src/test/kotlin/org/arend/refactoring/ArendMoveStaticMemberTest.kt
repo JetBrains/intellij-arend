@@ -902,7 +902,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 
                \class C {
                  | f : Nat
-                 \func foo{-caret-} (a : Nat) (b : a = f) => {?}
+                 \func foo{-caret-} (a : Nat) (b : a = f) => \lam this => \this
                }
 
                \func goo (CI : C) => C.foo 101 
@@ -913,7 +913,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \func goo (CI : C) => foo 101 
                
-               \func foo {this : C} (a : Nat) (b : a = f) => {?}
+               \func foo {this1 : C} (a : Nat) (b : a = f) => \lam this => this1
             """, "A", "")
 
     fun testMoveOutOfClass2() =
