@@ -24,9 +24,12 @@ import com.intellij.ui.layout.panel
 import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendDefClass
+import org.arend.psi.ArendDefData
 import org.arend.psi.ArendDefFunction
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
+import org.arend.term.abs.Abstract
 import org.arend.util.FullName
 import java.awt.BorderLayout
 import javax.swing.Icon
@@ -149,7 +152,8 @@ class ArendMoveMembersDialog(project: Project,
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
 
-        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null)
+        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null) &&
+                (a !is Abstract.Definition || a.enclosingClass == null || a is ArendFunctionalDefinition || a is ArendDefData)
 
         fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"

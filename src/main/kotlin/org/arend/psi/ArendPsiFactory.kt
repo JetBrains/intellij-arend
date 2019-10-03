@@ -34,6 +34,12 @@ class ArendPsiFactory(private val project: Project) {
                 ?: error("Failed to create name tele " + (name ?: ""))
     }
 
+    fun createTypeTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendTypeTele {
+        val lparen = if (isExplicit) "(" else "{"
+        val rparen = if (isExplicit) ")" else "}"
+        return createFromText("\\data Dummy $lparen ${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
+    }
+
     private fun createFunction(
             name: String,
             teles: List<String> = emptyList(),

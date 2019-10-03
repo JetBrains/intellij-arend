@@ -915,4 +915,24 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                
                \func foo {this : C} (a : Nat) (b : a = f) => {?}
             """, "A", "")
+
+    fun testMoveOutOfClass2() =
+            testMoveRefactoring("""
+                --! A.ard
+                \class C {
+                  | foo : Nat
+                  
+                  \data D{-caret-} (p : foo = foo)
+                }
+                
+                \module M
+            """, """
+                \class C {
+                  | foo : Nat 
+                }
+                
+                \module M \where {
+                  \data D {this : C} (p : foo = foo)
+                }
+            """, "A", "M")
 }

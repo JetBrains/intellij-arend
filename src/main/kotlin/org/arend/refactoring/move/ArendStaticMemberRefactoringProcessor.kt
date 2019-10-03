@@ -190,7 +190,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             var addingThisRequired: Boolean = false
 
             val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
-                val classDefinition = mStatementOrClassStat.parent as? ArendDefClass
                 val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
                 statementContainer!!.definition!!.replace(m.copy())
                 addingThisRequired = true
@@ -207,7 +206,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
-            mStatementOrClassStat.deleteAndGetPosition()?.let { holes.add(it) }
+            mStatementOrClassStat.deleteAndGetPosition()?.let { if (!addingThisRequired) holes.add(it) }
             if (docs != null) for (doc in docs) doc.delete()
             insertAnchor = mCopyStatementInserted
         }
@@ -318,11 +317,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
 
         //Add this modifier for items moved out of a class
-        for (mCopy in addThisLater) if (mCopy is ArendDefFunction && mySourceContainer is ArendDefClass) {
+        for (mCopy in addThisLater) if ((mCopy is ArendFunctionalDefinition || mCopy is ArendDefData) && mySourceContainer is ArendDefClass) {
             val anchor = mCopy.defIdentifier
             val className = mySourceContainer.defIdentifier?.textRepresentation() ?: "foo"
-            val thisTele = mCopy.addAfterWithNotification(psiFactory.createNameTele("this", className, false), anchor)
-            mCopy.addBefore(psiFactory.createWhitespace(" "), thisTele)
+            val thisTele : PsiElement = when (mCopy) {
+                is ArendFunctionalDefinition -> {psiFactory.createNameTele("this", className, false)}
+                is ArendDefData -> {psiFactory.createTypeTele("this", className, false)}
+                else -> throw IllegalStateException()
+            }
+
+            mCopy.addAfterWithNotification(thisTele, anchor)
+            mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
+
             val refIdentifier = thisTele.childOfType<ArendRefIdentifier>()!!
             ResolveReferenceAction.getProposedFix(mySourceContainer, refIdentifier)?.execute(null)
         }
