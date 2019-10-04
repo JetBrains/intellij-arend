@@ -16,6 +16,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -188,7 +189,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (m in myMembers) {
             val mStatementOrClassStat = m.parent
             val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
-            var addingThisRequired: Boolean = false
+            var addingThisRequired = false
 
             val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
                 val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
@@ -321,15 +322,26 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (mCopy in addThisLater) if ((mCopy is ArendFunctionalDefinition || mCopy is ArendDefData) && mySourceContainer is ArendDefClass) {
             val anchor = mCopy.defIdentifier
             val className = getTargetName(mySourceContainer, mCopy) ?: mySourceContainer.defIdentifier?.textRepresentation()
+            val freshName = StringRenamer().generateFreshName(stringToVariable("this"), getAllBindings(mCopy).map { stringToVariable(it) }.toList())
 
             if (className != null) {
                 val thisTele : PsiElement = when (mCopy) {
-                    is ArendFunctionalDefinition -> {psiFactory.createNameTele("this", className, false)}
-                    is ArendDefData -> {psiFactory.createTypeTele("this", className, false)}
+                    is ArendFunctionalDefinition -> {psiFactory.createNameTele(freshName, className, false)}
+                    is ArendDefData -> {psiFactory.createTypeTele(freshName, className, false)}
                     else -> throw IllegalStateException()
                 }
 
-                mCopy.addAfterWithNotification(thisTele, anchor)
+                val thisId = mCopy.addAfterWithNotification(thisTele, anchor).childOfType<ArendDefIdentifier>()
+
+                fun doSubstitute(psi : PsiElement) {
+                    if (psi is ArendAtom && psi.thisKw != null) {
+                        val literal = psiFactory.createExpression(freshName).childOfType<ArendAtom>()!!
+                        psi.replaceWithNotification(literal)
+                    } else for (c in psi.children) doSubstitute(c)
+                }
+
+                doSubstitute(mCopy)
+
                 mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
             }
         }

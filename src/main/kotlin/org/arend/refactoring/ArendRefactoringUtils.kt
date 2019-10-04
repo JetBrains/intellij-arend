@@ -3,6 +3,8 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
+import org.arend.core.context.binding.Variable
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.Type
@@ -350,3 +352,19 @@ fun getDataTypeStartingCharacter(data: Type): Char? {
 
     return null
 }
+
+fun getAllBindings(psi: PsiElement): List<String> {
+    val result = ArrayList<String>()
+
+    fun visitElement(element: PsiElement) {
+        if (element is ArendDefIdentifier) result.add(element.textRepresentation())
+        if (element is ArendRefIdentifier) result.add(element.referenceName)
+        for (c in element.children) visitElement(c)
+    }
+
+    visitElement(psi)
+
+    return result
+}
+
+fun stringToVariable(str: String): Variable = object: Variable { override fun getName(): String = str }

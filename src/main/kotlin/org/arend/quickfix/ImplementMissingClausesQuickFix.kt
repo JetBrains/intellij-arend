@@ -18,13 +18,10 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.LocationData
-import org.arend.refactoring.computeAliases
 import org.arend.refactoring.getDataTypeStartingCharacter
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
-import org.arend.util.LongName
 import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
