@@ -323,7 +323,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (mCopy in addThisLater) if ((mCopy is ArendFunctionalDefinition || mCopy is ArendDefData) && mySourceContainer is ArendDefClass) {
             val anchor = mCopy.defIdentifier
             val className = getTargetName(mySourceContainer, mCopy) ?: mySourceContainer.defIdentifier?.textRepresentation()
-            val freshName = StringRenamer().generateFreshName(stringToVariable("this"), getAllBindings(mCopy).map { stringToVariable(it) }.toList())
+            val freshName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(mCopy).map { VariableImpl(it) }.toList())
 
             if (className != null) {
                 val thisTele : PsiElement = when (mCopy) {
