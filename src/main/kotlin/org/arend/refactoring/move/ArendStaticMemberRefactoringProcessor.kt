@@ -202,8 +202,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
             val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
                     ?: myTargetContainer.addWithNotification(mCopyStatement)
-            if (addingThisRequired && mCopyStatementInserted is ArendStatement)
-                mCopyStatementInserted.definition?.let { addThisLater.add(it) }
+
+            fun addGroupToThis(group: ArendGroup) {
+                if (group is ArendDefinition) addThisLater.add(group)
+                for (sg in group.subgroups) addGroupToThis(sg)
+            }
+
+            if (addingThisRequired && mCopyStatementInserted is ArendStatement) {
+                mCopyStatementInserted.definition?.let { addGroupToThis(it) }
+                mCopyStatementInserted.defModule?.let { addGroupToThis(it) }
+            }
+
             docsCopy?.forEach { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
 
             val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
@@ -333,9 +342,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
 
                 mCopy.addAfterWithNotification(thisTele, anchor)
+                mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
+
                 val classifyingField = getClassifyingField(mySourceContainer)
 
                 fun doSubstitute(psi : PsiElement) {
+                    if (psi is ArendWhere) return
                     if (psi is ArendAtom && psi.thisKw != null) {
                         val literal = psiFactory.createExpression(freshName).childOfType<ArendAtom>()!!
                         psi.replaceWithNotification(literal)
@@ -344,8 +356,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
                 doSubstitute(mCopy)
                 if (classifyingField != null) replaceUsages(psiFactory, classifyingField, mCopy, freshName, false)
-
-                mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
             }
         }
 

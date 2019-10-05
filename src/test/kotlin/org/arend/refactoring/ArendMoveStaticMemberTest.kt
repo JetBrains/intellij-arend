@@ -898,8 +898,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testMoveOutOfClass1() =
             testMoveRefactoring(""" 
-               --! A.ard
-                
                \class C {
                  | f : Nat
                  \func foo{-caret-} (a : Nat) (b : a = f) => \lam this => \this
@@ -914,11 +912,10 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func goo (CI : C) => foo 101 
                
                \func foo {this1 : C} (a : Nat) (b : a = f) => \lam this => this1
-            """, "A", "")
+            """, "Main", "")
 
     fun testMoveOutOfClass2() =
             testMoveRefactoring("""
-                --! A.ard
                 \class C {
                   | foo : Nat
                   
@@ -934,15 +931,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 \module M \where {
                   \data D {this : C} (p : foo = foo)
                 }
-            """, "A", "M")
+            """, "Main", "M")
 
     fun testMoveOutOfClass3() =
             testMoveRefactoring("""
-                --! A.ard
                 \class C1 (E : \Type)
 
                 \class C2 \extends C1 {
                   \func foo{-caret-} (e : E) => {?}
+                    \where 
+                      \func bar (y : E) => {?}
                 }
 
                 \module M 
@@ -953,6 +951,35 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                 \module M \where {
                   \func foo {this : C2} (e : this) => {?}
+                    \where 
+                      \func bar {this : C2} (y : this) => {?}
                 }
-            """, "A", "M")
+            """, "Main", "M")
+
+    fun testMoveOutOfRecord1() =
+            testMoveRefactoring("""
+               \class C1 (E : \Type)
+
+               \record C2 \extends C1 {
+                 | bar : Nat
+                 
+                 \func foo{-caret-} (e : E) => {?}
+                   \where
+                     \func goo => bar
+               }
+
+               \module M 
+            """, """
+               \class C1 (E : \Type)
+
+               \record C2 \extends C1 {
+                 | bar : Nat 
+               }
+
+               \module M \where {
+                 \func foo {this : C2} (e : this.E) => {?}
+                   \where
+                     \func goo {this : C2} => this.bar
+               }  
+            """, "Main", "M")
 }

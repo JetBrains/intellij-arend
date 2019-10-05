@@ -362,6 +362,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         private fun doSubstituteUsages(elementToReplace: ArendReferenceElement, element: PsiElement,
                                substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
+            if (element is ArendWhere) return
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null
                 if (atom != null) {

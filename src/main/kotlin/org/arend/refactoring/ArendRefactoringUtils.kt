@@ -357,11 +357,12 @@ fun getDataTypeStartingCharacter(data: Type): Char? {
     return null
 }
 
-fun getAllBindings(psi: PsiElement): Set<String> {
+fun getAllBindings(psi: PsiElement, stopAtWhere: Boolean = true): Set<String> {
     val result = mutableSetOf<String>()
     psi.accept(object : PsiRecursiveElementVisitor() {
         override fun visitElement(element: PsiElement) {
             if (element is ArendReferenceElement) result.add(element.referenceName)
+            if (element is ArendWhere && stopAtWhere) return
             super.visitElement(element)
         }
     })

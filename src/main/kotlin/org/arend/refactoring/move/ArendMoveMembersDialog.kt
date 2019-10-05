@@ -152,8 +152,7 @@ class ArendMoveMembersDialog(project: Project,
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
 
-        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null) &&
-                (a !is Abstract.Definition || a.enclosingClass == null || a is ArendFunctionalDefinition || a is ArendDefData)
+        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null)
 
         fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"
