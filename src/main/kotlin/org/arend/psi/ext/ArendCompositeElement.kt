@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.error.SourceInfo
 import org.arend.module.ModuleScope
+import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.naming.reference.DataContainer
 import org.arend.naming.scope.*
 import org.arend.psi.*
@@ -38,7 +39,14 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 
 private fun getArendScope(element: ArendCompositeElement): Scope {
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
-    val scope = ScopeFactory.forSourceNode(sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it) } ?: EmptyScope.INSTANCE })
+    val parentScope = sourceNode.parentSourceNode?.let {
+        if (it is ArendDefClass && sourceNode is ArendLongName)
+            // The last parameters is set to true to prevent infinite recursion during resolving of references in \\extends
+            LexicalScope.insideOf(it, it.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(it, EmptyModuleScopeProvider.INSTANCE, true), true)
+        else it.scope
+    } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+
+    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it) } ?: EmptyScope.INSTANCE })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is ArendDefClass) {

@@ -22,10 +22,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun isRecord(): Boolean = recordKw != null
 
-    private fun resolve(ref: Referable?) =
-        ExpressionResolveNameVisitor.resolve(ref, parentGroup?.groupScope ?: ScopeFactory.forGroup(null, moduleScopeProvider)) as? ClassReferable
-
-    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { resolve(it.referent) }
+    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
     override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList
 
