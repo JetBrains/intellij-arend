@@ -935,4 +935,24 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \data D {this : C} (p : foo = foo)
                 }
             """, "A", "M")
+
+    fun testMoveOutOfClass3() =
+            testMoveRefactoring("""
+                --! A.ard
+                \class C1 (E : \Type)
+
+                \class C2 \extends C1 {
+                  \func foo{-caret-} (e : E) => {?}
+                }
+
+                \module M 
+            """, """
+                \class C1 (E : \Type)
+
+                \class C2 \extends C1 {}
+
+                \module M \where {
+                  \func foo {this : C2} (e : this) => {?}
+                }
+            """, "A", "M")
 }

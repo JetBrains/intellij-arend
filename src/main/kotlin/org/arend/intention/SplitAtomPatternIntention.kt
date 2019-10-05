@@ -24,13 +24,8 @@ import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendDefIdentifierImplMixin
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.ArendPatternImplMixin
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.LocationData
-import org.arend.refactoring.computeAliases
 import org.arend.refactoring.getDataTypeStartingCharacter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -40,7 +35,6 @@ import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking.Flag
 import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
-import org.arend.util.LongName
 import java.util.*
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
@@ -166,7 +160,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             "${listParams[0]} $constructorName ${listParams[1]}" else patternString
 
                         if (first) {
-                            replaceUsages(factory, element, currAnchor, expressionString, listParams.isNotEmpty())
+                            replaceUsages(factory, element.childOfType(), currAnchor, expressionString, listParams.isNotEmpty())
 
                             var inserted = false
                             if (constructor == Prelude.ZERO) {
@@ -198,7 +192,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             if (currAnchor is ArendClause) {
                                 val elementCopy = findAbstractPattern(localIndexList.drop(1), currAnchor.patternList.getOrNull(localIndexList[0]))
                                 if (elementCopy is PsiElement) {
-                                    replaceUsages(factory, elementCopy, currAnchor, expressionString, listParams.isNotEmpty())
+                                    replaceUsages(factory, elementCopy.childOfType(), currAnchor, expressionString, listParams.isNotEmpty())
                                     doReplacePattern(factory, elementCopy, patternString, listParams.isNotEmpty())
                                 }
                             }
@@ -358,17 +352,16 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        private fun replaceUsages(factory: ArendPsiFactory, elementToReplace: Abstract.Pattern, expression: PsiElement, expressionLine: String, requiresParentheses: Boolean) {
-            if (elementToReplace is PsiElement) {
-                val defIdentifier = elementToReplace.childOfType<ArendDefIdentifier>()
+        fun replaceUsages(factory: ArendPsiFactory, defIdentifier: ArendReferenceElement?, expression: PsiElement, expressionLine: String, requiresParentheses: Boolean) {
+            if (defIdentifier != null) {
                 val substitutedExpression = factory.createExpression(expressionLine) as ArendNewExpr
                 val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionLine)").childOfType<ArendAtom>() else substitutedExpression.childOfType()
-                if (defIdentifier != null) doSubstitute(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
+                doSubstituteUsages(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
             }
         }
 
-        private fun doSubstitute(elementToReplace: ArendDefIdentifier, element: PsiElement,
-                                 substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
+        private fun doSubstituteUsages(elementToReplace: ArendReferenceElement, element: PsiElement,
+                               substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null
                 if (atom != null) {
@@ -381,7 +374,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     }
                 }
             } else for (child in element.children)
-                doSubstitute(elementToReplace, child, substitutedExpression, substitutedAtom)
+                doSubstituteUsages(elementToReplace, child, substitutedExpression, substitutedAtom)
         }
     }
 }

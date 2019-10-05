@@ -16,6 +16,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.intention.SplitAtomPatternIntention.Companion.replaceUsages
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -331,7 +332,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     else -> throw IllegalStateException()
                 }
 
-                val thisId = mCopy.addAfterWithNotification(thisTele, anchor).childOfType<ArendDefIdentifier>()
+                mCopy.addAfterWithNotification(thisTele, anchor)
+                val classifyingField = getClassifyingField(mySourceContainer)
 
                 fun doSubstitute(psi : PsiElement) {
                     if (psi is ArendAtom && psi.thisKw != null) {
@@ -341,6 +343,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
 
                 doSubstitute(mCopy)
+                if (classifyingField != null) replaceUsages(psiFactory, classifyingField, mCopy, freshName, false)
 
                 mCopy.addAfter(psiFactory.createWhitespace(" "), anchor)
             }

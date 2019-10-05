@@ -5,14 +5,17 @@ import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import org.arend.core.context.binding.Variable
+import org.arend.core.definition.ClassDefinition
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.Type
 import org.arend.module.ModulePath
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ext.ArendFieldTeleImplMixin
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.impl.ClassDefinitionAdapter
 import org.arend.term.Fixity
 import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
@@ -368,3 +371,21 @@ fun getAllBindings(psi: PsiElement): List<String> {
 }
 
 fun stringToVariable(str: String): Variable = object: Variable { override fun getName(): String = str }
+
+fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
+    fun doGetClassifyingField(classDef: ArendDefClass, visitedClasses: MutableSet<ArendDefClass>): ArendFieldDefIdentifier? {
+        if (visitedClasses.contains(classDef)) return null
+        visitedClasses.add(classDef)
+
+        classDef.fieldTeleList.firstOrNull { it.classifyingKw != null }?.fieldDefIdentifierList?.firstOrNull()?.let { return it }
+        classDef.fieldTeleList.firstOrNull { it is ArendFieldTeleImplMixin && it.isExplicit }?.fieldDefIdentifierList?.firstOrNull()?.let{ return it }
+        if (classDef is ClassDefinitionAdapter)
+            for (ancestor in classDef.superClassReferences)
+                if (ancestor is ArendDefClass)
+                    doGetClassifyingField(ancestor, visitedClasses)?.let { return it }
+
+        return null
+    }
+
+    return doGetClassifyingField(classDef, HashSet())
+}

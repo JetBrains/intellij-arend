@@ -7,8 +7,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiReference
 import com.intellij.psi.impl.cache.impl.id.IdIndex
 import com.intellij.psi.impl.cache.impl.id.IdIndexEntry
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.LocalSearchScope
-import com.intellij.psi.search.ProjectScopeImpl
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.util.Processor
 import com.intellij.util.Processors
@@ -25,7 +25,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
         val fileBasedIndex = FileBasedIndex.getInstance()
         val project = parameters.project
 
-        if (scope is ProjectScopeImpl && elementToSearch is GlobalReferable)
+        if (scope is GlobalSearchScope && elementToSearch is GlobalReferable)
             ApplicationManager.getApplication().runReadAction {
                 val name = elementToSearch.textRepresentation()
                 val indexEntry = IdIndexEntry(name, true)
