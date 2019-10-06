@@ -982,4 +982,39 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                      \func goo {this : C2} => this.bar
                }  
             """, "Main", "M")
+
+    fun testMoveOutOfRecord2() =
+            testMoveRefactoring("""
+                \class C1 (E : \Type) {
+                  | field1 : Nat
+                }
+
+                \module M \where {
+                  \class C2 \extends C1 {
+                    | field2 : C1
+                  }
+
+                  \record R \extends C2 {
+                    \func foo{-caret-} (a : C1) => (field1, field2.field1, M.C2.field2, a.field1)  
+                  }
+                }
+
+                \module M2
+            """, """
+                \class C1 (E : \Type) {
+                  | field1 : Nat   
+                }
+
+                \module M \where {
+                  \class C2 \extends C1 {
+                    | field2 : C1
+                  }
+
+                  \record R \extends C2 {}
+                }
+
+                \module M2 \where {
+                  \func foo {this : M.R} (a : C1) => (this.field1, this.field2.field1, this.field2, a.field1)
+                }
+            """, "Main", "M2")
 }

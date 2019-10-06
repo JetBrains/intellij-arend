@@ -177,24 +177,24 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
             val recordMode = mySourceContainer is ArendDefClass && mySourceContainer.recordKw != null
-            val thisReferables = HashSet<PsiLocatedReferable>()
+            val recordFields = HashSet<PsiLocatedReferable>()
 
             if (recordMode) {
                 val scope = ClassFieldImplScope(mySourceContainer as ArendDefClass, true)
-                thisReferables.addAll(scope.elements.filterIsInstance<ArendClassField>())
-                thisReferables.addAll(scope.elements.filterIsInstance<ArendFieldDefIdentifier>())
+                recordFields.addAll(scope.elements.filterIsInstance<ArendClassField>())
+                recordFields.addAll(scope.elements.filterIsInstance<ArendFieldDefIdentifier>())
             }
 
             for ((mIndex, m) in myMembers.withIndex())
-                collectUsagesAndMembers(emptyList(), m, mIndex, usagesInMovedBodies, descriptorsOfAllMovedMembers)
+                collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
 
-            for (referable in usagesInMovedBodies.keys.minus(thisReferables))
+            for (referable in usagesInMovedBodies.keys.minus(recordFields))
                 targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) }
                         ?: ReferableTargetReference(referable)
 
             for (usagePack in usagesInMovedBodies) for (usage in usagePack.value) {
                 val referable = usagePack.key
-                if (thisReferables.contains(referable))
+                if (recordFields.contains(referable))
                     bodiesClassFieldUsages.add(usage) else
                     targetReferences[referable]?.let { bodiesRefsFixData[usage] = it }
             }
@@ -424,6 +424,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     private fun collectUsagesAndMembers(prefix: List<Int>, element: PsiElement, groupNumber: Int,
+                                        recordFields: Set<PsiLocatedReferable>,
                                         usagesData: MutableMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>,
                                         memberData: MutableMap<PsiLocatedReferable, LocationDescriptor>) {
         when (element) {
@@ -439,14 +440,37 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         set.add(LocationDescriptor(groupNumber, prefix))
                     }
                 }
-            is ArendLongName -> element.children.withIndex().lastOrNull { (_, m) -> m is ArendReferenceElement }?.let {
-                collectUsagesAndMembers(prefix + singletonList(it.index), it.value, groupNumber, usagesData, memberData)
+            is ArendLongName -> {
+                val reference = computeReferenceToBeFixed(element, recordFields)
+                if (reference != null) collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, recordFields, usagesData, memberData)
             }
             else -> {
                 if (element is PsiLocatedReferable) memberData[element] = LocationDescriptor(groupNumber, prefix)
-                element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, usagesData, memberData) }
+                element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, recordFields, usagesData, memberData) }
             }
         }
+    }
+
+    private fun computeReferenceToBeFixed(element: ArendLongName, recordFields: Set<PsiLocatedReferable>): IndexedValue<PsiElement>? {
+        val references = element.children.withIndex().filter { (_, m) -> m is ArendReferenceElement }
+        var classReference = true
+
+        for (ref in references) { // This piece of code works nontrivially only when we are moving static definitions out of a record
+            val refElement = ref.value
+            val target = refElement.reference?.resolve()
+            if (target is ArendDefClass) {
+                classReference = true
+                continue
+            }
+            if (recordFields.contains(target)) {
+                return if (classReference)
+                    ref else
+                    null //Prevents the default mechanism of repairing links from being engaged on a longName which includes reference to a non-local classfield (it may break the reference by writing unnecessary "this" before it)
+            }
+            classReference = false
+        }
+
+        return references.lastOrNull() //this is the default behavior
     }
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int, fixMap: HashMap<LocationDescriptor, TargetReference>) {
