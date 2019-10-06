@@ -176,14 +176,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
-            val recordMode = mySourceContainer is ArendDefClass && mySourceContainer.recordKw != null
-            val recordFields = HashSet<PsiLocatedReferable>()
-
-            if (recordMode) {
-                val scope = ClassFieldImplScope(mySourceContainer as ArendDefClass, true)
-                recordFields.addAll(scope.elements.filterIsInstance<ArendClassField>())
-                recordFields.addAll(scope.elements.filterIsInstance<ArendFieldDefIdentifier>())
-            }
+            val recordFields =
+                if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
+                    ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
+                else emptySet<PsiLocatedReferable>()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
