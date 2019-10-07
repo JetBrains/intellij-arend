@@ -1,7 +1,6 @@
 package org.arend.quickfix.referenceResolve
 
 import com.intellij.openapi.editor.Editor
-import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement

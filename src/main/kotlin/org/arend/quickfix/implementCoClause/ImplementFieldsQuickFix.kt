@@ -7,13 +7,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Iconable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.addAfterWithNotification
 import org.arend.refactoring.moveCaretToEndOffset
 
-class ImplementFieldsQuickFix(val instance: PsiElement,
+class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
                               private val needsBulb: Boolean,
                               private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>): IntentionAction, Iconable {
     private var caretMoved = false
@@ -22,7 +23,7 @@ class ImplementFieldsQuickFix(val instance: PsiElement,
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = true
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instanceRef.element != null
 
     override fun getText() = "Implement missing fields"
 
@@ -48,6 +49,7 @@ class ImplementFieldsQuickFix(val instance: PsiElement,
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+        val instance = instanceRef.element ?: return
         val psiFactory = ArendPsiFactory(project)
         val firstCCInserter = makeFirstCoClauseInserter(instance) ?: return
         for (f in fieldsToImplement) addField(f.first, firstCCInserter, editor, psiFactory, f.second)

@@ -124,28 +124,30 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 }
 
                 is DuplicateOpenedNameError -> {
-                    annotation.registerFix(RenameDuplicateNameQuickFix(error.cause as? PsiElement,  error.referable))
+                    val errorCause = error.cause
+                    if (errorCause is PsiElement) annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause),  error.referable))
                 }
 
                 is ExistingOpenedNameError -> {
-                    annotation.registerFix(RenameDuplicateNameQuickFix(error.cause as? PsiElement, null))
+                    val errorCause = error.cause
+                    if (errorCause is PsiElement) annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
                 }
 
                 is FieldsImplementationError ->
                     if (error.alreadyImplemented) {
                         (error.cause.data as? ArendCoClause)?.let {
-                            annotation.registerFix(RemoveCoClauseQuickFix(it))
+                            annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(it)))
                         }
                     } else {
-                        annotation.registerFix(ImplementFieldsQuickFix(cause, false, makeFieldList(error.fields, error.classReferable)))
+                        annotation.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, error.classReferable)))
                         if (cause is ArendNewExprImplMixin) {
                             cause.putUserData(CoClausesKey, null)
                         }
                     }
 
-                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, cause))
+                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
 
-                is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, cause))
+                is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
                 is TypecheckingError -> {
                     if (error.level == GeneralError.Level.WEAK_WARNING) {
@@ -156,22 +158,22 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             val single = error.kind == EXPECTED_EXPLICIT_PATTERN
                             if (error.kind != TOO_MANY_PATTERNS) {
                                 cause.atomPattern?.let {
-                                    annotation.registerFix(MakePatternExplicitQuickFix(it, single))
+                                    annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
                                 }
                             }
 
                             if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
-                                annotation.registerFix(RemovePatternsQuickFix(cause, single))
+                                annotation.registerFix(RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
                             }
                         }
-                        AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(cause))
+                        AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
                         BODY_IGNORED ->
                             cause.ancestor<ArendClause>()?.let {
-                                annotation.registerFix(RemovePatternRightHandSideQuickFix(it))
+                                annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
                             }
-                        PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(cause))
-                        REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(cause))
-                        REDUNDANT_COCLAUSE -> if (cause is ArendCoClause) annotation.registerFix(RemoveCoClauseQuickFix(cause))
+                        PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                        REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
+                        REDUNDANT_COCLAUSE -> if (cause is ArendCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
                         else -> {}
                     }
                 }

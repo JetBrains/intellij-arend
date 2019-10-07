@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.pattern.BindingPattern
@@ -25,19 +26,21 @@ import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
 import kotlin.math.abs
 
-class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError, private val cause: ArendCompositeElement) : IntentionAction {
+class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError,
+                                      private val causeRef: SmartPsiElementPointer<ArendCompositeElement>) : IntentionAction {
     private val clauses = ArrayList<ArendClause>()
 
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = "arend.patternmatching"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = causeRef.element != null
 
     override fun getText(): String = "Implement missing clauses"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
+        val element = causeRef.element ?: return
         clauses.clear()
 
         missingClausesError.setMaxListSize(service<ArendSettings>().clauseActualLimit)
@@ -64,7 +67,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES
-                    patternStrings.add(doTransformPattern(pattern, cause, editor, filters, braces, clauseBindings))
+                    patternStrings.add(doTransformPattern(pattern, element, editor, filters, braces, clauseBindings))
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
                 }
             }
@@ -72,7 +75,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             clauses.add(psiFactory.createClause(concat(patternStrings, topLevelFilter)))
         }
 
-        insertClauses(psiFactory, cause, clauses)
+        insertClauses(psiFactory, element, clauses)
     }
 
     companion object {

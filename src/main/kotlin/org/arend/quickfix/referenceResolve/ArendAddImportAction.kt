@@ -13,7 +13,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
 import javax.swing.Icon
 
-class ArendAddImportAction(val project: Project, val editor: Editor, private val currentElement: PsiElement, val resolveData: List<ResolveReferenceAction>, private val onTheFly: Boolean) : QuestionAction {
+class ArendAddImportAction(private val project: Project,
+                           private val editor: Editor,
+                           private val currentElement: PsiElement,
+                           private val resolveData: List<ResolveReferenceAction>,
+                           private val onTheFly: Boolean) : QuestionAction {
 
     override fun execute(): Boolean {
         PsiDocumentManager.getInstance(project).commitAllDocuments()
@@ -30,7 +34,7 @@ class ArendAddImportAction(val project: Project, val editor: Editor, private val
         return true
     }
 
-    fun addImport(fixData: ResolveReferenceAction) {
+    private fun addImport(fixData: ResolveReferenceAction) {
         if (!currentElement.isValid) return
 
         DumbService.getInstance(project).withAlternativeResolveEnabled {

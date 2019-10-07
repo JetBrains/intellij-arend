@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Variable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
@@ -14,17 +15,18 @@ import org.arend.psi.ArendStatCmd
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.RemoveRefFromStatCmdAction
 
-class RenameDuplicateNameQuickFix(private val cause: PsiElement?, private val referable: Referable?) : IntentionAction {
+class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
+                                  private val referable: Referable?) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = "arend.import"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = causeRef.element != null
 
     override fun getText(): String = "Rename import"
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        when (cause) {
+        when (val cause = causeRef.element) {
             is ArendNsId -> {
                 val using = cause.parent
                 val statCmd = using?.parent
@@ -37,7 +39,7 @@ class RenameDuplicateNameQuickFix(private val cause: PsiElement?, private val re
             }
             is ArendStatCmd -> {
                 if (referable != null)
-                    doRenameDuplicateName(editor, cause,referable.textRepresentation(), null)
+                    doRenameDuplicateName(editor, cause, referable.textRepresentation(), null)
             }
         }
     }
