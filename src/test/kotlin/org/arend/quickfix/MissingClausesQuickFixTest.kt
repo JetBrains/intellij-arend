@@ -40,14 +40,13 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testBasicPattern() = typedQuickFixTest("Implement",
         """
-        --! Main.ard
-        \$listDefinition
+        $listDefinition
     
         \func length{-caret-} {A : \Type} (l : List A) : Nat \with
           | nil => 0
           | :: x nil => 1
         """, """ 
-        \$listDefinition
+        $listDefinition
 
         \func length {A : \Type} (l : List A) : Nat \with
           | nil => 0
@@ -57,13 +56,13 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testBasicElim() = typedQuickFixTest("Implement",
         """
-        \$listDefinition
+        $listDefinition
     
         \func length{-caret-} (A : \Type) (l : List A) (n : Nat) : Nat \elim l
           | nil => n
           | :: x nil => n
         """, """ 
-        \$listDefinition
+        $listDefinition
 
         \func length (A : \Type) (l : List A) (n : Nat) : Nat \elim l
           | nil => n
@@ -198,7 +197,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
         \func lol {A B : \Type} (a b : Logic.|| A B) : Nat
           | Logic.byLeft x, Logic.byLeft y => {?}
-          | byRight b1, b => {?}
+          | byRight b, b1 => {?}
           | ||.byLeft x, byRight b => {?} 
         """)
 
@@ -261,5 +260,16 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                 \func foo (x : Nat) : Nat \elim x
                   | 0 => {?}
                   | suc n => {?}
+            """)
+
+    fun testRenamer() = typedQuickFixTest("Implement",
+            """
+               \func foo{-caret-} (n m : Nat) : Nat 
+            """, """
+               \func foo (n m : Nat) : Nat
+                 | 0, 0 => {?}
+                 | 0, suc n => {?}
+                 | suc n, 0 => {?}
+                 | suc n, suc n1 => {?} 
             """)
 }
