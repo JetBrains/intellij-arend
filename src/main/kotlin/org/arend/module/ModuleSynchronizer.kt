@@ -54,7 +54,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
         }
 
         private fun synchronizeModule(service: ArendModuleConfigService, arendModules: Map<String, Module>, projectTable: LibraryTable) {
-            if (!service.synchronize()) {
+            if (!service.synchronize() || service.module.isDisposed) {
                 return
             }
             val ideaDependencies = ArrayList<Any>()
