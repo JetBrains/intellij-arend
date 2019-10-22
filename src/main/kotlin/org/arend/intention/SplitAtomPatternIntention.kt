@@ -33,7 +33,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking.Flag
-import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
+import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import java.util.*
 

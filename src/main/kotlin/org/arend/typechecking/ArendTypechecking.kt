@@ -14,7 +14,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.provider.ConcreteProvider
 
 
 open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)

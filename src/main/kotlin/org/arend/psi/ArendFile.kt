@@ -26,8 +26,8 @@ import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
-import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
+import org.arend.typechecking.provider.ConcreteProvider
+import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     val modulePath: ModulePath?

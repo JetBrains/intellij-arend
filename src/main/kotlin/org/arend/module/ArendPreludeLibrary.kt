@@ -21,7 +21,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.term.group.Group
 import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.util.FileUtils
 import java.nio.charset.StandardCharsets
 

@@ -20,7 +20,7 @@ import org.arend.term.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.provider.ConcreteProvider
 
 
 private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {

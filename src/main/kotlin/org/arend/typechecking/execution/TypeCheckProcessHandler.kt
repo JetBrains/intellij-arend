@@ -161,7 +161,7 @@ class TypeCheckProcessHandler(
                                 val definition = concreteProvider.getConcrete(ref)
                                 if (definition is Concrete.Definition) {
                                     typeCheckerService.dependencyListener.update(definition.data)
-                                    ordering.orderDefinition(definition)
+                                    ordering.order(definition)
                                 } else if (definition != null) error(command.definitionFullName + " is not a definition")
                             } else {
                                 if (ref is PsiLocatedReferable) {
@@ -213,7 +213,7 @@ class TypeCheckProcessHandler(
             if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)
             }
-            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.orderDefinition(it) }
+            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.order(it) }
         }
 
         for (subgroup in runReadAction { group.subgroups }) {

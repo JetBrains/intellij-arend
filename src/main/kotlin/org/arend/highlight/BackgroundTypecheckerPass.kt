@@ -18,7 +18,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.typechecking.*
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.typechecking.typecheckable.provider.EmptyConcreteProvider
+import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName

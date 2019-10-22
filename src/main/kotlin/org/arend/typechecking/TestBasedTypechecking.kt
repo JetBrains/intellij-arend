@@ -12,7 +12,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.order.dependency.DependencyListener
-import org.arend.typechecking.typecheckable.provider.ConcreteProvider
+import org.arend.typechecking.provider.ConcreteProvider
 
 
 class TestBasedTypechecking(
