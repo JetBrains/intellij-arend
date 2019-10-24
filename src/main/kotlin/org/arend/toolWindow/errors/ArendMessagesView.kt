@@ -16,14 +16,11 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.error.GeneralError
-import org.arend.error.doc.DocFactory
-import org.arend.injection.CollectingDocStringBuilder
 import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.MissingClausesError
@@ -65,6 +62,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.add(autoScrollFromSource.createActionGroup())
         actionGroup.addSeparator()
         actionGroup.add(ArendMessagesFilterActionGroup(project, autoScrollFromSource))
+        actionGroup.addSeparator()
+        actionGroup.add(ArendPrintOptionsActionGroup(project))
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
         toolbar.setTargetComponent(splitter)
@@ -164,5 +163,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         treeModel.reload()
         TreeUtil.restoreExpandedPaths(tree, expandedPaths)
         tree.selectionPath = tree.getExistingPrefix(selectedPath)
+        activeEditor?.updateErrorText()
     }
 }

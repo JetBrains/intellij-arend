@@ -3,6 +3,7 @@ package org.arend.injection
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
@@ -10,12 +11,15 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.GeneralError
 import org.arend.error.doc.DocFactory
+import org.arend.settings.ArendProjectSettings
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import java.util.*
 import javax.swing.JComponent
 
-class InjectedArendEditor(project: Project,
+class InjectedArendEditor(val project: Project,
                           val error: GeneralError) {
     private val editor: Editor?
 
@@ -28,7 +32,7 @@ class InjectedArendEditor(project: Project,
             }
         } else null
 
-        updateErrorText(project, error)
+        updateErrorText()
     }
 
     fun release() {
@@ -40,11 +44,11 @@ class InjectedArendEditor(project: Project,
     val component: JComponent?
         get() = editor?.component
 
-    private fun updateErrorText(project: Project, error: GeneralError) {
+    fun updateErrorText() {
         if (editor != null) {
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, error)
-            val ppConfig = PrettyPrinterConfig.DEFAULT
+            val ppConfig = ProjectPrintConfig(project)
             DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
 
             val text: CharSequence = builder.toString()
@@ -64,6 +68,9 @@ class InjectedArendEditor(project: Project,
                 }
             }
         }
+    }
 
+    private class ProjectPrintConfig(val project: Project): PrettyPrinterConfig {
+        override fun getExpressionFlags(): EnumSet<ToAbstractVisitor.Flag> = project.service<ArendProjectSettings>().printOptionsFilterSet
     }
 }
