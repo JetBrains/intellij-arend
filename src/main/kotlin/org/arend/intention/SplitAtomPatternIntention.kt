@@ -46,9 +46,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (pattern != null) {
                 val type = pattern.toExpression().type //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
-                    val constructors = type.matchedConstructors
+                    val constructors = type.matchedConstructors ?: return false
                     this.matchedConstructors = constructors.map { it.definition }
-                    return constructors != null
+                    return true
                 }
             }
         }
