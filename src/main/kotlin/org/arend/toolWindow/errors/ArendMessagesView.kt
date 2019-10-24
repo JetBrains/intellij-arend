@@ -99,11 +99,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
             val arendEditor = errorEditors.computeIfAbsent(error) {
                 configureError(error)
-                val builder = StringBuilder()
-                val visitor = CollectingDocStringBuilder(builder, error)
-                val ppConfig = PrettyPrinterConfig.DEFAULT
-                DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
-                InjectedArendEditor(builder.toString(), visitor.textRanges, visitor.hyperlinks, project, error)
+                InjectedArendEditor(project, error)
             }
 
             if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {
