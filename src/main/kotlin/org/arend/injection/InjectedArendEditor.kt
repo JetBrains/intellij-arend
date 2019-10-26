@@ -16,6 +16,9 @@ import org.arend.error.GeneralError
 import org.arend.error.doc.DocFactory
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
+import org.arend.toolWindow.errors.PrintOptionKind
+import org.arend.typechecking.error.local.GoalError
 import java.util.*
 import javax.swing.JComponent
 
@@ -48,7 +51,8 @@ class InjectedArendEditor(val project: Project,
         if (editor != null) {
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, error)
-            val ppConfig = ProjectPrintConfig(project)
+            val printOptionsKind = if (error is GoalError) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS
+            val ppConfig = ProjectPrintConfig(project, printOptionsKind)
             DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
 
             val text: CharSequence = builder.toString()
@@ -70,7 +74,7 @@ class InjectedArendEditor(val project: Project,
         }
     }
 
-    private class ProjectPrintConfig(val project: Project): PrettyPrinterConfig {
-        override fun getExpressionFlags(): EnumSet<ToAbstractVisitor.Flag> = project.service<ArendProjectSettings>().printOptionsFilterSet
+    private class ProjectPrintConfig(val project: Project, val printOptionsKind: PrintOptionKind): PrettyPrinterConfig {
+        override fun getExpressionFlags(): EnumSet<ToAbstractVisitor.Flag> = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
     }
 }

@@ -14,7 +14,10 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
     var autoScrollFromSource = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING)!!
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
-    var printOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
+    var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
+    var goalPrintingOptionsFilterSet = EnumSet.of<ToAbstractVisitor.Flag>(
+            ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE,
+            ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS)
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {
@@ -32,11 +35,11 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         }
     }
 
-    fun setPrintOption(type: ToAbstractVisitor.Flag, enabled: Boolean) {
+    fun setPrintOption(filterSet: EnumSet<ToAbstractVisitor.Flag>, type: ToAbstractVisitor.Flag, enabled: Boolean) {
         if (enabled)
-            printOptionsFilterSet.add(type)
+            filterSet.add(type)
         else
-            printOptionsFilterSet.remove(type)
+            filterSet.remove(type)
     }
 
     override fun getState(): ArendProjectSettingsState {
@@ -56,17 +59,22 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         data.showResolving = messagesFilterSet.contains(MessageType.RESOLVING)
         data.showParsing = messagesFilterSet.contains(MessageType.PARSING)
 
-        data.hideHideableDefinitions = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS)
-        data.showConstructorParameters = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_CON_PARAMS)
-        data.showFieldInstance = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)
-        data.showImplicitArgs = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS)
-        data.showTypesInLambda = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM)
-        data.showPrefixPath = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_PREFIX_PATH)
-        data.showBinOpImplicitArgs = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS)
-        data.showCaseResultType = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE)
-        data.showInferenceLevelVars = printOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS)
+        getPrintingOptions(errorPrintingOptionsFilterSet, data.errorPrintingOptions)
+        getPrintingOptions(goalPrintingOptionsFilterSet, data.goalPrintingOptions)
 
         return data
+    }
+
+    private fun getPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, options: ArendPrintingOptions) {
+        options.hideHideableDefinitions = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS)
+        options.showConstructorParameters = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_CON_PARAMS)
+        options.showFieldInstance = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)
+        options.showImplicitArgs = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS)
+        options.showTypesInLambda = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM)
+        options.showPrefixPath = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_PREFIX_PATH)
+        options.showBinOpImplicitArgs = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS)
+        options.showCaseResultType = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE)
+        options.showInferenceLevelVars = errorPrintingOptionsFilterSet.contains(ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS)
     }
 
     override fun loadState(state: ArendProjectSettingsState) {
@@ -88,14 +96,19 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setShowMessages(MessageType.RESOLVING, state.showResolving)
         setShowMessages(MessageType.PARSING, state.showParsing)
 
-        setPrintOption(ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS, state.hideHideableDefinitions)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_CON_PARAMS, state.showConstructorParameters)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE, state.showFieldInstance)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS, state.showImplicitArgs)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM, state.showTypesInLambda)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_PREFIX_PATH, state.showPrefixPath)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS, state.showBinOpImplicitArgs)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE, state.showCaseResultType)
-        setPrintOption(ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS, state.showInferenceLevelVars)
+        setPrintingOptions(errorPrintingOptionsFilterSet, state.errorPrintingOptions)
+        setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
+    }
+
+    private fun setPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, printingOptions: ArendPrintingOptions) {
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS, printingOptions.hideHideableDefinitions)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_CON_PARAMS, printingOptions.showConstructorParameters)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE, printingOptions.showFieldInstance)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS, printingOptions.showImplicitArgs)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM, printingOptions.showTypesInLambda)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_PREFIX_PATH, printingOptions.showPrefixPath)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS, printingOptions.showBinOpImplicitArgs)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE, printingOptions.showCaseResultType)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS, printingOptions.showInferenceLevelVars)
     }
 }

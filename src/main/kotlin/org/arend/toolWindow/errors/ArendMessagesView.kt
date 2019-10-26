@@ -63,7 +63,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.addSeparator()
         actionGroup.add(ArendMessagesFilterActionGroup(project, autoScrollFromSource))
         actionGroup.addSeparator()
-        actionGroup.add(ArendPrintOptionsActionGroup(project))
+        actionGroup.add(ArendPrintOptionsActionGroup(project, PrintOptionKind.ERROR_PRINT_OPTIONS))
+        actionGroup.add(ArendPrintOptionsActionGroup(project, PrintOptionKind.GOAL_PRINT_OPTIONS))
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
         toolbar.setTargetComponent(splitter)

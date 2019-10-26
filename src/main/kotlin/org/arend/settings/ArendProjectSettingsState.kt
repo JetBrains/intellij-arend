@@ -1,8 +1,6 @@
 package org.arend.settings
 
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
-import org.arend.core.expr.visitor.ToAbstractVisitor
-import org.arend.term.prettyprint.PrettyPrinterConfig
 
 // This class is needed since EnumSet<MessageType> does not serialize correctly for some reason
 class ArendProjectSettingsState {
@@ -31,6 +29,12 @@ class ArendProjectSettingsState {
     var showParsing = false
 
     //Printing options
+    val errorPrintingOptions = ArendPrintingOptions()
+    val goalPrintingOptions = ArendPrintingOptions()
+
+}
+
+class ArendPrintingOptions {
     var hideHideableDefinitions = false
     var showConstructorParameters = true
     var showFieldInstance = true
@@ -40,5 +44,4 @@ class ArendProjectSettingsState {
     var showBinOpImplicitArgs = true
     var showCaseResultType = true
     var showInferenceLevelVars = true
-
 }

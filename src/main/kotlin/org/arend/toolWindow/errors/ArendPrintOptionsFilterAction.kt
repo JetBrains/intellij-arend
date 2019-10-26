@@ -8,19 +8,21 @@ import com.intellij.openapi.project.Project
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.settings.ArendProjectSettings
 
-class ArendPrintOptionsFilterAction(private val project: Project, private val flag: ToAbstractVisitor.Flag, private val group: ArendPrintOptionsActionGroup)
+class ArendPrintOptionsFilterAction(private val project: Project,
+                                    private val printOptionKind: PrintOptionKind,
+                                    private val flag: ToAbstractVisitor.Flag)
     : ToggleAction(flagToString(flag), null, null), DumbAware {
 
     override fun isSelected(e: AnActionEvent): Boolean = isSelected
 
     private val isSelected: Boolean
         get() {
-            val printOptionSet = project.service<ArendProjectSettings>().printOptionsFilterSet
+            val printOptionSet = getFilterSet(project, printOptionKind)
             return printOptionSet.contains(flag)
         }
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-        val printOptionSet = project.service<ArendProjectSettings>().printOptionsFilterSet
+        val printOptionSet = getFilterSet(project, printOptionKind)
         if (printOptionSet.contains(flag) == state) {
             return
         }
@@ -33,7 +35,16 @@ class ArendPrintOptionsFilterAction(private val project: Project, private val fl
         project.service<ArendMessagesService>().update()
     }
 
+
+
     companion object {
+        fun getFilterSet(project: Project, printOptionsKind: PrintOptionKind) = project.service<ArendProjectSettings>().let {
+            when (printOptionsKind) {
+                PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
+                PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
+            }
+        }
+
         fun flagToString(flag: ToAbstractVisitor.Flag): String = when (flag) {
             ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS -> "Hide hideable? definitions"
             ToAbstractVisitor.Flag.SHOW_CON_PARAMS -> "Show constructor parameters"
@@ -46,4 +57,9 @@ class ArendPrintOptionsFilterAction(private val project: Project, private val fl
             ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS -> "Show level inference variables"
         }
     }
+}
+
+enum class PrintOptionKind(val kindName: String) {
+    GOAL_PRINT_OPTIONS("Goal"),
+    ERROR_PRINT_OPTIONS("Error")
 }
