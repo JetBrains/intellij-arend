@@ -77,7 +77,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = object : PrettyPrinterConfig {
-            override fun getExpressionFlags() = EnumSet.noneOf(ToAbstractVisitor.Flag::class.java)
+            override fun getExpressionFlags() = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)
         }
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }

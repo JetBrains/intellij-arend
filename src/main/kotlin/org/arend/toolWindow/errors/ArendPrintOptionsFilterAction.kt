@@ -46,13 +46,13 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         }
 
         fun flagToString(flag: ToAbstractVisitor.Flag): String = when (flag) {
-            ToAbstractVisitor.Flag.HIDE_HIDEABLE_DEFINITIONS -> "Hide hideable? definitions"
+            ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS -> "Show coerce definitions"
             ToAbstractVisitor.Flag.SHOW_CON_PARAMS -> "Show constructor parameters"
             ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE -> "Show field instances"
             ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS -> "Show implicit arguments"
             ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM -> "Show types in lambda expressions"
             ToAbstractVisitor.Flag.SHOW_PREFIX_PATH -> "Show prefix path"
-            ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS -> "Show binary operations' implicit arguments"
+            ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS -> "Show infix operators' implicit arguments"
             ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE -> "Show result types of case expressions"
             ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS -> "Show level inference variables"
         }

@@ -35,7 +35,7 @@ class ArendProjectSettingsState {
 }
 
 class ArendPrintingOptions {
-    var hideHideableDefinitions = false
+    var showCoerceDefinitions = false
     var showConstructorParameters = true
     var showFieldInstance = true
     var showImplicitArgs = true

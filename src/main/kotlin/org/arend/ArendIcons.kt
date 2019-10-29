@@ -50,4 +50,6 @@ object ArendIcons {
         GeneralError.Level.GOAL -> GOAL
         GeneralError.Level.ERROR -> ERROR
     }
+
+    val SHOW = AllIcons.Actions.Show!!
 }
