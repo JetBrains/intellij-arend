@@ -43,6 +43,7 @@ class InjectedArendEditor(val project: Project,
             panel.add(editor.component, BorderLayout.CENTER)
 
             val actionGroup = DefaultActionGroup()
+            actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
             actionGroup.add(ArendPrintOptionsActionGroup(project, if (error.level == GeneralError.Level.GOAL) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS, error.hasExpressions()))
             val toolbar = ActionManager.getInstance().createActionToolbar("ArendEditor.toolbar", actionGroup, false)
             toolbar.setTargetComponent(panel)

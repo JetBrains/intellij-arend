@@ -52,4 +52,5 @@ object ArendIcons {
     }
 
     val SHOW = AllIcons.Actions.Show!!
+    val PIN = AllIcons.General.Pin_tab!!
 }

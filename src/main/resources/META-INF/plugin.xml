@@ -301,6 +301,13 @@
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
 
+        <action id="Arend.PinErrorMessage"
+                class="org.arend.toolWindow.errors.ArendPinErrorAction"
+                text="Pin Error Message"
+                description="Pin error message">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
+        </action>
+
     </actions>
 
 </idea-plugin>

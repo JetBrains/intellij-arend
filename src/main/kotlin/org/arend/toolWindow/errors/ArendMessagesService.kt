@@ -10,6 +10,7 @@ import org.arend.typechecking.error.ErrorService
 
 class ArendMessagesService(private val project: Project) {
     private var view: ArendMessagesView? = null
+    var isErrorTextPinned: Boolean = false
 
     private fun activate(project: Project) {
         runInEdt {
@@ -37,5 +38,13 @@ class ArendMessagesService(private val project: Project) {
         } else {
             view.update()
         }
+    }
+
+    fun setActiveEditor() {
+        view?.setActiveEditor()
+    }
+
+    fun updateErrorText() {
+        view?.updateErrorText()
     }
 }

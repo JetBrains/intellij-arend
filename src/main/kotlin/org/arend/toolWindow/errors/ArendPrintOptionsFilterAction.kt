@@ -32,7 +32,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         else
             printOptionSet.remove(flag)
 
-        project.service<ArendMessagesService>().update()
+        project.service<ArendMessagesService>().updateErrorText()
     }
 
 

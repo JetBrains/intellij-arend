@@ -93,6 +93,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     override fun valueChanged(e: TreeSelectionEvent?) {
+        if (!project.service<ArendMessagesService>().isErrorTextPinned) {
+            setActiveEditor()
+        }
+    }
+
+    fun setActiveEditor() {
         ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
             val arendEditor = errorEditors.computeIfAbsent(error) {
                 configureError(error)
@@ -106,6 +112,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
         }
+    }
+
+    fun updateErrorText() {
+        activeEditor?.updateErrorText()
     }
 
     private fun configureError(error: GeneralError) {
@@ -161,6 +171,5 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         treeModel.reload()
         TreeUtil.restoreExpandedPaths(tree, expandedPaths)
         tree.selectionPath = tree.getExistingPrefix(selectedPath)
-        activeEditor?.updateErrorText()
     }
 }
