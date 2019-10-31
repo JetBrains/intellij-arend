@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 import org.arend.ArendIcons
 
-class ArendPinErrorAction: ToggleAction("Pin error", "Pin error", ArendIcons.PIN) {
+class ArendPinErrorAction: ToggleAction("Pin message", "When the message is pinned, other messages will not be displayed", ArendIcons.PIN) {
     override fun isSelected(e: AnActionEvent): Boolean {
         val service = getMessagesService(e)
         return service?.isErrorTextPinned ?: false
