@@ -3,8 +3,8 @@ package org.arend.toolWindow.errors.tree
 import com.intellij.openapi.util.Iconable
 import com.intellij.ui.JBDefaultTreeCellRenderer
 import org.arend.ArendIcons
-import org.arend.error.GeneralError
 import org.arend.module.ModulePath
+import org.arend.typechecking.error.ArendError
 import java.awt.Component
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
@@ -16,7 +16,7 @@ class ArendErrorTreeCellRenderer(tree: ArendErrorTree) : JBDefaultTreeCellRender
         when (val obj = (value as? DefaultMutableTreeNode)?.userObject) {
             is ModulePath -> icon = ArendIcons.AREND_FILE
             is Iconable -> icon = obj.getIcon(0)
-            is GeneralError -> icon = ArendIcons.getErrorLevelIcon(obj.level)
+            is ArendError -> icon = ArendIcons.getErrorLevelIcon(obj.error.level)
         }
         return this
     }

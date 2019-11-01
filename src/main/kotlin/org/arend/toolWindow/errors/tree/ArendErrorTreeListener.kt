@@ -1,8 +1,8 @@
 package org.arend.toolWindow.errors.tree
 
-import org.arend.error.GeneralError
+import org.arend.typechecking.error.ArendError
 
 interface ArendErrorTreeListener {
-    fun errorAdded(error: GeneralError) {}
-    fun errorRemoved(error: GeneralError) {}
+    fun errorAdded(arendError: ArendError) {}
+    fun errorRemoved(arendError: ArendError) {}
 }

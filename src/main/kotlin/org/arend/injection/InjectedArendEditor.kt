@@ -19,15 +19,19 @@ import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
+import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.local.GoalError
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
 class InjectedArendEditor(val project: Project,
-                          val error: GeneralError) {
+                          val arendError: ArendError) {
     private val editor: Editor?
     private val panel: JPanel?
+
+    val error: GeneralError
+        get() = arendError.error
 
     init {
         val psi = PsiFileFactory.getInstance(project).createFileFromText("Error Message", InjectionTextLanguage.INSTANCE, "")

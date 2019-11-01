@@ -22,6 +22,7 @@ import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
+import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.MissingClausesError
 import javax.swing.JPanel
@@ -99,10 +100,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     fun setActiveEditor() {
-        ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GeneralError)?.let { error ->
-            val arendEditor = errorEditors.computeIfAbsent(error) {
-                configureError(error)
-                InjectedArendEditor(project, error)
+        val arendError = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendError
+        if (arendError != null) {
+            val arendEditor = errorEditors.computeIfAbsent(arendError.error) {
+                configureError(arendError.error)
+                InjectedArendEditor(project, arendError)
             }
 
             if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {
@@ -111,6 +113,16 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
+        } else {
+            val activeError = activeEditor?.arendError
+            if (activeError != null && !errorEditors.containsKey(activeError.error)) {
+                val def = activeError.definition
+                if (def == null || !tree.containsNode(def)) {
+                    activeEditor?.release()
+                    activeEditor = null
+                    splitter.secondComponent = emptyPanel
+                }
+            }
         }
     }
 
@@ -124,8 +136,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
     }
 
-    override fun errorRemoved(error: GeneralError) {
-        val removed = errorEditors.remove(error) ?: return
+    override fun errorRemoved(arendError: ArendError) {
+        val removed = errorEditors.remove(arendError.error) ?: return
         if (removed != activeEditor) {
             removed.release()
         }
@@ -141,7 +153,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
-        val map = HashMap<ArendDefinition, HashSet<GeneralError>>()
+        val map = HashMap<ArendDefinition, HashSet<ArendError>>()
         tree.update(root) {
             if (it == root) errorsMap.keys
             else when (val obj = it.userObject) {
@@ -155,10 +167,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
                         val def = arendError.definition
                         if (def == null) {
-                            children.add(arendError.error)
+                            children.add(arendError)
                         } else {
                             children.add(def)
-                            map.computeIfAbsent(def) { LinkedHashSet() }.add(arendError.error)
+                            map.computeIfAbsent(def) { LinkedHashSet() }.add(arendError)
                         }
                     }
                     children
