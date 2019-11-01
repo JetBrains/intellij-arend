@@ -12,7 +12,6 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
-import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -20,7 +19,6 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.VariableImpl
-import org.arend.refactoring.getDataTypeStartingCharacter
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
@@ -251,7 +249,6 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 is BindingPattern -> {
                     val binding = pattern.binding
                     val renamer = StringRenamer()
-                    renamer.setUnnamed(getDataTypeStartingCharacter(binding.type)?.toString() ?: Renamer.UNNAMED)
                     val result = renamer.generateFreshName(binding, bindings)
                     bindings.add(VariableImpl(result))
 

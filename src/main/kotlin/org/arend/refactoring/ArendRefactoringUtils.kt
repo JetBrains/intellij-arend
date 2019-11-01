@@ -3,20 +3,13 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiRecursiveElementVisitor
 import org.arend.core.context.binding.Variable
-import org.arend.core.definition.ClassDefinition
-import org.arend.core.expr.DefCallExpression
-import org.arend.core.expr.ReferenceExpression
-import org.arend.core.expr.type.Type
 import org.arend.module.ModulePath
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendFieldTeleImplMixin
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.impl.ClassDefinitionAdapter
 import org.arend.term.Fixity
 import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
@@ -343,18 +336,6 @@ fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
         editor.caretModel.moveToOffset(anchor.textRange.startOffset)
         IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
     }
-}
-
-fun getDataTypeStartingCharacter(data: Type): Char? {
-    val name = when (val expr = data.expr) {
-        is DefCallExpression -> expr.definition.name
-        is ReferenceExpression -> expr.binding.name
-        else -> null
-    }
-
-    if (name != null) return name.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }?.toLowerCase()
-
-    return null
 }
 
 fun getAllBindings(psi: PsiElement, stopAtWhere: Boolean = true): Set<String> {
