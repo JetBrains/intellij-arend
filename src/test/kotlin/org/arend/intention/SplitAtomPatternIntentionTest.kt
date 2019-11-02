@@ -224,4 +224,31 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | foo 2 => zero
          | foo ((suc ((Nat.suc (suc n))))) => suc n 
     """)
+
+    fun testTuple1() = typedQuickFixTest("Split",
+    """
+       \func test3 {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p
+         | p{-caret-} => p.1 
+    """, """
+       \func test3 {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p
+         | (a,b) => (a,b).1 
+    """)
+
+    fun testTuple2() = typedQuickFixTest("Split",
+    """
+       \func test4 {A B : \Type} (p : Pair A B) : A \elim p
+         | p{-caret-} => fst {p}         
+    """, """
+       \func test4 {A B : \Type} (p : Pair A B) : A \elim p
+         | (a,b) => fst {\new Pair A B a b} 
+    """)
+
+    fun testTuple3() = typedQuickFixTest("Split",
+    """
+       \func test5 {A B : \Type} (p : Pair A B) : A \elim p
+         | p{-caret-} : Pair => p.fst         
+    """, """
+       \func test5 {A B : \Type} (p : Pair A B) : A \elim p
+         | (a,b) => fst {\new Pair A B a b} 
+    """)
 }
