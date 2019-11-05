@@ -9,6 +9,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
+import org.arend.core.definition.ClassDefinition
+import org.arend.core.definition.Definition
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
@@ -50,7 +52,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 val iterator = clause.iterator()
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
-                    previewResults.add(previewPattern(pattern, filters, if (parameter == null || parameter.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES))
+                    previewResults.add(previewPattern(pattern, filters, if (parameter == null || parameter.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES))
                     parameter = if (parameter != null && parameter.hasNext()) parameter.next else null
                 }
             }
@@ -64,7 +66,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 val clauseBindings = ArrayList<Variable>()
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
-                    val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NO else Companion.Braces.BRACES
+                    val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES
                     patternStrings.add(doTransformPattern(pattern, element, editor, filters, braces, clauseBindings))
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
                 }
@@ -77,7 +79,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
     }
 
     companion object {
-        enum class Braces { NO, PAREN, BRACES }
+        enum class Braces { NONE, PARENTHESES, BRACES }
         enum class PatternKind { IMPLICIT_ARG, IMPLICIT_EXPR, EXPLICIT }
 
         fun insertClauses(psiFactory: ArendPsiFactory, cause: ArendCompositeElement, clauses: List<ArendClause>) {
@@ -157,35 +159,24 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         fun previewPattern(pattern: Pattern, filters: MutableMap<ConstructorPattern, List<Boolean>>, paren: Braces): PatternKind {
             when (pattern) {
                 is ConstructorPattern -> {
-                    val definition = pattern.definition
+                    val definition: Definition? = pattern.definition
                     val previewResults = ArrayList<PatternKind>()
 
                     val patternIterator = pattern.patterns.patternList.iterator()
-                    var constructorArgument: DependentLink? = definition.parameters
+                    var constructorArgument: DependentLink? = definition?.parameters
 
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
                         previewResults.add(previewPattern(argumentPattern, filters,
-                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES))
+                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES))
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
 
-                    if (definition != null)
-                        filters[pattern] = computeFilter(previewResults)
-                    else throw IllegalStateException()
-
+                    filters[pattern] = computeFilter(previewResults)
                     return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
                 }
 
-                is BindingPattern -> {
-                    val resultingBindings = ArrayList<Variable>()
-                    val name = pattern.binding.name ?: "_"
-                    if (name != "_") resultingBindings.add(pattern.binding)
-
-                    return if (paren == Companion.Braces.BRACES)
-                        Companion.PatternKind.IMPLICIT_ARG else
-                        Companion.PatternKind.EXPLICIT
-                }
+                is BindingPattern -> return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT
             }
 
             throw IllegalStateException()
@@ -212,37 +203,46 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces, bindings: MutableList<Variable>): String {
             when (pattern) {
                 is ConstructorPattern -> {
-                    val definition = pattern.definition!!
+                    val definition: Definition? = pattern.definition
+                    val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
+
                     val integralNumber = getIntegralNumber(pattern)
                     if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
                         val result = integralNumber.toString()
                         return if (paren == Companion.Braces.BRACES) "{$result}" else result
                     }
+                    val tupleMode = definition == null || definition is ClassDefinition && definition.isRecord
+
                     val argumentPatterns = ArrayList<String>()
+                    run {
+                        val patternIterator = pattern.patterns.patternList.iterator()
+                        var constructorArgument: DependentLink? = definition?.parameters
 
-                    val patternIterator = pattern.patterns.patternList.iterator()
-                    var constructorArgument: DependentLink? = definition.parameters
-
-                    while (patternIterator.hasNext()) {
-                        val argumentPattern = patternIterator.next()
-                        argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, filters,
-                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PAREN else Companion.Braces.BRACES, bindings))
-                        constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                        while (patternIterator.hasNext()) {
+                            val argumentPattern = patternIterator.next()
+                            val argumentParen = when {
+                                tupleMode -> Companion.Braces.NONE
+                                constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
+                                else -> Companion.Braces.BRACES
+                            }
+                            argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, bindings))
+                            constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                        }
                     }
 
                     val filter = filters[pattern]
-                    val referable = PsiLocatedReferable.fromReferable(definition.referable)
-
-                    val arguments = concat(argumentPatterns, filter, " ")
+                    val arguments = concat(argumentPatterns, filter, if (tupleMode) "," else " ")
                     val result = buildString {
-                        append(if (referable != null) {
-                            getTargetName(referable, cause) ?: referable.name
-                        } else definition.name)
-                        if (arguments.isNotEmpty()) append(" ")
+                        val defCall = if (referable != null) getTargetName(referable, cause) ?: referable.name else definition?.name
+                        if (tupleMode) append("(") else {
+                            append(defCall)
+                            if (arguments.isNotEmpty()) append(" ")
+                        }
                         append(arguments)
+                        if (tupleMode) append(")")
                     }
 
-                    val returnString = if (paren == Companion.Braces.PAREN && arguments.isNotEmpty()) "($result)" else result
+                    val returnString = if (paren == Companion.Braces.PARENTHESES && arguments.isNotEmpty()) "($result)" else result
                     return if (paren == Companion.Braces.BRACES) "{$returnString}" else returnString
                 }
 

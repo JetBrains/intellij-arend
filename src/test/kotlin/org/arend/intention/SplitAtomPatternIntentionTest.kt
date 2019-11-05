@@ -1,8 +1,11 @@
 package org.arend.intention
 
+import org.arend.quickfix.MissingClausesQuickFixTest
 import org.arend.quickfix.QuickFixTestBase
 
 class SplitAtomPatternIntentionTest: QuickFixTestBase() {
+    private val pairDefinition = "\\record Pair (A B : \\Type) | fst : A | snd : B"
+
     fun testBasicSplit() = typedQuickFixTest("Split", """
        \func isLessThan2 (a : Nat) : Nat
          | 0 => 1
@@ -236,18 +239,26 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
     fun testTuple2() = typedQuickFixTest("Split",
     """
+       $pairDefinition
+       
        \func test4 {A B : \Type} (p : Pair A B) : A \elim p
          | p{-caret-} => fst {p}         
     """, """
+       $pairDefinition
+       
        \func test4 {A B : \Type} (p : Pair A B) : A \elim p
          | (a,b) => fst {\new Pair A B a b} 
     """)
 
     fun testTuple3() = typedQuickFixTest("Split",
     """
+       $pairDefinition
+       
        \func test5 {A B : \Type} (p : Pair A B) : A \elim p
          | p{-caret-} : Pair => p.fst         
     """, """
+       $pairDefinition
+       
        \func test5 {A B : \Type} (p : Pair A B) : A \elim p
          | (a,b) => fst {\new Pair A B a b} 
     """)
