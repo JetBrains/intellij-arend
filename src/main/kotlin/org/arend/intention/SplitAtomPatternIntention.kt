@@ -114,18 +114,23 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     companion object {
-        abstract class SplitPatternEntry {
+        interface SplitPatternEntry {
+            fun initParams(occupiedNames: MutableSet<Variable>)
+            fun patternString(location: ArendCompositeElement): String
+            fun expressionString(location: ArendCompositeElement): String
+            fun requiresParentheses(): Boolean
+        }
+
+        abstract class DependentLinkSplitPatternEntry(private val forceSCTName: Boolean) : SplitPatternEntry {
             val params: ArrayList<String> = ArrayList()
 
             abstract fun getDependentLink(): DependentLink
-            abstract fun patternString(location: ArendCompositeElement): String
-            abstract fun expressionString(location: ArendCompositeElement): String
-            abstract fun requiresParentheses(): Boolean
 
-            open fun initParams(occupiedNames: MutableSet<Variable>) {
+            override fun initParams(occupiedNames: MutableSet<Variable>) {
                 params.clear()
                 var parameter = getDependentLink()
                 val renamer = StringRenamer()
+                renamer.forceTypeSCName = forceSCTName
 
                 while (parameter.hasNext()) {
                     val name = renamer.generateFreshName(parameter, occupiedNames)
@@ -137,11 +142,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class ConstructorSplitPatternEntry(val constructor: Constructor): SplitPatternEntry() {
+        class ConstructorSplitPatternEntry(val constructor: Constructor) : DependentLinkSplitPatternEntry(false) {
             override fun getDependentLink(): DependentLink = constructor.parameters
 
             override fun patternString(location: ArendCompositeElement): String {
-                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location) ?: constructor.name
+                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
+                        ?: constructor.name
 
                 return buildString {
                     append("$constructorName ")
@@ -150,36 +156,45 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             override fun expressionString(location: ArendCompositeElement): String {
-                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location) ?: constructor.name
+                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
+                        ?: constructor.name
 
                 return if (constructor.referable.precedence.isInfix && params.size == 2)
                     "${params[0]} $constructorName ${params[1]}" else patternString(location)
             }
+
             override fun requiresParentheses(): Boolean = params.isNotEmpty()
         }
 
-        open class TupleSplitPatternEntry(private val link: DependentLink): SplitPatternEntry() {
+        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry(true) {
             override fun getDependentLink(): DependentLink = link
 
-            override fun patternString(location: ArendCompositeElement): String = buildString {
+            override fun patternString(location: ArendCompositeElement): String = printTuplePattern(params)
+
+            override fun expressionString(location: ArendCompositeElement): String = patternString(location)
+
+            override fun requiresParentheses(): Boolean = false
+
+            companion object {
+                fun printTuplePattern(params: ArrayList<String>) = buildString {
                     append("(")
                     for (p in params.withIndex()) {
                         append(p.value)
-                        if (p.index < params.size -1)
+                        if (p.index < params.size - 1)
                             append(",")
                     }
                     append(")")
                 }
-
-
-            override fun expressionString(location: ArendCompositeElement): String = patternString(location)
-            override fun requiresParentheses(): Boolean = false
+            }
         }
 
-        class RecordSplitPatternEntry(val dataCall: ClassCallExpression, val record: ClassDefinition): TupleSplitPatternEntry(record.parameters) {
+        class RecordSplitPatternEntry(private val dataCall: ClassCallExpression, val record: ClassDefinition) : SplitPatternEntry {
+            val params: ArrayList<String> = ArrayList()
+
             override fun initParams(occupiedNames: MutableSet<Variable>) {
                 params.clear()
                 val renamer = StringRenamer()
+                renamer.forceTypeSCName = true
 
                 for (field in record.fields.filter { record.isGoodField(it) }) {
                     val name = renamer.generateFreshName(field, occupiedNames)
@@ -188,20 +203,21 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
             }
 
-            override fun expressionString(location: ArendCompositeElement): String {
-                return buildString {
-                    append("\\new ")
-                    val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location) ?: record.name
-                    append("$recordName ")
-                    val implementedHere = dataCall.implementedHere
-                    for (field in record.fields) if (implementedHere.contains(field)) {
-                        val implementation = implementedHere[field]
-                        append("$implementation ")
-                    }
+            override fun patternString(location: ArendCompositeElement): String = TupleSplitPatternEntry.printTuplePattern(params)
 
-                    for (p in params) append("$p ")
-                }.trim()
-            }
+            override fun expressionString(location: ArendCompositeElement): String = buildString {
+                append("\\new ")
+                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location)
+                        ?: record.name
+                append("$recordName ")
+                val implementedHere = dataCall.implementedHere
+                for (field in record.fields) if (implementedHere.contains(field)) {
+                    val implementation = implementedHere[field]
+                    append("$implementation ")
+                }
+
+                for (p in params) append("$p ")
+            }.trim()
 
             override fun requiresParentheses(): Boolean = true
         }
@@ -443,7 +459,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         private fun doSubstituteUsages(elementToReplace: ArendReferenceElement, element: PsiElement,
-                               substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
+                                       substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
             if (element is ArendWhere) return
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null

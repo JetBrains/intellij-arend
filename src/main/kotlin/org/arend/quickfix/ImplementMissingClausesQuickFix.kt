@@ -200,7 +200,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         }
 
         fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?,
-                               filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces, bindings: MutableList<Variable>): String {
+                               filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces,
+                               occupiedNames: MutableList<Variable>, forceSCTNames: Boolean = false): String {
             when (pattern) {
                 is ConstructorPattern -> {
                     val definition: Definition? = pattern.definition
@@ -225,7 +226,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                 constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                 else -> Companion.Braces.BRACES
                             }
-                            argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, bindings))
+                            argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, occupiedNames, tupleMode))
                             constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                         }
                     }
@@ -249,8 +250,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 is BindingPattern -> {
                     val binding = pattern.binding
                     val renamer = StringRenamer()
-                    val result = renamer.generateFreshName(binding, bindings)
-                    bindings.add(VariableImpl(result))
+                    renamer.forceTypeSCName = forceSCTNames
+                    val result = renamer.generateFreshName(binding, occupiedNames)
+                    occupiedNames.add(VariableImpl(result))
 
                     return if (paren == Companion.Braces.BRACES) "{$result}" else result
                 }
