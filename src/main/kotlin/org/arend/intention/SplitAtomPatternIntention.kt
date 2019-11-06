@@ -454,27 +454,37 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (defIdentifier != null) {
                 val substitutedExpression = factory.createExpression(expressionLine) as ArendNewExpr
                 val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionLine)").childOfType<ArendAtom>() else substitutedExpression.childOfType()
-                doSubstituteUsages(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
+                doSubstituteUsages(factory, defIdentifier, expression, substitutedExpression, substitutedAtom!!)
             }
         }
 
-        private fun doSubstituteUsages(elementToReplace: ArendReferenceElement, element: PsiElement,
+        private fun doSubstituteUsages(factory: ArendPsiFactory, elementToReplace: ArendReferenceElement, element: PsiElement,
                                        substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
             if (element is ArendWhere) return
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
-                val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null
+                val longName = element.parent as? ArendLongName
+                val literal = longName?.parent as? ArendLiteral
+                val atom = literal?.parent as? ArendAtom
                 if (atom != null) {
-                    if ((atom.parent as? ArendAtomFieldsAcc)?.fieldAccList?.isEmpty() == true &&
-                            (atom.parent.parent as? ArendArgumentAppExpr)?.argumentList?.isEmpty() == true &&
-                            atom.parent.parent.parent.let { it is ArendNewExpr && it.lbrace == null && it.rbrace == null }) {
-                        //(atom.parent.parent as ArendArgumentAppExpr).replaceWithNotification(substitutedExpression)
-                        (atom.parent.parent.parent as ArendNewExpr).replaceWithNotification(substitutedExpression)
+                    val atomFieldsAcc = atom.parent as? ArendAtomFieldsAcc
+                    val argumentAppExpr = atomFieldsAcc?.parent as? ArendArgumentAppExpr
+                    val arendNewExpr = argumentAppExpr?.parent as? ArendNewExpr
+
+                    if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
+                            arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
+                        if (longName.refIdentifierList.size > 1 && longName.refIdentifierList[1].reference?.resolve() is ArendClassField) {
+                            val refsSkipped = longName.refIdentifierList.drop(2)
+                            var expressionString = "${longName.refIdentifierList[1].referenceName} {${substitutedExpression.text}}" //TODO: Don't use referenceName -- use a long name
+                            if (refsSkipped.isNotEmpty()) expressionString = "($expressionString)${refsSkipped.foldRight("", {ref, acc -> "$acc.${ref.referenceName}"})}"
+                            arendNewExpr.replaceWithNotification(factory.createExpression(expressionString))
+                        } else
+                            arendNewExpr.replaceWithNotification(substitutedExpression)
                     } else {
                         atom.replaceWithNotification(substitutedAtom)
                     }
                 }
             } else for (child in element.children)
-                doSubstituteUsages(elementToReplace, child, substitutedExpression, substitutedAtom)
+                doSubstituteUsages(factory, elementToReplace, child, substitutedExpression, substitutedAtom)
         }
     }
 }

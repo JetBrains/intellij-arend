@@ -5,6 +5,11 @@ import org.arend.quickfix.QuickFixTestBase
 
 class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     private val pairDefinition = "\\record Pair (A B : \\Type) | fst : A | snd : B"
+    private val pairDefinition2 = """
+       \data Empty
+       \record Pair {A : \Type} (B : \Type) | fst : A | snd : B
+       \func Not (a : \Type) =>  a -> Empty 
+    """
 
     fun testBasicSplit() = typedQuickFixTest("Split", """
        \func isLessThan2 (a : Nat) : Nat
@@ -261,5 +266,18 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        
        \func test5 {A B : \Type} (p : Pair A B) : A \elim p
          | (a,b) => fst {\new Pair A B a b} 
+    """)
+
+    fun testTuple4() = typedQuickFixTest("Split",
+    """
+       $pairDefinition2
+       
+       \func test6 {A B : \Type} (p : Pair {Not A} (Not B)) : A -> Empty \elim p
+         | p{-caret-} : Pair => p.fst         
+    """, """
+       $pairDefinition2
+       
+       \func test6 {A B : \Type} (p : Pair {Not A} (Not B)) : A -> Empty \elim p
+         | (a,b) => fst {\new Pair {Not A} (Not B) a b} 
     """)
 }
