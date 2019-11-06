@@ -9,7 +9,8 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \record Pair {A : \Type} (B : \Type) | fst : A | snd : B
        \func Not (a : \Type) =>  a -> Empty 
     """
-    private val pairDefinition3 = pairDefinition + """
+    private val pairDefinition3 = """
+       \record Pair (A B : \Type) | fst : A | snd : \Sigma (b : B) (c : Nat)
        \record Pair2 (A : \Type) (B : \Type) | fst2 : Pair A B | snd2 : Pair A B 
     """
 
@@ -287,23 +288,33 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """
        \module Foo \where \record Pair (A : \Type) (B : \Type) | fst : A | snd : B
 
-       \func test6 {A B : \Type} (p : Foo.Pair A B) : A \elim p
+       \func test7 {A B : \Type} (p : Foo.Pair A B) : A \elim p
          | p{-caret-} : Foo.Pair => p.fst 
     """, """
        \module Foo \where \record Pair (A : \Type) (B : \Type) | fst : A | snd : B
 
-       \func test6 {A B : \Type} (p : Foo.Pair A B) : A \elim p
+       \func test7 {A B : \Type} (p : Foo.Pair A B) : A \elim p
          | (a,b) => Foo.fst {\new Foo.Pair A B a b} 
     """)
 
     fun testRecord5() = typedQuickFixTest("Split",
     """
        $pairDefinition3
-       \func test7 {A B : \Type} (p : Pair2 A B) : A \elim p
+       \func test8 {A B : \Type} (p : Pair2 A B) : A \elim p
          | p{-caret-} : Pair2 => p.fst2.fst         
     """, """
        $pairDefinition3
-       \func test7 {A B : \Type} (p : Pair2 A B) : A \elim p
+       \func test8 {A B : \Type} (p : Pair2 A B) : A \elim p
          | (p,p1) => fst {fst2 {\new Pair2 A B p p1}}
+    """)
+
+    fun testRecord6() = typedQuickFixTest("Split", """
+       $pairDefinition3 
+       \func test9 (p : Pair2) : Nat \elim p
+         | p{-caret-} : Pair2 => p.snd2.snd.2
+    """, """
+       $pairDefinition3 
+       \func test9 (p : Pair2) : Nat \elim p
+         | (p,p1) => (snd {snd2 {\new Pair2 p p1}}).2  
     """)
 }
