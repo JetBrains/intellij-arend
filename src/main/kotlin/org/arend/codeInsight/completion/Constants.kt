@@ -4,7 +4,7 @@ import org.arend.psi.ArendElementTypes.*
 
 
 val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
-val STATEMENT_WT_KWS = listOf(FUNC_KW, SFUNC_KW, LEMMA_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map { it.toString() }
+val STATEMENT_WT_KWS = listOf(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW).map { it.toString() }
 val CLASS_MEMBER_KWS = listOf(FIELD_KW, PROPERTY_KW).map { it.toString() }
 val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type")
 val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, LETS_KW, CASE_KW, SCASE_KW).map { it.toString() }

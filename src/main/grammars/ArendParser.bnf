@@ -77,6 +77,7 @@
         PEVAL_KW            = '\peval'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
+        CONS_KW             = '\constructor'
         CLASS_KW            = '\class'
         RECORD_KW           = '\record'
         EXTENDS_KW          = '\extends'
@@ -110,7 +111,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -233,7 +234,7 @@ defFunction ::= functionKw prec? defIdentifier_func nameTele* functionType? func
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | CONS_KW | useMod
 
 private functionType ::= COLON returnExpr { pin = 1 }
 
