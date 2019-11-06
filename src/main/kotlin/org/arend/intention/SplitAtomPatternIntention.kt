@@ -12,6 +12,8 @@ import org.arend.core.definition.Constructor
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.SigmaExpression
+import org.arend.core.expr.visitor.NormalizeVisitor
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
@@ -31,6 +33,8 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getT
 import org.arend.refactoring.VariableImpl
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking
@@ -207,13 +211,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun expressionString(location: ArendCompositeElement): String = buildString {
                 append("\\new ")
-                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location)
-                        ?: record.name
+                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location) ?: record.name
                 append("$recordName ")
-                val implementedHere = dataCall.implementedHere
-                for (field in record.fields) if (implementedHere.contains(field)) {
-                    val implementation = implementedHere[field]
-                    append("$implementation ")
+                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig { override fun getNormalizationMode(): NormalizeVisitor.Mode? { return null } })
+                if (expr is Concrete.AppExpression) {
+                    // TODO: isolate piece of code from PrettyPrinter
                 }
 
                 for (p in params) append("$p ")
@@ -474,6 +476,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
                         if (longName.refIdentifierList.size > 1 && longName.refIdentifierList[1].reference?.resolve() is ArendClassField) {
                             val refsSkipped = longName.refIdentifierList.drop(2)
+                            //getTargetName(PsiLocatedReferable.fromReferable(record.referable), element) ?: record.name
                             var expressionString = "${longName.refIdentifierList[1].referenceName} {${substitutedExpression.text}}" //TODO: Don't use referenceName -- use a long name
                             if (refsSkipped.isNotEmpty()) expressionString = "($expressionString)${refsSkipped.foldRight("", {ref, acc -> "$acc.${ref.referenceName}"})}"
                             arendNewExpr.replaceWithNotification(factory.createExpression(expressionString))

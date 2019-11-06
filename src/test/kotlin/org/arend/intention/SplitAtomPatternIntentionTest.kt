@@ -1,6 +1,5 @@
 package org.arend.intention
 
-import org.arend.quickfix.MissingClausesQuickFixTest
 import org.arend.quickfix.QuickFixTestBase
 
 class SplitAtomPatternIntentionTest: QuickFixTestBase() {
@@ -9,6 +8,9 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \data Empty
        \record Pair {A : \Type} (B : \Type) | fst : A | snd : B
        \func Not (a : \Type) =>  a -> Empty 
+    """
+    private val pairDefinition3 = pairDefinition + """
+       \record Pair2 (A : \Type) (B : \Type) | fst2 : Pair A B | snd2 : Pair A B 
     """
 
     fun testBasicSplit() = typedQuickFixTest("Split", """
@@ -242,7 +244,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (a,b) => (a,b).1 
     """)
 
-    fun testTuple2() = typedQuickFixTest("Split",
+    fun testRecord1() = typedQuickFixTest("Split",
     """
        $pairDefinition
        
@@ -255,7 +257,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (a,b) => fst {\new Pair A B a b} 
     """)
 
-    fun testTuple3() = typedQuickFixTest("Split",
+    fun testRecord2() = typedQuickFixTest("Split",
     """
        $pairDefinition
        
@@ -268,7 +270,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (a,b) => fst {\new Pair A B a b} 
     """)
 
-    fun testTuple4() = typedQuickFixTest("Split",
+    fun testRecord3() = typedQuickFixTest("Split",
     """
        $pairDefinition2
        
@@ -279,5 +281,29 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        
        \func test6 {A B : \Type} (p : Pair {Not A} (Not B)) : A -> Empty \elim p
          | (a,b) => fst {\new Pair {Not A} (Not B) a b} 
+    """)
+
+    fun testRecord4() = typedQuickFixTest("Split",
+    """
+       \module Foo \where \record Pair (A : \Type) (B : \Type) | fst : A | snd : B
+
+       \func test6 {A B : \Type} (p : Foo.Pair A B) : A \elim p
+         | p{-caret-} : Foo.Pair => p.fst 
+    """, """
+       \module Foo \where \record Pair (A : \Type) (B : \Type) | fst : A | snd : B
+
+       \func test6 {A B : \Type} (p : Foo.Pair A B) : A \elim p
+         | (a,b) => Foo.fst {\new Foo.Pair A B a b} 
+    """)
+
+    fun testRecord5() = typedQuickFixTest("Split",
+    """
+       $pairDefinition3
+       \func test7 {A B : \Type} (p : Pair2 A B) : A \elim p
+         | p{-caret-} : Pair2 => p.fst2.fst         
+    """, """
+       $pairDefinition3
+       \func test7 {A B : \Type} (p : Pair2 A B) : A \elim p
+         | (p,p1) => fst {fst2 {\new Pair2 A B p p1}}
     """)
 }
