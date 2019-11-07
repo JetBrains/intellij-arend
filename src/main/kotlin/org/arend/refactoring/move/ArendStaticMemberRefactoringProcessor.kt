@@ -16,7 +16,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
-import org.arend.intention.SplitAtomPatternIntention.Companion.replaceUsages
+import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
@@ -389,7 +389,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
 
                 doSubstituteThisKwWithThisVar(definition)
-                if (classifyingField != null) replaceUsages(psiFactory, classifyingField, definition, thisVarName, false)
+                if (classifyingField != null) doSubstituteUsages(psiFactory, classifyingField, definition, thisVarName, false)
 
                 val recordFieldsToFix = referenceElementsFixMap[definition]
                 if (recordFieldsToFix != null) for (refElement in recordFieldsToFix)

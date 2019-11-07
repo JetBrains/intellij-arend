@@ -7,8 +7,13 @@ import com.intellij.psi.PsiElement
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
+import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
+import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.SigmaExpression
+import org.arend.core.expr.visitor.NormalizeVisitor
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
@@ -25,8 +30,12 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
+import org.arend.refactoring.VariableImpl
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrintVisitor
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking
@@ -34,9 +43,10 @@ import org.arend.typechecking.patternmatching.PatternTypechecking.Flag
 import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import java.util.*
+import java.util.Collections.singletonList
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
-    private var matchedConstructors: List<Constructor>? = null
+    private var splitPatternEntries: List<SplitPatternEntry>? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
@@ -45,8 +55,19 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val type = pattern.toExpression().type //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
                     val constructors = type.matchedConstructors ?: return false
-                    this.matchedConstructors = constructors.map { it.definition }
+                    this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
                     return true
+                }
+                if (type is SigmaExpression) {
+                    this.splitPatternEntries = singletonList(TupleSplitPatternEntry(type.parameters))
+                    return true
+                }
+                if (type is ClassCallExpression) {
+                    val definition = type.definition
+                    if (definition.isRecord) {
+                        this.splitPatternEntries = singletonList(RecordSplitPatternEntry(type, definition))
+                        return true
+                    }
                 }
             }
         }
@@ -54,8 +75,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
-        val constructors = matchedConstructors
-        if (constructors != null) doSplitPattern(element, project, editor, constructors)
+        splitPatternEntries?.let { doSplitPattern(element, project, it) }
     }
 
     private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
@@ -99,20 +119,123 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 
     companion object {
-        fun doSplitPattern(element: PsiElement, project: Project?, editor: Editor?, localConstructors: Collection<Constructor>, generateBody: Boolean = false) {
+        interface SplitPatternEntry {
+            fun initParams(occupiedNames: MutableSet<Variable>)
+            fun patternString(location: ArendCompositeElement): String
+            fun expressionString(location: ArendCompositeElement): String
+            fun requiresParentheses(): Boolean
+        }
+
+        abstract class DependentLinkSplitPatternEntry : SplitPatternEntry {
+            val params: ArrayList<String> = ArrayList()
+
+            abstract fun getDependentLink(): DependentLink
+
+            override fun initParams(occupiedNames: MutableSet<Variable>) {
+                params.clear()
+                var parameter = getDependentLink()
+                val renamer = StringRenamer()
+
+                while (parameter.hasNext()) {
+                    val name = renamer.generateFreshName(parameter, occupiedNames)
+                    occupiedNames.add(parameter)
+                    if (parameter.isExplicit)
+                        params.add(name)
+                    parameter = parameter.next
+                }
+            }
+        }
+
+        class ConstructorSplitPatternEntry(val constructor: Constructor) : DependentLinkSplitPatternEntry() {
+            override fun getDependentLink(): DependentLink = constructor.parameters
+
+            override fun patternString(location: ArendCompositeElement): String {
+                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
+                        ?: constructor.name
+
+                return buildString {
+                    append("$constructorName ")
+                    for (p in params) append("$p ")
+                }.trim()
+            }
+
+            override fun expressionString(location: ArendCompositeElement): String {
+                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
+                        ?: constructor.name
+
+                return if (constructor.referable.precedence.isInfix && params.size == 2)
+                    "${params[0]} $constructorName ${params[1]}" else patternString(location)
+            }
+
+            override fun requiresParentheses(): Boolean = params.isNotEmpty()
+        }
+
+        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry() {
+            override fun getDependentLink(): DependentLink = link
+
+            override fun patternString(location: ArendCompositeElement): String = printTuplePattern(params)
+
+            override fun expressionString(location: ArendCompositeElement): String = patternString(location)
+
+            override fun requiresParentheses(): Boolean = false
+
+            companion object {
+                fun printTuplePattern(params: ArrayList<String>) = buildString {
+                    append("(")
+                    for (p in params.withIndex()) {
+                        append(p.value)
+                        if (p.index < params.size - 1)
+                            append(",")
+                    }
+                    append(")")
+                }
+            }
+        }
+
+        class RecordSplitPatternEntry(private val dataCall: ClassCallExpression, val record: ClassDefinition) : SplitPatternEntry {
+            val params: ArrayList<String> = ArrayList()
+
+            override fun initParams(occupiedNames: MutableSet<Variable>) {
+                params.clear()
+                val renamer = StringRenamer()
+                renamer.forceTypeSCName = true
+
+                for (field in record.fields.filter { record.isGoodField(it) }) {
+                    val name = renamer.generateFreshName(field, occupiedNames)
+                    occupiedNames.add(field)
+                    params.add(name)
+                }
+            }
+
+            override fun patternString(location: ArendCompositeElement): String = TupleSplitPatternEntry.printTuplePattern(params)
+
+            override fun expressionString(location: ArendCompositeElement): String = buildString {
+                append("\\new ")
+                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location) ?: record.name
+                append("$recordName ")
+                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig { override fun getNormalizationMode(): NormalizeVisitor.Mode? { return null } })
+                if (expr is Concrete.AppExpression) {
+                    PrettyPrintVisitor.printArguments(PrettyPrintVisitor(this, 0), expr.arguments, false)
+                    append(" ")
+                }
+                for (p in params) append("$p ")
+            }.trim()
+
+            override fun requiresParentheses(): Boolean = true
+        }
+
+        fun doSplitPattern(element: PsiElement, project: Project?, splitPatternEntries: Collection<SplitPatternEntry>, generateBody: Boolean = false) {
             val (localClause, localIndexList) = locatePattern(element) ?: return
             if (localClause !is ArendClause) return
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(localClause, element).map {
-                object : Variable {
-                    override fun getName(): String = it.name ?: ""
-                }
+                VariableImpl(it.name ?: "")
             })
 
             if (project != null && element is Abstract.Pattern) {
                 val factory = ArendPsiFactory(project)
-                if (localConstructors.isEmpty()) {
+                if (splitPatternEntries.isEmpty()) {
                     doReplacePattern(factory, element, "()", false)
                     localClause.expr?.deleteWithNotification()
                     localClause.fatArrow?.delete()
@@ -131,36 +254,16 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
                     var currAnchor: PsiElement = localClause
 
-                    for (constructor in localConstructors) {
-                        val localSet = HashSet<Variable>()
-                        localSet.addAll(localNames)
-                        val renamer = StringRenamer()
-                        val listParams = ArrayList<String>()
-                        val constructorReferable = PsiLocatedReferable.fromReferable(constructor.referable)
-                        val constructorName = getTargetName(constructorReferable, localClause) ?: constructor.name
-
-                        val patternString = buildString {
-                            var parameter = constructor.parameters
-                            append("$constructorName ")
-                            while (parameter.hasNext()) {
-                                val name = renamer.generateFreshName(parameter, localNames)
-                                localNames.add(parameter)
-                                if (parameter.isExplicit) {
-                                    listParams.add(name)
-                                    append("$name ")
-                                }
-                                parameter = parameter.next
-                            }
-                        }.trim()
-
-                        val expressionString = if (constructor.referable.precedence.isInfix && listParams.size == 2)
-                            "${listParams[0]} $constructorName ${listParams[1]}" else patternString
+                    for (splitPatternEntry in splitPatternEntries) {
+                        splitPatternEntry.initParams(localNames)
+                        val patternString = splitPatternEntry.patternString(localClause)
+                        val expressionString = splitPatternEntry.expressionString(localClause)
 
                         if (first) {
-                            replaceUsages(factory, element.childOfType(), currAnchor, expressionString, listParams.isNotEmpty())
+                            doSubstituteUsages(factory, element.childOfType(), currAnchor, expressionString, splitPatternEntry.requiresParentheses())
 
                             var inserted = false
-                            if (constructor == Prelude.ZERO) {
+                            if (splitPatternEntry is ConstructorSplitPatternEntry && splitPatternEntry.constructor == Prelude.ZERO) {
                                 var number = 0
                                 val abstractPattern = localClause.patternList[localIndexList[0]]
                                 var path = localIndexList.drop(1)
@@ -178,7 +281,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             }
 
                             if (!inserted)
-                                doReplacePattern(factory, element, patternString, listParams.isNotEmpty())
+                                doReplacePattern(factory, element, patternString, splitPatternEntry.requiresParentheses())
                         } else {
                             val anchorParent = currAnchor.parent
                             currAnchor = anchorParent.addAfter(pipe, currAnchor)
@@ -189,8 +292,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             if (currAnchor is ArendClause) {
                                 val elementCopy = findAbstractPattern(localIndexList.drop(1), currAnchor.patternList.getOrNull(localIndexList[0]))
                                 if (elementCopy is PsiElement) {
-                                    replaceUsages(factory, elementCopy.childOfType(), currAnchor, expressionString, listParams.isNotEmpty())
-                                    doReplacePattern(factory, elementCopy, patternString, listParams.isNotEmpty())
+                                    doSubstituteUsages(factory, elementCopy.childOfType(), currAnchor, expressionString, splitPatternEntry.requiresParentheses())
+                                    doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses())
                                 }
                             }
                         }
@@ -349,30 +452,51 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        fun replaceUsages(factory: ArendPsiFactory, defIdentifier: ArendReferenceElement?, expression: PsiElement, expressionLine: String, requiresParentheses: Boolean) {
-            if (defIdentifier != null) {
-                val substitutedExpression = factory.createExpression(expressionLine) as ArendNewExpr
-                val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionLine)").childOfType<ArendAtom>() else substitutedExpression.childOfType()
-                doSubstituteUsages(defIdentifier, expression, substitutedExpression, substitutedAtom!!)
-            }
-        }
-
-        private fun doSubstituteUsages(elementToReplace: ArendReferenceElement, element: PsiElement,
-                               substitutedExpression: ArendNewExpr, substitutedAtom: ArendAtom) {
-            if (element is ArendWhere) return
+        fun doSubstituteUsages(factory: ArendPsiFactory, elementToReplace: ArendReferenceElement?, element: PsiElement,
+                                       expressionLine: String, requiresParentheses: Boolean) {
+            if (elementToReplace == null || element is ArendWhere) return
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
-                val atom = if (element.parent is ArendLongName && element.parent.parent is ArendLiteral) element.parent.parent.parent as? ArendAtom else null
+                val longName = element.parent as? ArendLongName
+                val field = if (longName != null && longName.refIdentifierList.size > 1) longName.refIdentifierList[1] else null
+                val fieldTarget = field?.reference?.resolve()
+                val expressionToInsert = if (longName != null && fieldTarget is ArendClassField) createFieldConstructorInvocation(element, longName.refIdentifierList.drop(1), expressionLine) else expressionLine
+
+                val literal = longName?.parent as? ArendLiteral
+                val atom = literal?.parent as? ArendAtom
                 if (atom != null) {
-                    if ((atom.parent as? ArendAtomFieldsAcc)?.fieldAccList?.isEmpty() == true &&
-                            (atom.parent.parent as? ArendArgumentAppExpr)?.argumentList?.isEmpty() == true &&
-                            atom.parent.parent.parent.let { it is ArendNewExpr && it.lbrace == null && it.rbrace == null }) {
-                        (atom.parent.parent as ArendArgumentAppExpr).replaceWithNotification(substitutedExpression)
-                    } else {
+                    val atomFieldsAcc = atom.parent as? ArendAtomFieldsAcc
+                    val argumentAppExpr = atomFieldsAcc?.parent as? ArendArgumentAppExpr
+                    val arendNewExpr = argumentAppExpr?.parent as? ArendNewExpr
+
+                    val substitutedExpression = factory.createExpression(expressionToInsert) as ArendNewExpr
+                    val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
+
+                    if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
+                            arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
+                        arendNewExpr.replaceWithNotification(substitutedExpression)
+                    } else if (substitutedAtom is PsiElement) {
                         atom.replaceWithNotification(substitutedAtom)
                     }
                 }
             } else for (child in element.children)
-                doSubstituteUsages(elementToReplace, child, substitutedExpression, substitutedAtom)
+                doSubstituteUsages(factory, elementToReplace, child, expressionLine, requiresParentheses)
+        }
+
+        private fun createFieldConstructorInvocation(element: ArendRefIdentifier,
+                                                     longNameTail: List<ArendRefIdentifier>,
+                                                     substitutedExpression: String): String {
+            val field = if (longNameTail.isNotEmpty()) longNameTail[0] else null
+            val fieldTarget = field?.reference?.resolve()
+            return if (fieldTarget is ArendClassField) {
+                val fieldName = getTargetName(fieldTarget, element)
+                createFieldConstructorInvocation(element, longNameTail.drop(1), "$fieldName {${substitutedExpression}}")
+            } else {
+                if (longNameTail.isEmpty()) {
+                    substitutedExpression
+                } else {
+                    "($substitutedExpression)${longNameTail.foldRight("", {ref, acc -> "$acc.${ref.referenceName}"})}"
+                }
+            }
         }
     }
 }
