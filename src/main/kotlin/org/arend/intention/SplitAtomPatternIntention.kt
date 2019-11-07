@@ -126,7 +126,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             fun requiresParentheses(): Boolean
         }
 
-        abstract class DependentLinkSplitPatternEntry(private val forceSCTName: Boolean) : SplitPatternEntry {
+        abstract class DependentLinkSplitPatternEntry : SplitPatternEntry {
             val params: ArrayList<String> = ArrayList()
 
             abstract fun getDependentLink(): DependentLink
@@ -135,7 +135,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 params.clear()
                 var parameter = getDependentLink()
                 val renamer = StringRenamer()
-                renamer.forceTypeSCName = forceSCTName
 
                 while (parameter.hasNext()) {
                     val name = renamer.generateFreshName(parameter, occupiedNames)
@@ -147,7 +146,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class ConstructorSplitPatternEntry(val constructor: Constructor) : DependentLinkSplitPatternEntry(false) {
+        class ConstructorSplitPatternEntry(val constructor: Constructor) : DependentLinkSplitPatternEntry() {
             override fun getDependentLink(): DependentLink = constructor.parameters
 
             override fun patternString(location: ArendCompositeElement): String {
@@ -171,7 +170,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun requiresParentheses(): Boolean = params.isNotEmpty()
         }
 
-        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry(true) {
+        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry() {
             override fun getDependentLink(): DependentLink = link
 
             override fun patternString(location: ArendCompositeElement): String = printTuplePattern(params)

@@ -280,7 +280,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p 
             """, """
                \func test {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p
-                 | (a,b) => {?} 
+                 | (x,b) => {?} 
             """)
 
     fun testTuple2() = typedQuickFixTest("Implement",

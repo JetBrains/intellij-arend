@@ -242,7 +242,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | p{-caret-} => p.1 
     """, """
        \func test3 {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p
-         | (a,b) => (a,b).1 
+         | (x,b) => (x,b).1 
     """)
 
     fun testRecord1() = typedQuickFixTest("Split",
