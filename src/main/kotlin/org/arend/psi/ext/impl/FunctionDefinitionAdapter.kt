@@ -56,7 +56,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         }
     }
 
-    override fun getKind() = if (functionKw.consKw != null) GlobalReferable.Kind.CONSTRUCTOR else GlobalReferable.Kind.TYPECHECKABLE
+    override fun getKind() = if (functionKw.consKw != null) GlobalReferable.Kind.DEFINED_CONSTRUCTOR else GlobalReferable.Kind.TYPECHECKABLE
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
