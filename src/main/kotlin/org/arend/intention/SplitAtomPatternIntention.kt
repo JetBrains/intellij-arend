@@ -52,7 +52,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
             val pattern = checkApplicability(element, editor?.project)
             if (pattern != null) {
-                val type = pattern.toExpression().type //do we want to normalize this to whnf?
+                val type = pattern.binding.typeExpr //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
                     val constructors = type.matchedConstructors ?: return false
                     this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
