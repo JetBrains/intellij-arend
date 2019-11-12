@@ -77,7 +77,7 @@
         PEVAL_KW            = '\peval'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
-        CONS_KW             = '\constructor'
+        CONS_KW             = '\cons'
         CLASS_KW            = '\class'
         RECORD_KW           = '\record'
         EXTENDS_KW          = '\extends'
@@ -234,7 +234,7 @@ defFunction ::= functionKw prec? defIdentifier_func nameTele* functionType? func
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | CONS_KW | useMod
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
 
 private functionType ::= COLON returnExpr { pin = 1 }
 
@@ -248,7 +248,7 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
-defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder"
@@ -257,6 +257,8 @@ defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? ins
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody? where? {
     pin = 1
