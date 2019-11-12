@@ -52,7 +52,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
             val pattern = checkApplicability(element, editor?.project)
             if (pattern != null) {
-                val type = pattern.toExpression().type //do we want to normalize this to whnf?
+                val type = pattern.binding.typeExpr //do we want to normalize this to whnf?
                 if (type is DataCallExpression) {
                     val constructors = type.matchedConstructors ?: return false
                     this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
@@ -393,11 +393,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             val concretePatterns = ConcreteBuilder.convert(IdReferableConverter.INSTANCE, true) { it.buildPatterns(abstractPatterns) }
             DesugarVisitor.desugarPatterns(concretePatterns, listErrorReporter)
-            ExpressionResolveNameVisitor(EmptyConcreteProvider.INSTANCE, ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(true), scope), ArrayList(), listErrorReporter, null).visitPatterns(concretePatterns)
-            val patternTypechecking = PatternTypechecking(listErrorReporter, EnumSet.of(Flag.ALLOW_INTERVAL, Flag.ALLOW_CONDITIONS), null)
+            val service = project.service<TypeCheckingService>()
+            ExpressionResolveNameVisitor(EmptyConcreteProvider.INSTANCE, ConvertingScope(service.newReferableConverter(true), scope), ArrayList(), listErrorReporter, null).visitPatterns(concretePatterns)
+            // TODO: This won't work with defined constructors
+            val patternTypechecking = PatternTypechecking(listErrorReporter, EnumSet.of(Flag.ALLOW_INTERVAL, Flag.ALLOW_CONDITIONS), service.typecheckerState)
             val patterns = patternTypechecking.typecheckPatterns(concretePatterns, parameters, elimParams)
-            val builder = StringBuilder()
-            for (error in listErrorReporter.errorList) builder.append(error)
             return Pair(if (listErrorReporter.errorList.isEmpty()) patterns else null, elimParams.isNotEmpty())
         }
 

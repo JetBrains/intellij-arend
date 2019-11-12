@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
@@ -47,7 +48,9 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return body == null || body.elim == null && body.fatArrow == null
     }
 
-    override fun getFunctionKind() = FunctionKind.INSTANCE
+    override fun getFunctionKind() = if (instanceOrCons.consKw != null) FunctionKind.CONS else FunctionKind.INSTANCE
+
+    override fun getKind() = if (instanceOrCons.consKw != null) GlobalReferable.Kind.DEFINED_CONSTRUCTOR else GlobalReferable.Kind.TYPECHECKABLE
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
