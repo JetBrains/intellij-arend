@@ -108,7 +108,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         sampleClause
                     }
                 }
-                is ArendCaseExpr -> cause.clauseList.lastOrNull() ?: cause.lbrace
+                is ArendCaseExpr -> {
+                    cause.clauseList.lastOrNull() ?: (cause.lbrace ?: cause.withKw?.let{
+                        val braces = psiFactory.createPairOfBraces()
+                        it.parent.addAfter(braces.second, it)
+                        it.parent.addAfter(braces.first, it)
+                        it.parent.addAfter(psiFactory.createWhitespace(" "), it)
+                        cause.lbrace
+                    })
+                }
                 else -> null
             }
             val anchorParent = anchor?.parent
