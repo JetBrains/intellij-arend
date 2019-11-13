@@ -38,6 +38,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         \data Or (A B : \Type) | inl A | inr B 
         """
 
+    private val pairDefinition = "\\record Pair (A B : \\Type) | fst : A | snd : B"
+
     fun testBasicPattern() = typedQuickFixTest("Implement",
         """
         $listDefinition
@@ -176,6 +178,16 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         }
         """)
 
+    fun testCaseWithoutBraces() = typedQuickFixTest("Implement",
+            """
+               \func test (n : Nat) : Nat => \case n{-caret-} \with 
+            """, """
+               \func test (n : Nat) : Nat => \case n \with {
+                 | 0 => {?}
+                 | suc n => {?}
+               }
+            """)
+
     fun testResolveReference() = typedQuickFixTest("Implement",
         """
         --! Logic.ard 
@@ -271,5 +283,30 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | 0, suc n => {?}
                  | suc n, 0 => {?}
                  | suc n, suc n1 => {?} 
+            """)
+
+    fun testTuple1() = typedQuickFixTest("Implement",
+            """
+               \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p 
+            """, """
+               \func test {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p
+                 | (x,b) => {?} 
+            """)
+
+    fun testTuple2() = typedQuickFixTest("Implement",
+            """
+               $pairDefinition
+
+               \func test2{-caret-} {A B : \Type} (p : Pair A B) : A \elim p 
+            """, """
+               $pairDefinition
+
+               \func test2 {A B : \Type} (p : Pair A B) : A \elim p
+                 | (a,b) => {?} 
+            """)
+
+    fun testTuple3() = typedCheckNoQuickFixes("Implement",
+            """
+               \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A 
             """)
 }

@@ -21,6 +21,6 @@ class ReplaceAbsurdPatternQuickFix(private val constructors: Collection<Construc
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val cause = causeRef.element ?: return
-        SplitAtomPatternIntention.doSplitPattern(cause, project, editor, constructors, generateBody = true)
+        SplitAtomPatternIntention.doSplitPattern(cause, project, constructors.map { SplitAtomPatternIntention.Companion.ConstructorSplitPatternEntry(it) }, generateBody = true)
     }
 }

@@ -118,6 +118,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\peval"               { return PEVAL_KW; }
     "\\return"              { return RETURN_KW; }
     "\\data"                { return DATA_KW; }
+    "\\cons"                { return CONS_KW; }
     "\\class"               { return CLASS_KW; }
     "\\record"              { return RECORD_KW; }
     "\\extends"             { return EXTENDS_KW; }

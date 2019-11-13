@@ -77,6 +77,7 @@
         PEVAL_KW            = '\peval'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
+        CONS_KW             = '\cons'
         CLASS_KW            = '\class'
         RECORD_KW           = '\record'
         EXTENDS_KW          = '\extends'
@@ -110,7 +111,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -247,7 +248,7 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
 
-defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ClassReferenceHolder"
@@ -256,6 +257,8 @@ defInstance ::= INSTANCE_KW prec? defIdentifier_func nameTele* functionType? ins
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody? where? {
     pin = 1
