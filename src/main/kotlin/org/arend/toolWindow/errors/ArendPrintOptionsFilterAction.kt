@@ -48,6 +48,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         fun flagToString(flag: ToAbstractVisitor.Flag): String = when (flag) {
             ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS -> "Show coerce definitions"
             ToAbstractVisitor.Flag.SHOW_CON_PARAMS -> "Show constructor parameters"
+            ToAbstractVisitor.Flag.SHOW_TUPLE_TYPE -> "Show tuple type"
             ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE -> "Show field instances"
             ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS -> "Show implicit arguments"
             ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM -> "Show types in lambda expressions"

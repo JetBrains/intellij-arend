@@ -66,6 +66,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     private fun getPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, options: ArendPrintingOptions) {
         options.showCoerceDefinitions = filterSet.contains(ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS)
         options.showConstructorParameters = filterSet.contains(ToAbstractVisitor.Flag.SHOW_CON_PARAMS)
+        options.showTupleType = filterSet.contains(ToAbstractVisitor.Flag.SHOW_TUPLE_TYPE)
         options.showFieldInstance = filterSet.contains(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)
         options.showImplicitArgs = filterSet.contains(ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS)
         options.showTypesInLambda = filterSet.contains(ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM)
@@ -101,6 +102,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     private fun setPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, printingOptions: ArendPrintingOptions) {
         setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS, printingOptions.showCoerceDefinitions)
         setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_CON_PARAMS, printingOptions.showConstructorParameters)
+        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_TUPLE_TYPE, printingOptions.showTupleType)
         setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE, printingOptions.showFieldInstance)
         setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS, printingOptions.showImplicitArgs)
         setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM, printingOptions.showTypesInLambda)

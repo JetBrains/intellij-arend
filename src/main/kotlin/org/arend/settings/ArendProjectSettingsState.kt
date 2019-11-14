@@ -37,6 +37,7 @@ class ArendProjectSettingsState {
 class ArendPrintingOptions {
     var showCoerceDefinitions = false
     var showConstructorParameters = true
+    var showTupleType = true
     var showFieldInstance = true
     var showImplicitArgs = true
     var showTypesInLambda = true
