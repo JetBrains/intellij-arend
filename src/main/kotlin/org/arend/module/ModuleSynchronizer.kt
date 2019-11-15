@@ -105,6 +105,10 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
 
             // Update the module-level library table
             ApplicationManager.getApplication()?.invokeLater {
+                if (service.module.isDisposed) {
+                    return@invokeLater
+                }
+
                 val rootModel = runReadAction { ModuleRootManager.getInstance(service.module).modifiableModel }
                 try {
                     for (entry in rootModel.orderEntries) {
