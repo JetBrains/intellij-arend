@@ -2,6 +2,7 @@ package org.arend.formatting.block
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
@@ -20,7 +21,9 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
                     parseBinOp(left, sequence)
         }
 
-        val cExpr = (node.psi as ArendExpr).accept(expressionVisitor, null)
+        val cExpr = runReadAction {
+            (node.psi as ArendExpr).accept(expressionVisitor, null)
+        }
         val children = myNode.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
 
         if (cExpr != null) return transform(cExpr, children, Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
