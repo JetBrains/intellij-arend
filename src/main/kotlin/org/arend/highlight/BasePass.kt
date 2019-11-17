@@ -262,7 +262,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             if (improvedElement is ArendClause) {
                 val prev = improvedElement.extendLeft.prevSibling
                 val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
-                return TextRange(startElement.textRange.startOffset, improvedElement.textRange.endOffset)
+                val endOffset =
+                    if (error is ConditionsError) (improvedElement.patternList.lastOrNull() ?: improvedElement as PsiElement).textRange.endOffset
+                    else improvedElement.textRange.endOffset
+                return TextRange(startElement.textRange.startOffset, endOffset)
             }
 
             if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
