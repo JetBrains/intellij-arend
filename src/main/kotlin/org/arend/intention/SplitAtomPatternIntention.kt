@@ -39,7 +39,6 @@ import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking
-import org.arend.typechecking.patternmatching.PatternTypechecking.Flag
 import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import java.util.*
@@ -396,7 +395,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val service = project.service<TypeCheckingService>()
             ExpressionResolveNameVisitor(EmptyConcreteProvider.INSTANCE, ConvertingScope(service.newReferableConverter(true), scope), ArrayList(), listErrorReporter, null).visitPatterns(concretePatterns)
             // TODO: This won't work with defined constructors
-            val patternTypechecking = PatternTypechecking(listErrorReporter, EnumSet.of(Flag.ALLOW_INTERVAL, Flag.ALLOW_CONDITIONS), service.typecheckerState)
+            val patternTypechecking = PatternTypechecking(listErrorReporter, PatternTypechecking.Mode.CONSTRUCTOR, service.typecheckerState)
             val patterns = patternTypechecking.typecheckPatterns(concretePatterns, parameters, elimParams)
             return Pair(if (listErrorReporter.errorList.isEmpty()) patterns else null, elimParams.isNotEmpty())
         }
