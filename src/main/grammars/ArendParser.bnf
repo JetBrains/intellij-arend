@@ -495,8 +495,9 @@ caseArg ::= caseArgExprAs [COLON expr] {
 
 private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
 
-private caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier] {
-    pin = 1
+caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
+    | ELIM_KW refIdentifier {
+    pin(".*") = 1
     recoverWhile = caseArgExprAs_recover
 }
 

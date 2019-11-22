@@ -281,7 +281,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }, o)
         }
 
-        val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.asKw == null }
+        val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.caseArgExprAs.asKw == null }
 
         val asCondition2 = { position: PsiElement? ->
             //Alternative condition needed to ensure that as is added before semicolon
