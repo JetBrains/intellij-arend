@@ -93,7 +93,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             arrayOf("\\class Foo { } \\where {\n {-caret-}\n}")
 
     fun `test local statement keywords in class`() =
-            checkKeywordCompletionVariants(CLASS_STATEMENT_KWS, CompletionCondition.CONTAINS, *kwSuiteInsideClass)
+            checkKeywordCompletionVariants(LOCAL_STATEMENT_KWS + CLASS_MEMBER_KWS, CompletionCondition.CONTAINS, *kwSuiteInsideClass)
 
     fun `test no use keyword inside class`() =
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwSuiteInsideClass)
@@ -127,7 +127,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwModuleInsideClass)
 
     fun `test no root keywords completion`() =
-            checkKeywordCompletionVariants(ALL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
+            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST + CLASS_MEMBER_KWS,
+                    CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
                     "\\class Foo {\n {-caret-} \n | A : Nat }",
                     "\\class Foo => Foo' {\n {-caret-} }", /* no statements in completion for class rename */
@@ -464,6 +465,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func foo (n : Nat)\n  | 0 => 0\n  | suc n => 101 {-caret-}",
             "\\class M | a : Nat\n\\func foo (n : Nat) : M \\cowith | a => 0{-caret-}",
             "\\func foo (n : Nat) {-caret-}\\cowith")
+
+    fun `test elim completion 4`() = checkKeywordCompletionVariants(ELIM_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func foo (a : Nat) => \\case {-caret-}",
+            "\\func foo (a : Nat) => \\case a, {-caret-}",
+            "\\func foo (a : Nat) => \\case a, {-caret-} b \\with")
 
     fun `test no elim and no fixity completion`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
             "\\func lol {-caret-}", /* No elim if there are no arguments; No fixity */

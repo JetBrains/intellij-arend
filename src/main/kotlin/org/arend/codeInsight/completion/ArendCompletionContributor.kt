@@ -30,9 +30,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
 
-        basic(AS_CONTEXT, AS_KW_LIST) { parameters ->
-            (parameters.position.parent.parent as ArendNsId).asKw == null
-        }
+        basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java)), AS_KW_LIST)
+        { parameters -> (parameters.position.parent.parent as ArendNsId).asKw == null }
 
         basic(NS_CMD_CONTEXT, HU_KW_LIST) { parameters ->
             parameters.originalPosition?.parent is ArendFile
@@ -186,15 +185,16 @@ class ArendCompletionContributor : CompletionContributor() {
         val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
 
         val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            not(or(after(FIELD_CONTEXT), //No keyword completion after field
-                    and(RETURN_CONTEXT, not(allowedInReturnPattern)),
+            not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
+                    and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
                     after(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
                     after(ofType(LAM_KW, LET_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
                     after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
                     after(afterElimVarPattern), //No expression keywords in \elim expression
                     if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else after(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
-                    if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else ARGUMENT_EXPRESSION2))
+                    if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else
+                        or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))))
         }
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
@@ -298,7 +298,10 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW), afterLeaf(LETS_KW))), pairingInPattern), IN_KW_LIST)
 
-        val caseContext = and(CASE_CONTEXT, not(or(afterLeaf(WITH_KW), afterLeaf(CASE_KW), afterLeaf(SCASE_KW), afterLeaf(COLON))))
+        val caseContext = and(
+                or(EXPRESSION_CONTEXT,
+                        withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
+                not(afterLeaves(WITH_KW, CASE_KW, SCASE_KW, COLON)))
 
         basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, false))
 
@@ -356,6 +359,11 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), false))
         basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), false))
 
+        basic(and(
+                afterLeaves(COMMA, CASE_KW),
+                or(withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java),
+                        withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))))), ELIM_KW_LIST)
+
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
                     ((argumentAppExpr.children[0] as? ArendAtomFieldsAcc)?.atom?.literal?.longName != null)
@@ -401,7 +409,7 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(ARGUMENT_EXPRESSION_IN_BRACKETS, LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
         basic(afterLeaf(NEW_KW), listOf(EVAL_KW.toString()))
-        basic(or(afterLeaf(EVAL_KW), afterLeaf(PEVAL_KW)), listOf(SCASE_KW.toString()))
+        basic(afterLeaves(EVAL_KW, PEVAL_KW, SCASE_KW), listOf(SCASE_KW.toString()))
 
         basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2))
 
@@ -435,80 +443,88 @@ class ArendCompletionContributor : CompletionContributor() {
 
     companion object {
         const val KEYWORD_PRIORITY = 0.0
+        private val LITERAL_PREFIX = arrayOf<Class<out PsiElement>>(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java)
+        private val ATOM_PREFIX = LITERAL_PREFIX + arrayOf(ArendAtom::class.java)
+        private val ATOM_FIELDS_ACC_PREFIX = ATOM_PREFIX + arrayOf(ArendAtomFieldsAcc::class.java)
+        private val ARGUMENT_APP_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendArgumentAppExpr::class.java)
+        private val NEW_EXPR_PREFIX = ARGUMENT_APP_EXPR_PREFIX + arrayOf(ArendNewExpr::class.java)
+        private val RETURN_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendReturnExpr::class.java)
 
-        private val PREC_CONTEXT = or(afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), afterLeaf(CONS_KW), /*afterLeaf(COERCE_KW),*/ afterLeaf(DATA_KW), afterLeaf(CLASS_KW), afterLeaf(RECORD_KW), and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
+        private val PREC_CONTEXT = or(
+                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
+                and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java))) //class field
 
-        private val AS_CONTEXT = and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java))
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
+
         private val STATEMENT_END_CONTEXT = or(withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java)) //Needed for correct completion inside empty classes
-        private val INSIDE_RETURN_EXPR_CONTEXT = or(
-                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
-                        ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java),
-                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
+
+        private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
+
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT,
-                        withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
+                or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
-                not(or(afterLeaf(COLON), afterLeaf(TRUNCATED_KW), afterLeaf(FAT_ARROW),
-                        afterLeaf(WITH_KW), afterLeaf(ARROW), afterLeaf(IN_KW), afterLeaf(INSTANCE_KW), afterLeaf(EXTENDS_KW), afterLeaf(DOT), afterLeaf(NEW_KW), afterLeaf(EVAL_KW), afterLeaf(PEVAL_KW),
-                        afterLeaf(CASE_KW), afterLeaf(SCASE_KW), afterLeaf(LET_KW), afterLeaf(WHERE_KW), afterLeaf(USE_KW), afterLeaf(PIPE), afterLeaf(LEVEL_KW), afterLeaf(COERCE_KW))),
+                not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, LET_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
-        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
-        private val RETURN_CONTEXT =
-                or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java),
-                        withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java))
 
-        private val EXPRESSION_CONTEXT = and(or(
-                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java),
-                withParentOrGrandParent(ArendFunctionBody::class.java),
-                and(withParentOrGrandParent(ArendExpr::class.java), not(INSIDE_RETURN_EXPR_CONTEXT)),
-                withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
-                withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
-                and(afterLeaf(LPAREN), withAncestors(PsiErrorElement::class.java, ArendReturnExpr::class.java)),
-                and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
-                and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
-                or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
-                and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
-                and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
-                and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
-                not(or(afterLeaf(PIPE), afterLeaf(COWITH_KW)))) // no expression keywords after pipe
-        private val CASE_CONTEXT = or(EXPRESSION_CONTEXT, withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))
-        private val FIELD_CONTEXT = withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)
-        private val TELE_CONTEXT =
-                or(and(withAncestors(PsiErrorElement::class.java, ArendTypeTele::class.java),
+        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
+
+        private val EXPRESSION_CONTEXT = and(
+                or(withAncestors(*ATOM_PREFIX),
+                        withParentOrGrandParent(ArendFunctionBody::class.java),
+                        and(withParentOrGrandParent(ArendExpr::class.java), not(INSIDE_RETURN_EXPR_CONTEXT)),
+                        withAncestors(PsiErrorElement::class.java, ArendClause::class.java),
+                        withAncestors(PsiErrorElement::class.java, ArendTupleExpr::class.java),
+                        and(afterLeaf(LPAREN), withAncestors(PsiErrorElement::class.java, ArendReturnExpr::class.java)),
+                        and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
+                        and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
+                        or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
+                        and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
+                        and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
+                        and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
+                not(afterLeaves(PIPE, COWITH_KW))) // no expression keywords after pipe
+
+        private val TELE_CONTEXT = or(
+                and(withAncestors(PsiErrorElement::class.java, ArendTypeTele::class.java),
                         withGreatGrandParents(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java)),
-                        withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendTypeTele::class.java))
+                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
+
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
                 withGrandParents(ArendDefData::class.java, ArendClassField::class.java, ArendConstructor::class.java))
 
         private val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT)
-        private val ARGUMENT_EXPRESSION = or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java),
+
+        private val ARGUMENT_EXPRESSION = or(withAncestors(*(ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendAtomArgument::class.java))),
                 withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java))
-        private val ARGUMENT_EXPRESSION2 = or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))
+
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
+
         private val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, ArendAtomLevelExpr::class.java))
-        private val ELIM_CONTEXT = and(not(or(afterLeaf(DATA_KW), afterLeaf(FUNC_KW), afterLeaf(SFUNC_KW), afterLeaf(LEMMA_KW), afterLeaf(CONS_KW), afterLeaf(COERCE_KW), afterLeaf(TRUNCATED_KW), afterLeaf(COLON))),
+
+        private val ELIM_CONTEXT = and(
+                not(afterLeaves(DATA_KW, FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, COERCE_KW, TRUNCATED_KW, COLON)),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT,
                         withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)))
-        private val ARGUMENT_EXPRESSION_IN_BRACKETS =
-                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
-                        ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendTuple::class.java,
-                        ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java)
+
+        private val ARGUMENT_EXPRESSION_IN_BRACKETS = withAncestors(*(NEW_EXPR_PREFIX +
+                arrayOf<Class<out PsiElement>>(ArendTupleExpr::class.java, ArendTuple::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java)))
+
         private val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
 
-        private val LEVEL_CONTEXT_0 = withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
-                ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java)
-        private val LEVEL_CONTEXT = or(and(afterLeaf(COLON), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java), withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
+        private val LEVEL_CONTEXT_0 = withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))
+
+        private val LEVEL_CONTEXT = or(
+                and(afterLeaf(COLON), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java),
+                        withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
                 and(afterLeaf(RETURN_KW), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))))
 
         // Contribution to LookupElementBuilder

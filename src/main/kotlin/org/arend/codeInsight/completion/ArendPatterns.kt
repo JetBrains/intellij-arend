@@ -9,6 +9,8 @@ fun after(pattern: ElementPattern<PsiElement>) = PlatformPatterns.psiElement().a
 
 fun afterLeaf(et: IElementType) = after(PlatformPatterns.psiElement(et))
 
+fun afterLeaves (vararg types: IElementType) = StandardPatterns.or(*types.map { after(PlatformPatterns.psiElement(it)) }.toTypedArray())
+
 fun ofType(vararg types: IElementType) = StandardPatterns.or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
 
 fun <T : PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
