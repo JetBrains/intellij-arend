@@ -3,9 +3,10 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.*
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.naming.scope.ScopeFactory
+import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.FieldReferable
+import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Reference
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
@@ -49,7 +50,14 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getSuperClasses(): List<ArendLongName> = longNameList
 
-    override fun getClassFields(): List<Abstract.ClassField> = classStatList.mapNotNull { it.classField } + classFieldList
+    override fun getClassElements(): List<Abstract.ClassElement> = children.mapNotNull {
+        when (it) {
+            is ArendClassField -> it
+            is ArendClassImplement -> it
+            is ArendClassStat -> it.classField ?: it.classImplement
+            else -> null
+        }
+    }
 
     override fun getClassFieldImpls(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
 
