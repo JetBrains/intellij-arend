@@ -54,7 +54,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
         when (it) {
             is ArendClassField -> it
             is ArendClassImplement -> it
-            is ArendClassStat -> it.classField ?: it.classImplement
+            is ArendClassStat -> it.classField ?: it.classImplement as Abstract.ClassElement?
             else -> null
         }
     }
