@@ -80,8 +80,10 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
                     PsiLocatedReferable.fromReferable(constructor.data)?.let { cache[it] = constructor }
                 }
             }
-            is Concrete.ClassDefinition -> for (field in result.fields) {
-                PsiLocatedReferable.fromReferable(field.data)?.let { cache[it] = field }
+            is Concrete.ClassDefinition -> for (element in result.elements) {
+                if (element is Concrete.ClassField) {
+                    PsiLocatedReferable.fromReferable(element.data)?.let { cache[it] = element }
+                }
             }
         }
 
