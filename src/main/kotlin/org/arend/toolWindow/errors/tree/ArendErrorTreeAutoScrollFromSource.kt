@@ -21,7 +21,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.AutoScrollFromSourceHandler
 import com.intellij.ui.UIBundle
-import com.intellij.util.Processor
+import com.intellij.util.CommonProcessors
 import org.arend.highlight.BasePass
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
@@ -83,7 +83,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
         val document = editor.document
         val offset = editor.caretModel.offset
         // Check that we are in a problem range
-        if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, Processor.FALSE) == true) {
+        if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, CommonProcessors.alwaysFalse()) == true) {
             return
         }
 

@@ -110,7 +110,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
             LibraryTablesRegistrar.getInstance().getLibraryTable(module.project).libraries.forEach { model.addLibraryEntry(it) }
         }
 
-        override fun getModuleType() = ArendModuleType
+        override fun getModuleTypeId() = ArendModuleType.id
     }
 
     protected object DefaultDescriptor : ArendProjectDescriptorBase()

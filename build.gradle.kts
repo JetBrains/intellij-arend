@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
-    kotlin("jvm") version "1.3.41"
-    id("org.jetbrains.intellij") version "0.4.9"
-    id("org.jetbrains.grammarkit") version "2019.2"
+    kotlin("jvm") version "1.3.61"
+    id("org.jetbrains.intellij") version "0.4.14"
+    id("org.jetbrains.grammarkit") version "2019.3"
 }
 
 repositories {
@@ -53,7 +53,7 @@ idea {
 }
 
 intellij {
-    version = "2019.2"
+    version = "2019.3"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false

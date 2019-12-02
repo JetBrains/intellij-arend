@@ -27,22 +27,22 @@ inline fun <T, R : Any> Iterable<T>.mapUntilNotNull(transform: (T) -> R?): Array
 
 // UI DSL
 
-inline fun LayoutBuilder.cellRow(init: Cell.() -> Unit) {
-    row { cell(false, init) }
+inline fun LayoutBuilder.cellRow(crossinline init: Cell.() -> Unit) {
+    row { cell(false, init = init) }
 }
 
-inline fun Row.cellRow(init: Cell.() -> Unit) {
-    row { cell(false, init) }
+inline fun Row.cellRow(crossinline init: Cell.() -> Unit) {
+    row { cell(false, init = init) }
 }
 
-inline fun LayoutBuilder.labeledRow(text: String, init: () -> Unit) {
+inline fun LayoutBuilder.labeledRow(text: String, crossinline init: () -> Unit) {
     cellRow {
         label(text)
         init()
     }
 }
 
-inline fun Row.labeledRow(text: String, init: () -> Unit) {
+inline fun Row.labeledRow(text: String, crossinline init: () -> Unit) {
     cellRow {
         label(text)
         init()

@@ -5,9 +5,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
-import com.intellij.openapi.vfs.VirtualFileEvent
-import com.intellij.openapi.vfs.VirtualFileListener
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiManager
 import org.arend.library.SourceLibrary
 import org.arend.naming.reference.converter.ReferableConverter
@@ -20,15 +21,18 @@ class BinaryFileSaver(private val project: Project) {
     private val typecheckedModules = LinkedHashMap<ArendFile, ReferableConverter>()
 
     init {
-        VirtualFileManager.getInstance().addVirtualFileListener(object : VirtualFileListener {
-            override fun contentsChanged(event: VirtualFileEvent) {
+        // TODO: Replace with AsyncFileListener?
+        project.messageBus.connect().subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
                 if (typecheckedModules.isEmpty()) {
                     return
                 }
 
-                val file = PsiManager.getInstance(project).findFile(event.file) as? ArendFile ?: return
-                synchronized(project) {
-                    saveFile(file, typecheckedModules.remove(file) ?: return@synchronized)
+                for (event in events) {
+                    val file = (if (event is VFileContentChangeEvent && event.isFromSave) PsiManager.getInstance(project).findFile(event.file) as? ArendFile else null) ?: continue
+                    synchronized(project) {
+                        saveFile(file, typecheckedModules.remove(file) ?: return@synchronized)
+                    }
                 }
             }
         })
