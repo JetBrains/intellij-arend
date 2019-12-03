@@ -96,15 +96,18 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
         }
 
         val fullName = FullName(referable)
-        val tcReferable = simpleReferableConverter.remove(referable, fullName) ?: return null
+        val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
         val curRef = referable.underlyingReferable
         val prevRef = tcReferable.underlyingReferable
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
             if (FullName(prevRef) == fullName) {
                 simpleReferableConverter.putIfAbsent(referable, tcReferable)
+            } else {
+                simpleReferableConverter.removeInternalReferables(referable, fullName)
             }
             return null
         }
+        simpleReferableConverter.removeInternalReferables(referable, fullName)
 
         if (curRef is ArendDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(curRef)
