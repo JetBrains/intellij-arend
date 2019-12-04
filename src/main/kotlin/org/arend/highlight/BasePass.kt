@@ -215,7 +215,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
-                    PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
+                    PROPERTY_LEVEL -> (element as? ArendImplementedClassField)?.propertyKw
                     LEMMA_LEVEL -> if (element is ArendDefFunction) element.functionKw.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }

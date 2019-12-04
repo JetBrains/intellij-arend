@@ -10,19 +10,25 @@ import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.impl.ClassDefinitionAdapter
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.abs.Abstract
 
 class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
 
     companion object {
         fun getChildren(descriptor: HierarchyNodeDescriptor, project: Project): Array<ArendHierarchyNodeDescriptor> {
-            val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
+            val classElement = descriptor.psiElement as? ClassDefinitionAdapter ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
             val settings = project.service<ArendProjectSettings>().data
             if (settings.showImplFields) {
-                classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
+                classElement.classElements.mapNotNullTo(result) {
+                    if ((it is Abstract.ClassFieldImpl || (it as? Abstract.ClassField)?.fieldImplementation != null) && it is PsiElement)
+                        ArendHierarchyNodeDescriptor(project, descriptor, it, false)
+                    else null
+                }
             }
             if (settings.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
@@ -54,4 +60,5 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
         val children = getChildren(descriptor, myProject)
         return browser.buildChildren(children, TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE)
     }
+
 }

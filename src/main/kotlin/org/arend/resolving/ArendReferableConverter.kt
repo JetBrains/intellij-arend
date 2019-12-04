@@ -7,8 +7,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.reference.converter.SimpleReferableConverter
-import org.arend.psi.ArendClassField
-import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable

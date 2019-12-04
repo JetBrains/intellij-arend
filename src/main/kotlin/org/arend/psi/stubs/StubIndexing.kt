@@ -20,6 +20,11 @@ fun IndexSink.indexClassField(stub: ArendClassFieldStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexClassField(stub: ArendImplementedClassFieldStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexClassFieldParam(stub: ArendClassFieldParamStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)

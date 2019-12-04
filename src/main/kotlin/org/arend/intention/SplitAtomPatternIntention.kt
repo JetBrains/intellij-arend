@@ -18,6 +18,7 @@ import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
 import org.arend.error.ListErrorReporter
+import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.reference.converter.IdReferableConverter
@@ -457,8 +458,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val longName = element.parent as? ArendLongName
                 val field = if (longName != null && longName.refIdentifierList.size > 1) longName.refIdentifierList[1] else null
-                val fieldTarget = field?.reference?.resolve()
-                val expressionToInsert = if (longName != null && fieldTarget is ArendClassField) createFieldConstructorInvocation(element, longName.refIdentifierList.drop(1), expressionLine) else expressionLine
+                val expressionToInsert = if (longName != null && field?.reference?.resolve() is FieldReferable) createFieldConstructorInvocation(element, longName.refIdentifierList.drop(1), expressionLine) else expressionLine
 
                 val literal = longName?.parent as? ArendLiteral
                 val atom = literal?.parent as? ArendAtom
@@ -486,7 +486,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                                                      substitutedExpression: String): String {
             val field = if (longNameTail.isNotEmpty()) longNameTail[0] else null
             val fieldTarget = field?.reference?.resolve()
-            return if (fieldTarget is ArendClassField) {
+            return if (fieldTarget is FieldReferable && fieldTarget is PsiLocatedReferable) {
                 val fieldName = getTargetName(fieldTarget, element)
                 createFieldConstructorInvocation(element, longNameTail.drop(1), "$fieldName {${substitutedExpression}}")
             } else {

@@ -64,6 +64,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override fun getResultTypeLevel(): ArendExpr? = null
 
+    override fun getFieldImplementation(): ArendExpr? = null
+
     override fun getIcon(flags: Int) = ArendIcons.CLASS_FIELD
 
     override fun getUseScope() = GlobalSearchScope.projectScope(project)

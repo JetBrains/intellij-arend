@@ -33,18 +33,22 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getInternalReferables(): List<ArendInternalReferable> =
         (parameterFields as List<ArendInternalReferable> ) +
-            classStatList.mapNotNull { it.classField } +
-            classFieldList
+        classElements.mapNotNull { it as? ArendInternalReferable }
 
     override fun getFields() = internalReferables
 
     override fun getFieldReferables(): List<FieldReferable> =
         (parameterFields as List<FieldReferable>) +
-            classStatList.mapNotNull { it.classField } +
-            classFieldList
+        classElements.mapNotNull { it as? FieldReferable }
 
     override fun getImplementedFields(): List<LocatedReferable> =
-        classFieldImpls.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
+        classElements.mapNotNull {
+            when (it) {
+                is ArendClassImplement -> it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable
+                is ArendImplementedClassField -> if (it.expr != null) it else null
+                else -> null
+            }
+        }
 
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
@@ -53,8 +57,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getClassElements(): List<Abstract.ClassElement> = children.mapNotNull {
         when (it) {
             is ArendClassField -> it
+            is ArendImplementedClassField -> it
             is ArendClassImplement -> it
-            is ArendClassStat -> it.classField ?: it.classImplement as Abstract.ClassElement?
+            is ArendClassStat -> (it.classField ?: it.implementedClassField ?: it.classImplement) as Abstract.ClassElement?
             else -> null
         }
     }

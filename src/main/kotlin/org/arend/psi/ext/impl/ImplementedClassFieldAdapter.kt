@@ -6,20 +6,27 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.psi.*
-import org.arend.psi.stubs.ArendClassFieldStub
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendImplementedClassField
+import org.arend.psi.ArendTypeTele
+import org.arend.psi.stubs.ArendImplementedClassFieldStub
 import org.arend.term.ClassFieldKind
 import org.arend.typing.ReferableExtractVisitor
 import javax.swing.Icon
 
-abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendClassField {
+
+abstract class ImplementedClassFieldAdapter : ReferableAdapter<ArendImplementedClassFieldStub>, ArendImplementedClassField {
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: ArendClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+    constructor(stub: ArendImplementedClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     override fun getKind() = GlobalReferable.Kind.FIELD
 
-    override fun getClassFieldKind() = ClassFieldKind.ANY
+    override fun getClassFieldKind() = when {
+        fieldKw != null -> ClassFieldKind.FIELD
+        propertyKw != null -> ClassFieldKind.PROPERTY
+        else -> ClassFieldKind.ANY
+    }
 
     override fun getReferable() = this
 
@@ -29,7 +36,7 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
 
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
 
-    override fun getFieldImplementation(): ArendExpr? = null
+    override fun getFieldImplementation() = expr
 
     override fun isVisible() = true
 

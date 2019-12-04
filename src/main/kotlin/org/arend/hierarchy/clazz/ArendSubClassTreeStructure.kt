@@ -8,25 +8,33 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.impl.ClassDefinitionAdapter
 import org.arend.search.ClassInheritorsSearch
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.abs.Abstract
 
 class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
         HierarchyTreeStructure(project, ArendHierarchyNodeDescriptor(project, null, baseNode, true)) {
 
     private fun getChildren(descriptor: HierarchyNodeDescriptor): Array<ArendHierarchyNodeDescriptor> {
-        val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
+        val classElement = descriptor.psiElement as? ClassDefinitionAdapter ?: return emptyArray()
         val subClasses = myProject.service<ClassInheritorsSearch>().search(classElement)
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
         val settings = myProject.service<ArendProjectSettings>().data
 
         subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
         if (settings.showImplFields) {
-            classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
+            classElement.classElements.mapNotNullTo(result) {
+                if ((it is Abstract.ClassFieldImpl || (it as? Abstract.ClassField)?.fieldImplementation != null) && it is PsiElement)
+                    ArendHierarchyNodeDescriptor(myProject, descriptor, it, false)
+                else null
+            }
         }
         if (settings.showNonImplFields) {
             classElement.fieldReferables.mapNotNullTo(result) {
-                if (it is PsiElement) ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) else null
+                if ((it as? Abstract.ClassField)?.fieldImplementation == null && it is PsiElement)
+                    ArendHierarchyNodeDescriptor(myProject, descriptor, it, false)
+                else null
             }
         }
         return result.toTypedArray()

@@ -92,6 +92,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
     "\\use"                 { return USE_KW; }
     "\\field"               { return FIELD_KW; }
     "\\property"            { return PROPERTY_KW; }
+    "\\implement"           { return IMPLEMENT_KW; }
     "\\classifying"         { return CLASSIFYING_KW; }
     "\\infix"               { return INFIX_NON_KW; }
     "\\infixl"              { return INFIX_LEFT_KW; }

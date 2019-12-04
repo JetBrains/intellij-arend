@@ -42,6 +42,7 @@ class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubI
 fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "DEF_CLASS" -> ArendDefClassStub.Type
     "CLASS_FIELD" -> ArendClassFieldStub.Type
+    "IMPLEMENTED_CLASS_FIELD" -> ArendImplementedClassFieldStub.Type
     "FIELD_DEF_IDENTIFIER" -> ArendClassFieldParamStub.Type
     "CLASS_IMPLEMENT" -> ArendClassImplementStub.Type
     "DEF_INSTANCE" -> ArendDefInstanceStub.Type
@@ -78,6 +79,19 @@ class ArendClassFieldStub(parent: StubElement<*>?, elementType: IStubElementType
         override fun createPsi(stub: ArendClassFieldStub) = ArendClassFieldImpl(stub, this)
 
         override fun indexStub(stub: ArendClassFieldStub, sink: IndexSink) = sink.indexClassField(stub)
+    }
+}
+
+class ArendImplementedClassFieldStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?, override val precedence: Precedence?)
+    : ArendStub<ArendImplementedClassField>(parent, elementType, name) {
+
+    object Type : ArendStubElementType<ArendImplementedClassFieldStub, ArendImplementedClassField>("IMPLEMENTED_CLASS_FIELD") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?) =
+            ArendImplementedClassFieldStub(parentStub, this, name, prec)
+
+        override fun createPsi(stub: ArendImplementedClassFieldStub) = ArendImplementedClassFieldImpl(stub, this)
+
+        override fun indexStub(stub: ArendImplementedClassFieldStub, sink: IndexSink) = sink.indexClassField(stub)
     }
 }
 

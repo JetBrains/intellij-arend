@@ -1,6 +1,7 @@
 package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
+import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -20,7 +21,7 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
     val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
 
     val alternativeLocation = when (defaultLocation.target) {
-        is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
+        is FieldReferable, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
     }
     val locations: MutableList<LocationData> = ArrayList()
