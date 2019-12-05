@@ -40,8 +40,10 @@ tasks.withType<KotlinCompile> {
     dependsOn("generateArendLexer", "generateArendParser")
 }
 
-java.sourceSets {
-    getByName("main").java.srcDirs("src/gen")
+sourceSets {
+    main {
+        java.srcDirs("src/gen")
+    }
 }
 
 idea {
@@ -104,7 +106,7 @@ task<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "4.9"
+    gradleVersion = "5.5.1"
 }
 
 
