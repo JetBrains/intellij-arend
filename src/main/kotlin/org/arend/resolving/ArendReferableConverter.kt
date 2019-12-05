@@ -7,8 +7,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.reference.converter.SimpleReferableConverter
-import org.arend.psi.ArendClassField
-import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -37,7 +35,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
         when (referable) {
             is ArendFile -> null
             is PsiReferable -> {
-                if (referable is ArendClassField || referable is ArendFieldDefIdentifier) {
+                if (referable is FieldReferable) {
                     var result = cache[referable]
                     if (result == null) {
                         result = state[referable]
@@ -59,7 +57,7 @@ class ArendReferableConverter(private val project: Project?, private val state: 
                             val parent = if (locatedParent is ArendFile) locatedParent.modulePath?.let { ModuleReferable(it) } else toDataLocatedReferable(locatedParent)
                             result = when (referable) {
                                 is ClassReferable -> ClassDataLocatedReferable(pointer, referable, parent, referable.isRecord, ArrayList(), ArrayList(), ArrayList())
-                                is ArendClassField, is ArendFieldDefIdentifier -> cache[referable]
+                                is FieldReferable -> cache[referable]
                                 else -> DataLocatedReferable(pointer, referable, parent, toDataLocatedReferable(referable.getTypeClassReference()) as? TCClassReferable)
                             }
                             val prev = state.putIfAbsent(referable, result)
