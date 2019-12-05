@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.Referable
 import org.arend.psi.ArendDefClass
 import org.arend.settings.ArendProjectSettings
 
@@ -19,17 +20,18 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
-            if (project.service<ArendProjectSettings>().data.showImplFields) {
+            val settings = project.service<ArendProjectSettings>().data
+            if (settings.showImplFields) {
                 classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
             }
-            if (project.service<ArendProjectSettings>().data.showNonImplFields) {
+            if (settings.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
                     ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as PsiElement, false) }
                 } else {
-                    val implFields = HashSet<String>()
+                    val implFields = HashSet<Referable>()
                     implInAncestors(descriptor, implFields)
                     classElement.fieldReferables.mapNotNullTo(result) {
-                        if (it is PsiElement && !implFields.contains(it.textRepresentation()))
+                        if (it is PsiElement && !implFields.contains(it))
                             ArendHierarchyNodeDescriptor(project, descriptor, it, false)
                         else null
                     }
@@ -39,40 +41,17 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             return result.toTypedArray()
         }
 
-        private fun implInAncestors(descriptor: HierarchyNodeDescriptor, implFields: MutableSet<String>) {
+        private fun implInAncestors(descriptor: HierarchyNodeDescriptor, implFields: MutableSet<Referable>) {
             val classElement = descriptor.psiElement as? ArendDefClass ?: return
-            classElement.implementedFields.mapTo(implFields) { it.textRepresentation() }
+            implFields.addAll(classElement.implementedFields)
             if (descriptor.parentDescriptor != null) {
                 implInAncestors(descriptor.parentDescriptor as ArendHierarchyNodeDescriptor, implFields)
             }
         }
-
-        /*
-        private fun addSuperclassFields(fields: MutableSet<ArendClassField>, implFields: MutableSet<String>, clazz: ArendDefClass) {
-            clazz.implementedFields.mapTo(implFields) { it.textRepresentation() }
-            clazz.classFieldList.mapTo(fields) { it }
-            for (supClass in clazz.superClassReferences) {
-                addSuperclassFields(fields, implFields, supClass as ArendDefClass)
-            }
-        }
-
-        fun getAllFields(clazz: ArendDefClass, excludeImpl: Boolean): Set<PsiElement> {
-            val fields = HashSet<ArendClassField>()
-            val implFields = HashSet<String>()
-            addSuperclassFields(fields, implFields, clazz)
-            if (excludeImpl) {
-                return fields.filterNot { implFields.contains(it.textRepresentation()) }.toSet()
-            }
-            return fields
-        } */
-
-
-
     }
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<out Any> {
         val children = getChildren(descriptor, myProject)
         return browser.buildChildren(children, TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE)
     }
-
 }

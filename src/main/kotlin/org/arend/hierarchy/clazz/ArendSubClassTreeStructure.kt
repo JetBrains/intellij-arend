@@ -18,12 +18,13 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private
         val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
         val subClasses = myProject.service<ClassInheritorsSearch>().search(classElement)
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
+        val settings = myProject.service<ArendProjectSettings>().data
 
         subClasses.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
-        if (myProject.service<ArendProjectSettings>().data.showImplFields) {
+        if (settings.showImplFields) {
             classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) }
         }
-        if (myProject.service<ArendProjectSettings>().data.showNonImplFields) {
+        if (settings.showNonImplFields) {
             classElement.fieldReferables.mapNotNullTo(result) {
                 if (it is PsiElement) ArendHierarchyNodeDescriptor(myProject, descriptor, it, false) else null
             }
