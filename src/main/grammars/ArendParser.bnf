@@ -177,11 +177,13 @@ private classStatRecovery ::= {
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
-private classFieldOrImplement ::= pipe_def (classField | classImplement)
+private classFieldOrImplement ::= pipeField
     | implementedClassField
-    | IMPLEMENT_KW classImplement {
-    pin(".*") = 1
-}
+    | implementField
+
+private pipeField ::= pipe_def (classField | classImplement) { pin = 1 }
+
+private implementField ::= IMPLEMENT_KW classImplement { pin = 1 }
 
 classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
     pin = 4
@@ -295,13 +297,16 @@ private truncatedKW ::= TRUNCATED_KW {
   recoverWhile = statement_recover
 }
 
-defClass ::= (CLASS_KW | RECORD_KW) defClassHeader classStats where? {
-    pin(".*") = 1
+defClass ::= (defClassClass | defClassRecord) where? {
     implements = "org.arend.naming.reference.ClassReferable"
     mixin = "org.arend.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefClassStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
+
+private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
 private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
