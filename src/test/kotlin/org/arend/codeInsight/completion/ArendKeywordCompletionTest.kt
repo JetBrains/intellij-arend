@@ -127,7 +127,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwModuleInsideClass)
 
     fun `test no root keywords completion`() =
-            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST + CLASS_MEMBER_KWS,
+            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST,
                     CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
                     "\\class Foo {\n {-caret-} \n | A : Nat }",
@@ -148,6 +148,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test no coerce or class members in global context`() =
             checkKeywordCompletionVariants(USE_KW_LIST + CLASS_MEMBER_KWS, CompletionCondition.DOES_NOT_CONTAIN,
                     "{-caret-}")
+
+    fun `test class members inside class`() = checkKeywordCompletionVariants(CLASS_MEMBER_KWS, CompletionCondition.CONTAINS,
+            "\\record R {\n {-caret-} | x : Nat }",
+            "\\record R {\n | y : Nat\n {-caret-}\n | x : Nat }")
 
     fun `test root completion in empty context`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.CONTAINS, "{-caret-}")

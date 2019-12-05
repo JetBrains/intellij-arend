@@ -102,7 +102,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(and(STATEMENT_END_CONTEXT, definitionWhereModulePattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS))
+        basic(and(STATEMENT_END_CONTEXT, definitionWhereModulePattern(false, false)), JointOfStatementsProvider(CLASS_MEMBER_KWS, allowBeforeClassFields = true))
 
         basic(and(STATEMENT_END_CONTEXT, definitionWhereModulePattern(true, true)), JointOfStatementsProvider(USE_KW_LIST))
 
@@ -119,7 +119,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(and(WHERE_CONTEXT, after(wherePattern)),
-                JointOfStatementsProvider(WHERE_KW_LIST, { true }, tailSpaceNeeded = true, noCrlfRequired = true, allowInsideBraces = false))
+                JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
                 and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
@@ -606,12 +606,17 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class JointOfStatementsProvider(keywords: List<String>, additionalCondition: (ArendCompletionParameters) -> Boolean = { true }, tailSpaceNeeded: Boolean = true, noCrlfRequired: Boolean = false, allowInsideBraces: Boolean = true) :
+    private open class JointOfStatementsProvider(keywords: List<String>,
+                                                 additionalCondition: (ArendCompletionParameters) -> Boolean = { true },
+                                                 tailSpaceNeeded: Boolean = true,
+                                                 noCrlfRequired: Boolean = false,
+                                                 allowInsideBraces: Boolean = true,
+                                                 allowBeforeClassFields: Boolean = false) :
             ConditionalProvider(keywords, { parameters ->
                 val arendCompletionParameters = ArendCompletionParameters(parameters)
-                val leftSideOk = (arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace && allowInsideBraces) && !arendCompletionParameters.isBeforeClassFields
+                val leftSideOk = (arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace && allowInsideBraces)
                 val rightSideOk = (arendCompletionParameters.rightStatement == null || arendCompletionParameters.rightBrace && !arendCompletionParameters.leftBrace)
-                val correctStatements = leftSideOk || rightSideOk || arendCompletionParameters.betweenStatementsOk
+                val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (allowBeforeClassFields || !arendCompletionParameters.isBeforeClassFields)
 
                 (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
             }, tailSpaceNeeded)
@@ -672,7 +677,7 @@ class ArendCompletionContributor : CompletionContributor() {
             leftStatement = ancestorsPE.lastOrNull()
             rightStatement = ancestorsNE.lastOrNull()
             isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
-            betweenStatementsOk = leftStatement != null && rightStatement != null && !isBeforeClassFields && ancestorsNE.intersect(ancestorsPE).isEmpty()
+            betweenStatementsOk = leftStatement != null && rightStatement != null && ancestorsNE.intersect(ancestorsPE).isEmpty()
         }
 
         companion object {
