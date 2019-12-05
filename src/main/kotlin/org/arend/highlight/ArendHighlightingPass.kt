@@ -114,6 +114,12 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
+            override fun overriddenFieldResolved(overriddenField: Concrete.OverriddenField, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
+                (overriddenField.data as? ArendOverriddenField)?.longName?.let {
+                    resolveReference(it, referable, resolvedRefs)
+                }
+            }
+
             override fun namespaceResolved(namespaceCommand: NamespaceCommand, resolvedRefs: List<Referable?>) {
                 (namespaceCommand as? ArendStatCmd)?.longName?.let {
                     replaceCache(it.refIdentifierList, resolvedRefs)
