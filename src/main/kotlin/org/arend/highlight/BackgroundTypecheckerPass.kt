@@ -37,7 +37,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
 
         progress.checkCanceled()
         definition.accept(object : DumbTypechecker(this) {
-            override fun visitFunction(def: Concrete.FunctionDefinition, params: Void?): Void? {
+            override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
                 doAnnotate(def.data.data as? PsiElement, holder)
                 return null
