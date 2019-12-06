@@ -181,7 +181,7 @@ private classFieldOrImplement ::= pipe_def (classField | classImplement) { pin =
 
 private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 
-overriddenField ::= OVERRIDE_KW longName typeTele* COLON expr {
+overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.OverriddenField" ]
