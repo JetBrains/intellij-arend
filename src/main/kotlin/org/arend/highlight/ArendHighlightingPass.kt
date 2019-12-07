@@ -108,8 +108,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 resolveReference(pattern.data, pattern.constructor, resolvedRefs)
             }
 
-            override fun coPatternResolved(classFieldImpl: Concrete.ClassFieldImpl, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-                (classFieldImpl.data as? CoClauseBase)?.longName?.let {
+            override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
+                (element.data as? CoClauseBase)?.longName?.let {
                     resolveReference(it, referable, resolvedRefs)
                 }
             }
@@ -134,7 +134,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
             private fun highlightParameters(definition: Concrete.ReferableDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
-                    if (parameter.type.underlyingTypeClass != null) {
+                    if (parameter.type?.underlyingTypeClass != null) {
                         val list = when (val param = parameter.data) {
                             is ArendFieldTele -> param.fieldDefIdentifierList
                             is ArendNameTele -> param.identifierOrUnknownList
