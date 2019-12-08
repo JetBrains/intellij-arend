@@ -77,7 +77,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             if (newExpr.appPrefix?.newKw != null) {
                 return newInstances
             }
-            if (newExpr.coClauseList.isNotEmpty()) {
+            if (newExpr.localCoClauseList.isNotEmpty()) {
                 return classExt
             }
 

@@ -22,7 +22,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
     open val argumentList: List<ArendArgument>
         get() = emptyList()
 
-    abstract val coClauseList: List<ArendCoClause>
+    abstract val localCoClauseList: List<ArendLocalCoClause>
 
     fun isVariable() = false
 
@@ -39,7 +39,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
             prefix.evalKw != null -> Abstract.EvalKind.EVAL
             else -> null
         }
-        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else coClauseList, argumentList, if (visitor.visitErrors()) getErrorData(this) else null, params)
+        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, if (visitor.visitErrors()) getErrorData(this) else null, params)
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {
@@ -57,5 +57,5 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
 
     override fun getClassReferenceData(onlyClassRef: Boolean) = getClassReference(onlyClassRef, true)
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = if (appPrefix?.pevalKw != null) emptyList() else coClauseList
+    override fun getCoClauseElements(): List<ArendLocalCoClause> = if (appPrefix?.pevalKw != null) emptyList() else localCoClauseList
 }

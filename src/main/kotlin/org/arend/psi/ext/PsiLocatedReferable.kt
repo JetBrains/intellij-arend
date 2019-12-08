@@ -15,6 +15,9 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val defIdentifier: ArendDefIdentifier?
 
+    val nameElement: ArendCompositeElement?
+        get() = defIdentifier
+
     companion object {
         fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
 

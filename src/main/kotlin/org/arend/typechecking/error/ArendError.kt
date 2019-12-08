@@ -4,21 +4,21 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.GeneralError
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.TCDefinition
 
 
 class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPointer<*>) : Comparable<ArendError> {
     private val definitionPointer = runReadAction {
-        cause?.ancestor<ArendDefinition>()?.let { SmartPointerManager.createPointer(it) }
+        cause?.ancestor<TCDefinition>()?.let { SmartPointerManager.createPointer(it) }
     }
 
     val cause: ArendCompositeElement?
         get() = pointer.element as? ArendCompositeElement
 
-    val definition: ArendDefinition?
+    val definition: TCDefinition?
         get() = definitionPointer?.element
 
     val inDefinition: Boolean

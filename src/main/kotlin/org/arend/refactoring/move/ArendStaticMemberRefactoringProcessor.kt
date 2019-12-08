@@ -20,10 +20,7 @@ import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsage
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
@@ -200,7 +197,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Do move myMembers
         val holes = ArrayList<RelativePosition>()
         val newMemberList = ArrayList<ArendGroup>()
-        val definitionsThatNeedThisParameter = ArrayList<ArendDefinition>()
+        val definitionsThatNeedThisParameter = ArrayList<TCDefinition>()
 
         for (m in myMembers) {
             val mStatementOrClassStat = m.parent
@@ -219,7 +216,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     ?: myTargetContainer.addWithNotification(mCopyStatement)
 
             fun addGroupToThis(group: ArendGroup) {
-                if (group is ArendDefinition) definitionsThatNeedThisParameter.add(group)
+                if (group is TCDefinition) definitionsThatNeedThisParameter.add(group)
                 for (sg in group.subgroups) addGroupToThis(sg)
             }
 
@@ -344,11 +341,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
 
         //Prepare a map which would allow us to fix class field usages on the next step (this step is needed only when we are moving definitions out of a record)
-        val referenceElementsFixMap = HashMap<ArendDefinition, HashSet<ArendReferenceElement>>()
+        val referenceElementsFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
         for (usage in bodiesClassFieldUsages) {
             val element = locateChild(usage)
             if (element is ArendReferenceElement) {
-                val ancestor = element.ancestor<ArendDefinition>()
+                val ancestor = element.ancestor<TCDefinition>()
                 if (ancestor != null && definitionsThatNeedThisParameter.contains(ancestor)) {
                     val set = referenceElementsFixMap[ancestor] ?: HashSet()
                     referenceElementsFixMap[ancestor] = set
@@ -359,7 +356,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Add this modifier for items moved out of a class
         if (mySourceContainer is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
-            val anchor = definition.defIdentifier
+            val anchor = definition.nameElement
             val className = getTargetName(mySourceContainer, definition)
                     ?: mySourceContainer.defIdentifier?.textRepresentation()
             val thisVarName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(definition).map { VariableImpl(it) }.toList())

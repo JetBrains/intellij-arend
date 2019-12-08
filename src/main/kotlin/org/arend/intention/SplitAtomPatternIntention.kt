@@ -79,7 +79,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
         if (project != null) {
-            var definition: ArendDefinition? = null
+            var definition: TCDefinition? = null
             val (patternOwner, indexList) = locatePattern(element) ?: return null
             val ownerParent = (patternOwner as PsiElement).parent
             var abstractPatterns: List<Abstract.Pattern>? = null
@@ -89,7 +89,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val func = body?.parent
                 if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
                     abstractPatterns = patternOwner.patterns
-                    definition = func as? ArendDefinition
+                    definition = func as? TCDefinition
                 }
             }
             if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {

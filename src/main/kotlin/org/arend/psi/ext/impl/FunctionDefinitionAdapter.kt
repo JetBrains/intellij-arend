@@ -11,6 +11,7 @@ import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefFunctionStub
 import org.arend.term.FunctionKind
+import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
@@ -80,7 +81,9 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
     }
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = functionBody?.coClauseList ?: emptyList()
+    override fun getCoClauseElements(): List<ArendCoClause> = functionBody?.coClauseList ?: emptyList()
+
+    override fun getImplementedField(): Abstract.Reference? = null
 
     override val psiElementType: PsiElement?
         get() = resultType

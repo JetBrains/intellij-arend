@@ -15,7 +15,7 @@ private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Cl
     val classRefData = classRefHolder?.getClassReferenceData(false)
     val result = ClassReferable.Helper.getNotImplementedFields(classDef, classRefData?.argumentsExplicitness ?: emptyList(), classRefData?.withTailImplicits ?: false, superClassesFields)
     if (classRefHolder != null && (classRefHolder as? Abstract.ClassDefinition)?.referable != classDef) {
-        for (fieldImpl in classRefHolder.classFieldImpls) {
+        for (fieldImpl in classRefHolder.coClauseElements) {
             (fieldImpl as? PsiElement)?.let {
                 val resolved = PsiTreeUtil.getChildOfType(it, ArendLongName::class.java)?.refIdentifierList?.lastOrNull()?.reference?.resolve()
                 if (resolved is FieldReferable) {

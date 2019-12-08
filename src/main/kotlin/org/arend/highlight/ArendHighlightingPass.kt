@@ -15,6 +15,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import org.arend.resolving.ArendResolveCache
@@ -109,7 +110,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             }
 
             override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-                (element.data as? CoClauseBase)?.longName?.let {
+                val data = element.data
+                (((data as? ArendCoClauseDef)?.parent ?: data) as? CoClauseBase)?.longName?.let {
                     resolveReference(it, referable, resolvedRefs)
                 }
             }
@@ -161,12 +163,12 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 progress.checkCanceled()
 
                 if (resetDefinition) {
-                    (definition.data.underlyingReferable as? ArendDefinition)?.let {
+                    (definition.data.underlyingReferable as? TCDefinition)?.let {
                         psiListenerService.updateDefinition(it, file, true)
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.defIdentifier?.let {
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.nameElement?.let {
                     holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                 }
 

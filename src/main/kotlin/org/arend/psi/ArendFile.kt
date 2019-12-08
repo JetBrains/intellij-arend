@@ -20,6 +20,7 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.stubs.ArendFileStub
@@ -53,7 +54,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 
-    var lastModifiedDefinition: ArendDefinition? = null
+    var lastModifiedDefinition: TCDefinition? = null
         get() {
             if (field?.isValid == false) {
                 field = null

@@ -16,12 +16,12 @@ fun makeFirstCoClauseInserter(element: PsiElement?) = when (element) {
         }
 
 abstract class AbstractCoClauseInserter {
-    abstract val coClausesList: List<ArendCoClause>
+    abstract val coClausesList: List<CoClauseBase>
     abstract fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?)
 }
 
 class CoClauseInserter(private val coClause: CoClauseBase) : AbstractCoClauseInserter() {
-    override val coClausesList get(): List<ArendCoClause> = coClause.coClauseList
+    override val coClausesList get(): List<ArendLocalCoClause> = coClause.localCoClauseList
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         coClause.fatArrow?.deleteWithNotification()
@@ -90,7 +90,7 @@ class ArendInstanceInserter(private val instance: ArendDefInstance) : ArendFunct
 }
 
 class NewExprInserter(private val newExpr: ArendNewExprImplMixin, private val argumentAppExpr: ArendArgumentAppExpr) : AbstractCoClauseInserter() {
-    override val coClausesList get(): List<ArendCoClause> = newExpr.coClauseList
+    override val coClausesList get(): List<ArendLocalCoClause> = newExpr.localCoClauseList
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         val anchor = newExpr.lbrace ?: run {

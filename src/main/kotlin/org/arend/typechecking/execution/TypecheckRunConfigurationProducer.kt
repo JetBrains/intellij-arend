@@ -4,8 +4,8 @@ import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.fullName
 import org.arend.psi.parentOfType
 import org.arend.typechecking.execution.configurations.ArendRunConfigurationFactory
@@ -34,8 +34,8 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
 
     private fun configurationFromContext(context: ConfigurationContext, sourceElement: Ref<PsiElement>?): MyConfiguration? {
         val element = context.location?.psiElement
-        when (val definition = element?.parentOfType<ArendDefinition>(false) ?: element?.parentOfType<ArendFile>(false)) {
-            is ArendDefinition -> {
+        when (val definition = element?.parentOfType<TCDefinition>(false) ?: element?.parentOfType<ArendFile>(false)) {
+            is TCDefinition -> {
                 val file = definition.containingFile as? ArendFile ?: return null
                 val modulePath = file.modulePath ?: return null
                 sourceElement?.set(definition)

@@ -8,9 +8,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.Function
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendElementTypes
+import org.arend.psi.*
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.fullName
 import org.arend.typechecking.TypeCheckingService
 
@@ -20,7 +19,12 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             return null
         }
 
-        val parent = (element.parent as? ArendDefIdentifier)?.parent as? ArendDefinition ?: return null
+        val parent = when (val id = element.parent) {
+            is ArendDefIdentifier -> id.parent as? TCDefinition
+            is ArendRefIdentifier -> ((id.parent as? ArendLongName)?.parent as? ArendCoClause)?.coClauseDef
+            else -> null
+        } ?: return null
+
         val service = parent.project.service<TypeCheckingService>()
         val def = service.getTypechecked(parent)
         val icon = when (def?.status()) {

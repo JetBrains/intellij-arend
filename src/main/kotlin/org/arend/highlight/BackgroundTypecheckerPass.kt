@@ -9,8 +9,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.settings.ArendSettings
@@ -29,7 +29,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     private val typeCheckingService = myProject.service<TypeCheckingService>()
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val arendSettings = service<ArendSettings>()
-    private val definitionsToTypecheck = ArrayList<ArendDefinition>()
+    private val definitionsToTypecheck = ArrayList<TCDefinition>()
     private var lineMarkersPass: LineMarkersPass? = null
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
@@ -63,7 +63,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         }, null)
     }
 
-    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
+    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: TCDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
             val ok = definitionBlackListService.runTimed(definition, progress) {
                 typechecking.typecheckDefinitions(listOf(it), ArendCancellationIndicator(progress))
@@ -130,7 +130,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         lineMarkersPass?.applyInformationToEditor()
     }
 
-    override fun countDefinition(def: ArendDefinition) =
+    override fun countDefinition(def: TCDefinition) =
         if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
             definitionsToTypecheck.add(def)
             true

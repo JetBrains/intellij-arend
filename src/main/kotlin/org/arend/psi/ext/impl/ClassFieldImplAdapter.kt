@@ -21,7 +21,7 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
 
     override fun getImplementedField() = longName
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = coClauseList
+    override fun getCoClauseElements(): List<ArendLocalCoClause> = localCoClauseList
 
     override val resolvedImplementedField
         get() = longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? Referable

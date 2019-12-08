@@ -10,11 +10,13 @@ import org.arend.typing.ReferableExtractVisitor
 
 
 interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCompositeElement {
-    val coClauseList: List<ArendCoClause>
+    val localCoClauseList: List<ArendLocalCoClause>
 
     val lbrace: PsiElement?
 
     val longName: ArendLongName?
+
+    val nameTeleList: List<ArendNameTele>
 
     val resolvedImplementedField: Referable?
 
