@@ -45,10 +45,10 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
         get() = emptyList()
 
     override val lbrace: PsiElement?
-        get() = null
+        get() = functionClauses?.lbrace
 
     override val rbrace: PsiElement?
-        get() = null
+        get() = functionClauses?.rbrace
 
     override val cowithKw: PsiElement?
         get() = null
