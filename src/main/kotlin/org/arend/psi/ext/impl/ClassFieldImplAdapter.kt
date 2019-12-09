@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.stubs.ArendClassImplementStub
 
 abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>, ArendClassImplement, CoClauseBase {
@@ -26,7 +27,9 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
     override val resolvedImplementedField
         get() = longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? Referable
 
-    override fun getName() = longName.refIdentifierList.lastOrNull()?.referenceName
+    override fun getNameIdentifier() = longName.refIdentifierList.lastOrNull()
+
+    override fun getName() = stub?.name ?: longName.refIdentifierList.lastOrNull()?.referenceName
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 

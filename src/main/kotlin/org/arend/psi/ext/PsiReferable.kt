@@ -23,7 +23,7 @@ class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: M
 
 abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node), PsiReferable {
 
-    override fun getNameIdentifier(): ArendCompositeElement? = childOfType()
+    override fun getNameIdentifier(): PsiElement? = childOfType<ArendDefIdentifier>()
 
     override fun getName(): String? = nameIdentifier?.text
 
@@ -48,9 +48,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    override fun getNameIdentifier(): ArendDefIdentifier? = childOfType()
+    override fun getNameIdentifier(): ArendCompositeElement? = childOfType<ArendDefIdentifier>()
 
-    override fun getName(): String? = stub?.name ?: nameIdentifier?.referenceName
+    override fun getName(): String? = stub?.name ?: childOfType<ArendDefIdentifier>()?.referenceName
 
     override fun textRepresentation(): String = name ?: "_"
 

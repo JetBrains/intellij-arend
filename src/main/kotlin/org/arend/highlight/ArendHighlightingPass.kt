@@ -168,7 +168,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.nameElement?.let {
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.nameIdentifier?.let {
                     holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                 }
 

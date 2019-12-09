@@ -35,6 +35,7 @@ object ArendIcons {
     val DATA_DEFINITION = AllIcons.Nodes.EjbCmpField!!
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
     val MODULE_DEFINITION = AllIcons.Nodes.Method!!
+    val COCLAUSE_DEFINITION = FUNCTION_DEFINITION
 
     // Errors
 

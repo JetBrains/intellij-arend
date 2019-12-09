@@ -356,7 +356,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         //Add this modifier for items moved out of a class
         if (mySourceContainer is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
-            val anchor = definition.nameElement
+            val anchor = definition.nameIdentifier
             val className = getTargetName(mySourceContainer, definition)
                     ?: mySourceContainer.defIdentifier?.textRepresentation()
             val thisVarName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(definition).map { VariableImpl(it) }.toList())

@@ -42,6 +42,8 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
+    override fun getSubgroups(): List<ArendGroup> = (instanceBody?.coClauseList?.mapNotNull { it.coClauseDef } ?: emptyList()) + super.getSubgroups()
+
     override fun withTerm() = instanceBody?.fatArrow != null
 
     override fun isCowith(): Boolean {

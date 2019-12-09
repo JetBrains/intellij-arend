@@ -229,7 +229,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
 
             return result ?: when (element) {
-                is PsiLocatedReferable -> element.nameElement
+                is PsiLocatedReferable -> element.nameIdentifier
                 is CoClauseBase -> element.longName
                 else -> null
             }

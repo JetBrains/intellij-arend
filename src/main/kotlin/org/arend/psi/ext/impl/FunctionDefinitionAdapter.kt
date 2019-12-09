@@ -41,6 +41,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
+    override fun getSubgroups(): List<ArendGroup> = (functionBody?.coClauseList?.mapNotNull { it.coClauseDef } ?: emptyList()) + super.getSubgroups()
+
     override fun withTerm() = functionBody?.fatArrow != null
 
     override fun isCowith() = functionBody?.cowithKw != null

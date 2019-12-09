@@ -3,6 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
@@ -13,6 +14,7 @@ import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ReferableExtractVisitor
+import javax.swing.Icon
 
 abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, ArendCoClauseDef {
     constructor(node: ASTNode) : super(node)
@@ -22,18 +24,19 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     val parentCoClause: ArendCoClause?
         get() = parent as? ArendCoClause
 
+    override fun getNameIdentifier() = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
+
+    override fun getName() = stub?.name ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
+
     override fun getPrec(): ArendPrec? = parentCoClause?.prec
 
     override val defIdentifier: ArendDefIdentifier?
         get() = null
 
-    override val nameElement: ArendCompositeElement?
-        get() = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
-
     override val where: ArendWhere?
         get() = null
 
-    override fun getParameters(): List<ArendNameTele> = parentCoClause?.nameTeleList ?: emptyList()
+    override fun getParameters(): List<ArendNameTele> = nameTeleList
 
     override val body: ArendFunctionalBody?
         get() = this
@@ -81,4 +84,6 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
+
+    override fun getIcon(flags: Int): Icon = ArendIcons.COCLAUSE_DEFINITION
 }
