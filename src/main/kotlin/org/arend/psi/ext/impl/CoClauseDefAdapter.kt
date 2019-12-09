@@ -38,9 +38,6 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override val body: ArendFunctionalBody?
         get() = this
 
-    override val nameTeleList: List<ArendNameTele>
-        get() = parentCoClause?.nameTeleList ?: emptyList()
-
     override val coClauseList: List<ArendCoClause>
         get() = emptyList()
 
@@ -69,9 +66,9 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getTerm(): Abstract.Expression? = null
 
-    override fun getEliminatedExpressions(): List<ArendRefIdentifier> = elim.refIdentifierList
+    override fun getEliminatedExpressions(): List<ArendRefIdentifier> = elim?.refIdentifierList ?: emptyList()
 
-    override fun getClauses(): List<ArendClause> = functionClauses.clauseList
+    override fun getClauses(): List<ArendClause> = functionClauses?.clauseList ?: emptyList()
 
     override fun getUsedDefinitions(): List<LocatedReferable> = emptyList()
 

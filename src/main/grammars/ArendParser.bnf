@@ -208,7 +208,8 @@ classImplement ::= localCoClausePrivate {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-coClauseDef ::= [COLON returnExpr] elim functionClauses {
+coClauseDef ::= nameTele* [COLON returnExpr] elim functionClauses {
+    pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ext.PsiConcreteReferable"
@@ -584,7 +585,7 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= PIPE prec? longName nameTele* (coClauseRec | coClauseImpl | coClauseDef) {
+coClause ::= PIPE prec? longName (coClauseRec | coClauseImpl | coClauseDef) {
     pin = 1
     implements = [ "org.arend.psi.CoClauseBase"
                    "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
@@ -609,11 +610,11 @@ private coClauseImp ::= localCoClause {
 
 private co_clause_imp_recover ::= !(PIPE | RBRACE | ID | UNDERSCORE) & statement_recover
 
-private localCoClausePrivate ::= longName nameTele* (coClauseRec | coClauseImpl) { pin = 1 }
+private localCoClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
 
-private coClauseImpl ::= FAT_ARROW expr { pin = 1 }
+private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 2 }
 
-private coClauseRec ::= LBRACE coClauseImp* RBRACE { pin = 1 }
+private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
 letClause ::= letClauseName FAT_ARROW expr {
     pin = 1
