@@ -11,6 +11,7 @@ import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.Expression
 import org.arend.core.expr.SigmaExpression
 import org.arend.core.expr.visitor.NormalizeVisitor
 import org.arend.core.expr.visitor.ToAbstractVisitor
@@ -36,6 +37,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.typechecking.ArendTypecheckingListener
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.PatternTypechecking
@@ -49,24 +51,21 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val pattern = checkApplicability(element, editor?.project)
-            if (pattern != null) {
-                val type = pattern.binding.typeExpr //do we want to normalize this to whnf?
-                if (type is DataCallExpression) {
-                    val constructors = type.matchedConstructors ?: return false
-                    this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
+            val type = getElementType(element, editor?.project)
+            if (type is DataCallExpression) {
+                val constructors = type.matchedConstructors ?: return false
+                this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
+                return true
+            }
+            if (type is SigmaExpression) {
+                this.splitPatternEntries = singletonList(TupleSplitPatternEntry(type.parameters))
+                return true
+            }
+            if (type is ClassCallExpression) {
+                val definition = type.definition
+                if (definition.isRecord) {
+                    this.splitPatternEntries = singletonList(RecordSplitPatternEntry(type, definition))
                     return true
-                }
-                if (type is SigmaExpression) {
-                    this.splitPatternEntries = singletonList(TupleSplitPatternEntry(type.parameters))
-                    return true
-                }
-                if (type is ClassCallExpression) {
-                    val definition = type.definition
-                    if (definition.isRecord) {
-                        this.splitPatternEntries = singletonList(RecordSplitPatternEntry(type, definition))
-                        return true
-                    }
                 }
             }
         }
@@ -77,7 +76,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         splitPatternEntries?.let { doSplitPattern(element, project, it) }
     }
 
-    private fun checkApplicability(element: PsiElement, project: Project?): BindingPattern? {
+    private fun getCachedElementType(element: PsiElement, project: Project?): Expression? {
+
+    }
+
+    private fun getElementType(element: PsiElement, project: Project?): Expression? {
         if (project != null) {
             var definition: ArendDefinition? = null
             val (patternOwner, indexList) = locatePattern(element) ?: return null
@@ -106,8 +109,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     if (patterns != null && indexList.size > 0) {
                         val typecheckedPattern = if (isElim) patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         if (typecheckedPattern != null) {
-                            return findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
-                                    ?: return null
+                            val patternPart = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
+                            return patternPart.binding.typeExpr
                         }
                     }
                 }
