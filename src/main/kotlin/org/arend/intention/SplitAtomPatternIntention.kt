@@ -51,7 +51,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getElementType(element, editor?.project)
+            val type = getCachedElementType(element) ?: getElementType(element, editor?.project)
             if (type is DataCallExpression) {
                 val constructors = type.matchedConstructors ?: return false
                 this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
@@ -76,8 +76,18 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         splitPatternEntries?.let { doSplitPattern(element, project, it) }
     }
 
-    private fun getCachedElementType(element: PsiElement, project: Project?): Expression? {
-
+    private fun getCachedElementType(element: PsiElement): Expression? {
+        val defIdentifier = when (element) {
+            is ArendPattern -> {
+                element.defIdentifier
+            }
+            is ArendAtomPatternOrPrefix -> {
+                element.defIdentifier
+            }
+            else -> null
+        }
+        val cachedBinding = if (defIdentifier != null) ArendTypecheckingListener.referableTypeCache[defIdentifier] else null
+        return cachedBinding?.typeExpr
     }
 
     private fun getElementType(element: PsiElement, project: Project?): Expression? {
