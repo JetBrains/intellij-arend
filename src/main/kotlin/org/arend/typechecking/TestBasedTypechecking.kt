@@ -70,7 +70,7 @@ class TestBasedTypechecking(
         startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
-    override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition?) {
+    override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition) {
         stopTimer(referable)
     }
 

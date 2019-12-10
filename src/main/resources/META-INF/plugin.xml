@@ -246,6 +246,11 @@
         <orderRootType implementation="org.arend.module.orderRoot.ArendConfigOrderRootType"/>
         <OrderRootTypeUI key="AREND_CONFIG" implementationClass="org.arend.module.orderRoot.ArendConfigOrderRootTypeUIFactory"/>
 
+        <!-- Color Schemes -->
+
+        <additionalTextAttributes scheme="Default" file="colorScheme/Default_Arend.xml"/>
+        <additionalTextAttributes scheme="Darcula" file="colorScheme/Darcula_Arend.xml"/>
+
         <!-- Services -->
 
         <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/>

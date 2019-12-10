@@ -11,6 +11,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 
 
@@ -112,7 +113,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
         is ArendConstructor -> "constructor"
-        is ArendDefFunction -> "function"
+        is ArendDefFunction -> if (element.functionKind == FunctionKind.LEMMA) "lemma" else "function"
         is ArendLetClause -> "let"
         is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
         else -> null

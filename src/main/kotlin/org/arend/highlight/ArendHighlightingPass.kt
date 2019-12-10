@@ -5,10 +5,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import org.arend.naming.reference.ErrorReference
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCClassReferable
+import org.arend.core.definition.ClassField
+import org.arend.core.definition.Definition
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -21,6 +20,8 @@ import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.resolving.TCReferableWrapper
 import org.arend.resolving.WrapperReferableConverter
+import org.arend.term.ClassFieldKind
+import org.arend.term.FunctionKind
 import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
@@ -31,6 +32,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = myProject.service<ArendDefinitionChangeListenerService>()
+    private val resolverCache = myProject.service<ArendResolveCache>()
+    private val typecheckerState = myProject.service<TypeCheckingService>().typecheckerState
 
     init {
         myProject.service<TypeCheckingService>().initialize()
@@ -39,7 +42,6 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun collectInfo(progress: ProgressIndicator) {
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
         file.concreteProvider = concreteProvider
-        val resolverCache = myProject.service<ArendResolveCache>()
         DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
@@ -67,8 +69,16 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     else -> return
                 }
                 val lastReference = list.lastOrNull() ?: return
-                if (lastReference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
-                    holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                if (lastReference is ArendRefIdentifier) {
+                    val psiRef = referent.underlyingReferable
+                    when {
+                        (psiRef as? ArendDefFunction)?.functionKind == FunctionKind.LEMMA ->
+                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.LEMMA.textAttributesKey
+                        psiRef is ArendClassField && psiRef.classFieldKind.let { it == ClassFieldKind.PROPERTY || it == ClassFieldKind.ANY && currentDef != null && referent is TCReferable && (typecheckerState.getTypechecked(referent) as? ClassField)?.isProperty == true } ->
+                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.PROPERTY.textAttributesKey
+                        referent is GlobalReferable && referent.precedence.isInfix ->
+                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                    }
                 }
 
                 var index = 0
@@ -150,36 +160,48 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             }
 
             private var resetDefinition = false
-            private var currentDef: Concrete.Definition? = null
+            private var currentDef: Definition? = null
 
-            override fun beforeDefinitionResolved(definition: Concrete.Definition?) {
-                currentDef = definition
-                resetDefinition = false
+            override fun beforeDefinitionResolved(definition: Concrete.ReferableDefinition) {
+                if (definition is Concrete.Definition) {
+                    currentDef = typecheckerState.getTypechecked(definition.data)
+                    resetDefinition = false
+                }
             }
 
-            override fun definitionResolved(definition: Concrete.Definition) {
+            override fun definitionResolved(definition: Concrete.ReferableDefinition) {
                 progress.checkCanceled()
 
-                if (resetDefinition) {
-                    (definition.data.underlyingReferable as? ArendDefinition)?.let {
+                val psiDef = definition.data.underlyingReferable
+                if (resetDefinition && definition is Concrete.Definition) {
+                    (psiDef as? ArendDefinition)?.let {
                         psiListenerService.updateDefinition(it, file, true)
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.defIdentifier?.let {
-                    holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
-                }
-
-                highlightParameters(definition)
-                if (definition is Concrete.DataDefinition) {
-                    for (constructorClause in definition.constructorClauses) {
-                        for (constructor in constructorClause.constructors) {
-                            highlightParameters(constructor)
+                (psiDef as? PsiLocatedReferable)?.defIdentifier?.let {
+                    when (definition) {
+                        is Concrete.Constructor -> holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION_CON.textAttributesKey
+                        is Concrete.FunctionDefinition -> holder.createInfoAnnotation(it, null).textAttributes =
+                            if (definition.kind == FunctionKind.LEMMA)
+                                ArendHighlightingColors.DECLARATION_LEMMA.textAttributesKey
+                            else
+                                ArendHighlightingColors.DECLARATION.textAttributesKey
+                        is Concrete.ClassField -> when (definition.kind) {
+                            ClassFieldKind.FIELD -> holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION_FIELD.textAttributesKey
+                            ClassFieldKind.PROPERTY -> holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION_PROP.textAttributesKey
+                            ClassFieldKind.ANY -> if (currentDef != null && (typecheckerState.getTypechecked(definition.data) as? ClassField)?.isProperty == true) {
+                                holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION_PROP.textAttributesKey
+                            }
                         }
+                        else -> holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                     }
                 }
 
-                advanceProgress(1)
+                if (definition is Concrete.Definition) {
+                    highlightParameters(definition)
+                    advanceProgress(1)
+                }
             }
         }).resolveGroup(group, WrapperReferableConverter, group.scope)
     }
