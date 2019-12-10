@@ -32,7 +32,7 @@ object ArendIcons {
     val IMPLEMENTATION = AllIcons.General.Show_to_implement!!
     val CLASS_INSTANCE = AllIcons.Nodes.Interface!!
     val CONSTRUCTOR = AllIcons.Nodes.AbstractClass!!
-    val DATA_DEFINITION = AllIcons.Nodes.EjbCmpField!!
+    val DATA_DEFINITION = IconLoader.getIcon("/icons/dataStructure.svg")
     val FUNCTION_DEFINITION = AllIcons.Nodes.Field!!
     val MODULE_DEFINITION = AllIcons.Nodes.Method!!
 
