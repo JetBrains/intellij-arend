@@ -44,16 +44,18 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         """
         $listDefinition
     
-        \func length{-caret-} {A : \Type} (l : List A) : Nat \with
+        \func length{-caret-} {A : \Type} (l : List A) : Nat \with {
           | nil => 0
-          | :: x nil => 1
+          | :: x nil => 1 
+        }
         """, """ 
         $listDefinition
 
-        \func length {A : \Type} (l : List A) : Nat \with
+        \func length {A : \Type} (l : List A) : Nat \with {
           | nil => 0
           | :: x nil => 1
           | :: x (:: x1 xs) => {?}
+        }
         """)
 
     fun testBasicElim() = typedQuickFixTest("Implement",
@@ -309,4 +311,47 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """
                \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A 
             """)
+
+    fun testFixInArendCoClauseDef() = typedQuickFixTest("Implement", """
+               \record R (f : Nat -> Nat)
+               
+               \func foo (n : Nat) : R \cowith
+                 | f{-caret-} x \with {}
+    """, """
+               \record R (f : Nat -> Nat)
+               
+               \func foo (n : Nat) : R \cowith
+                 | f x \with {
+                   | 0 => {?}
+                   | suc n => {?}
+                 }
+    """)
+
+    fun testFixInCoClauseDefWithoutFC() = typedQuickFixTest("Implement", """
+               \record R (f : Nat -> Nat)
+               
+               \func foo (n : Nat) : R \cowith
+                 | f{-caret-} x \with
+    """, """
+               \record R (f : Nat -> Nat)
+
+               \func foo (n : Nat) : R \cowith
+                 | f x \with
+                   | 0 => {?}
+                   | suc n => {?}
+    """)
+
+    fun testFixInCoClauseDefWithoutWith() = typedQuickFixTest("Implement", """
+               \record R (f : Nat -> Nat)
+               
+               \func foo (n : Nat) : R \cowith
+                 | f{-caret-} x
+    """, """
+               \record R (f : Nat -> Nat)
+
+               \func foo (n : Nat) : R \cowith
+                 | f x \with
+                   | 0 => {?}
+                   | suc n => {?}
+    """)
 }

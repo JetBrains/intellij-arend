@@ -36,7 +36,7 @@ class CoClauseInserter(private val coClause: CoClauseBase) : AbstractCoClauseIns
             longName.nextSibling.nextSibling
         }
 
-        val sampleCoClause = factory.createCoClause(name)
+        val sampleCoClause = factory.createLocalCoClause(name)
         anchor.parent.addAfterWithNotification(sampleCoClause, anchor)
         moveCaretToEndOffset(editor, anchor.nextSibling)
 
@@ -101,7 +101,7 @@ class NewExprInserter(private val newExpr: ArendNewExprImplMixin, private val ar
             argumentAppExpr.nextSibling.nextSibling
         }
 
-        val sampleCoClause = factory.createCoClause(name)
+        val sampleCoClause = factory.createLocalCoClause(name)
         anchor.parent.addAfterWithNotification(sampleCoClause, anchor)
 
         moveCaretToEndOffset(editor, anchor.nextSibling)

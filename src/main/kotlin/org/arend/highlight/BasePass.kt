@@ -12,6 +12,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
+import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
@@ -291,8 +292,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return improvedElement.textRange
         }
 
-        private val GOAL_IN_COPATTERN = withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
-            ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
+        private val GOAL_IN_COPATTERN_PREFIX : Array<Class<out PsiElement>> =
+                arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)
+        private val GOAL_IN_COPATTERN = StandardPatterns.or(withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendLocalCoClause::class.java))),
+                withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
 
         fun isEmptyGoal(element: PsiElement): Boolean {
             val goal: ArendGoal? = element.childOfType()

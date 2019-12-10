@@ -82,6 +82,14 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
     }
 
+    fun createLocalCoClause(name: String, expr: String? = "{?}"): ArendLocalCoClause {
+        val code = buildString {
+            append("\\func foo => \\new Foo {\n")
+            append("| $name => $expr\n }")
+        }
+        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+    }
+
     fun createCoClauseInFunction(name: String, expr: String = "{?}"): ArendCoClause {
         val code = buildString {
             append("\\func Dummy : Dummy \\cowith\n")
@@ -129,6 +137,7 @@ class ArendPsiFactory(private val project: Project) {
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
 
-    fun createWhere(): ArendWhere =
-        createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
+    fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
+
+    fun createWith(): ArendElim = createFromText("\\func foo \\with")?.childOfType<ArendElim>() ?: error("Failed to create \"with\" keyword")
 }
