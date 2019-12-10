@@ -82,16 +82,12 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         enum class Braces { NONE, PARENTHESES, BRACES }
         enum class PatternKind { IMPLICIT_ARG, IMPLICIT_EXPR, EXPLICIT }
 
-        fun getAnchorOrPrimer(psiFactory: ArendPsiFactory, fClauses: ArendFunctionClauses?, lastChild: PsiElement): Pair<PsiElement, Boolean> =
-            if (fClauses != null) {
-                Pair(fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: fClauses.lastChild /* the last branch is meaningless */, false /* returns anchor */)
-            } else {
-                val newClauses = psiFactory.createFunctionClauses()
-                val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
-                lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
-                Pair(insertedClauses.lastChild, true /* returns primer */)
-            }
-
+        private fun insertPairOfBraces(psiFactory: ArendPsiFactory, anchor: PsiElement) {
+            val braces = psiFactory.createPairOfBraces()
+            anchor.parent.addAfter(braces.second, anchor)
+            anchor.parent.addAfter(braces.first, anchor)
+            anchor.parent.addAfter(psiFactory.createWhitespace(" "), anchor)
+        }
 
         fun insertClauses(psiFactory: ArendPsiFactory, cause: ArendCompositeElement, clauses: List<ArendClause>) {
             var primerClause: ArendClause? = null // a "primer" clause which is needed only to simplify insertion of proper clauses
@@ -100,9 +96,16 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val fBody = cause.functionBody
                     if (fBody != null) {
                         val fClauses = fBody.functionClauses
-                        val anchorData = getAnchorOrPrimer(psiFactory, fClauses, fBody.lastChild)
-                        if (anchorData.second) primerClause = anchorData.first as? ArendClause
-                        anchorData.first
+                        val lastChild = fBody.lastChild
+                        if (fClauses != null) {
+                            fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: fClauses.lastChild /* the last branch is meaningless */
+                        } else {
+                            val newClauses = psiFactory.createFunctionClauses()
+                            val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
+                            lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
+                            primerClause = insertedClauses.lastChild as? ArendClause
+                            primerClause
+                        }
                     } else {
                         val newBody = psiFactory.createFunctionClauses().parent as ArendFunctionBody
                         val lastChild = cause.lastChild
@@ -114,10 +117,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
                 is ArendCaseExpr -> {
                     cause.clauseList.lastOrNull() ?: (cause.lbrace ?: cause.withKw?.let {
-                        val braces = psiFactory.createPairOfBraces()
-                        it.parent.addAfter(braces.second, it)
-                        it.parent.addAfter(braces.first, it)
-                        it.parent.addAfter(psiFactory.createWhitespace(" "), it)
+                        insertPairOfBraces(psiFactory, it)
                         cause.lbrace
                     })
                 }
@@ -127,12 +127,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         cause.addBefore(psiFactory.createWhitespace(" "), withKw)
                         withKw
                     }
-                    if (cause.lbrace == null) {
-                        val braces = psiFactory.createPairOfBraces()
-                        elim.parent.addAfter(braces.second, elim)
-                        elim.parent.addAfter(braces.first, elim)
-                        elim.parent.addAfter(psiFactory.createWhitespace(" "), elim)
-                    }
+                    if (cause.lbrace == null)
+                        insertPairOfBraces(psiFactory, elim)
+
                     cause.clauseList.lastOrNull() ?: cause.lbrace ?: cause.lastChild
                 }
                 else -> null
