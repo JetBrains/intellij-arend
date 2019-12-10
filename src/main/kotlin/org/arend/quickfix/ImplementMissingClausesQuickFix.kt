@@ -122,14 +122,18 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     })
                 }
                 is ArendCoClauseDef -> {
-                    val fClauses = cause.functionClauses
-                    if (cause.elim == null) {
+                    val elim = cause.elim ?: run {
                         val withKw = cause.addAfter(psiFactory.createWith(), cause.lastChild)
                         cause.addBefore(psiFactory.createWhitespace(" "), withKw)
+                        withKw
                     }
-                    val anchorData = getAnchorOrPrimer(psiFactory, fClauses, cause.lastChild)
-                    if (anchorData.second) primerClause = anchorData.first as? ArendClause
-                    anchorData.first
+                    if (cause.lbrace == null) {
+                        val braces = psiFactory.createPairOfBraces()
+                        elim.parent.addAfter(braces.second, elim)
+                        elim.parent.addAfter(braces.first, elim)
+                        elim.parent.addAfter(psiFactory.createWhitespace(" "), elim)
+                    }
+                    cause.clauseList.lastOrNull() ?: cause.lbrace ?: cause.lastChild
                 }
                 else -> null
             }

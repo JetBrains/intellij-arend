@@ -336,9 +336,10 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \record R (f : Nat -> Nat)
 
                \func foo (n : Nat) : R \cowith
-                 | f x \with
+                 | f x \with {
                    | 0 => {?}
                    | suc n => {?}
+                 }
     """)
 
     fun testFixInCoClauseDefWithoutWith() = typedQuickFixTest("Implement", """
@@ -350,8 +351,9 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \record R (f : Nat -> Nat)
 
                \func foo (n : Nat) : R \cowith
-                 | f x \with
+                 | f x \with {
                    | 0 => {?}
                    | suc n => {?}
+                 }
     """)
 }
