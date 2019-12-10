@@ -208,7 +208,7 @@ classImplement ::= localCoClausePrivate {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-coClauseDef ::= nameTele* [COLON returnExpr] elim functionClauses {
+coClauseDef ::= nameTele* [COLON returnExpr] elim clausesWithBraces {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"

@@ -38,17 +38,14 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
+    override val functionClauses: ArendFunctionClauses?
+        get() = null
+
     override val body: ArendFunctionalBody?
         get() = this
 
     override val coClauseList: List<ArendCoClause>
         get() = emptyList()
-
-    override val lbrace: PsiElement?
-        get() = functionClauses?.lbrace
-
-    override val rbrace: PsiElement?
-        get() = functionClauses?.rbrace
 
     override val cowithKw: PsiElement?
         get() = null
@@ -71,7 +68,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getEliminatedExpressions(): List<ArendRefIdentifier> = elim?.refIdentifierList ?: emptyList()
 
-    override fun getClauses(): List<ArendClause> = functionClauses?.clauseList ?: emptyList()
+    override fun getClauses(): List<ArendClause> = clauseList
 
     override fun getUsedDefinitions(): List<LocatedReferable> = emptyList()
 
