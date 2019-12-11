@@ -12,6 +12,7 @@ import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.term.FunctionKind
+import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
@@ -40,6 +41,8 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         val def = it.definition
         if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
+
+    override fun getSubgroups(): List<ArendGroup> = (instanceBody?.coClauseList?.mapNotNull { it.coClauseDef } ?: emptyList()) + super.getSubgroups()
 
     override fun withTerm() = instanceBody?.fatArrow != null
 
@@ -78,7 +81,9 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
     }
 
-    override fun getClassFieldImpls(): List<ArendCoClause> = instanceBody?.coClauseList ?: emptyList()
+    override fun getCoClauseElements(): List<ArendCoClause> = instanceBody?.coClauseList ?: emptyList()
+
+    override fun getImplementedField(): Abstract.Reference? = null
 
     override val psiElementType: PsiElement?
         get() = resultType

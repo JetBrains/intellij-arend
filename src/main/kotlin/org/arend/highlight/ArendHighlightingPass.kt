@@ -15,6 +15,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import org.arend.resolving.ArendResolveCache
@@ -108,8 +109,9 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 resolveReference(pattern.data, pattern.constructor, resolvedRefs)
             }
 
-            override fun coPatternResolved(classFieldImpl: Concrete.ClassFieldImpl, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-                (classFieldImpl.data as? CoClauseBase)?.longName?.let {
+            override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
+                val data = element.data
+                (((data as? ArendCoClauseDef)?.parent ?: data) as? CoClauseBase)?.longName?.let {
                     resolveReference(it, referable, resolvedRefs)
                 }
             }
@@ -134,7 +136,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
             private fun highlightParameters(definition: Concrete.ReferableDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
-                    if (parameter.type.underlyingTypeClass != null) {
+                    if (parameter.type?.underlyingTypeClass != null) {
                         val list = when (val param = parameter.data) {
                             is ArendFieldTele -> param.fieldDefIdentifierList
                             is ArendNameTele -> param.identifierOrUnknownList
@@ -161,12 +163,12 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 progress.checkCanceled()
 
                 if (resetDefinition) {
-                    (definition.data.underlyingReferable as? ArendDefinition)?.let {
+                    (definition.data.underlyingReferable as? TCDefinition)?.let {
                         psiListenerService.updateDefinition(it, file, true)
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.defIdentifier?.let {
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.nameIdentifier?.let {
                     holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                 }
 

@@ -5,6 +5,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 
 
@@ -29,7 +30,7 @@ class ArendDefinitionChangeListenerService(project: Project) : PsiTreeChangeAdap
         }
     }
 
-    fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+    fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
@@ -104,7 +105,7 @@ class ArendDefinitionChangeListenerService(project: Project) : PsiTreeChangeAdap
             if (elem is ArendWhere || elem is ArendFile || isDynamicDef(elem)) {
                 return
             }
-            if (elem is ArendDefinition) {
+            if (elem is TCDefinition) {
                 updateDefinition(elem, file, false)
                 return
             }
@@ -113,7 +114,7 @@ class ArendDefinitionChangeListenerService(project: Project) : PsiTreeChangeAdap
     }
 
     private fun invalidateChildren(group: ArendGroup, file: ArendFile) {
-        if (group is ArendDefinition) {
+        if (group is TCDefinition) {
             updateDefinition(group, file, false)
         }
         for (subgroup in group.subgroups) {

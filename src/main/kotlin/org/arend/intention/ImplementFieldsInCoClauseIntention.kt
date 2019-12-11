@@ -6,12 +6,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ArendExpr
-import org.arend.psi.ext.ArendCoClauseImplMixin
+import org.arend.psi.CoClauseBase
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 
-open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoClauseImplMixin>(ArendCoClauseImplMixin::class.java, "Implement fields of a super class") {
-    override fun isApplicableTo(element: ArendCoClauseImplMixin, caretOffset: Int, editor: Editor?): Boolean {
+open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<CoClauseBase>(CoClauseBase::class.java, "Implement fields of a super class") {
+    override fun isApplicableTo(element: CoClauseBase, caretOffset: Int, editor: Editor?): Boolean {
         val data = element.getUserData(CoClausesKey)
         if (data != null && data.isNotEmpty()) {
             text = if (element.fatArrow != null) "Replace {?} with empty implementation of the class"
@@ -21,7 +21,7 @@ open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<ArendCoCl
         return false
     }
 
-    override fun applyTo(element: ArendCoClauseImplMixin, project: Project?, editor: Editor?) {
+    override fun applyTo(element: CoClauseBase, project: Project?, editor: Editor?) {
         val data = element.getUserData(CoClausesKey)
         val rangeToReport = element.longName?.textRange
         if (data != null && rangeToReport != null && project != null)

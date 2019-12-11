@@ -5,13 +5,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendCoClause
-import org.arend.psi.ArendFunctionBody
-import org.arend.psi.ArendInstanceBody
-import org.arend.psi.deleteWithNotification
+import org.arend.psi.*
 import org.arend.refactoring.moveCaretToStartOffset
 
-class RemoveCoClauseQuickFix(private val coClauseRef: SmartPsiElementPointer<ArendCoClause>) : IntentionAction {
+class RemoveCoClauseQuickFix(private val coClauseRef: SmartPsiElementPointer<CoClauseBase>) : IntentionAction {
     override fun startInWriteAction() = true
 
     override fun getFamilyName() = "arend.instance"

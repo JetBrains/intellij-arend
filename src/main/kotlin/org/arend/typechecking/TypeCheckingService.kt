@@ -16,9 +16,9 @@ import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import org.arend.resolving.ArendReferableConverter
@@ -87,7 +87,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
             return null
         }
 
-    fun getTypechecked(definition: ArendDefinition) =
+    fun getTypechecked(definition: TCDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
@@ -109,7 +109,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
         }
         simpleReferableConverter.removeInternalReferables(referable, fullName)
 
-        if (curRef is ArendDefinition) {
+        if (curRef is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(curRef)
         }
 
@@ -121,7 +121,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
     enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
 
     fun updateDefinition(referable: LocatedReferable, file: ArendFile?, mode: LastModifiedMode) {
-        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is ArendDefinition) {
+        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is TCDefinition) {
             val isValid = referable.isValid
             (file ?: if (isValid) referable.containingFile as? ArendFile else null)?.let {
                 if (mode == LastModifiedMode.SET) {
@@ -143,11 +143,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
         }
 
         if ((referable as? ArendDefFunction)?.functionKw?.useKw != null) {
-            (referable.parentGroup as? ArendDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH) }
+            (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH) }
         }
     }
 
-    override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         if (TypecheckingOrderingListener.getCancellationIndicator() is ArendCancellationIndicator) {
             synchronized(typecheckerState) {
                 (TypecheckingOrderingListener.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()

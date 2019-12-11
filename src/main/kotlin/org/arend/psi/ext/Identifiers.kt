@@ -19,6 +19,8 @@ import org.arend.typing.getTypeOf
 import org.arend.util.mapUntilNotNull
 
 abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), ArendDefIdentifier {
+    override fun getNameIdentifier(): PsiElement? = firstChild
+
     override val referenceNameElement
         get() = this
 

@@ -30,6 +30,11 @@ fun IndexSink.indexClassImplement(stub: ArendClassImplementStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexCoClauseDef(stub: ArendCoClauseDefStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexClassInstance(stub: ArendDefInstanceStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)

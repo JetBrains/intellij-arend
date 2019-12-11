@@ -5,8 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.LocatedReferable
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
@@ -17,7 +17,7 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
     open fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {}
 
     open fun visitDefinition(definition: LocatedReferable, progress: ProgressIndicator) {
-        if (definition !is ArendDefinition) {
+        if (definition !is TCDefinition) {
             return
         }
 
@@ -47,11 +47,11 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
         collectInfo(progress)
     }
 
-    protected open fun countDefinition(def: ArendDefinition) = true
+    protected open fun countDefinition(def: TCDefinition) = true
 
     protected open fun numberOfDefinitions(group: Group): Int {
         val def = group.referable
-        var res = if (def is ArendDefinition && countDefinition(def)) 1 else 0
+        var res = if (def is TCDefinition && countDefinition(def)) 1 else 0
 
         for (subgroup in group.subgroups) {
             res += numberOfDefinitions(subgroup)

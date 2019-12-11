@@ -7,9 +7,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
 import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeListenerService
 import java.util.concurrent.ConcurrentHashMap
@@ -71,7 +71,7 @@ class ClassInheritorsSearch(val project: Project) : ArendDefinitionChangeListene
         return visited.toList()
     }
 
-    override fun updateDefinition(def: ArendDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         if (def is ArendDefClass) {
             cache.clear()
         }

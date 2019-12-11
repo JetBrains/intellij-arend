@@ -12,6 +12,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
+import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
@@ -205,14 +206,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is ParsingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw
-                    LEVEL_IN_FIELD -> element.ancestor<ArendReturnExpr>()?.levelKw
-                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent
+                    ParsingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
+                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent?.let { (it as? ArendFieldTele)?.classifyingKw ?: it }
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
                     MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
                     else -> null
                 }
                 is TypecheckingError -> when (error.kind) {
-                    LEVEL_IN_FUNCTION -> element.ancestor<ArendReturnExpr>()?.levelKw
+                    TypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
                     PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
@@ -229,7 +230,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
 
             return result ?: when (element) {
-                is PsiLocatedReferable -> element.defIdentifier
+                is PsiLocatedReferable -> element.nameIdentifier
                 is CoClauseBase -> element.longName
                 else -> null
             }
@@ -243,6 +244,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
+                return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
+            }
+
+            (((improvedElement as? ArendRefIdentifier)?.parent as? ArendLongName)?.parent as? ArendCoClause)?.let {
                 return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
             }
 
@@ -287,8 +292,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return improvedElement.textRange
         }
 
-        private val GOAL_IN_COPATTERN = withAncestors(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java,
-            ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendCoClause::class.java)
+        private val GOAL_IN_COPATTERN_PREFIX : Array<Class<out PsiElement>> =
+                arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)
+        private val GOAL_IN_COPATTERN = StandardPatterns.or(withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendLocalCoClause::class.java))),
+                withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
 
         fun isEmptyGoal(element: PsiElement): Boolean {
             val goal: ArendGoal? = element.childOfType()

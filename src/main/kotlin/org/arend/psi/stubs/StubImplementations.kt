@@ -44,6 +44,7 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "CLASS_FIELD" -> ArendClassFieldStub.Type
     "FIELD_DEF_IDENTIFIER" -> ArendClassFieldParamStub.Type
     "CLASS_IMPLEMENT" -> ArendClassImplementStub.Type
+    "CO_CLAUSE_DEF" -> ArendCoClauseDefStub.Type
     "DEF_INSTANCE" -> ArendDefInstanceStub.Type
     "CONSTRUCTOR" -> ArendConstructorStub.Type
     "DEF_DATA" -> ArendDefDataStub.Type
@@ -104,6 +105,19 @@ class ArendClassImplementStub(parent: StubElement<*>?, elementType: IStubElement
         override fun createPsi(stub: ArendClassImplementStub) = ArendClassImplementImpl(stub, this)
 
         override fun indexStub(stub: ArendClassImplementStub, sink: IndexSink) = sink.indexClassImplement(stub)
+    }
+}
+
+class ArendCoClauseDefStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?, override val precedence: Precedence?)
+    : ArendStub<ArendCoClauseDef>(parent, elementType, name) {
+
+    object Type : ArendStubElementType<ArendCoClauseDefStub, ArendCoClauseDef>("CO_CLAUSE_DEF") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?) =
+            ArendCoClauseDefStub(parentStub, this, name, prec)
+
+        override fun createPsi(stub: ArendCoClauseDefStub) = ArendCoClauseDefImpl(stub, this)
+
+        override fun indexStub(stub: ArendCoClauseDefStub, sink: IndexSink) = sink.indexCoClauseDef(stub)
     }
 }
 
