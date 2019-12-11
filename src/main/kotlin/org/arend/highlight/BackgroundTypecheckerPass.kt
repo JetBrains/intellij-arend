@@ -17,8 +17,8 @@ import org.arend.core.definition.Definition
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendClassField
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.settings.ArendSettings
@@ -38,9 +38,9 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     private val typeCheckingService = myProject.service<TypeCheckingService>()
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val arendSettings = service<ArendSettings>()
-    private val definitionsToTypecheck = LinkedHashSet<ArendDefinition>()
+    private val definitionsToTypecheck = LinkedHashSet<TCDefinition>()
     private var lineMarkersPass: LineMarkersPass? = null
-    private var currentDefinition: ArendDefinition? = null
+    private var currentDefinition: TCDefinition? = null
 
     override fun referableTypechecked(referable: Referable, binding: Binding) {
         ArendTypecheckingListener.referableTypechecked(referable, binding)
@@ -57,15 +57,15 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     }
 
     override fun typecheckingHeaderStarted(definition: TCReferable) {
-        currentDefinition = definition.data as? ArendDefinition
+        currentDefinition = definition.data as? TCDefinition
     }
 
     override fun typecheckingBodyStarted(definition: TCReferable) {
-        currentDefinition = definition.data as? ArendDefinition
+        currentDefinition = definition.data as? TCDefinition
     }
 
     override fun typecheckingUnitStarted(definition: TCReferable) {
-        currentDefinition = definition.data as? ArendDefinition
+        currentDefinition = definition.data as? TCDefinition
     }
 
     override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition) {
@@ -89,7 +89,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
 
         progress.checkCanceled()
         definition.accept(object : DumbTypechecker(this) {
-            override fun visitFunction(def: Concrete.FunctionDefinition, params: Void?): Void? {
+            override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
                 doAnnotate(def.data.data as? PsiElement, holder)
                 return null
@@ -115,7 +115,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         }, null)
     }
 
-    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: ArendDefinition, progress: ProgressIndicator): Concrete.Definition? {
+    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: TCDefinition, progress: ProgressIndicator): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
             val ok = definitionBlackListService.runTimed(definition, progress) {
                 typechecking.typecheckDefinitions(listOf(it), ArendCancellationIndicator(progress))
@@ -193,7 +193,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         lineMarkersPass?.applyInformationToEditor()
     }
 
-    override fun countDefinition(def: ArendDefinition) =
+    override fun countDefinition(def: TCDefinition) =
         if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
             definitionsToTypecheck.add(def)
             true

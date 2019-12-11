@@ -6,10 +6,10 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
 import org.arend.naming.reference.DataContainer
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.TCDefinition
 import org.arend.typechecking.error.local.LocalError
 import java.util.*
 
@@ -122,14 +122,14 @@ class ErrorService : ErrorReporter {
         nameResolverErrors.remove(file)
     }
 
-    fun updateTypecheckingErrors(file: ArendFile, definition: ArendDefinition?) {
+    fun updateTypecheckingErrors(file: ArendFile, definition: TCDefinition?) {
         val arendErrors = typecheckingErrors[file]
         if (arendErrors != null) {
             val it = arendErrors.iterator()
             while (it.hasNext()) {
                 val arendError = it.next()
                 val errorCause = arendError.cause
-                if (errorCause == null || errorCause.ancestor<ArendDefinition>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
+                if (errorCause == null || errorCause.ancestor<TCDefinition>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
                     it.remove()
                 }
             }
@@ -139,7 +139,7 @@ class ErrorService : ErrorReporter {
         }
     }
 
-    fun clearTypecheckingErrors(definition: ArendDefinition) {
+    fun clearTypecheckingErrors(definition: TCDefinition) {
         updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
 }

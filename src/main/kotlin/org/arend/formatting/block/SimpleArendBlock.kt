@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType.ERROR_ELEMENT
@@ -43,7 +44,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return if (whitespace != null && !whitespace.textContains('\n')) oneSpaceWrap else oneCrlf
         }
 
-        if (nodePsi is ArendCoClause && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
+        if (isCoClauseOrLocalCoClause(nodePsi) && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
+
+        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseDef) {
+            if ((child1 is AbstractArendBlock && child1.node.elementType == LBRACE) xor
+                    (child2 is AbstractArendBlock && child2.node.elementType == RBRACE))
+                return oneCrlf
+        }
 
         if (myNode.psi is ArendDefFunction) {
             if (child2 is AbstractArendBlock && child2.node.elementType == FUNCTION_BODY) {
@@ -186,7 +193,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 val clauseAttributes = getChildAttributesInfo(prevChild, prevChild.subBlocks.size)
                 if (!(clauseAttributes.childIndent?.type == Indent.Type.NONE && clauseAttributes.alignment == null)) return clauseAttributes
             }
-            if (nodePsi is ArendClause || nodePsi is ArendCoClause) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+            if (nodePsi is ArendClause || isCoClauseOrLocalCoClause(nodePsi)) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
             //Expressions
             when (node.elementType) {
@@ -247,11 +254,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (childET != WHITE_SPACE) {
                 val indent: Indent =
                         if (childPsi is ArendExpr || childPsi is PsiErrorElement) when (nodeET) {
-                            CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY, CLASS_IMPLEMENT -> Indent.getNormalIndent()
+                            CO_CLAUSE, LOCAL_CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY, CLASS_IMPLEMENT -> Indent.getNormalIndent()
                             PI_EXPR, SIGMA_EXPR, LAM_EXPR -> Indent.getContinuationIndent()
                             else -> Indent.getNoneIndent()
                         } else if (AREND_COMMENTS.contains(childET)) when (nodeET) {
-                            CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
+                            CO_CLAUSE, LOCAL_CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
                             FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR,
                             DEF_FUNCTION, NEW_EXPR, WHERE, DEF_DATA -> Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
@@ -259,7 +266,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             val notFBodyWithClauses = if (childPsi is ArendFunctionBody) childPsi.fatArrow != null else true
                             if ((blocks.size > 0) && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
                         } else when (childET) {
-                            CO_CLAUSE, CONSTRUCTOR_CLAUSE, LET_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
+                            CO_CLAUSE, LOCAL_CO_CLAUSE, CONSTRUCTOR_CLAUSE, LET_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
                             NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> Indent.getNormalIndent()
                             STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
@@ -281,14 +288,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         else -> null
                     } else null
                     else -> when (childET) {
-                        CO_CLAUSE, CLASS_STAT -> alignment
+                        CO_CLAUSE, LOCAL_CO_CLAUSE, CLASS_STAT -> alignment
                         NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> alignment2
                         else -> null
                     }
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR -> {
+                    FUNCTION_CLAUSES, CO_CLAUSE_DEF, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR -> {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
@@ -393,10 +400,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
     private fun needsCrlfInCoClausesBlock(child1: Block?, child2: Block?): Boolean =
             child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
-                    (child1.node.elementType == LBRACE && child2.node.psi is ArendCoClause
-                            || child1.node.psi is ArendCoClause && child2.node.elementType == RBRACE)
+                    (child1.node.elementType == LBRACE && isCoClauseOrLocalCoClause(child2.node.psi)
+                            || isCoClauseOrLocalCoClause(child1.node.psi) && child2.node.elementType == RBRACE)
 
 
+    private fun isCoClauseOrLocalCoClause(psi : PsiElement) = psi is ArendCoClause || psi is ArendLocalCoClause
 
     class DocCommentBlock(settings: CommonCodeStyleSettings?, blocks: ArrayList<Block>, globalAlignment: Alignment?, globalIndent: Indent, parent: AbstractArendBlock) : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
         override fun getSpacing(child1: Block?, child2: Block): Spacing? {

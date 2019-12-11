@@ -199,8 +199,7 @@ classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-classImplement ::= coClausePrivate {
-    pin = 1
+classImplement ::= localCoClausePrivate {
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.term.abs.Abstract.ClassFieldImpl"
                    "org.arend.psi.CoClauseBase" ]
@@ -209,11 +208,25 @@ classImplement ::= coClausePrivate {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
+coClauseDef ::= nameTele* [COLON returnExpr] elim clausesWithBraces {
+    pin = 1
+    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
+                   "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ext.PsiConcreteReferable"
+                   "org.arend.psi.ext.TCDefinition"
+                   "org.arend.psi.ext.ArendFunctionalBody"
+                   "org.arend.psi.ext.impl.ArendGroup" ]
+    mixin = "org.arend.psi.ext.impl.CoClauseDefAdapter"
+    stubClass = "org.arend.psi.stubs.ArendCoClauseDefStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
 definition ::= defFunction
     | defData
     | defClass
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
+                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
@@ -233,9 +246,9 @@ private moduleHeader ::= MODULE_KW defIdentifier {
 
 defFunction ::= functionKw prec? defIdentifier_func nameTele* functionType? functionBody? where? {
     pin = 1
-    implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ClassReferenceHolder"
-                   "org.arend.psi.ext.ArendFunctionalDefinition" ]
+    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
+                   "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -257,9 +270,9 @@ private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW
 
 defInstance ::= instanceOrCons prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
     pin = 1
-    implements = [ "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ClassReferenceHolder"
-                   "org.arend.psi.ext.ArendFunctionalDefinition" ]
+    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
+                   "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.InstanceAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -456,7 +469,11 @@ private coClauseSequence ::= coClauseReg* {
     recoverWhile = statement_recover
 }
 
-private newExprTail ::= [LBRACE coClauseSequence RBRACE (argument | argumentRecovery)*]
+private localCoClauseSequence ::= localCoClause* {
+    recoverWhile = statement_recover
+}
+
+private newExprTail ::= [LBRACE localCoClauseSequence RBRACE (argument | argumentRecovery)*]
 
 universeExpr ::= universeAppExpr
     | setUniverseAppExpr
@@ -568,11 +585,10 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= PIPE coClausePrivate {
+coClause ::= PIPE prec? longName (coClauseRec | coClauseImpl | coClauseDef) {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.ClassFieldImpl"
-                   "org.arend.psi.CoClauseBase" ]
+    implements = [ "org.arend.psi.CoClauseBase"
+                   "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
 }
 
@@ -580,15 +596,23 @@ private coClauseReg ::= coClause {
     recoverWhile = pipe_seq_recover
 }
 
-private coClauseImp ::= coClause {
+localCoClause ::= PIPE localCoClausePrivate {
+    pin = 1
+    implements = [ "org.arend.psi.CoClauseBase"
+                   "org.arend.term.abs.Abstract.ClassFieldImpl" ]
+    mixin = "org.arend.psi.ext.ArendLocalCoClauseImplMixin"
+    recoverWhile = pipe_seq_recover
+}
+
+private coClauseImp ::= localCoClause {
     recoverWhile = co_clause_imp_recover
 }
 
 private co_clause_imp_recover ::= !(PIPE | RBRACE | ID | UNDERSCORE) & statement_recover
 
-private coClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
+private localCoClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
 
-private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 1 }
+private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 2 }
 
 private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
@@ -748,7 +772,7 @@ implicitArgument ::= LBRACE expr RBRACE {
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
 
-newArg ::= appPrefix argumentAppExpr [LBRACE coClauseSequence RBRACE] {
+newArg ::= appPrefix argumentAppExpr [LBRACE localCoClauseSequence RBRACE] {
     pin = 1
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"

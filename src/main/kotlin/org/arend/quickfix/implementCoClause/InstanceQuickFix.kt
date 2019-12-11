@@ -22,7 +22,7 @@ enum class InstanceQuickFixAnnotation {
     NO_ANNOTATION
 }
 
-private fun findImplementedCoClauses(coClauseList: List<ArendCoClause>,
+private fun findImplementedCoClauses(coClauseList: List<CoClauseBase>,
                                      holder: AnnotationHolder?,
                                      superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>,
                                      fields: MutableSet<FieldReferable>) {
@@ -38,7 +38,7 @@ private fun findImplementedCoClauses(coClauseList: List<ArendCoClause>,
                     continue
                 }
                 emptyList()
-            } else coClause.coClauseList
+            } else coClause.localCoClauseList
 
             if (subClauses.isNotEmpty()) findImplementedCoClauses(subClauses, holder, superClassesFields, fields)
             continue
@@ -50,7 +50,7 @@ private fun findImplementedCoClauses(coClauseList: List<ArendCoClause>,
     }
 }
 
-private fun annotateCoClauses(coClauseList: List<ArendCoClause>,
+private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
                               holder: AnnotationHolder,
                               superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>,
                               fields: MutableSet<FieldReferable>) {
@@ -64,7 +64,7 @@ private fun annotateCoClauses(coClauseList: List<ArendCoClause>,
         val rangeToReport = BasePass.getImprovedTextRange(null, coClause)
 
         if (referable is ClassReferable) {
-            val subClauses = if (fatArrow != null) emptyList() else coClause.coClauseList
+            val subClauses = if (fatArrow != null) emptyList() else coClause.localCoClauseList
 
             val fieldToImplement = superClassesFields[referable]
             if (fieldToImplement != null) {
@@ -87,14 +87,14 @@ private fun annotateCoClauses(coClauseList: List<ArendCoClause>,
 
         if (clauseBlock || emptyGoal) {
             val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.NO_ANNOTATION
-            doAnnotateInternal(coClause, rangeToReport, coClause.coClauseList, holder, severity)
+            doAnnotateInternal(coClause, rangeToReport, coClause.localCoClauseList, holder, severity)
         }
     }
 }
 
 private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
                                rangeToReport: TextRange,
-                               coClausesList: List<ArendCoClause>,
+                               coClausesList: List<CoClauseBase>,
                                holder: AnnotationHolder,
                                annotationToShow: InstanceQuickFixAnnotation = InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR,
                                onlyCheckFields: Boolean = false): List<Pair<LocatedReferable, Boolean>> {
@@ -145,7 +145,7 @@ fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable):
 fun doAnnotate(element: PsiElement?, holder: AnnotationHolder) {
     when (element) {
         is ArendNewExprImplMixin -> element.argumentAppExpr?.let {
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, it), element.coClauseList, holder, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
+            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, it), element.localCoClauseList, holder, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
         }
         is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.instanceBody.let { it == null || it.fatArrow == null && it.elim == null })
             doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.instanceBody?.coClauseList
@@ -154,7 +154,7 @@ fun doAnnotate(element: PsiElement?, holder: AnnotationHolder) {
             doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.functionBody?.coClauseList
                     ?: emptyList(), holder)
         is CoClauseBase -> if (element.fatArrow == null)
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.coClauseList, holder, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
+            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.localCoClauseList, holder, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
     }
 }
 

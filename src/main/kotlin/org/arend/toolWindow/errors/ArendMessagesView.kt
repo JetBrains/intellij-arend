@@ -17,8 +17,8 @@ import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.error.GeneralError
 import org.arend.injection.InjectedArendEditor
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.TCDefinition
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
@@ -153,7 +153,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
-        val map = HashMap<ArendDefinition, HashSet<ArendError>>()
+        val map = HashMap<TCDefinition, HashSet<ArendError>>()
         tree.update(root) {
             if (it == root) errorsMap.keys
             else when (val obj = it.userObject) {
@@ -175,7 +175,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     }
                     children
                 }
-                is ArendDefinition -> map[obj] ?: emptySet()
+                is TCDefinition -> map[obj] ?: emptySet()
                 else -> emptySet()
             }
         }
