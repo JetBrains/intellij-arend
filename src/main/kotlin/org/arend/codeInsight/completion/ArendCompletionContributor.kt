@@ -418,21 +418,16 @@ class ArendCompletionContributor : CompletionContributor() {
             argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
         }
 
-        basic(afterLeaf(ID), NO_CLASSIFYING_KW_LIST) { parameters ->
+
+        basic(NO_CLASSIFYING_CONTEXT, NO_CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestor<ArendDefClass>().let { defClass ->
-                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
+                defClass != null && defClass.noClassifyingKw == null && !defClass.fieldTeleList.any { it.isClassifying }
             }
         }
 
         basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestor<ArendDefClass>().let { defClass ->
-                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
-            }
-        }
-
-        basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
-            parameters.position.ancestor<ArendDefClass>().let { defClass ->
-                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
+                defClass != null && defClass.noClassifyingKw == null && !defClass.fieldTeleList.any { it.isClassifying }
             }
         }
 
@@ -532,6 +527,10 @@ class ArendCompletionContributor : CompletionContributor() {
         private val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
+
+        private val NO_CLASSIFYING_CONTEXT = and(afterLeaf(ID),
+                or(withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java),
+                    withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
 
         private val LEVEL_CONTEXT_0 = withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))
 
