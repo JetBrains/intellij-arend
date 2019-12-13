@@ -23,6 +23,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun isRecord(): Boolean = recordKw != null
 
+    override fun withoutClassifying(): Boolean = noClassifyingKw != null
+
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
     override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList

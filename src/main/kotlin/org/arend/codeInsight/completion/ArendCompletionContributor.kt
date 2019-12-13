@@ -418,11 +418,24 @@ class ArendCompletionContributor : CompletionContributor() {
             argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
         }
 
+        basic(afterLeaf(ID), NO_CLASSIFYING_KW_LIST) { parameters ->
+            parameters.position.ancestor<ArendDefClass>().let { defClass ->
+                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
+            }
+        }
+
         basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestor<ArendDefClass>().let { defClass ->
                 defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
             }
         }
+
+        basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
+            parameters.position.ancestor<ArendDefClass>().let { defClass ->
+                defClass != null && !defClass.fieldTeleList.any { it.isClassifying }
+            }
+        }
+
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
 

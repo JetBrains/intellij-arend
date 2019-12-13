@@ -381,6 +381,12 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class C1 (\\classifying x : Nat) ({-caret-})",
                     "\\func Lol ({-caret-})")
 
+    fun `test noclassifying keyword`() =
+        checkKeywordCompletionVariants(NO_CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            "\\class C {-caret-} (a : Nat)",
+            "\\class D \\class C {-caret-} \\extends D",
+            "\\class C {-caret-}")
+
     fun `test level keyword completion`() =
             checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.CONTAINS,
                     "\\func foo => \\case 0 \\return {-caret-} \\with {}",

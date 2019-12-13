@@ -51,6 +51,7 @@
         OVERRIDE_KW         = '\override'
         PROPERTY_KW         = '\property'
         CLASSIFYING_KW      = '\classifying'
+        NO_CLASSIFYING_KW   = '\noclassifying'
         COERCE_KW           = '\coerce'
         USE_KW              = '\use'
         NON_ASSOC_KW        = '\fix'
@@ -313,7 +314,7 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
+private defClassHeader ::= prec? defIdentifier NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
