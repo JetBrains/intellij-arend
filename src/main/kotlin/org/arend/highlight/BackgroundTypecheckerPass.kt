@@ -71,7 +71,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
 
             if (!ok) {
                 NotificationErrorReporter(myProject).warn("Typechecking of ${FullName(it.data)} was interrupted after ${arendSettings.typecheckingTimeLimit} second(s)")
-                if (definitionsToTypecheck.last() != definition) {
+                if (definitionsToTypecheck.isEmpty() || definitionsToTypecheck.last() != definition) {
                     DaemonCodeAnalyzer.getInstance(myProject).restart(file)
                 }
             }
