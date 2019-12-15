@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>org.arend.lang</id>
     <name>Arend</name>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <vendor>JetBrains</vendor>
 
     <description><![CDATA[
@@ -13,20 +13,19 @@
     <change-notes><![CDATA[
       Language updates:
       <ul>
-        <li>Proof irrelevant \Prop</li>
-        <li>Right operator sections</li>
-        <li>New function and \case forms: \sfunc and \scase</li>
-        <li>Improved error messages</li>
+        <li>Implemented pattern matching on idp</li>
+        <li>New keyword \noclassifying can be used to define classes without classifying fields</li>
+        <li>The type of a field can be overridden with a subtype in a subclass using new keyword \override</li>
+        <li>Variables can be eliminated in \case expressions now</li>
+        <li>Implemented constructor synonyms</li>
+        <li>It is possible now to implement fields using pattern matching</li>
+        <li>Now, fields and implementations in a class are typechecked in the order they are specified</li>
       </ul>
 
       Plugin updates:
       <ul>
-        <li>Implemented background typechecking</li>
-        <li>Implemented pattern generator for missing clauses and case analysis</li>
-        <li>Improved class hierarchy</li>
-        <li>Added gutter icons for subclasses</li>
-        <li>Improved module configuration dialog</li>
-        <li>Fixed completion and inline renaming for infix and postfix notation</li>
+        <li>Fixed some problems with pattern generator and implemented case split for \Sigma-types and records</li>
+        <li>It is possible now to adjust the verbosity of pretty printer in error messages</li>
       </ul>
     ]]>
     </change-notes>
