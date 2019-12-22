@@ -9,12 +9,9 @@ abstract class ArendAtomFieldsAccImplMixin(node: ASTNode) : ArendExprImplMixin(n
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val fieldAccs = fieldAccList.mapNotNull { it.number?.text?.toIntOrNull() }
         return if (fieldAccs.isEmpty()) {
-            if (visitor.visitErrors()) {
-                visitor.reportError(org.arend.psi.ext.getErrorData(this))
-            }
             atom.accept(visitor, params)
         } else {
-            visitor.visitFieldAccs(this, atom, fieldAccs, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+            visitor.visitFieldAccs(this, atom, fieldAccs, params)
         }
     }
 }

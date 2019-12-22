@@ -264,7 +264,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Pair<Int, Abstract.Reference>? =
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, Abstract.Reference>? =
                 findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
         }, null)
 
@@ -276,8 +276,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
     private fun isBinOpSeq(expr: ArendExpr): Boolean =
         expr.accept(object: BaseAbstractExpressionVisitor<Void, Boolean>(false) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Boolean =
-                    true
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = true
         }, null)
 
     private fun isBinOp(def: Referable?): Boolean {

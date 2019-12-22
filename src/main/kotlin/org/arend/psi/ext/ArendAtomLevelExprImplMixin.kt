@@ -3,7 +3,6 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 import org.arend.psi.ArendAtomLevelExpr
-import org.arend.term.abs.AbstractExpressionError
 
 
 abstract class ArendAtomLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendAtomLevelExpr {
@@ -15,6 +14,6 @@ abstract class ArendAtomLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         ooKw?.let { return visitor.visitInf(this, params) }
         number?.text?.toIntOrNull()?.let { return visitor.visitNumber(this, it, params) }
         levelExpr?.let { return it.accept(visitor, params) }
-        throw AbstractExpressionError.Exception(AbstractExpressionError.incomplete(this))
+        return visitor.visitError(this)
     }
 }

@@ -84,7 +84,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return ref
     }
 
-    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? {
+    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Referable? {
         var expr = parseBinOp(left, sequence)
         if (expr is Concrete.AppExpression) {
             if (requiredAdditionalInfo) {
@@ -95,11 +95,11 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return (expr as? Concrete.ReferenceExpression)?.referent
     }
 
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Referable? = referent
 
-    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, errorData: Abstract.ErrorData?, params: Void?): Referable? = referent
+    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Referable? = referent
 
-    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
+    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, params: Void?): Referable? {
         if (mode != Mode.EXPRESSION || body == null) {
             return null
         }
@@ -116,7 +116,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return body.accept(this, null)
     }
 
-    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, errorData: Abstract.ErrorData?, params: Void?): Referable? {
+    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, params: Void?): Referable? {
         if (mode != Mode.TYPE || codomain == null) {
             return null
         }
@@ -130,7 +130,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return codomain.accept(this, null)
     }
 
-    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?): Referable? =
+    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Referable? =
         if (isNew || evalKind != null || !sequence.isEmpty() || baseClass == null) {
             null
         } else {

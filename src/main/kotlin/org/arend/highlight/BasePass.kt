@@ -83,8 +83,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
-    fun reportToEditor(error: GeneralError, cause: ArendCompositeElement) {
-        if (error is IncompleteExpressionError || file != cause.containingFile) {
+    fun reportToEditor(error: GeneralError, cause: PsiElement) {
+        if (error is IncompleteExpressionError || cause !is ArendCompositeElement || file != cause.containingFile) {
             return
         }
 
@@ -196,12 +196,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
             }
 
-        private fun getCauseElement(data: Any?): ArendCompositeElement? {
+        private fun getCauseElement(data: Any?): PsiElement? {
             val cause = data?.let { (it as? DataContainer)?.data ?: it }
-            return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? ArendCompositeElement
+            return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? PsiElement
         }
 
-        private fun getImprovedErrorElement(error: GeneralError?, element: ArendCompositeElement): PsiElement? {
+        private fun getImprovedErrorElement(error: GeneralError?, element: PsiElement): PsiElement? {
             val result = when (error) {
                 is ParsingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
@@ -240,7 +240,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun getImprovedTextRange(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedTextRange(error, it) }
 
-        fun getImprovedTextRange(error: GeneralError?, element: ArendCompositeElement): TextRange {
+        fun getImprovedTextRange(error: GeneralError?, element: PsiElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {

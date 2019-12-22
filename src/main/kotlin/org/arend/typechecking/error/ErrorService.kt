@@ -111,7 +111,7 @@ class ErrorService : ErrorReporter {
 
         val list = ArrayList<Pair<GeneralError, ArendCompositeElement>>()
         for (arendError in arendErrors) {
-            arendError.cause?.let {
+            (arendError.cause as? ArendCompositeElement)?.let {
                 list.add(Pair(arendError.error, it))
             }
         }

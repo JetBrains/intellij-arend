@@ -33,6 +33,4 @@ abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImp
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
     override fun getParentSourceNode() = getParentSourceNode(this)
-
-    override fun getErrorData() = getErrorData(this)
 }

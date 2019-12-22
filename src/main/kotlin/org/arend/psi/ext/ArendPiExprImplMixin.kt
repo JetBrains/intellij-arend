@@ -8,7 +8,7 @@ import org.arend.psi.ArendTypeTele
 
 abstract class ArendPiExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendPiExpr, Abstract.ParametersHolder {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitPi(this, typeTeleList, expr, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+        visitor.visitPi(this, typeTeleList, expr, params)
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 }

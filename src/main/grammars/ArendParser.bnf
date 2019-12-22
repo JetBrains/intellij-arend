@@ -354,7 +354,7 @@ private pipe_def ::= PIPE {
 
 private def_recover ::= !(ID | LPAREN | assoc) & statement_recover
 
-constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE <<pipe_separated_sequence constructor>> RBRACE) {
+constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE pipe_def? constructor (<<piped constructor>>)* RBRACE) {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.ConstructorClause" ]
@@ -910,5 +910,3 @@ refIdentifier ::= ID {
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 
 private meta piped ::= pipe_def <<p>> { pin = 1 }
-
-private meta pipe_separated_sequence ::= pipe_def? <<p>> (<<piped <<p>> >>)*

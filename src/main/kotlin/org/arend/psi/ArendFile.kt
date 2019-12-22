@@ -121,7 +121,5 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getParentSourceNode(): ArendSourceNode? = null
 
-    override fun getErrorData(): Abstract.ErrorData? = null
-
     override fun getIcon(flags: Int) = ArendIcons.AREND_FILE
 }

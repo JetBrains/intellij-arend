@@ -10,7 +10,7 @@ abstract class ArendTupleImplMixin(node: ASTNode) : ArendExprImplMixin(node), Ar
         return if (exprList.size == 1) {
             exprList[0].accept(visitor, params)
         } else {
-            visitor.visitTuple(this, tupleExprList, if (visitor.visitErrors()) org.arend.psi.ext.getErrorData(this) else null, params)
+            visitor.visitTuple(this, tupleExprList, params)
         }
     }
 }

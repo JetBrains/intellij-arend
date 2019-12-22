@@ -10,7 +10,7 @@ abstract class ArendAtomImplMixin(node: ASTNode) : ArendExprImplMixin(node), Are
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         literal?.let { return it.accept(visitor, params) }
         tuple?.let { return it.accept(visitor, params) }
-        (number ?: negativeNumber)?.let { return visitor.visitNumericLiteral(this, BigInteger(it.text), if (visitor.visitErrors()) getErrorData(this) else null, params) }
+        (number ?: negativeNumber)?.let { return visitor.visitNumericLiteral(this, BigInteger(it.text), params) }
         thisKw?.let { return visitor.visitThis(this, params) }
         error("Incorrect expression: atom")
     }

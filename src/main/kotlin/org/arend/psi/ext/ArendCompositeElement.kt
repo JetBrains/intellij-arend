@@ -10,7 +10,6 @@ import com.intellij.psi.stubs.StubElement
 import org.arend.error.SourceInfo
 import org.arend.module.ModuleScope
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
-import org.arend.naming.reference.DataContainer
 import org.arend.naming.scope.*
 import org.arend.psi.*
 import org.arend.resolving.ArendReference
@@ -83,17 +82,6 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
 fun getParentSourceNode(sourceNode: ArendSourceNode) =
     sourceNode.topmostEquivalentSourceNode.parent.ancestor<ArendSourceNode>()
 
-private class SourceInfoErrorData(cause: PsiErrorElement) : Abstract.ErrorData(SmartPointerManager.createPointer(cause), cause.errorDescription), SourceInfo, DataContainer {
-    override fun getData(): Any = cause
-
-    override fun moduleTextRepresentation(): String? = runReadAction { (cause as SmartPsiElementPointer<*>).element?.moduleTextRepresentationImpl() }
-
-    override fun positionTextRepresentation(): String? = runReadAction { (cause as SmartPsiElementPointer<*>).element?.positionTextRepresentationImpl() }
-}
-
-fun getErrorData(element: ArendCompositeElement): Abstract.ErrorData? =
-    element.children.filterIsInstance<PsiErrorElement>().firstOrNull()?.let { SourceInfoErrorData(it) }
-
 abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement  {
     override val scope
         get() = getArendScope(this)
@@ -109,8 +97,6 @@ abstract class ArendSourceNodeImpl(node: ASTNode) : ArendCompositeElementImpl(no
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
     override fun getParentSourceNode() = getParentSourceNode(this)
-
-    override fun getErrorData(): Abstract.ErrorData? = getErrorData(this)
 }
 
 abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>, ArendSourceNode {
@@ -132,6 +118,4 @@ abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiEle
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
 
     override fun getParentSourceNode() = getParentSourceNode(this)
-
-    override fun getErrorData(): Abstract.ErrorData? = getErrorData(this)
 }

@@ -31,7 +31,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val prefix = appPrefix
         if (prefix == null && lbrace == null && argumentList.isEmpty()) {
-            val expr = appExpr ?: return visitor.visitInferHole(this, if (visitor.visitErrors()) getErrorData(this) else null, params)
+            val expr = appExpr ?: return visitor.visitInferHole(this, params)
             return expr.accept(visitor, params)
         }
         val evalKind = if (prefix == null) null else when {
@@ -39,7 +39,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
             prefix.evalKw != null -> Abstract.EvalKind.EVAL
             else -> null
         }
-        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, if (visitor.visitErrors()) getErrorData(this) else null, params)
+        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, params)
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {

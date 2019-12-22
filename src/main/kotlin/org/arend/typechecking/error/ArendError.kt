@@ -1,12 +1,12 @@
 package org.arend.typechecking.error
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.error.GeneralError
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
 
 
@@ -15,8 +15,8 @@ class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPo
         cause?.ancestor<TCDefinition>()?.let { SmartPointerManager.createPointer(it) }
     }
 
-    val cause: ArendCompositeElement?
-        get() = pointer.element as? ArendCompositeElement
+    val cause: PsiElement?
+        get() = pointer.element
 
     val definition: TCDefinition?
         get() = definitionPointer?.element
@@ -25,7 +25,7 @@ class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPo
         get() = definitionPointer != null
 
     val file: ArendFile?
-        get() = ((definitionPointer ?: pointer).element as? ArendCompositeElement)?.containingFile as? ArendFile
+        get() = (definitionPointer ?: pointer).element?.containingFile as? ArendFile
 
     override fun compareTo(other: ArendError) = error.level.compareTo(other.error.level)
 

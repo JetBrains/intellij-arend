@@ -17,8 +17,8 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
     override fun buildChildren(): MutableList<Block> {
         val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorData: Abstract.ErrorData?, params: Void?) =
-                    parseBinOp(left, sequence)
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
+                parseBinOp(left, sequence)
         }
 
         val cExpr = runReadAction {

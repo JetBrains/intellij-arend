@@ -21,6 +21,6 @@ abstract class ArendCaseExprImplMixin(node: ASTNode) : ArendExprImplMixin(node),
                 else -> null
             }
         }
-        return visitor.visitCase(this, caseOpt.scaseKw != null, evalKind, caseArgList, returnExprs.firstOrNull(), returnExprs.getOrNull(1), clauseList, if (visitor.visitErrors()) getErrorData(this) else null, params)
+        return visitor.visitCase(this, caseOpt.scaseKw != null, evalKind, caseArgList, returnExprs.firstOrNull(), returnExprs.getOrNull(1), clauseList, params)
     }
 }
