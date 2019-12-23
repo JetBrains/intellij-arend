@@ -16,6 +16,9 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
     override var sourcesDir = ""
     override var withBinaries = false
     override var binariesDirectory = ""
+    override var withExtensions = false
+    override var extensionsDirectory = ""
+    override var extensionMainClassData = ""
     override var dependencies: List<LibraryDependency> = emptyList()
     override var langVersionString = ""
 
@@ -29,6 +32,8 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
                 (if (langVersionString.isNotEmpty()) "$LANG_VERSION: $langVersionString\n" else "") +
                 "$SOURCES: $sourcesDir" +
                 (if (withBinaries) "\n$BINARIES: $binariesDirectory" else "") +
+                (if (withExtensions) "\n$EXTENSIONS: $extensionsDirectory" else "") +
+                (if (withExtensions) "\n$EXTENSION_MAIN: $extensionMainClassData" else "") +
                 (if (dependencies.isNotEmpty()) "\n$DEPENDENCIES: ${yamlSeqFromList(dependencies.map { it.name })}" else ""))
             configService.copyFrom(this)
         } else {
@@ -43,9 +48,11 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
         val rootPath = FileUtil.toSystemDependentName(moduleRoot.path)
         val srcDir = toAbsolute(rootPath, sourcesDir)
         val binDir = toAbsolute(rootPath, binariesDirectory)
+        val extDir = toAbsolute(rootPath, extensionsDirectory)
 
         VfsUtil.createDirectories(srcDir)
         contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcDir), false)
         contentEntry.addExcludeFolder(VfsUtil.pathToUrl(binDir))
+        contentEntry.addExcludeFolder(VfsUtil.pathToUrl(extDir))
     }
 }

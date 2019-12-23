@@ -31,7 +31,7 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun mustBeLoaded() = !isExternal
 
     override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(), config.dependencies, config.langVersion)
+        LibraryHeader(config.findModules(), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
 
     override fun unload() =
         if (isExternal) {

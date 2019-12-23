@@ -8,6 +8,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.panel
+import com.intellij.ui.layout.selected
 import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
 import org.arend.module.config.ArendModuleConfiguration
@@ -15,6 +16,7 @@ import org.arend.ui.DualList
 import org.arend.ui.addBrowseAndChangeListener
 import org.arend.ui.content
 import org.arend.util.FileUtils
+import org.arend.util.cellRow
 import org.arend.util.checked
 import org.arend.util.labeled
 import java.io.IOException
@@ -44,6 +46,11 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     private val binariesTextField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener("Binaries directory", "Select the directory in which the binary files${if (name == null) "" else " of module $name"} will be put", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
+    private val extensionsSwitch = JBCheckBox("Load language extensions", false)
+    private val extensionsTextField = TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener("Extensions directory", "Select the directory in which the language extensions${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+    }
+    private val extensionMainClassTextField = JTextField()
     private val langVersionField = JTextField()
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
@@ -85,6 +92,24 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
             binariesTextField.text = value
         }
 
+    override var withExtensions: Boolean
+        get() = extensionsSwitch.isSelected
+        set(value) {
+            extensionsSwitch.isSelected = value
+        }
+
+    override var extensionsDirectory: String
+        get() = extensionsTextField.text
+        set(value) {
+            extensionsTextField.text = value
+        }
+
+    override var extensionMainClassData: String
+        get() = extensionMainClassTextField.text
+        set(value) {
+            extensionMainClassTextField.text = value
+        }
+
     override var dependencies: List<LibraryDependency>
         get() = dualList.selectedList.content
         set(value) {
@@ -113,6 +138,18 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         labeled("Language version: ", langVersionField)
         labeled("Sources directory: ", sourcesTextField)
         checked(binariesSwitch, binariesTextField)
+
+        titledRow("Extensions") {
+            row { extensionsSwitch() }
+            cellRow {
+                label("Extensions directory: ")
+                extensionsTextField().enableIf(extensionsSwitch.selected)
+            }
+            cellRow {
+                label("Extension main class: ")
+                extensionMainClassTextField().enableIf(extensionsSwitch.selected)
+            }
+        }
 
         titledRow("Libraries") {
             labeled("Path to libraries: ", libRootTextField)

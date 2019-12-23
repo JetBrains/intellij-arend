@@ -27,6 +27,10 @@ abstract class LibraryConfig(val project: Project) {
         get() = ""
     open val binariesDir: String?
         get() = null
+    open val extensionsDir: String?
+        get() = null
+    open val extensionMainClass: String?
+        get() = null
     open val modules: List<ModulePath>?
         get() = null
     open val dependencies: List<LibraryDependency>
@@ -62,6 +66,14 @@ abstract class LibraryConfig(val project: Project) {
     val binariesPath: Path?
         get() {
             val path = binariesDir?.let { Paths.get(it) } ?: return null
+            return if (path.isAbsolute) path else rootPath?.resolve(path)
+        }
+
+    // Extensions
+
+    val extensionsPath: Path?
+        get() {
+            val path = extensionsDir?.let { Paths.get(it) } ?: return null
             return if (path.isAbsolute) path else rootPath?.resolve(path)
         }
 

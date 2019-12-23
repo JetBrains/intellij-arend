@@ -42,12 +42,21 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override var sourcesDir = ""
     override var withBinaries = false
     override var binariesDirectory = ""
+    override var withExtensions = false
+    override var extensionsDirectory = ""
+    override var extensionMainClassData = ""
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
     override var langVersionString: String = ""
 
     override val binariesDir: String?
         get() = flaggedBinariesDir
+
+    override val extensionsDir: String?
+        get() = flaggedExtensionsDir
+
+    override val extensionMainClass: String?
+        get() = flaggedExtensionsDir
 
     override val langVersion: Range<String>
         get() = Range.parseRange(langVersionString) ?: Range.unbound()
@@ -133,6 +142,15 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         modules = yaml.modules
         flaggedBinariesDir = yaml.binariesDir
+        val extDir = yaml.extensionsDir
+        val extMain = yaml.extensionMainClass
+        withExtensions = extDir != null && extMain != null
+        if (extDir != null) {
+            extensionsDirectory = extDir
+        }
+        if (extMain != null) {
+            extensionMainClassData = extMain
+        }
         sourcesDir = yaml.sourcesDir ?: ""
         langVersionString = yaml.langVersion ?: ""
     }
@@ -165,6 +183,19 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         withBinaries = config.withBinaries
         binariesDirectory = config.binariesDirectory
 
+        val newExtensionsDir = config.flaggedExtensionsDir
+        if (flaggedExtensionsDir != newExtensionsDir) {
+            updateYAML = true
+        }
+
+        val newExtensionMainClass = config.flaggedExtensionMainClass
+        if (flaggedExtensionMainClass != newExtensionMainClass) {
+            updateYAML = true
+        }
+        withExtensions = config.withExtensions
+        extensionsDirectory = config.extensionsDirectory
+        extensionMainClassData = config.extensionMainClassData
+
         val newLangVersion = config.langVersionString
         if (langVersionString != newLangVersion) {
             langVersionString = newLangVersion
@@ -175,6 +206,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             langVersion = newLangVersion
             sourcesDir = newSourcesDir
             binariesDir = newBinariesDir
+            extensionsDir = newExtensionsDir
+            extensionMainClass = newExtensionMainClass
             dependencies = newDependencies
         }
 

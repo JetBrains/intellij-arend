@@ -10,6 +10,9 @@ interface ArendModuleConfiguration {
     var sourcesDir: String
     var withBinaries: Boolean
     var binariesDirectory: String
+    var withExtensions: Boolean
+    var extensionsDirectory: String
+    var extensionMainClassData: String
     var dependencies: List<LibraryDependency>
     var langVersionString: String
 
@@ -22,11 +25,20 @@ interface ArendModuleConfiguration {
             }
         }
 
+    val flaggedExtensionsDir: String?
+        get() = if (withExtensions) extensionsDirectory else null
+
+    val flaggedExtensionMainClass: String?
+        get() = if (withExtensions) extensionMainClassData else null
+
     fun copyFrom(another: ArendModuleConfiguration) {
         librariesRoot = another.librariesRoot
         sourcesDir = another.sourcesDir
         withBinaries = another.withBinaries
         binariesDirectory = another.binariesDirectory
+        withExtensions = another.withExtensions
+        extensionsDirectory = another.extensionsDirectory
+        extensionMainClassData = another.extensionMainClassData
         dependencies = ArrayList(another.dependencies)
         langVersionString = another.langVersionString
     }
@@ -36,6 +48,9 @@ interface ArendModuleConfiguration {
         sourcesDir == another.sourcesDir &&
         withBinaries == another.withBinaries &&
         binariesDirectory == another.binariesDirectory &&
+        withExtensions == another.withExtensions &&
+        extensionsDirectory == another.extensionsDirectory &&
+        extensionMainClassData == another.extensionMainClassData &&
         dependencies == another.dependencies &&
         langVersionString == another.langVersionString
 
