@@ -8,7 +8,7 @@ import javax.swing.JComponent
 class ArendModuleConfigurationEditor(private val moduleConfig: ArendModuleConfigService) : ModuleConfigurationEditor {
     private var view: ArendModuleConfigurationView? = null
 
-    override fun getDisplayName() = "Arend module configuration"
+    override fun getDisplayName() = "Arend configuration"
 
     override fun isModified() = view?.compare(moduleConfig) == false
 

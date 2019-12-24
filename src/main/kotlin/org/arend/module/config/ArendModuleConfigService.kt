@@ -4,7 +4,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
-import com.intellij.openapi.roots.*
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -17,7 +17,10 @@ import org.arend.module.ModuleSynchronizer
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.*
+import org.arend.util.FileUtils
+import org.arend.util.Range
+import org.arend.util.findPsiFileByPath
+import org.arend.util.reload
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Paths
 
@@ -56,7 +59,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         get() = flaggedExtensionsDir
 
     override val extensionMainClass: String?
-        get() = flaggedExtensionsDir
+        get() = flaggedExtensionMainClass
 
     override val langVersion: Range<String>
         get() = Range.parseRange(langVersionString) ?: Range.unbound()

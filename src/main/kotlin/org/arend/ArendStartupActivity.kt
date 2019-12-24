@@ -33,7 +33,7 @@ class ArendStartupActivity : StartupActivity {
         })
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
-            override fun projectClosed(project: Project) {
+            override fun projectClosing(project: Project) {
                 project.service<TypeCheckingService>().libraryManager.unload()
             }
         })
