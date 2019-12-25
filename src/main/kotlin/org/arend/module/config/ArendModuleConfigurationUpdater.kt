@@ -47,12 +47,14 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
 
         val rootPath = FileUtil.toSystemDependentName(moduleRoot.path)
         val srcDir = toAbsolute(rootPath, sourcesDir)
-        val binDir = toAbsolute(rootPath, binariesDirectory)
-        val extDir = toAbsolute(rootPath, extensionsDirectory)
 
         VfsUtil.createDirectories(srcDir)
         contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcDir), false)
-        contentEntry.addExcludeFolder(VfsUtil.pathToUrl(binDir))
-        contentEntry.addExcludeFolder(VfsUtil.pathToUrl(extDir))
+        if (withBinaries) {
+            contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, binariesDirectory)))
+        }
+        if (withExtensions) {
+            contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, extensionsDirectory)))
+        }
     }
 }

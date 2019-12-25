@@ -156,6 +156,6 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
             row { ScrollPaneFactory.createScrollPane(dualList, true)() }
         }
     }.apply {
-        border = BorderFactory.createEmptyBorder(10, 10, 0, 10)
+        border = BorderFactory.createEmptyBorder(0, 10, 0, 10)
     }
 }
