@@ -198,16 +198,24 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val holes = ArrayList<RelativePosition>()
         val newMemberList = ArrayList<ArendGroup>()
         val definitionsThatNeedThisParameter = ArrayList<TCDefinition>()
+        val containingClass: ArendDefClass? = mySourceContainer.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
 
         for (m in myMembers) {
             val mStatementOrClassStat = m.parent
             val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
+
             var addingThisRequired = false
+            run {
+                var psi : PsiElement? = mStatementOrClassStat
+                while (psi != null) {
+                    if (psi is ArendClassStat) addingThisRequired = true
+                    psi = psi.parent
+                }
+            }
 
             val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
                 val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
                 statementContainer!!.definition!!.replace(m.copy())
-                addingThisRequired = true
                 statementContainer
             } else mStatementOrClassStat.copy()
             val docsCopy = docs?.map { it.copy() }
@@ -355,10 +363,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Add this modifier for items moved out of a class
-        if (mySourceContainer is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
+        if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
             val anchor = definition.nameIdentifier
-            val className = getTargetName(mySourceContainer, definition)
-                    ?: mySourceContainer.defIdentifier?.textRepresentation()
+            val className = getTargetName(containingClass, definition).let{ if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
             val thisVarName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(definition).map { VariableImpl(it) }.toList())
 
             if (className != null) {
@@ -375,7 +382,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 definition.addAfterWithNotification(thisTele, anchor)
                 definition.addAfter(psiFactory.createWhitespace(" "), anchor)
 
-                val classifyingField = getClassifyingField(mySourceContainer)
+                val classifyingField = getClassifyingField(containingClass)
 
                 fun doSubstituteThisKwWithThisVar(psi: PsiElement) {
                     if (psi is ArendWhere) return

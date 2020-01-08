@@ -9,6 +9,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import org.arend.util.LongName
@@ -97,19 +98,17 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
 
     var psi: PsiElement = anchor
     while (psi.parent != null) { //File also passes well (its parent is a directory)
-        var statements: List<ArendStatCmd>? = null
-        var containingGroup: ChildGroup? = null
-
-        if (psi is ArendWhere) {
-            statements = psi.children.mapNotNull { (it as? ArendStatement)?.statCmd }
-            containingGroup = psi.parent as? ChildGroup /* in fact ArendGroup */
-        } else if (psi is ArendFile) {
-            statements = psi.namespaceCommands
-            containingGroup = psi
+        val containingGroup: ChildGroup? = when (psi) {
+            is ArendWhere -> psi.parent as? ChildGroup /* in fact ArendGroup */
+            is ArendFile -> psi
+            is ArendDefClass -> psi
+            else -> null
         }
 
+        val statements: List<ArendStatCmd>? = containingGroup?.namespaceCommands?.filterIsInstance<ArendStatCmd>()?.toList()
+
         if (statements != null)
-            ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.openKw != null }))
+            ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.kind == NamespaceCommand.Kind.OPEN }))
 
         psi = psi.parent
     }

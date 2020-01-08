@@ -956,6 +956,31 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 }
             """, "Main", "M")
 
+
+    fun testMoveOutOfClass4() =
+            testMoveRefactoring("""
+               \class C {
+                 | carrier : \Type
+
+                 \func foo : Nat => 101 \where {
+                   \func bar{-caret-} (X : carrier) => 101 
+                 }
+  
+                 \func foobar => foo.bar
+               } 
+            """, """
+               \class C {
+                 | carrier : \Type
+
+                 \func foo : Nat => 101 \where {
+                 }
+
+                 \func foobar => bar
+               } \where {
+                 \func bar {this : C} (X : carrier) => 101
+               } 
+            """, "Main", "C")
+
     fun testMoveOutOfRecord1() =
             testMoveRefactoring("""
                \class C1 (E : \Type)
