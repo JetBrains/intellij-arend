@@ -6,9 +6,9 @@ import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ModulePath
 import org.arend.module.ModuleSynchronizer
 import org.arend.module.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable

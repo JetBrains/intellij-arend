@@ -11,7 +11,7 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -26,7 +26,6 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.term.Precedence
-import org.arend.term.abs.Abstract
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
@@ -35,7 +34,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() {
             val fileName = originalFile.viewProvider.virtualFile.path
             if (fileName == "/Prelude.ard") {
-                return ModulePath("Prelude")
+                return Prelude.MODULE_PATH
             }
             val conf = libraryConfig ?: return null
             val root = conf.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }

@@ -6,8 +6,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
-import org.arend.module.ModulePath
 import org.arend.psi.getLibraryConfig
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.YAMLFileType

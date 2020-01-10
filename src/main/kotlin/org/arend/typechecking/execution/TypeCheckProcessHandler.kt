@@ -13,12 +13,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
 import org.arend.error.GeneralError
+import org.arend.ext.module.ModulePath
 import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
-import org.arend.module.ModulePath
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor

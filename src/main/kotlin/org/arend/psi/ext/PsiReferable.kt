@@ -2,10 +2,13 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
-import com.intellij.psi.*
+import com.intellij.psi.NavigatablePsiElement
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFileSystemItem
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.TypedReferable
 import org.arend.navigation.getPresentation

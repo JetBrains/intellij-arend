@@ -16,6 +16,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
@@ -24,27 +25,13 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
-import org.arend.util.LongName
-import java.util.ArrayList
+import java.util.*
 import java.util.Collections.singletonList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
-import kotlin.collections.List
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
-import kotlin.collections.any
-import kotlin.collections.emptyList
-import kotlin.collections.iterator
-import kotlin.collections.lastOrNull
-import kotlin.collections.map
-import kotlin.collections.mapIndexed
-import kotlin.collections.plus
+import kotlin.collections.LinkedHashMap
 import kotlin.collections.set
-import kotlin.collections.toSet
-import kotlin.collections.toTypedArray
-import kotlin.collections.withIndex
 
 class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMoveCallback: () -> Unit,

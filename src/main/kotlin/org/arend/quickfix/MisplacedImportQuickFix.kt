@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.psi.*
 import org.arend.refactoring.addStatCmd
 import org.arend.refactoring.findPlaceForNsCmd

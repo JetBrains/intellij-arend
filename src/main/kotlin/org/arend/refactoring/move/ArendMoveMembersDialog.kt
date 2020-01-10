@@ -21,15 +21,12 @@ import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SeparatorFactory
 import com.intellij.ui.layout.panel
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefData
 import org.arend.psi.ArendDefFunction
-import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
-import org.arend.term.abs.Abstract
 import org.arend.util.FullName
 import java.awt.BorderLayout
 import javax.swing.Icon

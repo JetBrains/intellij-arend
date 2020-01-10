@@ -9,10 +9,10 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
-import org.arend.module.ModulePath
 import org.arend.module.ModuleSynchronizer
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService

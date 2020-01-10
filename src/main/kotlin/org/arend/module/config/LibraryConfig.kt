@@ -10,9 +10,9 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
+import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendRawLibrary
-import org.arend.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils

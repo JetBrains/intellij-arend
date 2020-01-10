@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
 import org.arend.error.ErrorReporter
+import org.arend.ext.module.ModulePath
 import org.arend.library.BaseLibrary
 import org.arend.library.LibraryDependency
 import org.arend.library.LibraryManager

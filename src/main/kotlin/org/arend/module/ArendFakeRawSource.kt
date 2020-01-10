@@ -1,5 +1,6 @@
 package org.arend.module
 
+import org.arend.ext.module.ModulePath
 import org.arend.source.Source
 import org.arend.source.SourceLoader
 

@@ -2,6 +2,7 @@ package org.arend.module
 
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
+import org.arend.ext.module.ModulePath
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
@@ -21,6 +22,7 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig, 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
         val psiManager = PsiManager.getInstance(libraryConfig.project)
+        val names = ArrayList<String>()
         for (root in calculateRootDirs()) {
             for (file in root.children) {
                 if (file.isDirectory) {
@@ -28,7 +30,8 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig, 
                     if (FileUtils.isModuleName(name)) {
                         val dir = psiManager.findDirectory(file)
                         if (dir != null) {
-                            result.add(PsiModuleReferable(listOf(dir), ModulePath(name)))
+                            names.add(name)
+                            result.add(PsiModuleReferable(listOf(dir), ModulePath(ArrayList(names))))
                         }
                     }
                 } else if (file.name.endsWith(FileUtils.EXTENSION)) {

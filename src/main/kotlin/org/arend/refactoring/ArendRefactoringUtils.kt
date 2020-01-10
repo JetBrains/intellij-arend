@@ -5,13 +5,13 @@ import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
 import org.arend.core.context.binding.Variable
-import org.arend.module.ModulePath
+import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.term.Fixity
-import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 

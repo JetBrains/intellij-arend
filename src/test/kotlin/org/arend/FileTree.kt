@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.psi.parentOfType
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
@@ -24,7 +24,7 @@ fun fileTreeFromText(@Language("Arend") text: String): FileTree {
         check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
     }
 
-    val modulePaths = fileNames.map { ModulePath(it.removeSuffix('.' + ArendFileType.defaultExtension).split('/'))}
+    val modulePaths = fileNames.map { ModulePath(it.removeSuffix('.' + ArendFileType.defaultExtension).split('/')) }
 
     fun fill(dir: Entry.Directory, path: List<String>, contents: String) {
         val name = path.first()

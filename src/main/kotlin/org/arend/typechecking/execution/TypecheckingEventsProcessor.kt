@@ -10,7 +10,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil.addToInvokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ArendFile

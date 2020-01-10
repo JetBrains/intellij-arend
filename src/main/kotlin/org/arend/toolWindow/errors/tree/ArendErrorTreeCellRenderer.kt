@@ -3,7 +3,7 @@ package org.arend.toolWindow.errors.tree
 import com.intellij.openapi.util.Iconable
 import com.intellij.ui.JBDefaultTreeCellRenderer
 import org.arend.ArendIcons
-import org.arend.module.ModulePath
+import org.arend.ext.module.ModulePath
 import org.arend.typechecking.error.ArendError
 import java.awt.Component
 import javax.swing.JTree

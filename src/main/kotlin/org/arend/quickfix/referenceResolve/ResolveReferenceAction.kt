@@ -1,6 +1,7 @@
 package org.arend.quickfix.referenceResolve
 
 import com.intellij.openapi.editor.Editor
+import org.arend.ext.module.LongName
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
@@ -9,7 +10,6 @@ import org.arend.refactoring.AbstractRefactoringAction
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.RenameReferenceAction
 import org.arend.refactoring.computeAliases
-import org.arend.util.LongName
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,

@@ -13,9 +13,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.arend.ext.module.ModulePath
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
-import org.arend.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings

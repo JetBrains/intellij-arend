@@ -1,6 +1,7 @@
 package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
+import org.arend.ext.module.LongName
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -11,8 +12,6 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
-import org.arend.util.LongName
-import java.lang.IllegalStateException
 import java.util.Collections.singletonList
 
 fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {

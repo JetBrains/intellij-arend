@@ -4,6 +4,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import org.arend.error.ErrorReporter
+import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
