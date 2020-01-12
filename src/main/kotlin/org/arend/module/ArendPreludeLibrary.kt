@@ -22,6 +22,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.term.group.Group
 import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
+import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.util.FileUtils
 import java.nio.charset.StandardCharsets
@@ -66,7 +67,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
         return true
     }
 
-    override fun load(libraryManager: LibraryManager): Boolean {
+    override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (prelude == null) {
             synchronized(ArendPreludeLibrary::class.java) {
                 if (prelude == null) {
@@ -77,7 +78,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
             }
         }
 
-        return prelude != null && super.load(libraryManager)
+        return prelude != null && super.load(libraryManager, typechecking)
     }
 
     override fun resetGroup(group: Group) {}

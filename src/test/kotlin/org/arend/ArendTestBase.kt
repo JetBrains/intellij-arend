@@ -44,7 +44,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         service.initialize()
         val library = ArendRawLibrary(module)
         service.libraryManager.unloadLibrary(library)
-        service.libraryManager.loadLibrary(library)
+        service.libraryManager.loadLibrary(library, null)
     }
 
     override fun runTest() {

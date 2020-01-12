@@ -57,7 +57,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
 
         // Initialize prelude
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
-        libraryManager.loadLibrary(preludeLibrary)
+        libraryManager.loadLibrary(preludeLibrary, null)
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)

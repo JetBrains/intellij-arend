@@ -15,6 +15,7 @@ import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleSynchronizer
 import org.arend.settings.ArendSettings
+import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.FileUtils
@@ -118,15 +119,16 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             }
         }
 
+        val typechecking = ArendTypechecking.create(project)
         if (reloadLib) {
             libraryManager.unloadLibrary(library)
-            libraryManager.loadLibrary(library)
+            libraryManager.loadLibrary(library, typechecking)
         } else {
             for (dependency in newDependencies) {
                 if (!oldDependencies.contains(dependency)) {
                     var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
                     if (depLibrary == null) {
-                        depLibrary = libraryManager.loadDependency(library, dependency.name)
+                        depLibrary = libraryManager.loadDependency(library, dependency.name, typechecking)
                     }
                     if (depLibrary != null) {
                         libraryManager.registerDependency(library, depLibrary)
