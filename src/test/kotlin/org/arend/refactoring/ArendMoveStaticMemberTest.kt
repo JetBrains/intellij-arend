@@ -125,7 +125,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 \func foo => 202
 
                 \open Foo (bar)
-
             """, "DirB.Main", "Foo")
 
     fun testMoveData1() =
@@ -315,7 +314,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                 \module Bar \where
                   \open lol (bar)
-
             """, "A", "lol")
 
     fun testMoveFromWhereBlock2() =
@@ -573,8 +571,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             """, """
                \import Main
-
-
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove3() =
@@ -594,8 +590,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             """, """
                \import Main (D1, D2)
-
-
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove4() =
@@ -1042,4 +1036,58 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func foo {this : M.R} (a : C1) => (this.field1, this.field2.field1, this.field2, a.field1)
                 }
             """, "Main", "M2")
+
+    fun testMoveIntoDynamic1() =
+            testMoveRefactoring("""
+               \class C1 {
+                 | carrier : \Type
+               }
+               
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+               }
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic2() =
+            testMoveRefactoring("""  
+               --! Main.ard
+               
+               \class C1 {
+                 | carrier : \Type
+               }
+                 
+               \func foo => 1{-caret-}  
+               
+               \func goo => 2
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+                 
+                 \func goo => 2
+               }
+               
+               \open C1 (foo, goo)
+            """, "Main", "C1", "Main", "foo", "goo", targetIsDynamic = true)
+
+    /* fun testMoveIntoDynamic3() =
+            testMoveRefactoring("""
+               \class C1
+                 | carrier : \Type
+                 
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+               }
+            """, "Main", "C1", targetIsDynamic = true) */ //TODO: Fix later
 }

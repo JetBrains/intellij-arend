@@ -51,6 +51,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ArendGroup,
                                             private val myTargetContainer: ArendGroup,
+                                            private val insertIntoDynamicPart: Boolean,
                                             private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
 
@@ -141,6 +142,14 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
         insertAnchor = if (myTargetContainer is ArendFile) {
             myTargetContainer.lastChild //null means file is empty
+        } else if (myTargetContainer is ArendDefClass && insertIntoDynamicPart) {
+            if (myTargetContainer.lbrace == null && myTargetContainer.rbrace == null) {
+                throw NotImplementedError() //TODO: Fix me
+                /* val braces = psiFactory.createPairOfBraces()
+                myTargetContainer.addAfter(braces.first, myTargetContainer.defIdentifier)
+                myTargetContainer.addAfter(braces.second, myTargetContainer.lastChild) */
+            }
+            myTargetContainer.classStatList.lastOrNull() ?: myTargetContainer.lbrace!!
         } else {
             val oldWhereImpl = myTargetContainer.where
             val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
@@ -174,9 +183,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
             val recordFields =
-                if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
-                    ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
-                else emptySet<PsiLocatedReferable>()
+                    if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
+                        ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
+                    else emptySet<PsiLocatedReferable>()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
@@ -206,22 +215,34 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
             var addingThisRequired = false
             run {
-                var psi : PsiElement? = mStatementOrClassStat
+                var psi: PsiElement? = mStatementOrClassStat
                 while (psi != null) {
                     if (psi is ArendClassStat) addingThisRequired = true
                     psi = psi.parent
                 }
             }
 
-            val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
-                val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
-                statementContainer!!.definition!!.replace(m.copy())
-                statementContainer
-            } else mStatementOrClassStat.copy()
             val docsCopy = docs?.map { it.copy() }
 
-            val mCopyStatementInserted = insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
-                    ?: myTargetContainer.addWithNotification(mCopyStatement)
+            val mCopyStatementInserted: PsiElement =
+                    if (myTargetContainer is ArendDefClass && insertIntoDynamicPart) {
+                        val mCopyClassStat = if (mStatementOrClassStat is ArendClassStat) mStatementOrClassStat.copy() else {
+                            val classStatContainer = psiFactory.createClassStat()
+                            classStatContainer.definition!!.replace(m.copy())
+                            classStatContainer
+                        }
+
+                        insertAnchor!!.parent!!.addAfterWithNotification(mCopyClassStat, insertAnchor)
+                    } else {
+                        val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
+                            val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
+                            statementContainer!!.definition!!.replace(m.copy())
+                            statementContainer
+                        } else mStatementOrClassStat.copy()
+
+                        insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
+                                ?: myTargetContainer.addWithNotification(mCopyStatement)
+                    }
 
             fun addGroupToThis(group: ArendGroup) {
                 if (group is TCDefinition) definitionsThatNeedThisParameter.add(group)
@@ -365,7 +386,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         //Add this modifier for items moved out of a class
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
             val anchor = definition.nameIdentifier
-            val className = getTargetName(containingClass, definition).let{ if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
+            val className = getTargetName(containingClass, definition).let { if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
             val thisVarName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(definition).map { VariableImpl(it) }.toList())
 
             if (className != null) {

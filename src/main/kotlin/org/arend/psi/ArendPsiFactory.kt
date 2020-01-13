@@ -140,4 +140,6 @@ class ArendPsiFactory(private val project: Project) {
     fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
 
     fun createWith(): ArendElim = createFromText("\\func foo \\with")?.childOfType<ArendElim>() ?: error("Failed to create \"with\" keyword")
+
+    fun createClassStat(): ArendClassStat = createFromText("\\class C { \\func bar => 101 }")?.childOfType() ?: error("Failed to create classStat")
 }

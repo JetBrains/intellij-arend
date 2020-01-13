@@ -127,7 +127,7 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         if (targetContainer != null)
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, isOpenInEditor)) else
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, false, isOpenInEditor)) else
             if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 

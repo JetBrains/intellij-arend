@@ -288,6 +288,7 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
         nS != null -> RelativePosition(PositionKind.BEFORE_ANCHOR, nS)
         else -> this.parent?.let { RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, it) }
     }
+    (this.prevSibling as? PsiWhiteSpace)?.delete()
     this.deleteWithNotification()
     return result
 }
