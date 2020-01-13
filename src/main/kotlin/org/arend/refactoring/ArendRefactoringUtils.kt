@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.util.elementType
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
 import org.arend.prelude.Prelude
@@ -100,7 +101,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, private val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
     override fun toString(): String {
         val listType = when (id.parent) {
             is ArendStatCmd -> "\"hiding\" list"
@@ -369,4 +370,33 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
     }
 
     return doGetClassifyingField(classDef, HashSet())
+}
+
+fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass : ArendDefClass) {
+    val braces = psiFactory.createPairOfBraces()
+    defClass.addAfter(braces.first, defClass.defIdentifier)
+    defClass.addAfter(psiFactory.createWhitespace(" "), defClass.defIdentifier)
+    defClass.addAfter(braces.second, defClass.lastChild)
+
+    fun surroundWithClassStat(startChild: PsiElement, endChild: PsiElement) {
+        val insertedClassStat = defClass.addAfterWithNotification(psiFactory.createClassStat(), endChild) as ArendClassStat
+        val definition = insertedClassStat.definition!!
+        insertedClassStat.addRangeAfter(startChild, endChild, definition)
+        definition.delete()
+        defClass.deleteChildRange(startChild, endChild)
+    }
+
+    var pipePosition: PsiElement? = null
+    var currentChild : PsiElement? = defClass.firstChild
+    while (currentChild != null) {
+        val nextSibling = currentChild.nextSibling
+        if (pipePosition != null && nextSibling != null &&
+                (nextSibling.elementType == ArendElementTypes.RBRACE || nextSibling.elementType == ArendElementTypes.PIPE)) {
+            surroundWithClassStat(pipePosition, currentChild)
+            pipePosition = null
+        }
+        if (currentChild.elementType == ArendElementTypes.PIPE) pipePosition = currentChild
+
+        currentChild = nextSibling
+    }
 }

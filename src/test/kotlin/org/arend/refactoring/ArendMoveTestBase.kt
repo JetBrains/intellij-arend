@@ -6,6 +6,7 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.move.ArendMoveHandlerDelegate
 import org.arend.refactoring.move.ArendMoveMembersDialog
+import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.determineClassPart
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.getLocateErrorMessage
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.simpleLocate
 import org.arend.refactoring.move.ArendStaticMemberRefactoringProcessor
@@ -53,7 +54,7 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val expectsError: Boolean = resultingContent == null
         val container = ArendMoveHandlerDelegate.getCommonContainer(sourceElements) ?: throw AssertionError("Elements are not contained in the same ChildGroup")
 
-        val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, sourceElements)
+        val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, sourceElements, determineClassPart(sourceElements), targetIsDynamic)
         val group = myTargetGroup.first
         if (group != null) {
             val processor = ArendStaticMemberRefactoringProcessor(myFixture.project, {}, sourceElements, container, group, targetIsDynamic, false)

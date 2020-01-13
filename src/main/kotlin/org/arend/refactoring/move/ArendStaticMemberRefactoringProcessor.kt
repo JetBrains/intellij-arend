@@ -143,12 +143,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         insertAnchor = if (myTargetContainer is ArendFile) {
             myTargetContainer.lastChild //null means file is empty
         } else if (myTargetContainer is ArendDefClass && insertIntoDynamicPart) {
-            if (myTargetContainer.lbrace == null && myTargetContainer.rbrace == null) {
-                throw NotImplementedError() //TODO: Fix me
-                /* val braces = psiFactory.createPairOfBraces()
-                myTargetContainer.addAfter(braces.first, myTargetContainer.defIdentifier)
-                myTargetContainer.addAfter(braces.second, myTargetContainer.lastChild) */
-            }
+            if (myTargetContainer.lbrace == null && myTargetContainer.rbrace == null) surroundWithBraces(psiFactory, myTargetContainer)
             myTargetContainer.classStatList.lastOrNull() ?: myTargetContainer.lbrace!!
         } else {
             val oldWhereImpl = myTargetContainer.where
@@ -508,16 +503,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val conflicts = MultiMap<PsiElement, String>()
         val usages = refUsages.get()
 
-        val localGroup = HashSet(myTargetContainer.subgroups)
-        localGroup.addAll(myTargetContainer.dynamicSubgroups)
+        if (mySourceContainer != myTargetContainer) {
+            val localGroup = HashSet(myTargetContainer.subgroups)
+            localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
-        val localNamesMap = HashMap<String, ArendGroup>()
-        for (psi in localGroup) localNamesMap[psi.textRepresentation()] = psi
+            val localNamesMap = HashMap<String, ArendGroup>()
+            for (psi in localGroup) localNamesMap[psi.textRepresentation()] = psi
 
-        for (member in myMembers) {
-            val text = member.textRepresentation()
-            val psi = localNamesMap[text]
-            if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
+            for (member in myMembers) {
+                val text = member.textRepresentation()
+                val psi = localNamesMap[text]
+                if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
+            }
         }
 
         return showConflicts(conflicts, usages)

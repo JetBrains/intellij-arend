@@ -1077,7 +1077,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \open C1 (foo, goo)
             """, "Main", "C1", "Main", "foo", "goo", targetIsDynamic = true)
 
-    /* fun testMoveIntoDynamic3() =
+    fun testMoveIntoDynamic3() =
             testMoveRefactoring("""
                \class C1
                  | carrier : \Type
@@ -1089,5 +1089,47 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                  \func foo => 1
                }
-            """, "Main", "C1", targetIsDynamic = true) */ //TODO: Fix later
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic4() =
+            testMoveRefactoring("""
+               \class C1
+                 
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 \func foo => 1
+               }
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveBetweenDynamics1() =
+            testMoveRefactoring(""" 
+               \class C {  
+                 \func foo{-caret-} => bar Nat.+ (bar {\this})
+                 
+                 \func bar => 202
+                 
+                 \func foobar => foo
+               }
+                
+               \class D {
+                 \func fubar => C.foo {\new C}
+               }
+            """, """
+               \class C {
+                 \func bar => 202
+
+                 \func foobar => D.foo
+               }
+
+               \class D {
+                 \func fubar => foo {\new C}
+
+                 \func foo => C.bar Nat.+ (C.bar {\this})
+               } 
+            """, "Main", "D", targetIsDynamic = true)
 }
