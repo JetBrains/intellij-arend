@@ -5,10 +5,10 @@ import com.intellij.psi.stubs.*
 import com.intellij.psi.tree.IStubFileElementType
 import org.arend.ArendFileType
 import org.arend.ArendLanguage
+import org.arend.ext.reference.Precedence
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.impl.*
-import org.arend.term.Precedence
 
 class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubImpl<ArendFile>(file), ArendNamedStub {
     constructor (file: ArendFile?) : this(file, file?.name?.removeSuffix('.' + ArendFileType.defaultExtension))
@@ -19,7 +19,7 @@ class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubI
     override fun getType(): Type = Type
 
     object Type : IStubFileElementType<ArendFileStub>(ArendLanguage.INSTANCE) {
-        override fun getStubVersion() = 2
+        override fun getStubVersion() = 3
 
         override fun getBuilder() = object : DefaultStubBuilder() {
             override fun createStubForFile(file: PsiFile): StubElement<*> =

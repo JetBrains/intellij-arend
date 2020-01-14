@@ -7,9 +7,9 @@ import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.stubs.StubOutputStream
 import com.intellij.psi.tree.IStubFileElementType
 import org.arend.ArendLanguage
+import org.arend.ext.reference.Precedence
+import org.arend.ext.reference.Precedence.Associativity.*
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.term.Precedence
-import org.arend.term.Precedence.Associativity.*
 
 abstract class ArendStubElementType<StubT : ArendStub<*>, PsiT : PsiLocatedReferable>(debugName: String)
     : IStubElementType<StubT, PsiT>(debugName, ArendLanguage.INSTANCE) {

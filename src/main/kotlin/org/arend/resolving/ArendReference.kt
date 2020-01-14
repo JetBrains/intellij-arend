@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
 import org.arend.ArendIcons
+import org.arend.naming.reference.MetaReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
 import org.arend.prelude.Prelude
@@ -97,8 +98,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                         if (it is ArendFile)
                             LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.AREND_FILE) else
                             LookupElementBuilder.createWithIcon(it)
-                    } ?: LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ArendIcons.DIRECTORY)
+                    } ?: LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
                 }
+                is MetaReferable -> LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(if (ref.definition == null) ArendIcons.MODULE_DEFINITION else ArendIcons.META_DEFINITION)
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
         }.toTypedArray()

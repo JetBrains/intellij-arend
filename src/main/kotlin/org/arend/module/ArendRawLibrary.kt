@@ -12,6 +12,7 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.LocatedReferable
+import org.arend.psi.ArendDefinition
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
@@ -57,6 +58,9 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun needsTypechecking() = true
 
     override fun resetDefinition(referable: LocatedReferable) {
+        if (referable !is ArendDefinition) {
+            return
+        }
         runReadAction {
             if (!config.project.isDisposedOrDisposeInProgress) {
                 config.project.service<TypeCheckingService>().updateDefinition(referable, null, TypeCheckingService.LastModifiedMode.DO_NOT_TOUCH)

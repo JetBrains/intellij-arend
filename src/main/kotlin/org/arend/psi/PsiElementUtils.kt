@@ -108,6 +108,9 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude
             } else {
+                typecheckingService.libraryManager.extensionModuleScopeProvider.forModule(modulePath)?.let {
+                    return@ModuleScopeProvider it
+                }
                 if (config == null) {
                     typecheckingService.libraryManager.registeredLibraries.mapFirstNotNull { it.getModuleGroup(modulePath) }
                 } else {

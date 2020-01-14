@@ -4,7 +4,9 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
-import com.intellij.psi.*
+import com.intellij.openapi.components.service
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.error.SourceInfo
@@ -14,6 +16,7 @@ import org.arend.naming.scope.*
 import org.arend.psi.*
 import org.arend.resolving.ArendReference
 import org.arend.term.abs.Abstract
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typing.ModifiedClassFieldImplScope
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
@@ -45,7 +48,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
         else it.scope
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 
-    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it) } ?: EmptyScope.INSTANCE })
+    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it, it.project.service<TypeCheckingService>().libraryManager.extensionModuleScopeProvider.registeredModules) } ?: EmptyScope.INSTANCE })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is ArendDefClass) {

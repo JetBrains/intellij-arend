@@ -4,6 +4,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import org.arend.error.ErrorReporter
 import org.arend.error.GeneralError
+import org.arend.ext.reference.Precedence
 import org.arend.naming.error.ReferenceError
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
@@ -16,7 +17,6 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.term.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.execution.TypecheckingEventsProcessor

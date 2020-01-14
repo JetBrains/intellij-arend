@@ -3,6 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import org.arend.ext.reference.Precedence
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
 import org.arend.psi.ancestor
@@ -10,7 +11,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.stubs.ArendNamedStub
-import org.arend.term.Precedence
 
 abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -38,7 +38,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 else -> return Precedence.DEFAULT
             }
             val priority = prec.number
-            return Precedence(assoc, if (priority == null) Precedence.MAX_PRIORITY else priority.text?.toByteOrNull() ?: (Precedence.MAX_PRIORITY + 1).toByte(), prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
+            return Precedence(assoc, if (priority == null) Precedence.MAX_PRIORITY else priority.text?.toByteOrNull()
+                ?: (Precedence.MAX_PRIORITY + 1).toByte(), prec.infixRightKw != null || prec.infixLeftKw != null || prec.infixNonKw != null)
         }
     }
 }

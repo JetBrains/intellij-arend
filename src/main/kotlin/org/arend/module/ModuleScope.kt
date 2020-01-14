@@ -14,31 +14,34 @@ import org.arend.psi.ext.PsiModuleReferable
 import org.arend.util.FileUtils
 
 
-class ModuleScope private constructor(private val libraryConfig: LibraryConfig, private val rootDirs: List<VirtualFile>?) : Scope {
-    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null)
+class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val rootDirs: List<VirtualFile>?, private val additionalPaths: List<List<String>>) : Scope {
+    constructor(libraryConfig: LibraryConfig, additionalModules: Collection<ModulePath>) : this(libraryConfig, null, additionalModules.map { it.toList() })
 
-    private fun calculateRootDirs() = rootDirs ?: libraryConfig.availableConfigs.mapNotNull { it.sourcesDirFile }
+    private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.mapNotNull { it.sourcesDirFile }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
-        val psiManager = PsiManager.getInstance(libraryConfig.project)
-        val names = ArrayList<String>()
-        for (root in calculateRootDirs()) {
-            for (file in root.children) {
-                if (file.isDirectory) {
-                    val name = file.name
-                    if (FileUtils.isModuleName(name)) {
-                        val dir = psiManager.findDirectory(file)
-                        if (dir != null) {
-                            names.add(name)
-                            result.add(PsiModuleReferable(listOf(dir), ModulePath(ArrayList(names))))
+        if (libraryConfig != null) {
+            val psiManager = PsiManager.getInstance(libraryConfig.project)
+            for (root in calculateRootDirs()) {
+                for (file in root.children) {
+                    if (file.isDirectory) {
+                        val name = file.name
+                        if (FileUtils.isModuleName(name)) {
+                            val dir = psiManager.findDirectory(file)
+                            if (dir != null) {
+                                result.add(PsiModuleReferable(listOf(dir), ModulePath(name)))
+                            }
                         }
+                    } else if (file.name.endsWith(FileUtils.EXTENSION)) {
+                        val arendFile = psiManager.findFile(file) as? ArendFile
+                        arendFile?.modulePath?.let { result.add(PsiModuleReferable(listOf(arendFile), it)) }
                     }
-                } else if (file.name.endsWith(FileUtils.EXTENSION)) {
-                    val arendFile = psiManager.findFile(file) as? ArendFile
-                    arendFile?.modulePath?.let { result.add(PsiModuleReferable(listOf(arendFile), it)) }
                 }
             }
+        }
+        for (path in additionalPaths) {
+            result.add(ModuleReferable(ModulePath(path[0])))
         }
         if (rootDirs == null) {
             result.add(ModuleReferable(Prelude.MODULE_PATH))
@@ -47,7 +50,7 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig, 
     }
 
     override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope {
-        val newRootDirs = (calculateRootDirs()).mapNotNull { root ->
+        val newRootDirs = if (libraryConfig == null) emptyList() else (calculateRootDirs()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {
                     return@mapNotNull if (file.isDirectory) file else null
@@ -55,6 +58,7 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig, 
             }
             return@mapNotNull null
         }
-        return if (newRootDirs.isEmpty()) EmptyScope.INSTANCE else ModuleScope(libraryConfig, newRootDirs)
+        val newPaths = additionalPaths.mapNotNull { if (it.size > 1 && it[0] == name) it.drop(1) else null }
+        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, newRootDirs, newPaths)
     }
 }
