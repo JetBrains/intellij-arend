@@ -89,18 +89,19 @@ class ArendMoveMembersDialog(project: Project,
         sourceIsDynamic = determineClassPart(elements)
 
         if (container is ArendDefClass) {
-            classPartRow?.visible = true
+            classPartRow?.enabled = true
             if (sourceIsDynamic != null && sourceIsDynamic) dynamicGroup.isSelected = true else
                 if (sourceIsDynamic != null && !sourceIsDynamic) staticGroup.isSelected = true
         } else {
-            classPartRow?.visible = false
+            classPartRow?.enabled = false
+            staticGroup.isSelected = true
         }
 
         val updater = {
             val fileName = targetFileTextField.text
             val moduleName = targetModuleTextField.text
             val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
-            classPartRow?.visible = locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
+            classPartRow?.enabled = locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
         }
 
         val documentListener = object: DocumentListener {
@@ -134,7 +135,7 @@ class ArendMoveMembersDialog(project: Project,
         val fileName = targetFileTextField.text
         val moduleName = targetModuleTextField.text
         var targetContainer: ArendGroup? = null
-        val targetIsDynamic: Boolean? = if (classPartRow == null || !classPartRow.visible) null else {
+        val targetIsDynamic: Boolean? = if (classPartRow == null || !classPartRow.enabled) null else {
             val isDynamic = dynamicGroup.isSelected
             val isStatic = staticGroup.isSelected
             when {

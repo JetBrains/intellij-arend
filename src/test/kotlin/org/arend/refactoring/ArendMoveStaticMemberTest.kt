@@ -1106,6 +1106,22 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \open C1 (foo)
             """, "Main", "C1", targetIsDynamic = true)
 
+    fun testMoveIntoDynamic5() =
+            testMoveRefactoring("""
+                \class C1
+                  
+                -- | fubar
+                \func fubar{-caret-} => 101
+            """, """
+                \class C1 {
+                  -- | fubar
+                  
+                  \func fubar => 101
+                }
+                
+                \open C1 (fubar)
+            """, "Main", "C1", targetIsDynamic = true)
+
     fun testMoveBetweenDynamics1() =
             testMoveRefactoring(""" 
                \class C {  
