@@ -11,6 +11,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
 import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
@@ -399,4 +400,27 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass : ArendDefClass) {
 
         currentChild = nextSibling
     }
+}
+
+fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup): PsiElement? {
+    val oldWhereImpl = myTargetContainer.where
+    val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
+        val localAnchor = myTargetContainer.lastChild
+        val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+        insertedWhere
+    }
+
+    if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
+        val braces = psiFactory.createPairOfBraces()
+        if (actualWhereImpl.lbrace == null) {
+            actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
+            actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
+        }
+        if (actualWhereImpl.rbrace == null) {
+            actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
+        }
+    }
+
+    return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
 }

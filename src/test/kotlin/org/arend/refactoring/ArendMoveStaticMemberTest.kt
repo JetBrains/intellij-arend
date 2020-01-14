@@ -920,6 +920,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C {
                   | foo : Nat 
+                } \where {
+                  \open M (D)
                 }
                 
                 \module M \where {
@@ -941,7 +943,9 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C1 (E : \Type)
 
-                \class C2 \extends C1 {}
+                \class C2 \extends C1 {} \where {
+                  \open M (foo)
+                }
 
                 \module M \where {
                   \func foo {this : C2} (e : this) => {?}
@@ -993,6 +997,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \record C2 \extends C1 {
                  | bar : Nat 
+               } \where {
+                 \open M (foo)
                }
 
                \module M \where {
@@ -1029,7 +1035,9 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     | field2 : C1
                   }
 
-                  \record R \extends C2 {}
+                  \record R \extends C2 {} \where {
+                    \open M2 (foo)
+                  }
                 }
 
                 \module M2 \where {
@@ -1124,8 +1132,10 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testMoveBetweenDynamics1() =
             testMoveRefactoring(""" 
-               \class C {  
-                 \func foo{-caret-} => bar Nat.+ (bar {\this})
+               \record C {
+                 | number : Nat
+                 
+                 \func foo{-caret-} => bar Nat.+ (bar {\this}) Nat.+ number
                  
                  \func bar => 202
                  
@@ -1133,19 +1143,56 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                }
                 
                \class D {
-                 \func fubar => C.foo {\new C}
+                 \func fubar => C.foo {\new C {| number => 1}}
                }
             """, """
-               \class C {
+               \record C {
+                 | number : Nat               
+               
                  \func bar => 202
 
-                 \func foobar => D.foo
+                 \func foobar => foo
+               } \where {
+                 \open D (foo)
                }
 
                \class D {
-                 \func fubar => foo {\new C}
+                 \func fubar => foo {\new C {| number => 1}}
 
-                 \func foo => C.bar Nat.+ (C.bar {\this})
+                 \func foo {this : C} => C.bar Nat.+ (C.bar {this}) Nat.+ this.number 
+               }
+            """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
+
+    fun testMoveBetweenDynamics2() =
+            testMoveRefactoring(""" 
+               \record C {
+                 | number : Nat
+                 
+                 \func foo{-caret-} => bar Nat.+ (bar {\this}) Nat.+ number
+                 
+                 \func bar => 202
+                 
+                 \func foobar => foo
+               }
+                
+               \class D \extends C {
+                 \func fubar => C.foo {\new C {| number => 1}}
+               }
+            """, """
+               \record C {
+                 | number : Nat               
+               
+                 \func bar => 202
+
+                 \func foobar => foo
+               } \where {
+                 \open D (foo)
+               }
+
+               \class D \extends C {
+                 \func fubar => foo {\new C {| number => 1}}
+
+                 \func foo => C.bar Nat.+ (C.bar {\this}) Nat.+ number 
                } 
-            """, "Main", "D", targetIsDynamic = true)
+            """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 }

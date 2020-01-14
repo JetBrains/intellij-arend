@@ -111,6 +111,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
+        val forceThisParameter = insertIntoDynamicPart && myTargetContainer is ArendDefClass && mySourceContainer is ArendDefClass &&
+                !myTargetContainer.isSubClassOf(mySourceContainer)
 
         insertAnchor = if (myTargetContainer is ArendFile) {
             myTargetContainer.lastChild //null means file is empty
@@ -118,26 +120,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (myTargetContainer.lbrace == null && myTargetContainer.rbrace == null) surroundWithBraces(psiFactory, myTargetContainer)
             myTargetContainer.classStatList.lastOrNull() ?: myTargetContainer.lbrace!!
         } else {
-            val oldWhereImpl = myTargetContainer.where
-            val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
-                val localAnchor = myTargetContainer.lastChild
-                val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
-                myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
-                insertedWhere
-            }
-
-            if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
-                val braces = psiFactory.createPairOfBraces()
-                if (actualWhereImpl.lbrace == null) {
-                    actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
-                    actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
-                }
-                if (actualWhereImpl.rbrace == null) {
-                    actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
-                }
-            }
-
-            actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+            getAnchorInAssociatedModule(psiFactory, myTargetContainer)
         }
 
         //Memorize references in myMembers being moved
@@ -176,26 +159,27 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val definitionsThatNeedThisParameter = ArrayList<TCDefinition>()
         val containingClass: ArendDefClass? = mySourceContainer.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
 
-        for (m in myMembers) {
-            val mStatementOrClassStat = m.parent
+        for (member in myMembers) {
+            val mStatementOrClassStat = member.parent
             val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
 
-            var addingThisRequired = false
+            var memberIsInDynamicPart = false
             run {
                 var psi: PsiElement? = mStatementOrClassStat
                 while (psi != null) {
-                    if (psi is ArendClassStat) addingThisRequired = true
+                    if (psi is ArendClassStat) memberIsInDynamicPart = true
+                    if (psi is ArendDefClass) break
                     psi = psi.parent
                 }
             }
 
             val docsCopy = docs?.map { it.copy() }
 
-            val mCopyStatementInserted: PsiElement =
+            val copyOfMemberStatement: PsiElement =
                     if (myTargetContainer is ArendDefClass && insertIntoDynamicPart) {
                         val mCopyClassStat = if (mStatementOrClassStat is ArendClassStat) mStatementOrClassStat.copy() else {
                             val classStatContainer = psiFactory.createClassStat()
-                            classStatContainer.definition!!.replace(m.copy())
+                            classStatContainer.definition!!.replace(member.copy())
                             classStatContainer
                         }
 
@@ -203,7 +187,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     } else {
                         val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
                             val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
-                            statementContainer!!.definition!!.replace(m.copy())
+                            statementContainer!!.definition!!.replace(member.copy())
                             statementContainer
                         } else mStatementOrClassStat.copy()
 
@@ -211,28 +195,39 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                 ?: myTargetContainer.addWithNotification(mCopyStatement)
                     }
 
-            fun addGroupToThis(group: ArendGroup) {
+            fun markGroupAsTheOneThatNeedsLeadingThisParameter(group: ArendGroup) {
                 if (group is TCDefinition) definitionsThatNeedThisParameter.add(group)
-                for (sg in group.subgroups) addGroupToThis(sg)
+                for (sg in group.subgroups) markGroupAsTheOneThatNeedsLeadingThisParameter(sg)
             }
 
-            if (addingThisRequired && mCopyStatementInserted is ArendStatement) {
-                mCopyStatementInserted.definition?.let { addGroupToThis(it) }
-                mCopyStatementInserted.defModule?.let { addGroupToThis(it) }
+            if (memberIsInDynamicPart && copyOfMemberStatement is ArendStatement) {
+                copyOfMemberStatement.definition?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
+                copyOfMemberStatement.defModule?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
+            } else if (memberIsInDynamicPart && copyOfMemberStatement is ArendClassStat && forceThisParameter) {
+                copyOfMemberStatement.definition?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
+                copyOfMemberStatement.defModule?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
             }
 
-            docsCopy?.forEach { mCopyStatementInserted.parent?.addBefore(it, mCopyStatementInserted) }
+            docsCopy?.forEach { copyOfMemberStatement.parent?.addBefore(it, copyOfMemberStatement) }
 
-            val mCopy = mCopyStatementInserted.childOfType<ArendGroup>()!!
+            val mCopy = copyOfMemberStatement.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
             if (docs != null && docs.isNotEmpty()) (docs.first().prevSibling as? PsiWhiteSpace)?.delete()
             (mStatementOrClassStat.prevSibling as? PsiWhiteSpace)?.delete()
-            mStatementOrClassStat.deleteAndGetPosition()?.let { if (!addingThisRequired) holes.add(it) }
+            mStatementOrClassStat.deleteAndGetPosition()?.let { if (!memberIsInDynamicPart) holes.add(it) }
 
             if (docs != null) for (doc in docs) doc.delete()
-            insertAnchor = mCopyStatementInserted
+            insertAnchor = copyOfMemberStatement
         }
+
+        var sourceContainerWhereBlockFreshlyCreated = false
+        if (holes.isEmpty()) {
+            sourceContainerWhereBlockFreshlyCreated = mySourceContainer.where == null
+            val anchor = getAnchorInAssociatedModule(psiFactory, mySourceContainer)
+            if (anchor != null) holes.add(RelativePosition(PositionKind.AFTER_ANCHOR, anchor))
+        }
+
         myMembers = newMemberList
 
         //Create map from descriptors to actual psi elements of myMembers
@@ -285,6 +280,12 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     }
                 }
             }
+        }
+
+        if (sourceContainerWhereBlockFreshlyCreated) {
+            val where = mySourceContainer.where
+            if (where != null && where.statementList.isEmpty())
+                where.deleteWithNotification()
         }
 
         //Fix usages of namespace commands
