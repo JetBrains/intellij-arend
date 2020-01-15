@@ -1045,6 +1045,88 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 }
             """, "Main", "M2")
 
+    fun testMoveOutOfRecord3() =
+            testMoveRefactoring("""
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 }
+
+                 \record S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                   
+                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1)
+                 }
+               }
+
+               \module M2 
+            """, """
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 } 
+
+                 \record S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                 } \where { 
+                   \open M2 (foo2)
+                 }
+               }
+
+               \module M2 \where {
+                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 {this} 1, M.S.fubar3 {this} 1)
+               } 
+            """, "Main", "M2")
+
+    fun testMoveOutOfRecord4() =
+            testMoveRefactoring("""
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 }
+
+                 \class S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                   
+                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1)
+                 }
+               }
+
+               \module M2 
+            """, """
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 } 
+
+                 \class S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                 } \where { 
+                   \open M2 (foo2)
+                 }
+               }
+
+               \module M2 \where {
+                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 1, M.S.fubar3 1)
+               }
+            """, "Main", "M2")
+
     fun testMoveIntoDynamic1() =
             testMoveRefactoring("""
                \class C1 {
