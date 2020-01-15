@@ -46,7 +46,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
 
     override fun containsModule(modulePath: ModulePath) = modulePath == Prelude.MODULE_PATH
 
-    override fun needsTypechecking() = !isTypechecked
+    override fun isExternal() = true
 
     override fun getUpdatedModules(): List<ModulePath> = if (isTypechecked) emptyList() else listOf(Prelude.MODULE_PATH)
 

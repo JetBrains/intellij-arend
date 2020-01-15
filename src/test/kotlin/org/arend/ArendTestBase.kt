@@ -15,7 +15,6 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.arend.ext.module.ModulePath
 import org.arend.module.ArendModuleType
-import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings
@@ -42,9 +41,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         val module = module
         val service = module.project.service<TypeCheckingService>()
         service.initialize()
-        val library = ArendRawLibrary(module)
-        service.libraryManager.unloadLibrary(library)
-        service.libraryManager.loadLibrary(library, null)
+        service.libraryManager.reloadInternalLibraries(null)
     }
 
     override fun runTest() {

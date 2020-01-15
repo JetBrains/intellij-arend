@@ -307,6 +307,11 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
         </action>
 
+        <action id="Arend.ReloadLibrary"
+                class="org.arend.module.ReloadLibrariesAction"
+                text="Reload Arend Libraries">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
+        </action>
     </actions>
 
 </idea-plugin>

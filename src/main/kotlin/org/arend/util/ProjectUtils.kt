@@ -42,8 +42,5 @@ fun Module.register() {
 
 fun Project.reload() {
     service<ArendResolveCache>().clear()
-    service<TypeCheckingService>().libraryManager.unload()
-    for (module in arendModules) {
-        module.register()
-    }
+    service<TypeCheckingService>().libraryManager.reload(ArendTypechecking.create(this))
 }

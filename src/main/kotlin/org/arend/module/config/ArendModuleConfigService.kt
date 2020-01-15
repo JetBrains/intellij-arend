@@ -110,7 +110,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             return
         }
 
-        val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
         var reloadLib = false
         for (dependency in oldDependencies) {
             if (!newDependencies.contains(dependency) && libraryManager.getRegisteredLibrary(dependency.name) != null) {
@@ -121,9 +120,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         val typechecking = ArendTypechecking.create(project)
         if (reloadLib) {
-            libraryManager.unloadLibrary(library)
-            libraryManager.loadLibrary(library, typechecking)
+            libraryManager.reloadInternalLibraries(typechecking)
         } else {
+            val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
             for (dependency in newDependencies) {
                 if (!oldDependencies.contains(dependency)) {
                     var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)

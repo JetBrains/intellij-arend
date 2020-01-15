@@ -100,7 +100,7 @@ abstract class LibraryConfig(val project: Project) {
         return emptyList()
     }
 
-    private fun getArendFiles(root: VirtualFile): List<ArendFile> {
+    fun getArendFiles(root: VirtualFile): List<ArendFile> {
         val result = ArrayList<ArendFile>()
         val psiManager = PsiManager.getInstance(project)
         VfsUtilCore.iterateChildrenRecursively(root, null) { file ->

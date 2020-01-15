@@ -23,8 +23,7 @@ class ArendRawLibrary(val config: LibraryConfig)
 
     constructor(module: Module): this(ArendModuleConfigService.getConfig(module))
 
-    val isExternal: Boolean
-        get() = config is ExternalLibraryConfig
+    override fun isExternal() = config is ExternalLibraryConfig
 
     override fun getName() = config.name
 
@@ -35,13 +34,7 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun loadHeader(errorReporter: ErrorReporter) =
         LibraryHeader(config.findModules(), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
 
-    override fun unload() =
-        if (isExternal) {
-            super.unload()
-        } else {
-            reset()
-            false
-        }
+    override fun unload() = super.unload() && isExternal
 
     override fun getLoadedModules() = config.findModules()
 
@@ -54,8 +47,6 @@ class ArendRawLibrary(val config: LibraryConfig)
         config.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
 
     override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)
-
-    override fun needsTypechecking() = true
 
     override fun resetDefinition(referable: LocatedReferable) {
         if (referable !is ArendDefinition) {
