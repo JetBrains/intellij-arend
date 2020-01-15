@@ -20,7 +20,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.listener.ArendDefinitionChangeListener
-import org.arend.psi.listener.ArendDefinitionChangeListenerService
+import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.prettyprint.PrettyPrinterConfig
@@ -64,7 +64,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
         // Set the listener that updates typechecked definitions
-        project.service<ArendDefinitionChangeListenerService>().addListener(this)
+        project.service<ArendDefinitionChangeService>().addListener(this)
 
         // Listen for YAML files changes
         YAMLFileListener(project).register()

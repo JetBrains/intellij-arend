@@ -1,6 +1,7 @@
 package org.arend.psi
 
 import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.FileViewProvider
@@ -24,6 +25,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ArendInternalReferable
+import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.typechecking.provider.ConcreteProvider
@@ -70,7 +72,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT)
+            CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
         }
 
     override val defIdentifier: ArendDefIdentifier?

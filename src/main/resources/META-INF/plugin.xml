@@ -259,7 +259,7 @@
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 
-        <projectService serviceImplementation="org.arend.psi.listener.ArendDefinitionChangeListenerService"/>
+        <projectService serviceImplementation="org.arend.psi.listener.ArendDefinitionChangeService"/>
 
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 

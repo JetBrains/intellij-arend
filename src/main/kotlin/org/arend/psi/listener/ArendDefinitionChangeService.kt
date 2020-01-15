@@ -1,6 +1,7 @@
 package org.arend.psi.listener
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
@@ -9,11 +10,18 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 
 
-class ArendDefinitionChangeListenerService(project: Project) : PsiTreeChangeAdapter() {
+class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), ModificationTracker {
     private val listeners = HashSet<ArendDefinitionChangeListener>()
+    private var modificationCount: Long = 0
 
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(this)
+    }
+
+    override fun getModificationCount() = modificationCount
+
+    fun incModificationCount() {
+        modificationCount++
     }
 
     fun addListener(listener: ArendDefinitionChangeListener) {

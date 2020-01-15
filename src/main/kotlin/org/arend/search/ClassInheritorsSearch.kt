@@ -11,14 +11,14 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendLongName
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.listener.ArendDefinitionChangeListener
-import org.arend.psi.listener.ArendDefinitionChangeListenerService
+import org.arend.psi.listener.ArendDefinitionChangeService
 import java.util.concurrent.ConcurrentHashMap
 
 class ClassInheritorsSearch(val project: Project) : ArendDefinitionChangeListener {
     private val cache = ConcurrentHashMap<ArendDefClass, List<ArendDefClass>>()
 
     init {
-        project.service<ArendDefinitionChangeListenerService>().addListener(this)
+        project.service<ArendDefinitionChangeService>().addListener(this)
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefClass> {

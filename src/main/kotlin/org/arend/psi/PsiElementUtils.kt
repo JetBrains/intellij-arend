@@ -18,7 +18,7 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.listener.ArendDefinitionChangeListenerService
+import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.arend.util.mapFirstNotNull
@@ -300,12 +300,12 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
-    file.project.service<ArendDefinitionChangeListenerService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
+    file.project.service<ArendDefinitionChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
     val file = parent.containingFile as? ArendFile ?: return
-    val service = file.project.service<ArendDefinitionChangeListenerService>()
+    val service = file.project.service<ArendDefinitionChangeService>()
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {
