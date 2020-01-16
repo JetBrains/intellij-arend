@@ -1057,11 +1057,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  }
 
                  \record S \extends C2 {
-                   \func fubar3 (n : Nat) => 101
+                   \func fubar3 (n m : Nat) => 101
                    
-                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1)
+                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1, zoo M.C2.fubar2)
                  }
                }
+               
+               \func zoo (f : Nat -> Nat) => f 0
 
                \module M2 
             """, """
@@ -1075,14 +1077,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  } 
 
                  \record S \extends C2 {
-                   \func fubar3 (n : Nat) => 101
+                   \func fubar3 (n m : Nat) => 101
                  } \where { 
                    \open M2 (foo2)
                  }
                }
+               
+               \func zoo (f : Nat -> Nat) => f 0
 
                \module M2 \where {
-                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 {this} 1, M.S.fubar3 {this} 1)
+                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 {this} 1, M.S.fubar3 {this} 1, zoo (M.C2.fubar2 {this}))
                } 
             """, "Main", "M2")
 
@@ -1126,6 +1130,21 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 1, M.S.fubar3 1)
                }
             """, "Main", "M2")
+
+    fun testMoveOutOfRecord5() =
+            testMoveRefactoring("""
+               \record R {
+                 \func bar (n m : Nat) => {?}
+
+                 \func foo{-caret-} => (bar 1, 1 `bar`, 1 `bar, `bar 1, 1 `bar` 2)
+               }
+            """, """
+               \record R {
+                 \func bar (n m : Nat) => {?}
+               }
+               
+               \func foo {this : R} => (R.bar {this} 1, R.bar {this} 1, R.bar {this} 1, (\lam x => R.bar {this} x 1), 1 R.`bar` {this} 2) 
+            """, "Main", "")
 
     fun testMoveIntoDynamic1() =
             testMoveRefactoring("""

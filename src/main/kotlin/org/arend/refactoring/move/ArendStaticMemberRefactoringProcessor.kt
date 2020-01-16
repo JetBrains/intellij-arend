@@ -108,6 +108,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return result
     }
 
+    private fun determineDynamicClassElements(defClass: ArendDefClass): Set<PsiLocatedReferable> {
+        val result = HashSet<PsiLocatedReferable>()
+        val isRecord = defClass.recordKw != null
+        for (element in ClassFieldImplScope(defClass, true).elements) when (element) {
+            is ArendDefClass -> if (isRecord || element.recordKw != null) result.addAll(element.dynamicSubgroups)
+        }
+        if (isRecord) result.addAll(defClass.dynamicSubgroups)
+        return result
+    }
+
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
@@ -127,6 +137,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val descriptorsOfAllMovedMembers = HashMap<PsiLocatedReferable, LocationDescriptor>() //This set may be strictly larger than the set of myReferableDescriptors
         val bodiesRefsFixData = HashMap<LocationDescriptor, TargetReference>()
         val bodiesClassFieldUsages = HashSet<LocationDescriptor>() //We don't need to keep a link to class field as we replace its usages by "this.field" anyway
+        val bodiesOtherDynamicMemberUsages = HashSet<LocationDescriptor>() // same as above
 
         run {
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
@@ -136,6 +147,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
                         ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
                     else emptySet<PsiLocatedReferable>()
+
+            val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) } ?: emptySet()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
@@ -147,10 +160,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             for (usagePack in usagesInMovedBodies) for (usage in usagePack.value) {
                 val referable = usagePack.key
                 if (recordFields.contains(referable))
-                    bodiesClassFieldUsages.add(usage) else
+                    bodiesClassFieldUsages.add(usage) else {
                     targetReferences[referable]?.let { bodiesRefsFixData[usage] = it }
+                    if (recordOtherDynamicMembers.contains(referable)) bodiesOtherDynamicMemberUsages.add(usage)
+                }
             }
-
         }
 
         //Do move myMembers
@@ -338,7 +352,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Fix references in the elements that have been moved
-        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
+        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData, bodiesOtherDynamicMemberUsages)
 
         //Prepare a map which would allow us to fix class field usages on the next step (this step is needed only when we are moving definitions out of a record)
         val referenceElementsFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
@@ -465,14 +479,20 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return references.lastOrNull() //this is the default behavior
     }
 
-    private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int, fixMap: HashMap<LocationDescriptor, TargetReference>) {
+    private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int,
+                                  fixMap: HashMap<LocationDescriptor, TargetReference>,
+                                  bodiesOtherDynamicMemberUsages: Set<LocationDescriptor>) {
         if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
-            val correctTarget = fixMap[LocationDescriptor(groupIndex, prefix)]?.resolve()
+            val descriptor = LocationDescriptor(groupIndex, prefix)
+            val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
                 if (currentTarget != correctTarget) ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
+                if (bodiesOtherDynamicMemberUsages.contains(descriptor)) {
+                    //TODO: Determine whether freshly created defCall has an argument; if it does not -- add implicit {this} as a first argument
+                }
             }
-        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap) }
+        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap, bodiesOtherDynamicMemberUsages) }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
