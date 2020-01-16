@@ -30,7 +30,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
 
-        basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java)), AS_KW_LIST)
+        basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java), not(afterLeaves(LPAREN, COMMA))), AS_KW_LIST)
         { parameters -> (parameters.position.parent.parent as ArendNsId).asKw == null }
 
         basic(NS_CMD_CONTEXT, HU_KW_LIST) { parameters ->
@@ -49,7 +49,7 @@ class ArendCompletionContributor : CompletionContributor() {
             noUsingAndHiding(parameters.position.parent.parent as ArendStatCmd)
         }
 
-        basic(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java), HIDING_KW_LIST) { parameters ->
+        basic(and(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java), not(afterLeaf(COMMA))), HIDING_KW_LIST) { parameters ->
             noHiding(parameters.position.parent.parent.parent as ArendStatCmd)
         }
 
