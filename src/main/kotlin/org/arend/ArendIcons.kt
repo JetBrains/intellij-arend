@@ -2,7 +2,7 @@ package org.arend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.util.IconLoader
-import org.arend.error.GeneralError
+import org.arend.ext.error.GeneralError
 import javax.swing.Icon
 
 object ArendIcons {

@@ -2,8 +2,8 @@ package org.arend.resolving
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
-import org.arend.error.ErrorReporter
-import org.arend.error.GeneralError
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.Precedence
 import org.arend.naming.error.ReferenceError
 import org.arend.naming.reference.ClassReferable

@@ -6,12 +6,13 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.openapi.application.runReadAction
-import org.arend.error.ErrorReporter
-import org.arend.error.GeneralError
-import org.arend.error.doc.*
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.doc.*
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -34,7 +35,7 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
         for (error in errorList) {
             var reported = false
             error.forAffectedDefinitions { def, refError ->
-                val ref = def.underlyingReferable
+                val ref = (def as? GlobalReferable)?.underlyingReferable
                 if (ref is PsiLocatedReferable || ref is ModuleReferable) {
                     reported = true
                     if (ref is PsiLocatedReferable) runReadAction {
@@ -98,9 +99,9 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
             val (hyperlink, reference) = PsiHyperlinkInfo.create(doc.reference, error)
             if (hyperlink == null) {
-                printText(reference.textRepresentation())
+                printText(reference.refName)
             } else {
-                printHyperlink(reference.textRepresentation(), hyperlink)
+                printHyperlink(reference.refName, hyperlink)
             }
             if (newLine) printNewLine()
             return null

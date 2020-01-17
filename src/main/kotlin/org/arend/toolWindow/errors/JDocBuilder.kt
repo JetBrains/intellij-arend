@@ -4,7 +4,7 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.Project
 import com.intellij.ui.LanguageTextField
 import com.intellij.ui.components.JBLabel
-import org.arend.error.doc.*
+import org.arend.ext.prettyprinting.doc.*
 import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -56,7 +56,7 @@ class JDocBuilder(private val project: Project) : DocVisitor<Void?, JComponent> 
         val ref = data as? SmartPsiElementPointer<*> ?:
             (data as? PsiElement ?: doc.reference as? PsiElement)?.let { runReadAction { SmartPointerManager.createPointer(it) } }
         */
-        return JBLabel(doc.reference.textRepresentation()).also {
+        return JBLabel(doc.reference.refName).also {
             it.alignmentX = JLabel.LEFT_ALIGNMENT
             it.alignmentY = JLabel.TOP_ALIGNMENT
         }

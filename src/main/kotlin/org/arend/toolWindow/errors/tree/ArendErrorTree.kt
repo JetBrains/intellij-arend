@@ -5,7 +5,9 @@ import com.intellij.codeInsight.hints.presentation.mouseButton
 import com.intellij.psi.PsiElement
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
-import org.arend.error.GeneralError
+import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.doc.DocStringBuilder
 import org.arend.highlight.BasePass
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
@@ -92,7 +94,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
             is ArendFile -> obj.modulePath?.toString() ?: obj.name
-            is ArendError -> obj.error.shortMessage
+            is ArendError -> DocStringBuilder.build(obj.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT))
             is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
             else -> obj?.toString() ?: ""
         }

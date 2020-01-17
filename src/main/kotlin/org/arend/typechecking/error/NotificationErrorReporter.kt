@@ -4,11 +4,11 @@ import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
-import org.arend.error.GeneralError.Level
-import org.arend.error.ErrorReporter
-import org.arend.error.GeneralError
-import org.arend.error.doc.DocStringBuilder
-import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.GeneralError
+import org.arend.ext.error.GeneralError.Level
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.doc.DocStringBuilder
 
 
 class NotificationErrorReporter(private val project: Project, private val ppConfig: PrettyPrinterConfig = PrettyPrinterConfig.DEFAULT): ErrorReporter {

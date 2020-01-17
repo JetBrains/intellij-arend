@@ -3,9 +3,9 @@ package org.arend.typechecking.error
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.error.ErrorReporter
-import org.arend.error.GeneralError
-import org.arend.naming.reference.DataContainer
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.GeneralError
+import org.arend.ext.reference.DataContainer
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement

@@ -256,7 +256,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
-                    val openedName: List<String>? = importData.second
+                    val openedName = importData.second
 
                     importAction?.execute(null)
                     val renamings = movedReferablesUniqueNames.map { Pair(it, null) }

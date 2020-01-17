@@ -6,27 +6,28 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.error.GeneralError
-import org.arend.error.SourceInfo
-import org.arend.error.SourceInfoReference
+import org.arend.ext.error.GeneralError
+import org.arend.ext.error.SourceInfo
+import org.arend.ext.error.SourceInfoReference
+import org.arend.ext.reference.ArendRef
+import org.arend.ext.reference.DataContainer
 import org.arend.highlight.BasePass
-import org.arend.naming.reference.DataContainer
-import org.arend.naming.reference.Referable
 import org.arend.psi.navigate
 
 class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
     companion object {
-        private fun replaceReference(ref: Referable, error: GeneralError?): Referable {
+        private fun replaceReference(ref: ArendRef, error: GeneralError?): ArendRef {
             if (error != null && ref is SourceInfoReference) {
                 val newCause = BasePass.getImprovedCause(error)
                 if (newCause != null) {
-                    return SourceInfoReference(newCause as? SourceInfo ?: PsiSourceInfo(runReadAction { SmartPointerManager.createPointer(newCause) }))
+                    return SourceInfoReference(newCause as? SourceInfo
+                        ?: PsiSourceInfo(runReadAction { SmartPointerManager.createPointer(newCause) }))
                 }
             }
             return ref
         }
 
-        fun create(referable: Referable, error: GeneralError?): Pair<PsiHyperlinkInfo?, Referable> {
+        fun create(referable: ArendRef, error: GeneralError?): Pair<PsiHyperlinkInfo?, ArendRef> {
             val reference = replaceReference(referable, error)
             val data = (reference as? DataContainer)?.data
             val ref = data as? SmartPsiElementPointer<*> ?:

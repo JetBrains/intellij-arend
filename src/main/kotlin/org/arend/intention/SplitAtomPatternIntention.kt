@@ -13,12 +13,13 @@ import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.Expression
 import org.arend.core.expr.SigmaExpression
-import org.arend.core.expr.visitor.NormalizeVisitor
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorPattern
 import org.arend.core.pattern.Pattern
 import org.arend.error.ListErrorReporter
+import org.arend.ext.core.ops.NormalizationMode
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.reference.converter.IdReferableConverter
@@ -36,7 +37,6 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.ArendTypecheckingListener
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.patternmatching.ElimTypechecking
@@ -225,7 +225,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 append("\\new ")
                 val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location) ?: record.name
                 append("$recordName ")
-                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig { override fun getNormalizationMode(): NormalizeVisitor.Mode? { return null } })
+                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig { override fun getNormalizationMode(): NormalizationMode? { return null } })
                 if (expr is Concrete.AppExpression) {
                     PrettyPrintVisitor.printArguments(PrettyPrintVisitor(this, 0), expr.arguments, false)
                     append(" ")

@@ -5,7 +5,7 @@ import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.error.ErrorReporter
+import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope

@@ -15,7 +15,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
-import org.arend.error.GeneralError
+import org.arend.ext.error.GeneralError
 import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.TCDefinition

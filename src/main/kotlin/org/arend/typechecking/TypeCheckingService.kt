@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
@@ -23,7 +24,6 @@ import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator

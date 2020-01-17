@@ -1,5 +1,6 @@
 package org.arend.typing
 
+import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope

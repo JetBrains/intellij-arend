@@ -3,8 +3,8 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.error.SourceInfo
-import org.arend.naming.reference.DataContainer
+import org.arend.ext.error.SourceInfo
+import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.LocalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.moduleTextRepresentationImpl

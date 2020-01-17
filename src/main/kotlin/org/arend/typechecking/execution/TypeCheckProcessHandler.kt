@@ -12,8 +12,9 @@ import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
-import org.arend.error.GeneralError
+import org.arend.ext.error.GeneralError
 import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
@@ -30,7 +31,6 @@ import org.arend.psi.findGroupByFullName
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking

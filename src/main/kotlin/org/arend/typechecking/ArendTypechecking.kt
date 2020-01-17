@@ -4,7 +4,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
-import org.arend.error.ErrorReporter
+import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile

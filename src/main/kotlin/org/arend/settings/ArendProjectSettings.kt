@@ -3,8 +3,8 @@ package org.arend.settings
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.util.xmlb.XmlSerializerUtil
-import org.arend.core.expr.visitor.ToAbstractVisitor
-import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.toolWindow.errors.MessageType
 import java.util.*
 
@@ -14,8 +14,8 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
     var autoScrollFromSource = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING)!!
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
-    var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags!!
-    var goalPrintingOptionsFilterSet = EnumSet.of<ToAbstractVisitor.Flag>(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!!
+    var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
+    var goalPrintingOptionsFilterSet = EnumSet.of<PrettyPrinterFlag>(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {
@@ -33,7 +33,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         }
     }
 
-    fun setPrintOption(filterSet: EnumSet<ToAbstractVisitor.Flag>, type: ToAbstractVisitor.Flag, enabled: Boolean) {
+    fun setPrintOption(filterSet: EnumSet<PrettyPrinterFlag>, type: PrettyPrinterFlag, enabled: Boolean) {
         if (enabled)
             filterSet.add(type)
         else
@@ -63,17 +63,17 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         return data
     }
 
-    private fun getPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, options: ArendPrintingOptions) {
-        options.showCoerceDefinitions = filterSet.contains(ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS)
-        options.showConstructorParameters = filterSet.contains(ToAbstractVisitor.Flag.SHOW_CON_PARAMS)
-        options.showTupleType = filterSet.contains(ToAbstractVisitor.Flag.SHOW_TUPLE_TYPE)
-        options.showFieldInstance = filterSet.contains(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)
-        options.showImplicitArgs = filterSet.contains(ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS)
-        options.showTypesInLambda = filterSet.contains(ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM)
-        options.showPrefixPath = filterSet.contains(ToAbstractVisitor.Flag.SHOW_PREFIX_PATH)
-        options.showBinOpImplicitArgs = filterSet.contains(ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS)
-        options.showCaseResultType = filterSet.contains(ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE)
-        options.showInferenceLevelVars = filterSet.contains(ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS)
+    private fun getPrintingOptions(filterSet: EnumSet<PrettyPrinterFlag>, options: ArendPrintingOptions) {
+        options.showCoerceDefinitions = filterSet.contains(PrettyPrinterFlag.SHOW_COERCE_DEFINITIONS)
+        options.showConstructorParameters = filterSet.contains(PrettyPrinterFlag.SHOW_CON_PARAMS)
+        options.showTupleType = filterSet.contains(PrettyPrinterFlag.SHOW_TUPLE_TYPE)
+        options.showFieldInstance = filterSet.contains(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
+        options.showImplicitArgs = filterSet.contains(PrettyPrinterFlag.SHOW_IMPLICIT_ARGS)
+        options.showTypesInLambda = filterSet.contains(PrettyPrinterFlag.SHOW_TYPES_IN_LAM)
+        options.showPrefixPath = filterSet.contains(PrettyPrinterFlag.SHOW_PREFIX_PATH)
+        options.showBinOpImplicitArgs = filterSet.contains(PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS)
+        options.showCaseResultType = filterSet.contains(PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE)
+        options.showInferenceLevelVars = filterSet.contains(PrettyPrinterFlag.SHOW_INFERENCE_LEVEL_VARS)
     }
 
     override fun loadState(state: ArendProjectSettingsState) {
@@ -99,16 +99,16 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
     }
 
-    private fun setPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, printingOptions: ArendPrintingOptions) {
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_COERCE_DEFINITIONS, printingOptions.showCoerceDefinitions)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_CON_PARAMS, printingOptions.showConstructorParameters)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_TUPLE_TYPE, printingOptions.showTupleType)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE, printingOptions.showFieldInstance)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS, printingOptions.showImplicitArgs)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM, printingOptions.showTypesInLambda)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_PREFIX_PATH, printingOptions.showPrefixPath)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_BIN_OP_IMPLICIT_ARGS, printingOptions.showBinOpImplicitArgs)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_CASE_RESULT_TYPE, printingOptions.showCaseResultType)
-        setPrintOption(filterSet, ToAbstractVisitor.Flag.SHOW_INFERENCE_LEVEL_VARS, printingOptions.showInferenceLevelVars)
+    private fun setPrintingOptions(filterSet: EnumSet<PrettyPrinterFlag>, printingOptions: ArendPrintingOptions) {
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_COERCE_DEFINITIONS, printingOptions.showCoerceDefinitions)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_CON_PARAMS, printingOptions.showConstructorParameters)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_TUPLE_TYPE, printingOptions.showTupleType)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_FIELD_INSTANCE, printingOptions.showFieldInstance)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_IMPLICIT_ARGS, printingOptions.showImplicitArgs)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_TYPES_IN_LAM, printingOptions.showTypesInLambda)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_PREFIX_PATH, printingOptions.showPrefixPath)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS, printingOptions.showBinOpImplicitArgs)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE, printingOptions.showCaseResultType)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_INFERENCE_LEVEL_VARS, printingOptions.showInferenceLevelVars)
     }
 }

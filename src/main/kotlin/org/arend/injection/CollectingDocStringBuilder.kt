@@ -2,8 +2,8 @@ package org.arend.injection
 
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.openapi.util.TextRange
-import org.arend.error.GeneralError
-import org.arend.error.doc.*
+import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.doc.*
 import org.arend.typechecking.error.PsiHyperlinkInfo
 
 

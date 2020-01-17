@@ -1,6 +1,6 @@
 package org.arend.toolWindow.errors
 
-import org.arend.error.GeneralError
+import org.arend.ext.error.GeneralError
 import java.util.*
 
 enum class MessageType {

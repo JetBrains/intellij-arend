@@ -13,9 +13,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
-import org.arend.error.GeneralError
-import org.arend.error.doc.DocFactory
-import org.arend.term.prettyprint.PrettyPrinterConfig
+import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind

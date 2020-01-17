@@ -9,7 +9,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.error.SourceInfo
+import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleScope
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.naming.scope.*
