@@ -403,7 +403,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
                 val recordFieldsToFix = referenceElementsFixMap[definition]
                 if (recordFieldsToFix != null) for (refElement in recordFieldsToFix)
-                    RenameReferenceAction.create(refElement, listOf(thisVarName, refElement.referenceName))?.execute(null)
+                    RenameReferenceAction(refElement, listOf(thisVarName, refElement.referenceName)).execute(null)
             }
         }
 
@@ -486,8 +486,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val descriptor = LocationDescriptor(groupIndex, prefix)
             val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
-                val currentTarget = element.reference?.resolve()
-                if (currentTarget != correctTarget) ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
+                val enclosingElement: PsiElement? = ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
                 if (bodiesOtherDynamicMemberUsages.contains(descriptor)) {
                     //TODO: Determine whether freshly created defCall has an argument; if it does not -- add implicit {this} as a first argument
                 }

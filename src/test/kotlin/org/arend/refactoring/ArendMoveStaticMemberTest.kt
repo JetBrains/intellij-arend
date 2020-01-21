@@ -1146,6 +1146,35 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo {this : R} => (R.bar {this} 1, R.bar {this} 1, R.bar {this} 1, (\lam x => R.bar {this} x 1), 1 R.`bar` {this} 2) 
             """, "Main", "")
 
+    fun testMoveOutOfRecord6() =
+            testMoveRefactoring("""
+               \record R {
+                 \data D{-caret-}
+                   | C1
+                   | C2 
+  
+                 \func foo (a : D) : D \with
+                   | C1 => C1
+                   | C2 => C2  
+               }
+
+               \module M
+            """, """
+               \record R {
+                 \func foo (a : D {\this}) : D {\this} \with
+                   | C1 => C1
+                   | C2 => C2  
+               } \where {
+                 \open M (D, C1, C2)
+               }
+
+               \module M \where {
+                 \data D {this : R}
+                   | C1
+                   | C2
+               } 
+            """, "Main", "M")
+
     fun testMoveIntoDynamic1() =
             testMoveRefactoring("""
                \class C1 {

@@ -150,11 +150,9 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
     }
 }
 
-class RenameReferenceAction private constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
-    companion object {
-        fun create(element: ArendReferenceElement, id: List<String>) =
-                if (element.longName == id) null else RenameReferenceAction(element, id)
-    }
+class RenameReferenceAction constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
+    private val needsModification = element.longName != id
+    var resultEnclosingElement: PsiElement? = null // enclosing pattern or literal
 
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
@@ -164,6 +162,11 @@ class RenameReferenceAction private constructor(private val element: ArendRefere
 
         when (element) {
             is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
+                if (!needsModification) {
+                    resultEnclosingElement = parent
+                    return
+                }
+
                 val argumentStr = buildString {
                     if (id.size > 1) {
                         append(LongName(id.dropLast(1)))
@@ -175,7 +178,7 @@ class RenameReferenceAction private constructor(private val element: ArendRefere
 
                 }
                 val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
-                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral)
+                if (replacementLiteral != null) resultEnclosingElement = parent.replaceWithNotification(replacementLiteral) as? ArendLiteral
             }
             else -> {
                 val longNameStr = LongName(id).toString()
@@ -183,12 +186,18 @@ class RenameReferenceAction private constructor(private val element: ArendRefere
                 val longName = factory.createLongName(longNameStr)
                 when (parent) {
                     is ArendLongName -> {
-                        parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
-                        parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                        if (needsModification) {
+                            parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
+                            parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                        }
+                        resultEnclosingElement = parent.parent
                     }
-                    is ArendPattern -> element.replaceWithNotification(longName)
+                    is ArendPattern -> {
+                        if (needsModification) element.replaceWithNotification(longName)
+                        resultEnclosingElement = parent
+                    }
                 }
-                editor?.caretModel?.moveToOffset(offset + longNameStr.length)
+                if (needsModification) editor?.caretModel?.moveToOffset(offset + longNameStr.length)
             }
         }
     }
