@@ -47,7 +47,7 @@ object ArendIcons {
 
     fun getErrorLevelIcon(level: GeneralError.Level) = when (level) {
         GeneralError.Level.INFO -> INFO
-        GeneralError.Level.WEAK_WARNING -> WARNING
+        GeneralError.Level.WARNING_UNUSED -> WARNING
         GeneralError.Level.WARNING -> WARNING
         GeneralError.Level.GOAL -> GOAL
         GeneralError.Level.ERROR -> ERROR

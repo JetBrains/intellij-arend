@@ -19,7 +19,7 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 private fun levelToContentType(level: GeneralError.Level): ConsoleViewContentType = when (level) {
     GeneralError.Level.ERROR -> ERROR_OUTPUT
     GeneralError.Level.GOAL -> USER_INPUT
-    GeneralError.Level.WARNING, GeneralError.Level.WEAK_WARNING -> LOG_WARNING_OUTPUT
+    GeneralError.Level.WARNING, GeneralError.Level.WARNING_UNUSED -> LOG_WARNING_OUTPUT
     GeneralError.Level.INFO -> NORMAL_OUTPUT
 }
 

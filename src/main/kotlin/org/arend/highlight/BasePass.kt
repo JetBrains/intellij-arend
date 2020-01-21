@@ -42,7 +42,7 @@ import org.arend.term.abs.IncompleteExpressionError
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
-import org.arend.typechecking.error.local.TypecheckingError.Kind.*
+import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -113,6 +113,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         } else {
             val annotation = createAnnotation(error, getImprovedTextRange(error, cause))
+            if (error.level == GeneralError.Level.WARNING_UNUSED) {
+                annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
+            }
             when (error) {
                 is ParsingError -> when (error.kind) {
                      MISPLACED_IMPORT -> {
@@ -150,33 +153,28 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
-                is TypecheckingError -> {
-                    if (error.level == GeneralError.Level.WEAK_WARNING) {
-                        annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    }
-                    when (error.kind) {
-                        TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
-                            val single = error.kind == EXPECTED_EXPLICIT_PATTERN
-                            if (error.kind != TOO_MANY_PATTERNS) {
-                                cause.atomPattern?.let {
-                                    annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
-                                }
-                            }
-
-                            if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
-                                annotation.registerFix(RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
+                is CertainTypecheckingError -> when (error.kind) {
+                    TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
+                        val single = error.kind == EXPECTED_EXPLICIT_PATTERN
+                        if (error.kind != TOO_MANY_PATTERNS) {
+                            cause.atomPattern?.let {
+                                annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
                             }
                         }
-                        AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                        BODY_IGNORED ->
-                            cause.ancestor<ArendClause>()?.let {
-                                annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
-                            }
-                        PATTERN_IGNORED ->  if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                        REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
-                        REDUNDANT_COCLAUSE -> if (cause is ArendCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
-                        else -> {}
+
+                        if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
+                            annotation.registerFix(RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
+                        }
                     }
+                    AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    BODY_IGNORED ->
+                        cause.ancestor<ArendClause>()?.let {
+                            annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
+                        }
+                    PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
+                    REDUNDANT_COCLAUSE -> if (cause is ArendCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
+                    else -> {}
                 }
             }
         }
@@ -191,7 +189,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             when (level) {
                 GeneralError.Level.ERROR -> HighlightSeverity.ERROR
                 GeneralError.Level.WARNING -> HighlightSeverity.WARNING
-                GeneralError.Level.WEAK_WARNING -> HighlightSeverity.WEAK_WARNING
+                GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
                 GeneralError.Level.GOAL -> HighlightSeverity.WARNING
                 GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
             }
@@ -212,8 +210,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
                     else -> null
                 }
-                is TypecheckingError -> when (error.kind) {
-                    TypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
+                is CertainTypecheckingError -> when (error.kind) {
+                    CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
                     PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
@@ -256,7 +254,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            if ((error as? TypecheckingError)?.kind == BODY_IGNORED) {
+            if ((error as? CertainTypecheckingError)?.kind == BODY_IGNORED) {
                 (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
                     (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
                         return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
@@ -273,7 +271,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(startElement.textRange.startOffset, endOffset)
             }
 
-            if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
+            if ((error as? CertainTypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
                 var endElement: ArendPatternImplMixin = improvedElement
                 while (true) {
                     var next = endElement.extendRight.nextSibling

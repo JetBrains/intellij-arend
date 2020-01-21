@@ -19,7 +19,7 @@ val GeneralError.Level.toMessageType
     get() = when (this) {
         GeneralError.Level.ERROR -> MessageType.ERROR
         GeneralError.Level.WARNING -> MessageType.WARNING
-        GeneralError.Level.WEAK_WARNING -> MessageType.WARNING
+        GeneralError.Level.WARNING_UNUSED -> MessageType.WARNING
         GeneralError.Level.GOAL -> MessageType.GOAL
         else -> null
     }

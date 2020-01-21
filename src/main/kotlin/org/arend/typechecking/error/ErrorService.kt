@@ -10,7 +10,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
-import org.arend.typechecking.error.local.LocalError
+import org.arend.ext.error.LocalError
 import java.util.*
 
 
