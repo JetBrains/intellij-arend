@@ -427,7 +427,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test absence of as completion`() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\func lol (a : Nat) => \\case a \\as a' : Nat {-caret-}",
-            "\\func lol (a : Nat) => \\case a \\as a' {-caret-}")
+            "\\func lol (a : Nat) => \\case a \\as a' {-caret-}",
+            "\\import A({-caret-})",
+            "\\import A(a \\as a', {-caret-})")
 
     fun `test return keyword completion`() = checkKeywordCompletionVariants(RETURN_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\case a {-caret-}",
