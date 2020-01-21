@@ -7,12 +7,18 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.util.elementType
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
+import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
+import org.arend.term.abs.Abstract
+import org.arend.term.concrete.Concrete
 import org.arend.util.LongName
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
@@ -424,3 +430,81 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
 }
+
+// Binop util method plus auxiliary stuff
+
+fun resolveIfNeeded(referent: Referable, scope: Scope) =
+        ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
+
+fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
+    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
+        // Rewrite in a less ad-hoc way
+        if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
+                cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+                || cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+        ) {
+            return@ret true
+        }
+        return@ret false
+    }
+    return checkConcreteExprDataIsArendNode(cExpr.data as? ArendSourceNode, aExpr)
+}
+
+fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
+    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
+        return true
+    }
+    return false
+}
+
+// The second component of the Pair in the return type is a list of (argument, isExplicit)
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<Abstract.Reference, List<Pair<ArendSourceNode, Boolean>>>? {
+    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
+        if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
+            return Pair(parsedExpr.data as Abstract.Reference, emptyList())
+        }
+    }
+
+    if (parsedExpr is Concrete.AppExpression) {
+        val createArglist = ret@{
+            val ardArguments = mutableListOf<Pair<ArendSourceNode, Boolean>>()
+            for (argument_ in parsedExpr.arguments) {
+                if (argument_.expression.data !is ArendSourceNode) {
+                    return@ret null
+                }
+                ardArguments.add(Pair(argument_.expression.data as ArendSourceNode, argument_.isExplicit))
+            }
+            return@ret ardArguments
+        }
+
+        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
+            if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
+                return createArglist()?.let { Pair(parsedExpr.data as Abstract.Reference, it) }
+            }
+        }
+
+        val funcRes = findDefAndArgsInParsedBinop(arg, parsedExpr.function)
+        if (funcRes != null) return funcRes
+
+        for (argument in parsedExpr.arguments) {
+            if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
+                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
+                    return Pair(argument.expression.data as Abstract.Reference, emptyList())
+                }
+                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
+                return createArglist()?.let { Pair(parsedExpr.function.data  as Abstract.Reference, it) }
+            }
+        }
+
+        for (argument in parsedExpr.arguments) {
+            val argRes = findDefAndArgsInParsedBinop(arg, argument.expression)
+            if (argRes != null) return argRes
+        }
+    } else if (parsedExpr is Concrete.LamExpression) {
+        return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
+    }
+
+    return null
+}
+
+// End of Binop util method
