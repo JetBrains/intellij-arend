@@ -153,6 +153,8 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             singletonSet.add(psi)
 
             return createArendBlock(psi.node, null, align, indent)
+        } else if (cExpr is Concrete.LamExpression) { // we are dealing with right sections
+            return GroupBlock(settings, aaeBlocks.map { createArendBlock(it, null, null, Indent.getNoneIndent()) }.toMutableList(), null, align, indent, this)
         } else throw IllegalStateException()
     }
 }

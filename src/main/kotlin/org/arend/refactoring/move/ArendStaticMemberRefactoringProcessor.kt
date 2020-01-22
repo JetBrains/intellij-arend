@@ -17,6 +17,7 @@ import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
+import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
@@ -26,10 +27,12 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
+import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
+import org.arend.typing.resolveReference
 import org.arend.util.LongName
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -152,7 +155,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
                     else emptySet<PsiLocatedReferable>()
 
-            val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) } ?: emptySet()
+            val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) }
+                    ?: emptySet()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
@@ -411,26 +415,50 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     RenameReferenceAction(refElement, listOf(thisVarName, refElement.referenceName)).execute(null)
 
                 val otherDynMemberUsagesToFix = otherDynamicUsagesFixMap[definition]
-                if (otherDynMemberUsagesToFix != null) for (enclosingElement in otherDynMemberUsagesToFix) {
-                    val parent = enclosingElement.parent
+
+                fun toConcrete(appExpr: ArendArgumentAppExpr): Concrete.Expression? {
+                    val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
+                        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
+                                parseBinOp(left, sequence)
+
+                        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
+                        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
+                    }
+                    return appExpr.accept(expressionVisitor, null)
+                }
+
+                if (otherDynMemberUsagesToFix != null) for (literal in otherDynMemberUsagesToFix) {
+                    val parent = literal.parent
                     val grandparent = parent.parent
                     if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
-                        val greatGrandparent = grandparent.parent //may be either ArendAtomArgument or ArendReturnExpr or ArgumentAppExpr
-                        if (greatGrandparent is ArendArgumentAppExpr) {
-                            val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-                                override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = parseBinOp(left, sequence)
+                        val greatGrandParent = grandparent.parent //may be either ArendAtomArgument or ArendReturnExpr or ArgumentAppExpr
+                        if (greatGrandParent is ArendArgumentAppExpr) {
+                            val cExpr = toConcrete(greatGrandParent)
+                            val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
+                            if (result != null && (result.second.isEmpty() || result.second.first().second)) {
+                                val thisArgument = psiFactory.createExpression("foo {$thisVarName}").childOfType<ArendImplicitArgument>()
+                                if (thisArgument != null) {
+                                    greatGrandParent.addAfterWithNotification(thisArgument, grandparent)
+                                    greatGrandParent.addAfterWithNotification(psiFactory.createWhitespace(" "), grandparent)
+                                }
                             }
-
-                            val cExpr = greatGrandparent.accept(expressionVisitor, null)
-                            val result = findDefAndArgsInParsedBinop(greatGrandparent, cExpr)
-                            if (result != null && (result.second.isEmpty() || result.second.first().second)) /* no arguments or starts with an explicit argument */ {
-                                //TODO: do refactoring (create {this} expression and add itt inside current ArendArgumentAppExpr
+                        } else if (greatGrandParent is ArendAtomArgument) {
+                            if (literal.ipName == null) psiFactory.createExpression("(${greatGrandParent.text} {$thisVarName})").childOfType<ArendTuple>()?.let {
+                                    literal.replaceWithNotification(it)
+                                } else {
+                                val greatGreatGrandParent = greatGrandParent.parent
+                                if (greatGreatGrandParent is ArendArgumentAppExpr) {
+                                    val cExpr = toConcrete(greatGreatGrandParent)
+                                    val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
+                                    if (result != null) {
+                                        //TODO: Implement some behavior for sections and infix notations
+                                    }
+                                }
                             }
-                        } else { //TODO: Process ArendAtomArgument/ArendReturnExpr
-
                         }
                     } else if (parent is ArendTypeTele) {
-                        //TODO: Analyze this case
+                        val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$thisVarName})").childOfType<ArendTypeTele>()
+                        if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
                     }
                 }
             }
@@ -518,8 +546,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val enclosingLiteralorPattern = ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
                 val member = myMembers[groupIndex]
-                if (member is TCDefinition && enclosingLiteralorPattern is ArendLiteral) {
-                    val set = otherDynamicUsagesFixMap[member] ?: HashSet<ArendLiteral>()
+                if (member is TCDefinition && bodiesOtherDynamicMemberUsages.contains(descriptor) && enclosingLiteralorPattern is ArendLiteral) {
+                    val set = otherDynamicUsagesFixMap[member] ?: HashSet()
                     otherDynamicUsagesFixMap[member] = set
                     set.add(enclosingLiteralorPattern)
                 }

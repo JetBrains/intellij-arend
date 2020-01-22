@@ -979,6 +979,27 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                } 
             """, "Main", "C")
 
+    fun testMoveOutOfRecord0() =
+            testMoveRefactoring("""
+               \record R {
+                 \func F => 101
+
+                 \func lol{-caret-} : Nat => F
+               }
+
+               \module M 
+            """, """
+               \record R {
+                 \func F => 101
+               } \where {
+                 \open M (lol)
+               }
+
+               \module M \where {
+                 \func lol {this : R} : Nat => R.F {this}
+               } 
+            """, "Main", "M")
+
     fun testMoveOutOfRecord1() =
             testMoveRefactoring("""
                \class C1 (E : \Type)
@@ -1059,7 +1080,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \record S \extends C2 {
                    \func fubar3 (n m : Nat) => 101
                    
-                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1, zoo M.C2.fubar2, C1.fubar1 {\this})
+                   \func foo2{-caret-} => 
+                     (C1.fubar1 1, 
+                      M.C2.fubar2 1, 
+                      fubar3 1, 
+                      zoo M.C2.fubar2,
+                      C1.fubar1 {\this}, 
+                      C1.fubar1 1 = C1.fubar1 1)
                  }
                }
                
@@ -1086,7 +1113,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func zoo (f : Nat -> Nat) => f 0
 
                \module M2 \where {
-                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 {this} 1, M.S.fubar3 {this} 1, zoo (M.C2.fubar2 {this}), C1.fubar1 {this})
+                 \func foo2 {this : M.S} => 
+                   (C1.fubar1 {this} 1, 
+                    M.C2.fubar2 {this} 1, 
+                    M.S.fubar3 {this} 1,
+                    zoo (M.C2.fubar2 {this}),
+                    C1.fubar1 {this},
+                    C1.fubar1 {this} 1 = (C1.fubar1 {this}) 1)
                } 
             """, "Main", "M2")
 
@@ -1135,16 +1168,36 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             testMoveRefactoring("""
                \record R {
                  \func bar (n m : Nat) => {?}
+                 
+                 \func lol => 0
 
-                 \func foo{-caret-} => (bar 1, 1 `bar`, 1 `bar, `bar 1, 1 `bar` 2)
+                 \func foo{-caret-} : (Nat -> Nat) => bar 1
+                 
+                 \func foo2  : (Nat -> Nat) => 1 `bar`
+                 
+                 \func foo3 : Nat -> Nat => 1 `bar
+                 
+                 \func foo4 : Nat -> Nat => `bar 1
+                 
+                 \func foo5 : Nat => 1 `bar` 2
                }
             """, """
                \record R {
                  \func bar (n m : Nat) => {?}
+                 
+                 \func lol => 0
                }
                
-               \func foo {this : R} => (R.bar {this} 1, R.bar {this} 1, R.bar {this} 1, (\lam x => R.bar {this} x 1), 1 R.`bar` {this} 2) 
-            """, "Main", "")
+               \func foo {this : R} : (Nat -> Nat) => R.bar {this} 1
+                 
+               \func foo2 {this : R}  : (Nat -> Nat) => R.bar {this} 1
+                 
+               \func foo3 {this : R} : Nat -> Nat => R.bar {this} 1
+                 
+               \func foo4 {this : R} : Nat -> Nat => (\lam x => R.bar {this} x 1)
+                 
+               \func foo5 {this : R} : Nat => 1 R.`bar` {this} 2 
+            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
@@ -1173,6 +1226,27 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                    | C1
                    | C2
                } 
+            """, "Main", "M")
+
+    fun testMoveOutOfRecord7() =
+            testMoveRefactoring("""
+                \record R {
+                  \data D
+                    
+                  \func foo{-caret-} (a : \Sigma D) : D => a.1   
+                }
+                
+                \module M
+            """, """
+                \record R {
+                  \data D
+                } \where {
+                  \open M (foo)
+                }
+
+                \module M \where {
+                  \func foo {this : R} (a : \Sigma (R.D {this})) : R.D {this} => a.1
+                }
             """, "Main", "M")
 
     fun testMoveIntoDynamic1() =
@@ -1289,7 +1363,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \class D {
                  \func fubar => foo {\new C {| number => 1}}
 
-                 \func foo {this : C} => C.bar Nat.+ (C.bar {this}) Nat.+ this.number 
+                 \func foo {this : C} => C.bar {this} Nat.+ (C.bar {this}) Nat.+ this.number 
                }
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
