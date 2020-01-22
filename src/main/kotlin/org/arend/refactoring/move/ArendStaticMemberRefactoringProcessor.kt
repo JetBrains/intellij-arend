@@ -26,6 +26,10 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.BaseAbstractExpressionVisitor
+import org.arend.term.concrete.Concrete
+import org.arend.typing.parseBinOp
 import org.arend.util.LongName
 import java.util.ArrayList
 import java.util.Collections.singletonList
@@ -352,17 +356,18 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }
 
         //Fix references in the elements that have been moved
-        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData, bodiesOtherDynamicMemberUsages)
+        val otherDynamicUsagesFixMap = HashMap<TCDefinition, HashSet<ArendLiteral>>()
+        for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData, bodiesOtherDynamicMemberUsages, otherDynamicUsagesFixMap)
 
         //Prepare a map which would allow us to fix class field usages on the next step (this step is needed only when we are moving definitions out of a record)
-        val referenceElementsFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
+        val fieldsUsagesFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
         for (usage in bodiesClassFieldUsages) {
             val element = locateChild(usage)
             if (element is ArendReferenceElement) {
                 val ancestor = element.ancestor<TCDefinition>()
                 if (ancestor != null && definitionsThatNeedThisParameter.contains(ancestor)) {
-                    val set = referenceElementsFixMap[ancestor] ?: HashSet()
-                    referenceElementsFixMap[ancestor] = set
+                    val set = fieldsUsagesFixMap[ancestor] ?: HashSet()
+                    fieldsUsagesFixMap[ancestor] = set
                     set.add(element)
                 }
             }
@@ -401,9 +406,33 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 doSubstituteThisKwWithThisVar(definition)
                 if (classifyingField != null) doSubstituteUsages(psiFactory, classifyingField, definition, thisVarName, false)
 
-                val recordFieldsToFix = referenceElementsFixMap[definition]
-                if (recordFieldsToFix != null) for (refElement in recordFieldsToFix)
+                val recordFieldsUsagesToFix = fieldsUsagesFixMap[definition]
+                if (recordFieldsUsagesToFix != null) for (refElement in recordFieldsUsagesToFix)
                     RenameReferenceAction(refElement, listOf(thisVarName, refElement.referenceName)).execute(null)
+
+                val otherDynMemberUsagesToFix = otherDynamicUsagesFixMap[definition]
+                if (otherDynMemberUsagesToFix != null) for (enclosingElement in otherDynMemberUsagesToFix) {
+                    val parent = enclosingElement.parent
+                    val grandparent = parent.parent
+                    if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
+                        val greatGrandparent = grandparent.parent //may be either ArendAtomArgument or ArendReturnExpr or ArgumentAppExpr
+                        if (greatGrandparent is ArendArgumentAppExpr) {
+                            val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
+                                override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = parseBinOp(left, sequence)
+                            }
+
+                            val cExpr = greatGrandparent.accept(expressionVisitor, null)
+                            val result = findDefAndArgsInParsedBinop(greatGrandparent, cExpr)
+                            if (result != null && (result.second.isEmpty() || result.second.first().second)) /* no arguments or starts with an explicit argument */ {
+                                //TODO: do refactoring (create {this} expression and add itt inside current ArendArgumentAppExpr
+                            }
+                        } else { //TODO: Process ArendAtomArgument/ArendReturnExpr
+
+                        }
+                    } else if (parent is ArendTypeTele) {
+                        //TODO: Analyze this case
+                    }
+                }
             }
         }
 
@@ -481,17 +510,21 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int,
                                   fixMap: HashMap<LocationDescriptor, TargetReference>,
-                                  bodiesOtherDynamicMemberUsages: Set<LocationDescriptor>) {
+                                  bodiesOtherDynamicMemberUsages: Set<LocationDescriptor>,
+                                  otherDynamicUsagesFixMap: MutableMap<TCDefinition, HashSet<ArendLiteral>>) {
         if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
             val descriptor = LocationDescriptor(groupIndex, prefix)
             val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
-                val enclosingElement: PsiElement? = ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
-                if (bodiesOtherDynamicMemberUsages.contains(descriptor)) {
-                    //TODO: Determine whether freshly created defCall has an argument; if it does not -- add implicit {this} as a first argument
+                val enclosingLiteralorPattern = ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
+                val member = myMembers[groupIndex]
+                if (member is TCDefinition && enclosingLiteralorPattern is ArendLiteral) {
+                    val set = otherDynamicUsagesFixMap[member] ?: HashSet<ArendLiteral>()
+                    otherDynamicUsagesFixMap[member] = set
+                    set.add(enclosingLiteralorPattern)
                 }
             }
-        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap, bodiesOtherDynamicMemberUsages) }
+        } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap, bodiesOtherDynamicMemberUsages, otherDynamicUsagesFixMap) }
     }
 
     override fun preprocessUsages(refUsages: Ref<Array<UsageInfo>>): Boolean {
