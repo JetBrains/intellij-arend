@@ -8,6 +8,7 @@ import com.intellij.psi.util.elementType
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
@@ -436,6 +437,23 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 fun resolveIfNeeded(referent: Referable, scope: Scope) =
         ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
 
+fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
+    if (data is ArendIPName) {
+        val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
+        val node = element?.parentOfType<ArendSourceNode>() ?: return null
+        return node
+    }
+    return data as? ArendSourceNode
+}
+
+fun concreteDataToReference(data: Any?): Abstract.Reference? {
+    if (data is ArendIPName) {
+        // val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
+        // return
+    }
+    return data as? Abstract.Reference
+}
+
 fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
         // Rewrite in a less ad-hoc way
@@ -447,7 +465,7 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): 
         }
         return@ret false
     }
-    return checkConcreteExprDataIsArendNode(cExpr.data as? ArendSourceNode, aExpr)
+    return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 
 fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
