@@ -16,6 +16,11 @@ import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.DocFactory
+import org.arend.naming.reference.MetaReferable
+import org.arend.naming.reference.Reference
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.psi.ext.ArendCompositeElement
+import org.arend.term.concrete.Concrete
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
@@ -76,7 +81,13 @@ class InjectedArendEditor(val project: Project,
         val printOptionsKind = if (error is GoalError) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS
         val ppConfig = ProjectPrintConfig(project, printOptionsKind)
         runReadAction {
-            DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)).accept(visitor, false)
+            val unresolvedRef = (error.causeSourceNode.data as? Reference)?.referent
+            val ref = if (unresolvedRef != null) (error.causeSourceNode.data as? ArendCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(unresolvedRef, it) } else null
+            val doc = if (ref is MetaReferable && (error.causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+                error.getDoc(ppConfig)
+            else
+                DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
+            doc.accept(visitor, false)
         }
 
         val text: CharSequence = builder.toString()
