@@ -17,31 +17,31 @@ import org.arend.term.concrete.Concrete
 
 
 private fun isShort(element: ArendCompositeElement) =
-    (element !is ArendLongName || element.refIdentifierList.size == 1) && (element !is ArendIPNameImplMixin || element.parentLongName == null)
+        (element !is ArendLongName || element.refIdentifierList.size == 1) && (element !is ArendIPNameImplMixin || element.parentLongName == null)
 
-fun resolveReference(data: Any?, referent: Referable) =
-    if (data is ArendCompositeElement) {
-        if (isShort(data)) {
-            Concrete.ReferenceExpression(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()))
-        } else {
-            val refExpr = Concrete.ReferenceExpression(data, referent)
-            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, null)
-            (refExpr.referent as? GlobalReferable)?.let {
-                val psiRef = PsiLocatedReferable.fromReferable(it)
-                if (psiRef != null) {
-                    refExpr.referent = psiRef
+fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?) =
+        if (data is ArendCompositeElement) {
+            if (isShort(data)) {
+                Concrete.FixityReferenceExpression.make(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()), fixity, null, null)
+            } else {
+                val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
+                val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, null)
+                (refExpr.referent as? GlobalReferable)?.let {
+                    val psiRef = PsiLocatedReferable.fromReferable(it)
+                    if (psiRef != null) {
+                        refExpr.referent = psiRef
+                    }
                 }
+                if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
             }
-            if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
+        } else {
+            null
         }
-    } else {
-        null
-    }
 
 private fun getExpression(expr: Abstract.Expression?): Concrete.Expression {
     val ref = expr?.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression?>(null) {
-        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent)
-        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent)
+        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
+        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
     }, null)
 
     return if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) ref else Concrete.HoleExpression(expr)
