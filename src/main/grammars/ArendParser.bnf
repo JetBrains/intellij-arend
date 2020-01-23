@@ -782,7 +782,8 @@ newArg ::= appPrefix argumentAppExpr [LBRACE localCoClauseSequence RBRACE] {
 longName ::= refIdentifier (DOT refIdentifier)* {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LongReference" ]
+                   "org.arend.term.abs.Abstract.LongReference"
+                   "org.arend.psi.ext.ArendReferenceElement"]
     mixin = "org.arend.psi.ext.ArendLongNameImplMixin"
 }
 

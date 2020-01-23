@@ -421,6 +421,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                         memberData: MutableMap<PsiLocatedReferable, LocationDescriptor>) {
         when (element) {
             is ArendFieldDefIdentifier -> memberData[element] = LocationDescriptor(groupNumber, prefix)
+            is ArendLongName -> {
+                val reference = computeReferenceToBeFixed(element, recordFields)
+                if (reference != null) collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, recordFields, usagesData, memberData)
+            }
             is ArendReferenceElement ->
                 if (element !is ArendDefIdentifier) element.reference?.resolve().let {
                     if (it is PsiLocatedReferable) {
@@ -432,10 +436,6 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         set.add(LocationDescriptor(groupNumber, prefix))
                     }
                 }
-            is ArendLongName -> {
-                val reference = computeReferenceToBeFixed(element, recordFields)
-                if (reference != null) collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, recordFields, usagesData, memberData)
-            }
             else -> {
                 if (element is PsiLocatedReferable) memberData[element] = LocationDescriptor(groupNumber, prefix)
                 element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, recordFields, usagesData, memberData) }
