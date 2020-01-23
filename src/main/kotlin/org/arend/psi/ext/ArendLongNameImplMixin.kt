@@ -1,9 +1,10 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.LongUnresolvedReference
+import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.term.abs.Abstract
 import org.arend.psi.ArendLongName
 
@@ -18,8 +19,14 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
     override val longName: List<String>
         get() = refIdentifierList.map { ref -> ref.referenceName }
 
-    override val rangeInElement: TextRange
-        get() = refIdentifierList.lastOrNull()?.rangeInElement ?: textRange
+    override val unresolvedReference: UnresolvedReference?
+        get() = referent
+
+    override val resolvedInScope: Referable?
+        get() = ExpressionResolveNameVisitor.resolve(referent, scope)
+
+    override val resolve
+        get() = referenceNameElement?.reference?.resolve()
 
     override fun getData() = this
 

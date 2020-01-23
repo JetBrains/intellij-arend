@@ -2,9 +2,6 @@ package org.arend.psi.ext
 
 import com.intellij.openapi.util.TextRange
 
-interface ArendReferenceElement : ArendCompositeElement {
-    val referenceNameElement: ArendCompositeElement?
-    val referenceName: String
+interface ArendReferenceElement : ArendReferenceContainer {
     val rangeInElement: TextRange
-    val longName: List<String>
 }

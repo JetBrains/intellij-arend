@@ -8,7 +8,6 @@ import com.intellij.psi.util.elementType
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
@@ -439,7 +438,7 @@ fun resolveIfNeeded(referent: Referable, scope: Scope) =
 
 fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
     if (data is ArendIPName) {
-        val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
+        val element = data.infix ?: data.postfix
         val node = element?.parentOfType<ArendSourceNode>() ?: return null
         return node
     }
