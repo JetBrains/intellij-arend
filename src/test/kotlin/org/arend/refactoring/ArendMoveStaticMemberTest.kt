@@ -1355,7 +1355,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                
                  \func bar => 202
 
-                 \func foobar => foo
+                 \func foobar => foo {\this}
                } \where {
                  \open D (foo)
                }

@@ -17,6 +17,7 @@ import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
+import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
@@ -125,11 +126,23 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return result
     }
 
+    private fun isInDynamicPart(childPsi: PsiElement): ArendDefClass? {
+        var psi: PsiElement? = childPsi
+        var result = false
+        while (psi != null) {
+            if (psi is ArendClassStat) result = true
+            if (psi is ArendDefClass) return if (result) psi else null
+            psi = psi.parent
+        }
+        return null
+    }
+
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
         val forceThisParameter = insertIntoDynamicPart && myTargetContainer is ArendDefClass && mySourceContainer is ArendDefClass &&
                 !myTargetContainer.isSubClassOf(mySourceContainer)
+        val sourceContainerIsARecord = (mySourceContainer as? ArendDefClass)?.recordKw != null
 
         insertAnchor = if (myTargetContainer is ArendFile) {
             myTargetContainer.lastChild //null means file is empty
@@ -150,9 +163,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
-            val recordFields =
-                    if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
-                        ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
+            val recordFields = if (sourceContainerIsARecord) ClassFieldImplScope(mySourceContainer as ClassReferable, false).elements.filterIsInstanceTo(HashSet())
                     else emptySet<PsiLocatedReferable>()
 
             val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) }
@@ -184,17 +195,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (member in myMembers) {
             val mStatementOrClassStat = member.parent
             val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
-
-            var memberIsInDynamicPart = false
-            run {
-                var psi: PsiElement? = mStatementOrClassStat
-                while (psi != null) {
-                    if (psi is ArendClassStat) memberIsInDynamicPart = true
-                    if (psi is ArendDefClass) break
-                    psi = psi.parent
-                }
-            }
-
+            val memberIsInDynamicPart = isInDynamicPart(mStatementOrClassStat) != null
             val docsCopy = docs?.map { it.copy() }
 
             val copyOfMemberStatement: PsiElement =
@@ -355,7 +356,9 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
             } else if (referenceElement is ArendReferenceElement) { //Normal usage which we try to fix
                 val targetReferable = movedReferablesMap[usage.referableDescriptor]
-                if (targetReferable != null) ResolveReferenceAction.getProposedFix(targetReferable, referenceElement)?.execute(null)
+                val literal = if (targetReferable != null) ResolveReferenceAction.getProposedFix(targetReferable, referenceElement)?.execute(null) else null
+                if (sourceContainerIsARecord && definitionsThatNeedThisParameter.contains(targetReferable) && literal is ArendLiteral && isInDynamicPart(literal) == mySourceContainer)
+                    addImplicitFirstArgument(psiFactory, literal, "\\this")
             }
         }
 
@@ -414,53 +417,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 if (recordFieldsUsagesToFix != null) for (refElement in recordFieldsUsagesToFix)
                     RenameReferenceAction(refElement, listOf(thisVarName, refElement.referenceName)).execute(null)
 
-                val otherDynMemberUsagesToFix = otherDynamicUsagesFixMap[definition]
-
-                fun toConcrete(appExpr: ArendArgumentAppExpr): Concrete.Expression? {
-                    val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-                        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
-                                parseBinOp(left, sequence)
-
-                        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
-                        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
-                    }
-                    return appExpr.accept(expressionVisitor, null)
-                }
-
-                if (otherDynMemberUsagesToFix != null) for (literal in otherDynMemberUsagesToFix) {
-                    val parent = literal.parent
-                    val grandparent = parent.parent
-                    if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
-                        val greatGrandParent = grandparent.parent //may be either ArendAtomArgument or ArendReturnExpr or ArgumentAppExpr
-                        if (greatGrandParent is ArendArgumentAppExpr) {
-                            val cExpr = toConcrete(greatGrandParent)
-                            val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                            if (result != null && (result.second.isEmpty() || result.second.first().second)) {
-                                val thisArgument = psiFactory.createExpression("foo {$thisVarName}").childOfType<ArendImplicitArgument>()
-                                if (thisArgument != null) {
-                                    greatGrandParent.addAfterWithNotification(thisArgument, grandparent)
-                                    greatGrandParent.addAfterWithNotification(psiFactory.createWhitespace(" "), grandparent)
-                                }
-                            }
-                        } else if (greatGrandParent is ArendAtomArgument) {
-                            if (literal.ipName == null) psiFactory.createExpression("(${greatGrandParent.text} {$thisVarName})").childOfType<ArendTuple>()?.let {
-                                    literal.replaceWithNotification(it)
-                                } else {
-                                val greatGreatGrandParent = greatGrandParent.parent
-                                if (greatGreatGrandParent is ArendArgumentAppExpr) {
-                                    val cExpr = toConcrete(greatGreatGrandParent)
-                                    val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                                    if (result != null) {
-                                        //TODO: Implement some behavior for sections and infix notations
-                                    }
-                                }
-                            }
-                        }
-                    } else if (parent is ArendTypeTele) {
-                        val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$thisVarName})").childOfType<ArendTypeTele>()
-                        if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
-                    }
-                }
+                otherDynamicUsagesFixMap[definition]?.let{ for (literal in it) addImplicitFirstArgument(psiFactory, literal, thisVarName) }
             }
         }
 
@@ -471,6 +428,50 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (item.isValid) EditorHelper.openInEditor(item)
         }
     }
+
+    private fun appExprToConcrete(appExpr: ArendArgumentAppExpr): Concrete.Expression? = appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
+                    parseBinOp(left, sequence)
+
+            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
+            override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
+        }, null)
+
+    private fun addImplicitFirstArgument(psiFactory: ArendPsiFactory, literal: ArendLiteral, argument: String) {
+        val parent = literal.parent
+        val grandparent = parent.parent
+        if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
+            val greatGrandParent = grandparent.parent
+            if (greatGrandParent is ArendArgumentAppExpr) {
+                val cExpr = appExprToConcrete(greatGrandParent)
+                val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
+                if (result != null && (result.second.isEmpty() || result.second.first().second)) {
+                    val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
+                    if (thisArgument != null) {
+                        greatGrandParent.addAfterWithNotification(thisArgument, grandparent)
+                        greatGrandParent.addAfterWithNotification(psiFactory.createWhitespace(" "), grandparent)
+                    }
+                }
+            } else if (greatGrandParent is ArendAtomArgument) {
+                if (literal.ipName == null) psiFactory.createExpression("(${greatGrandParent.text} {$argument})").childOfType<ArendTuple>()?.let {
+                    literal.replaceWithNotification(it)
+                } else {
+                    val greatGreatGrandParent = greatGrandParent.parent
+                    if (greatGreatGrandParent is ArendArgumentAppExpr) {
+                        val cExpr = appExprToConcrete(greatGreatGrandParent)
+                        val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
+                        if (result != null) {
+                            //TODO: Implement some behavior for sections and infix notations
+                        }
+                    }
+                }
+            } // TODO: Make sure that ArendReturnExpr does not occur here
+        } else if (parent is ArendTypeTele) {
+            val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendTypeTele>()
+            if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
+        }
+    }
+
 
     private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {
         return if (childPath.isEmpty()) element else {
