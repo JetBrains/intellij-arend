@@ -17,7 +17,7 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
         get() = referent
 
     override val resolvedInScope: Referable?
-        get() = ExpressionResolveNameVisitor.resolve(referent, scope)
+        get() = referenceNameElement?.resolvedInScope
 
     override val resolve
         get() = referenceNameElement?.reference?.resolve()
@@ -38,5 +38,5 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
         get() = referenceNameElement?.referenceName ?: ""
 
     override val referenceNameElement
-        get() = refIdentifierList.firstOrNull()
+        get() = refIdentifierList.lastOrNull()
 }
