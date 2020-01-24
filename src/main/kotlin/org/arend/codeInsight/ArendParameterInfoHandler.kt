@@ -218,7 +218,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return if (numExplicitsBefore == 0 && numImplicitsJustBefore <= 0) paramIndex else -1
     }
 
-    private fun findArgInParsedBinopSeq(arg: ArendExpr, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
+    private fun findArgInParsedBinopSeq(arg: ArendSourceNode, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
         if (expr is Concrete.ReferenceExpression || expr is Concrete.HoleExpression) {
             // Rewrite in a less ad-hoc way
             if ((expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode ||
@@ -262,7 +262,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     private fun resolveIfNeeded(referent: Referable, scope: Scope) =
         ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
 
-    private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
+    private fun locateArg(arg: ArendSourceNode, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, Abstract.Reference>? =
                 findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
@@ -316,13 +316,13 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     //TODO: remove this function
-    private fun toArgument(node: Abstract.SourceNode): Abstract.SourceNode? {
+    private fun toArgument(node: Abstract.SourceNode): ArendArgument? {
         if (node is ArendArgument) {
             return node
         }
 
-        if (node is ArendTupleExpr && node.parentSourceNode is ArendArgument) {
-            return node.parentSourceNode
+        if (node is ArendTupleExpr) {
+            return node.parentSourceNode as? ArendArgument
         }
 
         return null
@@ -358,8 +358,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         val arg = toArgument(absNodeParent)
         var argLoc: Pair<Int, Abstract.Reference>? = null
 
-        if (arg != null && arg.parentSourceNode is ArendExpr && arg.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
-            argLoc = (arg as ArendArgument).expression?.let{ locateArg(it as ArendExpr, arg.parentSourceNode as ArendExpr) }
+        val argParent = arg?.parentSourceNode as? ArendExpr
+        if (argParent != null && isBinOpSeq(argParent)) {
+            argLoc = (arg.expression as? ArendSourceNode)?.let{ locateArg(it, argParent) }
         } else if (absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) { // (absNodeParent.parentSourceNode is ArendExpr && absNodeParent.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
             argLoc = locateArg(absNodeParent, absNodeParent)
         }

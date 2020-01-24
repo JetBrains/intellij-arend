@@ -768,7 +768,8 @@ atomArgument ::= atomFieldsAcc {
     mixin = "org.arend.psi.ext.ArendAtomArgumentImplMixin"
 }
 
-implicitArgument ::= LBRACE expr RBRACE {
+implicitArgument ::= LBRACE <<comma_separated_sequence tupleExpr>> RBRACE {
+    pin = 2
     implements = "org.arend.psi.ext.ArendCompositeElement"
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
