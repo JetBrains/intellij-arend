@@ -5,15 +5,16 @@ import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.util.elementType
+import com.intellij.psi.util.parentOfType
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ArendGroup
@@ -448,19 +449,19 @@ fun resolveIfNeeded(referent: Referable, scope: Scope) =
 
 fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
     if (data is ArendIPName) {
-        val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
+        val element = data.infix ?: data.postfix
         val node = element?.parentOfType<ArendSourceNode>() ?: return null
         return node
     }
     return data as? ArendSourceNode
 }
 
-fun concreteDataToReference(data: Any?): Abstract.Reference? {
-    if (data is ArendIPName) {
-        // val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
-        // return
-    }
-    return data as? Abstract.Reference
+fun concreteDataToReference(data: Any?): ArendReferenceContainer? {
+    /*if (data is ArendIPName) {
+        val element = data.infix ?: data.postfix
+        return element?.parentOfType<ArendSourceNode>()?.parentOfType()
+    } */
+    return data as? ArendReferenceContainer
 }
 
 fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
@@ -478,17 +479,17 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): 
 }
 
 fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
-    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
+    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && concreteDataToReference(expr.data) != null) {
         return true
     }
     return false
 }
 
 // The second component of the Pair in the return type is a list of (argument, isExplicit)
-fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<Abstract.Reference, List<Pair<ArendSourceNode, Boolean>>>? {
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<ArendReferenceContainer, List<Pair<ArendSourceNode, Boolean>>>? {
     if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
         if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
-            return Pair(parsedExpr.data as Abstract.Reference, emptyList())
+            return Pair(parsedExpr.data as ArendReferenceContainer, emptyList())
         }
     }
 
@@ -506,7 +507,7 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
 
         if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
             if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
-                return createArglist()?.let { Pair(parsedExpr.data as Abstract.Reference, it) }
+                return createArglist()?.let { Pair(parsedExpr.data as ArendReferenceContainer, it) }
             }
         }
 
@@ -516,10 +517,10 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
         for (argument in parsedExpr.arguments) {
             if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
                 if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
-                    return Pair(argument.expression.data as Abstract.Reference, emptyList())
+                    return Pair(argument.expression.data as ArendReferenceContainer, emptyList())
                 }
                 if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                return createArglist()?.let { Pair(parsedExpr.function.data  as Abstract.Reference, it) }
+                return createArglist()?.let { Pair(parsedExpr.function.data  as ArendReferenceContainer, it) }
             }
         }
 
