@@ -466,7 +466,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int, fixMap: HashMap<LocationDescriptor, TargetReference>) {
-        if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
+        if (element is ArendReferenceElement && element !is ArendDefIdentifier && element !is ArendLongName) {
             val correctTarget = fixMap[LocationDescriptor(groupIndex, prefix)]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
                 val currentTarget = element.reference?.resolve()
