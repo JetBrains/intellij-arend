@@ -17,6 +17,7 @@ import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.refactoring.checkConcreteExprIsArendExpr
 import org.arend.refactoring.checkConcreteExprIsFunc
+import org.arend.refactoring.concreteDataToReference
 import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -251,7 +252,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         if (expr is Concrete.AppExpression) {
             val funcRes = findArgInParsedBinopSeq(arg, expr.function, curArgInd, curFunc)
             if (funcRes != null) return funcRes
-            var func = (expr.function as? Concrete.ReferenceExpression)?.data as? Abstract.Reference
+            var func = concreteDataToReference((expr.function as? Concrete.ReferenceExpression)?.data)
             var funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
             val argExplicitness = mutableListOf<Boolean>()
 

@@ -14,7 +14,7 @@ class ArendModuleWizardStep(project: Project?, private val builder: ArendModuleB
         sourcesDir = "src"
         withBinaries = true
         binariesDirectory = ".bin"
-        langVersionString = Prelude.VERSION
+        langVersionString = Prelude.VERSION.toString()
     }
 
     override fun getComponent() = view.createComponent()

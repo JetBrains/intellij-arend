@@ -91,8 +91,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         if (error is NotInScopeError) {
             val ref: ArendReferenceElement? = when (cause) {
                 is ArendIPNameImplMixin -> cause.parentLongName?.refIdentifierList?.getOrNull(error.index) ?: cause
-                is ArendReferenceElement -> cause
                 is ArendLongName -> cause.refIdentifierList.getOrNull(error.index)
+                is ArendReferenceElement -> cause
                 else -> null
             }
             when (val resolved = ref?.reference?.resolve()) {
