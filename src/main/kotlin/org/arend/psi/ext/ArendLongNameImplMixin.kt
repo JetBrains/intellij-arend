@@ -5,17 +5,11 @@ import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.term.abs.Abstract
 import org.arend.psi.ArendLongName
+import org.arend.term.abs.Abstract
 
 
 abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendLongName {
-    override val referenceNameElement
-        get() = refIdentifierList.lastOrNull()
-
-    override val referenceName: String
-        get() = referenceNameElement?.referenceName ?: ""
-
     override val longName: List<String>
         get() = refIdentifierList.map { ref -> ref.referenceName }
 
@@ -39,4 +33,10 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
         val refs = refIdentifierList
         return refs.subList(1, refs.size)
     }
+
+    override val referenceName: String
+        get() = referenceNameElement?.referenceName ?: ""
+
+    override val referenceNameElement
+        get() = refIdentifierList.firstOrNull()
 }
