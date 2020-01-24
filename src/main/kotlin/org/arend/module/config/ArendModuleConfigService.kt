@@ -49,8 +49,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override val binariesDir: String?
         get() = flaggedBinariesDir
 
-    override val langVersion: Range<String>
-        get() = Range.parseRange(langVersionString) ?: Range.unbound()
+    override val langVersion: Range<Version>
+        get() = Range.parseVersionRange(langVersionString) ?: Range.unbound()
 
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
