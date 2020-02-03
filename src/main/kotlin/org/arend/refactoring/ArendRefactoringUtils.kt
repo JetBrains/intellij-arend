@@ -507,7 +507,7 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
 
         if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
             if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
-                return createArglist()?.let { Pair(parsedExpr.data as ArendReferenceContainer, it) }
+                return createArglist()?.let { Pair(parsedExpr.function.data as ArendReferenceContainer, it) }
             }
         }
 
