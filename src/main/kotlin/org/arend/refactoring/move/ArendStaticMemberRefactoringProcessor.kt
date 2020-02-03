@@ -438,6 +438,14 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         }, null)
 
     private fun addImplicitFirstArgument(psiFactory: ArendPsiFactory, literal: ArendLiteral, argument: String) {
+        fun addImplicitArgAfter(anchor: PsiElement) {
+            val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
+            if (thisArgument != null) {
+                anchor.parent?.addAfterWithNotification(thisArgument, anchor)
+                anchor.parent?.addAfterWithNotification(psiFactory.createWhitespace(" "), anchor)
+            }
+        }
+
         val parent = literal.parent
         val grandparent = parent.parent
         if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
@@ -445,13 +453,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (greatGrandParent is ArendArgumentAppExpr) {
                 val cExpr = appExprToConcrete(greatGrandParent)
                 val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                if (result != null && (result.second.isEmpty() || result.second.first().second)) {
-                    val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
-                    if (thisArgument != null) {
-                        greatGrandParent.addAfterWithNotification(thisArgument, grandparent)
-                        greatGrandParent.addAfterWithNotification(psiFactory.createWhitespace(" "), grandparent)
-                    }
-                }
+                if (result != null && (result.second.isEmpty() || result.second.first().second)) addImplicitArgAfter(grandparent)
             } else if (greatGrandParent is ArendAtomArgument) {
                 if (literal.ipName == null) psiFactory.createExpression("(${greatGrandParent.text} {$argument})").childOfType<ArendTuple>()?.let {
                     literal.replaceWithNotification(it)
@@ -460,8 +462,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     if (greatGreatGrandParent is ArendArgumentAppExpr) {
                         val cExpr = appExprToConcrete(greatGreatGrandParent)
                         val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                        if (result != null) {
-                            //TODO: Implement some behavior for sections and infix notations
+                        if (result != null && (result.second.isEmpty() || result.second.first().second)) {
+                            val ipName = result.first as? ArendIPName
+                            if (ipName != null) when {
+                                ipName.infix != null -> addImplicitArgAfter(greatGrandParent)
+                                ipName.postfix != null-> {
+                                    var resultingExpr = LongName(ipName.longName).toString() + " {$argument} "
+                                    for ((arg, argExplicit) in result.second) resultingExpr += (if (argExplicit) arg.text else "{${arg.text}}") + " "
+                                    val newArgAppExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()
+                                    if (newArgAppExpr != null) greatGreatGrandParent.replaceWithNotification(newArgAppExpr)
+                                }
+                            }
                         }
                     }
                 }

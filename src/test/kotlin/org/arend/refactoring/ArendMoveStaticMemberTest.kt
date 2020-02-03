@@ -1169,35 +1169,55 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \record R {
                  \func bar (n m : Nat) => {?}
                  
-                 \func lol => 0
+                 \func lol {A : \Type} (n m : A) => n
+                 
+                 \func fubar (n : Nat) {X : \Type} => n
+                 
+                 \func succ (n : Nat) => Nat.suc n
 
-                 \func foo{-caret-} : (Nat -> Nat) => bar 1
+                 \func foo{-caret-} : Nat -> Nat => `bar` 1
                  
-                 \func foo2  : (Nat -> Nat) => 1 `bar`
+                 \func foo2 : Nat -> Nat => `bar 1
                  
-                 \func foo3 : Nat -> Nat => 1 `bar
+                 \func foo3 : Nat -> Nat => 1 `bar`
                  
-                 \func foo4 : Nat -> Nat => `bar 1
+                 \func foo4 : Nat -> Nat => 1 `bar
                  
-                 \func foo5 : Nat => 1 `bar` 2
+                 \func foo5 : Nat => 1 `bar` succ 2 
+                 
+                 \func foo6 : Nat => 1 `bar 2
+                 
+                 \func foo7 : Nat => 1 `lol` {\this} {Nat} 2
+                 
+                 \func foo8 : Nat => 1 `fubar {Nat}
                }
             """, """
                \record R {
                  \func bar (n m : Nat) => {?}
                  
-                 \func lol => 0
+                 \func lol {A : \Type} (n m : A) => n
+                 
+                 \func fubar (n : Nat) {X : \Type} => n
+                 
+                 \func succ (n : Nat) => Nat.suc n
                }
                
-               \func foo {this : R} : (Nat -> Nat) => R.bar {this} 1
+               \func foo {this : R} : Nat -> Nat => R.`bar` {this} 1
+               
+               \func foo2 {this : R} : Nat -> Nat => (\lam x => R.bar {this} x 1)
                  
-               \func foo2 {this : R}  : (Nat -> Nat) => R.bar {this} 1
-                 
-               \func foo3 {this : R} : Nat -> Nat => R.bar {this} 1
-                 
-               \func foo4 {this : R} : Nat -> Nat => (\lam x => R.bar {this} x 1)
-                 
-               \func foo5 {this : R} : Nat => 1 R.`bar` {this} 2 
-            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5")
+               \func foo3 {this : R} : Nat -> Nat => 1 R.`bar` {this}
+               
+               \func foo4 {this : R} : Nat -> Nat => R.bar {this} 1
+               
+               \func foo5 {this : R} : Nat => 1 R.`bar` {this} (R.succ {this}) 2 
+                
+               \func foo6 {this : R} : Nat => R.bar {this} 1 2
+               
+               \func foo7 {this : R} : Nat => 1 R.`lol` {this} {Nat} 2
+                
+               \func foo8 {this : R} : Nat => R.fubar {this} 1 {Nat}
+            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
