@@ -453,7 +453,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (greatGrandParent is ArendArgumentAppExpr) {
                 val cExpr = appExprToConcrete(greatGrandParent)
                 val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                if (result != null && (result.second.isEmpty() || result.second.first().second)) addImplicitArgAfter(grandparent)
+                if (result != null && (result.second.isEmpty() || result.second.first().isExplicit)) addImplicitArgAfter(grandparent)
             } else if (greatGrandParent is ArendAtomArgument) {
                 if (literal.ipName == null) psiFactory.createExpression("(${greatGrandParent.text} {$argument})").childOfType<ArendTuple>()?.let {
                     literal.replaceWithNotification(it)
@@ -462,13 +462,16 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     if (greatGreatGrandParent is ArendArgumentAppExpr) {
                         val cExpr = appExprToConcrete(greatGreatGrandParent)
                         val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
-                        if (result != null && (result.second.isEmpty() || result.second.first().second)) {
+                        if (result != null && (result.second.isEmpty() || result.second.first().isExplicit)) {
                             val ipName = result.first as? ArendIPName
                             if (ipName != null) when {
                                 ipName.infix != null -> addImplicitArgAfter(greatGrandParent)
                                 ipName.postfix != null-> {
                                     var resultingExpr = LongName(ipName.longName).toString() + " {$argument} "
-                                    for ((arg, argExplicit) in result.second) resultingExpr += (if (argExplicit) arg.text else "{${arg.text}}") + " "
+                                    for (arg in result.second) {
+                                        val argText = (arg.expression.data as? ArendSourceNode)?.text ?: arg.expression.toString()
+                                        resultingExpr += (if (arg.isExplicit) argText else "{${argText}}") + " "
+                                    }
                                     val newArgAppExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()
                                     if (newArgAppExpr != null) greatGreatGrandParent.replaceWithNotification(newArgAppExpr)
                                 }
