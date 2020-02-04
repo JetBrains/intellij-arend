@@ -1219,6 +1219,21 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo8 {this : R} : Nat => R.fubar {this} 1 {Nat}
             """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8")
 
+    fun testMoveOutOfRecord5b() =
+            testMoveRefactoring("""
+               \record R {
+                 \func bar (n m : Nat) => {?}
+                 
+                 \func foo{-caret-} => 1 `bar` 2 `bar 3
+               }
+            """, """
+               \record R {
+                 \func bar (n m : Nat) => {?}
+               }
+               
+               \func foo {this : R} => 1 R.`bar` {this} 2 R.`bar` {this} 3
+            """, "Main", "", "Main", "R.foo")
+
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
                \record R {
