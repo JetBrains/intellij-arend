@@ -486,7 +486,7 @@ fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
 }
 
 // The second component of the Pair in the return type is a list of (argument, isExplicit)
-fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<ArendReferenceContainer, List<Pair<ArendSourceNode, Boolean>>>? {
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<ArendReferenceContainer, List<Concrete.Argument>>? {
     if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
         if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
             return Pair(parsedExpr.data as ArendReferenceContainer, emptyList())
@@ -507,7 +507,8 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
 
         if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
             if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
-                return createArglist()?.let { Pair(parsedExpr.function.data as ArendReferenceContainer, it) }
+                return Pair(parsedExpr.function.data as ArendReferenceContainer, parsedExpr.arguments)
+                //createArglist()?.let { Pair(parsedExpr.function.data as ArendReferenceContainer, it) }
             }
         }
 
@@ -520,7 +521,8 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
                     return Pair(argument.expression.data as ArendReferenceContainer, emptyList())
                 }
                 if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                return createArglist()?.let { Pair(parsedExpr.function.data  as ArendReferenceContainer, it) }
+                // return createArglist()?.let { Pair(parsedExpr.function.data  as ArendReferenceContainer, it) }
+                return Pair(parsedExpr.function.data as ArendReferenceContainer, parsedExpr.arguments)
             }
         }
 
