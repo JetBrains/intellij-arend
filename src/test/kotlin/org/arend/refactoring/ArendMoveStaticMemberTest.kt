@@ -1234,6 +1234,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo {this : R} => 1 R.`bar` {this} 2 R.`bar` {this} 3
             """, "Main", "", "Main", "R.foo")
 
+    fun testMoveOutOfRecord5c() = testMoveRefactoring("""
+               \record R {
+                 \func \fix 2 * (n m : Nat) => {?}                  \func foo{-caret-} => 1 `+` 2 `*` 3
+               }               \func \fix 1 + (n m : Nat) => {?}
+            """, """
+               \record R {
+                 \func \fix 2 * (n m : Nat) => {?} 
+               }               \func \fix 1 + (n m : Nat) => {?}               \func foo {this : R} => 1 `+` 2 `*` 3
+            """, "Main", "", "Main", "R.foo")
+
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
                \record R {

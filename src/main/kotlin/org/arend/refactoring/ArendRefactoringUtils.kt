@@ -475,6 +475,9 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): 
         }
         return@ret false
     }
+    if (cExpr is Concrete.AppExpression) {
+        return false
+    }
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 

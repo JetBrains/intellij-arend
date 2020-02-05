@@ -15,7 +15,7 @@ branches:
 install:
   - git clone https://github.com/JetBrains/Arend.git ../Arend
 
-script: ./gradlew check -x :Arend:check -Pkotlin.incremental=false -Dkotlin.daemon.jvm.options=-Xmx1024m
+script: ./gradlew check --no-daemon --info --stacktrace -x :Arend:check -Pkotlin.incremental=false -Dkotlin.daemon.jvm.options=-Xmx1024m
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock

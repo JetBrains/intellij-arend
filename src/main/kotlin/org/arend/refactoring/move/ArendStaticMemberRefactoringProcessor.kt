@@ -461,7 +461,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                     val greatGreatGrandParent = greatGrandParent.parent
                     if (greatGreatGrandParent is ArendArgumentAppExpr) {
                         val cExpr = appExprToConcrete(greatGreatGrandParent)
-                        val result = if (cExpr != null) findDefAndArgsInParsedBinop(parent, cExpr) else null
+                        val result = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
                         if (result != null && (result.second.isEmpty() || result.second.first().isExplicit)) {
                             val ipName = result.first as? ArendIPName
                             if (ipName != null) when {
