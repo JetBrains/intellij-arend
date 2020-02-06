@@ -1,6 +1,7 @@
 package org.arend.module.config
 
 import org.arend.util.Range
+import org.arend.util.Version
 import org.jetbrains.yaml.psi.YAMLFile
 
 
@@ -11,7 +12,7 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val extensionMainClass = yaml.extensionMainClass
     override val modules = yaml.modules
     override val dependencies = yaml.dependencies
-    override val langVersion: Range<String> = yaml.langVersion?.let { Range.parseRange(it) } ?: Range.unbound()
+    override val langVersion: Range<Version> = yaml.langVersion?.let { Range.parseVersionRange(it) } ?: Range.unbound()
 
     override val rootDir = yaml.virtualFile?.parent?.path
 }

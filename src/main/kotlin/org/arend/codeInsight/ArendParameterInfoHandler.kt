@@ -15,6 +15,10 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
+import org.arend.refactoring.checkConcreteExprIsArendExpr
+import org.arend.refactoring.checkConcreteExprIsFunc
+import org.arend.refactoring.concreteDataToReference
+import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
@@ -219,6 +223,16 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun findArgInParsedBinopSeq(arg: ArendSourceNode, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
+        if (checkConcreteExprIsArendExpr(arg, expr)) {
+            if (curFunc == null) {
+                if (checkConcreteExprIsFunc(expr, arg.scope)) {
+                    return Pair(-1, expr.data as Abstract.Reference)
+                }
+                return null
+            }
+            return Pair(curArgInd, curFunc)
+        }
+        /*
         if (expr is Concrete.ReferenceExpression || expr is Concrete.HoleExpression) {
             // Rewrite in a less ad-hoc way
             if ((expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode ||
@@ -233,11 +247,11 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                 }
                 return Pair(curArgInd, curFunc)
             }
-        }
+        } */
         if (expr is Concrete.AppExpression) {
             val funcRes = findArgInParsedBinopSeq(arg, expr.function, curArgInd, curFunc)
             if (funcRes != null) return funcRes
-            var func = (expr.function as? Concrete.ReferenceExpression)?.data as? Abstract.Reference
+            var func = concreteDataToReference((expr.function as? Concrete.ReferenceExpression)?.data)
             var funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
             val argExplicitness = mutableListOf<Boolean>()
 
@@ -258,9 +272,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
 
         return null
     }
-
-    private fun resolveIfNeeded(referent: Referable, scope: Scope) =
-        ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
 
     private fun locateArg(arg: ArendSourceNode, appExpr: ArendExpr) =
         appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {

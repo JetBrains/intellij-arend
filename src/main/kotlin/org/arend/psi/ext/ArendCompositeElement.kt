@@ -81,6 +81,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
             parent is ArendAtomLevelExpr && parent.lparen != null -> parent
             parent is ArendOnlyLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
             parent is ArendAtomOnlyLevelExpr && parent.lparen != null -> parent
+            //parent is ArendIPName -> parent
             else -> return current
         }
     }

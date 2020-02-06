@@ -18,10 +18,7 @@ import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.FileUtils
-import org.arend.util.Range
-import org.arend.util.findPsiFileByPath
-import org.arend.util.reload
+import org.arend.util.*
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Paths
 
@@ -62,8 +59,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override val extensionMainClass: String?
         get() = flaggedExtensionMainClass
 
-    override val langVersion: Range<String>
-        get() = Range.parseRange(langVersionString) ?: Range.unbound()
+    override val langVersion: Range<Version>
+        get() = Range.parseVersionRange(langVersionString) ?: Range.unbound()
 
     val root
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file

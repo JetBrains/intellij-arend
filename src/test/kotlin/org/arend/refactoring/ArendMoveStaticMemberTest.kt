@@ -125,7 +125,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 \func foo => 202
 
                 \open Foo (bar)
-
             """, "DirB.Main", "Foo")
 
     fun testMoveData1() =
@@ -315,7 +314,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                 \module Bar \where
                   \open lol (bar)
-
             """, "A", "lol")
 
     fun testMoveFromWhereBlock2() =
@@ -573,8 +571,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             """, """
                \import Main
-
-
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove3() =
@@ -594,8 +590,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             """, """
                \import Main (D1, D2)
-
-
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove4() =
@@ -926,6 +920,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C {
                   | foo : Nat 
+                } \where {
+                  \open M (D)
                 }
                 
                 \module M \where {
@@ -947,7 +943,9 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C1 (E : \Type)
 
-                \class C2 \extends C1 {}
+                \class C2 \extends C1 {} \where {
+                  \open M (foo)
+                }
 
                 \module M \where {
                   \func foo {this : C2} (e : this) => {?}
@@ -955,6 +953,31 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                       \func bar {this : C2} (y : this) => {?}
                 }
             """, "Main", "M")
+
+
+    fun testMoveOutOfClass4() =
+            testMoveRefactoring("""
+               \class C {
+                 | carrier : \Type
+
+                 \func foo : Nat => 101 \where {
+                   \func bar{-caret-} (X : carrier) => 101 
+                 }
+  
+                 \func foobar => foo.bar
+               } 
+            """, """
+               \class C {
+                 | carrier : \Type
+
+                 \func foo : Nat => 101 \where {
+                 }
+
+                 \func foobar => bar
+               } \where {
+                 \func bar {this : C} (X : carrier) => 101
+               } 
+            """, "Main", "C")
 
     fun testMoveOutOfRecord1() =
             testMoveRefactoring("""
@@ -974,6 +997,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \record C2 \extends C1 {
                  | bar : Nat 
+               } \where {
+                 \open M (foo)
                }
 
                \module M \where {
@@ -1010,11 +1035,164 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     | field2 : C1
                   }
 
-                  \record R \extends C2 {}
+                  \record R \extends C2 {} \where {
+                    \open M2 (foo)
+                  }
                 }
 
                 \module M2 \where {
                   \func foo {this : M.R} (a : C1) => (this.field1, this.field2.field1, this.field2, a.field1)
                 }
             """, "Main", "M2")
+
+    fun testMoveIntoDynamic1() =
+            testMoveRefactoring("""
+               \class C1 {
+                 | carrier : \Type
+               }
+               
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+               }
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic2() =
+            testMoveRefactoring("""  
+               --! Main.ard
+               
+               \class C1 {
+                 | carrier : \Type
+               }
+                 
+               \func foo => 1{-caret-}  
+               
+               \func goo => 2
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+                 
+                 \func goo => 2
+               }
+               
+               \open C1 (foo, goo)
+            """, "Main", "C1", "Main", "foo", "goo", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic3() =
+            testMoveRefactoring("""
+               \class C1
+                 | carrier : \Type
+                 
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 | carrier : \Type
+                 
+                 \func foo => 1
+               }
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic4() =
+            testMoveRefactoring("""
+               \class C1
+                 
+               \func foo{-caret-} => 1  
+            """, """
+               \class C1 {
+                 \func foo => 1
+               }
+               
+               \open C1 (foo)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveIntoDynamic5() =
+            testMoveRefactoring("""
+                \class C1
+                  
+                -- | fubar
+                \func fubar{-caret-} => 101
+            """, """
+                \class C1 {
+                  -- | fubar
+                  
+                  \func fubar => 101
+                }
+                
+                \open C1 (fubar)
+            """, "Main", "C1", targetIsDynamic = true)
+
+    fun testMoveBetweenDynamics1() =
+            testMoveRefactoring(""" 
+               \record C {
+                 | number : Nat
+                 
+                 \func foo{-caret-} => bar Nat.+ (bar {\this}) Nat.+ number
+                 
+                 \func bar => 202
+                 
+                 \func foobar => foo
+               }
+                
+               \class D {
+                 \func fubar => C.foo {\new C {| number => 1}}
+               }
+            """, """
+               \record C {
+                 | number : Nat               
+               
+                 \func bar => 202
+
+                 \func foobar => foo
+               } \where {
+                 \open D (foo)
+               }
+
+               \class D {
+                 \func fubar => foo {\new C {| number => 1}}
+
+                 \func foo {this : C} => C.bar Nat.+ (C.bar {this}) Nat.+ this.number 
+               }
+            """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
+
+    fun testMoveBetweenDynamics2() =
+            testMoveRefactoring(""" 
+               \record C {
+                 | number : Nat
+                 
+                 \func foo{-caret-} => bar Nat.+ (bar {\this}) Nat.+ number
+                 
+                 \func bar => 202
+                 
+                 \func foobar => foo
+               }
+                
+               \class D \extends C {
+                 \func fubar => C.foo {\new C {| number => 1}}
+               }
+            """, """
+               \record C {
+                 | number : Nat               
+               
+                 \func bar => 202
+
+                 \func foobar => foo
+               } \where {
+                 \open D (foo)
+               }
+
+               \class D \extends C {
+                 \func fubar => foo {\new C {| number => 1}}
+
+                 \func foo => C.bar Nat.+ (C.bar {\this}) Nat.+ number 
+               } 
+            """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 }

@@ -72,9 +72,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val c2et = child2.node.elementType
             val c1comment = child1 is DocCommentBlock
 
-            if ((AREND_COMMENTS.contains(c1et) || c1comment) && psi2 is ArendStatement)
-                return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2.statCmd == null)) oneCrlf else oneBlankLine)
-            else if (psi1 is ArendStatement && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
+            if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStatement || psi2 is ArendClassStat))
+                return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
+            else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 

@@ -4,14 +4,22 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.util.elementType
 import org.arend.core.context.binding.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
+import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
+import org.arend.term.abs.Abstract
+import org.arend.term.concrete.Concrete
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
@@ -100,7 +108,7 @@ class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: 
     }
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
+class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, private val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
     override fun toString(): String {
         val listType = when (id.parent) {
             is ArendStatCmd -> "\"hiding\" list"
@@ -370,3 +378,150 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
 
     return doGetClassifyingField(classDef, HashSet())
 }
+
+fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass : ArendDefClass) {
+    val braces = psiFactory.createPairOfBraces()
+    defClass.addAfter(braces.first, defClass.defIdentifier)
+    defClass.addAfter(psiFactory.createWhitespace(" "), defClass.defIdentifier)
+    defClass.addAfter(braces.second, defClass.lastChild)
+
+    fun surroundWithClassStat(startChild: PsiElement, endChild: PsiElement) {
+        val insertedClassStat = defClass.addAfterWithNotification(psiFactory.createClassStat(), endChild) as ArendClassStat
+        val definition = insertedClassStat.definition!!
+        insertedClassStat.addRangeAfter(startChild, endChild, definition)
+        definition.delete()
+        defClass.deleteChildRange(startChild, endChild)
+    }
+
+    var pipePosition: PsiElement? = null
+    var currentChild : PsiElement? = defClass.firstChild
+    while (currentChild != null) {
+        val nextSibling = currentChild.nextSibling
+        if (pipePosition != null && nextSibling != null &&
+                (nextSibling.elementType == ArendElementTypes.RBRACE || nextSibling.elementType == ArendElementTypes.PIPE)) {
+            surroundWithClassStat(pipePosition, currentChild)
+            pipePosition = null
+        }
+        if (currentChild.elementType == ArendElementTypes.PIPE) pipePosition = currentChild
+
+        currentChild = nextSibling
+    }
+}
+
+fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup): PsiElement? {
+    val oldWhereImpl = myTargetContainer.where
+    val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
+        val localAnchor = myTargetContainer.lastChild
+        val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+        insertedWhere
+    }
+
+    if (actualWhereImpl.lbrace == null || actualWhereImpl.rbrace == null) {
+        val braces = psiFactory.createPairOfBraces()
+        if (actualWhereImpl.lbrace == null) {
+            actualWhereImpl.addAfter(braces.first, actualWhereImpl.whereKw)
+            actualWhereImpl.addAfter(psiFactory.createWhitespace(" "), actualWhereImpl.whereKw)
+        }
+        if (actualWhereImpl.rbrace == null) {
+            actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
+        }
+    }
+
+    return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+}
+
+// Binop util method plus auxiliary stuff
+
+fun resolveIfNeeded(referent: Referable, scope: Scope) =
+        ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
+
+fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
+    if (data is ArendIPName) {
+        val element = data.infix ?: data.postfix
+        val node = element?.parentOfType<ArendSourceNode>() ?: return null
+        return node
+    }
+    return data as? ArendSourceNode
+}
+
+fun concreteDataToReference(data: Any?): Abstract.Reference? {
+    if (data is ArendIPName) {
+        // val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
+        // return
+    }
+    return data as? Abstract.Reference
+}
+
+fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
+    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
+        // Rewrite in a less ad-hoc way
+        if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
+                cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+                || cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+        ) {
+            return@ret true
+        }
+        return@ret false
+    }
+    return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
+}
+
+fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
+    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
+        return true
+    }
+    return false
+}
+
+// The second component of the Pair in the return type is a list of (argument, isExplicit)
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<Abstract.Reference, List<Pair<ArendSourceNode, Boolean>>>? {
+    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
+        if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
+            return Pair(parsedExpr.data as Abstract.Reference, emptyList())
+        }
+    }
+
+    if (parsedExpr is Concrete.AppExpression) {
+        val createArglist = ret@{
+            val ardArguments = mutableListOf<Pair<ArendSourceNode, Boolean>>()
+            for (argument_ in parsedExpr.arguments) {
+                if (argument_.expression.data !is ArendSourceNode) {
+                    return@ret null
+                }
+                ardArguments.add(Pair(argument_.expression.data as ArendSourceNode, argument_.isExplicit))
+            }
+            return@ret ardArguments
+        }
+
+        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
+            if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
+                return createArglist()?.let { Pair(parsedExpr.data as Abstract.Reference, it) }
+            }
+        }
+
+        val funcRes = findDefAndArgsInParsedBinop(arg, parsedExpr.function)
+        if (funcRes != null) return funcRes
+
+        for (argument in parsedExpr.arguments) {
+            if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
+                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
+                    return Pair(argument.expression.data as Abstract.Reference, emptyList())
+                }
+                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
+                return createArglist()?.let { Pair(parsedExpr.function.data  as Abstract.Reference, it) }
+            }
+        }
+
+        for (argument in parsedExpr.arguments) {
+            val argRes = findDefAndArgsInParsedBinop(arg, argument.expression)
+            if (argRes != null) return argRes
+        }
+    } else if (parsedExpr is Concrete.LamExpression) {
+        return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
+    }
+
+    return null
+}
+
+// End of Binop util method

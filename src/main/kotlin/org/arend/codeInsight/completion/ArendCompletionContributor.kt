@@ -30,7 +30,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
 
-        basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java)), AS_KW_LIST)
+        basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java), not(afterLeaves(LPAREN, COMMA))), AS_KW_LIST)
         { parameters -> (parameters.position.parent.parent as ArendNsId).asKw == null }
 
         basic(NS_CMD_CONTEXT, HU_KW_LIST) { parameters ->
@@ -49,7 +49,7 @@ class ArendCompletionContributor : CompletionContributor() {
             noUsingAndHiding(parameters.position.parent.parent as ArendStatCmd)
         }
 
-        basic(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java), HIDING_KW_LIST) { parameters ->
+        basic(and(withAncestors(PsiErrorElement::class.java, ArendNsUsing::class.java, ArendStatCmd::class.java), not(afterLeaf(COMMA))), HIDING_KW_LIST) { parameters ->
             noHiding(parameters.position.parent.parent.parent as ArendStatCmd)
         }
 
@@ -143,7 +143,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 notWithGrandparentFieldTelePattern),
                 EXTENDS_KW_LIST)
 
-        basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW)
+        basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
 
         val bareSigmaOrPiPattern = elementPattern { o ->
             var result: PsiElement? = o
@@ -197,8 +197,8 @@ class ArendCompletionContributor : CompletionContributor() {
                         or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))))
         }
 
-        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW)
-        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW)
+        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
+        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, true)), NEW_KW_LIST)
@@ -227,13 +227,13 @@ class ArendCompletionContributor : CompletionContributor() {
             originalPositionParent != null && originalPositionParent.text == "\\" && originalPositionParent.nextSibling?.node?.elementType == NUMBER
         }
 
-        basic(and(DATA_OR_EXPRESSION_CONTEXT), object : ConditionalProvider(listOf("-Type"), numberCondition) {
+        basic(and(DATA_OR_EXPRESSION_CONTEXT), object : ConditionalProvider(listOf("-Type"), numberCondition, tailSpaceNeeded = false) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
         })
 
         basic(DATA_OR_EXPRESSION_CONTEXT, object : ConditionalProvider(listOf("Type"), { parameters ->
             parameters.originalPosition?.text?.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?")) ?: false
-        }) {
+        }, tailSpaceNeeded = false) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         })
@@ -356,8 +356,8 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(ELIM_CONTEXT, ELIM_KW_LIST, elimOrCoWithCondition.invoke(false))
-        basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), false))
-        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), false))
+        basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), tailSpaceNeeded = false))
+        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), tailSpaceNeeded = false))
 
         basic(and(
                 afterLeaves(COMMA, CASE_KW),
@@ -441,8 +441,8 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, pattern, provider)
     }
 
-    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>) {
-        basic(place, KeywordCompletionProvider(keywords))
+    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>, tailSpaceNeeded: Boolean = true) {
+        basic(place, KeywordCompletionProvider(keywords, tailSpaceNeeded = tailSpaceNeeded))
     }
 
     private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>, condition: (CompletionParameters) -> Boolean) {

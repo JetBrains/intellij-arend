@@ -20,19 +20,20 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SeparatorFactory
+import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.ArendClassStat
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.util.FullName
 import java.awt.BorderLayout
-import javax.swing.Icon
-import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.JTextField
+import javax.swing.*
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
@@ -43,6 +44,10 @@ class ArendMoveMembersDialog(project: Project,
     private val northPanel: JPanel
     private val containerRef: SmartPsiElementPointer<PsiElement>
     private val memberSelectionPanel: ArendMemberSelectionPanel
+    private val classPartRow: Row?
+    private val dynamicGroup: JRadioButton
+    private val staticGroup: JRadioButton
+    private val sourceIsDynamic: Boolean?
 
     init {
         title = "Move Arend static members"
@@ -58,8 +63,11 @@ class ArendMoveMembersDialog(project: Project,
 
         targetFileTextField = JTextField(fullName?.modulePath?.toString() ?: "")
         targetModuleTextField = JTextField(fullName?.longName?.toString() ?: "")
-        memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
 
+        memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
+        staticGroup = JRadioButton("Static")
+        dynamicGroup = JRadioButton("Dynamic")
+        var classPartRow1: Row? = null
         northPanel = panel {
             row {
                 memberSelectionPanel()
@@ -70,7 +78,40 @@ class ArendMoveMembersDialog(project: Project,
             row("Target module: ") {
                 targetModuleTextField()
             }
+            classPartRow1 = row("Target part of the class") {
+                buttonGroup {
+                    staticGroup()
+                    dynamicGroup()
+                }
+            }
         }
+        classPartRow = classPartRow1
+        sourceIsDynamic = determineClassPart(elements)
+
+        if (container is ArendDefClass) {
+            classPartRow?.enabled = true
+            if (sourceIsDynamic != null && sourceIsDynamic) dynamicGroup.isSelected = true else
+                if (sourceIsDynamic != null && !sourceIsDynamic) staticGroup.isSelected = true
+        } else {
+            classPartRow?.enabled = false
+            staticGroup.isSelected = true
+        }
+
+        val updater = {
+            val fileName = targetFileTextField.text
+            val moduleName = targetModuleTextField.text
+            val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
+            classPartRow?.enabled = locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
+        }
+
+        val documentListener = object: DocumentListener {
+            override fun changedUpdate(e: DocumentEvent?) = updater.invoke()
+            override fun insertUpdate(e: DocumentEvent?) = updater.invoke()
+            override fun removeUpdate(e: DocumentEvent?) = updater.invoke()
+        }
+
+        targetFileTextField.document.addDocumentListener(documentListener)
+        targetModuleTextField.document.addDocumentListener(documentListener)
 
         init()
     }
@@ -94,10 +135,19 @@ class ArendMoveMembersDialog(project: Project,
         val fileName = targetFileTextField.text
         val moduleName = targetModuleTextField.text
         var targetContainer: ArendGroup? = null
+        val targetIsDynamic: Boolean? = if (classPartRow == null || !classPartRow.enabled) null else {
+            val isDynamic = dynamicGroup.isSelected
+            val isStatic = staticGroup.isSelected
+            when {
+                isDynamic && !isStatic -> true
+                !isDynamic && isStatic -> false
+                else -> false
+            }
+        }
 
         val locateResult: Pair<ArendGroup?, LocateResult> = when (sourceGroup) {
             !is ArendGroup -> Pair(null, LocateResult.OTHER_ERROR)
-            else -> locateTargetGroupWithChecks(fileName, moduleName, enclosingModule, sourceGroup, elementsToMove)
+            else -> locateTargetGroupWithChecks(fileName, moduleName, enclosingModule, sourceGroup, elementsToMove, sourceIsDynamic, targetIsDynamic)
         }
 
         var showErrorMessage = true
@@ -124,7 +174,7 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         if (targetContainer != null)
-            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, isOpenInEditor)) else
+            invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, dynamicGroup.isSelected, isOpenInEditor)) else
             if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
@@ -141,7 +191,7 @@ class ArendMoveMembersDialog(project: Project,
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
     enum class LocateResult {
-        LOCATE_OK, CANT_FIND_FILE, CANT_FIND_MODULE, TARGET_EQUALS_SOURCE, TARGET_IS_SUBMODULE_OF_SOURCE, OTHER_ERROR
+        LOCATE_OK, CANT_FIND_FILE, CANT_FIND_MODULE, TARGET_EQUALS_SOURCE, TARGET_IS_SUBMODULE_OF_SOURCE, CLASSPART_UNSPECIFIED, OTHER_ERROR
     }
 
     companion object {
@@ -151,11 +201,29 @@ class ArendMoveMembersDialog(project: Project,
 
         fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null)
 
+        fun determineClassPart(elements: List<ArendGroup>): Boolean? {
+            var isDynamic = true
+            var isStatic = true
+            for (e in elements) {
+                if (e.parent is ArendClassStat) {
+                    isStatic = false
+                } else {
+                    isDynamic = false
+                }
+            }
+            return when {
+                isStatic && !isDynamic -> false
+                !isStatic && isDynamic -> true
+                else -> null
+            }
+        }
+
         fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"
             LocateResult.TARGET_EQUALS_SOURCE -> targetEqualsSource
             LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE -> targetSubmoduleSource
             LocateResult.CANT_FIND_FILE, LocateResult.CANT_FIND_MODULE -> canNotLocateMessage
+            LocateResult.CLASSPART_UNSPECIFIED -> "Unspecified part of the class"
             else -> "Other locate error"
         }
 
@@ -184,12 +252,13 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         fun locateTargetGroupWithChecks(fileName: String, moduleName: String, ideaModule: Module,
-                                        sourceModule: ArendGroup, elementsToMove: List<ArendGroup?>): Pair<ArendGroup?, LocateResult> {
+                                        sourceModule: ArendGroup, elementsToMove: List<ArendGroup?>,
+                                        sourceIsDynamic: Boolean?, targetIsDynamic: Boolean?): Pair<ArendGroup?, LocateResult> {
             val locateResult = simpleLocate(fileName, moduleName, ideaModule)
             if (locateResult.second != LocateResult.LOCATE_OK) return locateResult
-
             var group = locateResult.first
-            if (group == sourceModule) return Pair(null, LocateResult.TARGET_EQUALS_SOURCE)
+            if (group is ArendDefClass && targetIsDynamic == null) return Pair(null, LocateResult.CLASSPART_UNSPECIFIED)
+            if (group == sourceModule && (sourceIsDynamic == null || sourceIsDynamic == targetIsDynamic)) return Pair(null, LocateResult.TARGET_EQUALS_SOURCE)
 
             while (group != null) {
                 for (elementP in elementsToMove) if (group == elementP)
