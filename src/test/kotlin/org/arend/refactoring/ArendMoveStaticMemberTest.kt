@@ -1190,6 +1190,12 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo7 : Nat => 1 `lol` {\this} {Nat} 2
                  
                  \func foo8 : Nat => 1 `fubar {Nat}
+                 
+                 \func foo9 : Nat => 1 `bar` 2 `bar` 3
+                 
+                 \func foo10 : Nat => 1 `bar` 2 `bar 3
+                 
+                 \func foo11 {-caret-} => 1 `bar 2 `bar` 3
                }
             """, """
                \record R {
@@ -1217,31 +1223,27 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo7 {this : R} : Nat => 1 R.`lol` {this} {Nat} 2
                 
                \func foo8 {this : R} : Nat => R.fubar {this} 1 {Nat}
-            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8")
+               
+               \func foo9 {this : R} : Nat => 1 R.`bar` {this} 2 R.`bar` {this} 3
+               
+               \func foo10 {this : R} : Nat => 1 R.`bar` {this} (R.bar {this} 2 3)
+               
+               \func foo11 {this : R} => (R.bar {this} 1 2) R.`bar` {this} 3
+            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11")
 
     fun testMoveOutOfRecord5b() =
             testMoveRefactoring("""
                \record R {
                  \func bar (n m : Nat) => {?}
                  
-                 \func foo{-caret-} => 1 `bar` 2 `bar 3
+                 \func foo{-caret-} => `bar 1
                }
             """, """
                \record R {
                  \func bar (n m : Nat) => {?}
                }
                
-               \func foo {this : R} => 1 R.`bar` {this} 2 R.`bar` {this} 3
-            """, "Main", "", "Main", "R.foo")
-
-    fun testMoveOutOfRecord5c() = testMoveRefactoring("""
-               \record R {
-                 \func \fix 2 * (n m : Nat) => {?}                  \func foo{-caret-} => 1 `+` 2 `*` 3
-               }               \func \fix 1 + (n m : Nat) => {?}
-            """, """
-               \record R {
-                 \func \fix 2 * (n m : Nat) => {?} 
-               }               \func \fix 1 + (n m : Nat) => {?}               \func foo {this : R} => 1 `+` 2 `*` 3
+               \func foo {this : R} => (lam n => R.bar {this} n 1)
             """, "Main", "", "Main", "R.foo")
 
     fun testMoveOutOfRecord6() =

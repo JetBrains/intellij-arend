@@ -489,55 +489,36 @@ fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
 }
 
 // The second component of the Pair in the return type is a list of (argument, isExplicit)
-fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<ArendReferenceContainer, List<Concrete.Argument>>? {
-    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
-        if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
-            return Pair(parsedExpr.data as ArendReferenceContainer, emptyList())
-        }
-    }
+
+data class DefAndArgsInParsedBinopResult(val functionReferenceContainer: ArendReferenceContainer,
+                                         val operatorConcrete: Concrete.Expression,
+                                         val argumentsConcrete: List<Concrete.Argument>)
+
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): DefAndArgsInParsedBinopResult? {
+    if (checkConcreteExprIsArendExpr(arg, parsedExpr) && checkConcreteExprIsFunc(parsedExpr, arg.scope))
+        return DefAndArgsInParsedBinopResult(parsedExpr.data as ArendReferenceContainer, parsedExpr, emptyList())
 
     if (parsedExpr is Concrete.AppExpression) {
-        val createArglist = ret@{
-            val ardArguments = mutableListOf<Pair<ArendSourceNode, Boolean>>()
-            for (argument_ in parsedExpr.arguments) {
-                if (argument_.expression.data !is ArendSourceNode) {
-                    return@ret null
-                }
-                ardArguments.add(Pair(argument_.expression.data as ArendSourceNode, argument_.isExplicit))
-            }
-            return@ret ardArguments
-        }
+        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function) && checkConcreteExprIsFunc(parsedExpr.function, arg.scope))
+            return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
 
-        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
-            if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
-                return Pair(parsedExpr.function.data as ArendReferenceContainer, parsedExpr.arguments)
-                //createArglist()?.let { Pair(parsedExpr.function.data as ArendReferenceContainer, it) }
-            }
-        }
-
-        val funcRes = findDefAndArgsInParsedBinop(arg, parsedExpr.function)
-        if (funcRes != null) return funcRes
+        findDefAndArgsInParsedBinop(arg, parsedExpr.function)?.let{ return it }
 
         for (argument in parsedExpr.arguments) {
             if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
                 if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
-                    return Pair(argument.expression.data as ArendReferenceContainer, emptyList())
+                    return DefAndArgsInParsedBinopResult(argument.expression.data as ArendReferenceContainer, argument.expression, emptyList())
                 }
                 if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                // return createArglist()?.let { Pair(parsedExpr.function.data  as ArendReferenceContainer, it) }
-                return Pair(parsedExpr.function.data as ArendReferenceContainer, parsedExpr.arguments)
+                return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
             }
         }
 
-        for (argument in parsedExpr.arguments) {
-            val argRes = findDefAndArgsInParsedBinop(arg, argument.expression)
-            if (argRes != null) return argRes
-        }
-    } else if (parsedExpr is Concrete.LamExpression) {
+        for (argument in parsedExpr.arguments)
+            findDefAndArgsInParsedBinop(arg, argument.expression)?.let{ return it }
+
+    } else if (parsedExpr is Concrete.LamExpression)
         return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
-    }
 
     return null
 }
-
-// End of Binop util method

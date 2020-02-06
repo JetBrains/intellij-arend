@@ -49,33 +49,6 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
         return super.getChildAttributes(newChildIndex)
     }
 
-    private fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange {
-        val cExprData = cExpr.data
-        if (cExpr is Concrete.AppExpression) {
-            val elements = ArrayList<TextRange>()
-            val fData = cExpr.function.data
-
-            elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
-
-            if (fData is PsiElement) {
-                val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
-                if (f.size != 1) throw IllegalStateException()
-                elements.add(f.first().textRange)
-            }
-
-            val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
-            val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
-            if (startOffset != null && endOffset != null) {
-                return TextRange.create(startOffset, endOffset)
-            }
-        } else if (cExprData is PsiElement) {
-            for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
-                return psi.textRange
-            }
-        }
-        throw IllegalStateException()
-    }
-
     private fun transform(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, align: Alignment?, indent: Indent): AbstractArendBlock {
         val cExprData = cExpr.data
         if (cExpr is Concrete.AppExpression) {
@@ -156,5 +129,34 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
         } else if (cExpr is Concrete.LamExpression) { // we are dealing with right sections
             return GroupBlock(settings, aaeBlocks.map { createArendBlock(it, null, null, Indent.getNoneIndent()) }.toMutableList(), null, align, indent, this)
         } else throw IllegalStateException()
+    }
+
+    companion object {
+        fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange {
+            val cExprData = cExpr.data
+            if (cExpr is Concrete.AppExpression) {
+                val elements = ArrayList<TextRange>()
+                val fData = cExpr.function.data
+
+                elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
+
+                if (fData is PsiElement) {
+                    val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
+                    if (f.size != 1) throw IllegalStateException()
+                    elements.add(f.first().textRange)
+                }
+
+                val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
+                val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
+                if (startOffset != null && endOffset != null) {
+                    return TextRange.create(startOffset, endOffset)
+                }
+            } else if (cExprData is PsiElement) {
+                for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
+                    return psi.textRange
+                }
+            }
+            throw IllegalStateException()
+        }
     }
 }
