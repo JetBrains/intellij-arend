@@ -1195,7 +1195,11 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                  \func foo10 : Nat => 1 `bar` 2 `bar 3
                  
-                 \func foo11 {-caret-} => 1 `bar 2 `bar` 3
+                 \func foo11 => 1 `bar 2 `bar` 3
+                 
+                 \func foo12 : Nat => succ 2 `bar 3
+                 
+                 \func foo13 : Nat => succ {- lol -} 2 `bar 3
                }
             """, """
                \record R {
@@ -1229,22 +1233,12 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo10 {this : R} : Nat => 1 R.`bar` {this} (R.bar {this} 2 3)
                
                \func foo11 {this : R} => (R.bar {this} 1 2) R.`bar` {this} 3
-            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11")
-
-    fun testMoveOutOfRecord5b() =
-            testMoveRefactoring("""
-               \record R {
-                 \func bar (n m : Nat) => {?}
-                 
-                 \func foo{-caret-} => `bar 1
-               }
-            """, """
-               \record R {
-                 \func bar (n m : Nat) => {?}
-               }
                
-               \func foo {this : R} => (lam n => R.bar {this} n 1)
-            """, "Main", "", "Main", "R.foo")
+               \func foo12 {this : R} : Nat => R.bar {this} (R.succ {this} 2) 3
+               
+               \func foo13 {this : R} : Nat => R.bar {this} (R.succ {this} {- lol -} 2) 3
+            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6",
+                    "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""

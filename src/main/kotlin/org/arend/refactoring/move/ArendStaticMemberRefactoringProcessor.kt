@@ -3,12 +3,14 @@ package org.arend.refactoring.move
 import com.intellij.ide.util.EditorHelper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
+import com.intellij.psi.util.siblings
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.move.MoveMemberViewDescriptor
 import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
@@ -158,14 +160,15 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val descriptorsOfAllMovedMembers = HashMap<PsiLocatedReferable, LocationDescriptor>() //This set may be strictly larger than the set of myReferableDescriptors
         val bodiesRefsFixData = HashMap<LocationDescriptor, TargetReference>()
         val bodiesClassFieldUsages = HashSet<LocationDescriptor>() //We don't need to keep a link to class field as we replace its usages by "this.field" anyway
-        val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) } ?: emptySet()
+        val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) }
+                ?: emptySet()
 
         run {
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
             val recordFields = if (sourceContainerIsARecord) ClassFieldImplScope(mySourceContainer as ClassReferable, false).elements.filterIsInstanceTo(HashSet())
-                    else emptySet<PsiLocatedReferable>()
+            else emptySet<PsiLocatedReferable>()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
@@ -427,17 +430,17 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     }
 
     private fun appExprToConcrete(appExpr: ArendArgumentAppExpr): Concrete.Expression? = appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
-                    parseBinOp(left, sequence)
+        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
+                parseBinOp(left, sequence)
 
-            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
-            override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
-        }, null)
+        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
+        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
+    }, null)
 
-    fun modifyRecordDynamicDefCalls(psiElementToModify: PsiElement,
-                                    dynamicMembers: Set<PsiLocatedReferable>,
-                                    psiFactory: ArendPsiFactory,
-                                    argument: String) {
+    private fun modifyRecordDynamicDefCalls(psiElementToModify: PsiElement,
+                                            dynamicMembers: Set<PsiLocatedReferable>,
+                                            psiFactory: ArendPsiFactory,
+                                            argument: String) {
         for (child in psiElementToModify.children) {
             modifyRecordDynamicDefCalls(child, dynamicMembers, psiFactory, argument)
             if (child is ArendLiteral) {
@@ -480,17 +483,27 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         val result = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
                         if (result != null && (result.argumentsConcrete.isEmpty() || result.argumentsConcrete.first().isExplicit)) {
                             val ipName = result.functionReferenceContainer as? ArendIPName
-                            val nodes = greatGreatGrandParent.children.filter { it !is PsiWhiteSpace }.map { it.node }
+                            val nodes = greatGreatGrandParent.firstChild.siblings().map { it.node }.toList()
                             val operatorRange = ArgumentAppExprBlock.getBounds(result.operatorConcrete, nodes)
                             val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
                             if (ipName != null) when {
                                 ipName.infix != null -> addImplicitArgAfter(greatGrandParent)
-                                ipName.postfix != null-> {
+                                ipName.postfix != null -> {
                                     var resultingExpr = LongName(ipName.longName).toString() + " {$argument} "
-                                    for (arg in result.argumentsConcrete) {
-                                        val argText = (arg.expression.data as? ArendSourceNode)?.text ?: arg.expression.toString()
-                                        resultingExpr += (if (arg.isExplicit) argText else "{${argText}}") + " "
+                                    val leadingElements = ArrayList<PsiElement>()
+                                    val trailingElements = ArrayList<PsiElement>()
+                                    var beforeLiteral = true
+                                    for (element in psiElements) when {
+                                        element == greatGrandParent -> beforeLiteral = false
+                                        beforeLiteral -> leadingElements.add(element)
+                                        else -> trailingElements.add(element)
                                     }
+
+                                    val requiresLeadingArgumentParentheses = leadingElements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1
+                                    var leadingText = leadingElements.fold("", { acc, element -> acc + element.text }).trim()
+                                    if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
+                                    val trailingText = trailingElements.fold("", { acc, element -> acc + element.text }).trim()
+                                    resultingExpr += "$leadingText $trailingText"
                                     when {
                                         psiElements.size == nodes.size -> {
                                             val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
