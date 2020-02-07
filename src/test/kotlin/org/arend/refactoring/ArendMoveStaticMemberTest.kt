@@ -1257,25 +1257,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14",
                     "R.foo15", "R.foo16")
 
-    fun testMoveOutOfRecord5b() =
-            testMoveRefactoring("""
-               \record R {
-                 \func \infixl 1 ibar (n m : Nat) => n
-                 
-                 \func succ (n : Nat) => Nat.suc n
-               
-                 \func foo5{-caret-} : Nat  => 1 ibar 2
-               }
-            """, """
-               \record R {
-                 \func \infixl 1 ibar (n m : Nat) => n 
-                 
-                 \func succ (n : Nat) => Nat.suc n
-               } 
-               
-               \func foo5 {this : R} : Nat => 1 R.ibar {this} 2
-            """, "Main", "")
-
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
                \record R {

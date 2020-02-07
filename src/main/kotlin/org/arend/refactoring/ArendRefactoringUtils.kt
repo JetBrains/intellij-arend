@@ -2,26 +2,30 @@ package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
-import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.siblings
 import org.arend.core.context.binding.Variable
 import org.arend.module.ModulePath
 import org.arend.naming.reference.Referable
+import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendIPNameImplMixin
-import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
+import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.LongName
+import org.arend.util.getBounds
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
@@ -45,7 +49,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
         val modulePath = importFile.modulePath ?: return
 
         addStatCmd(factory,
-                createStatCmdStatement(factory, modulePath.toString(), usingList?.map {Pair(it, null)}?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
+                createStatCmdStatement(factory, modulePath.toString(), usingList?.map { Pair(it, null) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
                 findPlaceForNsCmd(currentFile, modulePath))
     }
 }
@@ -160,7 +164,6 @@ class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: Are
 
 class RenameReferenceAction constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
     private val needsModification = element.longName != id
-    var resultEnclosingElement: PsiElement? = null // enclosing pattern or literal
 
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
@@ -170,11 +173,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
 
         when (element) {
             is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
-                if (!needsModification) {
-                    resultEnclosingElement = parent
-                    return
-                }
-
+                if (!needsModification) return
                 val argumentStr = buildString {
                     if (id.size > 1) {
                         append(LongName(id.dropLast(1)))
@@ -186,24 +185,18 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
 
                 }
                 val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
-                if (replacementLiteral != null) resultEnclosingElement = parent.replaceWithNotification(replacementLiteral) as? ArendLiteral
+                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral) as? ArendLiteral
             }
             else -> {
                 val longNameStr = LongName(id).toString()
                 val offset = element.textOffset
                 val longName = factory.createLongName(longNameStr)
                 when (parent) {
-                    is ArendLongName -> {
-                        if (needsModification) {
-                            parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
-                            parent.deleteChildRangeWithNotification(parent.firstChild, element)
-                        }
-                        resultEnclosingElement = parent.parent
+                    is ArendLongName -> if (needsModification) {
+                        parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
+                        parent.deleteChildRangeWithNotification(parent.firstChild, element)
                     }
-                    is ArendPattern -> {
-                        if (needsModification) element.replaceWithNotification(longName)
-                        resultEnclosingElement = parent
-                    }
+                    is ArendPattern -> if (needsModification) element.replaceWithNotification(longName)
                 }
                 if (needsModification) editor?.caretModel?.moveToOffset(offset + longNameStr.length)
             }
@@ -382,7 +375,7 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
                 doGetClassifyingField(ancestor, visitedClasses)?.let { return it }
 
         classDef.fieldTeleList.firstOrNull { it.classifyingKw != null }?.fieldDefIdentifierList?.firstOrNull()?.let { return it }
-        classDef.fieldTeleList.firstOrNull { it.isExplicit }?.fieldDefIdentifierList?.firstOrNull()?.let{ return it }
+        classDef.fieldTeleList.firstOrNull { it.isExplicit }?.fieldDefIdentifierList?.firstOrNull()?.let { return it }
 
         return null
     }
@@ -390,7 +383,7 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
     return doGetClassifyingField(classDef, HashSet())
 }
 
-fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass : ArendDefClass) {
+fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
     val braces = psiFactory.createPairOfBraces()
     defClass.addAfter(braces.first, defClass.defIdentifier)
     defClass.addAfter(psiFactory.createWhitespace(" "), defClass.defIdentifier)
@@ -405,7 +398,7 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass : ArendDefClass) {
     }
 
     var pipePosition: PsiElement? = null
-    var currentChild : PsiElement? = defClass.firstChild
+    var currentChild: PsiElement? = defClass.firstChild
     while (currentChild != null) {
         val nextSibling = currentChild.nextSibling
         if (pipePosition != null && nextSibling != null &&
@@ -442,83 +435,98 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
 }
 
-// Binop util method plus auxiliary stuff
-
 fun resolveIfNeeded(referent: Referable, scope: Scope) =
         ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
 
-fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
-    if (data is ArendIPName) {
-        val element = data.infix ?: data.postfix
-        val node = element?.parentOfType<ArendSourceNode>() ?: return null
-        return node
+fun getFirstExplicitParameter(definition: Referable?, defaultName: String): String {
+    if (definition is Abstract.ParametersHolder) {
+        val firstParameter = definition.parameters.firstOrNull { it.isExplicit }
+        val firstReferable = firstParameter?.referableList?.firstOrNull()
+        if (firstReferable is ArendDefIdentifier) return firstReferable.name ?: defaultName
     }
-    return data as? ArendSourceNode
+    return defaultName
 }
 
-fun concreteDataToReference(data: Any?): ArendReferenceContainer? {
-    /*if (data is ArendIPName) {
-        val element = data.infix ?: data.postfix
-        return element?.parentOfType<ArendSourceNode>()?.parentOfType()
-    } */
-    return data as? ArendReferenceContainer
-}
-
-fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
-    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
-        // Rewrite in a less ad-hoc way
-        if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
-                cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
-                || cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
-        ) {
-            return@ret true
+fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argument: String, infixMode: Boolean) {
+    val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
+    if (thisArgument != null) {
+        if (anchor is ArendAtomFieldsAcc || infixMode) {
+            anchor.parent?.addAfterWithNotification(thisArgument, anchor)
+            anchor.parent?.addAfterWithNotification(psiFactory.createWhitespace(" "), anchor)
+        } else if (anchor is ArendAtomArgument) {
+            val oldLiteral = anchor.atomFieldsAcc.atom.literal
+            val tuple = psiFactory.createExpression("(${anchor.text} {$argument})").childOfType<ArendTuple>()
+            if (oldLiteral != null && tuple != null) oldLiteral.replaceWithNotification(tuple)
         }
-        return@ret false
     }
-    if (cExpr is Concrete.AppExpression) {
-        return false
-    }
-    return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 
-fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
-    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && concreteDataToReference(expr.data) != null) {
-        return true
+fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
+                             argumentOrFieldsAcc: PsiElement,
+                             defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {
+    val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+    val ipName = defArgsData.functionReferenceContainer as ArendIPName
+    val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
+    val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
+    val operatorRange = getBounds(operatorConcrete, nodes)!!
+    val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
+
+    var resultingExpr = "${LongName(ipName.longName)} "
+    val leadingElements = java.util.ArrayList<PsiElement>()
+    val trailingElements = java.util.ArrayList<PsiElement>()
+    var beforeLiteral = true
+    for (element in psiElements) when {
+        element == argumentOrFieldsAcc -> beforeLiteral = false
+        beforeLiteral -> leadingElements.add(element)
+        else -> trailingElements.add(element)
     }
-    return false
-}
 
-// The second component of the Pair in the return type is a list of (argument, isExplicit)
+    val requiresLeadingArgumentParentheses = leadingElements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1
+    var leadingText = leadingElements.fold("", { acc, element -> acc + element.text }).trim()
+    if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
+    val trailingText = trailingElements.fold("", { acc, element -> acc + element.text }).trim()
 
-data class DefAndArgsInParsedBinopResult(val functionReferenceContainer: ArendReferenceContainer,
-                                         val operatorConcrete: Concrete.Expression,
-                                         val argumentsConcrete: List<Concrete.Argument>)
+    if (leadingElements.size == 0) {
+        val defaultLambdaName = "_x"
+        val baseName = if (operatorConcrete is Concrete.AppExpression) {
+            val function = operatorConcrete.function as? Concrete.ReferenceExpression
+            getFirstExplicitParameter(function?.referent, defaultLambdaName)
+        } else defaultLambdaName
 
-fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): DefAndArgsInParsedBinopResult? {
-    if (checkConcreteExprIsArendExpr(arg, parsedExpr) && checkConcreteExprIsFunc(parsedExpr, arg.scope))
-        return DefAndArgsInParsedBinopResult(parsedExpr.data as ArendReferenceContainer, parsedExpr, emptyList())
-
-    if (parsedExpr is Concrete.AppExpression) {
-        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function) && checkConcreteExprIsFunc(parsedExpr.function, arg.scope))
-            return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
-
-        findDefAndArgsInParsedBinop(arg, parsedExpr.function)?.let{ return it }
-
-        for (argument in parsedExpr.arguments) {
-            if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
-                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
-                    return DefAndArgsInParsedBinopResult(argument.expression.data as ArendReferenceContainer, argument.expression, emptyList())
-                }
-                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
-            }
+        val operatorBindings = HashSet<String>()
+        for (psi in psiElements) operatorBindings.addAll(getAllBindings(psi))
+        val lambdaVarName = StringRenamer().generateFreshName(VariableImpl(baseName), operatorBindings.map { VariableImpl(it) }.toList())
+        resultingExpr = "(\\lam $lambdaVarName => $resultingExpr$lambdaVarName $trailingText)"
+    } else resultingExpr += "$leadingText $trailingText"
+    val result = when {
+        psiElements.size == nodes.size -> {
+            val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
+            argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
         }
-
-        for (argument in parsedExpr.arguments)
-            findDefAndArgsInParsedBinop(arg, argument.expression)?.let{ return it }
-
-    } else if (parsedExpr is Concrete.LamExpression)
-        return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
-
-    return null
+        operatorRange.contains(nodes.first().textRange) -> {
+            val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
+            val insertedExpr = argumentAppExpr.addAfterWithNotification(atomFieldsAcc, psiElements.last())
+            argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
+            insertedExpr.childOfType()
+        }
+        else -> {
+            val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
+            val insertedExpr = argumentAppExpr.addBeforeWithNotification(atom, psiElements.first())
+            argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
+            insertedExpr.childOfType()
+        }
+    }
+    return if (leadingElements.size == 0) result?.childOfType(true) else result
 }
+
+fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {
+    is ArendFunctionalDefinition -> psiElement.getPrec()
+    is ArendDefData -> psiElement.prec
+    is ArendDefClass -> psiElement.prec
+    is ArendConstructor -> psiElement.prec
+    is ArendNsId -> psiElement.prec
+    is ArendClassField -> psiElement.prec
+    else -> null
+}
+
+fun isInfix(prec: ArendPrec): Boolean = prec.infixLeftKw != null || prec.infixNonKw != null || prec.infixRightKw != null

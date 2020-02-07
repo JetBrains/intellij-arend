@@ -1,7 +1,6 @@
 package org.arend.quickfix.referenceResolve
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.PsiElement
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
@@ -20,10 +19,9 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" }
             ?: "")
 
-    fun execute(editor: Editor?): PsiElement? {
+    fun execute(editor: Editor?) {
         statCmdFixAction?.execute(editor)
         nameFixAction.execute(editor)
-        return nameFixAction.resultEnclosingElement
     }
 
     companion object {
