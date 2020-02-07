@@ -5,6 +5,7 @@ import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
@@ -20,6 +21,15 @@ abstract class ArendIPNameImplMixin(node: ASTNode) : ArendCompositeElementImpl(n
         get() = this
 
     override fun getReference(): ArendReference = ArendReferenceImpl(this)
+
+    override val unresolvedReference: UnresolvedReference?
+        get() = referent
+
+    override val resolvedInScope: Referable?
+        get() = referenceNameElement.resolvedInScope
+
+    override val resolve
+        get() = referenceNameElement.reference.resolve()
 
     override val scope: Scope
         get() {
@@ -51,7 +61,7 @@ abstract class ArendIPNameImplMixin(node: ASTNode) : ArendCompositeElementImpl(n
             error("ArendIPName (rangeInElement): incorrect expression")
         }
 
-    val referent: Referable
+    val referent: UnresolvedReference
         get() {
             val longName = parentLongName
             return if (longName == null) {

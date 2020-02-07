@@ -8,6 +8,7 @@ import org.arend.naming.reference.UnresolvedReference
 interface ArendReferenceElement : ArendReferenceContainer {
     val rangeInElement: TextRange
 
+    /*
     override val resolve: PsiElement?
         get() = reference?.resolve()
 
@@ -15,5 +16,5 @@ interface ArendReferenceElement : ArendReferenceContainer {
         get() = scope.resolveName(referenceName)
 
     override val unresolvedReference: UnresolvedReference?
-        get() = null
+        get() = null */
 }

@@ -135,7 +135,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         val offset = context.editor.caretModel.offset //adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
-        val referable = ref?.resolvedInScope //ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
+        val referable = ref?.resolve as? Referable //ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
         val params = referable?.let { getAllParametersForReferable(it) }
 
         if (params != null && !params.isEmpty()) {
@@ -222,7 +222,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
     }
 
 
-    private fun findArgInParsedBinopSeq(arg: ArendExpr, expr: Concrete.Expression, curArgInd: Int, curFunc: ArendReferenceContainer?): Pair<Int, ArendReferenceContainer>? {
+    private fun findArgInParsedBinopSeq(arg: ArendSourceNode, expr: Concrete.Expression, curArgInd: Int, curFunc: ArendReferenceContainer?): Pair<Int, ArendReferenceContainer>? {
         if (checkConcreteExprIsArendExpr(arg, expr)) {
             if (curFunc == null) {
                 if (checkConcreteExprIsFunc(expr, arg.scope)) {
@@ -253,7 +253,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             if (funcRes != null) return funcRes
             var func = concreteDataToReference((expr.function as? Concrete.ReferenceExpression)?.data)
 
-            var funcReferable = func?.resolvedInScope //func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
+            var funcReferable = func?.resolve as? Referable // resolvedInScope //func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
             val argExplicitness = mutableListOf<Boolean>()
 
             if (funcReferable !is Abstract.ParametersHolder) {
@@ -276,7 +276,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return null
     }
 
-    private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
+    private fun locateArg(arg: ArendSourceNode, appExpr: ArendExpr) =
             appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, ArendReferenceContainer>?>(null) {
                 override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, ArendReferenceContainer>? =
                         findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
@@ -331,13 +331,13 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
     }
 
     //TODO: remove this function
-    private fun toArgument(node: Abstract.SourceNode): Abstract.SourceNode? {
+    private fun toArgument(node: Abstract.SourceNode): ArendArgument? {
         if (node is ArendArgument) {
             return node
         }
 
-        if (node is ArendTupleExpr && node.parentSourceNode is ArendArgument) {
-            return node.parentSourceNode
+        if (node is ArendTupleExpr) {
+            return node.parentSourceNode as? ArendArgument
         }
 
         return null
@@ -385,8 +385,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         val arg = toArgument(absNodeParent)
         var argLoc: Pair<Int, ArendReferenceContainer>? = null
 
-        if (arg != null && arg.parentSourceNode is ArendExpr && arg.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
-            argLoc = (arg as ArendArgument).expression?.let{ locateArg(it as ArendExpr, arg.parentSourceNode as ArendExpr) }
+        val argParent = arg?.parentSourceNode as? ArendExpr
+        if (argParent != null && isBinOpSeq(argParent)) {
+            argLoc = (arg.expression as? ArendSourceNode)?.let{ locateArg(it, argParent) }
         } else if (absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) { // (absNodeParent.parentSourceNode is ArendExpr && absNodeParent.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
             argLoc = (absNode as? ArendExpr)?.let{ locateArg(it, absNodeParent) }
         }

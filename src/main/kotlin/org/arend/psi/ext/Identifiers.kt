@@ -8,6 +8,8 @@ import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendPatternDefReferenceImpl
@@ -29,6 +31,15 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
 
     override val longName: List<String>
         get() = listOf(referenceName)
+
+    override val resolve: PsiElement?
+        get() = this
+
+    override val resolvedInScope: Referable?
+        get() = this
+
+    override val unresolvedReference: UnresolvedReference?
+        get() = null
 
     override fun getName(): String = referenceName
 
@@ -117,11 +128,20 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         get() = (parent as? ArendLongName)?.refIdentifierList?.mapUntilNotNull { if (it == this) null else it.referenceName }?.apply { add(referenceName) }
             ?: listOf(referenceName)
 
+    override val resolve: PsiElement?
+        get() = reference.resolve()
+
+    override val resolvedInScope: Referable?
+        get() = ExpressionResolveNameVisitor.resolve(referent, scope)
+
+    override val unresolvedReference: UnresolvedReference?
+        get() = referent
+
     override fun getName(): String = referenceName
 
     override fun getData() = this
 
-    override fun getReferent(): Referable = NamedUnresolvedReference(this, referenceName)
+    override fun getReferent() = NamedUnresolvedReference(this, referenceName)
 
     override fun getReference(): ArendReference {
         val parent = parent as? ArendLongName

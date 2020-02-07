@@ -454,7 +454,7 @@ fun concreteDataToReference(data: Any?): ArendReferenceContainer? {
     return data as? ArendReferenceContainer
 }
 
-fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
+fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
         // Rewrite in a less ad-hoc way
         if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
@@ -467,6 +467,10 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): 
     }
     if (cExpr is Concrete.AppExpression) {
         return false
+    }
+    if (aExpr is ArendImplicitArgument) {
+        val expr = aExpr.tupleExprList.firstOrNull()?.exprList?.lastOrNull() ?: return false
+        return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), expr)
     }
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }

@@ -8,6 +8,9 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ArendFieldTele
@@ -34,6 +37,15 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override val longName: List<String>
         get() = listOf(referenceName)
+
+    override val resolve: PsiElement?
+        get() = this
+
+    override val resolvedInScope: Referable?
+        get() = this
+
+    override val unresolvedReference: UnresolvedReference?
+        get() = null
 
     override fun getClassFieldKind() = ClassFieldKind.ANY
 
