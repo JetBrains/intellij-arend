@@ -1174,6 +1174,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func fubar (n : Nat) {X : \Type} => n
                  
                  \func succ (n : Nat) => Nat.suc n
+                 
+                 \func \infixl 1 ibar (n m : Nat) => n
 
                  \func foo{-caret-} : Nat -> Nat => `bar` 1
                  
@@ -1200,6 +1202,12 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo12 : Nat => succ 2 `bar 3
                  
                  \func foo13 : Nat => succ {- lol -} 2 `bar 3
+                 
+                 \func foo14 => \lam (n : Nat) => `bar n
+                 
+                 \func foo15 : Nat -> Nat => 1 ibar
+                 
+                 \func foo16 : Nat => 1 ibar 2
                }
             """, """
                \record R {
@@ -1210,11 +1218,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func fubar (n : Nat) {X : \Type} => n
                  
                  \func succ (n : Nat) => Nat.suc n
+                 
+                 \func \infixl 1 ibar (n m : Nat) => n
                }
                
                \func foo {this : R} : Nat -> Nat => R.`bar` {this} 1
                
-               \func foo2 {this : R} : Nat -> Nat => (\lam x => R.bar {this} x 1)
+               \func foo2 {this : R} : Nat -> Nat => (\lam n => R.bar {this} n 1)
                  
                \func foo3 {this : R} : Nat -> Nat => 1 R.`bar` {this}
                
@@ -1237,8 +1247,34 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo12 {this : R} : Nat => R.bar {this} (R.succ {this} 2) 3
                
                \func foo13 {this : R} : Nat => R.bar {this} (R.succ {this} {- lol -} 2) 3
+               
+               \func foo14 {this : R} => \lam (n : Nat) => (\lam n1 => R.bar {this} n1 n)
+               
+               \func foo15 {this : R} : Nat -> Nat => 1 R.ibar {this}
+                 
+               \func foo16 {this : R} : Nat => 1 R.ibar {this} 2
             """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6",
-                    "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13")
+                    "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14",
+                    "R.foo15", "R.foo16")
+
+    fun testMoveOutOfRecord5b() =
+            testMoveRefactoring("""
+               \record R {
+                 \func \infixl 1 ibar (n m : Nat) => n
+                 
+                 \func succ (n : Nat) => Nat.suc n
+               
+                 \func foo5{-caret-} : Nat  => 1 ibar 2
+               }
+            """, """
+               \record R {
+                 \func \infixl 1 ibar (n m : Nat) => n 
+                 
+                 \func succ (n : Nat) => Nat.suc n
+               } 
+               
+               \func foo5 {this : R} : Nat => 1 R.ibar {this} 2
+            """, "Main", "")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""

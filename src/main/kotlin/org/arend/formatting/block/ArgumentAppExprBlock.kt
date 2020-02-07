@@ -70,7 +70,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             val newIndent = if (isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
-                val myBounds = getBounds(it.expression, aaeBlocks)
+                val myBounds = getBounds(it.expression, aaeBlocks)!!
                 val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }
                 val first = isFirst(it)
                 transform(it.expression, aaeBlocksFiltered,
@@ -132,13 +132,13 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
     }
 
     companion object {
-        fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange {
+        fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {
             val cExprData = cExpr.data
             if (cExpr is Concrete.AppExpression) {
                 val elements = ArrayList<TextRange>()
                 val fData = cExpr.function.data
 
-                elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
+                elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) }.filterNotNull())
 
                 if (fData is PsiElement) {
                     val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
@@ -156,7 +156,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
                     return psi.textRange
                 }
             }
-            throw IllegalStateException()
+            return null
         }
     }
 }

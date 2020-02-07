@@ -14,6 +14,7 @@ import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.RemoveRefFromStatCmdAction
+import org.arend.refactoring.VariableImpl
 
 class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
                                   private val referable: Referable?) : IntentionAction {
@@ -46,9 +47,7 @@ class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<P
 
     companion object {
         fun doRenameDuplicateName(editor: Editor?, statCmd: ArendStatCmd, oldName: String, newName: String?) {
-            val referables = statCmd.scope.elements.map {
-                object : Variable { override fun getName(): String = it.textRepresentation() }
-            }
+            val referables = statCmd.scope.elements.map { VariableImpl(it.textRepresentation()) }
             val variable = object : Variable { override fun getName(): String = newName ?: oldName }
             val freshName = StringRenamer().generateFreshName(variable, referables)
             val renamings = ArrayList<Pair<String, String?>>(); renamings.add(Pair(oldName, freshName))
