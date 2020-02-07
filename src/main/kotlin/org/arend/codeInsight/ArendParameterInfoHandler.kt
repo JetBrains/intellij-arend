@@ -12,6 +12,7 @@ import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
@@ -25,7 +26,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 
-class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<Abstract.Parameter>> {
+class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, List<Abstract.Parameter>> {
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         if (p == null) return
@@ -73,14 +74,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             params.addAll(def.parameters)
             var resType: ArendExpr? = when(def) {
                 is ClassFieldAdapter ->
-                    {
-                        val defClass = def.parent?.parent as? ArendDefClass
-                        val className = defClass?.name
-                        if (className != null) {
-                            params.add(0, psiFactory.createNameTele("this", className, false))
-                        }
-                        def.resultType
+                {
+                    val defClass = def.parent?.parent as? ArendDefClass
+                    val className = defClass?.name
+                    if (className != null) {
+                        params.add(0, psiFactory.createNameTele("this", className, false))
                     }
+                    def.resultType
+                }
                 is FunctionDefinitionAdapter -> {
                     val defClass = def.parent?.parent as? ArendDefClass
                     val className = defClass?.name
@@ -130,11 +131,11 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return params
     }
 
-    override fun findElementForParameterInfo(context: CreateParameterInfoContext): Abstract.Reference? {
+    override fun findElementForParameterInfo(context: CreateParameterInfoContext): ArendReferenceContainer? {
         val offset = context.editor.caretModel.offset //adjustOffset(context.file, context.editor.caretModel.offset)
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
-        val referable = ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
+        val referable = ref?.resolvedInScope //ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
         val params = referable?.let { getAllParametersForReferable(it) }
 
         if (params != null && !params.isEmpty()) {
@@ -146,10 +147,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return appExprInfo?.second
     }
 
-    override fun showParameterInfo(element: Abstract.Reference, context: CreateParameterInfoContext) {
-        if (element is PsiElement) {
-            context.showHint(element, element.textRange.startOffset, this)
-        }
+    override fun showParameterInfo(element: ArendReferenceContainer, context: CreateParameterInfoContext) {
+        context.showHint(element, element.textRange.startOffset, this)
     }
 
     override fun getParametersForLookup(item: LookupElement?, context: ParameterInfoContext?): Array<Any>? {
@@ -222,11 +221,12 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return if (numExplicitsBefore == 0 && numImplicitsJustBefore <= 0) paramIndex else -1
     }
 
-    private fun findArgInParsedBinopSeq(arg: ArendSourceNode, expr: Concrete.Expression, curArgInd: Int, curFunc: Abstract.Reference?): Pair<Int, Abstract.Reference>? {
+
+    private fun findArgInParsedBinopSeq(arg: ArendExpr, expr: Concrete.Expression, curArgInd: Int, curFunc: ArendReferenceContainer?): Pair<Int, ArendReferenceContainer>? {
         if (checkConcreteExprIsArendExpr(arg, expr)) {
             if (curFunc == null) {
                 if (checkConcreteExprIsFunc(expr, arg.scope)) {
-                    return Pair(-1, expr.data as Abstract.Reference)
+                    return Pair(-1, expr.data as ArendReferenceContainer)
                 }
                 return null
             }
@@ -252,7 +252,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             val funcRes = findArgInParsedBinopSeq(arg, expr.function, curArgInd, curFunc)
             if (funcRes != null) return funcRes
             var func = concreteDataToReference((expr.function as? Concrete.ReferenceExpression)?.data)
-            var funcReferable = func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
+
+            var funcReferable = func?.resolvedInScope //func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
             val argExplicitness = mutableListOf<Boolean>()
 
             if (funcReferable !is Abstract.ParametersHolder) {
@@ -263,9 +264,11 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
             for (argument in expr.arguments) {
                 argExplicitness.add(argument.isExplicit)
                 val argRes = findArgInParsedBinopSeq(arg, argument.expression,
-                    funcReferable?.let{ findParamIndex(getAllParametersForReferable(it), argExplicitness)} ?: -1, func)
+                        funcReferable?.let { findParamIndex(getAllParametersForReferable(it), argExplicitness) }
+                                ?: -1, func)
                 if (argRes != null) return argRes
             }
+
         } else if (expr is Concrete.LamExpression) {
             return findArgInParsedBinopSeq(arg, expr.body, curArgInd, curFunc)
         }
@@ -273,11 +276,11 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return null
     }
 
-    private fun locateArg(arg: ArendSourceNode, appExpr: ArendExpr) =
-        appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, Abstract.Reference>?>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, Abstract.Reference>? =
-                findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
-        }, null)
+    private fun locateArg(arg: ArendExpr, appExpr: ArendExpr) =
+            appExpr.accept(object: BaseAbstractExpressionVisitor<Void, Pair<Int, ArendReferenceContainer>?>(null) {
+                override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Pair<Int, ArendReferenceContainer>? =
+                        findArgInParsedBinopSeq(arg, parseBinOp(left, sequence), -1, null)
+            }, null)
 
     private fun isNewArgumentPosition(file: PsiFile, offset: Int): Boolean {
         val element: PsiElement = file.findElementAt(offset) ?: return file.findElementAt(offset - 1) is PsiWhiteSpace
@@ -286,12 +289,13 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     private fun isBinOpSeq(expr: ArendExpr): Boolean =
-        expr.accept(object: BaseAbstractExpressionVisitor<Void, Boolean>(false) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = true
-        }, null)
+            expr.accept(object: BaseAbstractExpressionVisitor<Void, Boolean>(false) {
+                override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = true
+            }, null)
 
-    private fun isBinOp(def: Referable?): Boolean {
-        return def is ArendDefFunction && (def.getPrec()?.infixLeftKw != null || def.getPrec()?.infixNonKw != null || def.getPrec()?.infixRightKw != null)
+    private fun isBinOp(def: Referable?, ref: ArendReferenceContainer): Boolean {
+        return ref is ArendIPName && ref.infix != null ||
+                def is ArendDefFunction && (def.getPrec()?.infixLeftKw != null || def.getPrec()?.infixNonKw != null || def.getPrec()?.infixRightKw != null)
     }
 
     private fun ascendLongName(node: Abstract.SourceNode): Abstract.SourceNode? {
@@ -327,31 +331,43 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
     }
 
     //TODO: remove this function
-    private fun toArgument(node: Abstract.SourceNode): ArendArgument? {
+    private fun toArgument(node: Abstract.SourceNode): Abstract.SourceNode? {
         if (node is ArendArgument) {
             return node
         }
 
-        if (node is ArendTupleExpr) {
-            return node.parentSourceNode as? ArendArgument
+        if (node is ArendTupleExpr && node.parentSourceNode is ArendArgument) {
+            return node.parentSourceNode
         }
 
         return null
     }
 
-    private fun tryToLocateAtTheCurrentLevel(absNode: Abstract.SourceNode, isNewArgPos: Boolean, isLowestLevel: Boolean): Pair<Int, Abstract.Reference>? {
+    private fun extractRefFromSourceNode(node: Abstract.SourceNode): ArendReferenceContainer? {
+        if (node is ArendLiteral) {
+            if (node.ipName != null) {
+                return node.ipName
+            } else if (node.longName != null) {
+                return node.longName
+            }
+        }
+        return node as? ArendReferenceContainer
+    }
+
+    private fun tryToLocateAtTheCurrentLevel(absNode: Abstract.SourceNode, isNewArgPos: Boolean, isLowestLevel: Boolean): Pair<Int, ArendReferenceContainer>? {
         val absNodeParent = ascendToLiteral(absNode).parentSourceNode ?: return null
-        if (absNode is Abstract.Reference) {
-            val ref = resolveIfNeeded(absNode.referent, (absNode as ArendSourceNode).scope)
+        val refContainer = extractRefFromSourceNode(absNode)
+        if (refContainer != null) {
+            val ref = refContainer.resolvedInScope
             val params = ref?.let { getAllParametersForReferable(it) }
             if (params != null && !params.isEmpty()) {
-                val isBinOp = isBinOp(ref)
+                val isBinOp = isBinOp(ref, refContainer)
                 val parentAppExprCandidate = absNodeParent.parentSourceNode
                 if (parentAppExprCandidate is ArendExpr) {
                     if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
                         val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
-                        if (isNewArgPos && isBinOp(resolveIfNeeded(loc.second.referent, (absNode as ArendSourceNode).scope))) {
-                            return Pair(0, absNode)
+                        if (isNewArgPos && isBinOp(loc.second.resolvedInScope, refContainer)) {
+                            return Pair(0, refContainer)
                         }
                         if (isNewArgPos && isLowestLevel) return Pair(loc.first + 1, loc.second)
                         return loc
@@ -359,21 +375,20 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
                 }
                 if (isNewArgPos && isLowestLevel) {
                     if (!isBinOp)
-                        return Pair(0, absNode)
-                    return Pair(1, absNode)
+                        return Pair(0, refContainer)
+                    return Pair(1, refContainer)
                 }
-                return Pair(-1, absNode)
+                return Pair(-1, refContainer)
             }
         }
 
         val arg = toArgument(absNodeParent)
-        var argLoc: Pair<Int, Abstract.Reference>? = null
+        var argLoc: Pair<Int, ArendReferenceContainer>? = null
 
-        val argParent = arg?.parentSourceNode as? ArendExpr
-        if (argParent != null && isBinOpSeq(argParent)) {
-            argLoc = (arg.expression as? ArendSourceNode)?.let{ locateArg(it, argParent) }
+        if (arg != null && arg.parentSourceNode is ArendExpr && arg.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
+            argLoc = (arg as ArendArgument).expression?.let{ locateArg(it as ArendExpr, arg.parentSourceNode as ArendExpr) }
         } else if (absNodeParent is ArendExpr && isBinOpSeq(absNodeParent)) { // (absNodeParent.parentSourceNode is ArendExpr && absNodeParent.parentSourceNode?.let { isBinOpSeq(it as ArendExpr) } == true) {
-            argLoc = locateArg(absNodeParent, absNodeParent)
+            argLoc = (absNode as? ArendExpr)?.let{ locateArg(it, absNodeParent) }
         }
 
         if (argLoc != null) {
@@ -384,7 +399,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return null
     }
 
-    private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, Abstract.Reference>? {
+    private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, ArendReferenceContainer>? {
         val absNode = ascendLongName(node) ?: return null
         val res = tryToLocateAtTheCurrentLevel(absNode, isNewArgPos, true)
 
@@ -395,16 +410,16 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return ascendLambda(absNode)?.parentSourceNode?.let{ tryToLocateAtTheCurrentLevel(it, isNewArgPos, false) }
     }
 
-    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, Abstract.Reference>? {
+    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, ArendReferenceContainer>? {
         val isNewArgPos = isNewArgumentPosition(file, offset)
         val absNode = skipWhitespaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
 
         return ascendTillAppExpr(absNode, isNewArgPos)
     }
 
-    override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): Abstract.Reference? {
+    override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): ArendReferenceContainer? {
         val offset = context.editor.caretModel.offset // adjustOffset(context.file, context.editor.caretModel.offset)
-        val appExprInfo: Pair<Int, Abstract.Reference> = findAppExpr(context.file, offset) ?: return null
+        val appExprInfo: Pair<Int, ArendReferenceContainer> = findAppExpr(context.file, offset) ?: return null
 
         if (context.parameterOwner != appExprInfo.second) {
             return null
@@ -414,7 +429,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<Abstract.Reference, List<A
         return appExprInfo.second
     }
 
-    override fun updateParameterInfo(parameterOwner: Abstract.Reference, context: UpdateParameterInfoContext) {
+    override fun updateParameterInfo(parameterOwner: ArendReferenceContainer, context: UpdateParameterInfoContext) {
 
     }
 }

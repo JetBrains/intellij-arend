@@ -14,6 +14,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ArendGroup
@@ -445,15 +446,15 @@ fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
     return data as? ArendSourceNode
 }
 
-fun concreteDataToReference(data: Any?): Abstract.Reference? {
-    if (data is ArendIPName) {
-        // val element = (data as ArendIPName).infix ?: (data as ArendIPName).postfix
-        // return
-    }
-    return data as? Abstract.Reference
+fun concreteDataToReference(data: Any?): ArendReferenceContainer? {
+    /*if (data is ArendIPName) {
+        val element = data.infix ?: data.postfix
+        return element?.parentOfType<ArendSourceNode>()?.parentOfType()
+    } */
+    return data as? ArendReferenceContainer
 }
 
-fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
+fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
         // Rewrite in a less ad-hoc way
         if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
@@ -464,11 +465,14 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Express
         }
         return@ret false
     }
+    if (cExpr is Concrete.AppExpression) {
+        return false
+    }
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 
 fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean {
-    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
+    if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && concreteDataToReference(expr.data) != null) {
         return true
     }
     return false
