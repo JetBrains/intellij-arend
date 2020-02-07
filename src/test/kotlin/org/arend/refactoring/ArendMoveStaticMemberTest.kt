@@ -1208,6 +1208,10 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo15 : Nat -> Nat => 1 ibar
                  
                  \func foo16 : Nat => 1 ibar 2
+                 
+                 \func foo17 : Nat => (`bar 2)
+                 
+                 \func foo18 : Nat => ((bar)) {\this} 1 2
                }
             """, """
                \record R {
@@ -1253,9 +1257,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo15 {this : R} : Nat -> Nat => 1 R.ibar {this}
                  
                \func foo16 {this : R} : Nat => 1 R.ibar {this} 2
-            """, "Main", "", "Main", "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6",
-                    "R.foo7", "R.foo8", "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14",
-                    "R.foo15", "R.foo16")
+               
+               \func foo17 {this : R} : Nat => (\lam n => R.bar {this} n 2)
+               
+               \func foo18 {this : R} : Nat => ((R.bar)) {this} 1 2
+            """, "Main", "", "Main", 
+                    "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8",
+                    "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16", "R.foo17", "R.foo18")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
