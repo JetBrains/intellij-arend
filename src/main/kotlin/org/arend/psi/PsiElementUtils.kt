@@ -28,6 +28,9 @@ import java.util.ArrayList
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
 
+val PsiElement.childrenWithLeaves: Sequence<PsiElement>
+    get() = generateSequence(firstChild) { it.nextSibling }
+
 inline fun <reified T : PsiElement> PsiElement.ancestor(): T? {
     var element: PsiElement? = this
     while (element != null && element !is T && element !is PsiFile) {
