@@ -37,31 +37,29 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 		}
 	}
 
-	fun doInvoke(project: Project, editor: Editor, file: PsiFile): Boolean {
+	fun doInvoke(project: Project, editor: Editor, file: PsiFile): String? {
 		val range = EditorUtil.getSelectionInAnyMode(editor)
 		val parent = PsiTreeUtil.findCommonParent(
 				file.findElementAt(range.startOffset),
-				file.findElementAt(range.endOffset)
-		) ?: return false
-		val psiDef = parent.ancestor<ArendDefinition>() ?: return false
+				file.findElementAt(range.endOffset - 1)
+		) ?: return "selected expr in bad position"
+		val psiDef = parent.ancestor<ArendDefinition>() ?: return "selected text is not in a definition"
 		val service = project.service<TypeCheckingService>()
 		// Only work for functions right now
 		val concreteDef = psiDef
 				.computeConcrete(service.newReferableConverter(false), DummyErrorReporter.INSTANCE)
-				as? Concrete.FunctionDefinition ?: return false
-		val def = service.getTypechecked(psiDef) as? FunctionDefinition
-				?: return false
-		// I suppose that all children are `ArendExpr`s
+				as? Concrete.FunctionDefinition ?: return "selected text is not in a function definition"
+		val def = service.getTypechecked(psiDef) as FunctionDefinition
 
 		val children = collectArendExprs(parent, range)
 				.map { ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it) }
 				.map { Concrete.BinOpSequenceElem(it) }
 				.toList()
-				.takeIf { it.isNotEmpty() } ?: return false
+				.takeIf { it.isNotEmpty() } ?: return "cannot find a suitable subexpression"
 		val parser = BinOpParser(DummyErrorReporter.INSTANCE)
-		val body = def.actualBody as? Expression ?: return false
+		val body = def.actualBody as? Expression ?: return "function body is not an expression"
 		// Only work for single clause right now
-		val concreteBody = concreteDef.body.term ?: return false
+		val concreteBody = concreteDef.body.term ?: return "does not yet support multiple clauses"
 
 		val subExpr = if (children.size == 1) {
 			val e = children.first().expression
@@ -71,16 +69,16 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 		val visited = concreteBody.accept(CorrespondedSubExprVisitor(subExpr), body)
 		val subCore = visited.proj1
 		val subConcrete = visited.proj2
-		val psi = subConcrete.data as? PsiElement ?: return false
+		val psi = subConcrete.data as? PsiElement ?: return "cannot obtain an IDE expression"
 		editor.selectionModel.setSelection(psi.textRange.startOffset, psi.textRange.endOffset)
 		displayHint(subCore.type.toString(), editor)
-		return true
+		return null
 	}
 
 	private fun collectArendExprs(parent: PsiElement, range: TextRange): Sequence<ArendExpr> {
 		val exprs = parent.childrenWithLeaves
-				.dropWhile { it.textRange.startOffset < range.startOffset }
-				.takeWhile { it.textRange.endOffset <= range.endOffset }
+				.dropWhile { it.textRange.endOffset < range.startOffset }
+				.takeWhile { it.textRange.startOffset <= range.endOffset }
 				.toList()
 		if (exprs.isEmpty()) return emptySequence()
 		if (exprs.size == 1) {
@@ -91,8 +89,7 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 	}
 
 	override fun invoke(project: Project, editor: Editor, file: PsiFile) {
-		if (!doInvoke(project, editor, file)) {
-			displayHint("Failed to obtain type", editor)
-		}
+		val s = doInvoke(project, editor, file)
+		if (s != null) displayHint("Failed to obtain type because $s", editor)
 	}
 }
