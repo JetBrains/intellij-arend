@@ -20,6 +20,7 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.impl.ArendExprImpl
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
@@ -461,6 +462,12 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
     }
 }
 
+fun surroundingTupleExpr(baseExpr: ArendExpr): ArendTupleExpr? =
+        (baseExpr.parent as? ArendNewExpr)?.let { newExpr ->
+            if (newExpr.appPrefix == null && newExpr.lbrace == null && newExpr.argumentList.isEmpty())
+                newExpr.parent as? ArendTupleExpr else null
+        }
+
 fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
                              defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {
@@ -485,8 +492,9 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
     var leadingText = leadingElements.fold("", { acc, element -> acc + element.text }).trim()
     if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
     val trailingText = trailingElements.fold("", { acc, element -> acc + element.text }).trim()
+    val isLambda = leadingElements.size == 0
 
-    if (leadingElements.size == 0) {
+    if (isLambda) {
         val defaultLambdaName = "_x"
         val baseName = if (operatorConcrete is Concrete.AppExpression) {
             val function = operatorConcrete.function as? Concrete.ReferenceExpression
@@ -498,25 +506,29 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         val lambdaVarName = StringRenamer().generateFreshName(VariableImpl(baseName), operatorBindings.map { VariableImpl(it) }.toList())
         resultingExpr = "(\\lam $lambdaVarName => $resultingExpr$lambdaVarName $trailingText)"
     } else resultingExpr += "$leadingText $trailingText"
-    val result = when {
+    val result: ArendExpr? = when {
         psiElements.size == nodes.size -> {
+            val tupleExpr = surroundingTupleExpr(argumentAppExpr)
             val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
-            argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
+            if (tupleExpr != null && tupleExpr.colon == null && isLambda)
+                argumentAppExpr.replaceWithNotification(appExpr.childOfType<ArendLamExpr>()!!) as? ArendExpr
+            else
+                argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
         }
         operatorRange.contains(nodes.first().textRange) -> {
             val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
             val insertedExpr = argumentAppExpr.addAfterWithNotification(atomFieldsAcc, psiElements.last())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
-            insertedExpr.childOfType()
+            insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
         else -> {
             val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
             val insertedExpr = argumentAppExpr.addBeforeWithNotification(atom, psiElements.first())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
-            insertedExpr.childOfType()
+            insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
     }
-    return if (leadingElements.size == 0) result?.childOfType(true) else result
+    return if (isLambda) result?.childOfType(true) else result as ArendArgumentAppExpr
 }
 
 fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {

@@ -176,7 +176,6 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
                 if (recordFields.contains(referable))
                     bodiesClassFieldUsages.add(usage) else {
                     targetReferences[referable]?.let { bodiesRefsFixData[usage] = it }
-                    //if (recordOtherDynamicMembers.contains(referable)) bodiesOtherDynamicMemberUsages.add(usage)
                 }
             }
         }
@@ -431,7 +430,18 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
                                             argument: String) {
         fun addImplicitFirstArgument(literal: ArendLiteral) {
             fun doAddImplicitFirstArgument(argumentOrFieldsAcc: PsiElement) {
-                val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+                var argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+                while ((surroundingTupleExpr(argumentAppExpr)?.parent as? ArendTuple)?.let { tuple -> tuple.tupleExprList.size == 1 }
+                                ?: false) {
+                    val tuple = argumentAppExpr.parent.parent.parent
+                    if ((tuple.parent as? ArendAtom)?.let {
+                                (it.parent as? ArendAtomFieldsAcc)?.let { atomFieldsAcc ->
+                                    atomFieldsAcc.fieldAccList.isEmpty() && (atomFieldsAcc.parent is ArendArgumentAppExpr)
+                                }
+                            } ?: false)
+                        argumentAppExpr = tuple.parent.parent.parent as ArendArgumentAppExpr
+                    else break
+                }
                 val cExpr = appExprToConcrete(argumentAppExpr)
                 val defArgsData = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
                 if (defArgsData != null && (defArgsData.argumentsConcrete.isEmpty() || defArgsData.argumentsConcrete.first().isExplicit)) {
