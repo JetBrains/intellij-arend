@@ -39,10 +39,11 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 
 	fun doInvoke(project: Project, editor: Editor, file: PsiFile): String? {
 		val range = EditorUtil.getSelectionInAnyMode(editor)
-		val parent = PsiTreeUtil.findCommonParent(
+		val possibleParent = PsiTreeUtil.findCommonParent(
 				file.findElementAt(range.startOffset),
 				file.findElementAt(range.endOffset - 1)
 		) ?: return "selected expr in bad position"
+		val parent = possibleParent.ancestor<ArendExpr>()?.parent ?: return "selected text is not an arend expression"
 		val psiDef = parent.ancestor<ArendDefinition>() ?: return "selected text is not in a definition"
 		val service = project.service<TypeCheckingService>()
 		// Only work for functions right now
