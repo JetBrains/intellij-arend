@@ -21,6 +21,7 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ancestor
 import org.arend.psi.childrenWithLeaves
 import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
@@ -49,31 +50,56 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 		// Only work for functions right now
 		val concreteDef = psiDef
 				.computeConcrete(service.newReferableConverter(false), DummyErrorReporter.INSTANCE)
-				as? Concrete.FunctionDefinition ?: return "selected text is not in a function definition"
+				as? Concrete.FunctionDefinition
+				?: return "selected text is not in a function definition"
 		val def = service.getTypechecked(psiDef) as FunctionDefinition
 
 		val children = collectArendExprs(parent, range)
 				.map { ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it) }
-				.map { Concrete.BinOpSequenceElem(it) }
+				.map(Concrete::BinOpSequenceElem)
 				.toList()
-				.takeIf { it.isNotEmpty() } ?: return "cannot find a suitable subexpression"
+				.takeIf { it.isNotEmpty() }
+				?: return "cannot find a suitable subexpression"
 		val parser = BinOpParser(DummyErrorReporter.INSTANCE)
-		val body = def.actualBody as? Expression ?: return "function body is not an expression"
+		val body = def.actualBody as? Expression
+				?: return "function body is not an expression"
 		// Only work for single clause right now
-		val concreteBody = concreteDef.body.term ?: return "does not yet support multiple clauses"
+		val concreteBody = concreteDef.body.term
+				?: return "does not yet support multiple clauses"
 
-		val subExpr = if (children.size == 1) {
-			val e = children.first().expression
-			if (e is Concrete.BinOpSequenceExpression) parser.parse(e)
-			else e
-		} else parser.parse(Concrete.BinOpSequenceExpression(null, children))
-		val visited = concreteBody.accept(CorrespondedSubExprVisitor(subExpr), body)
+		val subExpr = if (children.size == 1)
+			children.first().expression
+		else parser.parse(Concrete.BinOpSequenceExpression(null, children))
+		val expander = object : BaseConcreteExpressionVisitor<BinOpParser>() {
+			override fun visitBinOpSequence(expr: Concrete.BinOpSequenceExpression?, params: BinOpParser) =
+					params.parse(expr).accept(this, params)
+		}
+		val visited = concreteBody
+				.accept(expander, parser)
+				.accept(CorrespondedSubExprVisitor(subExpr.accept(expander, parser)), body)
+				?: return "cannot find a suitable subexpression"
 		val subCore = visited.proj1
-		val subConcrete = visited.proj2
-		val psi = subConcrete.data as? PsiElement ?: return "cannot obtain an IDE expression"
-		editor.selectionModel.setSelection(psi.textRange.startOffset, psi.textRange.endOffset)
+		val textRange = rangeOf(visited.proj2)
+		editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
 		displayHint(subCore.type.toString(), editor)
 		return null
+	}
+
+	private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
+		if (subConcrete is Concrete.AppExpression) {
+			val exprs = sequence {
+				yield(subConcrete.function)
+				for (argument in subConcrete.arguments) yield(argument.expression)
+			}.map { it.data }
+					.filterIsInstance<PsiElement>()
+					.map { it.textRange }
+					.toList()
+			return TextRange(
+					exprs.map { it.startOffset }.min()!!,
+					exprs.map { it.endOffset }.max()!!
+			)
+		}
+		return (subConcrete.data as PsiElement).textRange
 	}
 
 	private fun collectArendExprs(parent: PsiElement, range: TextRange): Sequence<ArendExpr> {
