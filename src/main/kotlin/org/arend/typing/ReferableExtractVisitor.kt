@@ -85,7 +85,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     }
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Referable? {
-        var expr = parseBinOp(left, sequence)
+        var expr = parseBinOp(left, sequence, data)
         if (expr is Concrete.AppExpression) {
             if (requiredAdditionalInfo) {
                 argumentsExplicitness.addAll(0, expr.arguments.map { it.isExplicit })
