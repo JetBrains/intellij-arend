@@ -86,17 +86,14 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 	}
 
 	private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
-		if (subConcrete is Concrete.AppExpression) {
-			val exprs = sequence {
-				yield(subConcrete.function)
-				for (argument in subConcrete.arguments) yield(argument.expression)
-			}.map(::rangeOf).toList()
-			return TextRange(
-					exprs.map { it.startOffset }.min()!!,
-					exprs.map { it.endOffset }.max()!!
-			)
-		}
-		return (subConcrete.data as PsiElement).textRange
+		val expr = if (subConcrete is Concrete.AppExpression) {
+			val function = subConcrete.data as PsiElement
+			PsiTreeUtil.findCommonParent(
+					function,
+					subConcrete.arguments.first().expression.data as PsiElement
+			) ?: function
+		} else subConcrete.data as PsiElement
+		return expr.textRange
 	}
 
 	private fun collectArendExprs(parent: PsiElement, range: TextRange): Sequence<ArendExpr> {
