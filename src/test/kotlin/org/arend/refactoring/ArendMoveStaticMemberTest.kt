@@ -979,6 +979,27 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                } 
             """, "Main", "C")
 
+    fun testMoveOutOfRecord0() =
+            testMoveRefactoring("""
+               \record R {
+                 \func F => 101
+
+                 \func lol{-caret-} : Nat => F
+               }
+
+               \module M 
+            """, """
+               \record R {
+                 \func F => 101
+               } \where {
+                 \open M (lol)
+               }
+
+               \module M \where {
+                 \func lol {this : R} : Nat => R.F {this}
+               } 
+            """, "Main", "M")
+
     fun testMoveOutOfRecord1() =
             testMoveRefactoring("""
                \class C1 (E : \Type)
@@ -1044,6 +1065,255 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func foo {this : M.R} (a : C1) => (this.field1, this.field2.field1, this.field2, a.field1)
                 }
             """, "Main", "M2")
+
+    fun testMoveOutOfRecord3() =
+            testMoveRefactoring("""
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 }
+
+                 \record S \extends C2 {
+                   \func fubar3 (n m : Nat) => 101
+                   
+                   \func foo2{-caret-} => 
+                     (C1.fubar1 1, 
+                      M.C2.fubar2 1, 
+                      fubar3 1, 
+                      zoo M.C2.fubar2,
+                      C1.fubar1 {\this}, 
+                      C1.fubar1 1 = C1.fubar1 1)
+                 }
+               }
+               
+               \func zoo (f : Nat -> Nat) => f 0
+
+               \module M2 
+            """, """
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 } 
+
+                 \record S \extends C2 {
+                   \func fubar3 (n m : Nat) => 101
+                 } \where { 
+                   \open M2 (foo2)
+                 }
+               }
+               
+               \func zoo (f : Nat -> Nat) => f 0
+
+               \module M2 \where {
+                 \func foo2 {this : M.S} => 
+                   (C1.fubar1 {this} 1, 
+                    M.C2.fubar2 {this} 1, 
+                    M.S.fubar3 {this} 1,
+                    zoo (M.C2.fubar2 {this}),
+                    C1.fubar1 {this},
+                    C1.fubar1 {this} 1 = (C1.fubar1 {this}) 1)
+               } 
+            """, "Main", "M2")
+
+    fun testMoveOutOfRecord4() =
+            testMoveRefactoring("""
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 }
+
+                 \class S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                   
+                   \func foo2{-caret-} => (C1.fubar1 1, M.C2.fubar2 1, fubar3 1)
+                 }
+               }
+
+               \module M2 
+            """, """
+               \record C1 (E : \Type) {
+                 \func fubar1 (n : Nat) => 101
+               }
+
+               \module M \where {
+                 \class C2 \extends C1 {
+                   \func fubar2 (n : Nat) => 101
+                 } 
+
+                 \class S \extends C2 {
+                   \func fubar3 (n : Nat) => 101
+                 } \where { 
+                   \open M2 (foo2)
+                 }
+               }
+
+               \module M2 \where {
+                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 1, M.S.fubar3 1)
+               }
+            """, "Main", "M2")
+
+    fun testMoveOutOfRecord5() =
+            testMoveRefactoring("""
+               \record R {
+                 \func bar (n m : Nat) => {?}
+                 
+                 \func lol {A : \Type} (n m : A) => n
+                 
+                 \func fubar (n : Nat) {X : \Type} => n
+                 
+                 \func succ (n : Nat) => Nat.suc n
+                 
+                 \func \infixl 1 ibar (n m : Nat) => n
+
+                 \func foo{-caret-} : Nat -> Nat => `bar` 1
+                 
+                 \func foo2 : Nat -> Nat => `bar 1
+                 
+                 \func foo3 : Nat -> Nat => 1 `bar`
+                 
+                 \func foo4 : Nat -> Nat => 1 `bar
+                 
+                 \func foo5 : Nat => 1 `bar` succ 2 
+                 
+                 \func foo6 : Nat => 1 `bar 2
+                 
+                 \func foo7 : Nat => 1 `lol` {\this} {Nat} 2
+                 
+                 \func foo8 : Nat => 1 `fubar {Nat}
+                 
+                 \func foo9 : Nat => 1 `bar` 2 `bar` 3
+                 
+                 \func foo10 : Nat => 1 `bar` 2 `bar 3
+                 
+                 \func foo11 => 1 `bar 2 `bar` 3
+                 
+                 \func foo12 : Nat => succ 2 `bar 3
+                 
+                 \func foo13 : Nat => succ {- lol -} 2 `bar 3
+                 
+                 \func foo14 => \lam (n : Nat) => `bar n
+                 
+                 \func foo15 : Nat -> Nat => 1 ibar
+                 
+                 \func foo16 : Nat => 1 ibar 2
+                 
+                 \func foo17 : Nat => (`bar 2)
+                 
+                 \func foo18 : Nat => ((bar)) {\this} 1 2
+               }
+            """, """
+               \record R {
+                 \func bar (n m : Nat) => {?}
+                 
+                 \func lol {A : \Type} (n m : A) => n
+                 
+                 \func fubar (n : Nat) {X : \Type} => n
+                 
+                 \func succ (n : Nat) => Nat.suc n
+                 
+                 \func \infixl 1 ibar (n m : Nat) => n
+               }
+               
+               \func foo {this : R} : Nat -> Nat => R.`bar` {this} 1
+               
+               \func foo2 {this : R} : Nat -> Nat => (\lam n => R.bar {this} n 1)
+                 
+               \func foo3 {this : R} : Nat -> Nat => 1 R.`bar` {this}
+               
+               \func foo4 {this : R} : Nat -> Nat => R.bar {this} 1
+               
+               \func foo5 {this : R} : Nat => 1 R.`bar` {this} (R.succ {this}) 2 
+                
+               \func foo6 {this : R} : Nat => R.bar {this} 1 2
+               
+               \func foo7 {this : R} : Nat => 1 R.`lol` {this} {Nat} 2
+                
+               \func foo8 {this : R} : Nat => R.fubar {this} 1 {Nat}
+               
+               \func foo9 {this : R} : Nat => 1 R.`bar` {this} 2 R.`bar` {this} 3
+               
+               \func foo10 {this : R} : Nat => 1 R.`bar` {this} (R.bar {this} 2 3)
+               
+               \func foo11 {this : R} => (R.bar {this} 1 2) R.`bar` {this} 3
+               
+               \func foo12 {this : R} : Nat => R.bar {this} (R.succ {this} 2) 3
+               
+               \func foo13 {this : R} : Nat => R.bar {this} (R.succ {this} {- lol -} 2) 3
+               
+               \func foo14 {this : R} => \lam (n : Nat) => (\lam n1 => R.bar {this} n1 n)
+               
+               \func foo15 {this : R} : Nat -> Nat => 1 R.ibar {this}
+                 
+               \func foo16 {this : R} : Nat => 1 R.ibar {this} 2
+               
+               \func foo17 {this : R} : Nat => (\lam n => R.bar {this} n 2)
+               
+               \func foo18 {this : R} : Nat => ((R.bar)) {this} 1 2
+            """, "Main", "", "Main", 
+                    "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8",
+                    "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16", "R.foo17", "R.foo18")
+
+    fun testMoveOutOfRecord6() =
+            testMoveRefactoring("""
+               \record R {
+                 \data D{-caret-}
+                   | C1
+                   | C2 
+  
+                 \func foo (a : D) : D \with
+                   | C1 => C1
+                   | C2 => C2  
+               }
+
+               \module M
+            """, """
+               \record R {
+                 \func foo (a : D {\this}) : D {\this} \with
+                   | C1 => C1
+                   | C2 => C2  
+               } \where {
+                 \open M (D, C1, C2)
+               }
+
+               \module M \where {
+                 \data D {this : R}
+                   | C1
+                   | C2
+               } 
+            """, "Main", "M")
+
+    fun testMoveOutOfRecord7() =
+            testMoveRefactoring("""
+                \record R {
+                  \data D
+                    
+                  \func foo{-caret-} (a : \Sigma D) : D => a.1   
+                }
+                
+                \module M
+            """, """
+                \record R {
+                  \data D
+                } \where {
+                  \open M (foo)
+                }
+
+                \module M \where {
+                  \func foo {this : R} (a : \Sigma (R.D {this})) : R.D {this} => a.1
+                }
+            """, "Main", "M")
 
     fun testMoveIntoDynamic1() =
             testMoveRefactoring("""
@@ -1151,7 +1421,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                
                  \func bar => 202
 
-                 \func foobar => foo
+                 \func foobar => foo {\this}
                } \where {
                  \open D (foo)
                }
@@ -1159,7 +1429,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \class D {
                  \func fubar => foo {\new C {| number => 1}}
 
-                 \func foo {this : C} => C.bar Nat.+ (C.bar {this}) Nat.+ this.number 
+                 \func foo {this : C} => C.bar {this} Nat.+ (C.bar {this}) Nat.+ this.number 
                }
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 

@@ -241,9 +241,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (localClause !is ArendClause) return
 
             val localNames = HashSet<Variable>()
-            localNames.addAll(findAllVariablePatterns(localClause, element).map {
-                VariableImpl(it.name ?: "")
-            })
+            localNames.addAll(findAllVariablePatterns(localClause, element).map { VariableImpl(it.name ?: "") })
 
             if (project != null && element is Abstract.Pattern) {
                 val factory = ArendPsiFactory(project)

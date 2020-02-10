@@ -356,9 +356,9 @@ fun PsiElement.addWithNotification(element: PsiElement): PsiElement {
     return this.add(element)
 }
 
-fun PsiElement.replaceWithNotification(newElement: PsiElement) {
+fun PsiElement.replaceWithNotification(newElement: PsiElement): PsiElement {
     notify(null, this, newElement, parent, false)
-    this.replace(newElement)
+    return this.replace(newElement)
 }
 
 fun PsiElement.deleteWithNotification() {

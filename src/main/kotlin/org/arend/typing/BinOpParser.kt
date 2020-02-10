@@ -47,12 +47,12 @@ private fun getExpression(expr: Abstract.Expression?): Concrete.Expression {
     return if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) ref else Concrete.HoleExpression(expr)
 }
 
-fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>): Concrete.Expression {
+fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, data: Any? = null): Concrete.Expression {
     val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem>()
     concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left)))
     for (elem in sequence) {
         concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
-    return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(null, concreteSeq))
+    return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(data, concreteSeq))
 }
 
