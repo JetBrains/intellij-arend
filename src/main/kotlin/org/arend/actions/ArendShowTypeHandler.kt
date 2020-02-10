@@ -25,6 +25,7 @@ import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
+import org.arend.util.BinOpExpansionVisitor
 
 
 class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler {
@@ -70,13 +71,9 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 		val subExpr = if (children.size == 1)
 			children.first().expression
 		else parser.parse(Concrete.BinOpSequenceExpression(null, children))
-		val expander = object : BaseConcreteExpressionVisitor<BinOpParser>() {
-			override fun visitBinOpSequence(expr: Concrete.BinOpSequenceExpression?, params: BinOpParser) =
-					params.parse(expr).accept(this, params)
-		}
 		val visited = concreteBody
-				.accept(expander, parser)
-				.accept(CorrespondedSubExprVisitor(subExpr.accept(expander, parser)), body)
+				.accept(BinOpExpansionVisitor, parser)
+				.accept(CorrespondedSubExprVisitor(subExpr.accept(BinOpExpansionVisitor, parser)), body)
 				?: return "cannot find a suitable subexpression"
 		val subCore = visited.proj1
 		val textRange = rangeOf(visited.proj2)
