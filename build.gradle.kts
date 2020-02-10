@@ -7,8 +7,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     idea
     kotlin("jvm") version "1.3.61"
-    id("org.jetbrains.intellij") version "0.4.14"
-    id("org.jetbrains.grammarkit") version "2019.3"
+    id("org.jetbrains.intellij") version "0.4.16"
+    id("org.jetbrains.grammarkit") version "2020.1"
 }
 
 repositories {
