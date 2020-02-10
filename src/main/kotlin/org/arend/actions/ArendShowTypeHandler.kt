@@ -90,10 +90,7 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 			val exprs = sequence {
 				yield(subConcrete.function)
 				for (argument in subConcrete.arguments) yield(argument.expression)
-			}.map { it.data }
-					.filterIsInstance<PsiElement>()
-					.map { it.textRange }
-					.toList()
+			}.map(::rangeOf).toList()
 			return TextRange(
 					exprs.map { it.startOffset }.min()!!,
 					exprs.map { it.endOffset }.max()!!
