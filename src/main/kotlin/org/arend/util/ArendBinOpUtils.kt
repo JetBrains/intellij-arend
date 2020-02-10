@@ -39,16 +39,16 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? 
         val elements = ArrayList<TextRange>()
         val fData = cExpr.function.data
 
-        elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) }.filterNotNull())
+        elements.addAll(cExpr.arguments.asSequence().mapNotNull { getBounds(it.expression, aaeBlocks) })
 
         if (fData is PsiElement) {
-            val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
+            val f = aaeBlocks.filter { it.textRange.contains(fData.textRange) }
             if (f.size != 1) throw IllegalStateException()
             elements.add(f.first().textRange)
         }
 
-        val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
-        val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
+        val startOffset = elements.asSequence().map { it.startOffset }.min()
+        val endOffset = elements.asSequence().map { it.endOffset }.max()
         if (startOffset != null && endOffset != null) {
             return TextRange.create(startOffset, endOffset)
         }
