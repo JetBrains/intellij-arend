@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
+import org.arend.naming.BinOpParser
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendExpr
@@ -14,6 +15,7 @@ import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
+import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 import org.arend.typing.resolveReference
@@ -26,22 +28,27 @@ fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appE
     override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
 }, null)
 
+object BinOpExpansionVisitor : BaseConcreteExpressionVisitor<BinOpParser>() {
+    override fun visitBinOpSequence(expr: Concrete.BinOpSequenceExpression?, params: BinOpParser) =
+        params.parse(expr).accept(this, params)
+}
+
 fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {
     val cExprData = cExpr.data
     if (cExpr is Concrete.AppExpression) {
         val elements = ArrayList<TextRange>()
         val fData = cExpr.function.data
 
-        elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) }.filterNotNull())
+        elements.addAll(cExpr.arguments.asSequence().mapNotNull { getBounds(it.expression, aaeBlocks) })
 
         if (fData is PsiElement) {
-            val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
+            val f = aaeBlocks.filter { it.textRange.contains(fData.textRange) }
             if (f.size != 1) throw IllegalStateException()
             elements.add(f.first().textRange)
         }
 
-        val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
-        val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
+        val startOffset = elements.asSequence().map { it.startOffset }.min()
+        val endOffset = elements.asSequence().map { it.endOffset }.max()
         if (startOffset != null && endOffset != null) {
             return TextRange.create(startOffset, endOffset)
         }
