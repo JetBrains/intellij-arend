@@ -28,14 +28,12 @@ import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
 import org.arend.util.BinOpExpansionVisitor
 
 
-class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler {
+class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActionHandler {
     override fun startInWriteAction() = false
 
-    private fun displayHint(typeInfo: String, editor: Editor) {
+    private inline fun displayHint(crossinline f: HintManager.() -> Unit) {
         ApplicationManager.getApplication().invokeLater {
-            HintManager.getInstance()
-                    .apply { setRequestFocusForNextHint(requestFocus) }
-                    .showInformationHint(editor, typeInfo)
+            HintManager.getInstance().apply { setRequestFocusForNextHint(requestFocus) }.f()
         }
     }
 
@@ -85,19 +83,20 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
         val subCore = visited.proj1
         val textRange = rangeOf(visited.proj2)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-        displayHint(subCore.type.toString(), editor)
+        displayHint { showInformationHint(editor, subCore.type.toString()) }
         return null
     }
 
     private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
-        val expr = if (subConcrete is Concrete.AppExpression) {
+        if (subConcrete is Concrete.AppExpression) {
             val function = subConcrete.data as PsiElement
-            PsiTreeUtil.findCommonParent(
-                    function,
-                    subConcrete.arguments.first().expression.data as PsiElement
-            ) ?: function
-        } else subConcrete.data as PsiElement
-        return expr.textRange
+            val lastArg = subConcrete.arguments.last().expression.data as PsiElement
+            val e = PsiTreeUtil.findCommonParent(function, lastArg) ?: return function.textRange
+            val left = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, function, false) }
+            val right = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, lastArg, false) }
+            return TextRange.create(left.textRange.startOffset, right.textRange.endOffset)
+        }
+        return (subConcrete.data as PsiElement).textRange
     }
 
     private fun collectArendExprs(parent: PsiElement, range: TextRange): Sequence<ArendExpr> {
@@ -115,6 +114,6 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
         val s = doInvoke(project, editor, file)
-        if (s != null) displayHint("Failed to obtain type because $s", editor)
+        if (s != null) displayHint { showErrorHint(editor, "Failed to obtain type because $s") }
     }
 }
