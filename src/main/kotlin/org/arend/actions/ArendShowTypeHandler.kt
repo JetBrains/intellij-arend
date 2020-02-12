@@ -20,8 +20,8 @@ import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendExpr
 import org.arend.psi.ancestor
 import org.arend.psi.childrenWithLeaves
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
-import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
@@ -45,12 +45,18 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 				file.findElementAt(range.startOffset),
 				file.findElementAt(range.endOffset - 1)
 		) ?: return "selected expr in bad position"
-		val parent = possibleParent.ancestor<ArendExpr>()?.parent ?: return "selected text is not an arend expression"
-		val psiDef = parent.ancestor<ArendDefinition>() ?: return "selected text is not in a definition"
+		val parent = possibleParent.ancestor<ArendExpr>()?.parent
+				?: return "selected text is not an arend expression"
+		val psiDef = parent.ancestor<ArendDefinition>()
+				?: return "selected text is not in a definition"
 		val service = project.service<TypeCheckingService>()
 		// Only work for functions right now
-		val concreteDef = psiDef
-				.computeConcrete(service.newReferableConverter(false), DummyErrorReporter.INSTANCE)
+		val concreteDef = PsiConcreteProvider(
+				project,
+				service.newReferableConverter(false),
+				DummyErrorReporter.INSTANCE,
+				null
+		).getConcrete(psiDef)
 				as? Concrete.FunctionDefinition
 				?: return "selected text is not in a function definition"
 		val def = service.getTypechecked(psiDef) as FunctionDefinition
@@ -71,9 +77,10 @@ class ArendShowTypeHandler(val requestFocus: Boolean) : CodeInsightActionHandler
 		val subExpr = if (children.size == 1)
 			children.first().expression
 		else parser.parse(Concrete.BinOpSequenceExpression(null, children))
+		val subExprVisitor = CorrespondedSubExprVisitor(subExpr.accept(BinOpExpansionVisitor, parser))
 		val visited = concreteBody
 				.accept(BinOpExpansionVisitor, parser)
-				.accept(CorrespondedSubExprVisitor(subExpr.accept(BinOpExpansionVisitor, parser)), body)
+				.accept(subExprVisitor, body)
 				?: return "cannot find a suitable subexpression"
 		val subCore = visited.proj1
 		val textRange = rangeOf(visited.proj2)
