@@ -59,7 +59,7 @@ INFIX               = `{ID}`
 
 SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
-TRUNCATED_UNIVERSE  = \\([0-9]+|oo)-Type[0-9]*
+TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
 %%
 <YYINITIAL> {

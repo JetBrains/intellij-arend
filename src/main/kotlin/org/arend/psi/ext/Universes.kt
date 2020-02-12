@@ -15,13 +15,13 @@ private fun <P : Any?, R : Any?> acceptUniverse(data: ArendCompositeElement, uni
 
 private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, truncatedElem: PsiElement, pLevel: Abstract.LevelExpression?, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val uniText = truncatedElem.text
-    val index = uniText.indexOf('-')
+    val index = uniText.indexOf('T')
     val hLevelNum = when {
-        uniText.startsWith("\\oo-")      -> Abstract.INFINITY_LEVEL
-        index >= 0 && uniText[0] == '\\' -> uniText.substring(1, index).toIntOrNull()
-        else                             -> null
+        uniText.startsWith("\\oo-") || uniText.startsWith("\\h") -> Abstract.INFINITY_LEVEL
+        index > 0 && uniText[0] == '\\'                          -> uniText.substring(1, index - 1).toIntOrNull()
+        else                                                     -> null
     }
-    val pLevelNum = if (hLevelNum != null) uniText.substring(index + "-Type".length).toIntOrNull() else null
+    val pLevelNum = if (hLevelNum != null) uniText.substring(index + "Type".length).toIntOrNull() else null
     return visitor.visitUniverse(data, pLevelNum, hLevelNum, pLevel, null, params)
 }
 
