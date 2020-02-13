@@ -10,17 +10,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.converter.IdReferableConverter
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendExpr
-import org.arend.psi.ancestor
-import org.arend.psi.childrenWithLeaves
+import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -91,7 +87,7 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         return null
     }
 
-    private fun lastAppArg(concrete: Concrete.Expression): Concrete.Expression =
+    private tailrec fun lastAppArg(concrete: Concrete.Expression): Concrete.Expression =
         if (concrete is Concrete.AppExpression)
             lastAppArg(concrete.arguments.last().expression)
         else concrete
@@ -111,17 +107,23 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         return (subConcrete.data as PsiElement).textRange
     }
 
-    private fun collectArendExprs(parent: PsiElement, range: TextRange): Sequence<ArendExpr> {
+    private fun collectArendExprs(parent: PsiElement, range: TextRange): List<ArendExpr> {
         val exprs = parent.childrenWithLeaves
                 .dropWhile { it.textRange.endOffset < range.startOffset }
-                .takeWhile { it.textRange.startOffset <= range.endOffset }
+                .takeWhile { it.textRange.startOffset < range.endOffset }
                 .toList()
-        if (exprs.isEmpty()) return emptySequence()
+        if (exprs.isEmpty()) return emptyList()
         if (exprs.size == 1) {
             val first = exprs.first()
-            return if (first is ArendExpr) return sequenceOf(first)
-            else collectArendExprs(first, range)
-        } else return exprs.asSequence().filterIsInstance<ArendExpr>()
+            val subCollected = collectArendExprs(first, range)
+            return when {
+                subCollected.isNotEmpty() -> subCollected
+                first is ArendExpr -> listOf(first)
+                else -> emptyList()
+            }
+        } else return exprs.asSequence().mapNotNull {
+            it.linearDescendants.filterIsInstance<ArendExpr>().firstOrNull()
+        }.toList()
     }
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {

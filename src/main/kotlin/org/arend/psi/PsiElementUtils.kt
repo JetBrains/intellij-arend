@@ -25,6 +25,12 @@ import org.arend.util.mapFirstNotNull
 import org.jetbrains.yaml.psi.YAMLFile
 import java.util.ArrayList
 
+val PsiElement.theOnlyChild: PsiElement?
+    get() = firstChild?.takeIf { it.nextSibling == null }
+
+val PsiElement.linearDescendants: Sequence<PsiElement>
+    get() = generateSequence(this) { it.theOnlyChild }
+
 val PsiElement.ancestors: Sequence<PsiElement>
     get() = generateSequence(this) { if (it is PsiFile) null else it.parent }
 
