@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
@@ -39,10 +40,13 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
 
     fun doInvoke(project: Project, editor: Editor, file: PsiFile): String? {
         val range = EditorUtil.getSelectionInAnyMode(editor)
-        val possibleParent = PsiTreeUtil.findCommonParent(
+        val possibleParent = (if (range.isEmpty)
+            file.findElementAt(range.startOffset)
+        else PsiTreeUtil.findCommonParent(
                 file.findElementAt(range.startOffset),
                 file.findElementAt(range.endOffset - 1)
-        ) ?: return "selected expr in bad position"
+        )) ?: return "selected expr in bad position"
+        // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
         val parent = possibleParent.ancestor<ArendExpr>()?.parent
                 ?: return "selected text is not an arend expression"
         val psiDef = parent.ancestor<ArendDefinition>()
@@ -87,14 +91,22 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         return null
     }
 
+    private fun lastAppArg(concrete: Concrete.Expression): Concrete.Expression =
+        if (concrete is Concrete.AppExpression)
+            lastAppArg(concrete.arguments.last().expression)
+        else concrete
+
     private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
         if (subConcrete is Concrete.AppExpression) {
             val function = subConcrete.data as PsiElement
-            val lastArg = subConcrete.arguments.last().expression.data as PsiElement
+            val lastArg = lastAppArg(subConcrete).data as PsiElement
             val e = PsiTreeUtil.findCommonParent(function, lastArg) ?: return function.textRange
             val left = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, function, false) }
             val right = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, lastArg, false) }
-            return TextRange.create(left.textRange.startOffset, right.textRange.endOffset)
+            return TextRange.create(
+                minOf(left.textRange.startOffset, right.textRange.startOffset),
+                maxOf(left.textRange.endOffset, right.textRange.endOffset)
+            )
         }
         return (subConcrete.data as PsiElement).textRange
     }
