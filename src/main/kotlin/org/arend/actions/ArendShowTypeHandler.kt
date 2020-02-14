@@ -15,9 +15,11 @@ import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
+import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
@@ -59,7 +61,7 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         val def = service.getTypechecked(psiDef) as FunctionDefinition
 
         val children = collectArendExprs(parent, range)
-            .mapNotNull(::appExprToConcrete)
+            .map { appExprToConcrete(it) ?: ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it) }
             .map(Concrete::BinOpSequenceElem)
             .toList()
             .takeIf { it.isNotEmpty() }
@@ -90,8 +92,10 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         if (concrete is Concrete.AppExpression) {
             val arguments = concrete.arguments
             val expression = arguments.firstOrNull()?.expression
-            if (expression != null) yieldAll(everyExprOf(expression))
-            if (arguments.size > 1) yieldAll(everyExprOf(arguments.last().expression))
+            if (expression != null) {
+                yieldAll(everyExprOf(expression))
+                if (arguments.size > 1) yieldAll(everyExprOf(arguments.last().expression))
+            }
         }
     }
 
