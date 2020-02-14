@@ -18,6 +18,7 @@ import org.arend.naming.BinOpParser
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
@@ -95,19 +96,29 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
     private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
         if (subConcrete is Concrete.AppExpression) {
             val function = subConcrete.data as PsiElement
+            val firstArg = subConcrete.arguments.first().expression.data as PsiElement
             val lastArg = lastAppArg(subConcrete).data as PsiElement
             val e = PsiTreeUtil.findCommonParent(function, lastArg) ?: return function.textRange
-            val left = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, function, false) }
-            val right = e.childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, lastArg, false) }
+            val childrenWithLeaves = e.childrenWithLeaves.toList()
+            val left = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, function, false) }
+            val right = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, lastArg, false) }
+            val mid = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, firstArg, false) }
             return TextRange.create(
-                minOf(left.textRange.startOffset, right.textRange.startOffset),
-                maxOf(left.textRange.endOffset, right.textRange.endOffset)
+                minOf(left.textRange.startOffset, mid.textRange.startOffset, right.textRange.startOffset),
+                maxOf(left.textRange.endOffset, mid.textRange.endOffset, right.textRange.endOffset)
             )
         }
         return (subConcrete.data as PsiElement).textRange
     }
 
-    private fun collectArendExprs(parent: PsiElement, range: TextRange): List<ArendExpr> {
+    private fun collectArendExprs(
+        parent: PsiElement,
+        range: TextRange
+    ): List<Abstract.Expression> {
+        if (parent.textRange == range) {
+            val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
+            if (firstExpr != null) return listOf(firstExpr)
+        }
         val exprs = parent.childrenWithLeaves
                 .dropWhile { it.textRange.endOffset < range.startOffset }
                 .takeWhile { it.textRange.startOffset < range.endOffset }
@@ -122,7 +133,7 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
                 else -> emptyList()
             }
         } else return exprs.asSequence().mapNotNull {
-            it.linearDescendants.filterIsInstance<ArendExpr>().firstOrNull()
+            it.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
         }.toList()
     }
 
