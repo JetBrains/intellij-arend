@@ -15,15 +15,13 @@ import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
-import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
-import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
-import org.arend.util.BinOpExpansionVisitor
+import org.arend.util.appExprToConcrete
 
 
 class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActionHandler {
@@ -35,7 +33,7 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         }
     }
 
-    fun doInvoke(project: Project, editor: Editor, file: PsiFile): String? {
+    private fun doInvoke(project: Project, editor: Editor, file: PsiFile): String? {
         val range = EditorUtil.getSelectionInAnyMode(editor)
         val possibleParent = (if (range.isEmpty)
             file.findElementAt(range.startOffset)
@@ -61,11 +59,11 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         val def = service.getTypechecked(psiDef) as FunctionDefinition
 
         val children = collectArendExprs(parent, range)
-                .map { ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it) }
-                .map(Concrete::BinOpSequenceElem)
-                .toList()
-                .takeIf { it.isNotEmpty() }
-                ?: return "cannot find a suitable subexpression"
+            .mapNotNull(::appExprToConcrete)
+            .map(Concrete::BinOpSequenceElem)
+            .toList()
+            .takeIf { it.isNotEmpty() }
+            ?: return "cannot find a suitable subexpression"
         val parser = BinOpParser(DummyErrorReporter.INSTANCE)
         val body = def.actualBody as? Expression
                 ?: return "function body is not an expression"
@@ -76,11 +74,10 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         val subExpr = if (children.size == 1)
             children.first().expression
         else parser.parse(Concrete.BinOpSequenceExpression(null, children))
-        val subExprVisitor = CorrespondedSubExprVisitor(subExpr.accept(BinOpExpansionVisitor, parser))
+        val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
         val visited = concreteBody
-                .accept(BinOpExpansionVisitor, parser)
-                .accept(subExprVisitor, body)
-                ?: return "cannot find a suitable subexpression"
+            .accept(subExprVisitor, body)
+            ?: return "cannot find a suitable subexpression"
         val subCore = visited.proj1
         val textRange = rangeOf(visited.proj2)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
@@ -88,27 +85,36 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         return null
     }
 
-    private tailrec fun lastAppArg(concrete: Concrete.Expression): Concrete.Expression =
-        if (concrete is Concrete.AppExpression)
-            lastAppArg(concrete.arguments.last().expression)
-        else concrete
+    private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {
+        yield(concrete)
+        if (concrete is Concrete.AppExpression) {
+            val arguments = concrete.arguments
+            val expression = arguments.firstOrNull()?.expression
+            if (expression != null) yieldAll(everyExprOf(expression))
+            if (arguments.size > 1) yieldAll(everyExprOf(arguments.last().expression))
+        }
+    }
 
     private fun rangeOf(subConcrete: Concrete.Expression): TextRange {
-        if (subConcrete is Concrete.AppExpression) {
-            val function = subConcrete.data as PsiElement
-            val firstArg = subConcrete.arguments.first().expression.data as PsiElement
-            val lastArg = lastAppArg(subConcrete).data as PsiElement
-            val e = PsiTreeUtil.findCommonParent(function, lastArg) ?: return function.textRange
-            val childrenWithLeaves = e.childrenWithLeaves.toList()
-            val left = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, function, false) }
-            val right = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, lastArg, false) }
-            val mid = childrenWithLeaves.first { PsiTreeUtil.isAncestor(it, firstArg, false) }
-            return TextRange.create(
-                minOf(left.textRange.startOffset, mid.textRange.startOffset, right.textRange.startOffset),
-                maxOf(left.textRange.endOffset, mid.textRange.endOffset, right.textRange.endOffset)
-            )
-        }
-        return (subConcrete.data as PsiElement).textRange
+        val exprs = everyExprOf(subConcrete)
+            .map { it.data }
+            .filterIsInstance<PsiElement>()
+            .toList()
+        if (exprs.size == 1) return exprs.first().textRange
+        // exprs is guaranteed to be empty
+        val leftMost = exprs.minBy { it.textRange.startOffset }!!
+        val rightMost = exprs.maxBy { it.textRange.endOffset }!!
+        val siblings = PsiTreeUtil
+            .findCommonParent(leftMost, rightMost)
+            ?.childrenWithLeaves
+            ?.toList()
+            ?: return (subConcrete.data as PsiElement).textRange
+        val left = siblings.first { PsiTreeUtil.isAncestor(it, leftMost, false) }
+        val right = siblings.last { PsiTreeUtil.isAncestor(it, rightMost, false) }
+        return TextRange.create(
+            minOf(left.textRange.startOffset, right.textRange.startOffset),
+            maxOf(left.textRange.endOffset, right.textRange.endOffset)
+        )
     }
 
     private fun collectArendExprs(
@@ -124,15 +130,15 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
                 .takeWhile { it.textRange.startOffset < range.endOffset }
                 .toList()
         if (exprs.isEmpty()) return emptyList()
-        if (exprs.size == 1) {
+        return if (exprs.size == 1) {
             val first = exprs.first()
             val subCollected = collectArendExprs(first, range)
-            return when {
+            when {
                 subCollected.isNotEmpty() -> subCollected
                 first is ArendExpr -> listOf(first)
                 else -> emptyList()
             }
-        } else return exprs.asSequence().mapNotNull {
+        } else exprs.asSequence().mapNotNull {
             it.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
         }.toList()
     }

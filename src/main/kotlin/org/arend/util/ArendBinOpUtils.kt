@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
-import org.arend.naming.BinOpParser
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendExpr
@@ -15,7 +14,6 @@ import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
-import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 import org.arend.typing.resolveReference
@@ -27,11 +25,6 @@ fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appE
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
     override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
 }, null)
-
-object BinOpExpansionVisitor : BaseConcreteExpressionVisitor<BinOpParser>() {
-    override fun visitBinOpSequence(expr: Concrete.BinOpSequenceExpression?, params: BinOpParser) =
-        params.parse(expr).accept(this, params)
-}
 
 fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {
     val cExprData = cExpr.data
