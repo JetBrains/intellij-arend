@@ -431,14 +431,15 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
         fun addImplicitFirstArgument(literal: ArendLiteral) {
             fun doAddImplicitFirstArgument(argumentOrFieldsAcc: PsiElement) {
                 var argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-                while ((surroundingTupleExpr(argumentAppExpr)?.parent as? ArendTuple)?.let { tuple -> tuple.tupleExprList.size == 1 }
-                                ?: false) {
+                while ((surroundingTupleExpr(argumentAppExpr)?.parent as? ArendTuple)?.let { tuple ->
+                            tuple.tupleExprList.size == 1 && tuple.tupleExprList.first().colon == null
+                        } == true) {
                     val tuple = argumentAppExpr.parent.parent.parent
                     if ((tuple.parent as? ArendAtom)?.let {
                                 (it.parent as? ArendAtomFieldsAcc)?.let { atomFieldsAcc ->
                                     atomFieldsAcc.fieldAccList.isEmpty() && (atomFieldsAcc.parent is ArendArgumentAppExpr)
                                 }
-                            } ?: false)
+                            } == true)
                         argumentAppExpr = tuple.parent.parent.parent as ArendArgumentAppExpr
                     else break
                 }

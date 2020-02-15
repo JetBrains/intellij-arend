@@ -20,7 +20,6 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.impl.ArendExprImpl
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
