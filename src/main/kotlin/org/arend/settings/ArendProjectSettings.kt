@@ -15,7 +15,9 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var autoScrollFromSource = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING)!!
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags!!
-    var goalPrintingOptionsFilterSet = EnumSet.of<ToAbstractVisitor.Flag>(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!!
+    var goalPrintingOptionsFilterSet = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!!
+    // for show-type and show-normalized
+    var popupPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags!!
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {
@@ -59,6 +61,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
         getPrintingOptions(errorPrintingOptionsFilterSet, data.errorPrintingOptions)
         getPrintingOptions(goalPrintingOptionsFilterSet, data.goalPrintingOptions)
+        getPrintingOptions(popupPrintingOptionsFilterSet, data.popupPrintingOptions)
 
         return data
     }
@@ -97,6 +100,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
         setPrintingOptions(errorPrintingOptionsFilterSet, state.errorPrintingOptions)
         setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
+        setPrintingOptions(popupPrintingOptionsFilterSet, state.popupPrintingOptions)
     }
 
     private fun setPrintingOptions(filterSet: EnumSet<ToAbstractVisitor.Flag>, printingOptions: ArendPrintingOptions) {

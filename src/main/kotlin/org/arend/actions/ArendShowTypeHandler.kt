@@ -13,14 +13,20 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
+import org.arend.core.expr.visitor.NormalizeVisitor
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.settings.ArendProjectSettings
+import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrintVisitor
+import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
 import org.arend.util.appExprToConcrete
@@ -83,7 +89,15 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         val subCore = visited.proj1
         val textRange = rangeOf(visited.proj2)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-        displayHint { showInformationHint(editor, subCore.type.toString()) }
+        displayHint {
+            val settings = project.service<ArendProjectSettings>()
+            val builder = StringBuilder()
+            ToAbstractVisitor.convert(subCore.type, object : PrettyPrinterConfig {
+                override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
+                override fun getNormalizationMode(): NormalizeVisitor.Mode? = null
+            }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
+            showInformationHint(editor, builder.toString())
+        }
         return null
     }
 

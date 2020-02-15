@@ -41,6 +41,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         fun getFilterSet(project: Project, printOptionsKind: PrintOptionKind) = project.service<ArendProjectSettings>().let {
             when (printOptionsKind) {
                 PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
+                PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
                 PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
             }
         }
@@ -62,5 +63,6 @@ class ArendPrintOptionsFilterAction(private val project: Project,
 
 enum class PrintOptionKind(val kindName: String) {
     GOAL_PRINT_OPTIONS("Goal"),
+    POPUP_PRINT_OPTIONS("Pop-up"),
     ERROR_PRINT_OPTIONS("Error")
 }

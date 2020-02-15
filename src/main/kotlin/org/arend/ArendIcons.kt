@@ -21,6 +21,7 @@ object ArendIcons {
 
     val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
     val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
+    val SHOW_IMPLICITS = IconLoader.getIcon("/icons/showImplicits.svg")
 
     val MOVE_LEFT = IconLoader.getIcon("/icons/moveLeft.svg")
     val MOVE_RIGHT = IconLoader.getIcon("/icons/moveRight.svg")
