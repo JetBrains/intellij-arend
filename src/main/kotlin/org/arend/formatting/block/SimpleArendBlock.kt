@@ -295,7 +295,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, CO_CLAUSE_DEF, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR -> {
+                    FUNCTION_CLAUSES, CO_CLAUSE_DEF, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
