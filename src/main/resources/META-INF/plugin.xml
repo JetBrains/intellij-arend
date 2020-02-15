@@ -316,7 +316,8 @@
 
         <group id="ToolbarArendGroup"
                class="org.arend.actions.ArendToolbarGroup"
-               text="Arend Editor Toolbar">
+               text="Arend Editor Toolbar"
+               description="Arend editor toolbar">
             <add-to-group group-id="NavBarToolBar"
                           relative-to-action="ToolbarRunGroup" anchor="after"/>
         </group>
