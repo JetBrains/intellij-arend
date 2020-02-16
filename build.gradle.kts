@@ -59,7 +59,7 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java")
+    setPlugins("yaml", "java", "PsiViewer:193-SNAPSHOT")
 }
 
 task<GenerateLexer>("generateArendLexer") {
