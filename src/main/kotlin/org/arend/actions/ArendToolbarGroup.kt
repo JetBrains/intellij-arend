@@ -1,9 +1,6 @@
 package org.arend.actions
 
-import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.Project
 import org.arend.ArendIcons
 import org.arend.core.expr.visitor.ToAbstractVisitor
@@ -17,12 +14,20 @@ class ArendToolbarGroup : ActionGroup() {
     if (project.isDisposed) return emptyArray()
     return arrayOf(
         Separator.getInstance(),
-        action(project, ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS).apply {
-          templatePresentation.apply {
-            icon = ArendIcons.SHOW_IMPLICITS
-            text = "Show Implicits"
-            description = "Show implicit arguments in pop-ups"
-          }
+        DefaultActionGroup(null, true).apply {
+          templatePresentation.icon = ArendIcons.SHOW_IMPLICITS
+          add(action(project, ToAbstractVisitor.Flag.SHOW_IMPLICIT_ARGS).apply {
+            templatePresentation.apply {
+              text = "Show implicits"
+              description = "Show implicit arguments in pop-ups"
+            }
+          })
+          add(action(project, ToAbstractVisitor.Flag.SHOW_TYPES_IN_LAM).apply {
+            templatePresentation.apply {
+              text = "Show types in lambdas"
+              description = "Show types in lambdas in pop-ups"
+            }
+          })
         }
     )
   }
