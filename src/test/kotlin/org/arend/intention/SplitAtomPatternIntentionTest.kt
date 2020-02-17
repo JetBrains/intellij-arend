@@ -220,6 +220,15 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | {suc n}, b => 0
     """)
 
+    fun testNaturalNumbers2() = typedQuickFixTest("Split", """
+       \func foo (p : \Sigma Nat Nat) : Nat
+         | (x{-caret-}, y) => {?} 
+    """, """
+       \func foo (p : \Sigma Nat Nat) : Nat
+         | (0, y) => {?} 
+         | (suc n, y) => {?}
+    """)
+
     fun testElim() = typedQuickFixTest("Split",
     """
        \data Foo
