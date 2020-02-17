@@ -190,6 +190,16 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                }
             """)
 
+    fun testCaseWithoutWith() = typedQuickFixTest("Implement",
+            """
+               \func foo : Nat => \case 0{-caret-}
+            """, """
+               \func foo : Nat => \case 0 \with {
+                 | 0 => {?}
+                 | suc n => {?}
+               } 
+            """)
+
     fun testResolveReference() = typedQuickFixTest("Implement",
         """
         --! Logic.ard 

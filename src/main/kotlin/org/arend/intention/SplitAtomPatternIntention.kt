@@ -366,6 +366,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
                 if (patternOwner is ArendClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
                 if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+                if (patternOwner is ArendAtomPattern && patternOwner.patternList.size > 1) indexList.add(0, patternOwner.patternList.indexOf(pattern))
             }
 
             if (pattern == null) return null

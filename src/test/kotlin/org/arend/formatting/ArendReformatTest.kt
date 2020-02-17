@@ -94,4 +94,8 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "{- | Doc\n - Comment -}\\import Prelude",
             "{- | Doc\n - Comment -}\n\n\\import Prelude")
 
+    fun testConstructorsWithPatterns() = checkReformat(
+            "\\data D (n : Nat) \\with\n| 0 => {\n| con1\n| con2\n}",
+            "\\data D (n : Nat) \\with\n  | 0 => {\n    | con1\n    | con2\n  }")
+
 }
