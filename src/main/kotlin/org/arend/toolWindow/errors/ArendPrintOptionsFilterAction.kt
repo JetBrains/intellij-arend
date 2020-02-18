@@ -16,10 +16,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
     override fun isSelected(e: AnActionEvent): Boolean = isSelected
 
     private val isSelected: Boolean
-        get() {
-            val printOptionSet = getFilterSet(project, printOptionKind)
-            return printOptionSet.contains(flag)
-        }
+        get() = getFilterSet(project, printOptionKind).contains(flag)
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val printOptionSet = getFilterSet(project, printOptionKind)
@@ -32,7 +29,9 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         else
             printOptionSet.remove(flag)
 
-        project.service<ArendMessagesService>().updateErrorText()
+        if (printOptionKind == PrintOptionKind.ERROR_PRINT_OPTIONS || printOptionKind == PrintOptionKind.GOAL_PRINT_OPTIONS) {
+            project.service<ArendMessagesService>().updateErrorText()
+        }
     }
 
 

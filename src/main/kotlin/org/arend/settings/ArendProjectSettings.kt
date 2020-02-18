@@ -17,7 +17,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags!!
     var goalPrintingOptionsFilterSet = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!!
     // for show-type and show-normalized
-    var popupPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags!!
+    var popupPrintingOptionsFilterSet = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!!
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {
