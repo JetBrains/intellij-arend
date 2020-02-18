@@ -64,7 +64,9 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         ).getConcrete(psiDef)
                 as? Concrete.FunctionDefinition
                 ?: return "selected text is not in a function definition"
-        val def = service.getTypechecked(psiDef) as FunctionDefinition
+        val def = service.getTypechecked(psiDef)
+            as? FunctionDefinition
+            ?: return "underlying definition is not type checked"
 
         val children = collectArendExprs(parent, range)
             .map { appExprToConcrete(it) ?: ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it) }
