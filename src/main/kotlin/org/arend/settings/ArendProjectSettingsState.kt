@@ -3,47 +3,46 @@ package org.arend.settings
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 
 // This class is needed since EnumSet<MessageType> does not serialize correctly for some reason
-class ArendProjectSettingsState {
+data class ArendProjectSettingsState(
     // Hierarchy
-    var showImplFields = true
-    var showNonImplFields = true
-    var hierarchyViewType = TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE!!
+    var showImplFields: Boolean = true,
+    var showNonImplFields: Boolean = true,
+    var hierarchyViewType: String = TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE,
 
     // Messages
-    var autoScrollToSource = true
+    var autoScrollToSource: Boolean = true,
 
-    var autoScrollFromErrors = true
-    var autoScrollFromWarnings = true
-    var autoScrollFromGoals = true
-    var autoScrollFromTypechecking = true
-    var autoScrollFromShort = false
-    var autoScrollFromResolving = false
-    var autoScrollFromParsing = false
+    var autoScrollFromErrors: Boolean = true,
+    var autoScrollFromWarnings: Boolean = true,
+    var autoScrollFromGoals: Boolean = true,
+    var autoScrollFromTypechecking: Boolean = true,
+    var autoScrollFromShort: Boolean = false,
+    var autoScrollFromResolving: Boolean = false,
+    var autoScrollFromParsing: Boolean = false,
 
-    var showErrors = true
-    var showWarnings = true
-    var showGoals = true
-    var showTypechecking = true
-    var showShort = true
-    var showResolving = true
-    var showParsing = false
+    var showErrors: Boolean = true,
+    var showWarnings: Boolean = true,
+    var showGoals: Boolean = true,
+    var showTypechecking: Boolean = true,
+    var showShort: Boolean = true,
+    var showResolving: Boolean = true,
+    var showParsing: Boolean = false,
 
     //Printing options
-    val errorPrintingOptions = ArendPrintingOptions()
-    val goalPrintingOptions = ArendPrintingOptions()
-    val popupPrintingOptions = ArendPrintingOptions()
+    val errorPrintingOptions: ArendPrintingOptions = ArendPrintingOptions(),
+    val goalPrintingOptions: ArendPrintingOptions = ArendPrintingOptions(),
+    val popupPrintingOptions: ArendPrintingOptions = ArendPrintingOptions()
+)
 
-}
-
-class ArendPrintingOptions {
-    var showCoerceDefinitions = false
-    var showConstructorParameters = true
-    var showTupleType = true
-    var showFieldInstance = true
-    var showImplicitArgs = true
-    var showTypesInLambda = true
-    var showPrefixPath = true
-    var showBinOpImplicitArgs = true
-    var showCaseResultType = true
-    var showInferenceLevelVars = true
-}
+data class ArendPrintingOptions (
+    var showCoerceDefinitions: Boolean = false,
+    var showConstructorParameters: Boolean = true,
+    var showTupleType: Boolean = true,
+    var showFieldInstance: Boolean = true,
+    var showImplicitArgs: Boolean = true,
+    var showTypesInLambda: Boolean = true,
+    var showPrefixPath: Boolean = true,
+    var showBinOpImplicitArgs: Boolean = true,
+    var showCaseResultType: Boolean = true,
+    var showInferenceLevelVars: Boolean = true
+)
