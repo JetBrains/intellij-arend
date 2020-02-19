@@ -17,6 +17,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.renamer.StringRenamer
@@ -29,7 +30,6 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getT
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
 import org.arend.resolving.ArendResolveCache
-import org.arend.util.LongName
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop
 import java.util.ArrayList
@@ -280,7 +280,7 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
-                    val openedName: List<String>? = importData.second
+                    val openedName: List<String> = importData.second
 
                     importAction?.execute(null)
                     val renamings = movedReferablesUniqueNames.map { Pair(it, null) }

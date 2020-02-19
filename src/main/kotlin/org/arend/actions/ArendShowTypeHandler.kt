@@ -16,17 +16,18 @@ import org.arend.core.expr.Expression
 import org.arend.core.expr.visitor.NormalizeVisitor
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.core.ops.NormalizationMode
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.reference.Precedence
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
-import org.arend.term.Precedence
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
-import org.arend.term.prettyprint.PrettyPrinterConfig
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
 import org.arend.util.appExprToConcrete
@@ -96,7 +97,7 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
             val builder = StringBuilder()
             ToAbstractVisitor.convert(subCore.type, object : PrettyPrinterConfig {
                 override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
-                override fun getNormalizationMode(): NormalizeVisitor.Mode? = null
+                override fun getNormalizationMode(): NormalizationMode? = null
             }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
             showInformationHint(editor, builder.toString())
         }

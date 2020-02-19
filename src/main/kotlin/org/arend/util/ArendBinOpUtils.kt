@@ -8,6 +8,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendIPName
+import org.arend.psi.ArendImplicitArgument
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.refactoring.resolveIfNeeded
@@ -56,7 +57,7 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? 
 fun concreteDataToSourceNode(data: Any?): ArendSourceNode? = if (data is ArendIPName) (data.infix
         ?: data.postfix)?.parentOfType() else data as? ArendSourceNode
 
-fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
+/*fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = { cData: ArendSourceNode?, aNode: ArendSourceNode -> // Rewrite in a less ad-hoc way
         cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
                 cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
@@ -65,10 +66,31 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): 
     if (cExpr is Concrete.AppExpression) return false
 
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
+} */
+
+fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
+    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
+        // Rewrite in a less ad-hoc way
+        if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
+                cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+                || cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+        ) {
+            return@ret true
+        }
+        return@ret false
+    }
+    if (cExpr is Concrete.AppExpression) {
+        return false
+    }
+    if (aExpr is ArendImplicitArgument) {
+        val expr = aExpr.tupleExprList.firstOrNull()?.exprList?.lastOrNull() ?: return false
+        return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), expr)
+    }
+    return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 
 fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean =
-        expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data is ArendReferenceContainer
+        expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data as? ArendReferenceContainer != null
 
 data class DefAndArgsInParsedBinopResult(val functionReferenceContainer: ArendReferenceContainer,
                                          val operatorConcrete: Concrete.Expression,
@@ -102,3 +124,65 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
 
     return null
 }
+
+/*
+// The second component of the Pair in the return type is a list of (argument, isExplicit)
+fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<Abstract.Reference, List<Pair<ArendSourceNode, Boolean>>>? {
+    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
+        if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
+            return Pair(parsedExpr.data as Abstract.Reference, emptyList())
+        }
+    }
+
+    if (parsedExpr is Concrete.AppExpression) {
+        val createArglist = ret@{
+            val ardArguments = mutableListOf<Pair<ArendSourceNode, Boolean>>()
+            for (argument_ in parsedExpr.arguments) {
+                if (argument_.expression.data !is ArendSourceNode) {
+                    return@ret null
+                }
+                ardArguments.add(Pair(argument_.expression.data as ArendSourceNode, argument_.isExplicit))
+            }
+            return@ret ardArguments
+        }
+
+        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
+            if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
+                return createArglist()?.let { Pair(parsedExpr.data as Abstract.Reference, it) }
+            }
+        }
+
+        val funcRes = findDefAndArgsInParsedBinop(arg, parsedExpr.function)
+        if (funcRes != null) return funcRes
+
+        for (argument in parsedExpr.arguments) {
+            if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
+                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
+                    return Pair(argument.expression.data as Abstract.Reference, emptyList())
+                }
+                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
+                return createArglist()?.let { Pair(parsedExpr.function.data  as Abstract.Reference, it) }
+            }
+        }
+
+        for (argument in parsedExpr.arguments) {
+            val argRes = findDefAndArgsInParsedBinop(arg, argument.expression)
+            if (argRes != null) return argRes
+        }
+    } else if (parsedExpr is Concrete.LamExpression) {
+        return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
+    }
+
+    return null
+}
+
+fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
+    if (data is ArendIPName) {
+        val element = data.infix ?: data.postfix
+        val node = element?.parentOfType<ArendSourceNode>() ?: return null
+        return node
+    }
+    return data as? ArendSourceNode
+}
+
+*/
