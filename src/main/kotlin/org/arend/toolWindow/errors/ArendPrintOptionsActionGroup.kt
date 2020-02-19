@@ -6,10 +6,11 @@ import com.intellij.openapi.project.Project
 import org.arend.ArendIcons
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 
-class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKind, isEnabled: Boolean):
+class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKind, isEnabled: Boolean = true):
         DefaultActionGroup("${kind.kindName}s pretty printer options", true), DumbAware {
     private var actionMap = HashMap<PrettyPrinterFlag, ArendPrintOptionsFilterAction>()
 
+    // lang_ext
     init {
         templatePresentation.icon = ArendIcons.SHOW
         if (isEnabled) {
@@ -20,4 +21,14 @@ class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKi
             }
         }
     }
+
+    /*
+    init { // master
+        templatePresentation.icon = ArendIcons.SHOW
+        if (isEnabled) {
+            for (type in ToAbstractVisitor.Flag.values()) {
+                add(ArendPrintOptionsFilterAction(project, kind, type))
+            }
+        }
+    } */
 }

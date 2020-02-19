@@ -31,6 +31,7 @@ class ArendProjectSettingsState {
     //Printing options
     val errorPrintingOptions = ArendPrintingOptions()
     val goalPrintingOptions = ArendPrintingOptions()
+    val popupPrintingOptions = ArendPrintingOptions()
 
 }
 

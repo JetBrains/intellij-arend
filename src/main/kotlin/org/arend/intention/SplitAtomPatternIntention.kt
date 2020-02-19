@@ -241,9 +241,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (localClause !is ArendClause) return
 
             val localNames = HashSet<Variable>()
-            localNames.addAll(findAllVariablePatterns(localClause, element).map {
-                VariableImpl(it.name ?: "")
-            })
+            localNames.addAll(findAllVariablePatterns(localClause, element).map { VariableImpl(it.name ?: "") })
 
             if (project != null && element is Abstract.Pattern) {
                 val factory = ArendPsiFactory(project)
@@ -368,6 +366,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
                 if (patternOwner is ArendClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
                 if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
+                if (patternOwner is ArendAtomPattern && patternOwner.patternList.size > 1) indexList.add(0, patternOwner.patternList.indexOf(pattern))
             }
 
             if (pattern == null) return null

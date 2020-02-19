@@ -3,6 +3,7 @@ package org.arend.settings
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.util.xmlb.XmlSerializerUtil
+import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.toolWindow.errors.MessageType
@@ -16,6 +17,11 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
     var goalPrintingOptionsFilterSet = EnumSet.of<PrettyPrinterFlag>(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+    // var goalPrintingOptionsFilterSet = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!! // master
+
+    // for show-type and show-normalized
+    //var popupPrintingOptionsFilterSet = EnumSet.of(ToAbstractVisitor.Flag.SHOW_FIELD_INSTANCE)!! //master
+    var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {
@@ -59,6 +65,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
         getPrintingOptions(errorPrintingOptionsFilterSet, data.errorPrintingOptions)
         getPrintingOptions(goalPrintingOptionsFilterSet, data.goalPrintingOptions)
+        getPrintingOptions(popupPrintingOptionsFilterSet, data.popupPrintingOptions)
 
         return data
     }
@@ -97,6 +104,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
         setPrintingOptions(errorPrintingOptionsFilterSet, state.errorPrintingOptions)
         setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
+        setPrintingOptions(popupPrintingOptionsFilterSet, state.popupPrintingOptions)
     }
 
     private fun setPrintingOptions(filterSet: EnumSet<PrettyPrinterFlag>, printingOptions: ArendPrintingOptions) {

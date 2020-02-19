@@ -1,6 +1,7 @@
 package org.arend.refactoring.move
 
 import com.intellij.ide.util.EditorHelper
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
@@ -16,8 +17,8 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
-import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
+import org.arend.naming.reference.ClassReferable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
@@ -25,15 +26,32 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
+import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
-import java.util.*
+import org.arend.resolving.ArendResolveCache
+import org.arend.util.LongName
+import org.arend.util.appExprToConcrete
+import org.arend.util.findDefAndArgsInParsedBinop
+import java.util.ArrayList
 import java.util.Collections.singletonList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashMap
+import kotlin.collections.List
+import kotlin.collections.MutableMap
+import kotlin.collections.MutableSet
+import kotlin.collections.any
+import kotlin.collections.emptyList
+import kotlin.collections.iterator
+import kotlin.collections.lastOrNull
+import kotlin.collections.map
+import kotlin.collections.mapIndexed
+import kotlin.collections.plus
 import kotlin.collections.set
+import kotlin.collections.toSet
+import kotlin.collections.toTypedArray
+import kotlin.collections.withIndex
 
-class ArendStaticMemberRefactoringProcessor(project: Project,
+class ArendStaticMemberRefactoringProcessor(private val project: Project,
                                             private val myMoveCallback: () -> Unit,
                                             private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ArendGroup,
@@ -95,11 +113,33 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return result
     }
 
+    private fun determineDynamicClassElements(defClass: ArendDefClass): Set<PsiLocatedReferable> {
+        val result = HashSet<PsiLocatedReferable>()
+        val isRecord = defClass.recordKw != null
+        for (element in ClassFieldImplScope(defClass, true).elements) when (element) {
+            is ArendDefClass -> if (isRecord || element.recordKw != null) result.addAll(element.dynamicSubgroups)
+        }
+        if (isRecord) result.addAll(defClass.dynamicSubgroups)
+        return result
+    }
+
+    private fun isInDynamicPart(childPsi: PsiElement): ArendDefClass? {
+        var psi: PsiElement? = childPsi
+        var result = false
+        while (psi != null) {
+            if (psi is ArendClassStat) result = true
+            if (psi is ArendDefClass) return if (result) psi else null
+            psi = psi.parent
+        }
+        return null
+    }
+
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)
         val forceThisParameter = insertIntoDynamicPart && myTargetContainer is ArendDefClass && mySourceContainer is ArendDefClass &&
                 !myTargetContainer.isSubClassOf(mySourceContainer)
+        val sourceContainerIsARecord = (mySourceContainer as? ArendDefClass)?.recordKw != null
 
         insertAnchor = if (myTargetContainer is ArendFile) {
             myTargetContainer.lastChild //null means file is empty
@@ -114,15 +154,15 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         val descriptorsOfAllMovedMembers = HashMap<PsiLocatedReferable, LocationDescriptor>() //This set may be strictly larger than the set of myReferableDescriptors
         val bodiesRefsFixData = HashMap<LocationDescriptor, TargetReference>()
         val bodiesClassFieldUsages = HashSet<LocationDescriptor>() //We don't need to keep a link to class field as we replace its usages by "this.field" anyway
+        val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) }
+                ?: emptySet()
 
         run {
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
             val targetReferences = HashMap<PsiLocatedReferable, TargetReference>()
 
-            val recordFields =
-                    if ((mySourceContainer as? ArendDefClass)?.recordKw != null)
-                        ClassFieldImplScope(mySourceContainer, false).elements.filterIsInstanceTo(HashSet())
-                    else emptySet<PsiLocatedReferable>()
+            val recordFields = if (sourceContainerIsARecord) ClassFieldImplScope(mySourceContainer as ClassReferable, false).elements.filterIsInstanceTo(HashSet())
+            else emptySet<PsiLocatedReferable>()
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
@@ -134,10 +174,10 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             for (usagePack in usagesInMovedBodies) for (usage in usagePack.value) {
                 val referable = usagePack.key
                 if (recordFields.contains(referable))
-                    bodiesClassFieldUsages.add(usage) else
+                    bodiesClassFieldUsages.add(usage) else {
                     targetReferences[referable]?.let { bodiesRefsFixData[usage] = it }
+                }
             }
-
         }
 
         //Do move myMembers
@@ -149,17 +189,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (member in myMembers) {
             val mStatementOrClassStat = member.parent
             val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
-
-            var memberIsInDynamicPart = false
-            run {
-                var psi: PsiElement? = mStatementOrClassStat
-                while (psi != null) {
-                    if (psi is ArendClassStat) memberIsInDynamicPart = true
-                    if (psi is ArendDefClass) break
-                    psi = psi.parent
-                }
-            }
-
+            val memberIsInDynamicPart = isInDynamicPart(mStatementOrClassStat) != null
             val docsCopy = docs?.map { it.copy() }
 
             val copyOfMemberStatement: PsiElement =
@@ -250,7 +280,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
-                    val openedName = importData.second
+                    val openedName: List<String>? = importData.second
 
                     importAction?.execute(null)
                     val renamings = movedReferablesUniqueNames.map { Pair(it, null) }
@@ -316,32 +346,36 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val referenceElement = usage.reference?.element
             val referenceParent = referenceElement?.parent
 
-            if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) { //Usage in "hiding" list which we simply delete
+            if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) //Usage in "hiding" list which we simply delete
                 RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
-            } else if (referenceElement is ArendReferenceElement) { //Normal usage which we try to fix
-                val targetReferable = movedReferablesMap[usage.referableDescriptor]
-                if (targetReferable != null) ResolveReferenceAction.getProposedFix(targetReferable, referenceElement)?.execute(null)
-            }
+            else if (referenceElement is ArendReferenceElement) //Normal usage which we try to fix
+                movedReferablesMap[usage.referableDescriptor]?.let { ResolveReferenceAction.getProposedFix(it, referenceElement)?.execute(null) }
         }
 
         //Fix references in the elements that have been moved
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
 
         //Prepare a map which would allow us to fix class field usages on the next step (this step is needed only when we are moving definitions out of a record)
-        val referenceElementsFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
+        val fieldsUsagesFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
         for (usage in bodiesClassFieldUsages) {
             val element = locateChild(usage)
             if (element is ArendReferenceElement) {
                 val ancestor = element.ancestor<TCDefinition>()
                 if (ancestor != null && definitionsThatNeedThisParameter.contains(ancestor)) {
-                    val set = referenceElementsFixMap[ancestor] ?: HashSet()
-                    referenceElementsFixMap[ancestor] = set
+                    val set = fieldsUsagesFixMap[ancestor] ?: HashSet()
+                    fieldsUsagesFixMap[ancestor] = set
                     set.add(element)
                 }
             }
         }
 
-        //Add this modifier for items moved out of a class
+        //Add "\\this" arguments to all usages inside the record of the definitions moved out of the record
+        project.service<ArendResolveCache>().clear()
+
+        if (sourceContainerIsARecord) for (dynamicSubgroup in (mySourceContainer as ArendDefClass).dynamicSubgroups)
+            modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "\\this")
+
+        //Add "this" parameters/arguments to definitions moved out of the class + definitions inside it
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
             val anchor = definition.nameIdentifier
             val className = getTargetName(containingClass, definition).let { if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
@@ -374,9 +408,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 doSubstituteThisKwWithThisVar(definition)
                 if (classifyingField != null) doSubstituteUsages(psiFactory, classifyingField, definition, thisVarName, false)
 
-                val recordFieldsToFix = referenceElementsFixMap[definition]
-                if (recordFieldsToFix != null) for (refElement in recordFieldsToFix)
-                    RenameReferenceAction.create(refElement, listOf(thisVarName, refElement.referenceName))?.execute(null)
+                val recordFieldsUsagesToFix = fieldsUsagesFixMap[definition]
+                if (recordFieldsUsagesToFix != null) for (refElement in recordFieldsUsagesToFix)
+                    RenameReferenceAction(refElement, listOf(thisVarName, refElement.referenceName)).execute(null)
+
+                modifyRecordDynamicDefCalls(definition, recordOtherDynamicMembers, psiFactory, thisVarName)
             }
         }
 
@@ -387,6 +423,68 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (item.isValid) EditorHelper.openInEditor(item)
         }
     }
+
+    private fun modifyRecordDynamicDefCalls(psiElementToModify: PsiElement,
+                                            dynamicMembers: Set<PsiLocatedReferable>,
+                                            psiFactory: ArendPsiFactory,
+                                            argument: String) {
+        fun addImplicitFirstArgument(literal: ArendLiteral) {
+            fun doAddImplicitFirstArgument(argumentOrFieldsAcc: PsiElement) {
+                var argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+                while ((surroundingTupleExpr(argumentAppExpr)?.parent as? ArendTuple)?.let { tuple -> tuple.tupleExprList.size == 1 }
+                                ?: false) {
+                    val tuple = argumentAppExpr.parent.parent.parent
+                    if ((tuple.parent as? ArendAtom)?.let {
+                                (it.parent as? ArendAtomFieldsAcc)?.let { atomFieldsAcc ->
+                                    atomFieldsAcc.fieldAccList.isEmpty() && (atomFieldsAcc.parent is ArendArgumentAppExpr)
+                                }
+                            } ?: false)
+                        argumentAppExpr = tuple.parent.parent.parent as ArendArgumentAppExpr
+                    else break
+                }
+                val cExpr = appExprToConcrete(argumentAppExpr)
+                val defArgsData = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
+                if (defArgsData != null && (defArgsData.argumentsConcrete.isEmpty() || defArgsData.argumentsConcrete.first().isExplicit)) {
+                    val ipName = defArgsData.functionReferenceContainer as? ArendIPName
+                    if (ipName != null) when {
+                        ipName.infix != null -> addImplicitArgAfter(psiFactory, argumentOrFieldsAcc, argument, true)
+                        ipName.postfix != null -> {
+                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, argumentOrFieldsAcc, defArgsData)?.atomFieldsAcc
+                            if (transformedAtomFieldsAcc != null) addImplicitArgAfter(psiFactory, transformedAtomFieldsAcc, argument, true)
+                        }
+                    } else {
+                        val prec = getPrec(literal.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve())
+                        val infixMode = literal.ipName?.infix != null || prec != null && isInfix(prec)
+                        addImplicitArgAfter(psiFactory, argumentOrFieldsAcc, argument, infixMode)
+                    }
+                }
+            }
+
+            val parent = literal.parent
+            val grandparent = parent.parent
+            if (parent is ArendAtom && grandparent is ArendAtomFieldsAcc) {
+                val greatGrandParent = grandparent.parent
+                if (greatGrandParent is ArendArgumentAppExpr) {
+                    doAddImplicitFirstArgument(grandparent)
+                } else if (greatGrandParent is ArendAtomArgument) {
+                    val greatGreatGrandParent = greatGrandParent.parent
+                    if (greatGreatGrandParent is ArendArgumentAppExpr) doAddImplicitFirstArgument(greatGrandParent)
+                } // TODO: Make sure that ArendReturnExpr does not occur here
+            } else if (parent is ArendTypeTele) {
+                val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendTypeTele>()
+                if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
+            }
+        }
+
+        for (child in psiElementToModify.children) {
+            modifyRecordDynamicDefCalls(child, dynamicMembers, psiFactory, argument)
+            if (child is ArendLiteral) {
+                val target = child.ipName?.resolve ?: child.longName?.refIdentifierList?.last()?.resolve
+                if (target != null && dynamicMembers.contains(target)) addImplicitFirstArgument(child)
+            }
+        }
+    }
+
 
     private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {
         return if (childPath.isEmpty()) element else {
@@ -442,9 +540,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 continue
             }
             if (recordFields.contains(target)) {
-                return if (classReference)
-                    ref else
-                    null //Prevents the default mechanism of repairing links from being engaged on a longName which includes reference to a non-local classfield (it may break the reference by writing unnecessary "this" before it)
+                return if (classReference) ref else
+                    null //Prevents the default mechanism of links repairing from being engaged on a longName which includes reference to a non-local classfield (it may break the reference by writing unnecessary "this" before it)
             }
             classReference = false
         }
@@ -452,12 +549,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return references.lastOrNull() //this is the default behavior
     }
 
-    private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int, fixMap: HashMap<LocationDescriptor, TargetReference>) {
+    private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int,
+                                  fixMap: HashMap<LocationDescriptor, TargetReference>) {
         if (element is ArendReferenceElement && element !is ArendDefIdentifier && element !is ArendLongName) {
-            val correctTarget = fixMap[LocationDescriptor(groupIndex, prefix)]?.resolve()
+            val descriptor = LocationDescriptor(groupIndex, prefix)
+            val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {
-                val currentTarget = element.reference?.resolve()
-                if (currentTarget != correctTarget) ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
+                ResolveReferenceAction.getProposedFix(correctTarget, element)?.execute(null)
             }
         } else element.children.mapIndexed { i, e -> restoreReferences(prefix + singletonList(i), e, groupIndex, fixMap) }
     }

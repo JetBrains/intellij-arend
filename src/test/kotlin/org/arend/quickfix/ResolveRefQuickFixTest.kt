@@ -806,10 +806,10 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func foo (a : Nat) => a Foo.`lol{-caret-}
             """)
 
-    /* fun `test importing postfix function 3`() =
+    fun `test importing postfix function 3`() =
             simpleImportFixTest("""
                \func test3 => `mod{-caret-} 1 
             """, """
                \func test3 => Nat.`mod 1 
-            """) */
+            """)
 }

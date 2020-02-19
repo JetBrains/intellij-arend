@@ -3,27 +3,18 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
-import org.arend.psi.ArendExpr
 import org.arend.term.abs.Abstract
-import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.typing.parseBinOp
+import org.arend.util.appExprToConcrete
+import org.arend.util.getBounds
 
 class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
     override fun buildChildren(): MutableList<Block> {
-        val expressionVisitor = object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
-                parseBinOp(left, sequence)
-        }
-
-        val cExpr = runReadAction {
-            (node.psi as ArendExpr).accept(expressionVisitor, null)
-        }
+        val cExpr = runReadAction{ appExprToConcrete(node.psi as Abstract.Expression) }
         val children = myNode.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
 
         if (cExpr != null) return transform(cExpr, children, Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
@@ -49,33 +40,6 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
         return super.getChildAttributes(newChildIndex)
     }
 
-    private fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange {
-        val cExprData = cExpr.data
-        if (cExpr is Concrete.AppExpression) {
-            val elements = ArrayList<TextRange>()
-            val fData = cExpr.function.data
-
-            elements.addAll(cExpr.arguments.asSequence().map { getBounds(it.expression, aaeBlocks) })
-
-            if (fData is PsiElement) {
-                val f = aaeBlocks.filter{ it.textRange.contains(fData.textRange) }
-                if (f.size != 1) throw IllegalStateException()
-                elements.add(f.first().textRange)
-            }
-
-            val startOffset = elements.asSequence().map { it.startOffset }.sorted().firstOrNull()
-            val endOffset = elements.asSequence().map { it.endOffset }.sorted().lastOrNull()
-            if (startOffset != null && endOffset != null) {
-                return TextRange.create(startOffset, endOffset)
-            }
-        } else if (cExprData is PsiElement) {
-            for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
-                return psi.textRange
-            }
-        }
-        throw IllegalStateException()
-    }
-
     private fun transform(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, align: Alignment?, indent: Indent): AbstractArendBlock {
         val cExprData = cExpr.data
         if (cExpr is Concrete.AppExpression) {
@@ -97,7 +61,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             val newIndent = if (isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
-                val myBounds = getBounds(it.expression, aaeBlocks)
+                val myBounds = getBounds(it.expression, aaeBlocks)!!
                 val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }
                 val first = isFirst(it)
                 transform(it.expression, aaeBlocksFiltered,
@@ -153,6 +117,8 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             singletonSet.add(psi)
 
             return createArendBlock(psi.node, null, align, indent)
+        } else if (cExpr is Concrete.LamExpression) { // we are dealing with right sections
+            return GroupBlock(settings, aaeBlocks.map { createArendBlock(it, null, null, Indent.getNoneIndent()) }.toMutableList(), null, align, indent, this)
         } else throw IllegalStateException()
     }
 }

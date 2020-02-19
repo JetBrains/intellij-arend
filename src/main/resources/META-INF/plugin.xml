@@ -312,6 +312,20 @@
                 text="Reload Arend Libraries">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
+        <action id="Arend.ShowExprType"
+                class="org.arend.actions.ArendShowTypeAction"
+                text="Show Expression Type"
+                description="Show type of the selected expression">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift P"/>
+        </action>
+
+        <group id="ToolbarArendGroup"
+               class="org.arend.actions.ArendToolbarGroup"
+               text="Arend Editor Toolbar"
+               description="Arend editor toolbar">
+            <add-to-group group-id="NavBarToolBar"
+                          relative-to-action="ToolbarRunGroup" anchor="after"/>
+        </group>
     </actions>
 
 </idea-plugin>

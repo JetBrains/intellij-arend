@@ -116,7 +116,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     }
                 }
                 is ArendCaseExpr -> {
-                    cause.clauseList.lastOrNull() ?: (cause.lbrace ?: cause.withKw?.let {
+                    cause.clauseList.lastOrNull() ?: (cause.lbrace ?: (cause.withKw ?: (cause.returnExpr
+                            ?: cause.caseArgList.lastOrNull())?.let { withAnchor ->
+                        cause.addAfterWithNotification((psiFactory.createExpression("\\case 0 \\with") as ArendCaseExpr).withKw!!,
+                                cause.addAfter(psiFactory.createWhitespace(" "), withAnchor))
+                    })?.let {
                         insertPairOfBraces(psiFactory, it)
                         cause.lbrace
                     })

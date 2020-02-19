@@ -41,7 +41,7 @@ class ArendMoveMembersDialog(project: Project,
                              private val enclosingModule: Module) : MoveDialogBase(project, false) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
-    private val northPanel: JPanel
+    private val centerPanel: JPanel
     private val containerRef: SmartPsiElementPointer<PsiElement>
     private val memberSelectionPanel: ArendMemberSelectionPanel
     private val classPartRow: Row?
@@ -68,9 +68,9 @@ class ArendMoveMembersDialog(project: Project,
         staticGroup = JRadioButton("Static")
         dynamicGroup = JRadioButton("Dynamic")
         var classPartRow1: Row? = null
-        northPanel = panel {
+        centerPanel = panel() {
             row {
-                memberSelectionPanel()
+                ScrollPaneFactory.createScrollPane(memberSelectionPanel, true)()
             }
             row("Target file: ") {
                 targetFileTextField()
@@ -78,11 +78,16 @@ class ArendMoveMembersDialog(project: Project,
             row("Target module: ") {
                 targetModuleTextField()
             }
+
             classPartRow1 = row("Target part of the class") {
                 buttonGroup {
                     staticGroup()
                     dynamicGroup()
                 }
+            }
+
+            row {
+                initOpenInEditorCb()()
             }
         }
         classPartRow = classPartRow1
@@ -184,9 +189,7 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun getMovePropertySuffix(): String = "Arend static member"
 
-    override fun createCenterPanel(): JComponent? = initOpenInEditorCb()
-
-    override fun createNorthPanel(): JComponent? = northPanel
+    override fun createCenterPanel(): JComponent? = centerPanel
 
     override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 

@@ -4,8 +4,9 @@ import com.intellij.lang.ASTNode
 import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
-import org.arend.term.abs.Abstract
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ArendLongName
+import org.arend.term.abs.Abstract
 
 
 abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendLongName {

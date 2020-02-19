@@ -16,8 +16,8 @@ import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
-import org.arend.refactoring.checkConcreteExprIsArendExpr
 import org.arend.refactoring.checkConcreteExprIsFunc
+import org.arend.refactoring.checkConcreteExprIsArendExpr
 import org.arend.refactoring.concreteDataToReference
 import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.abs.Abstract

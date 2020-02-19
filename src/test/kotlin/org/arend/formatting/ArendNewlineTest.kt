@@ -213,6 +213,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func bar => \\let x =>{-caret-}",
             "\\func bar => \\let x =>\n                    {-caret-}")
 
+    /* fun testConstructorsInConstructorClause() = checkNewLine(
+            "\\data D (n : Nat) \\with\n  | 0 => {{-caret-}}",
+            "\\data D (n : Nat) \\with\n  | 0 => {\n    {-caret-}\n  }") */
+
     // Test newline in docs
 
     fun testInlineDoc() = checkNewLine("-- | Foo {-caret-} Bar", "-- | Foo \n-- {-caret-} Bar")
