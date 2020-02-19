@@ -17,6 +17,8 @@ import org.arend.util.register
 
 class ArendStartupActivity : StartupActivity {
     override fun runActivity(project: Project) {
+        val libraryManager = project.service<TypeCheckingService>().libraryManager
+
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun moduleAdded(project: Project, module: Module) {
                 if (ArendModuleType.has(module)) {
@@ -25,7 +27,6 @@ class ArendStartupActivity : StartupActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                val libraryManager = project.service<TypeCheckingService>().libraryManager
                 ArendRawLibrary.getLibraryFor(libraryManager, module)?.let {
                     libraryManager.unloadLibrary(it)
                 }
@@ -34,7 +35,7 @@ class ArendStartupActivity : StartupActivity {
 
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
             override fun projectClosed(project: Project) {
-                project.service<TypeCheckingService>().libraryManager.unload()
+                libraryManager.unload()
             }
         })
 
