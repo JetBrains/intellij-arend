@@ -695,7 +695,7 @@ class ArendCompletionContributor : CompletionContributor() {
         companion object {
             fun textBeforeCaret(whiteSpace: PsiWhiteSpace, caretOffset: Int): String = when {
                 whiteSpace.textRange.contains(caretOffset) -> whiteSpace.text.substring(0, caretOffset - whiteSpace.textRange.startOffset)
-                caretOffset < whiteSpace.textRange.startOffset -> ""
+                caretOffset < whiteSpace.startOffset -> ""
                 else -> whiteSpace.text
             }
 

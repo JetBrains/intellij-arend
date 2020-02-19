@@ -11,6 +11,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.ancestors
+import org.arend.psi.endOffset
+import org.arend.psi.startOffset
 
 // code borrowed from kotlin plugin
 
@@ -59,8 +61,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
                 }
             }
             if (forbidCaretInsideElement(element)) {
-                val textRange = element.textRange
-                if (textRange.startOffset < offset && offset < textRange.endOffset) break
+                if (element.startOffset < offset && offset < element.endOffset) break
             }
         }
         return null

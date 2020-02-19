@@ -74,7 +74,7 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
         private fun foldBetween(element: PsiElement, left: PsiElement?, right: PsiElement?) {
             if (left != null) {
-                val range = TextRange(left.textOffset, right?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
+                val range = TextRange(left.textOffset, right?.textOffset?.let { it + 1 } ?: element.endOffset)
                 if (!range.isEmpty) {
                     descriptors += FoldingDescriptor(element.node, range)
                 }

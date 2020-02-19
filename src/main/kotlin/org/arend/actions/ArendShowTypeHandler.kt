@@ -122,8 +122,8 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
             .toList()
         if (exprs.size == 1) return exprs.first().textRange
         // exprs is guaranteed to be empty
-        val leftMost = exprs.minBy { it.textRange.startOffset }!!
-        val rightMost = exprs.maxBy { it.textRange.endOffset }!!
+        val leftMost = exprs.minBy { it.startOffset }!!
+        val rightMost = exprs.maxBy { it.endOffset }!!
         val siblings = PsiTreeUtil
             .findCommonParent(leftMost, rightMost)
             ?.childrenWithLeaves
@@ -132,8 +132,8 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         val left = siblings.first { PsiTreeUtil.isAncestor(it, leftMost, false) }
         val right = siblings.last { PsiTreeUtil.isAncestor(it, rightMost, false) }
         return TextRange.create(
-            minOf(left.textRange.startOffset, right.textRange.startOffset),
-            maxOf(left.textRange.endOffset, right.textRange.endOffset)
+            minOf(left.startOffset, right.startOffset),
+            maxOf(left.endOffset, right.endOffset)
         )
     }
 
@@ -146,8 +146,8 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
             if (firstExpr != null) return listOf(firstExpr)
         }
         val exprs = parent.childrenWithLeaves
-                .dropWhile { it.textRange.endOffset < range.startOffset }
-                .takeWhile { it.textRange.startOffset < range.endOffset }
+                .dropWhile { it.endOffset < range.startOffset }
+                .takeWhile { it.startOffset < range.endOffset }
                 .toList()
         if (exprs.isEmpty()) return emptyList()
         return if (exprs.size == 1) {

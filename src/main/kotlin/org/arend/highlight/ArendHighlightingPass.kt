@@ -82,13 +82,13 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     val textRange = if (last is ArendIPNameImplMixin) {
                         last.parentLiteral?.let { literal ->
                             literal.longName?.let { longName ->
-                                TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset)
+                                TextRange(longName.startOffset, (literal.dot ?: longName).endOffset)
                             }
                         }
                     } else {
                         (last.parent as? ArendLongName)?.let { longName ->
                             last.extendLeft.prevSibling?.let { nextToLast ->
-                                TextRange(longName.textRange.startOffset, nextToLast.textRange.endOffset)
+                                TextRange(longName.startOffset, nextToLast.endOffset)
                             }
                         }
                     }

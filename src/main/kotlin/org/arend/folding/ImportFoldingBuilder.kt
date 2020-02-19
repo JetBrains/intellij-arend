@@ -8,7 +8,9 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendFile
+import org.arend.psi.endOffset
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.startOffset
 
 
 class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {
@@ -37,7 +39,7 @@ class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {
                     i++
                 }
 
-                val descriptor = FoldingDescriptor(group.node, TextRange(start.textRange.startOffset, statements[i - 1].textRange.endOffset), null, "...", isImport, emptySet())
+                val descriptor = FoldingDescriptor(group.node, TextRange(start.startOffset, statements[i - 1].endOffset), null, "...", isImport, emptySet())
                 descriptor.setCanBeRemovedWhenCollapsed(true)
                 descriptors.add(descriptor)
             }

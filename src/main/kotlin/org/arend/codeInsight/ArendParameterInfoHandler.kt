@@ -144,7 +144,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
     }
 
     override fun showParameterInfo(element: ArendReferenceContainer, context: CreateParameterInfoContext) {
-        context.showHint(element, element.textRange.startOffset, this)
+        context.showHint(element, element.startOffset, this)
     }
 
     override fun getParametersForLookup(item: LookupElement?, context: ParameterInfoContext?): Array<Any>? {

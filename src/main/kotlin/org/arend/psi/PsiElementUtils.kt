@@ -37,6 +37,12 @@ val PsiElement.ancestors: Sequence<PsiElement>
 val PsiElement.childrenWithLeaves: Sequence<PsiElement>
     get() = generateSequence(firstChild) { it.nextSibling }
 
+val PsiElement.startOffset: Int
+    get() = textRange.startOffset
+
+val PsiElement.endOffset: Int
+    get() = textRange.endOffset
+
 inline fun <reified T : PsiElement> PsiElement.ancestor(): T? {
     var element: PsiElement? = this
     while (element != null && element !is T && element !is PsiFile) {

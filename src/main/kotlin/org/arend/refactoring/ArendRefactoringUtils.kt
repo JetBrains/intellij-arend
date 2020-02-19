@@ -339,14 +339,14 @@ fun deleteSuperfluousPatternParentheses(atomPattern: ArendAtomPattern) {
 
 fun moveCaretToEndOffset(editor: Editor?, anchor: PsiElement) {
     if (editor != null) {
-        editor.caretModel.moveToOffset(anchor.textRange.endOffset)
+        editor.caretModel.moveToOffset(anchor.endOffset)
         IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
     }
 }
 
 fun moveCaretToStartOffset(editor: Editor?, anchor: PsiElement) {
     if (editor != null) {
-        editor.caretModel.moveToOffset(anchor.textRange.startOffset)
+        editor.caretModel.moveToOffset(anchor.startOffset)
         IdeFocusManager.getGlobalInstance().requestFocus(editor.contentComponent, true)
     }
 }

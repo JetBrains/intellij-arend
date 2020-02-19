@@ -244,22 +244,22 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
             ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
-                return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
+                return TextRange(it.startOffset, improvedElement.endOffset)
             }
 
             (((improvedElement as? ArendRefIdentifier)?.parent as? ArendLongName)?.parent as? ArendCoClause)?.let {
-                return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
+                return TextRange(it.startOffset, improvedElement.endOffset)
             }
 
             ((improvedElement as? ArendLongName)?.parent as? CoClauseBase)?.let { coClause ->
                 val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow ?: coClause.lbrace ?: improvedElement
-                return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
+                return TextRange(coClause.startOffset, endElement.endOffset)
             }
 
             if ((error as? TypecheckingError)?.kind == BODY_IGNORED) {
                 (improvedElement as? ArendExpr ?: improvedElement.parent as? ArendExpr)?.let { expr ->
                     (expr.topmostEquivalentSourceNode.parentSourceNode as? ArendClause)?.let { clause ->
-                        return TextRange((clause.fatArrow ?: expr).textRange.startOffset, expr.textRange.endOffset)
+                        return TextRange((clause.fatArrow ?: expr).startOffset, expr.endOffset)
                     }
                 }
             }
@@ -268,9 +268,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 val prev = improvedElement.extendLeft.prevSibling
                 val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
                 val endOffset =
-                    if (error is ConditionsError) (improvedElement.patternList.lastOrNull() ?: improvedElement as PsiElement).textRange.endOffset
-                    else improvedElement.textRange.endOffset
-                return TextRange(startElement.textRange.startOffset, endOffset)
+                    if (error is ConditionsError) (improvedElement.patternList.lastOrNull() ?: improvedElement as PsiElement).endOffset
+                    else improvedElement.endOffset
+                return TextRange(startElement.startOffset, endOffset)
             }
 
             if ((error as? TypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
@@ -286,7 +286,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         break
                     }
                 }
-                return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
+                return TextRange(improvedElement.startOffset, endElement.endOffset)
             }
 
             return improvedElement.textRange

@@ -22,11 +22,8 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.arend.settings.ArendSettings
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.ArendDefIdentifier
+import org.arend.psi.*
 import org.arend.term.group.Group
-import org.arend.psi.ArendFieldDefIdentifier
-import org.arend.psi.ArendIPName
-import org.arend.psi.ArendPattern
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
@@ -114,10 +111,10 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         if (highPriorityFixes.isNotEmpty()) { // thus we prevent showing hint-action for class field names
             val hintText = ShowAutoImportPass.getMessage(fixes.size > 1, fixes[0].toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
-                var endOffset = referenceElement.textRange.endOffset
+                var endOffset = referenceElement.endOffset
                 if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
                 val action = ArendAddImportAction(project, editor, referenceElement, fixes, false)
-                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
+                HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN
         }
