@@ -142,7 +142,8 @@ class ArendShowTypeHandler(private val requestFocus: Boolean) : CodeInsightActio
         parent: PsiElement,
         range: TextRange
     ): List<Abstract.Expression> {
-        if (parent.textRange == range) {
+        if (range.isEmpty && range.startOffset == parent.textRange.startOffset
+            || parent.textRange == range) {
             val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
             if (firstExpr != null) return listOf(firstExpr)
         }
