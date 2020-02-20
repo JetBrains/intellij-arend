@@ -6,6 +6,7 @@ import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
@@ -26,7 +27,7 @@ abstract class ArendIPNameImplMixin(node: ASTNode) : ArendCompositeElementImpl(n
         get() = referent
 
     override val resolvedInScope: Referable?
-        get() = referenceNameElement.resolvedInScope
+        get() = ExpressionResolveNameVisitor.resolve(referent, scope)
 
     override val resolve
         get() = referenceNameElement.reference.resolve()
