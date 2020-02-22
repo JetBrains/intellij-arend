@@ -52,12 +52,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test root keywords completion 1`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.CONTAINS,
                     "\\import B\n {-caret-}\\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
-                    "\\import B \\func foo => 0\n {-caret-}\\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
                     "\\import B \\func foo => 0 \\data bar | foobar\n {-caret-}\\func f => 0 \\where { \\func g => 1 } ",
                     "\\import B \\hiding (a)\n{-caret-}\\func foo => 0 \\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ",
                     "\\func f (xs : Nat) : Nat \\elim xs\n | suc x => \\case x \\with {| zero => 0 | suc _ => 1}\n {-caret-}",
                     "\\class A {}\n {-caret-}",
                     "\\func foo => 0\n  \\where\n    \\func bar => 1\n\n{-caret-}\n\n\\func baz => 2")
+
+    fun `test root keywords completion 2`() =
+            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST, CompletionCondition.CONTAINS,
+                    "\\import B \\func foo => 0\n {-caret-}\\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ")
 
     private val kwSuite1 =
             arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
@@ -127,7 +130,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(USE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN, *kwModuleInsideClass)
 
     fun `test no root keywords completion`() =
-            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST,
+            checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_DATA_KW_LIST + IMPORT_KW_LIST + USE_KW_LIST,
                     CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class Foo {| A : Nat\n {-caret-} \n | B : Nat }",
                     "\\class Foo {\n {-caret-} \n | A : Nat }",

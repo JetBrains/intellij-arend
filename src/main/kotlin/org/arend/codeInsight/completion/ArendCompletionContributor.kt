@@ -12,6 +12,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType.BAD_CHARACTER
+import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
@@ -55,17 +56,11 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(STATEMENT_WT_KWS))
 
-        basic(STATEMENT_END_CONTEXT, object : JointOfStatementsProvider(TRUNCATED_KW_LIST) {
-            override fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
-                val document = insertContext.document
-                document.insertString(insertContext.tailOffset, " \\data ")
-                insertContext.commitDocument()
-                insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
-            }
+        fun noDataCondition(cP : ArendCompletionParameters) = cP.nextElement.elementType == DATA_KW
 
-            override fun lookupElement(keyword: String): LookupElementBuilder =
-                    LookupElementBuilder.create(keyword).withPresentableText("\\truncated \\data")
-        })
+        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(TRUNCATED_DATA_KW_LIST, { completionParameters -> !noDataCondition(completionParameters) }))
+
+        basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(listOf(TRUNCATED_KW.toString()), { completionParameters -> noDataCondition(completionParameters) }))
 
         basic(STATEMENT_END_CONTEXT, JointOfStatementsProvider(IMPORT_KW_LIST, { parameters ->
             val noWhere = { seq: Sequence<PsiElement> -> seq.filter { it is ArendWhere || it is ArendDefClass }.none() }
