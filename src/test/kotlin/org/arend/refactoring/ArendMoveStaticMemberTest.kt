@@ -1209,9 +1209,11 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                  \func foo16 : Nat => 1 ibar 2
                  
-                 \func foo17 : Nat => (`bar 2)
+                 \func foo17 : Nat -> Nat => (`bar 2)
                  
                  \func foo18 : Nat => ((bar)) {\this} 1 2
+                 
+                 \func foo19 => (`bar 202 : Nat -> Nat)
                }
             """, """
                \record R {
@@ -1258,12 +1260,15 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                \func foo16 {this : R} : Nat => 1 R.ibar {this} 2
                
-               \func foo17 {this : R} : Nat => (\lam n => R.bar {this} n 2)
+               \func foo17 {this : R} : Nat -> Nat => (\lam n => R.bar {this} n 2)
                
                \func foo18 {this : R} : Nat => ((R.bar)) {this} 1 2
+               
+               \func foo19 {this : R} => ((\lam n => R.bar {this} n 202) : Nat -> Nat)
             """, "Main", "", "Main", 
                     "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8",
-                    "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16", "R.foo17", "R.foo18")
+                    "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16",
+                    "R.foo17", "R.foo18", "R.foo19")
 
     fun testMoveOutOfRecord6() =
             testMoveRefactoring("""
@@ -1421,13 +1426,13 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                
                  \func bar => 202
 
-                 \func foobar => foo {\this}
+                 \func foobar => foo {_} {\this}
                } \where {
                  \open D (foo)
                }
 
                \class D {
-                 \func fubar => foo {\new C {| number => 1}}
+                 \func fubar => foo {\this} {\new C {| number => 1}}
 
                  \func foo {this : C} => C.bar {this} Nat.+ (C.bar {this}) Nat.+ this.number 
                }
