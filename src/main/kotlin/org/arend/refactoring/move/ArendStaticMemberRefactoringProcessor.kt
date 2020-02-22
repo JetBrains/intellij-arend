@@ -372,8 +372,18 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
         //Add "\\this" arguments to all usages inside the record of the definitions moved out of the record
         project.service<ArendResolveCache>().clear()
 
-        if (sourceContainerIsARecord) for (dynamicSubgroup in (mySourceContainer as ArendDefClass).dynamicSubgroups)
+        if (sourceContainerIsARecord) for (dynamicSubgroup in (mySourceContainer as ArendDefClass).dynamicSubgroups) {
             modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "\\this")
+        }
+
+        if (forceThisParameter) for (dynamicSubgroup in (mySourceContainer as ArendDefClass).dynamicSubgroups) {
+            modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "_", true)
+        }
+
+        if (forceThisParameter) for (dynamicSubgroup in (myTargetContainer as ArendDefClass).dynamicSubgroups) {
+            modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "\\this", true)
+        }
+
 
         //Add "this" parameters/arguments to definitions moved out of the class + definitions inside it
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
@@ -427,7 +437,8 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
     private fun modifyRecordDynamicDefCalls(psiElementToModify: PsiElement,
                                             dynamicMembers: Set<PsiLocatedReferable>,
                                             psiFactory: ArendPsiFactory,
-                                            argument: String) {
+                                            argument: String,
+                                            proceedEvenIfThereIsAnImplicitFirstParameter: Boolean = false) {
         fun addImplicitFirstArgument(literal: ArendLiteral) {
             fun doAddImplicitFirstArgument(argumentOrFieldsAcc: PsiElement) {
                 var argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
@@ -445,7 +456,7 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
                 }
                 val cExpr = appExprToConcrete(argumentAppExpr)
                 val defArgsData = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
-                if (defArgsData != null && (defArgsData.argumentsConcrete.isEmpty() || defArgsData.argumentsConcrete.first().isExplicit)) {
+                if (defArgsData != null && (defArgsData.argumentsConcrete.isEmpty() || defArgsData.argumentsConcrete.first().isExplicit || proceedEvenIfThereIsAnImplicitFirstParameter)) {
                     val ipName = defArgsData.functionReferenceContainer as? ArendIPName
                     if (ipName != null) when {
                         ipName.infix != null -> addImplicitArgAfter(psiFactory, argumentOrFieldsAcc, argument, true)
@@ -470,7 +481,7 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
                 } else if (greatGrandParent is ArendAtomArgument) {
                     val greatGreatGrandParent = greatGrandParent.parent
                     if (greatGreatGrandParent is ArendArgumentAppExpr) doAddImplicitFirstArgument(greatGrandParent)
-                } // TODO: Make sure that ArendReturnExpr does not occur here
+                }
             } else if (parent is ArendTypeTele) {
                 val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendTypeTele>()
                 if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
@@ -478,7 +489,7 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
         }
 
         for (child in psiElementToModify.children) {
-            modifyRecordDynamicDefCalls(child, dynamicMembers, psiFactory, argument)
+            modifyRecordDynamicDefCalls(child, dynamicMembers, psiFactory, argument, proceedEvenIfThereIsAnImplicitFirstParameter)
             if (child is ArendLiteral) {
                 val target = child.ipName?.resolve ?: child.longName?.refIdentifierList?.last()?.resolve
                 if (target != null && dynamicMembers.contains(target)) addImplicitFirstArgument(child)
