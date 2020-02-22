@@ -4,7 +4,9 @@ import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.core.expr.Expression
 import org.arend.refactoring.SubExprError
@@ -22,7 +24,8 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
     }
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
-        val visited = correspondedSubExpr(editor, file, project)
+        val range = EditorUtil.getSelectionInAnyMode(editor)
+        val visited = correspondedSubExpr(range, file, project)
         val subCore = visited.proj1
         val textRange = rangeOfConcrete(visited.proj2)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)

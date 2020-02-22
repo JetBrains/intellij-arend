@@ -1,8 +1,6 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -32,8 +30,7 @@ import org.arend.util.appExprToConcrete
 class SubExprError(message: String) : Throwable(message)
 
 @Throws(SubExprError::class)
-fun correspondedSubExpr(editor: Editor, file: PsiFile, project: Project): Pair<Expression, Concrete.Expression> {
-    val range = EditorUtil.getSelectionInAnyMode(editor)
+fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): Pair<Expression, Concrete.Expression> {
     val possibleParent = (if (range.isEmpty)
         file.findElementAt(range.startOffset)
     else PsiTreeUtil.findCommonParent(
