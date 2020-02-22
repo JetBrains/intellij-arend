@@ -23,7 +23,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
+import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
 import org.arend.util.appExprToConcrete
 
 class SubExprError(message: String) : Throwable(message)
