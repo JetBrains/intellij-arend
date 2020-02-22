@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.core.expr.Expression
+import org.arend.psi.ArendExpr
 import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.rangeOfConcrete
@@ -25,14 +26,13 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
         val range = EditorUtil.getSelectionInAnyMode(editor)
-        val visited = correspondedSubExpr(range, file, project)
-        val subCore = visited.proj1
-        val textRange = rangeOfConcrete(visited.proj2)
+        val (subCore, subExpr, subPsi) = correspondedSubExpr(range, file, project)
+        val textRange = rangeOfConcrete(subExpr)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-        displayHint { showInformationHint(editor, pretty(project, subCore)) }
+        displayHint { showInformationHint(editor, pretty(project, subCore, subPsi, range)) }
     } catch (t: SubExprError) {
         displayHint { showErrorHint(editor, "Failed to obtain type because ${t.message}") }
     }
 
-    abstract fun pretty(project: Project, subCore: Expression): String
+    abstract fun pretty(project: Project, subCore: Expression, subPsi: ArendExpr, range: TextRange): String
 }

@@ -24,13 +24,14 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.CorrespondedSubExprVisitor
-import org.arend.util.Pair
 import org.arend.util.appExprToConcrete
 
 class SubExprError(message: String) : Throwable(message)
 
 @Throws(SubExprError::class)
-fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): Pair<Expression, Concrete.Expression> {
+fun correspondedSubExpr(
+        range: TextRange, file: PsiFile, project: Project
+): Triple<Expression, Concrete.Expression, ArendExpr> {
     val possibleParent = (if (range.isEmpty)
         file.findElementAt(range.startOffset)
     else PsiTreeUtil.findCommonParent(
@@ -38,8 +39,9 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): Pair
             file.findElementAt(range.endOffset - 1)
     )) ?: throw SubExprError("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val parent = possibleParent.ancestor<ArendExpr>()?.parent
+    val exprAncestor = possibleParent.ancestor<ArendExpr>()
             ?: throw SubExprError("selected text is not an arend expression")
+    val parent = exprAncestor.parent
     val psiDef = parent.ancestor<ArendDefinition>()
             ?: throw SubExprError("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
@@ -76,9 +78,10 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): Pair
         children.first().expression
     else parser.parse(Concrete.BinOpSequenceExpression(null, children))
     val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
-    return concreteBody
+    val result = concreteBody
             .accept(subExprVisitor, body)
             ?: throw SubExprError("cannot find a suitable subexpression")
+    return Triple(result.proj1, result.proj2, exprAncestor)
 }
 
 private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {
