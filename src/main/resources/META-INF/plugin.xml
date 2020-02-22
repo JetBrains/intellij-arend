@@ -312,11 +312,19 @@
                 text="Reload Arend Libraries">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
+
         <action id="Arend.ShowExprType"
                 class="org.arend.actions.ArendShowTypeAction"
                 text="Show Expression Type"
                 description="Show type of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift P"/>
+        </action>
+
+        <action id="Arend.ShowExprNormalForm"
+                class="org.arend.actions.ArendShowNormalFormAction"
+                text="Show Expression Normal Form"
+                description="Show the normal form of the selected expression">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift N"/>
         </action>
 
         <group id="ToolbarArendGroup"
