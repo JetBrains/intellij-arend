@@ -1,4 +1,4 @@
-package org.arend.codeInsight.completion
+package org.arend.yaml.codeInsight
 
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
@@ -6,8 +6,8 @@ import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendIcons
-import org.arend.module.config.KEYS
-import org.arend.module.config.isYAMLConfig
+import org.arend.yaml.KEYS
+import org.arend.yaml.isYAMLConfig
 import org.jetbrains.yaml.YAMLTokenTypes
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLMapping

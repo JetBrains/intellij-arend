@@ -19,6 +19,7 @@ import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.*
+import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Paths
 

@@ -8,6 +8,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
 import org.arend.util.FileUtils
+import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
 
 
