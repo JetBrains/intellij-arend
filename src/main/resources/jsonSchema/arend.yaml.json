@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$id": "arend.yaml.json",
+  "type": "object",
+  "description": "Arend project configuration file.",
+  "required": [
+    "langVersion",
+    "sourcesDir",
+    "binariesDir"
+  ],
+  "properties": {
+    "langVersion": {
+      "$id": "#/properties/langVersion",
+      "type": "string",
+      "description": "The version of Arend toolchain.",
+      "pattern": "^(\\d+(\\.\\d+){0,2})$"
+    },
+    "sourcesDir": {
+      "$id": "#/properties/sourcesDir",
+      "type": "string",
+      "description": "The directory to read Arend definitions from.",
+      "default": "src",
+      "pattern": "^(.*)$"
+    },
+    "binariesDir": {
+      "$id": "#/properties/binariesDir",
+      "type": "string",
+      "description": "The directory to put serialized Arend definitions.",
+      "default": ".bin",
+      "pattern": "^(.*)$"
+    }
+  }
+}

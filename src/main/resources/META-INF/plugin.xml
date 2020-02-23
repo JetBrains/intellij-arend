@@ -37,6 +37,7 @@
          on how to target different products -->
     <depends>org.jetbrains.plugins.yaml</depends>
     <depends>com.intellij.modules.java</depends>
+    <depends optional="true" config-file="plugin-json.xml">com.intellij.modules.json</depends>
 
     <extensions defaultExtensionNs="com.intellij">
 
