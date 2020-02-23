@@ -1,7 +1,9 @@
 package org.arend.yaml
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiManager
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 import com.jetbrains.jsonSchema.extension.SchemaType
@@ -21,6 +23,10 @@ class ArendYamlSchemaProvider(private val project: Project) : JsonSchemaFileProv
 
     override fun isAvailable(file: VirtualFile) = !project.isDisposed
             && JsonSchemaService.Impl.get(project).isApplicableToFile(file)
+            // If no project opened, enable support anyway
+            && ApplicationManager.getApplication().runReadAction<Boolean> {
+        PsiManager.getInstance(project).findFile(file)?.isYAMLConfig ?: true
+    }
 
     override fun getSchemaFile() = schemaFileLazy
 }
