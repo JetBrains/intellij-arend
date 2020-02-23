@@ -3,4 +3,9 @@
         <JsonSchema.ProviderFactory
                 implementation="org.arend.yaml.ArendYamlSchemaProviderFactory"/>
     </extensions>
+
+    <extensions defaultExtensionNs="com.intellij.json">
+        <jsonSchemaEnabler
+                implementation="org.arend.yaml.ArendYamlSchemaEnabler"/>
+    </extensions>
 </idea-plugin>

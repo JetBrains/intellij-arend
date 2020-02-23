@@ -11,7 +11,10 @@
   "properties": {
     "langVersion": {
       "$id": "#/properties/langVersion",
-      "type": "string",
+      "type": [
+        "string",
+        "number"
+      ],
       "description": "The version of Arend toolchain.",
       "pattern": "^(\\d+(\\.\\d+){0,2})$"
     },
