@@ -45,6 +45,7 @@
         <!-- File Type -->
 
         <fileType language="Arend" implementationClass="org.arend.ArendFileType" name="Arend" extensions="ard" />
+        <fileType implementationClass="org.arend.serialized.ArendSerializedFileType" name="Arend serialzed" extensions="arc"/>
 
         <!-- Parser -->
 
