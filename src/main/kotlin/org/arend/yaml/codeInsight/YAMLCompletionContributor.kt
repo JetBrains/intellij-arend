@@ -1,6 +1,8 @@
 package org.arend.yaml.codeInsight
 
-import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionContributor
+import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendIcons
@@ -34,7 +36,7 @@ class YAMLCompletionContributor : CompletionContributor() {
 
     // Not working, maybe because we don't have psi references in directories
     // private val filePathContributor by lazy(::FilePathCompletionContributor)
-    private val javaClassContributor by lazy (::JavaClassNameCompletionContributor)
+    // private val javaClassContributor by lazy (::JavaClassNameCompletionContributor)
 
     private fun keyValue(
             parent: YAMLKeyValue,
@@ -46,14 +48,20 @@ class YAMLCompletionContributor : CompletionContributor() {
                 .withIcon(ArendIcons.AREND))
         SOURCES, BINARIES, EXTENSIONS -> {
             // filePathContributor.fillCompletionVariants(parameters, result)
-            for (directory in parent.containingFile?.containingDirectory?.subdirectories.orEmpty()) {
+            for (directory in parent
+                    .containingFile
+                    ?.originalFile
+                    ?.containingDirectory
+                    ?.subdirectories
+                    .orEmpty()) {
                 result.addElement(LookupElementBuilder
                         .create(directory.name)
                         .withIcon(ArendIcons.DIRECTORY))
             }
         }
-        EXTENSION_MAIN -> javaClassContributor
-                .fillCompletionVariants(parameters, result)
+        EXTENSION_MAIN -> {
+            // javaClassContributor.fillCompletionVariants(parameters, result)
+        }
         else -> {
         }
     }
