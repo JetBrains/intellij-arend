@@ -3,12 +3,11 @@ package org.arend.yaml.codeInsight
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.FilePathCompletionContributor
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendIcons
 import org.arend.prelude.Prelude
 import org.arend.yaml.*
-import org.jetbrains.yaml.YAMLTokenTypes
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
@@ -25,7 +24,7 @@ class YAMLCompletionContributor : CompletionContributor() {
         }
 
         val element = parameters.position
-        if (element is LeafPsiElement && element.node.elementType == YAMLTokenTypes.TEXT) {
+        if (YAMLReferenceContributor.isYamlToken(element)) {
             val textImpl = element.parent as? YAMLPlainTextImpl ?: return
             when (val parent = textImpl.parent) {
                 is YAMLMapping -> mapping(parent, result)
@@ -34,8 +33,9 @@ class YAMLCompletionContributor : CompletionContributor() {
         }
     }
 
+    private val filePathContributor by lazy(::FilePathCompletionContributor)
+
     // Not working, maybe because we don't have psi references in directories
-    // private val filePathContributor by lazy(::FilePathCompletionContributor)
     // private val javaClassContributor by lazy (::JavaClassNameCompletionContributor)
 
     private fun keyValue(
@@ -47,17 +47,7 @@ class YAMLCompletionContributor : CompletionContributor() {
                 .create(Prelude.VERSION.toString())
                 .withIcon(ArendIcons.AREND))
         SOURCES, BINARIES, EXTENSIONS -> {
-            // filePathContributor.fillCompletionVariants(parameters, result)
-            for (directory in parent
-                    .containingFile
-                    ?.originalFile
-                    ?.containingDirectory
-                    ?.subdirectories
-                    .orEmpty()) {
-                result.addElement(LookupElementBuilder
-                        .create(directory.name)
-                        .withIcon(ArendIcons.DIRECTORY))
-            }
+            filePathContributor.fillCompletionVariants(parameters, result)
         }
         EXTENSION_MAIN -> {
             // javaClassContributor.fillCompletionVariants(parameters, result)

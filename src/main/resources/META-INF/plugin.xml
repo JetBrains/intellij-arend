@@ -166,11 +166,13 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
+        <!-- Support arend.yaml -->
+
         <completion.contributor language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLCompletionContributor"/>
 
-        <!-- Annotation -->
-
         <annotator language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLHighlightingAnnotator"/>
+
+        <psi.referenceContributor language="yaml" implementation="org.arend.yaml.codeInsight.YAMLReferenceContributor"/>
 
         <!-- Intention Actions -->
         <intentionAction>
