@@ -3,7 +3,6 @@ package org.arend.settings
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.util.xmlb.XmlSerializerUtil
-import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.toolWindow.errors.MessageType
@@ -80,7 +79,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         options.showPrefixPath = filterSet.contains(PrettyPrinterFlag.SHOW_PREFIX_PATH)
         options.showBinOpImplicitArgs = filterSet.contains(PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS)
         options.showCaseResultType = filterSet.contains(PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE)
-        options.showInferenceLevelVars = filterSet.contains(PrettyPrinterFlag.SHOW_INFERENCE_LEVEL_VARS)
+        options.showLevels = filterSet.contains(PrettyPrinterFlag.SHOW_LEVELS)
     }
 
     override fun loadState(state: ArendProjectSettingsState) {
@@ -117,6 +116,6 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_PREFIX_PATH, printingOptions.showPrefixPath)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS, printingOptions.showBinOpImplicitArgs)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE, printingOptions.showCaseResultType)
-        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_INFERENCE_LEVEL_VARS, printingOptions.showInferenceLevelVars)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_LEVELS, printingOptions.showLevels)
     }
 }

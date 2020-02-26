@@ -2,6 +2,7 @@ package org.arend.module.config
 
 import org.arend.util.Range
 import org.arend.util.Version
+import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
 
 

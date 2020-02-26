@@ -37,6 +37,7 @@
          on how to target different products -->
     <depends>org.jetbrains.plugins.yaml</depends>
     <depends>com.intellij.modules.java</depends>
+    <depends optional="true" config-file="plugin-json.xml">com.intellij.modules.json</depends>
 
     <extensions defaultExtensionNs="com.intellij">
 
@@ -165,11 +166,13 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
-        <completion.contributor language="yaml" implementationClass="org.arend.codeInsight.completion.YAMLCompletionContributor"/>
+        <!-- Support arend.yaml -->
 
-        <!-- Annotation -->
+        <completion.contributor language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLCompletionContributor"/>
 
-        <annotator language="yaml" implementationClass="org.arend.annotation.YAMLHighlightingAnnotator"/>
+        <annotator language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLHighlightingAnnotator"/>
+
+        <psi.referenceContributor language="yaml" implementation="org.arend.yaml.codeInsight.YAMLReferenceContributor"/>
 
         <!-- Intention Actions -->
         <intentionAction>
@@ -312,11 +315,19 @@
                 text="Reload Arend Libraries">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
-        <action id="Arend.ShowExprType"
+
+        <action id="Arend.ShowExpr.Type"
                 class="org.arend.actions.ArendShowTypeAction"
                 text="Show Expression Type"
                 description="Show type of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift P"/>
+        </action>
+
+        <action id="Arend.ShowExpr.NormalForm"
+                class="org.arend.actions.ArendShowNormalFormAction"
+                text="Show Expression Normal Form"
+                description="Show the normal form of the selected expression">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
         </action>
 
         <group id="ToolbarArendGroup"

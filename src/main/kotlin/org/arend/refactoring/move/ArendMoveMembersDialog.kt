@@ -31,6 +31,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.util.FullName
 import java.awt.BorderLayout
+import java.awt.Dimension
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -91,23 +92,19 @@ class ArendMoveMembersDialog(project: Project,
             }
         }
         classPartRow = classPartRow1
-        sourceIsDynamic = determineClassPart(elements)
 
         if (container is ArendDefClass) {
+            sourceIsDynamic = determineClassPart(elements)
             classPartRow?.enabled = true
             if (sourceIsDynamic != null && sourceIsDynamic) dynamicGroup.isSelected = true else
                 if (sourceIsDynamic != null && !sourceIsDynamic) staticGroup.isSelected = true
         } else {
+            sourceIsDynamic = null
             classPartRow?.enabled = false
             staticGroup.isSelected = true
         }
 
-        val updater = {
-            val fileName = targetFileTextField.text
-            val moduleName = targetModuleTextField.text
-            val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
-            classPartRow?.enabled = locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
-        }
+        val updater = { classPartRow?.enabled = classPartShouldBeEnabled() }
 
         val documentListener = object: DocumentListener {
             override fun changedUpdate(e: DocumentEvent?) = updater.invoke()
@@ -119,6 +116,13 @@ class ArendMoveMembersDialog(project: Project,
         targetModuleTextField.document.addDocumentListener(documentListener)
 
         init()
+    }
+
+    private fun classPartShouldBeEnabled() : Boolean {
+        val fileName = targetFileTextField.text
+        val moduleName = targetModuleTextField.text
+        val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
+        return locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
     }
 
     private fun initMemberInfo(container: ArendGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
@@ -140,7 +144,7 @@ class ArendMoveMembersDialog(project: Project,
         val fileName = targetFileTextField.text
         val moduleName = targetModuleTextField.text
         var targetContainer: ArendGroup? = null
-        val targetIsDynamic: Boolean? = if (classPartRow == null || !classPartRow.enabled) null else {
+        val targetIsDynamic: Boolean? = if (!classPartShouldBeEnabled()) null else {
             val isDynamic = dynamicGroup.isSelected
             val isStatic = staticGroup.isSelected
             when {
@@ -285,6 +289,7 @@ class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>
 
         myTable = ArendMemberSelectionTable(memberInfo)
         val scrollPane = ScrollPaneFactory.createScrollPane(myTable)
+        scrollPane.preferredSize = Dimension(100, 100)
         add(SeparatorFactory.createSeparator(title, myTable), BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
     }

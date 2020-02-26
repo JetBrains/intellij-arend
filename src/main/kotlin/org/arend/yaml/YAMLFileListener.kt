@@ -1,4 +1,4 @@
-package org.arend.module
+package org.arend.yaml
 
 import com.intellij.AppTopics
 import com.intellij.openapi.editor.Document

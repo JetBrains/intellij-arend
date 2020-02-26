@@ -1,0 +1,11 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory
+                implementation="org.arend.yaml.schema.ArendYamlSchemaProviderFactory"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij.json">
+        <jsonSchemaEnabler
+                implementation="org.arend.yaml.schema.ArendYamlSchemaEnabler"/>
+    </extensions>
+</idea-plugin>

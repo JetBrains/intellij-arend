@@ -10,7 +10,6 @@ class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKi
         DefaultActionGroup("${kind.kindName}s pretty printer options", true), DumbAware {
     private var actionMap = HashMap<PrettyPrinterFlag, ArendPrintOptionsFilterAction>()
 
-    // lang_ext
     init {
         templatePresentation.icon = ArendIcons.SHOW
         if (isEnabled) {
@@ -21,14 +20,4 @@ class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKi
             }
         }
     }
-
-    /*
-    init { // master
-        templatePresentation.icon = ArendIcons.SHOW
-        if (isEnabled) {
-            for (type in ToAbstractVisitor.Flag.values()) {
-                add(ArendPrintOptionsFilterAction(project, kind, type))
-            }
-        }
-    } */
 }

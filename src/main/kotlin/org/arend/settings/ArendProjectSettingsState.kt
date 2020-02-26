@@ -45,5 +45,5 @@ class ArendPrintingOptions {
     var showPrefixPath = true
     var showBinOpImplicitArgs = true
     var showCaseResultType = true
-    var showInferenceLevelVars = true
+    var showLevels = true
 }

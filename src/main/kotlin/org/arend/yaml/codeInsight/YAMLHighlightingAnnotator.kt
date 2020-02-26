@@ -1,11 +1,11 @@
-package org.arend.annotation
+package org.arend.yaml.codeInsight
 
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.module.config.KEYS
-import org.arend.module.config.isYAMLConfig
+import org.arend.yaml.KEYS
+import org.arend.yaml.isYAMLConfig
 import org.jetbrains.yaml.YAMLTokenTypes
 
 

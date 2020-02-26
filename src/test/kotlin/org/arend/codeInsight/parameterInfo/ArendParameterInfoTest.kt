@@ -182,4 +182,39 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
+    fun `test infix commas right`() {
+        val code = "\\func f (x y : Nat) : Nat\n" +
+                "\\func g => 0 `f` 0{-caret-}"
+        val expectedHint = "x : Nat, <highlight>y : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test infix commas left`() {
+        val code = "\\func f (x y : Nat) : Nat\n" +
+                "\\func g => 0{-caret-} `f` 0"
+        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test infix commas middle`() {
+        val code = "\\func f (x y : Nat) : Nat\n" +
+                "\\func g => 0 {-caret-}`f` 0"
+        val expectedHint = "x : Nat, y : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test postfix comma arg`() {
+        val code = "\\func f (x : Nat) : Nat\n" +
+                "\\func g => 0{-caret-} `f"
+        val expectedHint = "<highlight>x : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test postfix comma func`() {
+        val code = "\\func f (x : Nat) : Nat\n" +
+                "\\func g => 0 {-caret-}`f"
+        val expectedHint = "x : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
 }

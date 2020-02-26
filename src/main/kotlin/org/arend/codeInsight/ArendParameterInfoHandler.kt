@@ -354,7 +354,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         val absNodeParent = ascendToLiteral(absNode).parentSourceNode ?: return null
         val refContainer = extractRefFromSourceNode(absNode)
         if (refContainer != null) {
-            val ref = refContainer.resolvedInScope
+            val ref = refContainer.resolve as? Referable
             val params = ref?.let { getAllParametersForReferable(it) }
             if (params != null && !params.isEmpty()) {
                 val isBinOp = isBinOp(ref, refContainer)
@@ -362,7 +362,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 if (parentAppExprCandidate is ArendExpr) {
                     if (isBinOpSeq(parentAppExprCandidate) && !isBinOp) {
                         val loc = (absNode as? PsiElement)?.parentOfType<ArendExpr>(false)?.let{ locateArg(it, parentAppExprCandidate) } ?: return null
-                        if (isNewArgPos && isBinOp(loc.second.resolvedInScope, refContainer)) {
+                        if (isNewArgPos && isBinOp(loc.second.resolve as? Referable, refContainer)) {
                             return Pair(0, refContainer)
                         }
                         if (isNewArgPos && isLowestLevel) return Pair(loc.first + 1, loc.second)

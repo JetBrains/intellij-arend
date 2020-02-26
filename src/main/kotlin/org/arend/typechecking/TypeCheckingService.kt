@@ -11,7 +11,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
-import org.arend.module.YAMLFileListener
+import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter

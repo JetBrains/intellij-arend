@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$id": "arend.yaml.json",
+  "type": "object",
+  "description": "Arend project configuration file.",
+  "required": [
+    "langVersion",
+    "sourcesDir",
+    "binariesDir"
+  ],
+  "properties": {
+    "langVersion": {
+      "$id": "#/properties/langVersion",
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "The version of Arend toolchain.",
+      "pattern": "^(\\d+(\\.\\d+){0,2})$"
+    },
+    "sourcesDir": {
+      "$id": "#/properties/sourcesDir",
+      "type": "string",
+      "description": "The directory to read Arend definitions from."
+    },
+    "extensionsDir": {
+      "$id": "#/properties/extensionsDir",
+      "type": "string",
+      "description": "The file containing Arend extensions' directories."
+    },
+    "dependencies": {
+      "$id": "#/properties/dependencies",
+      "type": "array",
+      "description": "A list of dependencies."
+    },
+    "modules": {
+      "$id": "#/properties/modules",
+      "type": "array",
+      "description": "A list of Arend modules."
+    },
+    "extensionMainClass": {
+      "$id": "#/properties/extensionMainClass",
+      "type": "string",
+      "description": "The main class of Arend extension."
+    },
+    "binariesDir": {
+      "$id": "#/properties/binariesDir",
+      "type": "string",
+      "description": "The directory to put serialized Arend definitions."
+    }
+  }
+}

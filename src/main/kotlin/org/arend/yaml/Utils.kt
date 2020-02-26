@@ -1,4 +1,4 @@
-package org.arend.module.config
+package org.arend.yaml
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runUndoTransparentWriteAction
