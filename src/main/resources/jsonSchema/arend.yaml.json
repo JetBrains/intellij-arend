@@ -21,14 +21,12 @@
     "sourcesDir": {
       "$id": "#/properties/sourcesDir",
       "type": "string",
-      "description": "The directory to read Arend definitions from.",
-      "default": "src",
+      "description": "The directory to read Arend definitions from."
     },
     "extensionsDir": {
       "$id": "#/properties/extensionsDir",
       "type": "string",
-      "description": "The file containing Arend extensions' directories.",
-      "default": "ext",
+      "description": "The file containing Arend extensions' directories."
     },
     "dependencies": {
       "$id": "#/properties/dependencies",
@@ -43,13 +41,12 @@
     "extensionMainClass": {
       "$id": "#/properties/extensionMainClass",
       "type": "string",
-      "description": "The main class of Arend extension.",
+      "description": "The main class of Arend extension."
     },
     "binariesDir": {
       "$id": "#/properties/binariesDir",
       "type": "string",
-      "description": "The directory to put serialized Arend definitions.",
-      "default": ".bin",
+      "description": "The directory to put serialized Arend definitions."
     }
   }
 }
