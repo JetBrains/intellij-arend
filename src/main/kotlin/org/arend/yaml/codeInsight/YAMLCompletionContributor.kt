@@ -8,6 +8,7 @@ import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLSequenceItem
 import org.jetbrains.yaml.psi.impl.YAMLPlainTextImpl
 
 
@@ -26,12 +27,22 @@ class YAMLCompletionContributor : CompletionContributor() {
             when (val parent = textImpl.parent) {
                 is YAMLMapping -> mapping(parent, result)
                 is YAMLKeyValue -> keyValue(parent, parameters, result)
+                is YAMLSequenceItem -> seqItem(parent, parameters, result)
             }
         }
     }
 
     private val filePathContributor by lazy(::FilePathCompletionContributor)
     private val javaClassContributor by lazy (::JavaClassNameCompletionContributor)
+
+    private fun seqItem(
+            parent: YAMLSequenceItem,
+            parameters: CompletionParameters,
+            result: CompletionResultSet) {
+        val kv = parent.parent.parent
+        if (kv is YAMLKeyValue && kv.keyText == MODULES)
+            javaClassContributor.fillCompletionVariants(parameters, result)
+    }
 
     private fun keyValue(
             parent: YAMLKeyValue,
