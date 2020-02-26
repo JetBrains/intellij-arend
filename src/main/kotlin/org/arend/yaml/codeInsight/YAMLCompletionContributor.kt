@@ -3,7 +3,9 @@ package org.arend.yaml.codeInsight
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import org.arend.ArendIcons
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
+import org.arend.psi.module
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -27,7 +29,7 @@ class YAMLCompletionContributor : CompletionContributor() {
             when (val parent = textImpl.parent) {
                 is YAMLMapping -> mapping(parent, result)
                 is YAMLKeyValue -> keyValue(parent, parameters, result)
-                is YAMLSequenceItem -> seqItem(parent, parameters, result)
+                is YAMLSequenceItem -> seqItem(parent, result)
             }
         }
     }
@@ -37,11 +39,24 @@ class YAMLCompletionContributor : CompletionContributor() {
 
     private fun seqItem(
             parent: YAMLSequenceItem,
-            parameters: CompletionParameters,
             result: CompletionResultSet) {
-        val kv = parent.parent.parent
-        if (kv is YAMLKeyValue && kv.keyText == MODULES)
-            javaClassContributor.fillCompletionVariants(parameters, result)
+        val kv = parent.parent.parent as? YAMLKeyValue ?: return
+        when (kv.keyText) {
+            MODULES -> {
+                val service = ArendModuleConfigService
+                        .getInstance(parent.module) ?: return
+                synchronized(service) {
+                    val cachedModules = service.modules
+                    service.modules = null
+                    service.findModules().forEach {
+                        result.addElement(LookupElementBuilder
+                                .create(it)
+                                .withIcon(ArendIcons.AREND_MODULE))
+                    }
+                    service.modules = cachedModules
+                }
+            }
+        }
     }
 
     private fun keyValue(
