@@ -7,6 +7,9 @@ import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReferen
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.ProcessingContext
+import org.arend.ext.module.ModulePath
+import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.module
 import org.arend.yaml.*
 import org.jetbrains.yaml.YAMLTokenTypes
 import org.jetbrains.yaml.psi.YAMLFile
@@ -45,12 +48,25 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
                 }
                 if (parent is YAMLSequenceItem) {
                     val kv = parent.parent.parent
-                    if (kv is YAMLKeyValue && kv.keyText == MODULES)
-                        return classReferenceProvider
-                                .getReferencesByElement(element, context)
+                    if (kv is YAMLKeyValue && kv.keyText == MODULES) {
+                        return moduleFileRef(element)
+                    }
                 }
             }
             return emptyArray()
+        }
+
+        private fun moduleFileRef(element: YAMLPlainTextImpl): Array<out PsiReference> {
+            val service = ArendModuleConfigService
+                    .getInstance(element.module)
+                    ?: return emptyArray()
+            val modulePath = ModulePath.fromString(element.text)
+                    ?: return emptyArray()
+            val fs = service.findArendFileOrDirectory(modulePath)
+                    ?: return emptyArray()
+            return arrayOf(object : PsiReferenceBase<YAMLPlainTextImpl>(element) {
+                override fun resolve(): PsiElement? = fs
+            })
         }
     }
 }
