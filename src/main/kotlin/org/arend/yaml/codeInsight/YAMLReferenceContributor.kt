@@ -65,7 +65,7 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
             val fs = service.findArendFileOrDirectory(modulePath)
                     ?: return emptyArray()
             return arrayOf(object : PsiReferenceBase<YAMLPlainTextImpl>(element) {
-                override fun resolve(): PsiElement? = fs
+                override fun resolve() = fs
             })
         }
     }

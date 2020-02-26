@@ -3,11 +3,7 @@ package org.arend.actions
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import org.arend.core.expr.Expression
-import org.arend.ext.core.ops.NormalizationMode
-import org.arend.psi.ArendExpr
 import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.prettyPopupExpr
