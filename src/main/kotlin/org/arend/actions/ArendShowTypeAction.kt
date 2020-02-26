@@ -49,7 +49,7 @@ class ArendShowTypeAction : ArendPopupAction() {
                     ?.defIdentifier
                     ?: run { default(); return }
             select(param.textRange)
-            hint(FindBinding.visitLam(param, subExpr, subCore).typeExpr)
+            hint(FindBinding.visitLam(param, subExpr, subCore)?.typeExpr)
         } else if (subPsi is ArendPiExprImplMixin
                 && subExpr is Concrete.PiExpression
                 && subCore is PiExpression) {
