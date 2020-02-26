@@ -64,7 +64,7 @@ intellij {
     version = "2020.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
-    instrumentCode = false
+    instrumentCode = true
     setPlugins("yaml", "java", "IdeaVIM:0.56", "org.vayafulano.relativeLineNumbers:1.0.1")
 }
 
