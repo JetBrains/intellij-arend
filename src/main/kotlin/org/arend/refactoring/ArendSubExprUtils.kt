@@ -14,9 +14,9 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.reference.Precedence
 import org.arend.naming.BinOpParser
-import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.resolving.WrapperReferableConverter
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -45,10 +45,11 @@ fun correspondedSubExpr(
     val psiDef = parent.ancestor<ArendDefinition>()
             ?: throw SubExprError("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
+    val referableConverter = WrapperReferableConverter
     // Only work for functions right now
     val concreteDef = PsiConcreteProvider(
             project,
-            service.newReferableConverter(false),
+            referableConverter,
             DummyErrorReporter.INSTANCE,
             null
     ).getConcrete(psiDef)
@@ -61,7 +62,7 @@ fun correspondedSubExpr(
     val children = collectArendExprs(parent, range)
             .map {
                 appExprToConcrete(it)
-                        ?: ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, it)
+                        ?: ConcreteBuilder.convertExpression(referableConverter, it)
             }
             .map(Concrete::BinOpSequenceElem)
             .toList()
