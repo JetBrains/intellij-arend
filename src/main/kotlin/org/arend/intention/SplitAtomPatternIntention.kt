@@ -8,6 +8,9 @@ import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
+import org.arend.core.definition.FunctionDefinition
+import org.arend.core.elimtree.ElimBody
+import org.arend.core.elimtree.IntervalElim
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.Expression
@@ -16,6 +19,7 @@ import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.ExpressionPattern
+import org.arend.core.pattern.Pattern
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.Referable
@@ -85,12 +89,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val ownerParent = (patternOwner as PsiElement).parent
             var abstractPatterns: List<Abstract.Pattern>? = null
 
+            var clauseIndex = -1
             if (patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
                 val body = ownerParent.parent
                 val func = body?.parent
                 if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
                     abstractPatterns = patternOwner.patterns
                     definition = func as? TCDefinition
+                    clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
                 }
             }
             if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
@@ -100,13 +106,13 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 return null // TODO: Implement some behavior for constructor clauses as well
             }
 
-            if (definition != null) {
+            if (definition != null && clauseIndex != -1) {
                 val typeCheckedDefinition = project.service<TypeCheckingService>().getTypechecked(definition)
-                if (typeCheckedDefinition != null && abstractPatterns != null) {
-                    // TODO[lang_ext]
-                    val patterns: List<ExpressionPattern>? = null
-                    val isElim = false
-                    if (patterns != null && indexList.size > 0) {
+                if (typeCheckedDefinition is FunctionDefinition && abstractPatterns != null) {
+                    val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
+                    val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) } ?: return null
+                    val isElim = true // TODO: Neither true nor false works for testBasicSplitElim
+                    if (indexList.size > 0) {
                         val typecheckedPattern = if (isElim) patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         if (typecheckedPattern != null) {
                             val patternPart = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
