@@ -1,7 +1,13 @@
 package org.arend.yaml.codeInsight
 
-import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionContributor
+import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.FilePathCompletionContributor
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.ClassInheritorsSearch
 import org.arend.ArendIcons
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
@@ -35,7 +41,6 @@ class YAMLCompletionContributor : CompletionContributor() {
     }
 
     private val filePathContributor by lazy(::FilePathCompletionContributor)
-    private val javaClassContributor by lazy (::JavaClassNameCompletionContributor)
 
     private fun seqItem(
             parent: YAMLSequenceItem,
@@ -63,12 +68,24 @@ class YAMLCompletionContributor : CompletionContributor() {
             parent: YAMLKeyValue,
             parameters: CompletionParameters,
             result: CompletionResultSet
-    ) = when (parent.keyText) {
+    ): Unit = when (parent.keyText) {
         LANG_VERSION -> result.addElement(LookupElementBuilder
                 .create(Prelude.VERSION.toString())
                 .withIcon(ArendIcons.AREND))
         SOURCES, BINARIES, EXTENSIONS -> filePathContributor.fillCompletionVariants(parameters, result)
-        EXTENSION_MAIN -> javaClassContributor.fillCompletionVariants(parameters, result)
+        EXTENSION_MAIN -> JavaPsiFacade
+                .getInstance(parent.project)
+                .findClass(
+                        YAMLReferenceContributor.className,
+                        GlobalSearchScope.allScope(parent.project)
+                )
+                ?.let(ClassInheritorsSearch::search)
+                ?.map {
+                    LookupElementBuilder
+                            .create(it.qualifiedName.orEmpty())
+                            .withPsiElement(it)
+                }
+                ?.forEach(result::addElement) ?: Unit
         else -> {
         }
     }
