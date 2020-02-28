@@ -1,6 +1,5 @@
 package org.arend.yaml.codeInsight
 
-import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.patterns.PlatformPatterns.psiFile
 import com.intellij.psi.*
@@ -43,8 +42,6 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
 
         fun isYamlToken(element: PsiElement) = element is LeafPsiElement && element.node.elementType == YAMLTokenTypes.TEXT
 
-        fun searchScope(project: Project) = GlobalSearchScope.projectScope(project)
-
         override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<out PsiReference> {
             val parent = element.parent ?: return emptyArray()
             if (element is YAMLPlainTextImpl) {
@@ -54,7 +51,7 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
                         private val project get() = element.project
                         override fun resolve() = JavaPsiFacade
                                 .getInstance(project)
-                                .findClass(element.text, searchScope(project))
+                                .findClass(element.text, GlobalSearchScope.allScope(project))
                     })
                 }
                 if (parent is YAMLSequenceItem) {

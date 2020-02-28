@@ -6,6 +6,7 @@ import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.FilePathCompletionContributor
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import org.arend.ArendIcons
 import org.arend.module.config.ArendModuleConfigService
@@ -76,11 +77,14 @@ class YAMLCompletionContributor : CompletionContributor() {
                 .getInstance(parent.project)
                 .findClass(
                         YAMLReferenceContributor.className,
-                        YAMLReferenceContributor.searchScope(parent.project)
+                        GlobalSearchScope.allScope(parent.project)
                 )
                 ?.let(ClassInheritorsSearch::search)
-                ?.mapNotNull { it.qualifiedName }
-                ?.map(LookupElementBuilder::create)
+                ?.map {
+                    LookupElementBuilder
+                            .create(it.qualifiedName.orEmpty())
+                            .withPsiElement(it)
+                }
                 ?.forEach(result::addElement) ?: Unit
         else -> {
         }
