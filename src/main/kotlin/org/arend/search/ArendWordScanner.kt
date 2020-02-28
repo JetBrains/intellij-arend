@@ -10,7 +10,7 @@ import org.arend.psi.AREND_NAMES
 open class ArendWordScanner : VersionedWordsScanner() {
     private val lexer = ArendLexerAdapter()
 
-    override fun processWords(fileText: CharSequence, processor: Processor<WordOccurrence>) {
+    override fun processWords(fileText: CharSequence, processor: Processor<in WordOccurrence>) {
         lexer.start(fileText)
         val occurrence = WordOccurrence(fileText, 0, 0, null)
         while (lexer.tokenType != null) {
@@ -37,7 +37,7 @@ open class ArendWordScanner : VersionedWordsScanner() {
             c in 'a'..'z' || c in 'A'..'Z' || c in "_~!@#$%^&*-+=<>?/|[];:"
 
         protected fun stripWords(
-                processor: Processor<WordOccurrence>,
+                processor: Processor<in WordOccurrence>,
                 tokenText: CharSequence,
                 from: Int,
                 to: Int,

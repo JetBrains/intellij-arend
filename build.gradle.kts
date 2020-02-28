@@ -61,9 +61,8 @@ idea {
 }
 
 intellij {
-    version = "2019.3"
     pluginName = "Arend"
-    updateSinceUntilBuild = true
+    updateSinceUntilBuild = false
     instrumentCode = false
     setPlugins("yaml", "java")
 }

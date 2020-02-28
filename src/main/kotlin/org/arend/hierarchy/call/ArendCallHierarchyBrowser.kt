@@ -14,7 +14,7 @@ import java.util.*
 import javax.swing.JTree
 
 class ArendCallHierarchyBrowser(project: Project, method: PsiElement) : CallHierarchyBrowserBase(project, method) {
-    override fun getComparator(): Comparator<NodeDescriptor<Any>>? =
+    override fun getComparator(): Comparator<NodeDescriptor<*>>? =
         if (HierarchyBrowserManager.getInstance(myProject).state?.SORT_ALPHABETICALLY == true)
             AlphaComparator.INSTANCE
         else

@@ -588,7 +588,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return showConflicts(conflicts, usages)
     }
 
-    override fun getCommandName(): String = MoveMembersImpl.REFACTORING_NAME
+    override fun getCommandName(): String = MoveMembersImpl.getRefactoringName()
 
     override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor =
             MoveMemberViewDescriptor(PsiUtilCore.toPsiElementArray(myMembers.map { it }))

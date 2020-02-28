@@ -118,17 +118,17 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
     }
 
     companion object {
-        val nsUsage           = UsageType("Namespace commands")
-        val nsUsageInList     = UsageType("Hiding or using lists of namespace commands")
-        val leftUsage         = UsageType("Left sides of dot expressions")
-        val usagesInCoClauses = UsageType("Coclauses")
-        val usagesInPatterns  = UsageType("Patterns")
-        val newInstances      = UsageType("New instances")
-        val classExt          = UsageType("Class extensions")
-        val levelProof        = UsageType("Level proof")
-        val parameters        = UsageType("Parameter types")
-        val resultTypes       = UsageType("Result types")
-        val extendsUsages     = UsageType("Extends clauses")
-        val defaultUsage      = UsageType("Unclassified usages")
+        val nsUsage           = UsageType { "Namespace commands" }
+        val nsUsageInList     = UsageType { "Hiding or using lists of namespace commands" }
+        val leftUsage         = UsageType { "Left sides of dot expressions" }
+        val usagesInCoClauses = UsageType { "Coclauses" }
+        val usagesInPatterns  = UsageType { "Patterns" }
+        val newInstances      = UsageType { "New instances" }
+        val classExt          = UsageType { "Class extensions" }
+        val levelProof        = UsageType { "Level proof" }
+        val parameters        = UsageType { "Parameter types" }
+        val resultTypes       = UsageType { "Result types" }
+        val extendsUsages     = UsageType { "Extends clauses" }
+        val defaultUsage      = UsageType { "Unclassified usages" }
     }
 }
