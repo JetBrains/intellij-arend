@@ -1,12 +1,15 @@
 package org.arend.yaml.codeInsight
 
+import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.patterns.PlatformPatterns.psiFile
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReferenceSet
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.ProcessingContext
+import org.arend.ext.ArendExtension
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.module
@@ -25,6 +28,8 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
     }
 
     companion object YAMLReferenceProvider : PsiReferenceProvider() {
+        val className: String = ArendExtension::class.java.canonicalName
+
         private val classReferenceProvider = JavaClassReferenceProvider()
         init {
             classReferenceProvider.setOption(JavaClassReferenceProvider.NOT_ENUM, true)
@@ -38,13 +43,19 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
 
         fun isYamlToken(element: PsiElement) = element is LeafPsiElement && element.node.elementType == YAMLTokenTypes.TEXT
 
+        fun searchScope(project: Project) = GlobalSearchScope.projectScope(project)
+
         override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<out PsiReference> {
             val parent = element.parent ?: return emptyArray()
             if (element is YAMLPlainTextImpl) {
                 if (parent is YAMLKeyValue) when (parent.keyText) {
                     SOURCES, BINARIES, EXTENSIONS -> return FileReferenceSet(element).allReferences
-                    EXTENSION_MAIN -> return classReferenceProvider
-                            .getReferencesByElement(element, context)
+                    EXTENSION_MAIN -> return arrayOf(object : PsiReferenceBase<YAMLPlainTextImpl>(element) {
+                        private val project get() = element.project
+                        override fun resolve() = JavaPsiFacade
+                                .getInstance(project)
+                                .findClass(element.text, searchScope(project))
+                    })
                 }
                 if (parent is YAMLSequenceItem) {
                     val kv = parent.parent.parent
