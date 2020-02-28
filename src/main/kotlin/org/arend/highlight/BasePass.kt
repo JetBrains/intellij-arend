@@ -223,7 +223,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
                         (it.parent as? ArendFieldTele)?.classifyingKw ?: it
                     }
-                is ImplicitLambdaError -> error.parameter.underlyingReferable as? PsiElement
+                is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
                 else -> null
             }
 
