@@ -3,7 +3,6 @@ package org.arend.codeInsight
 import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
-import com.intellij.openapi.application.TransactionGuard
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -30,17 +29,15 @@ class ArendTypedHandler : TypedHandlerDelegate() {
             return Result.CONTINUE
         }
 
-        TransactionGuard.getInstance().submitTransactionAndWait {
-            PsiDocumentManager.getInstance(project).commitAllDocuments()
+        PsiDocumentManager.getInstance(project).commitDocument(editor.document)
 
-            val offset = editor.caretModel.offset
-            val text = editor.document.charsSequence
-            if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
-                if (style == ArendSettings.MatchingCommentStyle.INSERT_MINUS) {
-                    editor.document.insertString(offset, CharArrayCharSequence('-'))
-                } else {
-                    editor.document.deleteString(offset, offset + 1)
-                }
+        val offset = editor.caretModel.offset
+        val text = editor.document.charsSequence
+        if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
+            if (style == ArendSettings.MatchingCommentStyle.INSERT_MINUS) {
+                editor.document.insertString(offset, CharArrayCharSequence('-'))
+            } else {
+                editor.document.deleteString(offset, offset + 1)
             }
         }
 

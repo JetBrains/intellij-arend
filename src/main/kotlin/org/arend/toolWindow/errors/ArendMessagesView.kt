@@ -46,7 +46,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
 
-        toolWindow.icon = ArendIcons.MESSAGES
+        toolWindow.setIcon(ArendIcons.MESSAGES)
         toolWindow.contentManager.addContent(ContentFactory.SERVICE.getInstance().createContent(splitter, "", false))
 
         tree.cellRenderer = ArendErrorTreeCellRenderer(tree)

@@ -170,7 +170,7 @@ class ArendMoveMembersDialog(project: Project,
                     val answer = Messages.showYesNoDialog(
                             myProject,
                             "Target file $fileName does not exist.\n Do you want to create the file named $newFileName within the directory ${directory.name}?",
-                            MoveMembersImpl.REFACTORING_NAME,
+                            MoveMembersImpl.getRefactoringName(),
                             Messages.getQuestionIcon())
                     if (answer == Messages.YES) {
                         val template = FileTemplateManager.getInstance(myProject).getInternalTemplate("Arend File")
@@ -184,7 +184,7 @@ class ArendMoveMembersDialog(project: Project,
 
         if (targetContainer != null)
             invokeRefactoring(ArendStaticMemberRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, dynamicGroup.isSelected, isOpenInEditor)) else
-            if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.REFACTORING_NAME, getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
+            if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.getRefactoringName(), getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField

@@ -90,7 +90,7 @@ class ArendRawLibrary(val config: LibraryConfig)
             return
         }
         runReadAction {
-            if (!config.project.isDisposedOrDisposeInProgress) {
+            if (!config.project.isDisposed) {
                 config.project.service<TypeCheckingService>().updateDefinition(referable, null, TypeCheckingService.LastModifiedMode.DO_NOT_TOUCH)
             }
         }
