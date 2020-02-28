@@ -112,7 +112,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
         is ArendConstructor -> "constructor"
-        is ArendDefFunction -> "function"
+        is ArendDefFunction, is ArendCoClauseDef -> "function"
         is ArendLetClause -> "let"
         is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
         else -> null
