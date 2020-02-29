@@ -9,6 +9,7 @@ import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.prettyPopupExpr
 import org.arend.refactoring.rangeOfConcrete
+import org.arend.util.ComputationInterruptedException
 
 class ArendShowNormalFormAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
@@ -19,7 +20,12 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             displayHint {
                 val mode = NormalizationMode.NF
-                showInformationHint(editor, prettyPopupExpr(project, subCore.normalize(mode), mode))
+                val msg = try {
+                    prettyPopupExpr(project, subCore.normalize(mode), mode)
+                } catch (e: ComputationInterruptedException) {
+                    "Computation interrupted"
+                }
+                showInformationHint(editor, msg)
             }
         } catch (t: SubExprError) {
             displayHint { showErrorHint(editor, "Failed to normalize because ${t.message}") }
