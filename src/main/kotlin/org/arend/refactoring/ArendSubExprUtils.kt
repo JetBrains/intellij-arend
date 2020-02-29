@@ -146,12 +146,16 @@ private fun collectArendExprs(
     }.toList()
 }
 
-fun prettyPopupExpr(project: Project, expression: Expression?): String {
+fun prettyPopupExpr(
+        project: Project,
+        expression: Expression?,
+        normalizationMode: NormalizationMode? = null
+): String {
     val settings = project.service<ArendProjectSettings>()
     val builder = StringBuilder()
     ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
-        override fun getNormalizationMode(): NormalizationMode? = null
+        override fun getNormalizationMode() = normalizationMode
     }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
     return builder.toString()
 }
