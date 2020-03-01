@@ -166,12 +166,15 @@ fun prettyPopupExpr(
 
 inline fun normalizeExpr(project: Project, subCore: Expression, crossinline after: (String) -> Unit) {
     val title = "Running normalization"
+    var result: String? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) = try {
-            after(prettyPopupExpr(project, subCore.normalize(NormalizationMode.NF)))
+            result = prettyPopupExpr(project, subCore.normalize(NormalizationMode.NF))
         } catch (e: ComputationInterruptedException) {
             indicator.text = "Normalization canceled"
             throw ProcessCanceledException(e)
         }
+
+        override fun onFinished() = result?.let(after) ?: Unit
     })
 }
