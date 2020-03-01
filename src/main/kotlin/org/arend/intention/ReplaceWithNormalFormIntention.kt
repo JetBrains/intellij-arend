@@ -45,10 +45,10 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
         assert(document.isWritable)
         document.deleteString(range.startOffset, range.endOffset)
         val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
-        val parenthesesAround = document.charsSequence.let {
+        val andNoParenthesesAround = likeIdentifier && !document.charsSequence.let {
             it[range.startOffset - 1] == '(' && it[range.startOffset] == ')'
         }
-        return if (likeIdentifier && !parenthesesAround) {
+        return if (andNoParenthesesAround) {
             // Probably not a single identifier
             val s = "($it)"
             document.insertString(range.startOffset, s)
