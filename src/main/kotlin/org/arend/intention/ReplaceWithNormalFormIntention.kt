@@ -44,7 +44,11 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
     private fun replaceExpr(document: Document, range: TextRange, it: String): Int {
         assert(document.isWritable)
         document.deleteString(range.startOffset, range.endOffset)
-        return if ('\\' in it || ' ' in it || '\n' in it) {
+        val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
+        val parenthesesAround = document.charsSequence.let {
+            it[range.startOffset - 1] == '(' && it[range.startOffset] == ')'
+        }
+        return if (likeIdentifier && !parenthesesAround) {
             // Probably not a single identifier
             val s = "($it)"
             document.insertString(range.startOffset, s)
