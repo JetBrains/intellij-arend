@@ -1,6 +1,10 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -24,6 +28,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
+import org.arend.util.ComputationInterruptedException
 import org.arend.util.appExprToConcrete
 
 class SubExprError(message: String) : Throwable(message)
@@ -148,15 +153,25 @@ private fun collectArendExprs(
 
 fun prettyPopupExpr(
         project: Project,
-        expression: Expression?,
-        normalizationMode: NormalizationMode? = null
+        expression: Expression?
 ): String {
     val settings = project.service<ArendProjectSettings>()
     val builder = StringBuilder()
     ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
-        override fun getNormalizationMode() = normalizationMode
+        override fun getNormalizationMode(): NormalizationMode? = null
     }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
     return builder.toString()
 }
 
+inline fun normalizeExpr(project: Project, subCore: Expression, crossinline after: (String) -> Unit) {
+    val title = "Running normalization"
+    ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
+        override fun run(indicator: ProgressIndicator) = try {
+            after(prettyPopupExpr(project, subCore.normalize(NormalizationMode.NF)))
+        } catch (e: ComputationInterruptedException) {
+            indicator.text = "Normalization canceled"
+            throw ProcessCanceledException(e)
+        }
+    })
+}
