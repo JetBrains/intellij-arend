@@ -11,14 +11,13 @@ import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 
 class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
 
-    override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int, editor: Editor?): Boolean {
+    override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int, editor: Editor): Boolean {
         if (element.appPrefix?.newKw == null) return false
         val data = element.getUserData(CoClausesKey)
         return data != null && data.isNotEmpty()
     }
 
-    override fun applyTo(element: ArendNewExprImplMixin, project: Project?, editor: Editor?) {
-        project ?: return
+    override fun applyTo(element: ArendNewExprImplMixin, project: Project, editor: Editor) {
         val data = element.getUserData(CoClausesKey) ?: return
         ImplementFieldsQuickFix(SmartPointerManager.createPointer(element), false, data).invoke(project, editor, null)
     }

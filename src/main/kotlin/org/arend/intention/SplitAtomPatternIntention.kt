@@ -49,9 +49,9 @@ import java.util.Collections.singletonList
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
     private var splitPatternEntries: List<SplitPatternEntry>? = null
 
-    override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor?): Boolean {
+    override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getCachedElementType(element) ?: getElementType(element, editor?.project)
+            val type = getCachedElementType(element) ?: getElementType(element, editor.project)
             if (type is DataCallExpression) {
                 val constructors = type.matchedConstructors ?: return false
                 this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
@@ -72,7 +72,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         return false
     }
 
-    override fun applyTo(element: PsiElement, project: Project?, editor: Editor?) {
+    override fun applyTo(element: PsiElement, project: Project, editor: Editor) {
         splitPatternEntries?.let { doSplitPattern(element, project, it) }
     }
 
@@ -236,14 +236,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun requiresParentheses(): Boolean = true
         }
 
-        fun doSplitPattern(element: PsiElement, project: Project?, splitPatternEntries: Collection<SplitPatternEntry>, generateBody: Boolean = false) {
+        fun doSplitPattern(element: PsiElement, project: Project, splitPatternEntries: Collection<SplitPatternEntry>, generateBody: Boolean = false) {
             val (localClause, localIndexList) = locatePattern(element) ?: return
             if (localClause !is ArendClause) return
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(localClause, element).map { VariableImpl(it.name ?: "") })
 
-            if (project != null && element is Abstract.Pattern) {
+            if (element is Abstract.Pattern) {
                 val factory = ArendPsiFactory(project)
                 if (splitPatternEntries.isEmpty()) {
                     doReplacePattern(factory, element, "()", false)

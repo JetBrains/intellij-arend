@@ -30,9 +30,9 @@ abstract class SelfTargetingIntention<T : PsiElement>(
     final override fun getText() = text
     final override fun getFamilyName() = familyName
 
-    abstract fun isApplicableTo(element: T, caretOffset: Int, editor: Editor?): Boolean
+    abstract fun isApplicableTo(element: T, caretOffset: Int, editor: Editor): Boolean
 
-    abstract fun applyTo(element: T, project: Project?, editor: Editor?)
+    abstract fun applyTo(element: T, project: Project, editor: Editor)
 
     private fun getTarget(editor: Editor, file: PsiFile): T? {
         val offset = editor.caretModel.offset
@@ -99,7 +99,7 @@ abstract class SelfTargetingRangeIntention<T : PsiElement>(
 
     abstract fun applicabilityRange(element: T): TextRange?
 
-    final override fun isApplicableTo(element: T, caretOffset: Int, editor: Editor?): Boolean {
+    final override fun isApplicableTo(element: T, caretOffset: Int, editor: Editor): Boolean {
         val range = applicabilityRange(element) ?: return false
         return range.containsOffset(caretOffset)
     }
