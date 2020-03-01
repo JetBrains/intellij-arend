@@ -15,7 +15,6 @@ import org.arend.psi.ancestor
 import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
-import org.arend.refactoring.rangeOfConcrete
 
 class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendExpr::class.java, "Replace with Normal Form") {
     override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor) =
@@ -25,12 +24,13 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
         val range = EditorUtil.getSelectionInAnyMode(editor)
                 .takeUnless { it.isEmpty }
                 ?: element.textRange
-        val (subCore, subExpr, _) = correspondedSubExpr(range, file, project)
-        val textRange = rangeOfConcrete(subExpr)
-        editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
+        val (subCore) = correspondedSubExpr(range, file, project)
         normalizeExpr(project, subCore) {
             WriteCommandAction.runWriteCommandAction(project) {
-                replaceExpr(editor.document, range, it)
+                val length = replaceExpr(editor.document, range, it)
+                val startOffset = range.startOffset
+                editor.selectionModel
+                        .setSelection(startOffset, startOffset + length)
             }
         }
     } catch (t: SubExprError) {
@@ -41,15 +41,18 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
         }
     }
 
-    private fun replaceExpr(document: Document, range: TextRange, it: String) {
+    private fun replaceExpr(document: Document, range: TextRange, it: String): Int {
         assert(document.isWritable)
         document.deleteString(range.startOffset, range.endOffset)
-        if ('\\' in it || ' ' in it || '\n' in it) {
+        return if ('\\' in it || ' ' in it || '\n' in it) {
             // Probably not a single identifier
-            document.insertString(range.startOffset, "($it)")
+            val s = "($it)"
+            document.insertString(range.startOffset, s)
+            s.length
         } else {
             // Do not insert parentheses when it's unlikely to be necessary
             document.insertString(range.startOffset, it)
+            it.length
         }
     }
 

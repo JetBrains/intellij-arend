@@ -13,7 +13,7 @@ class ArendShowNormalFormAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             val range = EditorUtil.getSelectionInAnyMode(editor)
-            val (subCore, subExpr, _) = correspondedSubExpr(range, file, project)
+            val (subCore, subExpr) = correspondedSubExpr(range, file, project)
             val textRange = rangeOfConcrete(subExpr)
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             normalizeExpr(project, subCore) {
