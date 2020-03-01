@@ -2,9 +2,12 @@ package org.arend.intention
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendExpr
@@ -26,16 +29,8 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
         val textRange = rangeOfConcrete(subExpr)
         editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
         normalizeExpr(project, subCore) {
-            editor.document.apply {
-                assert(isWritable)
-                deleteString(range.startOffset, range.endOffset)
-                if ('\\' in it || ' ' in it || '\n' in it) {
-                    // Probably not a single identifier
-                    insertString(range.startOffset, "($it)")
-                } else {
-                    // Do not insert parentheses when it's unlikely to be necessary
-                    insertString(range.startOffset, it)
-                }
+            WriteCommandAction.runWriteCommandAction(project) {
+                replaceExpr(editor.document, range, it)
             }
         }
     } catch (t: SubExprError) {
@@ -43,6 +38,18 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendEx
             HintManager.getInstance()
                     .apply { showErrorHint(editor, "Failed to normalize because ${t.message}") }
                     .setRequestFocusForNextHint(false)
+        }
+    }
+
+    private fun replaceExpr(document: Document, range: TextRange, it: String) {
+        assert(document.isWritable)
+        document.deleteString(range.startOffset, range.endOffset)
+        if ('\\' in it || ' ' in it || '\n' in it) {
+            // Probably not a single identifier
+            document.insertString(range.startOffset, "($it)")
+        } else {
+            // Do not insert parentheses when it's unlikely to be necessary
+            document.insertString(range.startOffset, it)
         }
     }
 
