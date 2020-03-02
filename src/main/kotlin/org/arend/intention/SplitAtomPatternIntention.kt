@@ -35,6 +35,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendTypecheckingListener
 import org.arend.typechecking.TypeCheckingService
+import java.lang.IllegalStateException
 import java.util.*
 import java.util.Collections.singletonList
 
@@ -108,12 +109,22 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             if (definition != null && clauseIndex != -1) {
                 val typeCheckedDefinition = project.service<TypeCheckingService>().getTypechecked(definition)
-                if (typeCheckedDefinition is FunctionDefinition && abstractPatterns != null) {
+                if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
                     val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
                     val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) } ?: return null
-                    val isElim = true // TODO: Neither true nor false works for testBasicSplitElim
+
+                    val parameters = ArrayList<Referable>(); for (pp in definition.parameters) parameters.addAll(pp.referableList)
+                    val elimVars = definition.eliminatedExpressions ?: emptyList()
+                    val isElim = elimVars.isNotEmpty()
+                    val elimVarPatterns : List<ExpressionPattern> = if (isElim) elimVars.map { reference ->
+                        if (reference is ArendRefIdentifier) {
+                            val parameterIndex = (reference.reference?.resolve() as? Referable)?.let{ parameters.indexOf(it) } ?: -1
+                            if (parameterIndex < patterns.size && parameterIndex != -1) patterns[parameterIndex] else throw IllegalStateException()
+                        } else throw IllegalStateException()
+                    } else patterns
+
                     if (indexList.size > 0) {
-                        val typecheckedPattern = if (isElim) patterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
+                        val typecheckedPattern = if (isElim) elimVarPatterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         if (typecheckedPattern != null) {
                             val patternPart = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
                             return patternPart.binding.typeExpr
