@@ -25,7 +25,6 @@ import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
-import kotlin.collections.HashMap
 
 class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
 
@@ -67,10 +66,10 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         trees[SUBTYPES_HIERARCHY_TYPE] = subTree
         trees[SUPERTYPES_HIERARCHY_TYPE] = superTree
 
-        typeToTree = HashMap()
-
-        typeToTree!![SUBTYPES_HIERARCHY_TYPE] = subTree
-        typeToTree!![SUPERTYPES_HIERARCHY_TYPE] = superTree
+        typeToTree = hashMapOf(
+                SUBTYPES_HIERARCHY_TYPE to subTree,
+                SUPERTYPES_HIERARCHY_TYPE to superTree
+        )
     }
 
     override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? =
