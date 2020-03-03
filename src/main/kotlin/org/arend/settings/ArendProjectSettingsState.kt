@@ -28,10 +28,10 @@ class ArendProjectSettingsState {
     var showResolving = true
     var showParsing = false
 
-    //Printing options
-    val errorPrintingOptions = ArendPrintingOptions()
-    val goalPrintingOptions = ArendPrintingOptions()
-    val popupPrintingOptions = ArendPrintingOptions()
+    // Printing options
+    var errorPrintingOptions = ArendPrintingOptions()
+    var goalPrintingOptions = ArendPrintingOptions()
+    var popupPrintingOptions = ArendPrintingOptions()
 
 }
 

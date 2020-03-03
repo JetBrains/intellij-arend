@@ -40,15 +40,16 @@ abstract class SelfTargetingIntention<T : PsiElement>(
         val leaf2 = file.findElementAt(offset - 1)
         val commonParent = if (leaf1 != null && leaf2 != null) PsiTreeUtil.findCommonParent(leaf1, leaf2) else null
 
-        var elementsToCheck: Sequence<PsiElement> = emptySequence()
-        if (leaf1 != null) {
-            elementsToCheck += leaf1.ancestors.takeWhile { it != commonParent }
-        }
-        if (leaf2 != null) {
-            elementsToCheck += leaf2.ancestors.takeWhile { it != commonParent }
-        }
-        if (commonParent != null && commonParent !is PsiFile) {
-            elementsToCheck += commonParent.ancestors
+        val elementsToCheck = sequence {
+            if (leaf1 != null) {
+                yieldAll(leaf1.ancestors.takeWhile { it != commonParent })
+            }
+            if (leaf2 != null) {
+                yieldAll(leaf2.ancestors.takeWhile { it != commonParent })
+            }
+            if (commonParent != null && commonParent !is PsiFile) {
+                yieldAll(commonParent.ancestors)
+            }
         }
 
         for (element in elementsToCheck) {

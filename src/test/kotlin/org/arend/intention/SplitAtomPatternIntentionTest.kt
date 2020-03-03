@@ -25,6 +25,17 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc (suc n) => 1 
     """)
 
+    fun testBasicSplitElim() = typedQuickFixTest("Split", """
+       \func isLessThan2 (a b : Nat) : Nat \elim b
+         | 0 => 1
+         | suc _{-caret-} => 1        
+    """, """
+       \func isLessThan2 (a b : Nat) : Nat \elim b
+         | 0 => 1
+         | 1 => 1
+         | suc (suc n) => 1 
+    """)
+
     fun testBasicSplitWithImplicitArgs() = typedQuickFixTest("Split", """
        \func isLessThan2 {a : Nat} : Nat
          | {0} => 1
