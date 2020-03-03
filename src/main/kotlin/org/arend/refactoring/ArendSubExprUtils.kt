@@ -1,7 +1,6 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -26,10 +25,12 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
+import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
-import org.arend.util.ComputationInterruptedException
 import org.arend.util.appExprToConcrete
+import java.util.function.Supplier
 
 class SubExprError(message: String) : Throwable(message)
 
@@ -171,11 +172,10 @@ inline fun normalizeExpr(project: Project, subCore: Expression,
     val title = "Running normalization"
     var result: String? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
-        override fun run(indicator: ProgressIndicator) = try {
-            result = prettyPopupExpr(project, subCore, mode)
-        } catch (e: ComputationInterruptedException) {
-            indicator.text = "Normalization canceled"
-            throw ProcessCanceledException(e)
+        override fun run(indicator: ProgressIndicator) {
+            result = ComputationRunner<String>().run(ArendCancellationIndicator(indicator), Supplier<String> {
+                prettyPopupExpr(project, subCore, mode)
+            })
         }
 
         override fun onFinished() = result?.let(after) ?: Unit

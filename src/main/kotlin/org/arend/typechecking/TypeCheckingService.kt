@@ -24,11 +24,11 @@ import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FullName
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
@@ -148,10 +148,10 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
     }
 
     override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
-        if (TypecheckingOrderingListener.getCancellationIndicator() is ArendCancellationIndicator) {
+        if (ComputationRunner.getCancellationIndicator() is ArendCancellationIndicator) {
             synchronized(typecheckerState) {
-                (TypecheckingOrderingListener.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
-                TypecheckingOrderingListener.resetCancellationIndicator()
+                (ComputationRunner.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
+                ComputationRunner.resetCancellationIndicator()
             }
         }
 
