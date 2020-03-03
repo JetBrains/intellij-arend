@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
@@ -16,7 +17,7 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             val (subCore, subExpr) = correspondedSubExpr(range, file, project)
             val textRange = rangeOfConcrete(subExpr)
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-            normalizeExpr(project, subCore) {
+            normalizeExpr(project, subCore, NormalizationMode.NF) {
                 displayHint { showInformationHint(editor, it) }
             }
         } catch (t: SubExprError) {

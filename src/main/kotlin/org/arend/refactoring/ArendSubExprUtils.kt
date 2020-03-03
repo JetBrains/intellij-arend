@@ -159,17 +159,18 @@ fun prettyPopupExpr(
     val builder = StringBuilder()
     ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
-        override fun getNormalizationMode(): NormalizationMode? = null
     }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
     return builder.toString()
 }
 
-inline fun normalizeExpr(project: Project, subCore: Expression, crossinline after: (String) -> Unit) {
+inline fun normalizeExpr(project: Project, subCore: Expression,
+                         mode: NormalizationMode = NormalizationMode.WHNF,
+                         crossinline after: (String) -> Unit) {
     val title = "Running normalization"
     var result: String? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) = try {
-            result = prettyPopupExpr(project, subCore.normalize(NormalizationMode.WHNF))
+            result = prettyPopupExpr(project, subCore.normalize(mode))
         } catch (e: ComputationInterruptedException) {
             indicator.text = "Normalization canceled"
             throw ProcessCanceledException(e)
