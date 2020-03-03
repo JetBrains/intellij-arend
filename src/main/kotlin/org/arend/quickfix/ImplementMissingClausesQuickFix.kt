@@ -12,8 +12,8 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
 import org.arend.core.pattern.BindingPattern
-import org.arend.core.pattern.ConstructorPattern
-import org.arend.core.pattern.Pattern
+import org.arend.core.pattern.ConstructorExpressionPattern
+import org.arend.core.pattern.ExpressionPattern
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -45,7 +45,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
         missingClausesError.setMaxListSize(service<ArendSettings>().clauseActualLimit)
         for (clause in missingClausesError.limitedMissingClauses.reversed()) if (clause != null) {
-            val filters = HashMap<ConstructorPattern, List<Boolean>>()
+            val filters = HashMap<ConstructorExpressionPattern, List<Boolean>>()
             val previewResults = ArrayList<PatternKind>()
             run {
                 var parameter: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
@@ -183,13 +183,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             }
         }
 
-        fun previewPattern(pattern: Pattern, filters: MutableMap<ConstructorPattern, List<Boolean>>, paren: Braces): PatternKind {
+        fun previewPattern(pattern: ExpressionPattern, filters: MutableMap<ConstructorExpressionPattern, List<Boolean>>, paren: Braces): PatternKind {
             when (pattern) {
-                is ConstructorPattern -> {
+                is ConstructorExpressionPattern -> {
                     val definition: Definition? = pattern.definition
                     val previewResults = ArrayList<PatternKind>()
 
-                    val patternIterator = pattern.patterns.patternList.iterator()
+                    val patternIterator = pattern.subPatterns.iterator()
                     var constructorArgument: DependentLink? = definition?.parameters
 
                     while (patternIterator.hasNext()) {
@@ -209,14 +209,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             throw IllegalStateException()
         }
 
-        private fun getIntegralNumber(pattern: ConstructorPattern): Int? {
+        private fun getIntegralNumber(pattern: ConstructorExpressionPattern): Int? {
             val isSuc = pattern.definition == Prelude.SUC
             val isPos = pattern.definition == Prelude.POS
             val isNeg = pattern.definition == Prelude.NEG
             if (isSuc || isPos || isNeg) {
-                val argumentList = pattern.patterns.patternList
+                val argumentList = pattern.subPatterns
                 if (argumentList.size != 1) return null
-                val firstArgument = argumentList.first() as? ConstructorPattern ?: return null
+                val firstArgument = argumentList.first() as? ConstructorExpressionPattern
+                    ?: return null
                 val number = getIntegralNumber(firstArgument)
                 if (isSuc && number != null) return number + 1
                 if (isPos && number != null) return number
@@ -226,11 +227,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return null
         }
 
-        fun doTransformPattern(pattern: Pattern, cause: ArendCompositeElement, editor: Editor?,
-                               filters: Map<ConstructorPattern, List<Boolean>>, paren: Braces,
+        fun doTransformPattern(pattern: ExpressionPattern, cause: ArendCompositeElement, editor: Editor?,
+                               filters: Map<ConstructorExpressionPattern, List<Boolean>>, paren: Braces,
                                occupiedNames: MutableList<Variable>): String {
             when (pattern) {
-                is ConstructorPattern -> {
+                is ConstructorExpressionPattern -> {
                     val definition: Definition? = pattern.definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
 
@@ -243,7 +244,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                     val argumentPatterns = ArrayList<String>()
                     run {
-                        val patternIterator = pattern.patterns.patternList.iterator()
+                        val patternIterator = pattern.subPatterns.iterator()
                         var constructorArgument: DependentLink? = definition?.parameters
 
                         while (patternIterator.hasNext()) {
