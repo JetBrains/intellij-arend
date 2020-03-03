@@ -169,7 +169,7 @@ inline fun normalizeExpr(project: Project, subCore: Expression, crossinline afte
     var result: String? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) = try {
-            result = prettyPopupExpr(project, subCore.normalize(NormalizationMode.NF))
+            result = prettyPopupExpr(project, subCore.normalize(NormalizationMode.WHNF))
         } catch (e: ComputationInterruptedException) {
             indicator.text = "Normalization canceled"
             throw ProcessCanceledException(e)

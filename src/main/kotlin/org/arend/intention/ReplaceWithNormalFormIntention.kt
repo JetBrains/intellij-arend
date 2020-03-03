@@ -16,7 +16,10 @@ import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
 
-class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(ArendExpr::class.java, "Replace with Normal Form") {
+class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
+        ArendExpr::class.java,
+        "Replace with Weak Head Normal Form"
+) {
     override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor) =
             element.ancestor<ArendDefinition>() != null
 
