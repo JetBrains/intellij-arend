@@ -36,7 +36,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                   | A => {?}{-caret-}
             """)
 
-    fun `test adding implementation for a field`() = simpleQuickFixTest("Replace",
+    fun `test adding implementation for a field`() = simpleQuickFixTest("Replace {?}",
             """
                 --! A.ard
                 \class Foo (A B : Nat)
