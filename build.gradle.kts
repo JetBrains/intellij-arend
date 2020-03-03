@@ -23,7 +23,6 @@ dependencies {
 
     // Transitive dependencies of :Arend
     implementation("com.google.protobuf:protobuf-java:3.7.1")
-    implementation("com.google.code.findbugs:jsr305:3.0.2")
 }
 
 configure<JavaPluginConvention> {
@@ -90,7 +89,7 @@ tasks.withType<Test> {
 afterEvaluate {
     tasks.withType<Test> {
         testLogging {
-            if (hasProp("showTestStatus") && prop("showTestStatus").toBoolean()) {
+            if (hasProp("showTestStatus") && prop("showTestStatus") == "true") {
                 events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
                 exceptionFormat = TestExceptionFormat.FULL
             }
@@ -114,6 +113,6 @@ tasks.withType<Wrapper> {
 
 fun hasProp(name: String): Boolean = extra.has(name)
 
-fun prop(name: String): String =
-        extra.properties[name] as? String
+fun prop(name: String): Any =
+        extra.properties[name]
                 ?: error("Property `$name` is not defined in gradle.properties")
