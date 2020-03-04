@@ -27,7 +27,7 @@ dependencies {
     compileOnly(kotlin("stdlib-jdk8"))
 
     // Transitive dependencies of :Arend
-    implementation("com.google.protobuf:protobuf-java:3.7.1")
+    implementation("com.google.protobuf:protobuf-java:3.11.4")
 }
 
 configure<JavaPluginConvention> {
