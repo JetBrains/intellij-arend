@@ -24,7 +24,7 @@ dependencies {
     implementation(project(":Arend")) {
         isTransitive = false
     }
-    compileOnly(kotlin("stdlib-jdk8"))
+    compileClasspath(kotlin("stdlib-jdk8"))
 
     // Transitive dependencies of :Arend
     implementation("com.google.protobuf:protobuf-java:3.11.4")
