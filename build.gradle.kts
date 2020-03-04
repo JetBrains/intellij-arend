@@ -4,9 +4,12 @@ import org.jetbrains.grammarkit.tasks.GenerateLexer
 import org.jetbrains.grammarkit.tasks.GenerateParser
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+val projectArend = project(":Arend")
+version = projectArend.version
+
 plugins {
     idea
-    kotlin("jvm") version "1.3.61"
+    kotlin("jvm") version "1.3.70"
     id("org.jetbrains.intellij") version "0.4.16"
     id("org.jetbrains.grammarkit") version "2020.1"
 }
@@ -98,14 +101,14 @@ afterEvaluate {
 }
 
 task<Copy>("prelude") {
-    from(project(":Arend").file("lib/Prelude.ard"))
-    from(project(":Arend").file("${project(":Arend").buildDir}/classes/java/main/lib/Prelude.arc"))
+    from(projectArend.file("lib/Prelude.ard"))
+    from(projectArend.buildDir.resolve("classes/java/main/lib/Prelude.arc"))
     into("src/main/resources/lib")
     dependsOn(":Arend:prelude")
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "5.5.1"
+    gradleVersion = projectArend.task<Wrapper>("wrapper").gradleVersion
 }
 
 
