@@ -3,8 +3,10 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.grammarkit.tasks.GenerateLexer
 import org.jetbrains.grammarkit.tasks.GenerateParser
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = project(":Arend")
+group = "org.arend.lang"
 version = projectArend.version
 
 plugins {
@@ -62,6 +64,13 @@ intellij {
     updateSinceUntilBuild = true
     instrumentCode = false
     setPlugins("yaml", "java")
+}
+
+tasks.withType<PatchPluginXmlTask> {
+    version(project.version)
+    pluginId(project.group)
+    changeNotes(file("src/main/html/change-notes.html").readText())
+    pluginDescription(file("src/main/html/description.html").readText())
 }
 
 task<GenerateLexer>("generateArendLexer") {
