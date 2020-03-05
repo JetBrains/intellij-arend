@@ -9,7 +9,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
@@ -28,7 +27,7 @@ import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
-import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
+import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
 import org.arend.util.appExprToConcrete
 import java.util.function.Supplier
 
@@ -52,17 +51,15 @@ fun correspondedSubExpr(
             ?: throw SubExprError("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
     val referableConverter = WrapperReferableConverter
-    // Only work for functions right now
     val concreteDef = PsiConcreteProvider(
             project,
             referableConverter,
             DummyErrorReporter.INSTANCE,
             null
     ).getConcrete(psiDef)
-            as? Concrete.FunctionDefinition
+            as? Concrete.Definition
             ?: throw SubExprError("selected text is not in a function definition")
     val def = service.getTypechecked(psiDef)
-            as? FunctionDefinition
             ?: throw SubExprError("underlying definition is not type checked")
 
     val children = collectArendExprs(parent, range)
@@ -75,18 +72,12 @@ fun correspondedSubExpr(
             .takeIf { it.isNotEmpty() }
             ?: throw SubExprError("cannot find a suitable subexpression")
     val parser = BinOpParser(DummyErrorReporter.INSTANCE)
-    val body = def.actualBody as? Expression
-            ?: throw SubExprError("function body is not an expression")
-    // Only work for single clause right now
-    val concreteBody = concreteDef.body.term
-            ?: throw SubExprError("does not yet support multiple clauses")
 
     val subExpr = if (children.size == 1)
         children.first().expression
     else parser.parse(Concrete.BinOpSequenceExpression(null, children))
-    val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
-    val result = concreteBody
-            .accept(subExprVisitor, body)
+    val subExprVisitor = CorrespondedSubDefVisitor(subExpr)
+    val result = concreteDef.accept(subExprVisitor, def)
             ?: throw SubExprError("cannot find a suitable subexpression")
     return Triple(result.proj1, result.proj2, exprAncestor)
 }
