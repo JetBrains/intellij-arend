@@ -366,4 +366,24 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                    | suc n => {?}
                  }
     """)
+
+    fun test_145() = typedQuickFixTest("Implement", """
+               \data Empty
+
+               \func isNeg (x : Nat) : \Type
+                 | 0 => Empty
+                 | suc x => Empty
+
+               \func test{-caret-} {n : Nat} (p : isNeg n) : Empty 
+    """, """
+               \data Empty
+
+               \func isNeg (x : Nat) : \Type
+                 | 0 => Empty
+                 | suc x => Empty
+
+               \func test {n : Nat} (p : isNeg n) : Empty
+                 | {0}, () => {?}
+                 | {suc n}, () => {?}
+    """)
 }
