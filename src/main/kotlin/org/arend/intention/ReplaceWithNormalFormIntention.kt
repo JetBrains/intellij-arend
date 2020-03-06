@@ -15,6 +15,7 @@ import org.arend.psi.ancestor
 import org.arend.refactoring.SubExprError
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
+import org.arend.refactoring.rangeOfConcrete
 
 class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
         ArendExpr::class.java,
@@ -27,10 +28,10 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
         val range = EditorUtil.getSelectionInAnyMode(editor)
                 .takeUnless { it.isEmpty }
                 ?: element.textRange
-        val (subCore) = correspondedSubExpr(range, file, project)
+        val (subCore, subConcrete) = correspondedSubExpr(range, file, project)
         normalizeExpr(project, subCore) {
             WriteCommandAction.runWriteCommandAction(project) {
-                val length = replaceExpr(editor.document, range, it)
+                val length = replaceExpr(editor.document, rangeOfConcrete(subConcrete), it)
                 val startOffset = range.startOffset
                 editor.selectionModel
                         .setSelection(startOffset, startOffset + length)
