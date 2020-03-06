@@ -17,6 +17,7 @@ import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
@@ -314,8 +315,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 var exprFound = false
                 while (pos2 != null) {
                     if (pos2.nextSibling is PsiWhiteSpace) {
-                        val body = pos2.findNextSibling()
-                        if (body is ArendFunctionBody || body is ArendDataBody) pos2 = body.parent
+                        val nextElement = pos2.findNextSibling()
+                        if (nextElement is ArendFunctionBody || nextElement is ArendDataBody || nextElement is ArendWhere) pos2 = nextElement.parent
                     }
 
                     if ((pos2 is ArendDefFunction)) {
@@ -477,6 +478,12 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
 
+        private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java)
+        private val TELE_CONTEXT = or(
+                and(withAncestors(PsiErrorElement::class.java, ArendTypeTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
+                and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGrandParents(*TELE_CONTAINERS)),
+                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
+
         private val EXPRESSION_CONTEXT = and(
                 or(withAncestors(*ATOM_PREFIX),
                         withParentOrGrandParent(ArendFunctionBody::class.java),
@@ -488,14 +495,10 @@ class ArendCompletionContributor : CompletionContributor() {
                         and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                         or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
                         and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
-                        and(ofType(INVALID_KW), afterLeaf(COLON), withParent(ArendNameTele::class.java)),
-                        and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java))),
+                        and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
+                        TELE_CONTEXT),
                 not(afterLeaves(PIPE, COWITH_KW))) // no expression keywords after pipe
 
-        private val TELE_CONTEXT = or(
-                and(withAncestors(PsiErrorElement::class.java, ArendTypeTele::class.java),
-                        withGreatGrandParents(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java)),
-                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
 
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
                 withGrandParents(ArendDefData::class.java, ArendClassField::class.java, ArendConstructor::class.java))
@@ -511,7 +514,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val ELIM_CONTEXT = and(
                 not(afterLeaves(DATA_KW, FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, COERCE_KW, TRUNCATED_KW, COLON)),
-                or(EXPRESSION_CONTEXT, TELE_CONTEXT,
+                or(EXPRESSION_CONTEXT, TELE_CONTEXT, ARGUMENT_EXPRESSION,
                         withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)))

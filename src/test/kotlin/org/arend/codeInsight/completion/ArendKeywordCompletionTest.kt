@@ -270,7 +270,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun `test expression keywords in teles`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
-                    "\\func f (a : {-caret-}) => 0")
+                    "\\func f (a : {-caret-}) => 0",
+                    "\\data d (a : {-caret-})")
 
     fun `test only new & universes in application expression or after new expr`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
@@ -464,10 +465,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) {-caret-}")
 
     fun `test cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol (a : Nat) : Nat {-caret-}",
+            /*"\\func lol (a : Nat) : Nat {-caret-}",
             "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
-            "\\func lol : Nat {-caret-}")
+            "\\func lol : Nat {-caret-}", */
+            "\\func t : Nat {-caret-} \\where {}")
 
     fun `test absence of cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\data or (A B : \\Type) : \\Prop\n  | l A {-caret-}\n  | r B")
