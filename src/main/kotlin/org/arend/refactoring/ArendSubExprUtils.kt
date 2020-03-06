@@ -108,8 +108,8 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
             ?.childrenWithLeaves
             ?.toList()
             ?: return (subConcrete.data as PsiElement).textRange
-    val left = siblings.first { PsiTreeUtil.isAncestor(it, leftMost, false) }
-    val right = siblings.last { PsiTreeUtil.isAncestor(it, rightMost, false) }
+    val left = siblings.firstOrNull { PsiTreeUtil.isAncestor(it, leftMost, false) } ?: leftMost
+    val right = siblings.lastOrNull { PsiTreeUtil.isAncestor(it, rightMost, false) } ?: rightMost
     return TextRange.create(
             minOf(left.textRange.startOffset, right.textRange.startOffset),
             maxOf(left.textRange.endOffset, right.textRange.endOffset)
