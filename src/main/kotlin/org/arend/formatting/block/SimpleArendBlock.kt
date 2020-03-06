@@ -82,6 +82,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
+            if ((myNode.psi is ArendDefinition || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
+
+            if (nodePsi is ArendPrec && (c1et in listOf(INFIX_LEFT_KW, INFIX_NON_KW, INFIX_RIGHT_KW) && c2et == NUMBER)) return oneSpaceNoWrap
+
             if (nodePsi is ArendDefClass) when {
                 c1et == LBRACE && c2et == RBRACE -> return noWhitespace
                 c1et == LBRACE && c2et == CLASS_STAT -> return oneCrlf
