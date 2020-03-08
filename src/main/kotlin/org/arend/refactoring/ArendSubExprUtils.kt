@@ -91,14 +91,8 @@ fun correspondedSubExpr(
 
 private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {
     yield(concrete)
-    if (concrete is Concrete.AppExpression) {
-        val arguments = concrete.arguments
-        val expression = arguments.firstOrNull()?.expression
-        if (expression != null) {
-            yieldAll(everyExprOf(expression))
-            if (arguments.size > 1) yieldAll(everyExprOf(arguments.last().expression))
-        }
-    }
+    if (concrete is Concrete.AppExpression)
+        for (arg in concrete.arguments) yieldAll(everyExprOf(arg.expression))
 }
 
 fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
@@ -164,14 +158,17 @@ fun prettyPopupExpr(
     return builder.toString()
 }
 
-inline fun normalizeExpr(project: Project, subCore: Expression,
-                         mode: NormalizationMode = NormalizationMode.RNF,
-                         crossinline after: (String) -> Unit) {
+inline fun normalizeExpr(
+        project: Project,
+        subCore: Expression,
+        mode: NormalizationMode = NormalizationMode.RNF,
+        crossinline after: (String) -> Unit
+) {
     val title = "Running normalization"
     var result: String? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) {
-            result = ComputationRunner<String>().run(ArendCancellationIndicator(indicator), Supplier<String> {
+            result = ComputationRunner<String>().run(ArendCancellationIndicator(indicator), Supplier {
                 prettyPopupExpr(project, subCore, mode)
             })
         }
