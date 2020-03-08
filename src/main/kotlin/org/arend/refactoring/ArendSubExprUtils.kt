@@ -16,9 +16,11 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.reference.Precedence
 import org.arend.naming.BinOpParser
+import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.*
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.resolving.WrapperReferableConverter
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -32,6 +34,11 @@ import org.arend.util.appExprToConcrete
 import java.util.function.Supplier
 
 class SubExprError(message: String) : Throwable(message)
+
+class LocatedReferableConverter(private val wrapped: ReferableConverter) : ReferableConverter {
+    override fun toDataReferable(referable: Referable?) = referable
+    override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
+}
 
 @Throws(SubExprError::class)
 fun correspondedSubExpr(
@@ -50,7 +57,7 @@ fun correspondedSubExpr(
     val psiDef = parent.ancestor<ArendDefinition>()
             ?: throw SubExprError("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
-    val referableConverter = WrapperReferableConverter
+    val referableConverter = LocatedReferableConverter(service.newReferableConverter(true))
     val concreteDef = PsiConcreteProvider(
             project,
             referableConverter,
