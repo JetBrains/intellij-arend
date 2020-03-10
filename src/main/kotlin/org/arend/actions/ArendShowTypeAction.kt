@@ -1,5 +1,6 @@
 package org.arend.actions
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
@@ -11,10 +12,8 @@ import org.arend.psi.ext.ArendLamExprImplMixin
 import org.arend.psi.ext.ArendLetExprImplMixin
 import org.arend.psi.ext.ArendPiExprImplMixin
 import org.arend.psi.ext.ArendSigmaExprImplMixin
-import org.arend.refactoring.SubExprException
-import org.arend.refactoring.correspondedSubExpr
-import org.arend.refactoring.prettyPopupExpr
-import org.arend.refactoring.rangeOfConcrete
+import org.arend.refactoring.*
+import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.subexpr.FindBinding
 
@@ -33,8 +32,16 @@ class ArendShowTypeAction : ArendPopupAction() {
         val (subCore, subExpr, subPsi) = correspondedSubExpr(selected, file, project)
         fun select(range: TextRange) =
                 editor.selectionModel.setSelection(range.startOffset, range.endOffset)
-        fun hint(e: Expression?) = e?.let { displayHint { showInformationHint(editor, prettyPopupExpr(project, it)) } }
-                ?: throw SubExprException("failed to synthesize type from given expr")
+
+        fun hint(e: Expression?) = e?.let {
+            val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
+            if (normalizePopup) normalizeExpr(project, subCore) {
+                displayHint { showInformationHint(editor, it) }
+            } else {
+                displayHint { showInformationHint(editor, prettyPopupExpr(project, it)) }
+            }
+        } ?: throw SubExprException("failed to synthesize type from given expr")
+
         fun default() {
             select(rangeOfConcrete(subExpr))
             hint(subCore.type)
