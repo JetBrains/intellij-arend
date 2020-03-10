@@ -11,7 +11,7 @@ import org.arend.psi.ext.ArendLamExprImplMixin
 import org.arend.psi.ext.ArendLetExprImplMixin
 import org.arend.psi.ext.ArendPiExprImplMixin
 import org.arend.psi.ext.ArendSigmaExprImplMixin
-import org.arend.refactoring.SubExprError
+import org.arend.refactoring.SubExprException
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.prettyPopupExpr
 import org.arend.refactoring.rangeOfConcrete
@@ -22,19 +22,19 @@ class ArendShowTypeAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             doInvoke(editor, file, project)
-        } catch (t: SubExprError) {
+        } catch (t: SubExprException) {
             displayHint { showErrorHint(editor, "Failed to obtain type because ${t.message}") }
         }
     }
 
-    @Throws(SubExprError::class)
+    @Throws(SubExprException::class)
     private fun ArendPopupHandler.doInvoke(editor: Editor, file: PsiFile, project: Project) {
         val selected = EditorUtil.getSelectionInAnyMode(editor)
         val (subCore, subExpr, subPsi) = correspondedSubExpr(selected, file, project)
         fun select(range: TextRange) =
                 editor.selectionModel.setSelection(range.startOffset, range.endOffset)
         fun hint(e: Expression?) = e?.let { displayHint { showInformationHint(editor, prettyPopupExpr(project, it)) } }
-                ?: throw SubExprError("failed to synthesize type from given expr")
+                ?: throw SubExprException("failed to synthesize type from given expr")
         fun default() {
             select(rangeOfConcrete(subExpr))
             hint(subCore.type)

@@ -5,10 +5,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.ext.core.ops.NormalizationMode
-import org.arend.refactoring.SubExprError
-import org.arend.refactoring.correspondedSubExpr
-import org.arend.refactoring.normalizeExpr
-import org.arend.refactoring.rangeOfConcrete
+import org.arend.refactoring.*
 
 class ArendShowNormalFormAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
@@ -20,7 +17,7 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             normalizeExpr(project, subCore, NormalizationMode.WHNF) {
                 displayHint { showInformationHint(editor, it) }
             }
-        } catch (t: SubExprError) {
+        } catch (t: SubExprException) {
             displayHint { showErrorHint(editor, "Failed to normalize because ${t.message}") }
         }
     }

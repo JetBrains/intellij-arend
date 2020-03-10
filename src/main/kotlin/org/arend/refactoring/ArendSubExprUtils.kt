@@ -30,54 +30,52 @@ import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
+import org.arend.typechecking.subexpr.SubExprError
 import org.arend.util.appExprToConcrete
 import java.util.function.Supplier
 
-class SubExprError(message: String) : Throwable(message)
+class SubExprException(message: String) : Throwable(message)
 
 class LocatedReferableConverter(private val wrapped: ReferableConverter) : ReferableConverter {
     override fun toDataReferable(referable: Referable?) = referable
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }
 
-@Throws(SubExprError::class)
-fun correspondedSubExpr(
-        range: TextRange, file: PsiFile, project: Project
-): Triple<Expression, Concrete.Expression, ArendExpr> {
+data class SubExprResult(
+        val subCore: Expression,
+        val subConcrete: Concrete.Expression,
+        val subPsi: ArendExpr
+)
+
+@Throws(SubExprException::class)
+fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
     val possibleParent = (if (range.isEmpty)
         file.findElementAt(range.startOffset)
     else PsiTreeUtil.findCommonParent(
             file.findElementAt(range.startOffset),
             file.findElementAt(range.endOffset - 1)
-    )) ?: throw SubExprError("selected expr in bad position")
+    )) ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val exprAncestor = possibleParent.ancestor<ArendExpr>()
-            ?: throw SubExprError("selected text is not an arend expression")
+            ?: throw SubExprException("selected text is not an arend expression")
     val parent = exprAncestor.parent
     val psiDef = parent.ancestor<ArendDefinition>()
-            ?: throw SubExprError("selected text is not in a definition")
+            ?: throw SubExprException("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
-    val referableConverter = LocatedReferableConverter(service.newReferableConverter(true))
-    val concreteDef = PsiConcreteProvider(
-            project,
-            referableConverter,
-            DummyErrorReporter.INSTANCE,
-            null
-    ).getConcrete(psiDef)
+    val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
+    val concreteDef = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
+            .getConcrete(psiDef)
             as? Concrete.Definition
-            ?: throw SubExprError("selected text is not in a function definition")
+            ?: throw SubExprException("selected text is not in a function definition")
     val def = service.getTypechecked(psiDef)
-            ?: throw SubExprError("underlying definition is not type checked")
+            ?: throw SubExprException("underlying definition is not type checked")
 
     val children = collectArendExprs(parent, range)
-            .map {
-                appExprToConcrete(it)
-                        ?: ConcreteBuilder.convertExpression(referableConverter, it)
-            }
+            .map { appExprToConcrete(it) ?: ConcreteBuilder.convertExpression(refConverter, it) }
             .map(Concrete::BinOpSequenceElem)
             .toList()
             .takeIf { it.isNotEmpty() }
-            ?: throw SubExprError("cannot find a suitable subexpression")
+            ?: throw SubExprException("cannot find a suitable subexpression")
     val parser = BinOpParser(DummyErrorReporter.INSTANCE)
 
     val subExpr = if (children.size == 1)
@@ -85,8 +83,11 @@ fun correspondedSubExpr(
     else parser.parse(Concrete.BinOpSequenceExpression(null, children))
     val subExprVisitor = CorrespondedSubDefVisitor(subExpr)
     val result = concreteDef.accept(subExprVisitor, def)
-            ?: throw SubExprError("cannot find a suitable subexpression")
-    return Triple(result.proj1, result.proj2, exprAncestor)
+            ?: throw SubExprException(buildString {
+                appendln("cannot find a suitable subexpression, errors collected:")
+                subExprVisitor.exprError.forEach { appendln(it) }
+            })
+    return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
 
 private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {

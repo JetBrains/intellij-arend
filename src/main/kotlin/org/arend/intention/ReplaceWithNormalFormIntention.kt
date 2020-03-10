@@ -12,7 +12,7 @@ import com.intellij.psi.PsiFile
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendExpr
 import org.arend.psi.ancestor
-import org.arend.refactoring.SubExprError
+import org.arend.refactoring.SubExprException
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
 import org.arend.refactoring.rangeOfConcrete
@@ -37,7 +37,7 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
                         .setSelection(startOffset, startOffset + length)
             }
         }
-    } catch (t: SubExprError) {
+    } catch (t: SubExprException) {
         ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance()
                     .apply { showErrorHint(editor, "Failed to normalize because ${t.message}") }
