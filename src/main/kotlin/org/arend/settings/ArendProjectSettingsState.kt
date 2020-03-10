@@ -33,6 +33,7 @@ class ArendProjectSettingsState {
     var goalPrintingOptions = ArendPrintingOptions()
     var popupPrintingOptions = ArendPrintingOptions()
 
+    var normalizePopup = false
 }
 
 class ArendPrintingOptions {

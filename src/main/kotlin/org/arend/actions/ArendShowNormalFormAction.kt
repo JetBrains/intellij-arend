@@ -1,12 +1,17 @@
 package org.arend.actions
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.refactoring.*
+import org.arend.settings.ArendProjectSettings
 
+/**
+ * This class is better called "ArendShowElaboratedAction"
+ */
 class ArendShowNormalFormAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
@@ -14,8 +19,12 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             val (subCore, subExpr) = correspondedSubExpr(range, file, project)
             val textRange = rangeOfConcrete(subExpr)
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-            normalizeExpr(project, subCore, NormalizationMode.WHNF) {
+            val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
+            val mode = NormalizationMode.WHNF
+            if (normalizePopup) normalizeExpr(project, subCore, mode) {
                 displayHint { showInformationHint(editor, it) }
+            } else {
+                displayHint { showInformationHint(editor, prettyPopupExpr(project, subCore, mode)) }
             }
         } catch (t: SubExprException) {
             displayHint { showErrorHint(editor, "Failed to normalize because ${t.message}") }

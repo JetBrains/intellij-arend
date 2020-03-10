@@ -11,6 +11,7 @@ class ArendToolbarGroup : ActionGroup() {
     if (project.isDisposed) return emptyArray()
     return arrayOf(
         Separator.getInstance(),
+        ArendNormalizeToggleAction,
         ArendPrintOptionsActionGroup(project, PrintOptionKind.POPUP_PRINT_OPTIONS)
     )
   }

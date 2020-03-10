@@ -302,8 +302,8 @@
 
         <action id="Arend.ShowExpr.NormalForm"
                 class="org.arend.actions.ArendShowNormalFormAction"
-                text="Show Expression Normal Form"
-                description="Show the normal form of the selected expression">
+                text="Show Elaborated Expression"
+                description="Show the elaborated form of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
         </action>
 
