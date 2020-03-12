@@ -5,9 +5,9 @@ import org.jetbrains.grammarkit.tasks.GenerateParser
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
-val projectArend = project(":Arend")
+val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = projectArend.version
+version = "1.2.0"
 
 plugins {
     idea
@@ -21,13 +21,9 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":Arend")) {
-        isTransitive = false
-    }
-    compileClasspath(kotlin("stdlib-jdk8"))
-
-    // Transitive dependencies of :Arend
-    implementation("com.google.protobuf:protobuf-java:3.11.4")
+    implementation("org.arend:api")
+    implementation("org.arend:base")
+    compileOnly(kotlin("stdlib-jdk8"))
 }
 
 configure<JavaPluginConvention> {
@@ -110,14 +106,14 @@ afterEvaluate {
 }
 
 task<Copy>("prelude") {
-    from(projectArend.file("lib/Prelude.ard"))
-    from(projectArend.buildDir.resolve("classes/java/main/lib/Prelude.arc"))
+    val dir = projectArend.projectDir
+    from(dir.resolve("lib/Prelude.ard"), dir.resolve("lib/Prelude.arc"))
     into("src/main/resources/lib")
-    dependsOn(":Arend:prelude")
+    dependsOn(projectArend.task(":cli:buildPrelude"))
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = projectArend.task<Wrapper>("wrapper").gradleVersion
+    gradleVersion = "6.2.1"
 }
 
 

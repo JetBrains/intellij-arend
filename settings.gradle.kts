@@ -1,3 +1,10 @@
 rootProject.name = "intellij-arend"
 
-includeFlat("Arend")
+includeBuild("../Arend")
+//include(
+//    "api",
+//    "base",
+//    "cli",
+//    "proto",
+//    "parser"
+//)
