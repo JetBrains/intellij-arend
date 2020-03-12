@@ -8,6 +8,10 @@ jdk:
   - oraclejdk8
   - oraclejdk11
 
+matrix:
+  allow_failures:
+    - jdk: oraclejdk11
+
 branches:
   only:
     - master
