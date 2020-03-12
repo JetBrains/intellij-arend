@@ -8,8 +8,7 @@ import org.arend.settings.ArendProjectSettings
 
 object ArendNormalizeToggleAction : ToggleAction() {
     init {
-        // Better icon?
-        templatePresentation.icon = ArendIcons.SHOW_IMPLICITS
+        templatePresentation.icon = ArendIcons.SHOW_NORMALIZED
     }
 
     override fun isSelected(e: AnActionEvent) =
