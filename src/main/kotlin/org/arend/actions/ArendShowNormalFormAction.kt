@@ -14,8 +14,9 @@ import org.jetbrains.annotations.Nls
  * This class is better called "ArendShowElaboratedAction"
  */
 class ArendShowNormalFormAction : ArendPopupAction() {
-    companion object {
-        @Nls const val adText = "Elaborated Expression"
+    private companion object {
+        @Nls private const val AD_TEXT = "Elaborated Expression"
+        @Nls private const val AD_TEXT_N = "Elaborated Expression $NF"
     }
 
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
@@ -26,9 +27,9 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF) {
-                displayEditorHint(it, project, editor, adText)
+                displayEditorHint(it, project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(prettyPopupExpr(project, subCore), project, editor, adText)
+                displayEditorHint(prettyPopupExpr(project, subCore), project, editor, AD_TEXT)
             }
         } catch (t: SubExprException) {
             displayErrorHint(editor, "Failed to normalize because ${t.message}")

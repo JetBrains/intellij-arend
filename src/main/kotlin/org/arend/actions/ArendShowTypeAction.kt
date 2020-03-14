@@ -19,8 +19,9 @@ import org.arend.typechecking.subexpr.FindBinding
 import org.jetbrains.annotations.Nls
 
 class ArendShowTypeAction : ArendPopupAction() {
-    companion object {
-        @Nls const val adText = "Type of Expression"
+    private companion object {
+        @Nls private const val AD_TEXT = "Type of Expression"
+        @Nls private const val AD_TEXT_N = "Type of Expression $NF"
     }
 
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
@@ -40,10 +41,10 @@ class ArendShowTypeAction : ArendPopupAction() {
 
         fun hint(e: Expression?) = e?.let {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
-            if (normalizePopup) normalizeExpr(project, subCore) {
-                displayEditorHint(it, project, editor, adText)
+            if (normalizePopup) normalizeExpr(project, it) { exprStr ->
+                displayEditorHint(exprStr, project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(prettyPopupExpr(project, it), project, editor, adText)
+                displayEditorHint(prettyPopupExpr(project, it), project, editor, AD_TEXT)
             }
         } ?: throw SubExprException("failed to synthesize type from given expr")
 
