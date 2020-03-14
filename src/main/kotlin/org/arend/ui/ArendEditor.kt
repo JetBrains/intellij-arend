@@ -1,8 +1,9 @@
 package org.arend.ui
 
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.EditorKind
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.openapi.project.Project
 import org.arend.ArendFileType
 
@@ -11,16 +12,18 @@ class ArendEditor(
         project: Project? = null,
         readOnly: Boolean = true
 ) : AutoCloseable {
-    val document: Document
-    val editor: Editor
+    private val factory = EditorFactory.getInstance()
+    private val document = factory.createDocument(text)
+    private val editor = factory.createEditor(document, project, EditorKind.PREVIEW) as EditorEx
 
     init {
-        val factory = EditorFactory.getInstance()
-        document = factory.createDocument(text)
-        editor = factory.createEditor(document, project, ArendFileType, readOnly)
+        editor.isViewer = readOnly
+        editor.highlighter = EditorHighlighterFactory
+                .getInstance()
+                .createEditorHighlighter(project, ArendFileType)
     }
 
-    val component get() = editor.component
+    override fun close() = factory.releaseEditor(editor)
 
-    override fun close() = EditorFactory.getInstance().releaseEditor(editor)
+    val component get() = editor.component
 }
