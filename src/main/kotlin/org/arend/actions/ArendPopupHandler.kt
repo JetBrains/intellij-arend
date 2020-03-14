@@ -24,13 +24,20 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
         }
     }
 
-    fun displayEditorHint(text: String, project: Project, editor: Editor) = ApplicationManager.getApplication().invokeLater {
+    fun displayEditorHint(
+            text: String,
+            project: Project,
+            editor: Editor,
+            adText: String
+    ) = ApplicationManager.getApplication().invokeLater {
         val arendEditor = ArendEditor(text, project, readOnly = true)
         val factory = JBPopupFactory.getInstance()
         popup?.cancel()
         factory.createComponentPopupBuilder(arendEditor.component, arendEditor.component)
                 .setFocusable(true)
                 .setProject(project)
+                .setAdText(adText)
+                .setMovable(true)
                 .setRequestFocus(requestFocus)
                 .createPopup()
                 .also { popup = it }

@@ -8,11 +8,16 @@ import com.intellij.psi.PsiFile
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
+import org.jetbrains.annotations.Nls
 
 /**
  * This class is better called "ArendShowElaboratedAction"
  */
 class ArendShowNormalFormAction : ArendPopupAction() {
+    companion object {
+        @Nls const val adText = "Elaborated Expression"
+    }
+
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             val range = EditorUtil.getSelectionInAnyMode(editor)
@@ -21,9 +26,9 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF) {
-                displayEditorHint(it, project, editor)
+                displayEditorHint(it, project, editor, adText)
             } else {
-                displayEditorHint(prettyPopupExpr(project, subCore), project, editor)
+                displayEditorHint(prettyPopupExpr(project, subCore), project, editor, adText)
             }
         } catch (t: SubExprException) {
             displayErrorHint(editor, "Failed to normalize because ${t.message}")

@@ -16,8 +16,13 @@ import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.subexpr.FindBinding
+import org.jetbrains.annotations.Nls
 
 class ArendShowTypeAction : ArendPopupAction() {
+    companion object {
+        @Nls const val adText = "Type of Expression"
+    }
+
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             doInvoke(editor, file, project)
@@ -36,9 +41,9 @@ class ArendShowTypeAction : ArendPopupAction() {
         fun hint(e: Expression?) = e?.let {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, subCore) {
-                displayEditorHint(it, project, editor)
+                displayEditorHint(it, project, editor, adText)
             } else {
-                displayEditorHint(prettyPopupExpr(project, it), project, editor)
+                displayEditorHint(prettyPopupExpr(project, it), project, editor, adText)
             }
         } ?: throw SubExprException("failed to synthesize type from given expr")
 
