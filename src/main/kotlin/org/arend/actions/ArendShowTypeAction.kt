@@ -22,7 +22,7 @@ class ArendShowTypeAction : ArendPopupAction() {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             doInvoke(editor, file, project)
         } catch (t: SubExprException) {
-            displayHint { showErrorHint(editor, "Failed to obtain type because ${t.message}") }
+            displayErrorHint(editor, "Failed to obtain type because ${t.message}")
         }
     }
 
@@ -36,9 +36,9 @@ class ArendShowTypeAction : ArendPopupAction() {
         fun hint(e: Expression?) = e?.let {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, subCore) {
-                displayHint { showInformationHint(editor, it) }
+                displayEditorHint(it, project, editor)
             } else {
-                displayHint { showInformationHint(editor, prettyPopupExpr(project, it)) }
+                displayEditorHint(prettyPopupExpr(project, it), project, editor)
             }
         } ?: throw SubExprException("failed to synthesize type from given expr")
 

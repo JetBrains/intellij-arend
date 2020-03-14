@@ -30,7 +30,6 @@ import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
-import org.arend.typechecking.subexpr.SubExprError
 import org.arend.util.appExprToConcrete
 import java.util.function.Supplier
 
@@ -83,10 +82,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     else parser.parse(Concrete.BinOpSequenceExpression(null, children))
     val subExprVisitor = CorrespondedSubDefVisitor(subExpr)
     val result = concreteDef.accept(subExprVisitor, def)
-            ?: throw SubExprException(buildString {
-                appendln("cannot find a suitable subexpression, errors collected:")
-                subExprVisitor.exprError.forEach { appendln(it) }
-            })
+            ?: throw SubExprException("cannot find a suitable subexpression")
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
 

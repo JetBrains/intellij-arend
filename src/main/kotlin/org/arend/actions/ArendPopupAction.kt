@@ -15,6 +15,9 @@ import java.awt.event.KeyEvent
  * @see [com.intellij.codeInsight.hint.actions.ShowExpressionTypeAction]
  */
 abstract class ArendPopupAction : BaseCodeInsightAction() {
+    /**
+     * @see [com.intellij.codeInsight.hint.actions.ShowExpressionTypeAction.myRequestFocus]
+     */
     protected var requestFocus = false
         private set
 
