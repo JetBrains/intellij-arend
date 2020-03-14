@@ -10,7 +10,7 @@ class ArendEditor(
         text: String,
         project: Project? = null,
         readOnly: Boolean = true
-) {
+) : AutoCloseable {
     val document: Document
     val editor: Editor
 
@@ -21,4 +21,6 @@ class ArendEditor(
     }
 
     val component get() = editor.component
+
+    override fun close() = EditorFactory.getInstance().releaseEditor(editor)
 }

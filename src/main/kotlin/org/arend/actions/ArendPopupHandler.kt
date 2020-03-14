@@ -7,12 +7,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.JBPopupListener
+import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import org.arend.ui.ArendEditor
 
 
 abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsightActionHandler {
     private companion object {
-        var popup: JBPopup? = null
+        private var popup: JBPopup? = null
     }
 
     override fun startInWriteAction() = false
@@ -30,10 +32,13 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
             editor: Editor,
             adText: String
     ) = ApplicationManager.getApplication().invokeLater {
+        popup?.cancel()
         val arendEditor = ArendEditor(text, project, readOnly = true)
         val factory = JBPopupFactory.getInstance()
-        popup?.cancel()
-        factory.createComponentPopupBuilder(arendEditor.component, arendEditor.component)
+        val listener = object : JBPopupListener {
+            override fun onClosed(event: LightweightWindowEvent) = arendEditor.close()
+        }
+        factory.createComponentPopupBuilder(arendEditor.component, null)
                 .setFocusable(true)
                 .setProject(project)
                 .setAdText(adText)
@@ -41,6 +46,7 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
                 .setRequestFocus(requestFocus)
                 .createPopup()
                 .also { popup = it }
+                .apply { addListener(listener) }
                 .show(factory.guessBestPopupLocation(editor))
     }
 }
