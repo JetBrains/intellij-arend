@@ -2,6 +2,12 @@
 
 [![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![Build Status][travis-build-status-svg]][travis-build-status] 
+[![Downloads][d-svg]][jb-url]
+[![Version][v-svg]][jb-url]
+
+ [d-svg]: https://img.shields.io/jetbrains/plugin/d/11162.svg
+ [v-svg]: https://img.shields.io/jetbrains/plugin/v/11162.svg
+ [jb-url]: https://plugins.jetbrains.com/plugin/11162
 
 Plugin that implements [Arend](https://github.com/JetBrains/Arend) support 
 in [IntelliJ IDEA](http://www.jetbrains.com/idea/) and other IntelliJ-based products.
