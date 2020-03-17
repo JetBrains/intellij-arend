@@ -74,7 +74,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             .map(Concrete::BinOpSequenceElem)
             .toList()
             .takeIf { it.isNotEmpty() }
-            ?: throw SubExprException("cannot find a suitable subexpression")
+            ?: throw SubExprException("cannot find a suitable concrete expression")
     val parser = BinOpParser(DummyErrorReporter.INSTANCE)
 
     val subExpr = if (children.size == 1)
@@ -118,9 +118,9 @@ private fun collectArendExprs(
         parent: PsiElement,
         range: TextRange
 ): List<Abstract.Expression> {
-    if (range.isEmpty && range.startOffset == parent.textRange.startOffset
-            || parent.textRange == range) {
+    if (range.isEmpty || parent.textRange == range) {
         val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
+                ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
         if (firstExpr != null) return listOf(firstExpr)
     }
     val exprs = parent.childrenWithLeaves
