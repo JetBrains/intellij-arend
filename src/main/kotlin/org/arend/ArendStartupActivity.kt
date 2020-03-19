@@ -5,8 +5,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.startup.StartupActivity
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
@@ -33,11 +31,13 @@ class ArendStartupActivity : StartupActivity {
             }
         })
 
+        /* All resources are stored in TypeCheckingService, so they should be disposed anyway
         ProjectManager.getInstance().addProjectManagerListener(project, object : ProjectManagerListener {
-            override fun projectClosed(project: Project) {
+            override fun projectClosing(project: Project) {
                 libraryManager.unload()
             }
         })
+        */
 
         for (module in project.arendModules) {
             module.register()
