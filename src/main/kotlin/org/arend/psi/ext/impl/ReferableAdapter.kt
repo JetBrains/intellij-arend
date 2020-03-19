@@ -26,7 +26,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.modulePath else null
 
-    override fun getLocatedReferableParent() = parent.ancestor<PsiLocatedReferable>()
+    override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

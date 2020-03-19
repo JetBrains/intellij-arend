@@ -2,6 +2,7 @@ package org.arend.resolving
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.util.containers.ContainerUtil
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCClassReferable
@@ -15,8 +16,11 @@ class ArendResolveCache(project: Project) {
 
     fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement): Referable? {
         val globalRef = refMap[reference]
-        if (globalRef != null) {
-            return if (globalRef == TCClassReferable.NULL_REFERABLE) null else globalRef
+        if (globalRef == TCClassReferable.NULL_REFERABLE) {
+            return null
+        }
+        if ((globalRef as? PsiElement)?.isValid == true) {
+            return globalRef
         }
 
         val result = resolver(reference)
