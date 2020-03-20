@@ -3,6 +3,7 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
@@ -14,7 +15,10 @@ import org.arend.util.getBounds
 class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
     override fun buildChildren(): MutableList<Block> {
-        val cExpr = runReadAction{ appExprToConcrete(node.psi as Abstract.Expression) }
+        val cExpr = runReadAction {
+            val psi = node.psi
+            if (psi is Abstract.Expression && !DumbService.isDumb(psi.project)) appExprToConcrete(psi) else null
+        }
         val children = myNode.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
 
         if (cExpr != null) return transform(cExpr, children, Alignment.createAlignment(), Indent.getNoneIndent()).subBlocks
