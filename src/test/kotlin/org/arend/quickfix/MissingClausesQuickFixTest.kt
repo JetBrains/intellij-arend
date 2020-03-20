@@ -384,7 +384,6 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
                \func test {n : Nat} (p : isNeg n) : Empty
                  | {0}, ()
-                 | {suc n}, ()
     """)
 
     fun test_88_1() = typedQuickFixTest("Implement", """
