@@ -4,10 +4,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
+import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.elimtree.IntervalElim
@@ -30,6 +32,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.VariableImpl
+import org.arend.refactoring.calculateOccupiedNames
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
@@ -42,11 +45,17 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     private var splitPatternEntries: List<SplitPatternEntry>? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
+        val defIdentifier = when (element) {
+            is ArendPattern -> element.defIdentifier
+            is ArendAtomPatternOrPrefix -> element.defIdentifier
+            else -> null
+        }
+
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
             val type = getCachedElementType(element) ?: getElementType(element, editor.project)
             if (type is DataCallExpression) {
                 val constructors = type.matchedConstructors ?: return false
-                this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition) }
+                this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
                 return true
             }
             if (type is SigmaExpression) {
@@ -144,7 +153,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             fun requiresParentheses(): Boolean
         }
 
-        abstract class DependentLinkSplitPatternEntry : SplitPatternEntry {
+        abstract class DependentLinkSplitPatternEntry(private val parameterName: String?,
+                                                      private val recursiveTypeDefinition: Definition?) : SplitPatternEntry {
             val params: ArrayList<String> = ArrayList()
 
             abstract fun getDependentLink(): DependentLink
@@ -152,10 +162,22 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun initParams(occupiedNames: MutableSet<Variable>) {
                 params.clear()
                 var parameter = getDependentLink()
+                var nRecursiveBindings = 0
+
+                if (recursiveTypeDefinition != null && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last())) {
+                    while (parameter.hasNext()) {
+                        val parameterType = parameter.type
+                        if (parameterType is DataCallExpression && parameterType.definition == recursiveTypeDefinition) nRecursiveBindings += 1
+                        parameter = parameter.next
+                    }
+                    parameter = getDependentLink()
+                }
+
                 val renamer = StringRenamer()
+                renamer.setParameterName(recursiveTypeDefinition, parameterName)
 
                 while (parameter.hasNext()) {
-                    val name = renamer.generateFreshName(parameter, occupiedNames)
+                    val name = renamer.generateFreshName(parameter, calculateOccupiedNames(occupiedNames, parameterName, nRecursiveBindings))
                     occupiedNames.add(parameter)
                     if (parameter.isExplicit)
                         params.add(name)
@@ -164,7 +186,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class ConstructorSplitPatternEntry(val constructor: Constructor) : DependentLinkSplitPatternEntry() {
+        class ConstructorSplitPatternEntry(val constructor: Constructor,
+                                           parameterName: String?,
+                                           recursiveTypeDefinition: Definition?) : DependentLinkSplitPatternEntry(parameterName, recursiveTypeDefinition) {
             override fun getDependentLink(): DependentLink = constructor.parameters
 
             override fun patternString(location: ArendCompositeElement): String {
@@ -188,7 +212,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun requiresParentheses(): Boolean = params.isNotEmpty()
         }
 
-        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry() {
+        class TupleSplitPatternEntry(private val link: DependentLink) : DependentLinkSplitPatternEntry(null, null) {
             override fun getDependentLink(): DependentLink = link
 
             override fun patternString(location: ArendCompositeElement): String = printTuplePattern(params)

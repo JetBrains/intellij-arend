@@ -23,6 +23,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.VariableImpl
+import org.arend.refactoring.calculateOccupiedNames
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
@@ -307,7 +308,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val binding = pattern.binding
                     val renamer = StringRenamer()
                     if (recursiveTypeDefinition != null && parameterName != null) renamer.setParameterName(recursiveTypeDefinition, parameterName)
-                    val result = renamer.generateFreshName(binding, if (nRecursiveBindings > 1 && parameterName != null) occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames)
+                    val result = renamer.generateFreshName(binding, calculateOccupiedNames(occupiedNames, parameterName, nRecursiveBindings))
                     occupiedNames.add(VariableImpl(result))
                     result
                 }

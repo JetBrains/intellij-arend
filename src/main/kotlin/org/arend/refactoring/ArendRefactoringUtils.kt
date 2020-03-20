@@ -543,3 +543,7 @@ fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {
 }
 
 fun isInfix(prec: ArendPrec): Boolean = prec.infixLeftKw != null || prec.infixNonKw != null || prec.infixRightKw != null
+
+fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: String?, nRecursiveBindings: Int) =
+        if (nRecursiveBindings > 1 && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last()))
+            occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames

@@ -113,7 +113,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
        \func foo3 {A : \Type} (f : Foo A) : Nat
          | foo1 0 b => {?} 
-         | foo1 (suc n) b => {?}
+         | foo1 (suc a) b => {?}
     """)
 
     fun testRenaming() = typedQuickFixTest("Split", """
@@ -132,7 +132,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo {A : \Type} (l : List A) : Nat
          | nil => 0
          | cons x nil => 1
-         | cons x (cons a l) => 1
+         | cons x (cons a xs) => 1
     """)
 
     fun testRenaming2() = typedQuickFixTest("Split", """
@@ -153,7 +153,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | nil, _ => 0
          | _, nil => 0
          | cons x nil, cons a l => foo nil l
-         | cons x (cons a1 l1), cons a l => foo (cons a1 l1) l
+         | cons x (cons a1 xs), cons a l => foo (cons a1 xs) l
     """)
 
     fun testInfixNotation() = typedQuickFixTest("Split", """
@@ -172,7 +172,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo (l : List Nat) : Nat
          | nil => 0
          | :: x nil => (foo nil) Nat.+ x 
-         | :: x (:: a l) => (foo (a :: l)) Nat.+ x
+         | :: x (:: a xs) => (foo (a :: xs)) Nat.+ x
     """)
 
     fun testSimpleResolving() = typedQuickFixTest("Split", """
@@ -191,7 +191,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         
        \func foo (xs : List Nat) : Nat
          | nil => 0
-         | :: a l => 0 
+         | :: a xs => 0 
     """)
 
     fun testLongName() = typedQuickFixTest("Split", """
@@ -218,7 +218,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
        \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural
          | {A}, Foo.myZero, xs : Vec A Foo.myZero => (Foo.mySuc Foo.myZero, Foo.myZero)
-         | {A}, Foo.mySuc m, xs : Vec A (Foo.mySuc m) => (Foo.mySuc (Foo.mySuc m), Foo.mySuc m)
+         | {A}, Foo.mySuc n, xs : Vec A (Foo.mySuc n) => (Foo.mySuc (Foo.mySuc n), Foo.mySuc n)
     """)
 
     fun testNaturalNumbers() = typedQuickFixTest("Split",
@@ -228,7 +228,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        \func plus {a : Nat} (b : Nat) : Nat \with
          | {0}, b => 0 
-         | {suc n}, b => 0
+         | {suc a}, b => 0
     """)
 
     fun testNaturalNumbers2() = typedQuickFixTest("Split", """
@@ -237,7 +237,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        \func foo (p : \Sigma Nat Nat) : Nat
          | (0, y) => {?} 
-         | (suc n, y) => {?}
+         | (suc x, y) => {?}
     """)
 
     fun testElim() = typedQuickFixTest("Split",
@@ -253,7 +253,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          
        \func plus {a : Nat} (b : Foo) : Nat \elim b
          | foo 2 => zero
-         | foo ((suc ((Nat.suc (suc n))))) => suc n 
+         | foo ((suc ((Nat.suc (suc b))))) => suc b 
     """)
 
     fun testTuple1() = typedQuickFixTest("Split",

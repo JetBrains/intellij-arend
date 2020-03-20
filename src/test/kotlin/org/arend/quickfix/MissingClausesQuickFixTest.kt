@@ -408,4 +408,18 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | leaf => {?}
          | branch z1 z2 => {?}        
     """)
+
+    fun test_88_3() = typedQuickFixTest("Implement", """
+       \data Tree | leaf | branch Tree Tree
+
+       \func countLeaves{-caret-} (z1 z2 : Tree) : Nat 
+    ""","""
+       \data Tree | leaf | branch Tree Tree
+
+       \func countLeaves (z1 z2 : Tree) : Nat
+         | leaf, leaf => {?}
+         | leaf, branch z2 z1 => {?}
+         | branch z1 z2, leaf => {?}
+         | branch z1 z2, branch z3 z4 => {?} 
+    """)
 }
