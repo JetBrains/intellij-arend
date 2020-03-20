@@ -354,12 +354,14 @@ private pipe_def ::= PIPE {
 
 private def_recover ::= !(ID | LPAREN | assoc) & statement_recover
 
-constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | LBRACE pipe_def? constructor (<<piped constructor>>)* RBRACE) {
+constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.ConstructorClause" ]
     mixin = "org.arend.psi.ext.ArendConstructorClauseImplMixin"
 }
+
+private constructors ::= LBRACE pipe_def? constructor (<<piped constructor>>)* RBRACE { pin = 1 }
 
 private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
     recoverWhile = def_pipe_lbrace_recover
