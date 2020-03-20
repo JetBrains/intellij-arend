@@ -61,6 +61,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             val topLevelFilter = computeFilter(previewResults)
 
             val patternStrings = ArrayList<String>()
+            var containsEmptyPattern = false
             run {
                 val iterator = clause.iterator()
                 var parameter2: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
@@ -68,12 +69,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES
-                    patternStrings.add(doTransformPattern(pattern, element, editor, filters, braces, clauseBindings))
+                    val patternData = doTransformPattern(pattern, element, editor, filters, braces, clauseBindings)
+                    patternStrings.add(patternData.first)
+                    containsEmptyPattern = containsEmptyPattern || patternData.second
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
                 }
             }
 
-            clauses.add(psiFactory.createClause(concat(patternStrings, topLevelFilter)))
+            clauses.add(psiFactory.createClause(concat(patternStrings, topLevelFilter), containsEmptyPattern))
         }
 
         insertClauses(psiFactory, element, clauses)
@@ -204,13 +207,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     filters[pattern] = computeFilter(previewResults)
                 }
                 is BindingPattern -> return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT
-                is EmptyPattern -> {}
+                is EmptyPattern -> {
+                }
                 else -> throw IllegalStateException()
             }
 
             return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
         }
-
 
 
         private fun getIntegralNumber(pattern: ConstructorExpressionPattern): Int? {
@@ -233,7 +236,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
         fun doTransformPattern(pattern: ExpressionPattern, cause: ArendCompositeElement, editor: Editor?,
                                filters: Map<ConstructorExpressionPattern, List<Boolean>>, paren: Braces,
-                               occupiedNames: MutableList<Variable>): String {
+                               occupiedNames: MutableList<Variable>): Pair<String, Boolean> {
+            var containsEmptyPattern = false
             val result = when (pattern) {
                 is ConstructorExpressionPattern -> {
                     val definition: Definition? = pattern.definition
@@ -256,7 +260,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                     constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                     else -> Companion.Braces.BRACES
                                 }
-                                argumentPatterns.add(doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, occupiedNames))
+                                val argPattern = doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, occupiedNames)
+                                argumentPatterns.add(argPattern.first)
+                                containsEmptyPattern = containsEmptyPattern || argPattern.second
                                 constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                             }
                         }
@@ -286,11 +292,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     result
                 }
 
-                is EmptyPattern -> "()"
+                is EmptyPattern -> {
+                    containsEmptyPattern = true
+                    "()"
+                }
                 else -> throw IllegalStateException()
             }
 
-            return if (paren == Companion.Braces.BRACES) "{$result}" else result
+            return Pair(if (paren == Companion.Braces.BRACES) "{$result}" else result, containsEmptyPattern)
         }
 
 

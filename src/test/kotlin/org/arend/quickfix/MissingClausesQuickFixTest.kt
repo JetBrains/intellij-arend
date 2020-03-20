@@ -383,7 +383,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | suc x => Empty
 
                \func test {n : Nat} (p : isNeg n) : Empty
-                 | {0}, () => {?}
-                 | {suc n}, () => {?}
+                 | {0}, ()
+                 | {suc n}, ()
     """)
 }

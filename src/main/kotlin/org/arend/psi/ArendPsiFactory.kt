@@ -54,8 +54,8 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
-    fun createClause(expr: String): ArendClause {
-        val code = "\\func foo => \\case goo \\with { | $expr => {?} }"
+    fun createClause(expr: String, createWithEmptyExpression: Boolean = false): ArendClause {
+        val code = "\\func foo => \\case goo \\with { | $expr ${if (createWithEmptyExpression) "" else "=> {?}"} }"
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
