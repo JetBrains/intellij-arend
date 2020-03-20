@@ -213,9 +213,9 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func bar => \\let x =>{-caret-}",
             "\\func bar => \\let x =>\n                    {-caret-}")
 
-    /* fun testConstructorsInConstructorClause() = checkNewLine(
+    fun testConstructorsInConstructorClause() = checkNewLine(
             "\\data D (n : Nat) \\with\n  | 0 => {{-caret-}}",
-            "\\data D (n : Nat) \\with\n  | 0 => {\n    {-caret-}\n  }") */
+            "\\data D (n : Nat) \\with\n  | 0 => {\n    {-caret-}\n  }")
 
     // Test newline in docs
 

@@ -12,6 +12,7 @@ import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.term.abs.Abstract
 import org.arend.util.mapFirstNotNull
 import java.util.*
 
@@ -232,6 +233,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             val indent = when (prevET) {
                 LBRACE -> Indent.getNormalIndent()
+                ERROR_ELEMENT -> if (prev2ET == LBRACE) Indent.getNormalIndent() else prevChild.indent
                 else -> prevChild.indent
             }
 
