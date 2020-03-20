@@ -35,7 +35,6 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendTypecheckingListener
 import org.arend.typechecking.TypeCheckingService
-import java.lang.IllegalStateException
 import java.util.*
 import java.util.Collections.singletonList
 
@@ -217,7 +216,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun initParams(occupiedNames: MutableSet<Variable>) {
                 params.clear()
                 val renamer = StringRenamer()
-                renamer.forceTypeSCName = true
+                renamer.setForceTypeSCName(true)
 
                 for (field in record.fields.filter { record.isGoodField(it) }) {
                     val name = renamer.generateFreshName(field, occupiedNames)

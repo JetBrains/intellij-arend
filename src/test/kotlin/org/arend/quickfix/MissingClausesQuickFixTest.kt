@@ -233,10 +233,10 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         """, """
         \func plus (a b : Nat) : Nat
           | 0, 2 => 0
-          | suc n, b => {?}
+          | suc a, b => {?}
           | 0, 0 => {?}
           | 0, 1 => {?}
-          | 0, suc (suc (suc n)) => {?}    
+          | 0, suc (suc (suc b)) => {?}    
         """)
 
     fun testIntegralNumbers() = typedQuickFixTest("Implement",
@@ -264,7 +264,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                 \func foo (x : Nat) : Nat
                   | 0 => {?}
-                  | suc n => {?}
+                  | suc x => {?}
             """)
 
     fun testEmpty2() = typedQuickFixTest("Implement",
@@ -292,9 +292,9 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                \func foo (n m : Nat) : Nat
                  | 0, 0 => {?}
-                 | 0, suc n => {?}
+                 | 0, suc m => {?}
                  | suc n, 0 => {?}
-                 | suc n, suc n1 => {?} 
+                 | suc n, suc m => {?} 
             """)
 
     fun testTuple1() = typedQuickFixTest("Implement",
@@ -385,5 +385,28 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func test {n : Nat} (p : isNeg n) : Empty
                  | {0}, ()
                  | {suc n}, ()
+    """)
+
+    fun test_88_1() = typedQuickFixTest("Implement", """
+       \data D | cons (a b : Nat) (a = b)
+
+       \func{-caret-} lol2 (d : D) : Nat \elim d 
+    """, """
+       \data D | cons (a b : Nat) (a = b)
+
+       \func lol2 (d : D) : Nat \elim d
+         | cons a b p => {?} 
+    """)
+
+    fun test_88_2() = typedQuickFixTest("Implement", """
+       \data Tree | leaf | branch Tree Tree
+
+       \func foo{-caret-} (z : Tree) : Nat
+    """, """
+       \data Tree | leaf | branch Tree Tree
+
+       \func foo (z : Tree) : Nat
+         | leaf => {?}
+         | branch z1 z2 => {?}        
     """)
 }
