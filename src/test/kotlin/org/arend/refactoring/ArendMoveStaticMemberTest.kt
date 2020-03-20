@@ -614,8 +614,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \import Main
 
                \func foo (d1 : D1) (d2 : D2) \elim d1, d2
-                 | A, D2.A => 1
-                 | B, D2.B => 0
+                 | D1.A, D2.A => 1
+                 | D1.B, D2.B => 0
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleRenaming1() =

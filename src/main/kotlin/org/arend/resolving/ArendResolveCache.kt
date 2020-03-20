@@ -19,7 +19,7 @@ class ArendResolveCache(project: Project) {
         if (globalRef == TCClassReferable.NULL_REFERABLE) {
             return null
         }
-        if ((globalRef as? PsiElement)?.isValid == true) {
+        if (globalRef != null && (globalRef !is PsiElement || globalRef.isValid)) {
             return globalRef
         }
 
