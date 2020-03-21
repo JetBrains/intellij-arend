@@ -65,10 +65,11 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                         data.parentLongName?.let { it.refIdentifierList + last } ?: last
                     }
                     is ArendReferenceElement -> listOf(data)
+                    is ArendPattern -> data.defIdentifier?.let { listOf(it) } ?: data.longName?.refIdentifierList ?: return
                     else -> return
                 }
                 val lastReference = list.lastOrNull() ?: return
-                if (lastReference is ArendRefIdentifier && referent is GlobalReferable && referent.precedence.isInfix) {
+                if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier) && referent is GlobalReferable && referent.precedence.isInfix) {
                     holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
                 }
 
