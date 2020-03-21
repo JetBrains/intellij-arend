@@ -1,7 +1,6 @@
 package org.arend.refactoring.move
 
 import com.intellij.ide.util.EditorHelper
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
@@ -29,7 +28,6 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
-import org.arend.resolving.ArendResolveCache
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop
 import java.util.ArrayList
@@ -51,7 +49,7 @@ import kotlin.collections.toSet
 import kotlin.collections.toTypedArray
 import kotlin.collections.withIndex
 
-class ArendStaticMemberRefactoringProcessor(private val project: Project,
+class ArendStaticMemberRefactoringProcessor(project: Project,
                                             private val myMoveCallback: () -> Unit,
                                             private var myMembers: List<ArendGroup>,
                                             private val mySourceContainer: ArendGroup,
@@ -368,9 +366,6 @@ class ArendStaticMemberRefactoringProcessor(private val project: Project,
                 }
             }
         }
-
-        //Add "\\this" arguments to all usages inside the record of the definitions moved out of the record
-        project.service<ArendResolveCache>().clear()
 
         if (sourceContainerIsARecord) for (dynamicSubgroup in (mySourceContainer as ArendDefClass).dynamicSubgroups) {
             modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "\\this")
