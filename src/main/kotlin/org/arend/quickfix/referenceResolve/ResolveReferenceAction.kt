@@ -16,8 +16,11 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val statCmdFixAction: AbstractRefactoringAction?,
                              private val nameFixAction: RenameReferenceAction) {
 
-    override fun toString(): String = LongName(targetFullName).toString() + ((target.containingFile as? ArendFile)?.modulePath?.let { " in $it" }
-            ?: "")
+    override fun toString(): String {
+        val prefix = LongName(targetFullName).toString()
+        val suffix = (target.containingFile as? ArendFile)?.modulePath?.toString() ?: "NULL"
+        return if (prefix.isNotEmpty()) "$prefix in $suffix" else suffix
+    }
 
     fun execute(editor: Editor?) {
         statCmdFixAction?.execute(editor)

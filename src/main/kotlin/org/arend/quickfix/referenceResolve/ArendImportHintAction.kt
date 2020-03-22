@@ -34,41 +34,49 @@ import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.typechecking.TypeCheckingService
 
-enum class Result {POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN}
+enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
 class ArendImportHintAction(private val referenceElement: ArendReferenceElement) : HintAction, HighPriorityAction {
+    private enum class ImportHintActionAvailabiliity { UNAVAILABLE, ONLY_AT_USER_REQUEST, AVAILABLE, AVAILABLE_FOR_SILENT_FIX }
 
     override fun startInWriteAction(): Boolean = false
 
     override fun getFamilyName(): String = "arend.reference.resolve"
 
-    override fun showHint(editor: Editor): Boolean {
-        val result = doFix(editor)
-        return result == Result.POPUP_SHOWN || result == Result.CLASS_AUTO_IMPORTED
-    }
+    override fun fixSilently(editor: Editor): Boolean =
+            doFix(editor, true) == Result.CLASS_AUTO_IMPORTED
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = getItemsToImport(project).isNotEmpty()
+    override fun showHint(editor: Editor): Boolean =
+            doFix(editor) != Result.POPUP_NOT_SHOWN
 
-    private fun getItemsToImport(project: Project) : List<ResolveReferenceAction> {
-        if (importQuickFixAllowed(referenceElement)) {
-            val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
-            return CachedValuesManager.getCachedValue(refElement) {
-                val name = refElement.referenceName
-                val prelude = project.service<TypeCheckingService>().prelude
-                val preludeItems = HashSet<Referable>()
-                if (prelude != null) {
-                    iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == refElement.referenceName }, preludeItems)
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
+            checkAvailability(project) != ImportHintActionAvailabiliity.UNAVAILABLE
+
+    private fun checkAvailability(project: Project): ImportHintActionAvailabiliity {
+        if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailabiliity.UNAVAILABLE
+        val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
+        return CachedValuesManager.getCachedValue(refElement) {
+            val allStubs = getStubElementSet(project, refElement).asSequence()
+            val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
+            val allImportActions = allStubs.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
+            val generallyAvailableImportActions = generallyAvailableStubs.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
+            CachedValueProvider.Result(when {
+                generallyAvailableImportActions.iterator().hasNext() -> {
+                    val allImportActionsIterator = allImportActions.iterator()
+                    allImportActionsIterator.next()
+                    if (allImportActionsIterator.hasNext()) ImportHintActionAvailabiliity.AVAILABLE else ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX
                 }
-
-                val items = StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().
-                        union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
-
-                CachedValueProvider.Result(items.mapNotNull { ResolveReferenceAction.getProposedFix(it, refElement) }, PsiModificationTracker.MODIFICATION_COUNT)
-            }
+                allImportActions.iterator().hasNext() -> ImportHintActionAvailabiliity.ONLY_AT_USER_REQUEST
+                else -> ImportHintActionAvailabiliity.UNAVAILABLE
+            }, PsiModificationTracker.MODIFICATION_COUNT)
         }
-
-        return emptyList()
     }
+
+    private fun getItemsToImport(project: Project, onlyGenerallyAvaiable: Boolean = false): Sequence<ResolveReferenceAction> =
+            if (importQuickFixAllowed(referenceElement))
+                getStubElementSet(project, referenceElement).asSequence().filter{!onlyGenerallyAvaiable || !availableOnlyAtUserRequest(it)}.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
+            else emptySequence()
+
 
     override fun getText(): String {
         return "Fix import"
@@ -76,47 +84,49 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
-
         if (!referenceUnresolved(referenceElement)) return // already imported or invalid
 
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport(project)
-            if (fixData.isEmpty()) return@runWriteAction
+            if (!fixData.iterator().hasNext()) return@runWriteAction
             val action = ArendAddImportAction(project, editor, referenceElement, fixData, false)
             action.execute()
         }
 
     }
 
-    private fun doFix(editor: Editor): Result {
-        if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
+    private fun doFix(editor: Editor, silentFixMode: Boolean = false): Result {
         val psiFile = referenceElement.containingFile
         val project = psiFile.project
-        val fixes = getItemsToImport(project)
-        if (fixes.isEmpty()) {
-            return Result.POPUP_NOT_SHOWN // already imported
-        }
 
-        val isInModlessContext = if (Registry.`is`("ide.perProjectModality"))
-            !LaterInvocator.isInModalContextForProject(editor.project)
-        else
-            !LaterInvocator.isInModalContext()
+        if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
+        val availability = checkAvailability(project)
+        if (availability !in setOf(ImportHintActionAvailabiliity.AVAILABLE, ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX)) return Result.POPUP_NOT_SHOWN // We import fieldDefIdentifier only at the request of the user (through invoke method)
 
-        val highPriorityFixes = fixes.filter { it.target !is ArendFieldDefIdentifier }
-        if (fixes.size == 1 && highPriorityFixes.size == 1 // thus we prevent autoimporting short class field names
-                && service<ArendSettings>().autoImportOnTheFly &&
-                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) && isInModlessContext) {
-            val action = ArendAddImportAction(project, editor, referenceElement, fixes, true)
+        val isInModlessContext = if (Registry.`is`("ide.perProjectModality")) !LaterInvocator.isInModalContextForProject(editor.project) else !LaterInvocator.isInModalContext()
+        val referenceResolveActions = getItemsToImport(project, true)
+        val actionsIterator = referenceResolveActions.iterator()
+
+        if (availability == ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX &&
+                service<ArendSettings>().autoImportOnTheFly &&
+                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
+                isInModlessContext) {
+            val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions, true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (highPriorityFixes.isNotEmpty()) { // thus we prevent showing hint-action for class field names
-            val hintText = ShowAutoImportPass.getMessage(fixes.size > 1, fixes[0].toString())
+        if (silentFixMode && availability != ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX) return Result.POPUP_NOT_SHOWN //This reduces number of calls to "getProposedFix" and greatly boosts performance
+
+        val firstAction = if (actionsIterator.hasNext()) actionsIterator.next() else null
+        val moreThanOneActionAvailable = actionsIterator.hasNext()
+
+        if (firstAction != null) {
+            val hintText = ShowAutoImportPass.getMessage(moreThanOneActionAvailable, firstAction.toString())
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
                 if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
-                val action = ArendAddImportAction(project, editor, referenceElement, fixes, false)
+                val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions, false)
                 HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN
@@ -124,7 +134,21 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         return Result.POPUP_NOT_SHOWN
     }
 
+    private fun availableOnlyAtUserRequest(referable: PsiLocatedReferable): Boolean =
+            referable is ArendFieldDefIdentifier
+
     companion object {
+        private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): Set<PsiLocatedReferable> {
+            val name = refElement.referenceName
+            val prelude = project.service<TypeCheckingService>().prelude
+            val preludeItems = HashSet<Referable>()
+            if (prelude != null) {
+                iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == refElement.referenceName }, preludeItems)
+            }
+
+            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
+        }
+
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
             is ArendSourceNode -> referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
             is ArendIPName -> referenceUnresolved(referenceElement)
@@ -133,11 +157,12 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         }
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
-            val reference = (if (referenceElement.isValid) referenceElement.reference else null) ?: return false // reference anchor is invalid
+            val reference = (if (referenceElement.isValid) referenceElement.reference else null)
+                    ?: return false // reference anchor is invalid
             return reference.resolve() == null // return false if already imported
         }
 
-        fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
+        private fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
             for (subgroup in group.subgroups) {
                 if (subgroup is Referable && predicate.invoke(subgroup)) target.add(subgroup)
                 iterateOverGroup(subgroup, predicate, target)

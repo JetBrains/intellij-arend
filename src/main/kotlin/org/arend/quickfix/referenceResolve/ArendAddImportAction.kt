@@ -16,18 +16,21 @@ import javax.swing.Icon
 class ArendAddImportAction(private val project: Project,
                            private val editor: Editor,
                            private val currentElement: PsiElement,
-                           private val resolveData: List<ResolveReferenceAction>,
+                           private val resolveData: Sequence<ResolveReferenceAction>,
                            private val onTheFly: Boolean) : QuestionAction {
 
     override fun execute(): Boolean {
         PsiDocumentManager.getInstance(project).commitAllDocuments()
 
-        if (!currentElement.isValid || resolveData.any { !it.target.isValid }) {
+        if (!currentElement.isValid/* || resolveData.any { !it.target.isValid } */) {
             return false
         }
 
-        if (resolveData.size == 1)
-            addImport(resolveData[0])
+        val rdIterator = resolveData.iterator()
+        val rdFirst = if (rdIterator.hasNext()) rdIterator.next() else null
+
+        if (rdFirst != null && !rdIterator.hasNext())
+            addImport(rdFirst)
         else
             chooseItemAndImport()
 
@@ -42,33 +45,29 @@ class ArendAddImportAction(private val project: Project,
     }
 
     private fun chooseItemAndImport(){
-        if (resolveData.size == 1)
-            resolveData[0].execute(editor)
 
-        if (resolveData.size > 1) {
-            val step = object: BaseListPopupStep<ResolveReferenceAction>("Imports", resolveData) {
-                override fun getTextFor(value: ResolveReferenceAction?): String {
-                    if (value != null) return value.toString()
-                    return super.getTextFor(value)
-                }
+        val step = object: BaseListPopupStep<ResolveReferenceAction>("Imports", resolveData.toList()) {
+            override fun getTextFor(value: ResolveReferenceAction?): String {
+                if (value != null) return value.toString()
+                return super.getTextFor(value)
+            }
 
-                override fun getIconFor(value: ResolveReferenceAction?): Icon? =
+            override fun getIconFor(value: ResolveReferenceAction?): Icon? =
                     value?.target?.getIcon(0) ?: super.getIconFor(value)
 
-                override fun onChosen(selectedValue: ResolveReferenceAction?, finalChoice: Boolean): PopupStep<*>? {
-                    if (finalChoice && selectedValue != null) {
-                        return doFinalStep {
-                            PsiDocumentManager.getInstance(project).commitAllDocuments()
-                            addImport(selectedValue)
-                        }
+            override fun onChosen(selectedValue: ResolveReferenceAction?, finalChoice: Boolean): PopupStep<*>? {
+                if (finalChoice && selectedValue != null) {
+                    return doFinalStep {
+                        PsiDocumentManager.getInstance(project).commitAllDocuments()
+                        addImport(selectedValue)
                     }
-
-                    return PopupStep.FINAL_CHOICE
                 }
-            }
-            val popup = ListPopupImpl(project, step)
 
-            popup.showInBestPositionFor(editor)
+                return PopupStep.FINAL_CHOICE
+            }
         }
+        val popup = ListPopupImpl(project, step)
+
+        popup.showInBestPositionFor(editor)
     }
 }
