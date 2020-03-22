@@ -89,7 +89,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport(project)
             if (!fixData.iterator().hasNext()) return@runWriteAction
-            val action = ArendAddImportAction(project, editor, referenceElement, fixData, false)
+            val action = ArendAddImportAction(project, editor, referenceElement, fixData.toList(), false)
             action.execute()
         }
 
@@ -111,12 +111,12 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 service<ArendSettings>().autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
                 isInModlessContext) {
-            val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions, true)
+            val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions.toList(), true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (silentFixMode && availability != ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX) return Result.POPUP_NOT_SHOWN //This reduces number of calls to "getProposedFix" and greatly boosts performance
+        if (silentFixMode) return Result.POPUP_NOT_SHOWN //This reduces number of calls to "getProposedFix" and greatly boosts performance
 
         val firstAction = if (actionsIterator.hasNext()) actionsIterator.next() else null
         val moreThanOneActionAvailable = actionsIterator.hasNext()
@@ -126,7 +126,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             if (!ApplicationManager.getApplication().isUnitTestMode) {
                 var endOffset = referenceElement.textRange.endOffset
                 if (endOffset > editor.document.textLength) endOffset = editor.document.textLength //needed to prevent elusive IllegalArgumentException
-                val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions, false)
+                val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions.toList(), false)
                 HintManager.getInstance().showQuestionHint(editor, hintText, referenceElement.textRange.startOffset, endOffset, action)
             }
             return Result.POPUP_SHOWN

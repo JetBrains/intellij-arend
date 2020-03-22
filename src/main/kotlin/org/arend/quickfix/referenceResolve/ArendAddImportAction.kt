@@ -16,13 +16,13 @@ import javax.swing.Icon
 class ArendAddImportAction(private val project: Project,
                            private val editor: Editor,
                            private val currentElement: PsiElement,
-                           private val resolveData: Sequence<ResolveReferenceAction>,
+                           private val resolveData: List<ResolveReferenceAction>,
                            private val onTheFly: Boolean) : QuestionAction {
 
     override fun execute(): Boolean {
         PsiDocumentManager.getInstance(project).commitAllDocuments()
 
-        if (!currentElement.isValid/* || resolveData.any { !it.target.isValid } */) {
+        if (!currentElement.isValid || resolveData.any { !it.target.isValid }) {
             return false
         }
 
@@ -46,7 +46,7 @@ class ArendAddImportAction(private val project: Project,
 
     private fun chooseItemAndImport(){
 
-        val step = object: BaseListPopupStep<ResolveReferenceAction>("Imports", resolveData.toList()) {
+        val step = object: BaseListPopupStep<ResolveReferenceAction>("Imports", resolveData) {
             override fun getTextFor(value: ResolveReferenceAction?): String {
                 if (value != null) return value.toString()
                 return super.getTextFor(value)
