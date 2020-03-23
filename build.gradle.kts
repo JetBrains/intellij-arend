@@ -40,6 +40,11 @@ tasks.withType<KotlinCompile> {
     dependsOn("generateArendLexer", "generateArendParser")
 }
 
+tasks["jar"].dependsOn(
+        projectArend.task(":api:jar"),
+        projectArend.task(":base:jar")
+)
+
 sourceSets {
     main {
         java.srcDirs("src/gen")
