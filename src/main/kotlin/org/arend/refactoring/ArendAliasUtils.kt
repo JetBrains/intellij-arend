@@ -15,10 +15,9 @@ import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import java.util.Collections.singletonList
 
-fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetModulePath = defaultLocation.myContainingFile.modulePath ?: return null
-
+    val targetModulePath = defaultLocation.myContainingFile.modulePath!! //safe to write thanks to check in canComputeAliases
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
@@ -148,10 +147,17 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
     val importAction = if (targetFile != currentFile || (resultingName.isNotEmpty() || allowSelfImport) && resultingName == veryLongName)
         resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
-    if (importAction is ImportFileAction && !importAction.isValid())
-        return null //Perhaps current or target directory is not marked as a content root
-
     return Pair(importAction, resultingName)
+}
+
+fun canComputeAliases(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
+        defaultLocation.myContainingFile.modulePath != null &&
+                ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
+
+
+fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+    if (!canComputeAliases(defaultLocation, currentFile)) return null
+    return doComputeAliases(defaultLocation, currentFile, anchor, allowSelfImport)
 }
 
 class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {

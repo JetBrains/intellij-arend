@@ -27,13 +27,12 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     companion object {
         fun checkIfAvailable(target: PsiLocatedReferable, element: ArendReferenceElement): Boolean { // should return true iff getProposedFix with the same arguments returns a nonnull value
             val containingFile = element.containingFile as? ArendFile ?: return false
-            return ImportFileAction(LocationData(target).myContainingFile, containingFile, null).isValid()
+            return canComputeAliases(LocationData(target), containingFile)
         }
 
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val currentTarget = element.reference?.resolve()
             val fixRequired = currentTarget != target
-
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
             val (importAction, resultName) = computeAliases(location, containingFile, element, true) ?: return null

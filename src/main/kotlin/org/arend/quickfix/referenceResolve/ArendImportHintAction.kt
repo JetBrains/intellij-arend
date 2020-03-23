@@ -58,8 +58,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         return CachedValuesManager.getCachedValue(refElement) {
             val allStubs = getStubElementSet(project, refElement).asSequence()
             val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
-            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, referenceElement) }
-            val generallyAvailableImportActions = generallyAvailableStubs.mapNotNull { ResolveReferenceAction.checkIfAvailable(it, referenceElement) }
+            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
+            val generallyAvailableImportActions = generallyAvailableStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
             CachedValueProvider.Result(when {
                 generallyAvailableImportActions.iterator().hasNext() -> {
                     val allImportActionsIterator = allImportActions.iterator()
