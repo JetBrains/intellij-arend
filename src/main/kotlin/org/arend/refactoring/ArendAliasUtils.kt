@@ -40,9 +40,7 @@ fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor
     val fileResolveActions = HashMap<LocationData, AbstractRefactoringAction?>()
 
     for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-        val isImportPrelude = namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
-
-        if (isImportPrelude) preludeImportedManually = true
+        preludeImportedManually = preludeImportedManually || namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
 
         if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
             suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"

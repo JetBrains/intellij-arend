@@ -6,10 +6,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.refactoring.AbstractRefactoringAction
-import org.arend.refactoring.LocationData
-import org.arend.refactoring.RenameReferenceAction
-import org.arend.refactoring.computeAliases
+import org.arend.refactoring.*
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
@@ -28,14 +25,18 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     }
 
     companion object {
+        fun checkIfAvailable(target: PsiLocatedReferable, element: ArendReferenceElement): Boolean { // should return true iff getProposedFix with the same arguments returns a nonnull value
+            val containingFile = element.containingFile as? ArendFile ?: return false
+            return ImportFileAction(LocationData(target).myContainingFile, containingFile, null).isValid()
+        }
+
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val currentTarget = element.reference?.resolve()
             val fixRequired = currentTarget != target
 
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
-            val (importAction, resultName) = computeAliases(location, containingFile, element)
-                    ?: return null
+            val (importAction, resultName) = computeAliases(location, containingFile, element, true) ?: return null
             val renameAction = when {
                 !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
                 target is ArendFile -> RenameReferenceAction(element, target.modulePath?.toList() ?: return null)

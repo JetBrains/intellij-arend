@@ -37,7 +37,7 @@ import org.arend.typechecking.TypeCheckingService
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
 class ArendImportHintAction(private val referenceElement: ArendReferenceElement) : HintAction, HighPriorityAction {
-    private enum class ImportHintActionAvailabiliity { UNAVAILABLE, ONLY_AT_USER_REQUEST, AVAILABLE, AVAILABLE_FOR_SILENT_FIX }
+    private enum class ImportHintActionAvailability { UNAVAILABLE, ONLY_AT_USER_REQUEST, AVAILABLE, AVAILABLE_FOR_SILENT_FIX }
 
     override fun startInWriteAction(): Boolean = false
 
@@ -50,31 +50,31 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             doFix(editor) != Result.POPUP_NOT_SHOWN
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-            checkAvailability(project) != ImportHintActionAvailabiliity.UNAVAILABLE
+            checkAvailability(project) != ImportHintActionAvailability.UNAVAILABLE
 
-    private fun checkAvailability(project: Project): ImportHintActionAvailabiliity {
-        if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailabiliity.UNAVAILABLE
+    private fun checkAvailability(project: Project): ImportHintActionAvailability {
+        if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailability.UNAVAILABLE
         val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
         return CachedValuesManager.getCachedValue(refElement) {
             val allStubs = getStubElementSet(project, refElement).asSequence()
             val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
-            val allImportActions = allStubs.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
-            val generallyAvailableImportActions = generallyAvailableStubs.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
+            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, referenceElement) }
+            val generallyAvailableImportActions = generallyAvailableStubs.mapNotNull { ResolveReferenceAction.checkIfAvailable(it, referenceElement) }
             CachedValueProvider.Result(when {
                 generallyAvailableImportActions.iterator().hasNext() -> {
                     val allImportActionsIterator = allImportActions.iterator()
                     allImportActionsIterator.next()
-                    if (allImportActionsIterator.hasNext()) ImportHintActionAvailabiliity.AVAILABLE else ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX
+                    if (allImportActionsIterator.hasNext()) ImportHintActionAvailability.AVAILABLE else ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX
                 }
-                allImportActions.iterator().hasNext() -> ImportHintActionAvailabiliity.ONLY_AT_USER_REQUEST
-                else -> ImportHintActionAvailabiliity.UNAVAILABLE
+                allImportActions.iterator().hasNext() -> ImportHintActionAvailability.ONLY_AT_USER_REQUEST
+                else -> ImportHintActionAvailability.UNAVAILABLE
             }, PsiModificationTracker.MODIFICATION_COUNT)
         }
     }
 
-    private fun getItemsToImport(project: Project, onlyGenerallyAvaiable: Boolean = false): Sequence<ResolveReferenceAction> =
+    private fun getItemsToImport(project: Project, onlyGenerallyAvailable: Boolean = false): Sequence<ResolveReferenceAction> =
             if (importQuickFixAllowed(referenceElement))
-                getStubElementSet(project, referenceElement).asSequence().filter{!onlyGenerallyAvaiable || !availableOnlyAtUserRequest(it)}.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
+                getStubElementSet(project, referenceElement).asSequence().filter{!onlyGenerallyAvailable || !availableOnlyAtUserRequest(it)}.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
             else emptySequence()
 
 
@@ -101,13 +101,13 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val availability = checkAvailability(project)
-        if (availability !in setOf(ImportHintActionAvailabiliity.AVAILABLE, ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX)) return Result.POPUP_NOT_SHOWN // We import fieldDefIdentifier only at the request of the user (through invoke method)
+        if (availability !in setOf(ImportHintActionAvailability.AVAILABLE, ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX)) return Result.POPUP_NOT_SHOWN // We import fieldDefIdentifier only at the request of the user (through invoke method)
 
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality")) !LaterInvocator.isInModalContextForProject(editor.project) else !LaterInvocator.isInModalContext()
         val referenceResolveActions = getItemsToImport(project, true)
         val actionsIterator = referenceResolveActions.iterator()
 
-        if (availability == ImportHintActionAvailabiliity.AVAILABLE_FOR_SILENT_FIX &&
+        if (availability == ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX &&
                 service<ArendSettings>().autoImportOnTheFly &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
                 isInModlessContext) {
