@@ -42,6 +42,7 @@ tasks.withType<KotlinCompile> {
 
 tasks["jar"].dependsOn(
         projectArend.task(":api:jar"),
+        projectArend.task(":proto:jar"),
         projectArend.task(":base:jar")
 )
 
