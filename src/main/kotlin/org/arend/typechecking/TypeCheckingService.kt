@@ -1,8 +1,6 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.components.service
-import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
@@ -30,9 +28,6 @@ import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
-import java.awt.event.InputEvent
-import java.awt.event.KeyEvent
-import javax.swing.KeyStroke
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener {
     val typecheckerState = SimpleTypecheckerState()
@@ -68,8 +63,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
 
         // Listen for YAML files changes
         YAMLFileListener(project).register()
-
-        KeymapManager.getInstance().activeKeymap.addShortcut("Arend.ImplementedFields", KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.ALT_MASK or InputEvent.SHIFT_MASK), null))
 
         ModuleSynchronizer(project).install()
 
