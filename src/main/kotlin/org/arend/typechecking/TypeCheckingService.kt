@@ -4,8 +4,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.DefinitionContributor
+import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.reference.Precedence
+import org.arend.ext.typechecking.MetaDefinition
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
@@ -29,11 +33,13 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionContributor {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
-    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter)
+    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
+
+    private val extensionNamesIndex = HashMap<String, ArrayList<FullName>>()
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
@@ -79,6 +85,18 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener 
             }
             return null
         }
+
+    fun reload() {
+        libraryManager.reload(ArendTypechecking.create(project))
+        extensionNamesIndex.clear()
+    }
+
+    override fun declare(module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition) {
+        extensionNamesIndex.computeIfAbsent(name.lastName) { ArrayList() }.add(FullName(module, name))
+        println(extensionNamesIndex)
+    }
+
+    fun getExtensionNames(name: String) = extensionNamesIndex[name]
 
     fun getTypechecked(definition: TCDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
