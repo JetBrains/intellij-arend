@@ -93,7 +93,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     override fun declare(module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition) {
         extensionNamesIndex.computeIfAbsent(name.lastName) { ArrayList() }.add(FullName(module, name))
-        println(extensionNamesIndex)
     }
 
     fun getExtensionNames(name: String) = extensionNamesIndex[name]
