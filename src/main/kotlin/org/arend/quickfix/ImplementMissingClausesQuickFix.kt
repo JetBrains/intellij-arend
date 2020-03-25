@@ -70,16 +70,20 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             run {
                 val iterator = clause.iterator()
                 val recursiveTypeUsagesInBindingsIterator = recursiveTypeUsagesInBindings.iterator()
-                var parameter2: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
+                val elimMode = missingClausesError.isElim
+                var parameter2: DependentLink? = if (!elimMode) missingClausesError.parameters else null
                 val clauseBindings = ArrayList<Variable>()
+                var i = 0
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     val nRecursiveBindings = recursiveTypeUsagesInBindingsIterator.next()
                     val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES
-                    val patternData = doTransformPattern(pattern, element, editor, filters, braces, clauseBindings, parameter2?.name, (parameter2?.type as? DefCallExpression)?.definition, nRecursiveBindings)
+                    val sampleParameter = if (elimMode) missingClausesError.eliminatedParameters[i] else parameter2
+                    val patternData = doTransformPattern(pattern, element, editor, filters, braces, clauseBindings, sampleParameter?.name, (sampleParameter?.type as? DefCallExpression)?.definition, nRecursiveBindings)
                     patternStrings.add(patternData.first)
                     containsEmptyPattern = containsEmptyPattern || patternData.second
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
+                    i++
                 }
             }
 

@@ -283,7 +283,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                 \func foo (x : Nat) : Nat \elim x
                   | 0 => {?}
-                  | suc n => {?}
+                  | suc x => {?}
             """)
 
     fun testRenamer() = typedQuickFixTest("Implement",
@@ -421,5 +421,23 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | leaf, branch z2 z1 => {?}
          | branch z1 z2, leaf => {?}
          | branch z1 z2, branch z3 z4 => {?} 
+    """)
+
+    fun test_88_4() = typedQuickFixTest("Implement", """
+       \func test{-caret-} (z : Nat) : Nat \elim z 
+    """, """
+       \func test{-caret-} (z : Nat) : Nat \elim z
+         | 0 => {?}
+         | suc z => {?} 
+    """)
+
+    fun test_88_5() = typedQuickFixTest("Implement", """
+       \func lol{-caret-} (a : Nat) (b : Nat) (c : Nat) \elim b, c
+    """, """
+       \func lol (a : Nat) (b : Nat) (c : Nat) \elim b, c
+         | 0, 0 => {?}
+         | 0, suc c => {?}
+         | suc b, 0 => {?}
+         | suc b, suc c => {?}
     """)
 }
