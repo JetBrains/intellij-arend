@@ -20,6 +20,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.*
+import org.arend.psi.ext.TCDefinition
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
@@ -59,7 +60,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val exprAncestor = possibleParent.ancestor<ArendExpr>()
             ?: throw SubExprException("selected text is not an arend expression")
     val parent = exprAncestor.parent
-    val psiDef = parent.ancestor<ArendDefinition>()
+    val psiDef = parent.ancestor<TCDefinition>()
             ?: throw SubExprException("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
