@@ -38,13 +38,13 @@ class ArendProjectSettingsState {
 
 class ArendPrintingOptions {
     var showCoerceDefinitions = false
-    var showConstructorParameters = true
-    var showTupleType = true
+    var showConstructorParameters = false
+    var showTupleType = false
     var showFieldInstance = true
-    var showImplicitArgs = true
-    var showTypesInLambda = true
-    var showPrefixPath = true
-    var showBinOpImplicitArgs = true
-    var showCaseResultType = true
-    var showLevels = true
+    var showImplicitArgs = false
+    var showTypesInLambda = false
+    var showPrefixPath = false
+    var showBinOpImplicitArgs = false
+    var showCaseResultType = false
+    var showLevels = false
 }
