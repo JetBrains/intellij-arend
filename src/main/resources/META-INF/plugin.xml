@@ -249,6 +249,12 @@
 
         <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
 
+        <!-- Task Execution Listener -->
+
+        <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
+
+        <applicationService serviceImplementation="org.arend.typechecking.ArendExtensionChangeListener"/>
+
         <!-- Configuration Options -->
 
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>

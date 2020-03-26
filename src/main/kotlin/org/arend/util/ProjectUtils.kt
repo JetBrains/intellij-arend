@@ -14,6 +14,7 @@ import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.resolving.ArendResolveCache
+import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.yaml.psi.YAMLFile
@@ -38,6 +39,7 @@ fun Module.register() {
     service.initialize()
     ArendModuleConfigService.getInstance(this)?.copyFromYAML()
     service.libraryManager.loadLibrary(ArendRawLibrary(this), ArendTypechecking.create(project))
+    service<ArendExtensionChangeListener>().initializeModule(this)
 }
 
 fun Project.reload() {

@@ -43,7 +43,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             if (root == null || !fileName.startsWith(root)) {
                 return null
             }
-            val fullName = fileName.removePrefix(root).removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
+            val fullName = fileName.substring(root.length).removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
             return ModulePath(fullName.split('.'))
         }
 

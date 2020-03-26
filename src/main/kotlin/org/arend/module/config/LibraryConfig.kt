@@ -78,6 +78,20 @@ abstract class LibraryConfig(val project: Project) {
             return if (path.isAbsolute) path else rootPath?.resolve(path)
         }
 
+    val extensionClassPath: Path?
+        get() {
+            val className = extensionMainClass ?: return null
+            var path = extensionsPath ?: return null
+            val names = className.split('.')
+            if (names.isEmpty()) {
+                return null
+            }
+            for (name in names.subList(0, names.size - 1)) {
+                path = path.resolve(name)
+            }
+            return path.resolve(names[names.lastIndex] + ".class")
+        }
+
     // Modules
 
     fun findModules(): List<ModulePath> {

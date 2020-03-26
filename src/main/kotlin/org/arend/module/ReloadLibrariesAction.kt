@@ -12,9 +12,7 @@ import org.arend.typechecking.TypeCheckingService
 
 class ReloadLibrariesAction : AnAction("Reload Arend Libraries") {
     override fun actionPerformed(e: AnActionEvent) {
-        val module = LangDataKeys.MODULE.getData(e.dataContext) ?: return
-        if (!ArendModuleType.has(module)) return
-        val project = module.project
+        val project = e.project ?: return
         project.service<TypeCheckingService>().libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
         project.service<ArendDefinitionChangeService>().incModificationCount()
         DaemonCodeAnalyzer.getInstance(project).restart()
