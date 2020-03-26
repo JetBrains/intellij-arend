@@ -42,6 +42,12 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
         notifications.putAll(newNotifications)
     }
 
+    fun notifyIfNeeded(project: Project) {
+        if (notifications[project]?.isExpired != false) {
+            notifications[project] = createNotification(project)
+        }
+    }
+
     private fun createNotification(project: Project) =
         NOTIFICATIONS.createNotification("Arend extension changed", "", NotificationType.INFORMATION, null).apply {
             val action = ReloadLibrariesAction()

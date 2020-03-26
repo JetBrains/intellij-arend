@@ -3,6 +3,7 @@ package org.arend.typechecking
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.LongName
@@ -10,6 +11,7 @@ import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.MetaDefinition
+import org.arend.extImpl.DefinitionRequester
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
@@ -33,11 +35,13 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionContributor {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionContributor, DefinitionRequester {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
-    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
+    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this)
+
+    private val extensionDefinitions = HashSet<TCReferable>()
 
     private val extensionNamesIndex = HashMap<String, ArrayList<FullName>>()
 
@@ -89,6 +93,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun reload() {
         libraryManager.reload(ArendTypechecking.create(project))
         extensionNamesIndex.clear()
+        extensionDefinitions.clear()
+    }
+
+    override fun request(definition: Definition) {
+        extensionDefinitions.add(definition.referable)
     }
 
     override fun declare(module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition) {
@@ -107,6 +116,10 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
+        if (extensionDefinitions.contains(tcReferable)) {
+            service<ArendExtensionChangeListener>().notifyIfNeeded(project)
+        }
+
         val curRef = referable.underlyingReferable
         val prevRef = tcReferable.underlyingReferable
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
