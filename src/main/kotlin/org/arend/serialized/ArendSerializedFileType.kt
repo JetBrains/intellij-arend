@@ -1,10 +1,9 @@
 package org.arend.serialized
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.vfs.VirtualFile
+import org.arend.ArendIcons
 import org.arend.util.FileUtils
-import javax.swing.Icon
 
 object ArendSerializedFileType : FileType {
     override fun getName() = "Arend serialized"
@@ -19,5 +18,5 @@ object ArendSerializedFileType : FileType {
 
     override fun getDefaultExtension() = FileUtils.SERIALIZED_EXTENSION.drop(1)
 
-    override fun getIcon(): Icon? = AllIcons.FileTypes.JavaClass
+    override fun getIcon() = ArendIcons.AREND_SERIALIZED_FILE
 }

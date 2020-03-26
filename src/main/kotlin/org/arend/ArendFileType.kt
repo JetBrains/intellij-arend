@@ -12,5 +12,5 @@ object ArendFileType : LanguageFileType(ArendLanguage.INSTANCE) {
 
     override fun getDefaultExtension(): String = FileUtils.EXTENSION.drop(1)
 
-    override fun getIcon(): Icon? = ArendIcons.AREND_FILE
+    override fun getIcon() = ArendIcons.AREND_FILE
 }

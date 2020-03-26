@@ -10,7 +10,8 @@ import javax.swing.Icon
 object ArendIcons {
     val AREND: Icon = AllIcons.Nodes.AnonymousClass
     val AREND_MODULE: Icon = AllIcons.Nodes.AnonymousClass
-    val AREND_FILE: Icon = IconLoader.getIcon("/icons/arend.svg")
+    val AREND_FILE = IconLoader.getIcon("/icons/arend.svg")
+    val AREND_SERIALIZED_FILE = IconLoader.getIcon("/icons/arendCompiled.svg")
     val DIRECTORY: Icon = AllIcons.Nodes.Package
     val LIBRARY_ICON: Icon? = AllIcons.Nodes.PpLib
     val YAML_KEY: Icon? = AllIcons.Nodes.FieldPK
