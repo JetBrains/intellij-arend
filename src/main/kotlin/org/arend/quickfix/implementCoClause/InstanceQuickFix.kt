@@ -2,6 +2,7 @@ package org.arend.quickfix.implementCoClause
 
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationHolder
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -13,7 +14,10 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendDefInstance
+import org.arend.psi.ClassReferenceHolder
+import org.arend.psi.CoClauseBase
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.removers.RemoveCoClauseQuickFix
 
@@ -44,8 +48,13 @@ private fun findImplementedCoClauses(coClauseList: List<CoClauseBase>,
             continue
         }
 
-        if (!fields.remove(referable)) holder?.createErrorAnnotation(BasePass.getImprovedTextRange(null, coClause), "Field ${referable.textRepresentation()} is already implemented")?.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
-
+        if (!fields.remove(referable)) holder?.apply {
+            newAnnotation(HighlightSeverity.ERROR, "Field ${referable.textRepresentation()} is already implemented")
+                    .range(BasePass.getImprovedTextRange(null, coClause))
+                    .newFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
+                    .registerFix()
+                    .create()
+        }
         for (superClassFields in superClassesFields.values) superClassFields.remove(referable)
     }
 }
@@ -74,11 +83,11 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
             }
 
             if (subClauses.isEmpty() && fatArrow == null) {
-                val warningAnnotation = holder.createWeakWarningAnnotation(rangeToReport, "Coclause is redundant")
-                if (warningAnnotation != null) {
-                    warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-                    warningAnnotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
-                }
+                holder.newAnnotation(HighlightSeverity.WEAK_WARNING, "Coclause is redundant")
+                        .highlightType(ProblemHighlightType.LIKE_UNUSED_SYMBOL)
+                        .newFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
+                        .registerFix()
+                        .create()
             } else {
                 annotateCoClauses(subClauses, holder, superClassesFields, fields)
             }
@@ -123,7 +132,11 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
                                 }
                             } while (iterator.hasNext())
                         }
-                        holder.createErrorAnnotation(rangeToReport, message).registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(classReferenceHolder), annotationToShow != InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR, fieldsList))
+                        holder.newAnnotation(HighlightSeverity.ERROR, message)
+                                .range(rangeToReport)
+                                .newFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(classReferenceHolder), annotationToShow != InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR, fieldsList))
+                                .registerFix()
+                                .create()
                     }
                     InstanceQuickFixAnnotation.NO_ANNOTATION -> classReferenceHolder.putUserData(CoClausesKey, fieldsList)
                 }
