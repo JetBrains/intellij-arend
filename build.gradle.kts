@@ -22,6 +22,7 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
+    implementation("org.arend:proto")
     implementation(kotlin("reflect"))
 }
 
