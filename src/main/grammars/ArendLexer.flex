@@ -76,6 +76,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     "=>"                    { return FAT_ARROW; }
     "."                     { return DOT; }
     ","                     { return COMMA; }
+    "__"                    { return APPLY_HOLE; }
     "_"                     { return UNDERSCORE; }
     "|"                     { return PIPE; }
 
