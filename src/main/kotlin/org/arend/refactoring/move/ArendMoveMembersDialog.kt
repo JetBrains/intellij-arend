@@ -248,7 +248,7 @@ class ArendMoveMembersDialog(project: Project,
         fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<ArendGroup?, LocateResult> {
             val configService = ArendModuleConfigService.getInstance(ideaModule)
                     ?: return Pair(null, LocateResult.OTHER_ERROR)
-            val targetFile = configService.findArendFile(ModulePath.fromString(fileName))
+            val targetFile = configService.findArendFile(ModulePath.fromString(fileName), false)
                     ?: return Pair(null, LocateResult.CANT_FIND_FILE)
 
             return if (moduleName.trim().isEmpty()) Pair(targetFile, LocateResult.LOCATE_OK) else {

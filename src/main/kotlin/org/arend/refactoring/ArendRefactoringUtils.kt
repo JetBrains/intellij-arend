@@ -39,7 +39,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     private fun importFileCanBeFound(): Boolean {
         val modulePath = importFile.modulePath ?: return false
         val conf = currentFile.libraryConfig ?: return false
-        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath) } == importFile
+        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true) } == importFile
     }
 
     fun isValid() = importFileCanBeFound() || isPrelude(importFile)

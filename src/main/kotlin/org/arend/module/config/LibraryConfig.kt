@@ -46,6 +46,8 @@ abstract class LibraryConfig(val project: Project) {
     val rootPath: Path?
         get() = rootDir?.let { Paths.get(FileUtil.toSystemDependentName(it)) }
 
+    private val additionalModules = HashMap<ModulePath, ArendFile>()
+
     // Sources directory
 
     val sourcesPath: Path?
@@ -128,7 +130,14 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun containsModule(modulePath: ModulePath) =
-        modules?.any { it == modulePath } ?: findArendFile(modulePath) != null
+        modules?.any { it == modulePath } ?: findArendFile(modulePath, false) != null
+
+    val additionalModulesSet: Set<ModulePath>
+        get() = additionalModules.keys
+
+    fun addAdditionalModule(modulePath: ModulePath, file: ArendFile) {
+        additionalModules[modulePath] = file
+    }
 
     private fun findParentDirectory(modulePath: ModulePath): VirtualFile? {
         var dir = sourcesDirFile ?: return null
@@ -148,13 +157,14 @@ abstract class LibraryConfig(val project: Project) {
         return PsiManager.getInstance(project).findDirectory(dir)
     }
 
-    fun findArendFile(modulePath: ModulePath): ArendFile? =
+    fun findArendFile(modulePath: ModulePath, withAdditional: Boolean): ArendFile? =
         if (modulePath.size() == 0) {
             null
         } else {
-            findParentDirectory(modulePath)?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
-                PsiManager.getInstance(project).findFile(it) as? ArendFile
-            }
+            (if (withAdditional) additionalModules[modulePath] else null) ?:
+                findParentDirectory(modulePath)?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+                    PsiManager.getInstance(project).findFile(it) as? ArendFile
+                }
         }
 
     fun findArendFileOrDirectory(modulePath: ModulePath): PsiFileSystemItem? {

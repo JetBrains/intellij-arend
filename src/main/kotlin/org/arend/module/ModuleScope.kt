@@ -15,7 +15,7 @@ import org.arend.util.FileUtils
 
 
 class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val rootDirs: List<VirtualFile>?, private val additionalPaths: List<List<String>>) : Scope {
-    constructor(libraryConfig: LibraryConfig, additionalModules: Collection<ModulePath>) : this(libraryConfig, null, additionalModules.map { it.toList() })
+    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null, libraryConfig.additionalModulesSet.map { it.toList() })
 
     private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.mapNotNull { it.sourcesDirFile }
 
