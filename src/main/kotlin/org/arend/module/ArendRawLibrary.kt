@@ -21,7 +21,6 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ModuleAdapter
-import org.arend.resolving.ArendMetaReferable
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
@@ -52,12 +51,15 @@ class ArendRawLibrary(val config: LibraryConfig)
             return false
         }
 
+        val service = config.project.service<TypeCheckingService>()
         for (entry in additionalModules) {
             val builder = StringBuilder()
             scopeToText(entry.value, "", builder)
             val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.toList().joinToString("/") + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
             file.virtualFile.isWritable = false
+            file.generatedModulePath = entry.key
             fillGroup(file, entry.value)
+            service.fillAdditionalNames(file, isExternal)
             config.addAdditionalModule(entry.key, file)
         }
 
@@ -155,9 +157,7 @@ class ArendRawLibrary(val config: LibraryConfig)
                 if (meta is MetaReferable) {
                     (subgroup.referable as? ModuleAdapter)?.let { module ->
                         module.metaReferable = meta
-                        (meta as? ArendMetaReferable)?.let {
-                            it.underlyingRef = module
-                        }
+                        meta.underlyingReferable = module
                     }
                 }
                 scope.resolveNamespace(name, false)?.let {

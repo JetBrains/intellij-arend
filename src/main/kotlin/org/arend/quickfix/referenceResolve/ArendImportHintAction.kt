@@ -20,10 +20,8 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import org.arend.settings.ArendSettings
-import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendDefIdentifier
-import org.arend.term.group.Group
 import org.arend.psi.ArendFieldDefIdentifier
 import org.arend.psi.ArendIPName
 import org.arend.psi.ArendPattern
@@ -138,15 +136,10 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             referable is ArendFieldDefIdentifier
 
     companion object {
-        private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): Set<PsiLocatedReferable> {
+        private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): List<PsiLocatedReferable> {
             val name = refElement.referenceName
-            val prelude = project.service<TypeCheckingService>().prelude
-            val preludeItems = HashSet<Referable>()
-            if (prelude != null) {
-                iterateOverGroup(prelude, { (it as? PsiLocatedReferable)?.name == refElement.referenceName }, preludeItems)
-            }
-
-            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>().union(preludeItems.filterIsInstance(PsiLocatedReferable::class.java))
+            val service = project.service<TypeCheckingService>()
+            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + service.getAdditionalNames(name)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
@@ -160,14 +153,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val reference = (if (referenceElement.isValid) referenceElement.reference else null)
                     ?: return false // reference anchor is invalid
             return reference.resolve() == null // return false if already imported
-        }
-
-        private fun iterateOverGroup(group: Group, predicate: (Referable) -> Boolean, target: MutableSet<Referable>) {
-            for (subgroup in group.subgroups) {
-                if (subgroup is Referable && predicate.invoke(subgroup)) target.add(subgroup)
-                iterateOverGroup(subgroup, predicate, target)
-            }
-            for (referable in group.internalReferables) if (predicate.invoke(referable.referable)) target.add(referable.referable)
         }
     }
 }
