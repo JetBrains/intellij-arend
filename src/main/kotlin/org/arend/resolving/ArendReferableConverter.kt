@@ -5,14 +5,13 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.*
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 
 
-class ArendReferableConverter(private val project: Project?, private val state: SimpleReferableConverter) : ReferableConverter {
+class ArendReferableConverter(private val project: Project?, private val state: SimpleReferableConverter) : BaseReferableConverter() {
     private val cache = HashMap<PsiElement, TCReferable?>()
 
     fun putIfAbsent(referable: PsiLocatedReferable, tcReferable: TCReferable) {

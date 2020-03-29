@@ -88,6 +88,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     "\\func"                { return FUNC_KW; }
     "\\sfunc"               { return SFUNC_KW; }
     "\\lemma"               { return LEMMA_KW; }
+    "\\meta"                { return META_KW; }
     "\\coerce"              { return COERCE_KW; }
     "\\use"                 { return USE_KW; }
     "\\field"               { return FIELD_KW; }

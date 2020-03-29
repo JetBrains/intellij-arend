@@ -5,18 +5,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.MetaDefinition
 import org.arend.extImpl.DefinitionRequester
+import org.arend.extImpl.definitionContributor.MetaDefinitionContributor
+import org.arend.library.Library
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.MetaReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
@@ -26,6 +28,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.resolving.ArendMetaReferable
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.computation.ComputationRunner
@@ -35,15 +38,16 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionContributor, DefinitionRequester {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, MetaDefinitionContributor, DefinitionRequester {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
     val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this)
 
-    private val extensionDefinitions = HashSet<TCReferable>()
+    private val extensionDefinitions = HashMap<TCReferable, Boolean>()
 
-    private val extensionNamesIndex = HashMap<String, ArrayList<FullName>>()
+    private val externalAdditionalNamesIndex = HashMap<String, ArrayList<FullName>>()
+    private val internalAdditionalNamesIndex = HashMap<String, ArrayList<FullName>>()
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
@@ -92,19 +96,34 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun reload() {
         libraryManager.reload(ArendTypechecking.create(project))
-        extensionNamesIndex.clear()
+        externalAdditionalNamesIndex.clear()
+        internalAdditionalNamesIndex.clear()
         extensionDefinitions.clear()
     }
 
-    override fun request(definition: Definition) {
-        extensionDefinitions.add(definition.referable)
+    fun reloadInternal() {
+        libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
+        internalAdditionalNamesIndex.clear()
+
+        val it = extensionDefinitions.iterator()
+        while (it.hasNext()) {
+            if (it.next().value) {
+                it.remove()
+            }
+        }
     }
 
-    override fun declare(module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition) {
-        extensionNamesIndex.computeIfAbsent(name.lastName) { ArrayList() }.add(FullName(module, name))
+    override fun request(definition: Definition, library: Library) {
+        extensionDefinitions[definition.referable] = !library.isExternal
     }
 
-    fun getExtensionNames(name: String) = extensionNamesIndex[name]
+    override fun declare(library: Library, module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition): MetaReferable {
+        val lastName = name.lastName
+        (if (library.isExternal) externalAdditionalNamesIndex else internalAdditionalNamesIndex).computeIfAbsent(lastName) { ArrayList() }.add(FullName(module, name))
+        return ArendMetaReferable(precedence, lastName, meta)
+    }
+
+    fun getExtensionNames(name: String) = (externalAdditionalNamesIndex[name] ?: emptyList<FullName>()) + (internalAdditionalNamesIndex[name] ?: emptyList())
 
     fun getTypechecked(definition: TCDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
@@ -116,7 +135,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
-        if (extensionDefinitions.contains(tcReferable)) {
+        if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
 

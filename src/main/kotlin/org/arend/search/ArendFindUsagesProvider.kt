@@ -20,7 +20,7 @@ class ArendFindUsagesProvider : FindUsagesProvider {
 
     override fun getType(element: PsiElement): String = when (element) {
         is ArendDefClass -> "class"
-        is ArendDefModule -> "module"
+        is ArendDefModule -> if (element.moduleKw != null) "module" else "meta"
         is FieldReferable -> "class field"
         is ArendDefInstance -> "class instance"
         is ArendDefData -> "data"

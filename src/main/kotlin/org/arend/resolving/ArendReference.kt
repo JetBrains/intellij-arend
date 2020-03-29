@@ -101,8 +101,6 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                             LookupElementBuilder.createWithIcon(it)
                     } ?: LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
                 }
-                is EmptyGlobalReferable -> LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ArendIcons.MODULE_DEFINITION)
-                is MetaReferable -> LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ArendIcons.META_DEFINITION)
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
         }.toTypedArray()

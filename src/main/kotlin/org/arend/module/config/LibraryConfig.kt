@@ -139,6 +139,10 @@ abstract class LibraryConfig(val project: Project) {
         additionalModules[modulePath] = file
     }
 
+    fun clearAdditionalModules() {
+        additionalModules.clear()
+    }
+
     private fun findParentDirectory(modulePath: ModulePath): VirtualFile? {
         var dir = sourcesDirFile ?: return null
         val list = modulePath.toList()

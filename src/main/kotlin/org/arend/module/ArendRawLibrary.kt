@@ -20,9 +20,12 @@ import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.resolving.ArendMetaReferable
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
+import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
@@ -54,13 +57,18 @@ class ArendRawLibrary(val config: LibraryConfig)
             scopeToText(entry.value, "", builder)
             val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.toList().joinToString("/") + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
             file.virtualFile.isWritable = false
+            fillGroup(file, entry.value)
             config.addAdditionalModule(entry.key, file)
         }
 
         return true
     }
 
-    override fun unload() = super.unload() && isExternal
+    override fun unload(): Boolean {
+        super.unload()
+        config.clearAdditionalModules()
+        return isExternal
+    }
 
     override fun getLoadedModules() = config.findModules()
 
@@ -118,7 +126,7 @@ class ArendRawLibrary(val config: LibraryConfig)
 
                 builder.append(prefix)
                 if (element is MetaReferable) {
-                    builder.append("\\func ")
+                    builder.append("\\meta ")
                     val prec = element.precedence
                     if (prec != Precedence.DEFAULT && prec.priority >= 0) {
                         builder.append('\\').append(prec).append(' ')
@@ -137,6 +145,24 @@ class ArendRawLibrary(val config: LibraryConfig)
 
             if (!first) {
                 builder.append('\n')
+            }
+        }
+
+        private fun fillGroup(group: Group, scope: Scope) {
+            for (subgroup in group.subgroups) {
+                val name = subgroup.referable.refName
+                val meta = scope.resolveName(name)
+                if (meta is MetaReferable) {
+                    (subgroup.referable as? ModuleAdapter)?.let { module ->
+                        module.metaReferable = meta
+                        (meta as? ArendMetaReferable)?.let {
+                            it.underlyingRef = module
+                        }
+                    }
+                }
+                scope.resolveNamespace(name, false)?.let {
+                    fillGroup(subgroup, it)
+                }
             }
         }
     }

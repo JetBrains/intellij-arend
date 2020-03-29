@@ -1,21 +1,14 @@
 package org.arend.module
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
-import com.intellij.openapi.components.service
-import org.arend.psi.listener.ArendDefinitionChangeService
-import org.arend.typechecking.ArendTypechecking
-import org.arend.typechecking.TypeCheckingService
+import org.arend.util.reloadInternal
 
 
 class ReloadLibrariesAction : AnAction("Reload Arend Libraries") {
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        project.service<TypeCheckingService>().libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
-        project.service<ArendDefinitionChangeService>().incModificationCount()
-        DaemonCodeAnalyzer.getInstance(project).restart()
+        e.project?.reloadInternal()
     }
 
     override fun update(e: AnActionEvent) {
