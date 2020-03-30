@@ -56,7 +56,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
             while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_COMMENT_END) {
                 if (curElement.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
-                    html(curElement.text)
+                    html(curElement.text.substringBefore("\n\n"))
                     append(" ")
                 }
                 curElement = curElement.nextSibling

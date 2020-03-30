@@ -29,6 +29,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
+import kotlin.test.assertFalse
 
 class ArendRawLibrary(val config: LibraryConfig)
     : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
@@ -128,6 +129,26 @@ class ArendRawLibrary(val config: LibraryConfig)
 
                 builder.append(prefix)
                 if (element is MetaReferable) {
+                    if (element.description.isNotEmpty()) {
+                        val lines = element.description.split('\n')
+                        if (lines.size == 1) {
+                            builder.append("-- | ").append(lines[0])
+                        } else {
+                            builder.append("{- | ")
+                            var firstLine = true
+                            for (line in lines) {
+                                if (firstLine) {
+                                    firstLine = false
+                                } else if (line.isNotEmpty()) {
+                                    builder.append(" - ")
+                                }
+                                builder.append(line).append('\n')
+                            }
+                            builder.append(" -}")
+                        }
+                        builder.append('\n')
+                    }
+
                     builder.append("\\meta ")
                     val prec = element.precedence
                     if (prec != Precedence.DEFAULT && prec.priority >= 0) {
