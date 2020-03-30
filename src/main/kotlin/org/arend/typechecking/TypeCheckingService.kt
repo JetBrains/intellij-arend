@@ -94,14 +94,14 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
     fun reload() {
-        libraryManager.reload(ArendTypechecking.create(project))
         externalAdditionalNamesIndex.clear()
         internalAdditionalNamesIndex.clear()
         extensionDefinitions.clear()
+
+        libraryManager.reload(ArendTypechecking.create(project))
     }
 
     fun reloadInternal() {
-        libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
         internalAdditionalNamesIndex.clear()
 
         val it = extensionDefinitions.iterator()
@@ -110,6 +110,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 it.remove()
             }
         }
+
+        libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
     }
 
     override fun request(definition: Definition, library: Library) {

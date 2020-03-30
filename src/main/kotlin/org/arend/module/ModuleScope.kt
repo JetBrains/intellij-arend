@@ -14,8 +14,8 @@ import org.arend.psi.ext.PsiModuleReferable
 import org.arend.util.FileUtils
 
 
-class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val rootDirs: List<VirtualFile>?, private val additionalPaths: List<List<String>>) : Scope {
-    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null, libraryConfig.additionalModulesSet.map { it.toList() })
+class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val rootDirs: List<VirtualFile>?, private val prefix: List<String>, private val additionalPaths: List<List<String>>) : Scope {
+    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null, emptyList(), libraryConfig.additionalModulesSet.map { it.toList() })
 
     private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.mapNotNull { it.sourcesDirFile }
 
@@ -25,23 +25,24 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
             val psiManager = PsiManager.getInstance(libraryConfig.project)
             for (root in calculateRootDirs()) {
                 for (file in root.children) {
+                    val name = file.name
                     if (file.isDirectory) {
-                        val name = file.name
                         if (FileUtils.isModuleName(name)) {
                             val dir = psiManager.findDirectory(file)
                             if (dir != null) {
-                                result.add(PsiModuleReferable(listOf(dir), ModulePath(name)))
+                                result.add(PsiModuleReferable(listOf(dir), ModulePath(prefix + name)))
                             }
                         }
-                    } else if (file.name.endsWith(FileUtils.EXTENSION)) {
-                        val arendFile = psiManager.findFile(file) as? ArendFile
-                        arendFile?.modulePath?.let { result.add(PsiModuleReferable(listOf(arendFile), it)) }
+                    } else if (name.endsWith(FileUtils.EXTENSION)) {
+                        (psiManager.findFile(file) as? ArendFile)?.let {
+                            result.add(PsiModuleReferable(listOf(it), ModulePath(prefix + name.substring(0, name.length - FileUtils.EXTENSION.length))))
+                        }
                     }
                 }
             }
         }
         for (path in additionalPaths) {
-            result.add(ModuleReferable(ModulePath(path[0])))
+            result.add(ModuleReferable(ModulePath(prefix + path[0])))
         }
         if (rootDirs == null) {
             result.add(ModuleReferable(Prelude.MODULE_PATH))
@@ -59,6 +60,6 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
             return@mapNotNull null
         }
         val newPaths = additionalPaths.mapNotNull { if (it.size > 1 && it[0] == name) it.drop(1) else null }
-        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, newRootDirs, newPaths)
+        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, newRootDirs, prefix + name, newPaths)
     }
 }

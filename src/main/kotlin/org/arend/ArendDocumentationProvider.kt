@@ -4,6 +4,7 @@ import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.naming.reference.FieldReferable
@@ -95,13 +96,15 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
         }
 
-        getSourceFileName(element, originalElement)?.let {
-            val fileName = it.htmlEscape()
-            append(", defined in ")
-            wrapTag("b") {
-                append(fileName)
+        if (element !is PsiFile) {
+            getSourceFileName(element, originalElement)?.let {
+                val fileName = it.htmlEscape()
+                append(", defined in ")
+                wrapTag("b") {
+                    append(fileName)
+                }
+                // createHyperlink(this, fileName, fileName, false)
             }
-            // createHyperlink(this, fileName, fileName, false)
         }
     }
 
@@ -116,6 +119,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         is ArendDefModule -> if (element.moduleKw != null) "module" else "meta"
         is ArendLetClause -> "let"
         is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
+        is PsiFile -> "file"
         else -> null
     }
 

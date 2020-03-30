@@ -55,7 +55,7 @@ class ArendRawLibrary(val config: LibraryConfig)
         for (entry in additionalModules) {
             val builder = StringBuilder()
             scopeToText(entry.value, "", builder)
-            val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.toList().joinToString("/") + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
+            val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
             file.virtualFile.isWritable = false
             file.generatedModulePath = entry.key
             fillGroup(file, entry.value)

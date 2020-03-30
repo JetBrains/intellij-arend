@@ -171,9 +171,14 @@ abstract class LibraryConfig(val project: Project) {
                 }
         }
 
-    fun findArendFileOrDirectory(modulePath: ModulePath): PsiFileSystemItem? {
+    fun findArendFileOrDirectory(modulePath: ModulePath, withAdditional: Boolean): PsiFileSystemItem? {
         if (modulePath.size() == 0) {
             return findArendDirectory(modulePath)
+        }
+        if (withAdditional) {
+            additionalModules[modulePath]?.let {
+                return it
+            }
         }
 
         val dir = findParentDirectory(modulePath) ?: return null
