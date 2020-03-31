@@ -45,6 +45,7 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNC_KW             = '\func'
+        META_KW             = '\meta'
         SFUNC_KW            = '\sfunc'
         LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
@@ -113,7 +114,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -232,16 +233,15 @@ definition ::= defFunction
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
-defModule ::= moduleHeader where? {
-    pin = 1
+defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module where? {
+    pin(".*") = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-private moduleHeader ::= MODULE_KW defIdentifier {
-    pin = 1
+private defIdentifier_module ::= defIdentifier {
     recoverWhile = statement_recover
 }
 

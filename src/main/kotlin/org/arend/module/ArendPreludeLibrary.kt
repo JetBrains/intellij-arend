@@ -42,7 +42,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
 
     override fun getModuleGroup(modulePath: ModulePath) = if (modulePath == Prelude.MODULE_PATH) prelude else null
 
-    override fun getModuleScopeProvider() = ModuleScopeProvider { if (it == Prelude.MODULE_PATH) scope else null }
+    override fun getDeclaredModuleScopeProvider() = ModuleScopeProvider { if (it == Prelude.MODULE_PATH) scope else null }
 
     override fun containsModule(modulePath: ModulePath) = modulePath == Prelude.MODULE_PATH
 

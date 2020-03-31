@@ -32,12 +32,15 @@ import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
+    var generatedModulePath: ModulePath? = null
+
     val modulePath: ModulePath?
         get() {
-            val fileName = originalFile.viewProvider.virtualFile.path
-            if (fileName == "/Prelude.ard") {
-                return Prelude.MODULE_PATH
+            generatedModulePath?.let {
+                return it
             }
+
+            val fileName = originalFile.viewProvider.virtualFile.path
             val conf = libraryConfig ?: return null
             val root = conf.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (root == null || !fileName.startsWith(root)) {

@@ -21,6 +21,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.*
 import org.arend.psi.ext.TCDefinition
+import org.arend.resolving.BaseReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
@@ -37,7 +38,7 @@ import java.util.function.Supplier
 
 class SubExprException(message: String) : Throwable(message)
 
-class LocatedReferableConverter(private val wrapped: ReferableConverter) : ReferableConverter {
+class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseReferableConverter() {
     override fun toDataReferable(referable: Referable?) = referable
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }

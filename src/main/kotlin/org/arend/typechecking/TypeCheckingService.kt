@@ -5,13 +5,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.DefinitionContributor
-import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.reference.Precedence
-import org.arend.ext.typechecking.MetaDefinition
 import org.arend.extImpl.DefinitionRequester
+import org.arend.library.Library
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ModuleSynchronizer
@@ -24,6 +21,7 @@ import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
@@ -35,15 +33,16 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionContributor, DefinitionRequester {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
     private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
-    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this)
+    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
 
-    private val extensionDefinitions = HashSet<TCReferable>()
+    private val extensionDefinitions = HashMap<TCReferable, Boolean>()
 
-    private val extensionNamesIndex = HashMap<String, ArrayList<FullName>>()
+    private val externalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
+    private val internalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
@@ -63,10 +62,14 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         // Initialize prelude
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
         libraryManager.loadLibrary(preludeLibrary, null)
+        preludeLibrary.prelude?.generatedModulePath = Prelude.MODULE_PATH
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
         Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
+        preludeLibrary.prelude?.let {
+            fillAdditionalNames(it, true)
+        }
 
         // Set the listener that updates typechecked definitions
         project.service<ArendDefinitionChangeService>().addListener(this)
@@ -91,20 +94,45 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
     fun reload() {
-        libraryManager.reload(ArendTypechecking.create(project))
-        extensionNamesIndex.clear()
+        externalAdditionalNamesIndex.clear()
+        internalAdditionalNamesIndex.clear()
         extensionDefinitions.clear()
+
+        libraryManager.reload(ArendTypechecking.create(project))
     }
 
-    override fun request(definition: Definition) {
-        extensionDefinitions.add(definition.referable)
+    fun reloadInternal() {
+        internalAdditionalNamesIndex.clear()
+
+        val it = extensionDefinitions.iterator()
+        while (it.hasNext()) {
+            if (it.next().value) {
+                it.remove()
+            }
+        }
+
+        libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
     }
 
-    override fun declare(module: ModulePath, name: LongName, precedence: Precedence, meta: MetaDefinition) {
-        extensionNamesIndex.computeIfAbsent(name.lastName) { ArrayList() }.add(FullName(module, name))
+    override fun request(definition: Definition, library: Library) {
+        extensionDefinitions[definition.referable] = !library.isExternal
     }
 
-    fun getExtensionNames(name: String) = extensionNamesIndex[name]
+    fun fillAdditionalNames(group: ArendGroup, isExternal: Boolean) {
+        for (subgroup in group.subgroups) {
+            addAdditionalName(subgroup, isExternal)
+            fillAdditionalNames(subgroup, isExternal)
+        }
+        for (referable in group.internalReferables) {
+            addAdditionalName(referable, isExternal)
+        }
+    }
+
+    private fun addAdditionalName(ref: PsiLocatedReferable, isExternal: Boolean) {
+        (if (isExternal) externalAdditionalNamesIndex else internalAdditionalNamesIndex).computeIfAbsent(ref.refName) { ArrayList() }.add(ref)
+    }
+
+    fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
     fun getTypechecked(definition: TCDefinition) =
         simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
@@ -116,7 +144,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val fullName = FullName(referable)
         val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
-        if (extensionDefinitions.contains(tcReferable)) {
+        if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
 

@@ -76,7 +76,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             if (fData is PsiElement) {
                 val f = aaeBlocks.filter{ it.textRange.contains(fData.node.textRange) }
                 if (f.size != 1) throw java.lang.IllegalStateException()
-                val fBlock = createArendBlock(f.first(), null, null, Indent.getNoneIndent())
+                val fBlock = createArendBlock(f.first(), null, null, if (isPrefix) Indent.getNoneIndent() else Indent.getNormalIndent())
                 if (!blocks.any { it.textRange.contains(fBlock.textRange) }) blocks.add(fBlock)
             }
 

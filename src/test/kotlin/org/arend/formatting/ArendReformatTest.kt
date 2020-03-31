@@ -98,4 +98,12 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\data D (n : Nat) \\with\n| 0 => {\n| con1\n| con2\n}",
             "\\data D (n : Nat) \\with\n  | 0 => {\n    | con1\n    | con2\n  }")
 
+    fun testUnaryBinOpIndent() = checkReformat(
+            "\\func test =>\n+ 1",
+            "\\func test =>\n  + 1")
+
+    fun testBinOpIndent() = checkReformat(
+            "\\open Nat\n\n\\func test => 1\n+ 2\n+ 3",
+            "\\open Nat\n\n\\func test => 1\n  + 2\n  + 3")
+
 }

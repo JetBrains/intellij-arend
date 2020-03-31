@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
 import org.arend.ArendIcons
+import org.arend.naming.reference.EmptyGlobalReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
@@ -92,15 +93,14 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (ref is PsiModuleReferable) {
                         ref.modules.firstOrNull()
                     } else {
-                        element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path) }
+                        element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, true) }
                     }
                     module?.let {
                         if (it is ArendFile)
-                            LookupElementBuilder.create(it, it.textRepresentation()).withIcon(ArendIcons.AREND_FILE) else
+                            LookupElementBuilder.create(it, ref.path.lastName).withIcon(ArendIcons.AREND_FILE) else
                             LookupElementBuilder.createWithIcon(it)
                     } ?: LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
                 }
-                is MetaReferable -> LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(if (ref.definition == null) ArendIcons.MODULE_DEFINITION else ArendIcons.META_DEFINITION)
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
         }.toTypedArray()
@@ -133,7 +133,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     element.project.service<TypeCheckingService>().prelude
                 } else {
-                    element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path) }
+                    element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, true) }
                 }
             }
             else -> null

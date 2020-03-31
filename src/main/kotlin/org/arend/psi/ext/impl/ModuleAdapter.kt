@@ -3,6 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
+import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
@@ -13,13 +14,13 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     constructor(stub: ArendDefModuleStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
+    var metaReferable: MetaReferable? = null
+
     override val scope: Scope
         get() = groupScope
 
     override val statements: List<ArendStatement>
         get() = where?.statementList ?: emptyList()
-
-    override fun getPrec(): ArendPrec? = null
 
     override fun getParentGroup() = parent.ancestor<ArendGroup>()
 

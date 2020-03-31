@@ -1,5 +1,6 @@
 package org.arend.util
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -13,6 +14,7 @@ import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
+import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendResolveCache
 import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
@@ -45,4 +47,10 @@ fun Module.register() {
 fun Project.reload() {
     service<ArendResolveCache>().clear()
     service<TypeCheckingService>().reload()
+}
+
+fun Project.reloadInternal() {
+    service<TypeCheckingService>().reloadInternal()
+    service<ArendDefinitionChangeService>().incModificationCount()
+    DaemonCodeAnalyzer.getInstance(this).restart()
 }
