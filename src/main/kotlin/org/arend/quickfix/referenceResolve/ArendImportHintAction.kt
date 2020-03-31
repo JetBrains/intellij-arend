@@ -54,22 +54,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     private fun checkAvailability(project: Project): ImportHintActionAvailability {
         if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailability.UNAVAILABLE
-        val refElement = referenceElement // To prevent capturing "this", see CachedValueStabilityChecker
-        return CachedValuesManager.getCachedValue(refElement) {
-            val allStubs = getStubElementSet(project, refElement).asSequence()
-            val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
-            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
-            val generallyAvailableImportActions = generallyAvailableStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
-            CachedValueProvider.Result(when {
-                generallyAvailableImportActions.iterator().hasNext() -> {
-                    val allImportActionsIterator = allImportActions.iterator()
-                    allImportActionsIterator.next()
-                    if (allImportActionsIterator.hasNext()) ImportHintActionAvailability.AVAILABLE else ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX
-                }
-                allImportActions.iterator().hasNext() -> ImportHintActionAvailability.ONLY_AT_USER_REQUEST
-                else -> ImportHintActionAvailability.UNAVAILABLE
-            }, PsiModificationTracker.MODIFICATION_COUNT)
-        }
+        return doComputeAvailability(project, referenceElement)
     }
 
     private fun getItemsToImport(project: Project, onlyGenerallyAvailable: Boolean = false): Sequence<ResolveReferenceAction> =
@@ -134,10 +119,26 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         return Result.POPUP_NOT_SHOWN
     }
 
-    private fun availableOnlyAtUserRequest(referable: PsiLocatedReferable): Boolean =
-            referable is ArendFieldDefIdentifier
-
     companion object {
+        private fun availableOnlyAtUserRequest(referable: PsiLocatedReferable): Boolean =
+                referable is ArendFieldDefIdentifier
+
+        private fun doComputeAvailability(project: Project, refElement: ArendReferenceElement) = CachedValuesManager.getCachedValue(refElement) {
+            val allStubs = getStubElementSet(project, refElement).asSequence()
+            val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
+            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
+            val generallyAvailableImportActions = generallyAvailableStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
+            CachedValueProvider.Result(when {
+                generallyAvailableImportActions.iterator().hasNext() -> {
+                    val allImportActionsIterator = allImportActions.iterator()
+                    allImportActionsIterator.next()
+                    if (allImportActionsIterator.hasNext()) ImportHintActionAvailability.AVAILABLE else ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX
+                }
+                allImportActions.iterator().hasNext() -> ImportHintActionAvailability.ONLY_AT_USER_REQUEST
+                else -> ImportHintActionAvailability.UNAVAILABLE
+            }, PsiModificationTracker.MODIFICATION_COUNT)
+        }
+
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): Set<PsiLocatedReferable> {
             val name = refElement.referenceName
             val prelude = project.service<TypeCheckingService>().prelude
