@@ -22,9 +22,12 @@ interface ArendCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): ArendReference?
 }
 
-fun PsiElement.moduleTextRepresentationImpl(): String? = (containingFile as? ArendFile)?.name
+fun PsiElement.moduleTextRepresentationImpl(): String? = if (isValid) (containingFile as? ArendFile)?.name else null
 
 fun PsiElement.positionTextRepresentationImpl(): String? {
+    if (!isValid) {
+        return null
+    }
     val document = PsiDocumentManager.getInstance(project).getDocument(containingFile ?: return null) ?: return null
     val offset = textOffset
     val line = document.getLineNumber(offset)

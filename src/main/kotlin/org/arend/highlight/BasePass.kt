@@ -120,7 +120,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is ParsingError -> when (error.kind) {
                      MISPLACED_IMPORT -> {
                          val errorCause = error.cause
-                         if (errorCause is ArendStatCmd) {
+                         if (errorCause is ArendStatCmd && errorCause.isValid) {
                              annotation.registerFix(MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
                          }
                      }
@@ -129,18 +129,23 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is DuplicateOpenedNameError -> {
                     val errorCause = error.cause
-                    if (errorCause is PsiElement) annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause),  error.referable))
+                    if (errorCause is PsiElement && errorCause.isValid) {
+                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause),  error.referable))
+                    }
                 }
 
                 is ExistingOpenedNameError -> {
                     val errorCause = error.cause
-                    if (errorCause is PsiElement) annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
+                    if (errorCause is PsiElement && errorCause.isValid) {
+                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
+                    }
                 }
 
                 is FieldsImplementationError ->
                     if (error.alreadyImplemented) {
-                        (error.cause.data as? ArendCoClause)?.let {
-                            annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(it)))
+                        val errorCause = error.cause.data
+                        if (errorCause is ArendCoClause && errorCause.isValid) {
+                            annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(errorCause)))
                         }
                     } else {
                         annotation.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, error.classReferable)))
@@ -158,7 +163,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         val single = error.kind == EXPECTED_EXPLICIT_PATTERN
                         if (error.kind != TOO_MANY_PATTERNS) {
                             cause.atomPattern?.let {
-                                annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
+                                if (it.isValid) {
+                                    annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
+                                }
                             }
                         }
 
@@ -169,7 +176,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     BODY_IGNORED ->
                         cause.ancestor<ArendClause>()?.let {
-                            annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
+                            if (it.isValid) {
+                                annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
+                            }
                         }
                     PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))

@@ -3,6 +3,7 @@ package org.arend.typechecking.execution
 import com.intellij.execution.lineMarker.ExecutorAction
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
@@ -36,7 +37,9 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         return Info(
                 icon,
-                Function { "Typecheck ${parent.fullName}" },
+                Function { runReadAction {
+                    if (parent.isValid) "Typecheck ${parent.fullName}" else "Typecheck definition"
+                } },
                 *ExecutorAction.getActions(1)
         )
     }

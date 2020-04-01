@@ -17,7 +17,9 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
         setProgressLimit(errors.size.toLong())
         for (pair in errors) {
             progress.checkCanceled()
-            reportToEditor(pair.first, pair.second)
+            if (pair.second.isValid) {
+                reportToEditor(pair.first, pair.second)
+            }
             advanceProgress(1)
         }
     }
