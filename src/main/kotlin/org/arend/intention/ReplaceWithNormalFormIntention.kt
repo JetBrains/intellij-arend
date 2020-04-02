@@ -25,16 +25,16 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
             element.ancestor<ArendDefinition>() != null
 
     private fun doApplyTo(element: ArendExpr, file: PsiFile, project: Project, editor: Editor) = try {
-        val range = EditorUtil.getSelectionInAnyMode(editor)
+        val selected = EditorUtil.getSelectionInAnyMode(editor)
                 .takeUnless { it.isEmpty }
                 ?: element.textRange
-        val (subCore, subConcrete) = correspondedSubExpr(range, file, project)
+        val (subCore, subConcrete) = correspondedSubExpr(selected, file, project)
         normalizeExpr(project, subCore) {
             WriteCommandAction.runWriteCommandAction(project) {
-                val length = replaceExpr(editor.document, rangeOfConcrete(subConcrete), it)
-                val startOffset = range.startOffset
-                editor.selectionModel
-                        .setSelection(startOffset, startOffset + length)
+                val range = rangeOfConcrete(subConcrete)
+                val length = replaceExpr(editor.document, range, it)
+                val start = range.startOffset
+                editor.selectionModel.setSelection(start, start + length)
             }
         }
     } catch (t: SubExprException) {
