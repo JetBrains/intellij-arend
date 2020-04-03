@@ -3,11 +3,9 @@ package org.arend.intention
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendExpr
@@ -32,9 +30,21 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
         normalizeExpr(project, subCore) {
             WriteCommandAction.runWriteCommandAction(project) {
                 val range = rangeOfConcrete(subConcrete)
-                val length = replaceExpr(editor.document, range, it)
-                val start = range.startOffset
-                editor.selectionModel.setSelection(start, start + length)
+                val document = editor.document
+                assert(document.isWritable)
+                val startOffset = range.startOffset
+                document.deleteString(startOffset, range.endOffset)
+                val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
+                val andNoParenthesesAround = likeIdentifier && !document.charsSequence.let {
+                    it[startOffset - 1] == '(' && it[startOffset] == ')'
+                }
+                val str =
+                        // Do not insert parentheses when it's unlikely to be necessary
+                        if (andNoParenthesesAround) "($it)"
+                        // Probably not a single identifier
+                        else it
+                document.insertString(startOffset, str)
+                editor.selectionModel.setSelection(startOffset, startOffset + str.length)
             }
         }
     } catch (t: SubExprException) {
@@ -42,25 +52,6 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
             HintManager.getInstance()
                     .apply { showErrorHint(editor, "Failed to normalize because ${t.message}") }
                     .setRequestFocusForNextHint(false)
-        }
-    }
-
-    private fun replaceExpr(document: Document, range: TextRange, it: String): Int {
-        assert(document.isWritable)
-        document.deleteString(range.startOffset, range.endOffset)
-        val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
-        val andNoParenthesesAround = likeIdentifier && !document.charsSequence.let {
-            it[range.startOffset - 1] == '(' && it[range.startOffset] == ')'
-        }
-        return if (andNoParenthesesAround) {
-            // Probably not a single identifier
-            val s = "($it)"
-            document.insertString(range.startOffset, s)
-            s.length
-        } else {
-            // Do not insert parentheses when it's unlikely to be necessary
-            document.insertString(range.startOffset, it)
-            it.length
         }
     }
 
