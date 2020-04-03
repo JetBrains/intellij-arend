@@ -16,10 +16,10 @@ import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.DocFactory
-import org.arend.naming.reference.MetaReferable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.term.concrete.Concrete
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
@@ -84,7 +84,7 @@ class InjectedArendEditor(val project: Project,
             val causeSourceNode = error.causeSourceNode
             val unresolvedRef = (causeSourceNode?.data as? Reference)?.referent
             val ref = if (unresolvedRef != null) (causeSourceNode.data as? ArendCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(unresolvedRef, it) } else null
-            val doc = if (ref is MetaReferable && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+            val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else
                 DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
