@@ -11,13 +11,13 @@ import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
 
 class ReplaceWithNormalFormIntention : ReplaceExpressionIntention("Replace with Weak Head Normal Form") {
-    override fun doApply(project: Project, editor: Editor, range: TextRange, subCore: Expression, subConcrete: Concrete.Expression) {
+    override fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression) {
         normalizeExpr(project, subCore, NormalizationMode.WHNF) {
             WriteCommandAction.runWriteCommandAction(project) {
-                val length = replaceExpr(editor.document, rangeOfConcrete(subConcrete), it)
-                val startOffset = range.startOffset
-                editor.selectionModel
-                    .setSelection(startOffset, startOffset + length)
+                val range = rangeOfConcrete(subConcrete)
+                val length = replaceExpr(editor.document, range, it)
+                val start = range.startOffset
+                editor.selectionModel.setSelection(start, start + length)
             }
         }
     }

@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.TextRange
 import org.arend.core.expr.ErrorWithConcreteExpression
 import org.arend.core.expr.Expression
 import org.arend.ext.reference.Precedence
@@ -22,7 +21,7 @@ class ReplaceMetaWithResultIntention : ReplaceExpressionIntention("Replace meta 
         return (refElement.resolve as? ModuleAdapter)?.metaReferable?.definition != null
     }
 
-    override fun doApply(project: Project, editor: Editor, range: TextRange, subCore: Expression, subConcrete: Concrete.Expression) {
+    override fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression) {
         val text = if (subCore is ErrorWithConcreteExpression) {
             val builder = StringBuilder()
             subCore.expression.accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))

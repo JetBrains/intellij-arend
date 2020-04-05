@@ -21,11 +21,11 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
         element.ancestor<ArendDefinition>() != null
 
     private fun doApplyTo(element: ArendExpr, file: PsiFile, project: Project, editor: Editor) = try {
-        val range = EditorUtil.getSelectionInAnyMode(editor)
+        val selected = EditorUtil.getSelectionInAnyMode(editor)
             .takeUnless { it.isEmpty }
             ?: element.textRange
-        val (subCore, subConcrete) = correspondedSubExpr(range, file, project)
-        doApply(project, editor, range, subCore, subConcrete)
+        val (subCore, subConcrete) = correspondedSubExpr(selected, file, project)
+        doApply(project, editor, subCore, subConcrete)
     } catch (t: SubExprException) {
         ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance()
@@ -34,7 +34,7 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
         }
     }
 
-    protected abstract fun doApply(project: Project, editor: Editor, range: TextRange, subCore: Expression, subConcrete: Concrete.Expression)
+    protected abstract fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression)
 
     protected fun replaceExpr(document: Document, range: TextRange, it: String): Int {
         assert(document.isWritable)
