@@ -1,65 +1,23 @@
 package org.arend.intention
 
-import com.intellij.codeInsight.hint.HintManager
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendExpr
-import org.arend.psi.ancestor
-import org.arend.psi.ext.TCDefinition
-import org.arend.refactoring.SubExprException
-import org.arend.refactoring.correspondedSubExpr
+import org.arend.core.expr.Expression
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.refactoring.normalizeExpr
 import org.arend.refactoring.rangeOfConcrete
+import org.arend.term.concrete.Concrete
 
-class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
-        ArendExpr::class.java,
-        "Replace with Weak Head Normal Form"
-) {
-    override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor) =
-            element.ancestor<TCDefinition>() != null
-
-    private fun doApplyTo(element: ArendExpr, file: PsiFile, project: Project, editor: Editor) = try {
-        val selected = EditorUtil.getSelectionInAnyMode(editor)
-                .takeUnless { it.isEmpty }
-                ?: element.textRange
-        val (subCore, subConcrete) = correspondedSubExpr(selected, file, project)
-        normalizeExpr(project, subCore) {
+class ReplaceWithNormalFormIntention : ReplaceExpressionIntention("Replace with Weak Head Normal Form") {
+    override fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression) {
+        normalizeExpr(project, subCore, NormalizationMode.WHNF) {
             WriteCommandAction.runWriteCommandAction(project) {
                 val range = rangeOfConcrete(subConcrete)
-                val document = editor.document
-                assert(document.isWritable)
-                val startOffset = range.startOffset
-                document.deleteString(startOffset, range.endOffset)
-                val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
-                val andNoParenthesesAround = likeIdentifier && !document.charsSequence.let {
-                    it[startOffset - 1] == '(' && it[startOffset] == ')'
-                }
-                val str =
-                        // Do not insert parentheses when it's unlikely to be necessary
-                        if (andNoParenthesesAround) "($it)"
-                        // Probably not a single identifier
-                        else it
-                document.insertString(startOffset, str)
-                editor.selectionModel.setSelection(startOffset, startOffset + str.length)
+                val length = replaceExpr(editor.document, range, it)
+                val start = range.startOffset
+                editor.selectionModel.setSelection(start, start + length)
             }
         }
-    } catch (t: SubExprException) {
-        ApplicationManager.getApplication().invokeLater {
-            HintManager.getInstance()
-                    .apply { showErrorHint(editor, "Failed to normalize because ${t.message}") }
-                    .setRequestFocusForNextHint(false)
-        }
     }
-
-
-    override fun applyTo(element: ArendExpr, project: Project, editor: Editor) {
-        val file = element.containingFile ?: return
-        doApplyTo(element, file, project, editor)
-    }
-
 }
