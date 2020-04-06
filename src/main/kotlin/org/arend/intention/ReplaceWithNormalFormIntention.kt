@@ -10,6 +10,7 @@ import com.intellij.psi.PsiFile
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendExpr
 import org.arend.psi.ancestor
+import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.SubExprException
 import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.normalizeExpr
@@ -20,7 +21,7 @@ class ReplaceWithNormalFormIntention : SelfTargetingIntention<ArendExpr>(
         "Replace with Weak Head Normal Form"
 ) {
     override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor) =
-            element.ancestor<ArendDefinition>() != null
+            element.ancestor<TCDefinition>() != null
 
     private fun doApplyTo(element: ArendExpr, file: PsiFile, project: Project, editor: Editor) = try {
         val selected = EditorUtil.getSelectionInAnyMode(editor)
