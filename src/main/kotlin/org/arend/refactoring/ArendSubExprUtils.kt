@@ -65,24 +65,20 @@ data class SubExprResult(
     @Suppress("MemberVisibilityCanBePrivate")
     fun findTeleBinding(selected: TextRange) = if (subPsi is ArendLamExprImplMixin
             && subConcrete is Concrete.LamExpression
-            && subCore is LamExpression) {
-        binding(subPsi, selected)
-                ?.let { it to FindBinding.visitLam(it, subConcrete, subCore) }
+            && subCore is LamExpression) binding(subPsi, selected)?.let {
+        it to FindBinding.visitLam(it, subConcrete, subCore)
     } else if (subPsi is ArendPiExprImplMixin
             && subConcrete is Concrete.PiExpression
-            && subCore is PiExpression) {
-        binding(subPsi, selected)
-                ?.let { it to FindBinding.visitPi(it, subConcrete, subCore) }
+            && subCore is PiExpression) binding(subPsi, selected)?.let {
+        it to FindBinding.visitPi(it, subConcrete, subCore)
     } else if (subPsi is ArendSigmaExprImplMixin
             && subConcrete is Concrete.SigmaExpression
-            && subCore is SigmaExpression) {
-        binding(subPsi, selected)
-                ?.let { it to FindBinding.visitSigma(it, subConcrete, subCore) }
+            && subCore is SigmaExpression) binding(subPsi, selected)?.let {
+        it to FindBinding.visitSigma(it, subConcrete, subCore)
     } else if (subPsi is ArendCaseExprImplMixin
             && subConcrete is Concrete.CaseExpression
-            && subCore is CaseExpression) {
-        binding(subPsi, selected)
-                ?.let { it to FindBinding.visitCase(it, subConcrete, subCore) }
+            && subCore is CaseExpression) binding(subPsi, selected)?.let {
+        it to FindBinding.visitCase(it, subConcrete, subCore)
     } else null
 }
 
