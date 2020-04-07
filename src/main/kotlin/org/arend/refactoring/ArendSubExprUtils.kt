@@ -65,13 +65,14 @@ data class SubExprResult(
             && subCore is LetExpression) {
         val letClauses = subPsi.childrenWithLeaves
                 .filterIsInstance<ArendLetClause>()
-        letClauses.mapNotNull { it.defIdentifier }
+        val letBind = letClauses.mapNotNull { it.defIdentifier }
                 .firstOrNull { selected in it.textRange }
                 ?.let { it to FindBinding.visitLet(it, subConcrete, subCore) }
-                ?: letClauses.flatMap { it.childrenWithLeaves.filterIsInstance<ArendNameTele>() }
-                        .firstOrNull { selected in it.textRange }
-                        ?.let { binding(it, selected) }
-                        ?.let { it to FindBinding.visitLetParam(it, subConcrete, subCore)?.typeExpr }
+        letBind ?: letClauses
+                .flatMap { it.childrenWithLeaves.filterIsInstance<ArendNameTele>() }
+                .firstOrNull { selected in it.textRange }
+                ?.let { binding(it, selected) }
+                ?.let { it to FindBinding.visitLetParam(it, subConcrete, subCore)?.typeExpr }
     } else findTeleBinding(selected)?.let { (id, link) -> id to link?.typeExpr }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -81,9 +82,7 @@ data class SubExprResult(
         subPsi.childrenWithLeaves
                 .filterIsInstance<ArendNameTele>()
                 .firstOrNull { selected in it.textRange }
-                ?.identifierOrUnknownList
-                ?.firstOrNull { selected in it.textRange }
-                ?.defIdentifier
+                ?.let { binding(it, selected) }
                 ?.let { it to FindBinding.visitLam(it, subConcrete, subCore) }
     } else if (subPsi is ArendPiExprImplMixin
             && subConcrete is Concrete.PiExpression
