@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ToAbstractVisitor
@@ -44,16 +45,11 @@ class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseR
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }
 
-private fun typedTele(p: Sequence<ArendTypeTele>, selected: TextRange) = p
-        .firstOrNull { selected in it.textRange }
-        ?.typedExpr
-        ?.let { binding(it, selected) }
-
-private fun binding(p: PsiElement, selected: TextRange) = p
-        .childrenWithLeaves
-        .filterIsInstance<ArendIdentifierOrUnknown>()
-        .firstOrNull { selected in it.textRange }
-        ?.defIdentifier
+private fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
+        .psiTraverser(p)
+        .onRange { selected in it.textRange }
+        .filter(ArendDefIdentifier::class.java)
+        .firstOrNull()
 
 data class SubExprResult(
         val subCore: Expression,
@@ -62,38 +58,31 @@ data class SubExprResult(
 ) {
     fun findBinding(selected: TextRange) = if (subPsi is ArendLetExprImplMixin
             && subConcrete is Concrete.LetExpression
-            && subCore is LetExpression) {
-        val letClauses = subPsi.childrenWithLeaves
-                .filterIsInstance<ArendLetClause>()
-        val letBind = letClauses.mapNotNull { it.defIdentifier }
-                .firstOrNull { selected in it.textRange }
-                ?.let { it to FindBinding.visitLet(it, subConcrete, subCore) }
-        letBind ?: letClauses
-                .flatMap { it.childrenWithLeaves.filterIsInstance<ArendNameTele>() }
-                .firstOrNull { selected in it.textRange }
-                ?.let { binding(it, selected) }
-                ?.let { it to FindBinding.visitLetParam(it, subConcrete, subCore)?.typeExpr }
+            && subCore is LetExpression) binding(subPsi, selected)?.let {
+        it to FindBinding.visitLet(it, subConcrete, subCore)
     } else findTeleBinding(selected)?.let { (id, link) -> id to link?.typeExpr }
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun findTeleBinding(selected: TextRange) = if (subPsi is ArendLamExprImplMixin
             && subConcrete is Concrete.LamExpression
             && subCore is LamExpression) {
-        subPsi.childrenWithLeaves
-                .filterIsInstance<ArendNameTele>()
-                .firstOrNull { selected in it.textRange }
-                ?.let { binding(it, selected) }
+        binding(subPsi, selected)
                 ?.let { it to FindBinding.visitLam(it, subConcrete, subCore) }
     } else if (subPsi is ArendPiExprImplMixin
             && subConcrete is Concrete.PiExpression
             && subCore is PiExpression) {
-        typedTele(subPsi.childrenWithLeaves.filterIsInstance<ArendTypeTele>(), selected)
+        binding(subPsi, selected)
                 ?.let { it to FindBinding.visitPi(it, subConcrete, subCore) }
     } else if (subPsi is ArendSigmaExprImplMixin
             && subConcrete is Concrete.SigmaExpression
             && subCore is SigmaExpression) {
-        typedTele(subPsi.childrenWithLeaves.filterIsInstance<ArendTypeTele>(), selected)
+        binding(subPsi, selected)
                 ?.let { it to FindBinding.visitSigma(it, subConcrete, subCore) }
+    } else if (subPsi is ArendCaseExprImplMixin
+            && subConcrete is Concrete.CaseExpression
+            && subCore is CaseExpression) {
+        binding(subPsi, selected)
+                ?.let { it to FindBinding.visitCase(it, subConcrete, subCore) }
     } else null
 }
 
