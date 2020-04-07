@@ -38,21 +38,19 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
 
     protected fun replaceExpr(document: Document, range: TextRange, it: String): Int {
         assert(document.isWritable)
-        document.deleteString(range.startOffset, range.endOffset)
+        val startOffset = range.startOffset
+        document.deleteString(startOffset, range.endOffset)
         val likeIdentifier = '\\' in it || ' ' in it || '\n' in it
-        val andNoParenthesesAround = likeIdentifier && !document.charsSequence.let {
-            it[range.startOffset - 1] == '(' && it[range.startOffset] == ')'
+        val andNoParenthesesAround = likeIdentifier && !document.immutableCharSequence.let {
+            it[startOffset - 1] == '(' && it[startOffset] == ')'
         }
-        return if (andNoParenthesesAround) {
-            // Probably not a single identifier
-            val s = "($it)"
-            document.insertString(range.startOffset, s)
-            s.length
-        } else {
-            // Do not insert parentheses when it's unlikely to be necessary
-            document.insertString(range.startOffset, it)
-            it.length
-        }
+        val str =
+                // Do not insert parentheses when it's unlikely to be necessary
+                if (andNoParenthesesAround) "($it)"
+                // Probably not a single identifier
+                else it
+        document.insertString(startOffset, str)
+        return str.length
     }
 
     override fun applyTo(element: ArendExpr, project: Project, editor: Editor) {
