@@ -9,7 +9,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.core.expr.Expression
+import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
@@ -20,7 +20,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.*
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.*
 import org.arend.resolving.BaseReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
@@ -32,6 +32,7 @@ import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
+import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
 import org.arend.util.appExprToConcrete
 import java.util.function.Supplier
@@ -43,11 +44,49 @@ class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseR
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }
 
+private fun typedTele(p: List<ArendTypeTele>, selected: TextRange) = p
+        .firstOrNull { selected in it.textRange }
+        ?.typedExpr
+        ?.identifierOrUnknownList
+        ?.firstOrNull { selected in it.textRange }
+        ?.defIdentifier
+
 data class SubExprResult(
         val subCore: Expression,
         val subConcrete: Concrete.Expression,
         val subPsi: ArendExpr
-)
+) {
+    fun findBinding(selected: TextRange) = if (subPsi is ArendLetExprImplMixin
+            && subConcrete is Concrete.LetExpression
+            && subCore is LetExpression) {
+        subPsi.childrenWithLeaves
+                .filterIsInstance<ArendLetClause>()
+                .mapNotNull { it.defIdentifier }
+                .firstOrNull { selected in it.textRange }
+                ?.let { it to FindBinding.visitLet(it, subConcrete, subCore) }
+    } else findTeleBinding(selected)?.let { (id, link) -> id to link?.typeExpr }
+
+    fun findTeleBinding(selected: TextRange) = if (subPsi is ArendLamExprImplMixin
+            && subConcrete is Concrete.LamExpression
+            && subCore is LamExpression) {
+        subPsi.parameters
+                .firstOrNull { selected in it.textRange }
+                ?.identifierOrUnknownList
+                ?.firstOrNull { selected in it.textRange }
+                ?.defIdentifier
+                ?.let { it to FindBinding.visitLam(it, subConcrete, subCore) }
+    } else if (subPsi is ArendPiExprImplMixin
+            && subConcrete is Concrete.PiExpression
+            && subCore is PiExpression) {
+        typedTele(subPsi.parameters, selected)
+                ?.let { it to FindBinding.visitPi(it, subConcrete, subCore) }
+    } else if (subPsi is ArendSigmaExprImplMixin
+            && subConcrete is Concrete.SigmaExpression
+            && subCore is SigmaExpression) {
+        val param = typedTele(subPsi.parameters, selected)
+        param?.let { it to FindBinding.visitSigma(it, subConcrete, subCore) }
+    } else null
+}
 
 @Throws(SubExprException::class)
 fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
