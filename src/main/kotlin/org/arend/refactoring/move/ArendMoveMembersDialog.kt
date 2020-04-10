@@ -39,7 +39,7 @@ import javax.swing.event.DocumentListener
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
                              container: PsiElement,
-                             private val enclosingModule: Module) : MoveDialogBase(project, false) {
+                             private val enclosingModule: Module) : MoveDialogBase(project, false, true) {
     private val targetFileTextField: JTextField
     private val targetModuleTextField: JTextField
     private val centerPanel: JPanel
@@ -69,7 +69,7 @@ class ArendMoveMembersDialog(project: Project,
         staticGroup = JRadioButton("Static")
         dynamicGroup = JRadioButton("Dynamic")
         var classPartRow1: Row? = null
-        centerPanel = panel() {
+        centerPanel = panel {
             row {
                 ScrollPaneFactory.createScrollPane(memberSelectionPanel, true)()
             }
@@ -85,10 +85,6 @@ class ArendMoveMembersDialog(project: Project,
                     staticGroup()
                     dynamicGroup()
                 }
-            }
-
-            row {
-                initOpenInEditorCb()()
             }
         }
         classPartRow = classPartRow1
