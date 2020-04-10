@@ -1,22 +1,25 @@
 package org.arend.highlight
 
+import com.intellij.codeHighlighting.TextEditorHighlightingPassFactoryRegistrar
 import com.intellij.codeHighlighting.TextEditorHighlightingPassRegistrar
 import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ArendGroup
 
-class TypecheckerPassFactory(
-    highlightingPassRegistrar: TextEditorHighlightingPassRegistrar,
-    highlightingPassFactory: ArendHighlightingPassFactory,
-    backgroundTypecheckerPassFactory: BackgroundTypecheckerPassFactory)
-    : BasePassFactory() {
+class TypecheckerPassFactory : BasePassFactory(), TextEditorHighlightingPassFactoryRegistrar {
+    private var myPassId = -1
 
-    private val passId = highlightingPassRegistrar.registerTextEditorHighlightingPass(this, intArrayOf(highlightingPassFactory.passId, backgroundTypecheckerPassFactory.passId), null, false, -1)
+    override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
+        val service = project.service<ArendPassFactoryService>()
+        myPassId = registrar.registerTextEditorHighlightingPass(this, intArrayOf(service.highlightingPassId, service.backgroundTypecheckerPassId), null, false, -1)
+    }
 
     override fun createPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange) =
         TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
 
-    override fun getPassId() = passId
+    override fun getPassId() = myPassId
 }

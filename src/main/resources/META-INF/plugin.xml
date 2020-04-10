@@ -254,6 +254,8 @@
 
         <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
 
+        <projectService serviceImplementation="org.arend.highlight.ArendPassFactoryService"/>
+
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
@@ -266,22 +268,16 @@
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
 
+        <!-- Highlighting Pass Factories -->
+
+        <highlightingPassFactory implementation="org.arend.highlight.ArendHighlightingPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.BackgroundTypecheckerPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
+
         <!-- Tool Windows -->
 
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
     </extensions>
-
-    <project-components>
-        <component>
-            <implementation-class>org.arend.highlight.ArendHighlightingPassFactory</implementation-class>
-        </component>
-        <component>
-            <implementation-class>org.arend.highlight.TypecheckerPassFactory</implementation-class>
-        </component>
-        <component>
-            <implementation-class>org.arend.highlight.BackgroundTypecheckerPassFactory</implementation-class>
-        </component>
-    </project-components>
 
     <actions>
         <action id="Arend.NewArendFile"
