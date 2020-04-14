@@ -25,7 +25,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?) =
                 Concrete.FixityReferenceExpression.make(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()), fixity, null, null)
             } else {
                 val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
-                val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, null)
+                val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, true, null)
                 (refExpr.referent as? GlobalReferable)?.let {
                     val psiRef = PsiLocatedReferable.fromReferable(it)
                     if (psiRef != null) {
