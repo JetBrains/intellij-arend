@@ -13,7 +13,7 @@ import com.intellij.psi.PsiManager
 import org.arend.library.SourceLibrary
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile
-import org.arend.typechecking.execution.FullModulePath
+import org.arend.typechecking.execution.LocationKind
 
 
 class BinaryFileSaver(private val project: Project) {
@@ -47,10 +47,13 @@ class BinaryFileSaver(private val project: Project) {
     }
 
     fun saveFile(file: ArendFile, referableConverter: ReferableConverter) {
-        val fullName = FullModulePath(file.libraryName ?: return, file.modulePath ?: return)
+        val fullName = file.modulePath ?: return
+        if (fullName.locationKind != LocationKind.SOURCE) {
+            return
+        }
         val library = typeCheckingService.libraryManager.getRegisteredLibrary(fullName.libraryName) as? SourceLibrary ?: return
         if (library.supportsPersisting()) {
-            runReadAction { library.persistModule(fullName.modulePath, referableConverter, typeCheckingService.libraryManager.libraryErrorReporter) }
+            runReadAction { library.persistModule(fullName, referableConverter, typeCheckingService.libraryManager.libraryErrorReporter) }
         }
     }
 

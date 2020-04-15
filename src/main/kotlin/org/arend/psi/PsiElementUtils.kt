@@ -20,6 +20,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.execution.LocationKind
 import org.arend.util.FileUtils
 import org.arend.util.mapFirstNotNull
 import org.jetbrains.yaml.psi.YAMLFile
@@ -75,9 +76,8 @@ val PsiElement.module: Module?
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
-fun PsiElement.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
-    val containingFile = containingFile ?: return null
-    val virtualFile = containingFile.virtualFile ?: containingFile.originalFile.virtualFile ?: return null
+fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
+    val virtualFile = virtualFile ?: containingFile.originalFile.virtualFile ?: return null
     val project = project
     val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
@@ -106,7 +106,7 @@ fun PsiElement.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
     return null
 }
 
-val PsiElement.libraryConfig: LibraryConfig?
+val PsiFile.libraryConfig: LibraryConfig?
     get() = getLibraryConfig(false)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
@@ -114,6 +114,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
         val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
         val config = containingFile.libraryConfig
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
+        val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == LocationKind.TEST
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude
@@ -123,7 +124,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
                         it.moduleScopeProvider.forModule(modulePath)
                     }
                 } else {
-                    config.forAvailableConfigs { it.findArendFile(modulePath, true) }
+                    config.forAvailableConfigs { it.findArendFile(modulePath, true, inTests) }
                 }
             }
             file?.let { LexicalScope.opened(it) }

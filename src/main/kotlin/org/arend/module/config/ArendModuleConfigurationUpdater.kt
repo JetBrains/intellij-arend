@@ -15,6 +15,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : ModuleBuilder.ModuleConfigurationUpdater(), ArendModuleConfiguration {
     override var librariesRoot = ""
     override var sourcesDir = ""
+    override var testsDir = ""
     override var withBinaries = false
     override var binariesDirectory = ""
     override var withExtensions = false
@@ -32,6 +33,7 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
             VfsUtil.saveText(moduleRoot.findOrCreateChildData(moduleRoot, FileUtils.LIBRARY_CONFIG_FILE),
                 (if (langVersionString.isNotEmpty()) "$LANG_VERSION: $langVersionString\n" else "") +
                 "$SOURCES: $sourcesDir" +
+                (if (testsDir != "") "\n$TESTS: $testsDir" else "") +
                 (if (withBinaries) "\n$BINARIES: $binariesDirectory" else "") +
                 (if (withExtensions) "\n$EXTENSIONS: $extensionsDirectory" else "") +
                 (if (withExtensions) "\n$EXTENSION_MAIN: $extensionMainClassData" else "") +
@@ -47,13 +49,21 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
         }
 
         val rootPath = FileUtil.toSystemDependentName(moduleRoot.path)
-        val srcDir = toAbsolute(rootPath, sourcesDir)
 
+        val srcDir = toAbsolute(rootPath, sourcesDir)
         VfsUtil.createDirectories(srcDir)
         contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcDir), false)
+
+        if (testsDir != "") {
+            val testDir = toAbsolute(rootPath, testsDir)
+            VfsUtil.createDirectories(testDir)
+            contentEntry.addSourceFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, testDir)), true)
+        }
+
         if (withBinaries) {
             contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, binariesDirectory)))
         }
+
         if (withExtensions) {
             contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, extensionsDirectory)))
         }

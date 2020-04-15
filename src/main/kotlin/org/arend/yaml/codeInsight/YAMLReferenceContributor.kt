@@ -70,7 +70,7 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
                     ?: return emptyArray()
             val modulePath = ModulePath.fromString(element.text)
                     ?: return emptyArray()
-            val fs = service.findArendFileOrDirectory(modulePath, false)
+            val fs = service.findArendFileOrDirectory(modulePath, withAdditional = false, withTests = false)
                     ?: return emptyArray()
             return arrayOf(object : PsiReferenceBase<YAMLPlainTextImpl>(element) {
                 override fun resolve() = fs

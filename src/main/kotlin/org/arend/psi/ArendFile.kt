@@ -3,7 +3,6 @@ package org.arend.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValueProvider
@@ -12,7 +11,6 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
-import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
@@ -28,32 +26,20 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
+import org.arend.typechecking.execution.FullModulePath
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
-    var generatedModulePath: ModulePath? = null
+    var generatedModulePath: FullModulePath? = null
 
-    val modulePath: ModulePath?
-        get() {
-            generatedModulePath?.let {
-                return it
-            }
+    val modulePath: FullModulePath?
+        get() = generatedModulePath ?: libraryConfig?.getFileModulePath(this)
 
-            val fileName = originalFile.viewProvider.virtualFile.path
-            val conf = libraryConfig ?: return null
-            val root = conf.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
-            if (root == null || !fileName.startsWith(root)) {
-                return null
-            }
-            val fullName = fileName.substring(root.length).removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
-            return ModulePath(fullName.split('.'))
-        }
-
-    val fullName
+    val fullName: String
         get() = modulePath?.toString() ?: name
 
-    val libraryName
+    val libraryName: String?
         get() = libraryConfig?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
 
     var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE

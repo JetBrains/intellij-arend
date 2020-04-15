@@ -53,7 +53,7 @@ class YAMLCompletionContributor : CompletionContributor() {
                 synchronized(service) {
                     val cachedModules = service.modules
                     service.modules = null
-                    service.findModules().forEach {
+                    service.findModules(false).forEach {
                         result.addElement(LookupElementBuilder
                                 .create(it)
                                 .withIcon(ArendIcons.AREND_MODULE))

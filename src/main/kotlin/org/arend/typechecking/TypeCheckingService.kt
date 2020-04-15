@@ -29,6 +29,8 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
+import org.arend.typechecking.execution.FullModulePath
+import org.arend.typechecking.execution.LocationKind
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
@@ -62,7 +64,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         // Initialize prelude
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
         libraryManager.loadLibrary(preludeLibrary, null)
-        preludeLibrary.prelude?.generatedModulePath = Prelude.MODULE_PATH
+        preludeLibrary.prelude?.generatedModulePath = FullModulePath(Prelude.LIBRARY_NAME, LocationKind.GENERATED, Prelude.MODULE_PATH.toList())
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)

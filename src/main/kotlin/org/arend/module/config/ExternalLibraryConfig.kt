@@ -9,6 +9,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : LibraryConfig(yaml.project) {
     override val sourcesDir = yaml.sourcesDir ?: ""
     override val binariesDir = yaml.binariesDir
+    override val testsDir = yaml.testsDir
     override val extensionsDir = yaml.extensionsDir
     override val extensionMainClass = yaml.extensionMainClass
     override val modules = yaml.modules

@@ -10,6 +10,7 @@ interface ArendModuleConfiguration {
     var sourcesDir: String
     var withBinaries: Boolean
     var binariesDirectory: String
+    var testsDir: String
     var withExtensions: Boolean
     var extensionsDirectory: String
     var extensionMainClassData: String
@@ -36,6 +37,7 @@ interface ArendModuleConfiguration {
         sourcesDir = another.sourcesDir
         withBinaries = another.withBinaries
         binariesDirectory = another.binariesDirectory
+        testsDir = another.testsDir
         withExtensions = another.withExtensions
         extensionsDirectory = another.extensionsDirectory
         extensionMainClassData = another.extensionMainClassData
@@ -48,6 +50,7 @@ interface ArendModuleConfiguration {
         sourcesDir == another.sourcesDir &&
         withBinaries == another.withBinaries &&
         binariesDirectory == another.binariesDirectory &&
+        testsDir == another.testsDir &&
         withExtensions == another.withExtensions &&
         extensionsDirectory == another.extensionsDirectory &&
         extensionMainClassData == another.extensionMainClassData &&

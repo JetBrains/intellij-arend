@@ -21,6 +21,7 @@ import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
 import org.arend.module.error.ModuleNotFoundError
+import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
@@ -123,7 +124,14 @@ class TypeCheckProcessHandler(
                         if (module == null) {
                             runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
                         } else if (command.definitionFullName == "") {
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library))) }
+                            val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
+                            val moduleScopeProvider = if (module.modulePath?.locationKind == LocationKind.TEST) {
+                                val testsModuleScopeProvider = library.testsModuleScopeProvider
+                                ModuleScopeProvider {
+                                    sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
+                                }
+                            } else sourcesModuleScopeProvider
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, moduleScopeProvider)) }
                         }
                         module
                     }

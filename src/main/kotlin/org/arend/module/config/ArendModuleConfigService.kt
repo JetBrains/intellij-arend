@@ -44,6 +44,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override var sourcesDir = ""
     override var withBinaries = false
     override var binariesDirectory = ""
+    override var testsDir = ""
     override var withExtensions = false
     override var extensionsDirectory = ""
     override var extensionMainClassData = ""
@@ -144,6 +145,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         modules = yaml.modules
         flaggedBinariesDir = yaml.binariesDir
+        testsDir = yaml.testsDir
         val extDir = yaml.extensionsDir
         val extMain = yaml.extensionMainClass
         withExtensions = extDir != null && extMain != null
@@ -185,6 +187,12 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         withBinaries = config.withBinaries
         binariesDirectory = config.binariesDirectory
 
+        val newTestsDir = config.testsDir
+        if (testsDir != newTestsDir) {
+            testsDir = newTestsDir
+            updateYAML = true
+        }
+
         val newExtensionsDir = config.flaggedExtensionsDir
         if (flaggedExtensionsDir != newExtensionsDir) {
             updateYAML = true
@@ -208,6 +216,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             langVersion = newLangVersion
             sourcesDir = newSourcesDir
             binariesDir = newBinariesDir
+            testsDir = newTestsDir
             extensionsDir = newExtensionsDir
             extensionMainClass = newExtensionMainClass
             dependencies = newDependencies
