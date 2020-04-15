@@ -65,7 +65,7 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java")
+    setPlugins("yaml", "java", "IdeaVIM:0.56", "org.vayafulano.relativeLineNumbers:1.0.1")
 }
 
 tasks.withType<PatchPluginXmlTask> {
