@@ -42,6 +42,9 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     private val sourcesTextField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener("Sources directory", "Select the directory in which the source files${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
+    private val testsTextField = TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener("Tests directory", "Select the directory with test files${if (name == null) "" else " for module $name"}", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+    }
     private val binariesSwitch = JBCheckBox("Save typechecker output to ", false)
     private val binariesTextField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener("Binaries directory", "Select the directory in which the binary files${if (name == null) "" else " of module $name"} will be put", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
@@ -78,6 +81,12 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         get() = sourcesTextField.text
         set(value) {
             sourcesTextField.text = value
+        }
+
+    override var testsDir: String
+        get() = testsTextField.text
+        set(value) {
+            testsTextField.text = value
         }
 
     override var withBinaries: Boolean
@@ -137,6 +146,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     fun createComponent() = panel {
         labeled("Language version: ", langVersionField)
         labeled("Sources directory: ", sourcesTextField)
+        labeled("Tests directory: ", testsTextField)
         checked(binariesSwitch, binariesTextField)
 
         titledRow("Extensions") {

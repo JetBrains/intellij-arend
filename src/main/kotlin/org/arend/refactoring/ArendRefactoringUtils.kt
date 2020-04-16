@@ -24,6 +24,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
+import org.arend.typechecking.execution.LocationKind
 import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import org.arend.util.mapFirstNotNull
@@ -39,7 +40,8 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     private fun importFileCanBeFound(): Boolean {
         val modulePath = importFile.modulePath ?: return false
         val conf = currentFile.libraryConfig ?: return false
-        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true) } == importFile
+        val inTests = conf.getFileLocationKind(currentFile) == LocationKind.TEST
+        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile
     }
 
     fun isValid() = importFileCanBeFound() || isPrelude(importFile)

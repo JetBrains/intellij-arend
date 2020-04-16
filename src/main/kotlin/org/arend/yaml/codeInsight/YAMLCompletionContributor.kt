@@ -53,7 +53,7 @@ class YAMLCompletionContributor : CompletionContributor() {
                 synchronized(service) {
                     val cachedModules = service.modules
                     service.modules = null
-                    service.findModules().forEach {
+                    service.findModules(false).forEach {
                         result.addElement(LookupElementBuilder
                                 .create(it)
                                 .withIcon(ArendIcons.AREND_MODULE))
@@ -72,7 +72,8 @@ class YAMLCompletionContributor : CompletionContributor() {
         LANG_VERSION -> result.addElement(LookupElementBuilder
                 .create(Prelude.VERSION.toString())
                 .withIcon(ArendIcons.AREND))
-        SOURCES, BINARIES, EXTENSIONS -> filePathContributor.fillCompletionVariants(parameters, result)
+        SOURCES, BINARIES, EXTENSIONS, TESTS ->
+            filePathContributor.fillCompletionVariants(parameters, result)
         EXTENSION_MAIN -> JavaPsiFacade
                 .getInstance(parent.project)
                 .findClass(

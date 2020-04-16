@@ -24,12 +24,14 @@ import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
+import org.arend.source.Source
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.execution.FullModulePath
+import org.arend.typechecking.execution.LocationKind
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
-import kotlin.test.assertFalse
 
 class ArendRawLibrary(val config: LibraryConfig)
     : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
@@ -40,12 +42,13 @@ class ArendRawLibrary(val config: LibraryConfig)
 
     override fun getName() = config.name
 
-    override fun getModuleGroup(modulePath: ModulePath) = config.findArendFile(modulePath, false)
+    override fun getModuleGroup(modulePath: ModulePath) =
+        config.findArendFile(modulePath, withAdditional = false, withTests = false)
 
     override fun mustBeLoaded() = !isExternal
 
     override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
+        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
 
     override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (!super.load(libraryManager, typechecking)) {
@@ -58,7 +61,7 @@ class ArendRawLibrary(val config: LibraryConfig)
             scopeToText(entry.value, "", builder)
             val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
             file.virtualFile.isWritable = false
-            file.generatedModulePath = entry.key
+            file.generatedModulePath = FullModulePath(name, LocationKind.GENERATED, entry.key.toList())
             fillGroup(file, entry.value)
             service.fillAdditionalNames(file, isExternal)
             config.addAdditionalModule(entry.key, file)
@@ -73,12 +76,17 @@ class ArendRawLibrary(val config: LibraryConfig)
         return isExternal
     }
 
-    override fun getLoadedModules() = config.findModules()
+    override fun getLoadedModules() = config.findModules(false)
+
+    override fun getTestModules() = config.findModules(true)
 
     override fun getDependencies() = config.dependencies
 
     override fun getRawSource(modulePath: ModulePath) =
         config.findArendFile(modulePath, false)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
+
+    override fun getTestSource(modulePath: ModulePath) =
+        config.findArendFile(modulePath, true)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? =
         config.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }

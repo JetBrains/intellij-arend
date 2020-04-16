@@ -11,7 +11,7 @@ version = "1.3.0"
 
 plugins {
     idea
-    kotlin("jvm") version "1.3.71"
+    kotlin("jvm") version "1.3.72"
     id("org.jetbrains.intellij") version "0.4.18"
     id("org.jetbrains.grammarkit") version "2020.1.2"
 }
@@ -65,7 +65,7 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java")
+    setPlugins("yaml", "java", "IdeaVIM:0.56", "org.vayafulano.relativeLineNumbers:1.0.1")
 }
 
 tasks.withType<PatchPluginXmlTask> {
@@ -103,7 +103,7 @@ tasks.withType<Test> {
 afterEvaluate {
     tasks.withType<Test> {
         testLogging {
-            if (hasProp("showTestStatus") && prop("showTestStatus") == "true") {
+            if (prop("showTestStatus") == "true") {
                 events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
                 exceptionFormat = TestExceptionFormat.FULL
             }
@@ -122,11 +122,6 @@ tasks.withType<Wrapper> {
     gradleVersion = "6.3"
 }
 
-
 // Utils
 
-fun hasProp(name: String): Boolean = extra.has(name)
-
-fun prop(name: String): Any =
-        extra.properties[name]
-                ?: error("Property `$name` is not defined in gradle.properties")
+fun prop(name: String): Any? = extra.properties[name]

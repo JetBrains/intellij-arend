@@ -15,6 +15,7 @@ import org.arend.naming.scope.*
 import org.arend.psi.*
 import org.arend.resolving.ArendReference
 import org.arend.term.abs.Abstract
+import org.arend.typechecking.execution.LocationKind
 import org.arend.typing.ModifiedClassFieldImplScope
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
@@ -49,7 +50,10 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
         else it.scope
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 
-    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope { sourceNode.libraryConfig?.let { ModuleScope(it) } ?: EmptyScope.INSTANCE })
+    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
+        val containingFile = sourceNode.containingFile as? ArendFile
+        containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == LocationKind.TEST) } ?: EmptyScope.INSTANCE
+    })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference
         if (classRef is ArendDefClass) {

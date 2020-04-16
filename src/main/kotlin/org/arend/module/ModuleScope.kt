@@ -14,10 +14,12 @@ import org.arend.psi.ext.PsiModuleReferable
 import org.arend.util.FileUtils
 
 
-class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val rootDirs: List<VirtualFile>?, private val prefix: List<String>, private val additionalPaths: List<List<String>>) : Scope {
-    constructor(libraryConfig: LibraryConfig) : this(libraryConfig, null, emptyList(), libraryConfig.additionalModulesSet.map { it.toList() })
+class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val inTests: Boolean, private val rootDirs: List<VirtualFile>?, private val prefix: List<String>, private val additionalPaths: List<List<String>>) : Scope {
+    constructor(libraryConfig: LibraryConfig, inTests: Boolean) : this(libraryConfig, inTests, null, emptyList(), libraryConfig.additionalModulesSet.map { it.toList() })
 
-    private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.mapNotNull { it.sourcesDirFile }
+    private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.flatMap { conf ->
+        (conf.sourcesDirFile?.let { listOf(it) } ?: emptyList()) + if (inTests) conf.testsDirFile?.let { listOf(it) } ?: emptyList() else emptyList()
+    }
 
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
@@ -60,6 +62,6 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
             return@mapNotNull null
         }
         val newPaths = additionalPaths.mapNotNull { if (it.size > 1 && it[0] == name) it.drop(1) else null }
-        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, newRootDirs, prefix + name, newPaths)
+        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, inTests, newRootDirs, prefix + name, newPaths)
     }
 }

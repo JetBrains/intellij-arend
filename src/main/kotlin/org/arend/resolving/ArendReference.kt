@@ -93,13 +93,13 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (ref is PsiModuleReferable) {
                         ref.modules.firstOrNull()
                     } else {
-                        element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, true) }
+                        element.containingFile?.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                     }
-                    module?.let {
-                        if (it is ArendFile)
-                            LookupElementBuilder.create(it, ref.path.lastName).withIcon(ArendIcons.AREND_FILE) else
-                            LookupElementBuilder.createWithIcon(it)
-                    } ?: LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
+                    when (module) {
+                        null -> LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
+                        is ArendFile -> LookupElementBuilder.create(module, ref.path.lastName).withIcon(ArendIcons.AREND_FILE)
+                        else -> LookupElementBuilder.createWithIcon(module)
+                    }
                 }
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
             }
@@ -133,7 +133,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     element.project.service<TypeCheckingService>().prelude
                 } else {
-                    element.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, true) }
+                    element.containingFile?.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                 }
             }
             else -> null

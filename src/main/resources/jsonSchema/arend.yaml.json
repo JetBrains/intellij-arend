@@ -5,8 +5,7 @@
   "description": "Arend project configuration file.",
   "required": [
     "langVersion",
-    "sourcesDir",
-    "binariesDir"
+    "sourcesDir"
   ],
   "properties": {
     "langVersion": {
@@ -22,6 +21,11 @@
       "$id": "#/properties/sourcesDir",
       "type": "string",
       "description": "The directory to read Arend definitions from."
+    },
+    "testsDir": {
+      "$id": "#/properties/testsDir",
+      "type": "string",
+      "description": "The directory for Arend tests."
     },
     "extensionsDir": {
       "$id": "#/properties/extensionsDir",

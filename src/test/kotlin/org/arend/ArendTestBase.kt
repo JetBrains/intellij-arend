@@ -201,7 +201,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
-        val targetFiles = fileNames.map { configService!!.findArendFile(it, false) }
+        val targetFiles = fileNames.map { configService!!.findArendFile(it, withAdditional = false, withTests = false) }
         ArendTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 }
