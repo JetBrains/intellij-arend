@@ -125,8 +125,7 @@
         <!-- Formatter -->
 
         <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/>
-        <codeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
-        <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendLanguageCodeStyleSettingsProvider"/>
+        <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
         <editor.backspaceModeOverride language="Arend" implementationClass="org.arend.formatting.ArendBackspaceDisabler"/>
         <enterHandlerDelegate implementation="org.arend.formatting.ArendEnterAtIndentHandler" order="first"/>
 
