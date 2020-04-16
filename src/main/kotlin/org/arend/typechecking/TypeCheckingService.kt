@@ -6,7 +6,6 @@ import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
@@ -38,7 +37,7 @@ import org.arend.util.FullName
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
     val typecheckerState = SimpleTypecheckerState()
     val dependencyListener = DependencyCollector(typecheckerState)
-    private val libraryErrorReporter = NotificationErrorReporter(project, PrettyPrinterConfig.DEFAULT)
+    private val libraryErrorReporter = NotificationErrorReporter(project)
     val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
 
     private val extensionDefinitions = HashMap<TCReferable, Boolean>()

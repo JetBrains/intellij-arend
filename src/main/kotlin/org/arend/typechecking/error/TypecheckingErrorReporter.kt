@@ -13,6 +13,7 @@ import org.arend.ext.prettyprinting.doc.*
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -69,7 +70,7 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
 
         fun print() {
             runReadAction {
-                error.getDoc(ppConfig).accept(this, true)
+                error.getDoc(PrettyPrinterConfigWithRenamer(ppConfig)).accept(this, true)
             }
             printNewLine()
             flushText()

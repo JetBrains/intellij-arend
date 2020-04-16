@@ -21,6 +21,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
@@ -109,7 +110,7 @@ class InjectedArendEditor(val project: Project,
         }
     }
 
-    private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind): PrettyPrinterConfig {
+    private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind) : PrettyPrinterConfigWithRenamer() {
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
 
         override fun getExpressionFlags() = flags

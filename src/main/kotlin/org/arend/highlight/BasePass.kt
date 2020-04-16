@@ -21,7 +21,6 @@ import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
@@ -39,6 +38,7 @@ import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
 import org.arend.term.abs.IncompleteExpressionError
+import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
@@ -77,9 +77,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
-        val ppConfig = object : PrettyPrinterConfig {
-            override fun getExpressionFlags() = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
-        }
+        val ppConfig = PrettyPrinterConfigWithRenamer()
+        ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
