@@ -15,4 +15,6 @@ class ArendRunConfigurationFactory(configurationType: ConfigurationType) : Confi
             task.isEnabled = false
         }
     }
+
+    override fun getId() = "Arend Typecheck"
 }
