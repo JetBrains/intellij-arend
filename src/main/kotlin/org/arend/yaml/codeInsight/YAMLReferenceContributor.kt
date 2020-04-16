@@ -46,7 +46,7 @@ class YAMLReferenceContributor : PsiReferenceContributor() {
             val parent = element.parent ?: return emptyArray()
             if (element is YAMLPlainTextImpl) {
                 if (parent is YAMLKeyValue) when (parent.keyText) {
-                    SOURCES, BINARIES, EXTENSIONS -> return FileReferenceSet(element).allReferences
+                    SOURCES, BINARIES, EXTENSIONS, TESTS -> return FileReferenceSet(element).allReferences
                     EXTENSION_MAIN -> return arrayOf(object : PsiReferenceBase<YAMLPlainTextImpl>(element) {
                         private val project get() = element.project
                         override fun resolve() = JavaPsiFacade

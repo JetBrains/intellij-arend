@@ -72,7 +72,8 @@ class YAMLCompletionContributor : CompletionContributor() {
         LANG_VERSION -> result.addElement(LookupElementBuilder
                 .create(Prelude.VERSION.toString())
                 .withIcon(ArendIcons.AREND))
-        SOURCES, BINARIES, EXTENSIONS -> filePathContributor.fillCompletionVariants(parameters, result)
+        SOURCES, BINARIES, EXTENSIONS, TESTS ->
+            filePathContributor.fillCompletionVariants(parameters, result)
         EXTENSION_MAIN -> JavaPsiFacade
                 .getInstance(parent.project)
                 .findClass(
