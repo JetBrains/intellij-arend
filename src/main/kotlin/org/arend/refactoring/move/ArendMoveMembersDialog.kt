@@ -185,9 +185,7 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
 
-    override fun getCbTitle(): String = "Open moved members in editor"
-
-    override fun getMovePropertySuffix(): String = "Arend static member"
+    override fun getRefactoringId() = "Move Arend static member"
 
     override fun createCenterPanel(): JComponent? = centerPanel
 

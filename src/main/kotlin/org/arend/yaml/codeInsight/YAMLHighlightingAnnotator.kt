@@ -2,6 +2,7 @@ package org.arend.yaml.codeInsight
 
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.yaml.KEYS
@@ -18,7 +19,9 @@ class YAMLHighlightingAnnotator : Annotator {
         if (element is LeafPsiElement && element.node.elementType == YAMLTokenTypes.SCALAR_KEY) {
             val text = element.text
             if (!KEYS.contains(text)) {
-                holder.createErrorAnnotation(element as PsiElement, "Unknown key: $text")
+                holder.newAnnotation(HighlightSeverity.ERROR, "Unknown key: $text")
+                    .range(element as PsiElement)
+                    .create()
             }
         }
     }
