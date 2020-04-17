@@ -62,9 +62,15 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 
+    val injectionContext: PsiElement?
+        get() = FileContextUtil.getFileContext(this)
+
+    val isInjected: Boolean
+        get() = injectionContext != null
+
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            val injectedIn = FileContextUtil.getFileContext(this)
+            val injectedIn = injectionContext
             CachedValueProvider.Result(if (injectedIn != null) {
                 (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE
             } else {

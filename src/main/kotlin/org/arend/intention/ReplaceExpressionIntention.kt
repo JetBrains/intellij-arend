@@ -11,6 +11,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import org.arend.core.expr.Expression
 import org.arend.psi.ArendExpr
+import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.SubExprException
@@ -19,7 +20,7 @@ import org.arend.term.concrete.Concrete
 
 abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention<ArendExpr>(ArendExpr::class.java, text) {
     override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor) =
-        element.ancestor<TCDefinition>() != null
+        (element.ancestor<TCDefinition>()?.containingFile as? ArendFile)?.isInjected == false
 
     private fun doApplyTo(element: ArendExpr, file: PsiFile, project: Project, editor: Editor) = try {
         val selected = EditorUtil.getSelectionInAnyMode(editor)

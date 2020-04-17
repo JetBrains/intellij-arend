@@ -18,6 +18,9 @@ import org.arend.term.prettyprint.PrettyPrintVisitor
 
 class ReplaceMetaWithResultIntention : ReplaceExpressionIntention("Replace meta with result") {
     override fun isApplicableTo(element: ArendExpr, caretOffset: Int, editor: Editor): Boolean {
+        if (!super.isApplicableTo(element, caretOffset, editor)) {
+            return false
+        }
         val refElement = (element as? ArendLiteral)?.ipName ?: ((element as? ArendLiteral)?.longName ?: (element as? ArendArgumentAppExpr)?.longNameExpr?.longName)?.refIdentifierList?.lastOrNull() ?: return false
         return (refElement.resolve as? ModuleAdapter)?.metaReferable?.definition != null
     }
