@@ -29,6 +29,7 @@
         FAT_ARROW           = '=>'
         DOT                 = '.'
         COMMA               = ','
+        APPLY_HOLE          = '__'
         UNDERSCORE          = '_'
         PIPE                = '|'
         LINE_DOC_COMMENT_START = '-- |'
@@ -799,6 +800,7 @@ private longNameIP ::= longName [DOT IPName] { pin = 1 }
 
 literal ::= longNameIP
     | PROP_KW
+    | APPLY_HOLE
     | UNDERSCORE
     | IPName
     | goal {
@@ -873,7 +875,7 @@ private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | TGOAL | LGOAL) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 

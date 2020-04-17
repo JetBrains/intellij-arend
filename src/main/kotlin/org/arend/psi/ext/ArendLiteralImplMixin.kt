@@ -19,6 +19,9 @@ abstract class ArendLiteralImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
         if (underscore != null) {
             return visitor.visitInferHole(this, params)
         }
+        if (applyHole != null) {
+            return visitor.visitApplyHole(this, params)
+        }
         goal?.let {
             return visitor.visitGoal(it, it.defIdentifier?.textRepresentation(), it.expr, params)
         }
