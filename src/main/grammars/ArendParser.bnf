@@ -524,12 +524,12 @@ caseArg ::= caseArgExprAs [COLON expr] {
 private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
 
 caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
-    | ELIM_KW refIdentifier {
+    | ELIM_KW (refIdentifier | APPLY_HOLE) {
     pin(".*") = 1
     recoverWhile = caseArgExprAs_recover
 }
 
-private caseArgExprAs_recover ::= !COLON & expr_recover
+private caseArgExprAs_recover ::= !(COLON | APPLY_HOLE) & expr_recover
 
 private caseArgExpr ::= expr {
     recoverWhile = caseArgExpr_recover
