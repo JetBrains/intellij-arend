@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
@@ -12,9 +13,11 @@ import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
+import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.prelude.Prelude
@@ -61,7 +64,12 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            CachedValueProvider.Result(CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider)), PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
+            val injectedIn = FileContextUtil.getFileContext(this)
+            CachedValueProvider.Result(if (injectedIn != null) {
+                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE
+            } else {
+                CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider))
+            }, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
         }
 
     override val defIdentifier: ArendDefIdentifier?
