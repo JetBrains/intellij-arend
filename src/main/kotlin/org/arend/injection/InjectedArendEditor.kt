@@ -14,10 +14,11 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.term.concrete.Concrete
@@ -80,11 +81,12 @@ class InjectedArendEditor(val project: Project,
         val builder = StringBuilder()
         val visitor = CollectingDocStringBuilder(builder, error)
         val printOptionsKind = if (error is GoalError) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS
-        val ppConfig = ProjectPrintConfig(project, printOptionsKind)
         runReadAction {
             val causeSourceNode = error.causeSourceNode
             val unresolvedRef = (causeSourceNode?.data as? Reference)?.referent
-            val ref = if (unresolvedRef != null) (causeSourceNode.data as? ArendCompositeElement)?.scope?.let { ExpressionResolveNameVisitor.resolve(unresolvedRef, it) } else null
+            val scope = if (unresolvedRef != null || error.hasExpressions()) (causeSourceNode.data as? ArendCompositeElement)?.scope else null
+            val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
+            val ppConfig = ProjectPrintConfig(project, printOptionsKind, scope ?: EmptyScope.INSTANCE)
             val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else
@@ -110,7 +112,7 @@ class InjectedArendEditor(val project: Project,
         }
     }
 
-    private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind) : PrettyPrinterConfigWithRenamer() {
+    private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind, scope: Scope) : PrettyPrinterConfigWithRenamer(scope) {
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
 
         override fun getExpressionFlags() = flags

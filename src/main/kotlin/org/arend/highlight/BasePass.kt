@@ -28,6 +28,7 @@ import org.arend.ext.reference.DataContainer
 import org.arend.naming.error.DuplicateOpenedNameError
 import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
+import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
@@ -77,7 +78,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
-        val ppConfig = PrettyPrinterConfigWithRenamer()
+        val ppConfig = PrettyPrinterConfigWithRenamer(EmptyScope.INSTANCE)
         ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }

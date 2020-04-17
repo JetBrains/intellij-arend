@@ -12,6 +12,8 @@ import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.*
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.scope.EmptyScope
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.execution.ProxyAction
@@ -70,7 +72,8 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
 
         fun print() {
             runReadAction {
-                error.getDoc(PrettyPrinterConfigWithRenamer(ppConfig)).accept(this, true)
+                val scope = if (error.hasExpressions()) (error.causeSourceNode.data as? ArendCompositeElement)?.scope else null
+                error.getDoc(PrettyPrinterConfigWithRenamer(ppConfig, scope ?: EmptyScope.INSTANCE)).accept(this, true)
             }
             printNewLine()
             flushText()

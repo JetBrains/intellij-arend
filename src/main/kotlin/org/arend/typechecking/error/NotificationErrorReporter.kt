@@ -9,6 +9,7 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.GeneralError.Level
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
+import org.arend.naming.scope.EmptyScope
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 
 
@@ -30,7 +31,7 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
             Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> NotificationType.WARNING
             Level.INFO -> NotificationType.INFORMATION
         }
-        val newPPConfig = PrettyPrinterConfigWithRenamer(ppConfig)
+        val newPPConfig = PrettyPrinterConfigWithRenamer(ppConfig, EmptyScope.INSTANCE)
         val title = DocStringBuilder.build(error.getHeaderDoc(newPPConfig))
         val content = DocStringBuilder.build(error.getBodyDoc(newPPConfig))
         group.createNotification(title, content, type, null).notify(project)

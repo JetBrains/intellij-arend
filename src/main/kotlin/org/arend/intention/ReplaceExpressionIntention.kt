@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import org.arend.core.expr.Expression
 import org.arend.psi.ArendExpr
@@ -25,7 +26,7 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
             .takeUnless { it.isEmpty }
             ?: element.textRange
         val (subCore, subConcrete) = correspondedSubExpr(selected, file, project)
-        doApply(project, editor, subCore, subConcrete)
+        doApply(project, editor, subCore, subConcrete, file.findElementAt(selected.startOffset))
     } catch (t: SubExprException) {
         ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance()
@@ -34,7 +35,7 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
         }
     }
 
-    protected abstract fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression)
+    protected abstract fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression, element: PsiElement?)
 
     protected fun replaceExpr(document: Document, range: TextRange, it: String): Int {
         assert(document.isWritable)

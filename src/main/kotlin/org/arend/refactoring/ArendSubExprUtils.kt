@@ -1,5 +1,6 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -11,6 +12,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
+import org.arend.core.expr.visitor.ScopeDefinitionRenamer
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
@@ -184,13 +186,17 @@ private fun collectArendExprs(
 fun prettyPopupExpr(
         project: Project,
         expression: Expression?,
-        mode: NormalizationMode? = null
+        mode: NormalizationMode? = null,
+        element: PsiElement? = null
 ): String {
     val settings = project.service<ArendProjectSettings>()
     val builder = StringBuilder()
     ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
         override fun getNormalizationMode() = mode
+        override fun getDefinitionRenamer() = if (element == null) null else runReadAction {
+            (element.ancestors.firstOrNull { it is ArendCompositeElement || it is PsiFile } as? ArendCompositeElement)?.scope?.let { ScopeDefinitionRenamer(it) }
+        }
     }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
     return builder.toString()
 }
@@ -199,6 +205,7 @@ inline fun normalizeExpr(
         project: Project,
         subCore: Expression,
         mode: NormalizationMode = NormalizationMode.RNF,
+        element: PsiElement? = null,
         crossinline after: (String) -> Unit
 ) {
     val title = "Running normalization"
@@ -206,7 +213,7 @@ inline fun normalizeExpr(
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) {
             result = ComputationRunner<String>().run(ArendCancellationIndicator(indicator), Supplier {
-                prettyPopupExpr(project, subCore, mode)
+                prettyPopupExpr(project, subCore, mode, element)
             })
         }
 
