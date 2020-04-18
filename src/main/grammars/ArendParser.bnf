@@ -524,7 +524,7 @@ caseArg ::= caseArgExprAs [COLON expr] {
 private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
 
 caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
-    | ELIM_KW (refIdentifier | APPLY_HOLE) {
+    | ELIM_KW (refIdentifier | appHole) {
     pin(".*") = 1
     recoverWhile = caseArgExprAs_recover
 }
@@ -800,12 +800,17 @@ private longNameIP ::= longName [DOT IPName] { pin = 1 }
 
 literal ::= longNameIP
     | PROP_KW
-    | APPLY_HOLE
+    | appHole
     | UNDERSCORE
     | IPName
     | goal {
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendLiteralImplMixin"
+}
+
+appHole ::= APPLY_HOLE {
+    implements = "org.arend.psi.ArendExpr"
+    mixin = "org.arend.psi.ext.ArendAppHoleImplMixin"
 }
 
 goal ::= TGOAL | lGoal {
