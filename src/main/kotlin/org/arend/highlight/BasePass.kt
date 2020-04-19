@@ -199,7 +199,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 GeneralError.Level.ERROR -> HighlightSeverity.ERROR
                 GeneralError.Level.WARNING -> HighlightSeverity.WARNING
                 GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
-                GeneralError.Level.GOAL -> HighlightSeverity.WARNING
+                GeneralError.Level.GOAL -> HighlightSeverity.INFORMATION
                 GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
             }
 
