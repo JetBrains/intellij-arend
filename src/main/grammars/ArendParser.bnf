@@ -431,7 +431,7 @@ private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
 }
 
-private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
+private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
@@ -529,7 +529,7 @@ caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
     recoverWhile = caseArgExprAs_recover
 }
 
-private caseArgExprAs_recover ::= !(COLON | APPLY_HOLE) & expr_recover
+private caseArgExprAs_recover ::= !COLON & expr_recover
 
 private caseArgExpr ::= expr {
     recoverWhile = caseArgExpr_recover
