@@ -5,6 +5,8 @@ import org.arend.psi.ArendCaseArg
 
 
 abstract class ArendCaseArgImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendCaseArg {
+    override fun getApplyHoleData() = caseArgExprAs.applyHole
+
     override fun getExpression() = caseArgExprAs.expr
 
     override fun getReferable() = caseArgExprAs.defIdentifier
