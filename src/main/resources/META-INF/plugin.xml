@@ -170,6 +170,11 @@
         </intentionAction>
 
         <intentionAction>
+            <className>org.arend.intention.WrapInGoalIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
             <className>org.arend.intention.ReplaceMetaWithResultIntention</className>
             <category>Arend</category>
         </intentionAction>
