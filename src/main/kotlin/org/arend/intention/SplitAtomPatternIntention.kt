@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.binding.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
@@ -13,10 +12,7 @@ import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.elimtree.IntervalElim
-import org.arend.core.expr.ClassCallExpression
-import org.arend.core.expr.DataCallExpression
-import org.arend.core.expr.Expression
-import org.arend.core.expr.SigmaExpression
+import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
@@ -33,10 +29,10 @@ import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.VariableImpl
 import org.arend.refactoring.calculateOccupiedNames
+import org.arend.refactoring.correspondedSubExpr
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
-import org.arend.typechecking.ArendTypecheckingListener
 import org.arend.typechecking.TypeCheckingService
 import java.util.*
 import java.util.Collections.singletonList
@@ -52,7 +48,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getCachedElementType(element) ?: getElementType(element, editor.project)
+            val type = getElementType(element, editor.project)
             if (type is DataCallExpression) {
                 val constructors = type.matchedConstructors ?: return false
                 this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
@@ -75,20 +71,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     override fun applyTo(element: PsiElement, project: Project, editor: Editor) {
         splitPatternEntries?.let { doSplitPattern(element, project, it) }
-    }
-
-    private fun getCachedElementType(element: PsiElement): Expression? {
-        val defIdentifier = when (element) {
-            is ArendPattern -> {
-                element.defIdentifier
-            }
-            is ArendAtomPatternOrPrefix -> {
-                element.defIdentifier
-            }
-            else -> null
-        }
-        val cachedBinding = if (defIdentifier != null) ArendTypecheckingListener.referableTypeCache[defIdentifier] else null
-        return cachedBinding?.typeExpr
     }
 
     private fun getElementType(element: PsiElement, project: Project?): Expression? {
@@ -138,6 +120,18 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             return patternPart.binding.typeExpr
                         }
                     }
+                }
+            }
+
+            if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
+                val teslaData = correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project).subCore
+                abstractPatterns = patternOwner.patterns
+                clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
+                if (teslaData is CaseExpression && clauseIndex != -1) {
+                    val clauseData = teslaData.elimBody.clauses[clauseIndex]
+                    val patterns = clauseData?.patterns?.let { Pattern.toExpressionPatterns(it, teslaData.parameters) } ?: return null
+                    val patternPart = findPattern(indexList.drop(1), patterns[indexList[0]], abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
+                    return patternPart.binding.typeExpr
                 }
             }
         }

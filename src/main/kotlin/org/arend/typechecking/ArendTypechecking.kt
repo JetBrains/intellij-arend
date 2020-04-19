@@ -18,7 +18,7 @@ import org.arend.typechecking.provider.ConcreteProvider
 
 
 open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator, ArendTypecheckingListener) {
+    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
 
     companion object {
         fun create(project: Project, typecheckerState: TypecheckerState? = null): ArendTypechecking {

@@ -337,4 +337,21 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func test9 (p : Pair2) : Nat \elim p
          | (p,p1) => (snd {snd2 {\new Pair2 p p1}}).2  
     """)
+
+    fun testCase() = typedQuickFixTest("Split", """
+       \open Nat
+
+       \func foo : Nat => \case 1 + 2 \with {  
+         | 0 => {?}
+         | suc n{-caret-} => {?}
+       } 
+    """, """
+       \open Nat
+
+       \func foo : Nat => \case 1 + 2 \with {  
+         | 0 => {?}
+         | 1 => {?}
+         | suc (suc n) => {?}
+       }        
+    """)
 }
