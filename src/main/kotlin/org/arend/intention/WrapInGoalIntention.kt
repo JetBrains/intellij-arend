@@ -6,7 +6,9 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.psi.*
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendGoal
+import org.arend.psi.ancestors
 
 class WrapInGoalIntention : SelfTargetingIntention<ArendExpr>(
         ArendExpr::class.java,
@@ -21,11 +23,12 @@ class WrapInGoalIntention : SelfTargetingIntention<ArendExpr>(
     override fun applyTo(element: ArendExpr, project: Project, editor: Editor) {
         val selectedExpr = selectedExpr(editor, element) ?: return
         WriteCommandAction.runWriteCommandAction(project) {
-            val expr = ArendPsiFactory(project)
-                    .createExpression("{?(${selectedExpr.text})}")
-                    .linearDescendants
-                    .last()
-            selectedExpr.replace(expr)
+            // It's better to use PsiElement's mutation API I believe
+            val document = editor.document
+            assert(document.isWritable)
+            val textRange = selectedExpr.textRange
+            document.insertString(textRange.endOffset, ")}")
+            document.insertString(textRange.startOffset, "{?(")
         }
     }
 
