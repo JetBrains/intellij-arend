@@ -561,8 +561,8 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
  */
 fun replaceExprSmart(document: Document, deletedPsi: PsiElement, deleting: TextRange, inserting: String): String {
     assert(document.isWritable)
-    val likeIdentifier = '\\' in inserting || ' ' in inserting || '\n' in inserting
-    val andNoParenthesesAround = likeIdentifier && !document.immutableCharSequence?.let {
+    val likeIdentifier = ' ' !in inserting && '\n' !in inserting && '\t' !in inserting
+    val andNoParenthesesAround = likeIdentifier && !document.immutableCharSequence.let {
         it[deleting.startOffset - 1] == '(' && it[deleting.endOffset] == ')'
     }
     document.deleteString(deleting.startOffset, deleting.endOffset)
