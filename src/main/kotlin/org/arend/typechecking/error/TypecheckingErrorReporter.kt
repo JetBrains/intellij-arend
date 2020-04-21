@@ -6,16 +6,19 @@ import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewContentType.*
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.*
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 
@@ -72,7 +75,11 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
 
         fun print() {
             runReadAction {
-                val scope = if (error.hasExpressions()) (error.causeSourceNode.data as? ArendCompositeElement)?.scope else null
+                val scope = if (error.hasExpressions()) {
+                    (error.causeSourceNode.data as? ArendCompositeElement)?.let {
+                        ConvertingScope(it.project.service<TypeCheckingService>().newReferableConverter(false), it.scope)
+                    }
+                } else null
                 error.getDoc(PrettyPrinterConfigWithRenamer(ppConfig, scope ?: EmptyScope.INSTANCE)).accept(this, true)
             }
             printNewLine()

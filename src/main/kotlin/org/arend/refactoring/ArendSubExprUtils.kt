@@ -21,6 +21,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.resolving.BaseReferableConverter
@@ -189,7 +190,9 @@ fun exprToConcrete(
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
         override fun getNormalizationMode() = mode
         override fun getDefinitionRenamer() = if (element == null) null else runReadAction {
-            element.ancestor<ArendCompositeElement>()?.scope?.let { ScopeDefinitionRenamer(it) }
+            element.ancestor<ArendCompositeElement>()?.let {
+                ScopeDefinitionRenamer(ConvertingScope(it.project.service<TypeCheckingService>().newReferableConverter(false), it.scope))
+            }
         }
     })
 }
