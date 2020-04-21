@@ -26,7 +26,7 @@ cd intellij-arend
 
 We use gradle to build the plugin. It comes with a wrapper script (`gradlew` or `gradlew.bat` in
 the root of the repository) which downloads appropriate version of gradle
-automatically as long as you have JDK installed.
+automatically as long as you have JDK (version >= 11) installed.
 
 Common tasks are
 
