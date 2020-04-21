@@ -80,25 +80,8 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
             return
         }
 
-        val document = editor.document
-        val offset = editor.caretModel.offset
-        // Check that we are in a problem range
-        if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, CommonProcessors.alwaysFalse()) == true) {
-            return
-        }
-
-        val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile ?: return
-        val arendErrors = project.service<ErrorService>().getErrors(file)
-        if (arendErrors.isEmpty()) {
-            return
-        }
-
-        val service = project.service<ArendProjectSettings>()
-        for (arendError in arendErrors) {
-            if (arendError.error.satisfies(service.autoScrollFromSource) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
-                tree.select(arendError.error)
-                break
-            }
+        selectedArendError(project, editor)?.let {
+            tree.select(it.error)
         }
     }
 
