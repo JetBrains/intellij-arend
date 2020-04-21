@@ -27,9 +27,9 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF) {
-                displayEditorHint(it, project, editor, AD_TEXT_N)
+                displayEditorHint(it.toString(), project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(prettyPopupExpr(project, subCore), project, editor, AD_TEXT)
+                displayEditorHint(exprToConcrete(project, subCore).toString(), project, editor, AD_TEXT)
             }
         } catch (t: SubExprException) {
             displayErrorHint(editor, "Failed to normalize because ${t.message}")

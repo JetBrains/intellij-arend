@@ -14,9 +14,10 @@ import org.arend.term.concrete.Concrete
 class ReplaceWithNormalFormIntention : ReplaceExpressionIntention("Replace with Weak Head Normal Form") {
     override fun doApply(project: Project, editor: Editor, subCore: Expression, subConcrete: Concrete.Expression, element: ArendExpr) {
         normalizeExpr(project, subCore, NormalizationMode.WHNF, element) {
+            val text = it.toString()
             WriteCommandAction.runWriteCommandAction(project) {
                 val range = rangeOfConcrete(subConcrete)
-                val length = replaceExprSmart(editor.document, element, range, it).length
+                val length = replaceExprSmart(editor.document, element, subConcrete, range, null, it, text).length
                 val start = range.startOffset
                 editor.selectionModel.setSelection(start, start + length)
             }
