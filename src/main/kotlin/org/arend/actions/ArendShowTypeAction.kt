@@ -35,9 +35,9 @@ class ArendShowTypeAction : ArendPopupAction() {
         fun hint(e: Expression?) = e?.let {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
             if (normalizePopup) normalizeExpr(project, it) { exprStr ->
-                displayEditorHint(exprStr, project, editor, AD_TEXT_N)
+                displayEditorHint(exprStr.toString(), project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(prettyPopupExpr(project, it), project, editor, AD_TEXT)
+                displayEditorHint(exprToConcrete(project, it).toString(), project, editor, AD_TEXT)
             }
         } ?: throw SubExprException("failed to synthesize type from given expr")
 

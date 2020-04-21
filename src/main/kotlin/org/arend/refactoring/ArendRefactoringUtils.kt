@@ -19,17 +19,18 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.ArendIPNameImplMixin
-import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.ConcreteExpressionVisitor
 import org.arend.typechecking.execution.LocationKind
 import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import org.arend.util.mapFirstNotNull
+import java.math.BigInteger
 import java.util.Collections.singletonList
 
 interface AbstractRefactoringAction {
@@ -556,21 +557,125 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
  * The purpose of this function is to insert a pair of parenthesis
  * on-demand when replacing expression.
  * @param deletedPsi one of the [PsiElement] that is going to be deleted
+ * @param deletedConcrete the concrete expression that is going to be deleted
  * @param deleting the full range of everything needs to be deleted
  * @return the replaced expression, w/ or w/o the parenthesis
  */
-fun replaceExprSmart(document: Document, deletedPsi: PsiElement, deleting: TextRange, inserting: String): String {
+fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement?, deletedConcrete: Concrete.Expression?, deleting: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?, inserting: String): String {
     assert(document.isWritable)
-    val likeIdentifier = ' ' !in inserting && '\n' !in inserting && '\t' !in inserting
-    val andNoParenthesesAround = likeIdentifier && !document.immutableCharSequence.let {
-        it[deleting.startOffset - 1] == '(' && it[deleting.endOffset] == ')'
-    }
     document.deleteString(deleting.startOffset, deleting.endOffset)
-    val str =
-            // Do not insert parentheses when it's unlikely to be necessary
-            if (andNoParenthesesAround) "($inserting)"
-            // Probably not a single identifier
-            else inserting
+
+    val correctDeletedPsi =
+        if (deletedConcrete is Concrete.AppExpression)
+            (deletedConcrete.data as? ArendCompositeElement)?.ancestor<ArendArgumentAppExpr>()
+        else deletedConcrete?.data as? ArendExpr
+    val str = if (needParentheses(correctDeletedPsi ?: deletedPsi, deleting, aExpr, cExpr)) "($inserting)" else inserting
     document.insertString(deleting.startOffset, str)
     return str
+}
+
+private fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?): Boolean {
+    val insertedPrec = when {
+        aExpr != null -> aExpr.accept(PrecVisitor, null)
+        cExpr != null -> cExpr.accept(ConcretePrecVisitor, null)
+        else -> MIN_PREC
+    }
+
+    // Expressions with the maximum precedence may be inserted anywhere without parentheses
+    if (insertedPrec == MAX_PREC) {
+        return false
+    }
+
+    // if the range differs, then we do not know where the expression will be inserted,
+    // so we add parentheses to be sure the result is correct
+    if (deletedRange != deletedPsi?.textRange) {
+        return true
+    }
+
+    val deletedExpr = deletedPsi.ancestor<ArendExpr>()
+    val deletedPrec = deletedExpr?.accept(PrecVisitor, null) ?: MAX_PREC
+
+    // if the precedence of the inserted element equals to or large than the precedence of the original element,
+    // we do not need parentheses
+    if (deletedPrec <= insertedPrec) {
+        return false
+    }
+
+    // if parents of the deleted element do not contain any additional elements,
+    // we can replace it with any expression without parentheses
+    val topmostDeletedExpr = deletedExpr?.topmostEquivalentSourceNode
+    if (topmostDeletedExpr is ArendNewExpr) {
+        return false
+    }
+
+    // if the inserted element is application, then we can sometimes insert it without parentheses
+    // so if it is not, we return true immediately
+    if (insertedPrec < APP_PREC) {
+        return true
+    }
+
+    // if the parent of the deleted element is a new expression, we can insert an application without parentheses
+    if (topmostDeletedExpr?.parent is ArendNewExpr) {
+        return false
+    }
+
+    // otherwise we need parentheses
+    return true
+}
+
+private const val MAX_PREC = 100
+private const val APP_PREC = 10
+private const val MIN_PREC = 0
+
+private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) =
+        if (level1 != null || level2 != null) APP_PREC else MAX_PREC
+
+    override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, params: Void?) =
+        if (pLevel != null || hLevel != null) APP_PREC else MAX_PREC
+
+    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = APP_PREC
+    override fun visitThis(data: Any?, params: Void?) = MAX_PREC
+    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, params: Void?) = MIN_PREC
+    override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, params: Void?) = MIN_PREC
+    override fun visitApplyHole(data: Any?, params: Void?) = MAX_PREC
+    override fun visitInferHole(data: Any?, params: Void?) = MAX_PREC
+    override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, params: Void?) = MAX_PREC
+    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, params: Void?) = MAX_PREC
+    override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, params: Void?) = MIN_PREC
+    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = APP_PREC
+    override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, params: Void?) = MIN_PREC
+    override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, params: Void?) = MAX_PREC
+    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = MIN_PREC
+    override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, params: Void?) = MIN_PREC
+    override fun visitNumericLiteral(data: Any?, number: BigInteger, params: Void?) = MAX_PREC
+    override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, params: Void?) = MIN_PREC
+}
+
+private object ConcretePrecVisitor : ConcreteExpressionVisitor<Void?, Int> {
+    override fun visitReference(expr: Concrete.ReferenceExpression, params: Void?) =
+        if (expr.pLevel != null || expr.hLevel != null) APP_PREC else MAX_PREC
+
+    override fun visitUniverse(expr: Concrete.UniverseExpression, params: Void?) =
+        if ((expr.pLevel == null || expr.pLevel is Concrete.NumberLevelExpression) && (expr.hLevel == null || expr.hLevel is Concrete.NumberLevelExpression || expr.hLevel is Concrete.InfLevelExpression)) MAX_PREC else APP_PREC
+
+    override fun visitApp(expr: Concrete.AppExpression, params: Void?) = APP_PREC
+    override fun visitThis(expr: Concrete.ThisExpression, params: Void?) = MAX_PREC
+    override fun visitInferenceReference(expr: Concrete.InferenceReferenceExpression, params: Void?) = MAX_PREC
+    override fun visitLam(expr: Concrete.LamExpression, params: Void?) = MIN_PREC
+    override fun visitPi(expr: Concrete.PiExpression, params: Void?) = MIN_PREC
+    override fun visitHole(expr: Concrete.HoleExpression, params: Void?) = MAX_PREC
+    override fun visitGoal(expr: Concrete.GoalExpression, params: Void?) = MAX_PREC
+    override fun visitTuple(expr: Concrete.TupleExpression, params: Void?) = MAX_PREC
+    override fun visitSigma(expr: Concrete.SigmaExpression, params: Void?) = MIN_PREC
+    override fun visitBinOpSequence(expr: Concrete.BinOpSequenceExpression, params: Void?) = APP_PREC
+    override fun visitCase(expr: Concrete.CaseExpression, params: Void?) = MIN_PREC
+    override fun visitEval(expr: Concrete.EvalExpression, params: Void?) = APP_PREC
+    override fun visitProj(expr: Concrete.ProjExpression, params: Void?) = MAX_PREC
+    override fun visitClassExt(expr: Concrete.ClassExtExpression, params: Void?) = MIN_PREC
+    override fun visitNew(expr: Concrete.NewExpression, params: Void?) = MIN_PREC
+    override fun visitLet(expr: Concrete.LetExpression, params: Void?) = MIN_PREC
+    override fun visitNumericLiteral(expr: Concrete.NumericLiteral, params: Void?) = MAX_PREC
+    override fun visitTyped(expr: Concrete.TypedExpression, params: Void?) = MIN_PREC
+    override fun visitApplyHole(expr: Concrete.ApplyHoleExpression, params: Void?) = MAX_PREC
 }

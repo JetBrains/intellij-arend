@@ -18,7 +18,6 @@ import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
@@ -30,7 +29,6 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
-import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
@@ -180,22 +178,20 @@ private fun collectArendExprs(
     }
 }
 
-fun prettyPopupExpr(
+fun exprToConcrete(
         project: Project,
-        expression: Expression?,
+        expression: Expression,
         mode: NormalizationMode? = null,
         element: PsiElement? = null
-): String {
+): Concrete.Expression {
     val settings = project.service<ArendProjectSettings>()
-    val builder = StringBuilder()
-    ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
+    return ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
         override fun getNormalizationMode() = mode
         override fun getDefinitionRenamer() = if (element == null) null else runReadAction {
-            (element.ancestors.firstOrNull { it is ArendCompositeElement || it is PsiFile } as? ArendCompositeElement)?.scope?.let { ScopeDefinitionRenamer(it) }
+            element.ancestor<ArendCompositeElement>()?.scope?.let { ScopeDefinitionRenamer(it) }
         }
-    }).accept(PrettyPrintVisitor(builder, 2), Precedence(Concrete.Expression.PREC))
-    return builder.toString()
+    })
 }
 
 inline fun normalizeExpr(
@@ -203,14 +199,14 @@ inline fun normalizeExpr(
         subCore: Expression,
         mode: NormalizationMode = NormalizationMode.RNF,
         element: PsiElement? = null,
-        crossinline after: (String) -> Unit
+        crossinline after: (Concrete.Expression) -> Unit
 ) {
     val title = "Running normalization"
-    var result: String? = null
+    var result: Concrete.Expression? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) {
-            result = ComputationRunner<String>().run(ArendCancellationIndicator(indicator), Supplier {
-                prettyPopupExpr(project, subCore, mode, element)
+            result = ComputationRunner<Concrete.Expression>().run(ArendCancellationIndicator(indicator), Supplier {
+                exprToConcrete(project, subCore, mode, element)
             })
         }
 

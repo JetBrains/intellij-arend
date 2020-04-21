@@ -13,7 +13,7 @@ class GoalFillingAction(private val element: ArendGoal, private val goal: GoalEr
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (goal.errors.any { it.level == GeneralError.Level.ERROR }) return
         val expr = element.expr ?: return
-        replaceExprSmart(editor.document, element, element.textRange, expr.text)
+        replaceExprSmart(editor.document, element, null, element.textRange, expr, null, expr.text)
     }
 
     override fun startInWriteAction() = true
