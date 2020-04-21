@@ -1,6 +1,8 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
@@ -549,3 +551,28 @@ fun isInfix(prec: ArendPrec): Boolean = prec.infixLeftKw != null || prec.infixNo
 fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: String?, nRecursiveBindings: Int) =
         if (nRecursiveBindings > 1 && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last()))
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
+
+/**
+ * The purpose of this function is to insert a pair of parenthesis
+ * on-demand when replacing expression.
+ * @param deletedPsi one of the [PsiElement] that is going to be deleted
+ * @param deleting the full range of everything needs to be deleted
+ * @return the replaced expression, w/ or w/o the parenthesis
+ */
+fun replaceExprSmart(document: Document, deletedPsi: PsiElement, deleting: TextRange, inserting: String): String {
+    assert(document.isWritable)
+    val likeIdentifier = '\\' in inserting || ' ' in inserting || '\n' in inserting
+    val andNoParenthesesAround = likeIdentifier &&
+            !isParenthesized(document.immutableCharSequence, deleting)
+    document.deleteString(deleting.startOffset, deleting.endOffset)
+    val str =
+            // Do not insert parentheses when it's unlikely to be necessary
+            if (andNoParenthesesAround) "($inserting)"
+            // Probably not a single identifier
+            else inserting
+    document.insertString(deleting.startOffset, str)
+    return str
+}
+
+fun isParenthesized(fullText: CharSequence, deleting: TextRange) =
+        fullText[deleting.startOffset - 1] == '(' && fullText[deleting.endOffset] == ')'
