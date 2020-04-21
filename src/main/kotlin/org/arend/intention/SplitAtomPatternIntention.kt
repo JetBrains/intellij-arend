@@ -27,6 +27,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
+import org.arend.refactoring.SubExprException
 import org.arend.refactoring.VariableImpl
 import org.arend.refactoring.calculateOccupiedNames
 import org.arend.refactoring.correspondedSubExpr
@@ -124,8 +125,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
-                val caseExprData = correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project)
-                if (caseExprData.subCore is CaseExpression) {
+                val caseExprData = try { correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project) } catch (_ : SubExprException) { null }
+                if (caseExprData?.subCore is CaseExpression) {
                     val bindingData = caseExprData.findBinding(element.textRange)
                     return bindingData?.second
                 }
