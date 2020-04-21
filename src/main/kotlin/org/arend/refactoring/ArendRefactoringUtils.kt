@@ -562,8 +562,9 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
 fun replaceExprSmart(document: Document, deletedPsi: PsiElement, deleting: TextRange, inserting: String): String {
     assert(document.isWritable)
     val likeIdentifier = '\\' in inserting || ' ' in inserting || '\n' in inserting
-    val andNoParenthesesAround = likeIdentifier &&
-            !isParenthesized(document.immutableCharSequence, deleting)
+    val andNoParenthesesAround = likeIdentifier && !document.immutableCharSequence?.let {
+        it[deleting.startOffset - 1] == '(' && it[deleting.endOffset] == ')'
+    }
     document.deleteString(deleting.startOffset, deleting.endOffset)
     val str =
             // Do not insert parentheses when it's unlikely to be necessary
@@ -573,6 +574,3 @@ fun replaceExprSmart(document: Document, deletedPsi: PsiElement, deleting: TextR
     document.insertString(deleting.startOffset, str)
     return str
 }
-
-fun isParenthesized(fullText: CharSequence, deleting: TextRange) =
-        fullText[deleting.startOffset - 1] == '(' && fullText[deleting.endOffset] == ')'

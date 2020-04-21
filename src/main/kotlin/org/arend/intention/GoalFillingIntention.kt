@@ -17,10 +17,10 @@ class GoalFillingIntention : SelfTargetingIntention<ArendGoal>(ArendGoal::class.
 
     override fun applyTo(element: ArendGoal, project: Project, editor: Editor) {
         val goal = selectedGoal(project, editor) ?: return
-        if (goal.errors.any { it.level == GeneralError.Level.ERROR })
-            return
+        if (goal.errors.any { it.level == GeneralError.Level.ERROR }) return
+        val expr = element.expr ?: return
         WriteCommandAction.runWriteCommandAction(project) {
-            replaceExprSmart(editor.document, element, element.textRange, element.text)
+            replaceExprSmart(editor.document, element, element.textRange, expr.text)
         }
     }
 
