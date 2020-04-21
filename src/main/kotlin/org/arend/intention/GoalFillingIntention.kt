@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import org.arend.ext.error.GeneralError
 import org.arend.psi.ArendGoal
+import org.arend.refactoring.replaceExprSmart
 import org.arend.toolWindow.errors.tree.selectedArendErrors
 import org.arend.typechecking.error.local.GoalError
 
@@ -19,12 +20,7 @@ class GoalFillingIntention : SelfTargetingIntention<ArendGoal>(ArendGoal::class.
         if (goal.errors.any { it.level == GeneralError.Level.ERROR })
             return
         WriteCommandAction.runWriteCommandAction(project) {
-            // It's better to use PsiElement's mutation API I believe
-            val document = editor.document
-            assert(document.isWritable)
-            val textRange = element.textRange
-            document.deleteString(textRange.endOffset - "}".length, textRange.endOffset)
-            document.deleteString(textRange.startOffset, textRange.startOffset + "{?".length)
+            replaceExprSmart(editor.document, element, element.textRange, element.text)
         }
     }
 
