@@ -8,6 +8,7 @@ import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
+import org.arend.typechecking.error.local.GoalError
 
 class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
@@ -18,7 +19,15 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
         for (pair in errors) {
             progress.checkCanceled()
             if (pair.second.isValid) {
-                reportToEditor(pair.first, pair.second)
+                val error = pair.first
+                reportToEditor(error, pair.second)
+                if (error is GoalError) {
+                    for (embeddedError in error.errors) {
+                        getCauseElement(embeddedError.cause)?.let {
+                            reportToEditor(embeddedError, it)
+                        }
+                    }
+                }
             }
             advanceProgress(1)
         }
