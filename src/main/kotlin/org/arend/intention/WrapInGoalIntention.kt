@@ -9,7 +9,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendGoal
 import org.arend.psi.ancestors
-import org.arend.refactoring.isParenthesized
 
 class WrapInGoalIntention : SelfTargetingIntention<ArendExpr>(
         ArendExpr::class.java,
@@ -28,7 +27,8 @@ class WrapInGoalIntention : SelfTargetingIntention<ArendExpr>(
             val document = editor.document
             assert(document.isWritable)
             val textRange = selectedExpr.textRange
-            if (isParenthesized(document.immutableCharSequence, textRange)) {
+            val chars = document.immutableCharSequence
+            if (chars[textRange.startOffset] == '(' && chars[textRange.endOffset - 1] == ')') {
                 document.insertString(textRange.endOffset, "}")
                 document.insertString(textRange.startOffset, "{?")
             } else {
