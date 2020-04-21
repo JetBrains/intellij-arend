@@ -203,7 +203,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
             }
 
-        private fun getCauseElement(data: Any?): PsiElement? {
+        fun getCauseElement(data: Any?): PsiElement? {
             val cause = data?.let { (it as? DataContainer)?.data ?: it }
             return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? PsiElement
         }
