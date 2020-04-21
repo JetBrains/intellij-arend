@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
@@ -18,7 +19,6 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.reference.Precedence
-import org.arend.naming.BinOpParser
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
@@ -37,7 +37,7 @@ import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
 import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
-import org.arend.util.appExprToConcrete
+import org.arend.typing.parseBinOp
 import java.util.function.Supplier
 
 class SubExprException(message: String) : Throwable(message)
@@ -107,17 +107,11 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val def = service.getTypechecked(psiDef)
             ?: throw SubExprException("underlying definition is not type checked")
 
-    val children = collectArendExprs(parent, range)
-            .map { appExprToConcrete(it) ?: ConcreteBuilder.convertExpression(refConverter, it) }
-            .map(Concrete::BinOpSequenceElem)
-            .toList()
-            .takeIf { it.isNotEmpty() }
+    val (head, tail) = collectArendExprs(parent, range)
             ?: throw SubExprException("cannot find a suitable concrete expression")
-    val parser = BinOpParser(DummyErrorReporter.INSTANCE)
 
-    val subExpr = if (children.size == 1)
-        children.first().expression
-    else parser.parse(Concrete.BinOpSequenceExpression(null, children))
+    val subExpr = if (tail.isNotEmpty()) parseBinOp(head, tail)
+    else ConcreteBuilder.convertExpression(refConverter, head)
     val subExprVisitor = CorrespondedSubDefVisitor(subExpr)
     val result = concreteDef.accept(subExprVisitor, def)
             ?: throw SubExprException(buildString {
@@ -159,28 +153,31 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
 private fun collectArendExprs(
         parent: PsiElement,
         range: TextRange
-): List<Abstract.Expression> {
+): Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>? {
     if (range.isEmpty || parent.textRange == range) {
         val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
                 ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
-        if (firstExpr != null) return listOf(firstExpr)
+        if (firstExpr != null) return firstExpr to emptyList()
     }
-    val exprs = parent.childrenWithLeaves
+    val exprSeq = parent.childrenWithLeaves
             .dropWhile { it.textRange.endOffset < range.startOffset }
             .takeWhile { it.textRange.startOffset < range.endOffset }
-            .toList()
-    if (exprs.isEmpty()) return emptyList()
-    return if (exprs.size == 1) {
-        val first = exprs.first()
-        val subCollected = collectArendExprs(first, range)
+            .filter { it !is PsiWhiteSpace }
+    val head = exprSeq.firstOrNull() ?: return null
+    val tail = exprSeq.drop(1)
+    return if (tail.none()) {
+        val subCollected = collectArendExprs(head, range)
         when {
-            subCollected.isNotEmpty() -> subCollected
-            first is ArendExpr -> listOf(first)
-            else -> emptyList()
+            subCollected != null -> subCollected
+            head is Abstract.Expression -> Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
+            else -> null
         }
-    } else exprs.asSequence().mapNotNull {
-        it.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
-    }.toList()
+    } else when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
+        null -> null
+        else -> headExpr to tail.mapNotNull {
+            it.linearDescendants.filterIsInstance<Abstract.BinOpSequenceElem>().firstOrNull()
+        }.toList()
+    }
 }
 
 fun prettyPopupExpr(

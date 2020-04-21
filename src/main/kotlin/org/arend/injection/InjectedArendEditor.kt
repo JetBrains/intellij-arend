@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
@@ -18,6 +19,7 @@ import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendCompositeElement
@@ -27,6 +29,7 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.local.GoalError
 import java.awt.BorderLayout
@@ -91,7 +94,7 @@ class InjectedArendEditor(val project: Project,
                 fileScope = scope
             }
             val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
-            val ppConfig = ProjectPrintConfig(project, printOptionsKind, scope)
+            val ppConfig = ProjectPrintConfig(project, printOptionsKind, CachingScope.make(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), scope)))
             val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else

@@ -67,6 +67,9 @@
         <lang.documentationProvider language="Arend"
                                     implementationClass="org.arend.ArendDocumentationProvider"/>
 
+        <lang.documentationProvider language="INJECTION_TEXT"
+                                    implementationClass="org.arend.injection.PsiInjectionTextDocumentationProvider"/>
+
         <lang.implementationTextSelectioner language="Arend"
                                             implementationClass="org.arend.ArendImplementationTextSelectioner"/>
 

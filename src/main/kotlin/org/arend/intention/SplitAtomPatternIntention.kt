@@ -124,14 +124,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
-                val teslaData = correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project).subCore
-                abstractPatterns = patternOwner.patterns
-                clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
-                if (teslaData is CaseExpression && clauseIndex != -1) {
-                    val clauseData = teslaData.elimBody.clauses[clauseIndex]
-                    val patterns = clauseData?.patterns?.let { Pattern.toExpressionPatterns(it, teslaData.parameters) } ?: return null
-                    val patternPart = findPattern(indexList.drop(1), patterns[indexList[0]], abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
-                    return patternPart.binding.typeExpr
+                val caseExprData = correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project)
+                if (caseExprData.subCore is CaseExpression) {
+                    val bindingData = caseExprData.findBinding(element.textRange)
+                    return bindingData?.second
                 }
             }
         }
