@@ -35,6 +35,10 @@ abstract class SelfTargetingIntention<T : PsiElement>(
     abstract fun applyTo(element: T, project: Project, editor: Editor)
 
     private fun getTarget(editor: Editor, file: PsiFile): T? {
+        if (editor.isViewer) {
+            return null
+        }
+
         val offset = editor.caretModel.offset
         val leaf1 = file.findElementAt(offset)
         val leaf2 = file.findElementAt(offset - 1)
