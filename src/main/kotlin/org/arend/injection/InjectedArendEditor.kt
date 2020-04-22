@@ -116,6 +116,7 @@ class InjectedArendEditor(val project: Project,
         (psi as? PsiInjectionTextFile)?.apply {
             injectionRanges = injectedTextRanges
             scope = fileScope
+            injectedExpressions = visitor.expressions
         }
         support.clearHyperlinks()
         for (hyperlink in hyperlinks) {

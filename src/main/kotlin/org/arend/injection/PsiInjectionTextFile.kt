@@ -4,12 +4,14 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.impl.source.PsiFileImpl
+import org.arend.core.expr.Expression
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 
 
 class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTextFileElementType, InjectionTextFileElementType, provider) {
     var injectionRanges: List<List<TextRange>> = emptyList()
+    var injectedExpressions: List<Expression> = emptyList()
     var scope: Scope = EmptyScope.INSTANCE
 
     val hasInjection: Boolean

@@ -1,5 +1,6 @@
 package org.arend.refactoring
 
+import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
@@ -18,9 +19,12 @@ import org.arend.core.expr.visitor.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -34,8 +38,10 @@ import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
+import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
 import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
+import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.typing.parseBinOp
 import java.util.function.Supplier
 
@@ -99,25 +105,49 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             ?: throw SubExprException("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
-    val concreteDef = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
-            .getConcrete(psiDef)
-            as? Concrete.Definition
-            ?: throw SubExprException("selected text is not in a function definition")
-    val def = service.getTypechecked(psiDef)
-            ?: throw SubExprException("underlying definition is not type checked")
+    val concreteProvider = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
 
     val (head, tail) = collectArendExprs(parent, range)
-            ?: throw SubExprException("cannot find a suitable concrete expression")
+        ?: throw SubExprException("cannot find a suitable concrete expression")
+    val subExpr =
+        if (tail.isNotEmpty()) parseBinOp(head, tail)
+        else ConcreteBuilder.convertExpression(refConverter, head)
 
-    val subExpr = if (tail.isNotEmpty()) parseBinOp(head, tail)
-    else ConcreteBuilder.convertExpression(refConverter, head)
-    val subExprVisitor = CorrespondedSubDefVisitor(subExpr)
-    val result = concreteDef.accept(subExprVisitor, def)
-            ?: throw SubExprException(buildString {
-                append("cannot find a suitable subexpression")
-                if (subExprVisitor.exprError.any { it.kind == SubExprError.Kind.MetaRef })
-                    append(" (maybe because you're using tactics)")
-            })
+    val injectionContext = (file as? ArendFile)?.injectionContext
+    val injectionHost = injectionContext?.containingFile as? PsiInjectionTextFile
+    val errors: List<SubExprError>
+    val result = (if (injectionHost != null) {
+        val index = when (injectionHost.injectedExpressions.size) {
+            0 -> null
+            1 -> 0
+            else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
+        }
+        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(refConverter, it) }
+        if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
+            val scope = CachingScope.make(ConvertingScope(refConverter, injectionHost.scope))
+            val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
+            errors = subExprVisitor.errors
+            cExpr.accept(ExpressionResolveNameVisitor(concreteProvider, scope, null, DummyErrorReporter.INSTANCE, null), null)
+                .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+                .accept(subExprVisitor, injectionHost.injectedExpressions[index])
+        } else {
+            errors = emptyList()
+            null
+        }
+    } else {
+        val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
+            ?: throw SubExprException("selected text is not in a function definition")
+        val def = service.getTypechecked(psiDef)
+            ?: throw SubExprException("underlying definition is not type checked")
+        val subDefVisitor = CorrespondedSubDefVisitor(subExpr)
+        errors = subDefVisitor.exprError
+        concreteDef.accept(subDefVisitor, def)
+    }) ?: throw SubExprException(buildString {
+        append("cannot find a suitable subexpression")
+        if (errors.any { it.kind == SubExprError.Kind.MetaRef })
+            append(" (maybe because you're using tactics)")
+    })
+
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
 

@@ -2,6 +2,7 @@ package org.arend.injection
 
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.openapi.util.TextRange
+import org.arend.core.expr.Expression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.*
 import org.arend.typechecking.error.PsiHyperlinkInfo
@@ -10,6 +11,7 @@ import org.arend.typechecking.error.PsiHyperlinkInfo
 class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError?) : DocStringBuilder(builder) {
     val textRanges = ArrayList<List<TextRange>>()
     val hyperlinks = ArrayList<Pair<TextRange,HyperlinkInfo>>()
+    val expressions = ArrayList<Expression>()
     private var last: ArrayList<TextRange>? = null
 
     override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
@@ -24,6 +26,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
     }
 
     override fun visitTermLine(doc: TermLineDoc, newLine: Boolean): Void? {
+        (doc.term as? Expression)?.let { expressions.add(it) }
         val start = builder.length
         super.visitTermLine(doc, newLine)
         textRanges.add(listOf(TextRange(start, builder.length)))
@@ -34,6 +37,10 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
     override fun visitText(doc: TextDoc, newLine: Boolean): Void? {
         if (doc !is TermTextDoc) {
             return super.visitText(doc, newLine)
+        }
+
+        if (doc.isFirst) {
+            (doc.term as? Expression)?.let { expressions.add(it) }
         }
 
         if (doc.isFirst || last == null) {
