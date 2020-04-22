@@ -11,7 +11,7 @@ class ArendLanguageInjector : MultiHostInjector {
         val rangesList = ((context as? PsiInjectionText)?.parent as? PsiInjectionTextFile)?.injectionRanges ?: return
         for (ranges in rangesList) {
             registrar.startInjecting(ArendLanguage.INSTANCE)
-            var start: String? = "\\func dummy => "
+            var start: String? = PREFIX
             for (range in ranges) {
                 registrar.addPlace(start, null, context, range)
                 start = null
@@ -21,4 +21,8 @@ class ArendLanguageInjector : MultiHostInjector {
     }
 
     override fun elementsToInjectIn() = listOf(PsiInjectionText::class.java)
+
+    companion object {
+        const val PREFIX = "\\func dummy => "
+    }
 }

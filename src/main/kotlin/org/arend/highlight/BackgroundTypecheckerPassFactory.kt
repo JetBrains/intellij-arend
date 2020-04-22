@@ -9,10 +9,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.settings.ArendSettings
 
-class BackgroundTypecheckerPassFactory : BasePassFactory(), TextEditorHighlightingPassFactoryRegistrar {
+class BackgroundTypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
 
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
@@ -20,8 +19,9 @@ class BackgroundTypecheckerPassFactory : BasePassFactory(), TextEditorHighlighti
         project.service<ArendPassFactoryService>().backgroundTypecheckerPassId = myPassId
     }
 
-    override fun createPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange): BackgroundTypecheckerPass {
+    override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): BackgroundTypecheckerPass {
         val isSmart = service<ArendSettings>().typecheckingMode == ArendSettings.TypecheckingMode.SMART
+        val group = file
         return BackgroundTypecheckerPass(file, if (isSmart) file else group, editor, if (isSmart) TextRange(0, editor.document.textLength) else textRange, DefaultHighlightInfoProcessor())
     }
 

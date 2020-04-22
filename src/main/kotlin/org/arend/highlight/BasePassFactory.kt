@@ -9,14 +9,12 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiUtil
-import org.arend.psi.ArendFile
-import org.arend.psi.ext.impl.ArendGroup
 
-abstract class BasePassFactory : DirtyScopeTrackingHighlightingPassFactory {
-    abstract fun createPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange): TextEditorHighlightingPass?
+abstract class BasePassFactory<T : PsiFile>(private val clazz: Class<T>) : DirtyScopeTrackingHighlightingPassFactory {
+    abstract fun createPass(file: T, editor: Editor, textRange: TextRange): TextEditorHighlightingPass?
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass? {
-        if (file !is ArendFile) {
+        if (!clazz.isInstance(file)) {
             return null
         }
 
@@ -38,7 +36,7 @@ abstract class BasePassFactory : DirtyScopeTrackingHighlightingPassFactory {
                     psi = psi.parent
                 }
                 */
-                createPass(file, file, editor, textRange)
+                createPass(clazz.cast(file), editor, textRange)
             }
         }
     }
