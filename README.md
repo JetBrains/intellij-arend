@@ -44,7 +44,7 @@ You can get the latest Intellij IDEA Community Edition
 [here](https://www.jetbrains.com/idea/download/).
 
 To import this project in IntelliJ, use **File | New | Project from Existing Sources**
-and select `build.gradle` from the root directory of the plugin.
+and select the root directory of the plugin source code.
 
 When hacking on the plugin, you may need the following plugins -
 
@@ -58,5 +58,5 @@ A Program Structure Interface (PSI) tree viewer.
 The project is configured to build and run tests with Travis CI, which you can enable in your forks.
 
 <!-- Badges -->
-[travis-build-status]: https://travis-ci.org/JetBrains/intellij-arend?branch=dev
-[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-arend.svg?branch=dev
+[travis-build-status]: https://travis-ci.org/JetBrains/intellij-arend?branch=master
+[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-arend.svg?branch=master
