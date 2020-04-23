@@ -9,6 +9,7 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import org.arend.module.FullModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
@@ -20,7 +21,6 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.execution.LocationKind
 import org.arend.util.FileUtils
 import org.arend.util.mapFirstNotNull
 import org.jetbrains.yaml.psi.YAMLFile
@@ -114,7 +114,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
         val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
         val config = containingFile.libraryConfig
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
-        val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == LocationKind.TEST
+        val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == FullModulePath.LocationKind.TEST
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude

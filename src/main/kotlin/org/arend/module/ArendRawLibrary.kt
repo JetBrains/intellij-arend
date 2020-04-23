@@ -24,11 +24,8 @@ import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
-import org.arend.source.Source
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.execution.FullModulePath
-import org.arend.typechecking.execution.LocationKind
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
@@ -61,7 +58,7 @@ class ArendRawLibrary(val config: LibraryConfig)
             scopeToText(entry.value, "", builder)
             val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
             file.virtualFile.isWritable = false
-            file.generatedModulePath = FullModulePath(name, LocationKind.GENERATED, entry.key.toList())
+            file.generatedModulePath = FullModulePath(name, FullModulePath.LocationKind.GENERATED, entry.key.toList())
             fillGroup(file, entry.value)
             service.fillAdditionalNames(file, isExternal)
             config.addAdditionalModule(entry.key, file)

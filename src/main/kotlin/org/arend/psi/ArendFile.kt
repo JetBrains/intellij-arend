@@ -14,6 +14,7 @@ import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
+import org.arend.module.FullModulePath
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -29,7 +30,6 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
-import org.arend.typechecking.execution.FullModulePath
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 

@@ -20,9 +20,10 @@ import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
+import org.arend.module.FullModulePath
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.module.scopeprovider.ModuleScopeProvider
-import org.arend.naming.reference.ModuleReferable
+import org.arend.naming.reference.FullModuleReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -125,7 +126,7 @@ class TypeCheckProcessHandler(
                             runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
                         } else if (command.definitionFullName == "") {
                             val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
-                            val moduleScopeProvider = if (module.modulePath?.locationKind == LocationKind.TEST) {
+                            val moduleScopeProvider = if (module.modulePath?.locationKind == FullModulePath.LocationKind.TEST) {
                                 val testsModuleScopeProvider = library.testsModuleScopeProvider
                                 ModuleScopeProvider {
                                     sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
@@ -238,8 +239,8 @@ class TypeCheckProcessHandler(
                 is PsiErrorElement -> {
                     val modulePath = module.modulePath
                     if (modulePath != null) {
-                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child), group as? PsiLocatedReferable
-                            ?: ModuleReferable(modulePath), child.errorDescription))
+                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child),
+                            group as? PsiLocatedReferable ?: FullModuleReferable(modulePath), child.errorDescription))
                         if (group is PsiLocatedReferable) {
                             typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
                         } else {

@@ -11,9 +11,9 @@ import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiManager
 import org.arend.library.SourceLibrary
+import org.arend.module.FullModulePath
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile
-import org.arend.typechecking.execution.LocationKind
 
 
 class BinaryFileSaver(private val project: Project) {
@@ -48,7 +48,7 @@ class BinaryFileSaver(private val project: Project) {
 
     fun saveFile(file: ArendFile, referableConverter: ReferableConverter) {
         val fullName = file.modulePath ?: return
-        if (fullName.locationKind != LocationKind.SOURCE) {
+        if (fullName.locationKind != FullModulePath.LocationKind.SOURCE) {
             return
         }
         val library = typeCheckingService.libraryManager.getRegisteredLibrary(fullName.libraryName) as? SourceLibrary ?: return

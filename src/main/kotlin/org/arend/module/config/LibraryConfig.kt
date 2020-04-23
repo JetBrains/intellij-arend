@@ -14,10 +14,9 @@ import org.arend.ArendFileType
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendRawLibrary
+import org.arend.module.FullModulePath
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.execution.FullModulePath
-import org.arend.typechecking.execution.LocationKind
 import org.arend.util.FileUtils
 import org.arend.util.Range
 import org.arend.util.Version
@@ -234,25 +233,25 @@ abstract class LibraryConfig(val project: Project) {
         }
 
         val fileName = file.originalFile.viewProvider.virtualFile.path
-        val locationKind: LocationKind
+        val locationKind: FullModulePath.LocationKind
         val root: String
         val sourcesRoot = sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
         if (sourcesRoot != null && fileName.startsWith(sourcesRoot)) {
             root = sourcesRoot
-            locationKind = LocationKind.SOURCE
+            locationKind = FullModulePath.LocationKind.SOURCE
         } else {
             val testsRoot = testsPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
             if (testsRoot == null || !fileName.startsWith(testsRoot)) {
                 return null
             }
             root = testsRoot
-            locationKind = LocationKind.TEST
+            locationKind = FullModulePath.LocationKind.TEST
         }
         val fullName = fileName.substring(root.length).removePrefix("/").removeSuffix('.' + ArendFileType.defaultExtension).replace('/', '.')
         return FullModulePath(name, locationKind, fullName.split('.'))
     }
 
-    fun getFileLocationKind(file: ArendFile): LocationKind? = getFileModulePath(file)?.locationKind
+    fun getFileLocationKind(file: ArendFile): FullModulePath.LocationKind? = getFileModulePath(file)?.locationKind
 
     // Dependencies
 

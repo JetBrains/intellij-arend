@@ -11,7 +11,7 @@ import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil.addToInvok
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import org.arend.ext.module.ModulePath
-import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
@@ -25,7 +25,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     : GeneralTestEventsProcessor(project, typeCheckingFrameworkName, typeCheckingRootNode) {
     private val definitionToProxy = mutableMapOf<PsiLocatedReferable, DefinitionProxy>()
     private val fileToProxy = mutableMapOf<ModulePath, DefinitionProxy>()
-    private val deferredActions = mutableMapOf<LocatedReferable, MutableList<ProxyAction>>()
+    private val deferredActions = mutableMapOf<GlobalReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false
     private val testsDuration = mutableMapOf<PsiLocatedReferable, Long>()
     private val startTimes = mutableMapOf<PsiLocatedReferable, Long>()

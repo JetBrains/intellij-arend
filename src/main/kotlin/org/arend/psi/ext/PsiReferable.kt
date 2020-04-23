@@ -22,7 +22,7 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
         get() = null
 }
 
-class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath): ModuleReferable(modulePath)
+class PsiModuleReferable(val modules: List<PsiFileSystemItem>, modulePath: ModulePath) : ModuleReferable(modulePath)
 
 abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node), PsiReferable {
 

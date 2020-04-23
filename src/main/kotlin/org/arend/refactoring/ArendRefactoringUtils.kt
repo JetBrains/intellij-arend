@@ -13,6 +13,7 @@ import com.intellij.psi.util.siblings
 import org.arend.core.context.binding.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
+import org.arend.module.FullModulePath
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -26,7 +27,6 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteExpressionVisitor
-import org.arend.typechecking.execution.LocationKind
 import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import org.arend.util.mapFirstNotNull
@@ -43,7 +43,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     private fun importFileCanBeFound(): Boolean {
         val modulePath = importFile.modulePath ?: return false
         val conf = currentFile.libraryConfig ?: return false
-        val inTests = conf.getFileLocationKind(currentFile) == LocationKind.TEST
+        val inTests = conf.getFileLocationKind(currentFile) == FullModulePath.LocationKind.TEST
         return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile
     }
 
