@@ -9,7 +9,7 @@ import org.arend.psi.ArendGoal
 import org.arend.refactoring.replaceExprSmart
 import org.arend.typechecking.error.local.GoalError
 
-class GoalFillingAction(private val element: ArendGoal, private val goal: GoalError) : IntentionAction {
+class GoalFillingQuickFix(private val element: ArendGoal, private val goal: GoalError) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (goal.errors.any { it.level == GeneralError.Level.ERROR }) return
         val expr = element.expr ?: return

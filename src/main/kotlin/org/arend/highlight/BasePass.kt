@@ -160,7 +160,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is GoalError -> if (error.errors.all { it.level != GeneralError.Level.ERROR }) {
                     val goal = cause.ancestor<ArendGoal>() ?: return
-                    annotation.registerFix(GoalFillingAction(goal, error))
+                    annotation.registerFix(GoalFillingQuickFix(goal, error))
                 }
 
                 is CertainTypecheckingError -> when (error.kind) {
