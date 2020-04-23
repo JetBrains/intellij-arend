@@ -12,6 +12,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SyntaxTraverser
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ScopeDefinitionRenamer
@@ -112,6 +113,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val subExpr =
         if (tail.isNotEmpty()) parseBinOp(head, tail)
         else ConcreteBuilder.convertExpression(refConverter, head)
+            .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
 
     val injectionContext = (file as? ArendFile)?.injectionContext
     val injectionHost = injectionContext?.containingFile as? PsiInjectionTextFile
@@ -145,7 +147,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     }) ?: throw SubExprException(buildString {
         append("cannot find a suitable subexpression")
         if (errors.any { it.kind == SubExprError.Kind.MetaRef })
-            append(" (maybe because you're using tactics)")
+            append(" (maybe because you're using meta defs)")
     })
 
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
@@ -183,17 +185,29 @@ private fun collectArendExprs(
         parent: PsiElement,
         range: TextRange
 ): Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>? {
+    val head: PsiElement
+    val tail: Sequence<PsiElement>
     if (range.isEmpty) {
-        val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
-                ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
-        if (firstExpr != null) return firstExpr to emptyList()
-    }
-    val exprSeq = parent.childrenWithLeaves
+        val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()
+            ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
+            ?: return null
+        if (firstExpr is ArendTuple) {
+            val tupleExprList = firstExpr.tupleExprList
+            head = tupleExprList.firstOrNull() ?: return null
+            tail = tupleExprList.asSequence().drop(1)
+        } else if (firstExpr is ArendTupleExpr) {
+            val exprList = firstExpr.exprList
+            head = exprList.firstOrNull() ?: return null
+            tail = exprList.asSequence().drop(1)
+        } else return firstExpr to emptyList()
+    } else {
+        val exprSeq = parent.childrenWithLeaves
             .dropWhile { it.textRange.endOffset < range.startOffset }
             .takeWhile { it.textRange.startOffset < range.endOffset }
-            .filter { it !is PsiWhiteSpace }
-    val head = exprSeq.firstOrNull() ?: return null
-    val tail = exprSeq.drop(1)
+            .filter { it !is PsiWhiteSpace && it !is LeafPsiElement }
+        head = (exprSeq.firstOrNull() ?: return null)
+        tail = exprSeq.drop(1)
+    }
     return if (tail.none()) {
         val subCollected = collectArendExprs(head, range)
         when {
