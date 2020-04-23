@@ -21,6 +21,9 @@ script: ./gradlew check --no-daemon --info --stacktrace -Pkotlin.incremental=fal
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -fr $HOME/.gradle/caches/jars-3/
+  - rm -fr $HOME/.gradle/caches/6.3/
+  - rm -fr $HOME/.gradle/caches/journal-1/
 
 cache:
   directories:
