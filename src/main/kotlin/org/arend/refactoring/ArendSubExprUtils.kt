@@ -183,7 +183,7 @@ private fun collectArendExprs(
         parent: PsiElement,
         range: TextRange
 ): Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>? {
-    if (range.isEmpty || parent.textRange == range) {
+    if (range.isEmpty) {
         val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().firstOrNull()
                 ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
         if (firstExpr != null) return firstExpr to emptyList()
