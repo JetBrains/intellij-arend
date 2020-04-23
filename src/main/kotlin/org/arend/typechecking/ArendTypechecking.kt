@@ -17,8 +17,8 @@ import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener)
-    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator) {
+open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, referableConverter: ReferableConverter, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
+    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
 
     companion object {
         fun create(project: Project, typecheckerState: TypecheckerState? = null): ArendTypechecking {
@@ -26,7 +26,7 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typech
             val referableConverter = typecheckingService.newReferableConverter(true)
             val errorReporter = project.service<ErrorService>()
             val concreteProvider = PsiConcreteProvider(project, referableConverter, errorReporter, null, true)
-            return ArendTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState ?: typecheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener)
+            return ArendTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState ?: typecheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }
 
