@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import org.arend.psi.ArendExpr
 import org.arend.psi.ArendGoal
 import org.arend.psi.ancestors
 import org.arend.psi.linearDescendants
@@ -14,7 +15,7 @@ class WrapInGoalIntention : IntentionAction {
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         val selectedExpr = selectedExpr(editor ?: return false, file) ?: return false
         return selectedExpr.linearDescendants.none { it is ArendGoal }
-            && selectedExpr.ancestors.take(9).none { it is ArendGoal }
+            && selectedExpr.ancestors.take(6).none { it is ArendGoal }
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
@@ -46,6 +47,7 @@ class WrapInGoalIntention : IntentionAction {
         val selected = EditorUtil.getSelectionInAnyMode(editor)
             .takeUnless { it.isEmpty }
             ?: element.textRange
-        return element.ancestors.firstOrNull { selected in it.textRange }
+        return element.ancestors.filter { it is ArendExpr }
+            .firstOrNull { selected in it.textRange }
     }
 }
