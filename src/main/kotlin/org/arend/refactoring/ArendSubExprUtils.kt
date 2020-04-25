@@ -1,8 +1,11 @@
 package org.arend.refactoring
 
+import com.intellij.codeInsight.hint.HintManager
 import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -152,6 +155,16 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
 
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
+
+fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor): SubExprResult? =
+    try {
+        correspondedSubExpr(range, file, project)
+    } catch (e: SubExprException) {
+        ApplicationManager.getApplication().invokeLater {
+            HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
+        }
+        null
+    }
 
 private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {
     yield(concrete)

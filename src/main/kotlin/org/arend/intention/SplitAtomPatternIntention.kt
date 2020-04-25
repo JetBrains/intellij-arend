@@ -27,10 +27,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.SubExprException
-import org.arend.refactoring.VariableImpl
-import org.arend.refactoring.calculateOccupiedNames
-import org.arend.refactoring.correspondedSubExpr
+import org.arend.refactoring.*
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
@@ -49,7 +46,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getElementType(element, editor.project)
+            val type = getElementType(element, editor)
             if (type is DataCallExpression) {
                 val constructors = type.matchedConstructors ?: return false
                 this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
@@ -74,7 +71,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         splitPatternEntries?.let { doSplitPattern(element, project, it) }
     }
 
-    private fun getElementType(element: PsiElement, project: Project?): Expression? {
+    private fun getElementType(element: PsiElement, editor: Editor): Expression? {
+        val project = editor.project
         if (project != null) {
             var definition: TCDefinition? = null
             val (patternOwner, indexList) = locatePattern(element) ?: return null
@@ -125,7 +123,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
-                val caseExprData = try { correspondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project) } catch (_ : SubExprException) { null }
+                val caseExprData = tryCorrespondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project, editor)
                 if (caseExprData?.subCore is CaseExpression) {
                     val bindingData = caseExprData.findBinding(element.textRange)
                     return bindingData?.second

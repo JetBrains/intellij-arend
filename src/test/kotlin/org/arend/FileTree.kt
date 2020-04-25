@@ -180,6 +180,9 @@ private fun findElementInFile(file: PsiFile, marker: String): PsiElement {
             error { "No anchor found, offset = $elementOffset" }
 }
 
-fun replaceCaretMarker(text: String): String = text.replace("{-caret-}", "<caret>")
+fun replaceCaretMarker(text: String): String = text
+    .replace("{-caret-}", "<caret>")
+    .replace("{-selection-}", "<selection>")
+    .replace("{-end_selection-}", "</selection>")
 
 fun hasCaretMarker(text: String): Boolean = text.contains("{-caret-}")
