@@ -27,9 +27,7 @@ abstract class ReplaceExpressionIntention(text: String) : SelfTargetingIntention
         doApply(project, editor, subCore, subConcrete, subPsi)
     } catch (t: SubExprException) {
         ApplicationManager.getApplication().invokeLater {
-            HintManager.getInstance()
-                .apply { showErrorHint(editor, "Failed because ${t.message}") }
-                .setRequestFocusForNextHint(false)
+            HintManager.getInstance().showErrorHint(editor, "Failed because ${t.message}")
         }
     }
 
