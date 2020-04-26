@@ -2,6 +2,8 @@ package org.arend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.util.IconLoader
+import org.arend.core.definition.*
+import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.GeneralError
 import javax.swing.Icon
 
@@ -57,4 +59,13 @@ object ArendIcons {
 
     val SHOW = AllIcons.Actions.Show
     val PIN = AllIcons.General.Pin_tab
+
+    fun definitionToIcon(definition: Definition): Icon? = when (definition) {
+        is DataDefinition -> DATA_DEFINITION
+        is Constructor -> CONSTRUCTOR
+        is FunctionDefinition -> if (definition.kind == CoreFunctionDefinition.Kind.INSTANCE) CLASS_INSTANCE else FUNCTION_DEFINITION
+        is ClassDefinition -> CLASS_DEFINITION
+        is ClassField -> CLASS_FIELD
+        else -> null
+    }
 }
