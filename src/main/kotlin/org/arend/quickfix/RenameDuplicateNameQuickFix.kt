@@ -6,7 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.core.context.binding.Variable
+import org.arend.ext.variable.Variable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.ArendNsId

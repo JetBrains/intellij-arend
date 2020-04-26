@@ -4,7 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.core.context.binding.Variable
+import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor

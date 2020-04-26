@@ -10,7 +10,7 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
-import org.arend.core.context.binding.Variable
+import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.module.FullModulePath
