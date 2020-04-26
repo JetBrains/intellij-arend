@@ -3,19 +3,25 @@ package org.arend.quickfix
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendGoal
 import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
+import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
+import org.arend.typechecking.visitor.CheckTypeVisitor
 
 class GoalFillingQuickFix(private val element: ArendGoal, private val goal: GoalError) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (goal.goalSolver != null) {
             val concrete = if (goal.result != null) goal.result else {
-                val concrete = goal.goalSolver.trySolve(goal.causeSourceNode, goal.expectedType)
+                val concrete =
+                    if (goal.typecheckingContext == null) null
+                    else goal.goalSolver.trySolve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType)
                 if (concrete == null) {
                     ApplicationManager.getApplication().invokeLater {
                         HintManager.getInstance().showErrorHint(editor, "Cannot solve goal")
