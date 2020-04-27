@@ -158,8 +158,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
-                is GoalError -> if ((error.result != null || error.goalSolver != null) && error.errors.all { it.level != GeneralError.Level.ERROR } && cause is ArendGoal) {
-                    annotation.registerFix(GoalFillingQuickFix(cause, error))
+                is GoalError -> if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
+                    error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
+                        val expr = when (it) {
+                            is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
+                            is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr ?: it
+                            else -> it
+                        }
+                        annotation.registerFix(SolverGoalFillingQuickFix(expr, error))
+                    }
+                    cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
                 }
 
                 is CertainTypecheckingError -> when (error.kind) {
