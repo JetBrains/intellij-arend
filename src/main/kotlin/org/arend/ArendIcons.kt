@@ -32,13 +32,14 @@ object ArendIcons {
     // Source code elements
 
     val CLASS_DEFINITION = AllIcons.Nodes.Class
-    val CLASS_FIELD = AllIcons.Nodes.Property
+    val RECORD_DEFINITION = AllIcons.Nodes.Record
+    val CLASS_FIELD = IconLoader.getIcon("/icons/field.svg")
     val IMPLEMENTATION = AllIcons.General.Show_to_implement
     val CLASS_INSTANCE = AllIcons.Nodes.Interface
-    val CONSTRUCTOR = AllIcons.Nodes.AbstractClass
+    val CONSTRUCTOR = IconLoader.getIcon("/icons/constructor.svg")
     val DATA_DEFINITION = IconLoader.getIcon("/icons/dataStructure.svg")
-    val FUNCTION_DEFINITION = AllIcons.Nodes.Field
-    val MODULE_DEFINITION = AllIcons.Nodes.Method
+    val FUNCTION_DEFINITION = AllIcons.Nodes.Function
+    val MODULE_DEFINITION = AllIcons.Nodes.AbstractMethod
     val META_DEFINITION = AllIcons.Nodes.Method
     val COCLAUSE_DEFINITION = FUNCTION_DEFINITION
 
@@ -64,7 +65,7 @@ object ArendIcons {
         is DataDefinition -> DATA_DEFINITION
         is Constructor -> CONSTRUCTOR
         is FunctionDefinition -> if (definition.kind == CoreFunctionDefinition.Kind.INSTANCE) CLASS_INSTANCE else FUNCTION_DEFINITION
-        is ClassDefinition -> CLASS_DEFINITION
+        is ClassDefinition -> if (definition.isRecord) RECORD_DEFINITION else CLASS_DEFINITION
         is ClassField -> CLASS_FIELD
         else -> null
     }

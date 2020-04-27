@@ -34,5 +34,5 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
-    override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
+    override fun getIcon(flags: Int) = if (metaReferable != null) ArendIcons.META_DEFINITION else ArendIcons.MODULE_DEFINITION
 }

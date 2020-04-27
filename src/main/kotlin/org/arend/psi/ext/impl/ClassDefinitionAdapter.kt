@@ -75,5 +75,5 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
-    override fun getIcon(flags: Int): Icon = ArendIcons.CLASS_DEFINITION
+    override fun getIcon(flags: Int): Icon = if (recordKw != null) ArendIcons.RECORD_DEFINITION else ArendIcons.CLASS_DEFINITION
 }
