@@ -8,9 +8,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import org.arend.core.expr.visitor.ScopeDefinitionRenamer
+import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendExpr
 import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
@@ -20,7 +23,7 @@ import org.arend.ui.impl.ArendUIImpl
 class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal: GoalError) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (goal.result != null) {
-            invokeOnConcrete(goal.result, editor)
+            invokeOnConcrete(goal.result, project, editor)
         } else {
             if (goal.typecheckingContext == null) {
                 cannotSolve(editor)
@@ -30,7 +33,7 @@ class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal
                 if (it != null) {
                     if (it !is Concrete.Expression) throw IllegalArgumentException()
                     CommandProcessor.getInstance().executeCommand(project, {
-                        invokeOnConcrete(it, editor)
+                        invokeOnConcrete(it, project, editor)
                     }, text, null, editor.document)
                 } else {
                     cannotSolve(editor)
@@ -47,8 +50,8 @@ class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal
         }
     }
 
-    private fun invokeOnConcrete(concrete: Concrete.Expression, editor: Editor) {
-        val text = concrete.toString()
+    private fun invokeOnConcrete(concrete: Concrete.Expression, project: Project, editor: Editor) {
+        val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
         ApplicationManager.getApplication().runWriteAction {
             if (element.isValid && !editor.isDisposed) {
                 replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
