@@ -59,10 +59,13 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
-    fun createExpression(expr: String): ArendExpr {
+    fun createExpressionMaybe(expr: String): ArendExpr? {
         val code = "\\func foo => $expr"
-        return createFromText(code)?.childOfType() ?: error("Failed to create expr: `$code`")
+        return createFromText(code)?.childOfType()
     }
+
+    fun createExpression(expr: String) =
+        createExpressionMaybe(expr) ?: error("Failed to create expr: `$expr`")
 
     fun createFunctionClauses(): ArendFunctionClauses {
         val code = "\\func foo (a : Nat) : Nat\n  | 0 => {?}"

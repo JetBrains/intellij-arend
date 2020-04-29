@@ -285,6 +285,7 @@
         <!-- Tool Windows -->
 
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
+        <toolWindow id="Arend REPL" anchor="bottom" factoryClass="org.arend.toolWindow.repl.ArendReplFactory"/>
     </extensions>
 
     <actions>
