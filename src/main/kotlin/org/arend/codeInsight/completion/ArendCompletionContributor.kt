@@ -7,12 +7,10 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.*
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiErrorElement
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
@@ -299,7 +297,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
                 not(afterLeaves(WITH_KW, CASE_KW, SCASE_KW, COLON)))
 
-        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, false))
+        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, tailSpaceNeeded = false))
 
         basic(and(caseContext, argEndPattern), AS_KW_LIST)
 
@@ -571,7 +569,9 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class KeywordCompletionProvider(private val keywords: List<String>, private val tailSpaceNeeded: Boolean = true) : CompletionProvider<CompletionParameters>() {
+    private open class KeywordCompletionProvider(private val keywords: List<String>,
+                                                 private val tailSpaceNeeded: Boolean = true,
+                                                 private val disableAfter2Crlfs: Boolean = true) : CompletionProvider<CompletionParameters>() {
 
         open fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
             val document = insertContext.document
@@ -593,7 +593,8 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
-            if (parameters.position is PsiComment || afterLeaf(DOT).accepts(parameters.position)) // Prevents showing kw completions in comments and after dot expression
+            if (parameters.position is PsiComment || afterLeaf(DOT).accepts(parameters.position) ||
+                    disableAfter2Crlfs && ArendCompletionParameters.findPrevAnchor(parameters.offset, parameters.originalFile).first > 1) // Prevents showing kw completions in comments and after dot expression
                 return
 
             val prefix = computePrefix(parameters, resultSet)
@@ -607,8 +608,10 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class ConditionalProvider(keywords: List<String>, val condition: (CompletionParameters) -> Boolean, tailSpaceNeeded: Boolean = true) :
-            KeywordCompletionProvider(keywords, tailSpaceNeeded) {
+    private open class ConditionalProvider(keywords: List<String>, val condition: (CompletionParameters) -> Boolean,
+                                           tailSpaceNeeded: Boolean = true,
+                                           disableAfter2Crlfs: Boolean = true) :
+            KeywordCompletionProvider(keywords, tailSpaceNeeded, disableAfter2Crlfs) {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
             if (condition.invoke(parameters)) {
                 super.addCompletions(parameters, context, resultSet)
@@ -629,7 +632,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (allowBeforeClassFields || !arendCompletionParameters.isBeforeClassFields)
 
                 (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
-            }, tailSpaceNeeded)
+            }, tailSpaceNeeded, disableAfter2Crlfs = false)
 
     private class ArendCompletionParameters(completionParameters: CompletionParameters) {
         val prevElement: PsiElement?
@@ -650,25 +653,16 @@ class ArendCompletionContributor : CompletionContributor() {
 
             var ofs = 0
             var next: PsiElement?
-            var prev: PsiElement?
-            var delimiter = false
-            var skippedFirstErrorExpr: PsiElement? = null
+
             do {
                 val pos = caretOffset + (ofs++)
                 next = if (pos > file.textLength) null else file.findElementAt(pos)
             } while (next is PsiWhiteSpace || next is PsiComment)
-            ofs = -1
 
-            do {
-                val pos = caretOffset + (ofs--)
-                prev = if (pos < 0) null else file.findElementAt(pos)
-                delimiter = delimiter || (prev is PsiWhiteSpace && textBeforeCaret(prev, caretOffset).contains('\n')) || (pos <= 0)
-                var skipFirstErrorExpr = (prev?.node?.elementType == BAD_CHARACTER || (prev?.node?.elementType == INVALID_KW &&
-                        prev?.parent is PsiErrorElement && prev.text.startsWith("\\")))
-                if (skipFirstErrorExpr && skippedFirstErrorExpr != null && skippedFirstErrorExpr != prev) skipFirstErrorExpr = false else skippedFirstErrorExpr = prev
-            } while (prev is PsiWhiteSpace || prev is PsiComment || skipFirstErrorExpr)
+            val p = findPrevAnchor(caretOffset, file)
+            val prev = p.second
 
-            delimiterBeforeCaret = delimiter
+            delimiterBeforeCaret = p.first > 0
             nextElement = next
             prevElement = prev
 
@@ -712,6 +706,31 @@ class ArendCompletionContributor : CompletionContributor() {
                     if (elem != null) ancestors.add(elem)
                 }
                 return ancestors
+            }
+
+            fun findPrevAnchor(caretOffset: Int, file: PsiFile) : Pair<Int, PsiElement?> {
+                var pos = caretOffset - 1
+                var prev: PsiElement? = file.findElementAt(caretOffset)
+                if (prev != null && STATEMENT_WT_KWS.contains(prev.text)) pos = prev.startOffset - 1
+
+                var skippedFirstErrorExpr: PsiElement? = null
+                var numberOfCrlfs = 0;
+
+                do {
+                    prev = if (pos <= 0) {
+                        numberOfCrlfs = 1;
+                        break
+                    } else file.findElementAt(pos)
+
+                    numberOfCrlfs += if (prev is PsiWhiteSpace) textBeforeCaret(prev, caretOffset).count { it == '\n' } else 0
+
+                    var skipFirstErrorExpr = (prev?.node?.elementType == BAD_CHARACTER || (prev?.node?.elementType == INVALID_KW && prev?.parent is PsiErrorElement && prev.text.startsWith("\\")))
+                    if (skipFirstErrorExpr && skippedFirstErrorExpr != null && skippedFirstErrorExpr != prev) skipFirstErrorExpr = false else skippedFirstErrorExpr = prev
+
+                    pos = (prev?.textRange?.startOffset ?: pos) - 1
+                } while (prev is PsiWhiteSpace || prev is PsiComment || skipFirstErrorExpr)
+
+                return Pair(numberOfCrlfs, prev)
             }
         }
     }

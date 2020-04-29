@@ -532,4 +532,21 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test absence of completion after dot`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
             "\\func f => 0\n \\func g (x : Nat) => f x.{-caret-}")
 
+    // Tests related to #186
+
+    private val kwTest186Sample1 = "\\data d\n  | c1\n\n\\{-caret-}func x"
+    private val kwTest186Sample2 = "\\import Prelude\n\n\\{-caret-}func x"
+    private val kwTest186Sample3 = "\\func x :\n\n\\{-caret-}lemma l"
+
+    fun test_186_1() = checkCompletionVariants(kwTest186Sample1, FAKE_NTYPE_LIST + DATA_UNIVERSE_KW, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun test_186_2() = checkCompletionVariants(kwTest186Sample2, HU_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun test_186_3() = checkCompletionVariants(kwTest186Sample3, DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + DATA_UNIVERSE_KW, CompletionCondition.DOES_NOT_CONTAIN)
+
+    fun test_186_4() = checkCompletionVariants(kwTest186Sample1, STATEMENT_WT_KWS, CompletionCondition.CONTAINS)
+
+    fun test_186_5() = checkCompletionVariants(kwTest186Sample2, STATEMENT_WT_KWS, CompletionCondition.CONTAINS)
+
+    fun test_186_6() = checkCompletionVariants(kwTest186Sample3, STATEMENT_WT_KWS, CompletionCondition.CONTAINS)
 }
