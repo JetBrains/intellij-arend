@@ -8,6 +8,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
 import org.arend.ext.variable.Variable
@@ -561,9 +562,11 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
  * @param deleting the full range of everything needs to be deleted
  * @return the replaced expression, w/ or w/o the parenthesis
  */
-fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement?, deletedConcrete: Concrete.Expression?, deleting: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?, inserting: String): String {
+fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, deletedConcrete: Concrete.Expression?, deleting: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?, inserting: String): String {
     assert(document.isWritable)
     document.deleteString(deleting.startOffset, deleting.endOffset)
+    val psiFile = deletedPsi.containingFile
+    val project = psiFile.project
 
     val correctDeletedPsi =
         if (deletedConcrete is Concrete.AppExpression)
@@ -571,6 +574,7 @@ fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement?, del
         else deletedConcrete?.data as? ArendExpr
     val str = if (needParentheses(correctDeletedPsi ?: deletedPsi, deleting, aExpr, cExpr)) "($inserting)" else inserting
     document.insertString(deleting.startOffset, str)
+    CodeStyleManager.getInstance(project).reformatText(psiFile, deleting.startOffset, deleting.startOffset + str.length)
     return str
 }
 
