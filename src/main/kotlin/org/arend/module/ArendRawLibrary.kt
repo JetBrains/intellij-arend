@@ -8,6 +8,7 @@ import org.arend.ArendLanguage
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
+import org.arend.ext.ui.ArendUI
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
@@ -27,6 +28,7 @@ import org.arend.source.GZIPStreamBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
+import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
 
@@ -43,6 +45,8 @@ class ArendRawLibrary(val config: LibraryConfig)
         config.findArendFile(modulePath, withAdditional = false, withTests = false)
 
     override fun mustBeLoaded() = !isExternal
+
+    override fun getUI(): ArendUI? = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
         LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
