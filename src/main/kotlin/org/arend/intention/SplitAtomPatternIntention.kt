@@ -99,15 +99,18 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (definition != null && clauseIndex != -1) {
                 val typeCheckedDefinition = project.service<TypeCheckingService>().getTypechecked(definition)
                 if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
-                    val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
-                    val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) } ?: return null
+                    val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise
+                            ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
+                    val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) }
+                            ?: return null
 
                     val parameters = ArrayList<Referable>(); for (pp in definition.parameters) parameters.addAll(pp.referableList)
                     val elimVars = definition.eliminatedExpressions ?: emptyList()
                     val isElim = elimVars.isNotEmpty()
-                    val elimVarPatterns : List<ExpressionPattern> = if (isElim) elimVars.map { reference ->
+                    val elimVarPatterns: List<ExpressionPattern> = if (isElim) elimVars.map { reference ->
                         if (reference is ArendRefIdentifier) {
-                            val parameterIndex = (reference.reference?.resolve() as? Referable)?.let{ parameters.indexOf(it) } ?: -1
+                            val parameterIndex = (reference.reference?.resolve() as? Referable)?.let { parameters.indexOf(it) }
+                                    ?: -1
                             if (parameterIndex < patterns.size && parameterIndex != -1) patterns[parameterIndex] else throw IllegalStateException()
                         } else throw IllegalStateException()
                     } else patterns
@@ -115,7 +118,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     if (indexList.size > 0) {
                         val typecheckedPattern = if (isElim) elimVarPatterns.getOrNull(indexList[0]) else findMatchingPattern(abstractPatterns, typeCheckedDefinition.parameters, patterns, indexList[0])
                         if (typecheckedPattern != null) {
-                            val patternPart = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern ?: return null
+                            val patternPart = findPattern(indexList.drop(1), typecheckedPattern, abstractPatterns[indexList[0]]) as? BindingPattern
+                                    ?: return null
                             return patternPart.binding.typeExpr
                         }
                     }
@@ -242,9 +246,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun expressionString(location: ArendCompositeElement): String = buildString {
                 append("\\new ")
-                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location) ?: record.name
+                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location)
+                        ?: record.name
                 append("$recordName ")
-                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig { override fun getNormalizationMode(): NormalizationMode? { return null } })
+                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig {
+                    override fun getNormalizationMode(): NormalizationMode? {
+                        return null
+                    }
+                })
                 if (expr is Concrete.AppExpression) {
                     PrettyPrintVisitor.printArguments(PrettyPrintVisitor(this, 0), expr.arguments, false)
                     append(" ")
@@ -289,7 +298,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         val expressionString = splitPatternEntry.expressionString(localClause)
 
                         if (first) {
-                            doSubstituteUsages(factory, element.childOfType(), currAnchor, expressionString, splitPatternEntry.requiresParentheses())
+                            doSubstituteUsages(project, element.childOfType(), currAnchor, expressionString)
 
                             var inserted = false
                             if (splitPatternEntry is ConstructorSplitPatternEntry && splitPatternEntry.constructor == Prelude.ZERO) {
@@ -321,7 +330,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             if (currAnchor is ArendClause) {
                                 val elementCopy = findAbstractPattern(localIndexList.drop(1), currAnchor.patternList.getOrNull(localIndexList[0]))
                                 if (elementCopy is PsiElement) {
-                                    doSubstituteUsages(factory, elementCopy.childOfType(), currAnchor, expressionString, splitPatternEntry.requiresParentheses())
+                                    doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
                                     doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses())
                                 }
                             }
@@ -444,14 +453,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        fun doSubstituteUsages(factory: ArendPsiFactory, elementToReplace: ArendReferenceElement?, element: PsiElement,
-                                       expressionLine: String, requiresParentheses: Boolean) {
+        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String) {
             if (elementToReplace == null || element is ArendWhere) return
             if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
                 val longName = element.parent as? ArendLongName
                 val field = if (longName != null && longName.refIdentifierList.size > 1) longName.refIdentifierList[1] else null
                 val fieldTarget = field?.reference?.resolve()
                 val expressionToInsert = if (longName != null && fieldTarget is ArendClassField) createFieldConstructorInvocation(element, longName.refIdentifierList.drop(1), expressionLine) else expressionLine
+                val factory = ArendPsiFactory(project)
 
                 val literal = longName?.parent as? ArendLiteral
                 val atom = literal?.parent as? ArendAtom
@@ -461,7 +470,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val arendNewExpr = argumentAppExpr?.parent as? ArendNewExpr
 
                     val substitutedExpression = factory.createExpression(expressionToInsert) as ArendNewExpr
-                    val substitutedAtom = if (requiresParentheses) factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
+                    val substitutedAtom = if (needParentheses(element, element.textRange, substitutedExpression, null))
+                        factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
 
                     if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
@@ -471,7 +481,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     }
                 }
             } else for (child in element.children)
-                doSubstituteUsages(factory, elementToReplace, child, expressionLine, requiresParentheses)
+                doSubstituteUsages(project, elementToReplace, child, expressionLine)
         }
 
         private fun createFieldConstructorInvocation(element: ArendRefIdentifier,

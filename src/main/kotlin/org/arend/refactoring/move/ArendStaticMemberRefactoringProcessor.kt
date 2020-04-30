@@ -411,7 +411,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
 
                 doSubstituteThisKwWithThisVar(definition)
-                if (classifyingField != null) doSubstituteUsages(psiFactory, classifyingField, definition, thisVarName, false)
+                if (classifyingField != null) doSubstituteUsages(classifyingField.project, classifyingField, definition, thisVarName)
 
                 val recordFieldsUsagesToFix = fieldsUsagesFixMap[definition]
                 if (recordFieldsUsagesToFix != null) for (refElement in recordFieldsUsagesToFix)

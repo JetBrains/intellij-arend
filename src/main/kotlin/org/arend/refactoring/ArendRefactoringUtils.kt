@@ -578,7 +578,7 @@ fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, dele
     return str
 }
 
-private fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?): Boolean {
+fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?): Boolean {
     val insertedPrec = when {
         aExpr != null -> aExpr.accept(PrecVisitor, null)
         cExpr != null -> cExpr.accept(ConcretePrecVisitor, null)
