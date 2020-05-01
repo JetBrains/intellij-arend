@@ -22,7 +22,6 @@ import com.intellij.uiDesigner.core.GridLayoutManager
 import org.arend.ArendLanguage
 import org.arend.module.ArendModuleType
 import org.arend.psi.ArendPsiFactory
-import org.arend.ui.IconButton
 import java.awt.Insets
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -30,8 +29,6 @@ import javax.swing.JPanel
 class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHandler(true) {
     private var repl: IntellijRepl? = null
     private val moduleSelection = ComboBox<Module>()
-    private val refresh = IconButton(AllIcons.Actions.RunAll)
-    private val rerun = IconButton(AllIcons.Actions.Restart)
     private val project get() = consoleView.project
     val disposable: Disposable get() = consoleView
 
@@ -46,41 +43,43 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
 
 
     init {
-        consoleView.isEditable = true
-        consoleView.isConsoleEditorEnabled = true
+        consoleView.isEditable = false
+        consoleView.isConsoleEditorEnabled = false
     }
 
-    val component = JPanel().apply {
-        layout = GridLayoutManager(2, 4, Insets(0, 0, 0, 0), -1, -1)
-
-        rerun.isEnabled = false
-        add(consoleView.component, GridConstraints(1, 0, 1, 4, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false))
-        add(moduleSelection, GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
-        val arendModuleLabel = JLabel()
-        arendModuleLabel.text = "Arend Module:"
-        arendModuleLabel.labelFor = moduleSelection
-        add(arendModuleLabel, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
-        rerun.toolTipText = "Restart REPL with selected module"
-        rerun.addActionListener { rerunAction() }
-        add(rerun, GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
-        refresh.toolTipText = "Refresh module list"
-        refresh.addActionListener { refreshAction() }
-        add(refresh, GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
-    }
-
-    private fun refreshAction() = ApplicationManager.getApplication().invokeLater {
-        refresh.icon = AllIcons.Actions.Refresh
-        val module = moduleSelection.selectedItem as? Module?
-        if (module == null || module.isDisposed || !module.isLoaded || ArendModuleType.has(module)) {
-            DialogBuilder(project)
-                .title("Selection Error")
-                .centerPanel(JLabel("Please select a valid Arend module!"))
-                .okActionEnabled(true)
-                .show()
-            return@invokeLater
+    private val refresh = object : DumbAwareAction("Refresh", "Refresh module list", AllIcons.Actions.Refresh) {
+        override fun actionPerformed(e: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
+            moduleSelection.removeAllItems()
+            ModuleManager.getInstance(project)
+                .modules
+                .asSequence()
+                .filter { it.moduleTypeName == ArendModuleType.name }
+                .forEach(moduleSelection::addItem)
+            rerun.templatePresentation.isEnabled = moduleSelection.itemCount > 0
         }
-        if (repl != null) consoleView.clear()
-        repl = IntellijReplImpl(module)
+    }
+
+    private val rerun = object : DumbAwareAction("Rerun", "Restart REPL with selected module", AllIcons.Actions.RunAll) {
+        init {
+            templatePresentation.isEnabled = false
+        }
+
+        override fun actionPerformed(e: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
+            templatePresentation.icon = AllIcons.Actions.Restart
+            val module = moduleSelection.selectedItem as? Module?
+            if (module == null || module.isDisposed || !module.isLoaded || ArendModuleType.has(module)) {
+                DialogBuilder(project)
+                    .title("Selection Error")
+                    .centerPanel(JLabel("Please select a valid Arend module!"))
+                    .okActionEnabled(true)
+                    .show()
+                return@invokeLater
+            }
+            if (repl != null) consoleView.clear()
+            repl = IntellijReplImpl(module)
+            consoleView.isEditable = true
+            consoleView.isConsoleEditorEnabled = true
+        }
     }
 
     private inner class IntellijReplImpl(module: Module) : IntellijRepl(module) {
@@ -93,20 +92,12 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         }
     }
 
-    private fun rerunAction() = ApplicationManager.getApplication().invokeLater {
-        moduleSelection.removeAllItems()
-        ModuleManager.getInstance(project)
-            .modules
-            .asSequence()
-            .filter { it.moduleTypeName == ArendModuleType.name }
-            .forEach(moduleSelection::addItem)
-        rerun.isEnabled = moduleSelection.itemCount > 0
-    }
-
     private fun createFile(p: Project, v: VirtualFile) = ArendPsiFactory(p)
         .createFromText(v.inputStream.reader().readText())
 
     fun createActionGroup() = DefaultActionGroup(
+        refresh,
+        rerun,
         object : DumbAwareAction("Clear", null, AllIcons.Actions.GC) {
             override fun actionPerformed(event: AnActionEvent) = WriteCommandAction.writeCommandAction(project).run<Exception> {
                 val document = consoleView.editorDocument
@@ -114,4 +105,15 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
             }
         }
     )
+
+    val component = JPanel().apply {
+        layout = GridLayoutManager(2, 2, Insets(0, 0, 0, 0), -1, -1)
+
+        add(consoleView.component, GridConstraints(1, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false))
+        add(moduleSelection, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
+        val arendModuleLabel = JLabel()
+        arendModuleLabel.text = "Arend Module:"
+        arendModuleLabel.labelFor = moduleSelection
+        add(arendModuleLabel, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
+    }
 }
