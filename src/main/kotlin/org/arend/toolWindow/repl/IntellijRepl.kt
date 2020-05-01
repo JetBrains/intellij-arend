@@ -3,10 +3,12 @@ package org.arend.toolWindow.repl
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import org.arend.error.ListErrorReporter
+import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.prelude.Prelude
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.Repl
 import org.arend.resolving.PsiConcreteProvider
@@ -45,6 +47,17 @@ abstract class IntellijRepl private constructor(
     private val psiFactory = ArendPsiFactory(service.project)
 
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
-    override fun parseExpr(text: String): Concrete.Expression? = psiFactory.createExpressionMaybe(text)
+    override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
+
+    final override fun loadPreludeLibrary() {
+        val preludeLibrary = ArendPreludeLibrary(service.project, myTypecheckerState)
+        if (!loadLibrary(preludeLibrary)) {
+            eprintln("[FATAL] Failed to load Prelude")
+            return
+        }
+        val scope = preludeLibrary.moduleScopeProvider.forModule(Prelude.MODULE_PATH)
+        if (scope != null) myMergedScopes.add(scope)
+        else eprintln("[FATAL] Failed to obtain prelude scope")
+    }
 }

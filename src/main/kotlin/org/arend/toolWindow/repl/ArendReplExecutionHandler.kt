@@ -2,13 +2,13 @@ package org.arend.toolWindow.repl
 
 import com.intellij.execution.console.BaseConsoleExecuteActionHandler
 import com.intellij.execution.console.LanguageConsoleBuilder
+import com.intellij.execution.console.LanguageConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.DumbAwareAction
@@ -29,7 +29,6 @@ import javax.swing.JPanel
 class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHandler(true) {
     private var repl: IntellijRepl? = null
     private val moduleSelection = ComboBox<Module>()
-    private val project get() = consoleView.project
     val disposable: Disposable get() = consoleView
 
     private val consoleView = LanguageConsoleBuilder()
@@ -41,6 +40,11 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         .initActions(this, ArendReplFactory.ID)
         .build(project, ArendLanguage.INSTANCE)
 
+    override fun execute(text: String, console: LanguageConsoleView) {
+        super.execute(text, console)
+        val repl = repl ?: return
+        repl.repl({ "" }, text)
+    }
 
     init {
         consoleView.isEditable = false
@@ -76,7 +80,9 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
                 return@invokeLater
             }
             if (repl != null) consoleView.clear()
-            repl = IntellijReplImpl(module)
+            val newRepl = IntellijReplImpl(module)
+            newRepl.initialize()
+            repl = newRepl
             consoleView.isEditable = true
             consoleView.isConsoleEditorEnabled = true
         }
@@ -99,9 +105,8 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         refresh,
         rerun,
         object : DumbAwareAction("Clear", null, AllIcons.Actions.GC) {
-            override fun actionPerformed(event: AnActionEvent) = WriteCommandAction.writeCommandAction(project).run<Exception> {
-                val document = consoleView.editorDocument
-                document.deleteString(0, document.textLength)
+            override fun actionPerformed(event: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
+                consoleView.clear()
             }
         }
     )
