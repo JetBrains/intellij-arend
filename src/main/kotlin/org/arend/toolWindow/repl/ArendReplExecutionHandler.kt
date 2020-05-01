@@ -53,7 +53,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
             ModuleManager.getInstance(project)
                 .modules
                 .asSequence()
-                .filter { it.moduleTypeName == ArendModuleType.name }
+                .filter(ArendModuleType::has)
                 .forEach(moduleSelection::addItem)
             rerun.templatePresentation.isEnabled = moduleSelection.itemCount > 0
         }
@@ -67,7 +67,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         override fun actionPerformed(e: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
             templatePresentation.icon = AllIcons.Actions.Restart
             val module = moduleSelection.selectedItem as? Module?
-            if (module == null || module.isDisposed || !module.isLoaded || ArendModuleType.has(module)) {
+            if (module == null || module.isDisposed || !module.isLoaded || !ArendModuleType.has(module)) {
                 DialogBuilder(project)
                     .title("Selection Error")
                     .centerPanel(JLabel("Please select a valid Arend module!"))
@@ -110,7 +110,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         layout = GridLayoutManager(2, 2, Insets(0, 0, 0, 0), -1, -1)
 
         add(consoleView.component, GridConstraints(1, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK or GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false))
-        add(moduleSelection, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
+        add(moduleSelection, GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
         val arendModuleLabel = JLabel()
         arendModuleLabel.text = "Arend Module:"
         arendModuleLabel.labelFor = moduleSelection
