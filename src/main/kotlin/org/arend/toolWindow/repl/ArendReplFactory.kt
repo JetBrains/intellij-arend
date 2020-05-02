@@ -1,7 +1,6 @@
 package org.arend.toolWindow.repl
 
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -10,7 +9,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
 
-class ArendReplFactory : ToolWindowFactory, DumbAware {
+class ArendReplFactory : ToolWindowFactory {
     companion object Constants {
         const val TITLE = "Arend REPL"
         const val ID = "Arend.REPL"
