@@ -12,7 +12,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import org.arend.ArendLanguage
+import org.arend.InjectionTextLanguage
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.CommandHandler
 
@@ -32,7 +32,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         .executionEnabled { true }
         .oneLineInput(false)
         .initActions(this, ArendReplFactory.ID)
-        .build(project, ArendLanguage.INSTANCE)
+        .build(project, InjectionTextLanguage.INSTANCE)
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
@@ -43,12 +43,13 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
         repl.initialize()
+        resetRepl()
     }
 
     private fun createFile(p: Project, v: VirtualFile) = ArendPsiFactory(p)
         .createFromText(v.inputStream.reader().readText())
 
-    private fun resetRepl() = ApplicationManager.getApplication().invokeLater {
+    private fun resetRepl() {
         consoleView.clear()
         consoleView.print("Type ", ConsoleViewContentType.NORMAL_OUTPUT)
         consoleView.printHyperlink(":?") {
@@ -59,7 +60,8 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
 
     fun createActionGroup() = DefaultActionGroup(
         object : DumbAwareAction("Clear", null, AllIcons.Actions.GC) {
-            override fun actionPerformed(event: AnActionEvent) = resetRepl()
+            override fun actionPerformed(event: AnActionEvent) = ApplicationManager.getApplication()
+                .invokeLater(this@ArendReplExecutionHandler::resetRepl)
         }
     )
 }
