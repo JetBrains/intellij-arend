@@ -3,7 +3,6 @@ package org.arend.toolWindow.repl
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.error.ListErrorReporter
-import org.arend.module.ArendRawLibrary
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.LexicalScope
@@ -16,7 +15,6 @@ import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.provider.InstanceProviderSet
-import java.util.*
 
 abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
@@ -27,8 +25,6 @@ abstract class IntellijRepl private constructor(
     service.libraryManager,
     PsiConcreteProvider(service.project, refConverter, errorReporter, null, false),
     PsiElementComparator,
-    TreeSet(),
-    ArendRawLibrary(ReplLibraryConfig("Repl", service.project)),
     InstanceProviderSet(),
     service.typecheckerState
 ) {
@@ -48,7 +44,7 @@ abstract class IntellijRepl private constructor(
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
 
-    final override fun loadPreludeLibrary() {
+    final override fun loadLibraries() {
         if (service.initialize()) println("[INFO] Initialized prelude.")
         val prelude = service.prelude
         if (prelude != null) myMergedScopes.add(LexicalScope.opened(prelude))
