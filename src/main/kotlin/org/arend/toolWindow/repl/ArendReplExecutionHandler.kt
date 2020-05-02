@@ -52,7 +52,8 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
     }
 
     private val refresh = object : DumbAwareAction("Refresh", "Refresh module list", AllIcons.Actions.Refresh) {
-        override fun actionPerformed(e: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
+        override fun actionPerformed(e: AnActionEvent) = actionPerformed()
+        fun actionPerformed() = ApplicationManager.getApplication().invokeLater {
             moduleSelection.removeAllItems()
             ModuleManager.getInstance(project)
                 .modules
@@ -68,7 +69,8 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
             templatePresentation.isEnabled = false
         }
 
-        override fun actionPerformed(e: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
+        override fun actionPerformed(e: AnActionEvent) = actionPerformed()
+        fun actionPerformed() = ApplicationManager.getApplication().invokeLater {
             templatePresentation.icon = AllIcons.Actions.Restart
             val module = moduleSelection.selectedItem as? Module?
             if (module == null || module.isDisposed || !module.isLoaded || !ArendModuleType.has(module)) {
@@ -120,5 +122,9 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
         arendModuleLabel.text = "Arend Module:"
         arendModuleLabel.labelFor = moduleSelection
         add(arendModuleLabel, GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false))
+    }
+
+    init {
+        refresh.actionPerformed()
     }
 }
