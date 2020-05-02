@@ -1,47 +1,50 @@
 package org.arend.toolWindow.repl
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.arend.error.ListErrorReporter
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
+import org.arend.module.FullModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendPsiFactory
+import org.arend.refactoring.LocatedReferableConverter
 import org.arend.repl.Repl
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
+import org.arend.typechecking.ArendLibraryResolver
 import org.arend.typechecking.SimpleTypecheckerState
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import java.util.*
 
 abstract class IntellijRepl private constructor(
-    private val service: TypeCheckingService,
+    private val project: Project,
     private val refConverter: ReferableConverter,
     errorReporter: ListErrorReporter
 ) : Repl(
     errorReporter,
-    service.libraryManager,
-    PsiConcreteProvider(service.project, refConverter, errorReporter, null, false),
+    ArendLibraryResolver(project),
+    PsiConcreteProvider(project, refConverter, errorReporter, null, false),
     PsiElementComparator,
     TreeSet(),
-    ArendRawLibrary(ReplLibraryConfig("Repl", service.project)),
+    ArendRawLibrary(ReplLibraryConfig("Repl", project)),
     InstanceProviderSet(),
     SimpleTypecheckerState()
 ) {
-    constructor(project: Project) : this(
-        project.service(),
-        WrapperReferableConverter,
-        ListErrorReporter()
-    )
+    companion object {
+        private fun referableConverter(project: Project) =
+            LocatedReferableConverter(ArendReferableConverter(project, SimpleReferableConverter()))
+    }
 
-    private val psiFactory = ArendPsiFactory(service.project)
+    constructor(project: Project) : this(project, referableConverter(project), ListErrorReporter())
+
+    private val psiFactory = ArendPsiFactory(project)
     fun loadModuleLibrary(module: Module) =
         loadLibrary(ArendRawLibrary(ArendModuleConfigService.getConfig(module)))
 
@@ -50,12 +53,13 @@ abstract class IntellijRepl private constructor(
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
 
     final override fun loadPreludeLibrary() {
-        val preludeLibrary = ArendPreludeLibrary(service.project, myTypecheckerState)
+        val preludeLibrary = ArendPreludeLibrary(project, myTypecheckerState)
         if (!loadLibrary(preludeLibrary)) {
             eprintln("[FATAL] Failed to load Prelude")
             return
         }
-        val scope = preludeLibrary.moduleScopeProvider.forModule(Prelude.MODULE_PATH)
+        preludeLibrary.prelude?.generatedModulePath = FullModulePath(Prelude.LIBRARY_NAME, FullModulePath.LocationKind.GENERATED, Prelude.MODULE_PATH.toList())
+        val scope = preludeLibrary.prelude?.groupScope
         if (scope != null) myMergedScopes.add(scope)
         else eprintln("[FATAL] Failed to obtain prelude scope")
     }

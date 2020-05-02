@@ -16,7 +16,7 @@ import org.arend.ArendLanguage
 import org.arend.psi.ArendPsiFactory
 
 class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHandler(true) {
-    private var repl = object : IntellijRepl(project) {
+    private val repl = object : IntellijRepl(project) {
         override fun print(anything: Any?) =
             consoleView.print(anything.toString(), ConsoleViewContentType.NORMAL_OUTPUT)
 
@@ -41,6 +41,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
     init {
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
+        repl.initialize()
     }
 
     private fun createFile(p: Project, v: VirtualFile) = ArendPsiFactory(p)
