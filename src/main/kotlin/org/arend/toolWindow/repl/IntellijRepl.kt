@@ -49,7 +49,7 @@ abstract class IntellijRepl private constructor(
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
 
     final override fun loadPreludeLibrary() {
-        service.initialize()
+        if (service.initialize()) println("[INFO] Initialized prelude.")
         val prelude = service.prelude
         if (prelude != null) myMergedScopes.add(LexicalScope.opened(prelude))
         else eprintln("[FATAL] Failed to obtain prelude scope")
