@@ -18,9 +18,9 @@ class ArendReplFactory : ToolWindowFactory, DumbAware {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val handler = ArendReplExecutionHandler(project)
-        Disposer.register(toolWindow.disposable, handler.disposable)
+        Disposer.register(toolWindow.disposable, handler.consoleView)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)
-        toolWindowPanel.setContent(handler.component)
+        toolWindowPanel.setContent(handler.consoleView.component)
         toolWindowPanel.toolbar = ActionManager.getInstance()
             .createActionToolbar(TITLE, handler.createActionGroup(), true).component
         val content = ContentFactory.SERVICE.getInstance()
