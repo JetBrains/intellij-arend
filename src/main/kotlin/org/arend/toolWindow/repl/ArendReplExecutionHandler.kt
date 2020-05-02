@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import org.arend.ArendLanguage
 import org.arend.psi.ArendPsiFactory
+import org.arend.repl.CommandHandler
 
 class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHandler(true) {
     private val repl = object : IntellijRepl(project) {
@@ -47,11 +48,18 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
     private fun createFile(p: Project, v: VirtualFile) = ArendPsiFactory(p)
         .createFromText(v.inputStream.reader().readText())
 
+    private fun resetRepl() = ApplicationManager.getApplication().invokeLater {
+        consoleView.clear()
+        consoleView.print("Type ", ConsoleViewContentType.NORMAL_OUTPUT)
+        consoleView.printHyperlink(":?") {
+            CommandHandler.HELP_COMMAND_INSTANCE("", repl) { "" }
+        }
+        consoleView.print(" for help.\n", ConsoleViewContentType.NORMAL_OUTPUT)
+    }
+
     fun createActionGroup() = DefaultActionGroup(
         object : DumbAwareAction("Clear", null, AllIcons.Actions.GC) {
-            override fun actionPerformed(event: AnActionEvent) = ApplicationManager.getApplication().invokeLater {
-                consoleView.clear()
-            }
+            override fun actionPerformed(event: AnActionEvent) = resetRepl()
         }
     )
 }
