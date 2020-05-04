@@ -16,6 +16,9 @@ import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.SimpleReferableConverter
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
@@ -61,6 +64,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         // Initialize prelude
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
+        this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
         preludeLibrary.prelude?.generatedModulePath = FullModulePath(Prelude.LIBRARY_NAME, FullModulePath.LocationKind.GENERATED, Prelude.MODULE_PATH.toList())
         val referableConverter = newReferableConverter(false)
@@ -83,15 +87,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return true
     }
 
+    private var preludeLibrary: ArendPreludeLibrary? = null
+
     val prelude: ArendFile?
-        get() {
-            for (library in libraryManager.registeredLibraries) {
-                if (library is ArendPreludeLibrary) {
-                    return library.prelude
-                }
-            }
-            return null
-        }
+        get() = preludeLibrary?.prelude
+
+    val preludeScope: Scope
+        get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
 
     fun reload() {
         externalAdditionalNamesIndex.clear()

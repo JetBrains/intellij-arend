@@ -13,7 +13,7 @@ import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.elimtree.IntervalElim
 import org.arend.core.expr.*
-import org.arend.core.expr.visitor.ToAbstractVisitor
+import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.ExpressionPattern

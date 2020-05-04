@@ -19,7 +19,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ScopeDefinitionRenamer
-import org.arend.core.expr.visitor.ToAbstractVisitor
+import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
