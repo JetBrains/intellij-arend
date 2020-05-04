@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import org.arend.error.ListErrorReporter
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
-import org.arend.naming.scope.LexicalScope
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.LocatedReferableConverter
 import org.arend.repl.Repl
@@ -46,8 +45,8 @@ abstract class IntellijRepl private constructor(
 
     final override fun loadLibraries() {
         if (service.initialize()) println("[INFO] Initialized prelude.")
-        val prelude = service.prelude
-        if (prelude != null) myMergedScopes.add(LexicalScope.opened(prelude))
-        else eprintln("[FATAL] Failed to obtain prelude scope")
+        val prelude = service.preludeScope
+        myMergedScopes.add(prelude)
+        if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
     }
 }
