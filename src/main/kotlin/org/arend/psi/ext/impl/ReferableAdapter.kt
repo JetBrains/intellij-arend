@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.reference.Precedence
+import org.arend.psi.ArendAlias
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
 import org.arend.psi.ancestor
@@ -19,6 +20,14 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     abstract fun getPrec(): ArendPrec?
+
+    abstract fun getAlias(): ArendAlias?
+
+    override fun hasAlias() = getAlias() != null
+
+    override fun getAliasName() = getAlias()?.id?.text
+
+    override fun getAliasPrecedence() = calcPrecedence(getAlias()?.prec)
 
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(getPrec())
 

@@ -36,7 +36,7 @@ import static org.arend.psi.ArendElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\r\n] .* | {EOL})?)
+LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})?)
 BLOCK_COMMENT_START = "{-"
 BLOCK_COMMENT_END   = "-}"
 
@@ -49,7 +49,7 @@ LINE_DOC_TEXT = .* | {EOL}
 NUMBER              = [0-9]+
 NEGATIVE_NUMBER     = -[0-9]+
 
-START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_]
+START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
 KEYWORD             = \\[0-9]*{ID}
 
 ID_CHAR             = {START_CHAR} | [0-9']
@@ -97,6 +97,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     "\\property"            { return PROPERTY_KW; }
     "\\classifying"         { return CLASSIFYING_KW; }
     "\\noclassifying"       { return NO_CLASSIFYING_KW; }
+    "\\alias"               { return ALIAS_KW; }
     "\\infix"               { return INFIX_NON_KW; }
     "\\infixl"              { return INFIX_LEFT_KW; }
     "\\infixr"              { return INFIX_RIGHT_KW; }
