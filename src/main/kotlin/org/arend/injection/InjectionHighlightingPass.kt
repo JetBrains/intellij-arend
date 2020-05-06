@@ -11,12 +11,12 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.*
+import org.arend.psi.ext.impl.ReferableAdapter
 
 class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val editor: Editor)
     : TextEditorHighlightingPass(file.project, editor.document, false) {
@@ -38,8 +38,11 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                     val last = if (dot != null) dot else {
                         val refs = o.refIdentifierList
                         val ref = refs.lastOrNull()
-                        if ((ref?.reference?.resolve() as? ArendDefinition)?.precedence?.isInfix == true) {
-                            holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                        (ref?.reference?.resolve() as? ReferableAdapter<*>)?.let {
+                            val alias = it.getAlias()
+                            if (ReferableAdapter.calcPrecedence(alias?.prec).isInfix || alias == null && ReferableAdapter.calcPrecedence(it.getPrec()).isInfix) {
+                                holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                            }
                         }
                         if (refs.size > 1) ref?.prevSibling else null
                     }
