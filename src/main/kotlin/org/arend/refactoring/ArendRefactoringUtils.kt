@@ -1,7 +1,9 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiComment
@@ -11,6 +13,11 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
+import org.arend.core.context.param.DependentLink
+import org.arend.core.definition.Definition
+import org.arend.core.expr.Expression
+import org.arend.core.expr.FunCallExpression
+import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
@@ -23,11 +30,13 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteExpressionVisitor
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import org.arend.util.mapFirstNotNull
@@ -211,6 +220,13 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
 }
 
 fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
+
+fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompositeElement, preludeItem: Definition): String {
+    //Notice that this method may modify PSI (by writing "import Prelude" in the file header)
+    val itemName = preludeItem.name
+    val itemReferable = project.service<TypeCheckingService>().preludeScope.resolveName(itemName)
+    return ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location) ?: itemName
+}
 
 fun statCmdName(statCmd: ArendStatCmd) =
         (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString()
@@ -439,6 +455,33 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     }
 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+}
+
+// Support of pattern-matching on idp in refactorings
+enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
+
+fun admitsPatternMatchingOnIdp(expr: Expression, caseParameters: DependentLink?): PatternMatchingOnIdpResult {
+    if (expr is FunCallExpression && expr.definition == Prelude.PATH_INFIX) {
+        val leftSide = expr.defCallArguments.getOrNull(1)
+        val rightSide = expr.defCallArguments.getOrNull(2)
+        if (leftSide != null && rightSide != null) {
+            val leftBinding = (leftSide as? ReferenceExpression)?.binding
+            val rightBinding = (rightSide as? ReferenceExpression)?.binding
+            var leftSideOk = caseParameters == null && leftBinding != null
+            var rightSideOk = caseParameters == null && rightBinding != null
+            if (caseParameters != null) {
+                var caseP = caseParameters
+                while (caseP?.hasNext() == true) {
+                    if (caseP == leftBinding) leftSideOk = true
+                    if (caseP == rightBinding) rightSideOk = true
+                    caseP = caseP.next
+                }
+            }
+            return if ((leftSideOk || rightSideOk) && leftBinding != rightBinding)
+                PatternMatchingOnIdpResult.IDP else PatternMatchingOnIdpResult.DO_NOT_ELIMINATE
+        }
+    }
+    return PatternMatchingOnIdpResult.INAPPLICABLE
 }
 
 // Binop util method plus auxiliary stuff

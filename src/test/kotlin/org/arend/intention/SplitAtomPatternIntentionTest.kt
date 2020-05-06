@@ -354,4 +354,51 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc (suc n) => {?}
        }        
     """)
+
+    fun test_86_1() = typedCheckNoQuickFixes("Split", """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case x, p \with {
+         | n, p{-caret-} => {?}
+       }
+    """)
+
+     fun test_86_2() = typedQuickFixTest("Split", """
+        \func bar (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
+          | n, q{-caret-} => {?}
+        }
+     """, """
+        \func bar (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
+          | n, idp => {?}
+        }
+     """)
+
+    fun test_86_3() = typedQuickFixTest("Split", """
+       \data Foo
+         | foo (x y : Nat) (p : x = y)
+
+       \func bar (f : Foo) : Nat => \case f \with {
+         | foo x y p{-caret-} => {?}
+       } 
+    """, """
+       \data Foo
+         | foo (x y : Nat) (p : x = y)
+
+       \func bar (f : Foo) : Nat => \case f \with {
+         | foo x y idp => {?}
+       } 
+    """)
+
+    fun test_86_4() = typedQuickFixTest("Split", """
+       \func foo (x y : Nat) (p : x = y) : Nat \elim x, p
+         | n, p{-caret-} => {?} 
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat \elim x, p
+         | n, idp => {?} 
+    """)
+
+    fun test_86_5() = typedCheckNoQuickFixes("Split", """
+       \func foo (x : Nat) (p : x = x) : Nat \elim x, p
+         | x, p{-caret-} => {?}
+    """)
+
+
 }

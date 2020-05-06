@@ -11,8 +11,6 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
-import org.arend.core.expr.FunCallExpression
-import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.EmptyPattern
@@ -24,11 +22,9 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.VariableImpl
-import org.arend.refactoring.calculateOccupiedNames
+import org.arend.refactoring.*
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.local.MissingClausesError
 import kotlin.math.abs
 
@@ -239,33 +235,6 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
         }
 
-        private enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
-        private fun admitsPatternMatchingOnIdp(sampleParameter: DependentLink,
-                                               caseParameters: DependentLink?): PatternMatchingOnIdpResult {
-            val expr = sampleParameter.type.expr
-            if (expr is FunCallExpression && expr.definition == Prelude.PATH_INFIX) {
-                val leftSide = expr.defCallArguments.getOrNull(1)
-                val rightSide = expr.defCallArguments.getOrNull(2)
-                if (leftSide != null && rightSide != null) {
-                    val leftBinding = (leftSide as? ReferenceExpression)?.binding
-                    val rightBinding = (rightSide as? ReferenceExpression)?.binding
-                    var leftSideOk = caseParameters == null && leftBinding != null
-                    var rightSideOk = caseParameters == null && rightBinding != null
-                    if (caseParameters != null) {
-                        var caseP = caseParameters
-                        while (caseP?.hasNext() == true) {
-                            if (caseP == leftBinding) leftSideOk = true
-                            if (caseP == rightBinding) rightSideOk = true
-                            caseP = caseP.next
-                        }
-                    }
-                    return if ((leftSideOk || rightSideOk) && leftBinding != rightBinding)
-                    PatternMatchingOnIdpResult.IDP else PatternMatchingOnIdpResult.DO_NOT_ELIMINATE
-                }
-            }
-            return PatternMatchingOnIdpResult.INAPPLICABLE
-        }
-
         private fun getIntegralNumber(pattern: ConstructorExpressionPattern): Int? {
             val isSuc = pattern.definition == Prelude.SUC
             val isPos = pattern.definition == Prelude.POS
@@ -306,12 +275,10 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val definition: Definition? = pattern.definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
                     val integralNumber = getIntegralNumber(pattern)
-                    val patternMatchingOnIdp = admitsPatternMatchingOnIdp(sampleParameter, if (cause is ArendCaseExpr) missingClausesError.parameters else null)
-
+                    val patternMatchingOnIdp = admitsPatternMatchingOnIdp(sampleParameter.type.expr, if (cause is ArendCaseExpr) missingClausesError.parameters else null)
                     if (patternMatchingOnIdp != PatternMatchingOnIdpResult.INAPPLICABLE) {
-                        val idpReferable = project.service<TypeCheckingService>().preludeScope.resolveName("idp")
                         if (patternMatchingOnIdp == PatternMatchingOnIdpResult.IDP)
-                            getTargetName(idpReferable as PsiLocatedReferable, cause) ?: Prelude.IDP.name
+                            getCorrectPreludeItemStringReference(project, cause, Prelude.IDP)
                         else getFreshName(sampleParameter)
                     } else if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
                         integralNumber.toString()
