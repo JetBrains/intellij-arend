@@ -71,6 +71,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         wrapTag("b") {
             html(element.textRepresentation())
         }
+        (element as? ReferableAdapter<*>)?.getAlias()?.id?.text?.let {
+            html(" $it")
+        }
 
         for (parameter in (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()) {
             if (parameter is PsiElement) {
