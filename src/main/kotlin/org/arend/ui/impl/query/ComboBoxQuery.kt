@@ -3,7 +3,7 @@ package org.arend.ui.impl.query
 import com.intellij.openapi.ui.ComboBox
 import org.arend.ext.ui.ArendQuery
 
-class ComboBoxQuery<T>(val message: String?, list: List<T>) : ArendQuery<T> {
+class ComboBoxQuery<T>(list: List<T>) : ArendQuery<T> {
     val comboBox = ComboBox(Array<Any?>(list.size) { list[it] })
 
     @Suppress("UNCHECKED_CAST")

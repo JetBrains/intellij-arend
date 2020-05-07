@@ -7,8 +7,8 @@ import org.arend.ext.ui.ArendUI
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.ui.impl.session.ArendToolWindowSession
 
-open class ArendGeneralUI(private val project: Project) : ArendUI {
-    override fun newSession(): ArendSession = ArendToolWindowSession()
+open class ArendGeneralUI(protected val project: Project) : ArendUI {
+    override fun newSession(): ArendSession = ArendToolWindowSession(project)
 
     override fun showMessage(title: String?, message: String) {
         NotificationErrorReporter.notify(GeneralError.Level.INFO, title, message, project)

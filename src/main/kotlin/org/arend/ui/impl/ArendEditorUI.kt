@@ -8,7 +8,7 @@ import org.arend.ext.ui.ArendSession
 import org.arend.ui.impl.session.ArendEditorSession
 
 class ArendEditorUI(project: Project, private val editor: Editor) : ArendGeneralUI(project) {
-    override fun newSession(): ArendSession = ArendEditorSession(editor)
+    override fun newSession(): ArendSession = ArendEditorSession(project, editor)
 
     override fun showMessage(title: String?, message: String) {
         val editor = this.editor

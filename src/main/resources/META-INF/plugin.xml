@@ -263,6 +263,8 @@
 
         <projectService serviceImplementation="org.arend.highlight.ArendPassFactoryService"/>
 
+        <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
+
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>

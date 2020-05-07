@@ -3,6 +3,7 @@ package org.arend.quickfix
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -47,10 +48,12 @@ class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal
     }
 
     private fun invokeOnConcrete(concrete: Concrete.Expression, project: Project, editor: Editor) {
-        val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
-        ApplicationManager.getApplication().runWriteAction {
+        runReadAction {
             if (element.isValid && !editor.isDisposed) {
-                replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
+                ApplicationManager.getApplication().runWriteAction {
+                    replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                }
             }
         }
     }
