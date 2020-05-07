@@ -37,6 +37,7 @@ import java.util.Collections.singletonList
 
 class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
     private var splitPatternEntries: List<SplitPatternEntry>? = null
+    private var caseClauseParameters: DependentLink? = null
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         val defIdentifier = when (element) {
@@ -44,27 +45,28 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             is ArendAtomPatternOrPrefix -> element.defIdentifier
             else -> null
         }
+        val project = editor.project
+        this.splitPatternEntries = null
 
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
             val type = getElementType(element, editor)
-            if (type is DataCallExpression) {
-                val constructors = type.matchedConstructors ?: return false
-                this.splitPatternEntries = constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
-                return true
-            }
-            if (type is SigmaExpression) {
-                this.splitPatternEntries = singletonList(TupleSplitPatternEntry(type.parameters))
-                return true
-            }
-            if (type is ClassCallExpression) {
-                val definition = type.definition
-                if (definition.isRecord) {
-                    this.splitPatternEntries = singletonList(RecordSplitPatternEntry(type, definition))
-                    return true
+
+            this.splitPatternEntries = when (type) {
+                is DataCallExpression -> {
+                    val constructors = type.matchedConstructors ?: return false
+                    constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
                 }
+                is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
+                is ClassCallExpression -> {
+                    val definition = type.definition
+                    if (definition.isRecord) singletonList(RecordSplitPatternEntry(type, definition)) else null
+                }
+                is Expression -> if (project != null && admitsPatternMatchingOnIdp(type, caseClauseParameters) == PatternMatchingOnIdpResult.IDP)
+                    singletonList(IdpPatternEntry(project)) else null
+                else -> null
             }
         }
-        return false
+        return this.splitPatternEntries != null
     }
 
     override fun applyTo(element: PsiElement, project: Project, editor: Editor) {
@@ -73,6 +75,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     private fun getElementType(element: PsiElement, editor: Editor): Expression? {
         val project = editor.project
+        caseClauseParameters = null
         if (project != null) {
             var definition: TCDefinition? = null
             val (patternOwner, indexList) = locatePattern(element) ?: return null
@@ -127,8 +130,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
+                val clauseIndex2 = ownerParent.clauseList.indexOf(patternOwner)
                 val caseExprData = tryCorrespondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project, editor)
-                if (caseExprData?.subCore is CaseExpression) {
+                val coreCaseExpr = caseExprData?.subCore
+                if (coreCaseExpr is CaseExpression) {
+                    val coreClause = coreCaseExpr.elimBody.clauses.getOrNull(clauseIndex2)
+                    caseClauseParameters = coreClause?.parameters
                     val bindingData = caseExprData.findBinding(element.textRange)
                     return bindingData?.second
                 }
@@ -262,6 +269,16 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }.trim()
 
             override fun requiresParentheses(): Boolean = true
+        }
+
+        class IdpPatternEntry(val project: Project): SplitPatternEntry {
+            override fun initParams(occupiedNames: MutableSet<Variable>) { }
+
+            override fun patternString(location: ArendCompositeElement): String = getCorrectPreludeItemStringReference(project, location, Prelude.IDP)
+
+            override fun expressionString(location: ArendCompositeElement): String = patternString(location)
+
+            override fun requiresParentheses(): Boolean = false
         }
 
         fun doSplitPattern(element: PsiElement, project: Project, splitPatternEntries: Collection<SplitPatternEntry>, generateBody: Boolean = false) {
