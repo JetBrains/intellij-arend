@@ -25,7 +25,7 @@ abstract class ArendStatCmdImplMixin(node: ASTNode) : ArendSourceNodeImpl(node),
 
     override fun getOpenedReferences(): List<ArendNsId> = nsUsing?.nsIdList ?: emptyList()
 
-    override fun getHiddenReferences() = refIdentifierList.map { NamedUnresolvedReference(it, it.text) }
+    override fun getHiddenReferences() = refIdentifierList.map { NamedUnresolvedReference(it, it.referenceName) }
 
     override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
