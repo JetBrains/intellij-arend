@@ -51,21 +51,24 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun loadHeader(errorReporter: ErrorReporter) =
         LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
 
+    fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
+        val builder = StringBuilder()
+        scopeToText(scope, "", builder)
+        val file = PsiFileFactory.getInstance(config.project).createFileFromText(modulePath.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return
+        file.virtualFile.isWritable = false
+        file.generatedModulePath = FullModulePath(name, FullModulePath.LocationKind.GENERATED, modulePath.toList())
+        fillGroup(file, scope)
+        config.project.service<TypeCheckingService>().fillAdditionalNames(file, isExternal)
+        config.addAdditionalModule(modulePath, file)
+    }
+
     override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (!super.load(libraryManager, typechecking)) {
             return false
         }
 
-        val service = config.project.service<TypeCheckingService>()
         for (entry in additionalModules) {
-            val builder = StringBuilder()
-            scopeToText(entry.value, "", builder)
-            val file = PsiFileFactory.getInstance(config.project).createFileFromText(entry.key.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: continue
-            file.virtualFile.isWritable = false
-            file.generatedModulePath = FullModulePath(name, FullModulePath.LocationKind.GENERATED, entry.key.toList())
-            fillGroup(file, entry.value)
-            service.fillAdditionalNames(file, isExternal)
-            config.addAdditionalModule(entry.key, file)
+            addGeneratedModule(entry.key, entry.value)
         }
 
         return true

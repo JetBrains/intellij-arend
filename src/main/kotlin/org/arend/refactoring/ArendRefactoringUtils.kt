@@ -57,7 +57,7 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
         return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile
     }
 
-    fun isValid() = importFileCanBeFound() || isPrelude(importFile)
+    fun isValid() = importFile.generatedModulePath != null || importFileCanBeFound()
 
     override fun execute(editor: Editor?) {
         val factory = ArendPsiFactory(importFile.project)
@@ -219,7 +219,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
     }
 }
 
-fun isPrelude(file: ArendFile) = file.modulePath == Prelude.MODULE_PATH && file.containingDirectory == null
+fun isPrelude(file: ArendFile) = file.generatedModulePath == Prelude.MODULE_PATH
 
 fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompositeElement, preludeItem: Definition): String {
     //Notice that this method may modify PSI (by writing "import Prelude" in the file header)
