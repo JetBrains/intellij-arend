@@ -71,7 +71,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
         return element.scope.elements.mapNotNull { origElement ->
             val ref = origElement.underlyingReferable
-            if (ref is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
+            if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
