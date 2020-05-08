@@ -822,4 +822,30 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 
                \func foo => Main 
             """)
+
+    fun `test alias import 1`() =
+            simpleImportFixTest("""
+               --! A.ard
+               \func foo \alias bar => 101 
+               --! Main.ard
+               \func fubar => foo{-caret-} 
+            """, """
+               \import A
+               
+               \func fubar => bar
+            """)
+
+    fun `test alias import 2`() =
+            simpleImportFixTest("""
+               --! A.ard
+               \func M \alias N => 202 \where {
+                 \func foo \alias bar => 101
+               }
+               --! Main.ard
+               \func fubar => bar{-caret-} 
+            """, """
+               \import A
+               
+               \func fubar => N.bar
+            """)
 }
