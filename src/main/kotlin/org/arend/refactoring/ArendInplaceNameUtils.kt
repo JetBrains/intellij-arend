@@ -2,6 +2,7 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
+import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
@@ -194,10 +195,10 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
 
     fun getComplementScope(): Scope {
         val targetContainers = myLongNameWithRefs.reversed().map { it.second }
-        return object : ListScope(targetContainers) {
+        return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
             override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
-                    .firstOrNull { name == it.textRepresentation() }
+                    .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
         }
     }
