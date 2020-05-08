@@ -21,22 +21,29 @@ import java.util.*
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
     override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>) {
         val elementToSearch = parameters.elementToSearch
+        val standardName = (elementToSearch as? GlobalReferable)?.refName
+        val aliasName = (elementToSearch as? GlobalReferable)?.aliasName
         val scope = parameters.scopeDeterminedByUser
+
         val fileBasedIndex = FileBasedIndex.getInstance()
         val project = parameters.project
 
-        if (scope is GlobalSearchScope && elementToSearch is GlobalReferable)
+        if (scope is GlobalSearchScope && standardName != null)
             ApplicationManager.getApplication().runReadAction {
-                val name = elementToSearch.textRepresentation()
-                val indexEntry = IdIndexEntry(name, true)
-                val fileSet = THashSet<VirtualFile>()
+                fun doSearch(name: String) {
+                    val fileSet = THashSet<VirtualFile>()
+                    fileBasedIndex.getFilesWithKey(IdIndex.NAME, Collections.singleton(IdIndexEntry(name, true)), Processors.cancelableCollectProcessor(fileSet), scope)
+                    fileSet.mapNotNull { PsiManager.getInstance(project).findFile(it) }.filterIsInstance<ArendFile>()
+                            .forEach { parameters.optimizer.searchWord(name, LocalSearchScope(it), true, elementToSearch) }
+                }
 
-                fileBasedIndex.getFilesWithKey(IdIndex.NAME, Collections.singleton(indexEntry), Processors.cancelableCollectProcessor(fileSet), scope)
-
-                fileSet.mapNotNull { PsiManager.getInstance(project).findFile(it) }
-                    .filter { it is ArendFile }
-                    .forEach { parameters.optimizer.searchWord(name, LocalSearchScope(it), true, elementToSearch) }
-            }
+                doSearch(standardName)
+                if (aliasName != null) doSearch(aliasName)
+            } else if (aliasName != null && standardName != null) {
+            parameters.optimizer.takeSearchRequests()
+            parameters.optimizer.searchWord(aliasName, scope,true, elementToSearch)
+            parameters.optimizer.searchWord(standardName, scope, true, elementToSearch)
+        }
     }
 
 }
