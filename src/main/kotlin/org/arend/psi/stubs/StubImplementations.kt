@@ -19,7 +19,7 @@ class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubI
     override fun getType(): Type = Type
 
     object Type : IStubFileElementType<ArendFileStub>(ArendLanguage.INSTANCE) {
-        override fun getStubVersion() = 3
+        override fun getStubVersion() = 4
 
         override fun getBuilder() = object : DefaultStubBuilder() {
             override fun createStubForFile(file: PsiFile): StubElement<*> =
