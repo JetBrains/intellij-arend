@@ -11,7 +11,6 @@ import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
@@ -47,7 +46,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         ProjectManager.getInstance().addProjectManagerListener(project, this)
 
         toolWindow.setIcon(ArendIcons.MESSAGES)
-        toolWindow.contentManager.addContent(ContentFactory.SERVICE.getInstance().createContent(splitter, "", false))
+        val contentManager = toolWindow.contentManager
+        contentManager.addContent(contentManager.factory.createContent(splitter, "", false))
 
         tree.cellRenderer = ArendErrorTreeCellRenderer(tree)
         tree.addTreeSelectionListener(this)

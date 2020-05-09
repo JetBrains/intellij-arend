@@ -27,7 +27,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         get() = this
 
     override val referenceName: String
-        get() = text
+        get() = id.text
 
     override val longName: List<String>
         get() = listOf(referenceName)
@@ -122,7 +122,7 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         get() = this
 
     override val referenceName: String
-        get() = text
+        get() = id.text
 
     override val longName: List<String>
         get() = (parent as? ArendLongName)?.refIdentifierList?.mapUntilNotNull { if (it == this) null else it.referenceName }?.apply { add(referenceName) }

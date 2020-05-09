@@ -18,23 +18,27 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
         val ERROR_NOTIFICATIONS = NotificationGroup("Arend Error Messages", NotificationDisplayType.STICKY_BALLOON, true)
         val WARNING_NOTIFICATIONS = NotificationGroup("Arend Warning Messages", NotificationDisplayType.BALLOON, true)
         val INFO_NOTIFICATIONS = NotificationGroup("Arend Info Messages", NotificationDisplayType.NONE, true)
+
+        fun notify(level: Level?, title: String?, content: String, project: Project) {
+            val group = when (level) {
+                Level.ERROR -> ERROR_NOTIFICATIONS
+                Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> WARNING_NOTIFICATIONS
+                Level.INFO, null -> INFO_NOTIFICATIONS
+            }
+            val type = when (level) {
+                Level.ERROR -> NotificationType.ERROR
+                Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> NotificationType.WARNING
+                Level.INFO, null -> NotificationType.INFORMATION
+            }
+            group.createNotification(title, null, content, type, null).notify(project)
+        }
     }
 
     override fun report(error: GeneralError) {
-        val group = when (error.level) {
-            Level.ERROR -> ERROR_NOTIFICATIONS
-            Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> WARNING_NOTIFICATIONS
-            Level.INFO -> INFO_NOTIFICATIONS
-        }
-        val type = when (error.level) {
-            Level.ERROR -> NotificationType.ERROR
-            Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> NotificationType.WARNING
-            Level.INFO -> NotificationType.INFORMATION
-        }
         val newPPConfig = PrettyPrinterConfigWithRenamer(ppConfig, EmptyScope.INSTANCE)
         val title = DocStringBuilder.build(error.getHeaderDoc(newPPConfig))
         val content = DocStringBuilder.build(error.getBodyDoc(newPPConfig))
-        group.createNotification(title, content, type, null).notify(project)
+        notify(error.level, title, content, project)
     }
 
     fun info(msg: String) {

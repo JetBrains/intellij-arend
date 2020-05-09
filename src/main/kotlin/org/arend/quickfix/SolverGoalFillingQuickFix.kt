@@ -3,6 +3,7 @@ package org.arend.quickfix
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -18,7 +19,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.typechecking.visitor.CheckTypeVisitor
-import org.arend.ui.impl.ArendUIImpl
+import org.arend.ui.impl.ArendEditorUI
 
 class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal: GoalError) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
@@ -29,15 +30,11 @@ class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal
                 cannotSolve(editor)
                 return
             }
-            goal.goalSolver.trySolve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendUIImpl(editor)) {
-                if (it != null) {
-                    if (it !is Concrete.Expression) throw IllegalArgumentException()
-                    CommandProcessor.getInstance().executeCommand(project, {
-                        invokeOnConcrete(it, project, editor)
-                    }, text, null, editor.document)
-                } else {
-                    cannotSolve(editor)
-                }
+            goal.goalSolver.trySolve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
+                if (it !is Concrete.Expression) throw IllegalArgumentException()
+                CommandProcessor.getInstance().executeCommand(project, {
+                    invokeOnConcrete(it, project, editor)
+                }, text, null, editor.document)
             }
         }
     }
@@ -51,10 +48,12 @@ class SolverGoalFillingQuickFix(private val element: ArendExpr, private val goal
     }
 
     private fun invokeOnConcrete(concrete: Concrete.Expression, project: Project, editor: Editor) {
-        val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
-        ApplicationManager.getApplication().runWriteAction {
+        runReadAction {
             if (element.isValid && !editor.isDisposed) {
-                replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
+                ApplicationManager.getApplication().runWriteAction {
+                    replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                }
             }
         }
     }

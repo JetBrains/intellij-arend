@@ -152,7 +152,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }
 
             if (context.accepts(o)) true else
-                if (tele?.text == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+                if (tele == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
                     result is ArendSigmaExpr || result is ArendPiExpr
         }
 
