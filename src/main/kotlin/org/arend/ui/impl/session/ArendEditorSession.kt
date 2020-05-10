@@ -11,9 +11,10 @@ import org.arend.ArendIcons
 import org.arend.core.definition.Definition
 import org.arend.extImpl.ui.DelegateQuery
 import org.arend.extImpl.ui.SimpleQuery
+import org.arend.psi.ext.PsiReferable
+import org.arend.ui.cellRenderer.ArendDefinitionListCellRenderer
 import org.arend.ui.ArendDialog
-import javax.swing.JList
-import javax.swing.ListSelectionModel
+import javax.swing.*
 
 class ArendEditorSession(private val project: Project, private val editor: Editor) : ComponentSession() {
     private var singleListRequest: ListRequest<Any>? = null
@@ -37,7 +38,7 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
     }
 
     override fun <T> listQuery(message: String?, options: List<T>, defaultOption: T?) =
-        if (singleListRequest == null && items.isEmpty()) {
+        if (singleListRequest == null && items.isEmpty() && options.isNotEmpty()) {
             val request = ListRequest(message, options, defaultOption)
             val query = request.query
             @Suppress("UNCHECKED_CAST")
@@ -52,21 +53,32 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
         val query = SimpleQuery<T>()
         request.query.setDelegate(query)
 
-        val builder = JBPopupFactory.getInstance().createPopupChooserBuilder(request.list)
-            .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-            .setFont(EditorUtil.getEditorFont())
-            .setRenderer(object : ColoredListCellRenderer<T>() {
-                override fun customizeCellRenderer(list: JList<out T>, value: T, index: Int, selected: Boolean, hasFocus: Boolean) {
-                    if (value is Definition) {
-                        icon = ArendIcons.definitionToIcon(value)
-                    }
-                    append(value.toString())
+        val psiList = request.list.mapNotNull { (it as? Definition)?.referable?.underlyingReferable as? PsiReferable }
+        val usePsi = psiList.size == request.list.size
+        val builder = if (usePsi) {
+            JBPopupFactory.getInstance().createPopupChooserBuilder(psiList)
+                .setRenderer(ArendDefinitionListCellRenderer)
+                .setItemChosenCallback {
+                    query.result = request.list.getOrNull(psiList.indexOf(it))
+                    endSession(true)
                 }
-            })
-            .setItemChosenCallback {
-                query.result = it
-                endSession(true)
-            }
+        } else {
+            JBPopupFactory.getInstance().createPopupChooserBuilder(request.list)
+                .setRenderer(object : ColoredListCellRenderer<T>() {
+                    override fun customizeCellRenderer(list: JList<out T>, value: T, index: Int, selected: Boolean, hasFocus: Boolean) {
+                        if (value is Definition) {
+                            icon = ArendIcons.definitionToIcon(value)
+                        }
+                        append(value.toString())
+                    }
+                })
+                .setItemChosenCallback {
+                    query.result = it
+                    endSession(true)
+                }
+        }
+        builder.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+            .setFont(EditorUtil.getEditorFont())
         if (callback != null) {
             builder.addListener(object : JBPopupListener {
                 override fun onClosed(event: LightweightWindowEvent) {
