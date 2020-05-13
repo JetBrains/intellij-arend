@@ -1,4 +1,4 @@
-package org.arend.editor
+package org.arend.ui.cellRenderer
 
 import java.awt.Component
 import javax.swing.DefaultListCellRenderer

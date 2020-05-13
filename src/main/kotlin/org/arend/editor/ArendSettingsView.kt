@@ -9,6 +9,7 @@ import com.intellij.ui.layout.panel
 import com.intellij.ui.layout.selected
 import com.intellij.ui.layout.selectedValueIs
 import org.arend.settings.ArendSettings
+import org.arend.ui.cellRenderer.ToolTipListCellRenderer
 import org.arend.util.labeled
 import org.arend.util.cellRow
 import org.arend.util.checked

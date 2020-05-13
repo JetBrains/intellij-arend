@@ -11,23 +11,16 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
-import com.intellij.openapi.editor.ex.MarkupModelEx
-import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.AutoScrollFromSourceHandler
 import com.intellij.ui.UIBundle
-import com.intellij.util.CommonProcessors
-import org.arend.highlight.BasePass
-import org.arend.psi.ArendFile
+import org.arend.actions.selectErrorFromEditor
 import org.arend.settings.ArendProjectSettings
 import org.arend.toolWindow.errors.MessageType
-import org.arend.toolWindow.errors.satisfies
-import org.arend.typechecking.error.ErrorService
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -76,29 +69,8 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
     }
 
     private fun selectElementFromEditor(editor: Editor) {
-        if (editor.project != project) {
-            return
-        }
-
-        val document = editor.document
-        val offset = editor.caretModel.offset
-        // Check that we are in a problem range
-        if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, CommonProcessors.alwaysFalse()) == true) {
-            return
-        }
-
-        val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile ?: return
-        val arendErrors = project.service<ErrorService>().getErrors(file)
-        if (arendErrors.isEmpty()) {
-            return
-        }
-
-        val service = project.service<ArendProjectSettings>()
-        for (arendError in arendErrors) {
-            if (arendError.error.satisfies(service.autoScrollFromSource) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
-                tree.select(arendError.error)
-                break
-            }
+        if (editor.project == project) {
+            selectErrorFromEditor(project, editor, tree, null, false)
         }
     }
 
@@ -110,7 +82,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
     public override fun isAutoScrollEnabled(): Boolean {
         val service = project.service<ArendProjectSettings>()
-        return MessageType.values().any { service.autoScrollFromSource.contains(it) && service.messagesFilterSet.contains(it) }
+        return service.autoScrollFromSource.contains(MessageType.GOAL) && service.messagesFilterSet.contains(MessageType.GOAL)
     }
 
     private inner class MyAction(private val type: MessageType) : ToggleAction("Autoscroll from ${type.toText()}s", null, null), DumbAware {
