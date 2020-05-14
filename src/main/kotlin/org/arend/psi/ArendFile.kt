@@ -36,6 +36,8 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     var generatedModulePath: FullModulePath? = null
 
+    var isRepl = false
+
     val modulePath: FullModulePath?
         get() = generatedModulePath ?: libraryConfig?.getFileModulePath(this)
 

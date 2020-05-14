@@ -12,7 +12,8 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import org.arend.InjectionTextLanguage
+import org.arend.ArendLanguage
+import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.CommandHandler
 
@@ -27,12 +28,15 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
 
     val consoleView = LanguageConsoleBuilder()
         .psiFileFactory { v, p ->
-            PsiManager.getInstance(p).findFile(v) ?: createFile(p, v)
+            toPsiFile(p, v)?.apply { isRepl = true }
         }
         .executionEnabled { true }
         .oneLineInput(false)
         .initActions(this, ArendReplFactory.ID)
-        .build(project, InjectionTextLanguage.INSTANCE)
+        .build(project, ArendLanguage.INSTANCE)
+
+    private fun toPsiFile(p: Project, v: VirtualFile) =
+        PsiManager.getInstance(p).findFile(v) as? ArendFile ?: createFile(p, v)
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
