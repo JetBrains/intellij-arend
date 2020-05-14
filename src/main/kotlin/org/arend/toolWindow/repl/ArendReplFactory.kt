@@ -7,12 +7,15 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import org.arend.ArendLanguage
 
 
 class ArendReplFactory : ToolWindowFactory {
     companion object Constants {
         const val TITLE = "Arend REPL"
         const val ID = "Arend.REPL"
+        // Hacking a behaviour of LanguageConsoleViewBuilder.build
+        val VIRTUAL_FILE_NAME = ArendLanguage.INSTANCE.displayName + " Console"
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {

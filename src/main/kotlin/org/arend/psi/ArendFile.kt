@@ -30,13 +30,14 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
+import org.arend.toolWindow.repl.ArendReplFactory
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     var generatedModulePath: FullModulePath? = null
 
-    var isRepl = false
+    val isFragment get() = virtualFile == null || virtualFile?.name == ArendReplFactory.VIRTUAL_FILE_NAME
 
     val modulePath: FullModulePath?
         get() = generatedModulePath ?: libraryConfig?.getFileModulePath(this)

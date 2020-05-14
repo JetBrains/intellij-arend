@@ -33,14 +33,12 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     }
 
     fun processEvent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
-        if (file.isRepl) return
         for (listener in listeners) {
             processParent(file, child, oldChild, newChild, parent, additionOrRemoval)
         }
     }
 
     fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
-        if (file.isRepl) return
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
@@ -60,7 +58,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
 
     override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
         val file = event.file
-        if (file is ArendFile && file.isRepl) return
+        if (file is ArendFile && file.isFragment) return
         val child = event.child
         if (child is ArendFile) { // whole file has been removed
             invalidateChildren(child, child)
@@ -72,7 +70,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
-        (event.file as? ArendFile)?.takeUnless { it.isRepl }?.let {
+        (event.file as? ArendFile)?.let {
             processChildren(event.child, it)
             processChildren(event.oldChild, it)
             processParent(it, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
@@ -92,7 +90,6 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
             oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
             return
         }
-        if (file.isRepl) return
 
         if (checkCommentStart) {
             var node = (child as? ArendCompositeElement)?.node ?: child as? LeafPsiElement

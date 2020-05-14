@@ -27,9 +27,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
     }
 
     val consoleView = LanguageConsoleBuilder()
-        .psiFileFactory { v, p ->
-            toPsiFile(p, v)?.apply { isRepl = true }
-        }
+        .psiFileFactory { v, p -> toPsiFile(p, v) }
         .executionEnabled { true }
         .oneLineInput(false)
         .initActions(this, ArendReplFactory.ID)
