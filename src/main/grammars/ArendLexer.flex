@@ -47,7 +47,7 @@ BLOCK_DOC_TEXT = ([^\{-] | \{[^-] | -[^\}])+
 LINE_DOC_TEXT = .* | {EOL}
 
 NUMBER              = [0-9]+
-NEGATIVE_NUMBER     = -[0-9]+
+NEGATIVE_NUMBER     = -{NUMBER}
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_]
 KEYWORD             = \\[0-9]*{ID}

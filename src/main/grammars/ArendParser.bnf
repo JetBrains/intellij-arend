@@ -107,7 +107,7 @@
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
 }
 
-statements ::= bare_expr | (topStatement | topStatement_recovery)+
+statements ::= bare_expr | (topStatement | topStatement_recovery)*
 
 bare_expr ::= REPL_COMMAND? expr
 

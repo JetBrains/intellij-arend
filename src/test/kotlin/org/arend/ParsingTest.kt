@@ -13,6 +13,8 @@ class ParsingTest : ParsingTestCase("org/arend/parser/fixtures", ArendFileType.d
 
     fun testMixedReplCommandAndColon() = doTest(true, true)
 
+    fun testMixedReplCommandAndColon2() = doTest(true, true)
+
     fun testReplTypeCommand() = doTest(true, true)
 
     fun testBareExprCommand() = doTest(true, true)
