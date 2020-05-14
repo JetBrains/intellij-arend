@@ -32,7 +32,6 @@ import static org.arend.psi.ArendElementTypes.*;
 %state BLOCK_COMMENT_INNER
 %state BLOCK_DOC_COMMENT_INNER
 %state LINE_DOC_COMMENT_INNER
-%state VERY_BEGINNING
 
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
@@ -64,13 +63,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
 %%
 
-// For REPL
-<VERY_BEGINNING> {
-    :[^ ]+ { yybegin(YYINITIAL); return REPL_COMMAND; }
-}
-
-<YYINITIAL, VERY_BEGINNING> {
-    {WHITE_SPACE}           { yybegin(YYINITIAL); return WHITE_SPACE; }
+<YYINITIAL> {
+    {WHITE_SPACE}           { return WHITE_SPACE; }
 
     "{"                     { return LBRACE; }
     "}"                     { return RBRACE; }
@@ -78,7 +72,7 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     "{?"                    { return LGOAL; }
     "("                     { return LPAREN; }
     ")"                     { return RPAREN; }
-    ":"                     { yybegin(YYINITIAL); return COLON; }
+    ":"                     { return COLON; }
     "->"                    { return ARROW; }
     "=>"                    { return FAT_ARROW; }
     "."                     { return DOT; }
@@ -172,7 +166,9 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
     {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }
-    {ID}                    { yybegin(YYINITIAL); return ID; }
+    // For REPL
+    :{ID}                   { return getTokenStart() == 0 ? REPL_COMMAND : ID; }
+    {ID}                    { return ID; }
 }
 
 <LINE_DOC_COMMENT_INNER> {
