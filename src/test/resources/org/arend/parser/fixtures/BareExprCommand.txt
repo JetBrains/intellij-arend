@@ -1,0 +1,7 @@
+FILE
+  ArendBareExprImpl(BARE_EXPR)
+    ArendNewExprImpl(NEW_EXPR)
+      ArendArgumentAppExprImpl(ARGUMENT_APP_EXPR)
+        ArendAtomFieldsAccImpl(ATOM_FIELDS_ACC)
+          ArendAtomImpl(ATOM)
+            PsiElement(NUMBER)('114514')

@@ -107,7 +107,9 @@
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
 }
 
-statements ::= (topStatement | topStatement_recovery)*
+statements ::= bare_expr | (topStatement | topStatement_recovery)+
+
+bare_expr ::= REPL_COMMAND? expr
 
 private topStatement ::= !<<eof>> statement
 

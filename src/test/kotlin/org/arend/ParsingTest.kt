@@ -8,4 +8,8 @@ class ParsingTest : ParsingTestCase("org/arend/parser/fixtures", ArendFileType.d
     override fun getTestDataPath() = "src/test/resources"
 
     fun testSimpleDef() = doTest(true, true)
+
+    fun testReplTypeCommand() = doTest(true, true)
+
+    fun testBareExprCommand() = doTest(true, true)
 }
