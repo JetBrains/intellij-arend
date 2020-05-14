@@ -11,13 +11,17 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiManager
 import org.arend.ArendLanguage
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.CommandHandler
 
-class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHandler(true) {
+class ArendReplExecutionHandler(
+    project: Project,
+    private val toolWindow: ToolWindow
+) : BaseConsoleExecuteActionHandler(true) {
     private val repl = object : IntellijRepl(project) {
         override fun print(anything: Any?) =
             consoleView.print(anything.toString(), ConsoleViewContentType.NORMAL_OUTPUT)
@@ -38,7 +42,7 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
-        repl.repl(text) { "" }
+        if (repl.repl(text) { "" }) toolWindow.hide()
     }
 
     init {

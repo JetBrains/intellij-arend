@@ -19,7 +19,7 @@ class ArendReplFactory : ToolWindowFactory {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val handler = ArendReplExecutionHandler(project)
+        val handler = ArendReplExecutionHandler(project, toolWindow)
         Disposer.register(toolWindow.disposable, handler.consoleView)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)
         toolWindowPanel.setContent(handler.consoleView.component)
