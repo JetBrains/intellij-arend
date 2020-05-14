@@ -27,13 +27,13 @@ class ArendReplExecutionHandler(project: Project) : BaseConsoleExecuteActionHand
     }
 
     val consoleView = LanguageConsoleBuilder()
-        .psiFileFactory { v, p -> toPsiFile(p, v) }
+        .psiFileFactory(::toPsiFile)
         .executionEnabled { true }
         .oneLineInput(false)
         .initActions(this, ArendReplFactory.ID)
         .build(project, ArendLanguage.INSTANCE)
 
-    private fun toPsiFile(p: Project, v: VirtualFile) =
+    private fun toPsiFile(v: VirtualFile, p: Project) =
         PsiManager.getInstance(p).findFile(v) as? ArendFile ?: createFile(p, v)
 
     override fun execute(text: String, console: LanguageConsoleView) {

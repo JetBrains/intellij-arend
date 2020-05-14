@@ -60,8 +60,11 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     fun createExpressionMaybe(expr: String): ArendExpr? {
-        val code = "\\func foo => $expr"
-        return createFromText(code)?.childOfType()
+        return createReplLine(expr)?.childOfType()
+    }
+
+    fun createReplLine(expr: String): ArendReplLine? {
+        return createFromText(expr)?.childOfType()
     }
 
     fun createExpression(expr: String) =

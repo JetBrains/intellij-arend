@@ -1,5 +1,5 @@
 FILE
-  ArendBareExprImpl(BARE_EXPR)
+  ArendReplLineImpl(REPL_LINE)
     ArendNewExprImpl(NEW_EXPR)
       ArendArgumentAppExprImpl(ARGUMENT_APP_EXPR)
         ArendAtomFieldsAccImpl(ATOM_FIELDS_ACC)

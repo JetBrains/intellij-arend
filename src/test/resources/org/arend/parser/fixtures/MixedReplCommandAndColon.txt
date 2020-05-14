@@ -1,5 +1,5 @@
 FILE
-  ArendBareExprImpl(BARE_EXPR)
+  ArendReplLineImpl(REPL_LINE)
     PsiElement(REPL_COMMAND)(':type')
     PsiWhiteSpace(' ')
     ArendNewExprImpl(NEW_EXPR)
