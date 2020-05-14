@@ -2,6 +2,8 @@ package org.arend.typechecking.execution.configurations
 
 import com.intellij.execution.Executor
 import com.intellij.execution.configurations.*
+import com.intellij.execution.jar.JarApplicationConfiguration
+import com.intellij.execution.jar.JarApplicationConfigurationType
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.options.SettingsEditor
@@ -22,8 +24,7 @@ class TypeCheckConfiguration(
         name,
         TypeCheckRunConfigurationModule(project),
         factory
-    ),
-    RunConfigurationWithSuppressedDefaultDebugAction {
+    ), RunConfigurationWithSuppressedDefaultDebugAction {
 
     @get: com.intellij.util.xmlb.annotations.Transient
     @set: com.intellij.util.xmlb.annotations.Transient
@@ -47,8 +48,18 @@ class TypeCheckConfiguration(
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> =
             TypeCheckRunConfigurationEditor(project)
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
-            TypeCheckRunState(environment, arendTypeCheckCommand)
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        if (environment.runnerSettings is DebuggingRunnerData) {
+            val jarConfiguration = JarApplicationConfigurationType.getInstance().createTemplateConfiguration(project) as JarApplicationConfiguration
+            jarConfiguration.jarPath =  "/home/fedor/codingspace/intellij-arend/cli-1.2.0-full.jar"
+            jarConfiguration.programParameters = project.basePath
+            val jarAppState = jarConfiguration.getState(executor, environment)
+            if (jarAppState != null) {
+                return jarAppState
+            }
+        }
+        return TypeCheckRunState(environment, arendTypeCheckCommand)
+    }
 
     override fun writeExternal(element: Element) {
         super.writeExternal(element)

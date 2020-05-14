@@ -4,6 +4,7 @@ import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.Executor
 import com.intellij.execution.configurations.CommandLineState
+import com.intellij.execution.configurations.PatchedRunnableState
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
@@ -24,7 +25,8 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 class TypeCheckRunState(
         environment: ExecutionEnvironment,
         private val command: TypeCheckCommand
-) : CommandLineState(environment) {
+) : // PatchedRunnableState,
+          CommandLineState(environment) {
 
     override fun startProcess() = TypeCheckProcessHandler(environment.project.service(), command)
 

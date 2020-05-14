@@ -1,6 +1,8 @@
 package org.arend.typechecking.execution
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -49,6 +51,7 @@ class TypeCheckProcessHandler(
     private val typeCheckerService: TypeCheckingService,
     private val command: TypeCheckCommand
 ) : ProcessHandler() {
+        //OSProcessHandler(GeneralCommandLine()) {
     var eventsProcessor: TypecheckingEventsProcessor? = null
     private val indicator: ProgressIndicator = ProgressIndicatorBase()
 
