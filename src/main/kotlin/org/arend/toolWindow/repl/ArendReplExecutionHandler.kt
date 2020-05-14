@@ -23,8 +23,15 @@ class ArendReplExecutionHandler(
     private val toolWindow: ToolWindow
 ) : BaseConsoleExecuteActionHandler(true) {
     private val repl = object : IntellijRepl(project) {
-        override fun print(anything: Any?) =
-            consoleView.print(anything.toString(), ConsoleViewContentType.NORMAL_OUTPUT)
+        override fun print(anything: Any?) {
+            val s = anything.toString()
+            when {
+                s.startsWith("[INFO]") -> consoleView.print(s, ConsoleViewContentType.LOG_INFO_OUTPUT)
+                s.startsWith("[ERROR]") || s.startsWith("[FATAL]") -> consoleView.print(s, ConsoleViewContentType.ERROR_OUTPUT)
+                s.startsWith("[WARN]") || s.startsWith("[WARNING]") -> consoleView.print(s, ConsoleViewContentType.LOG_WARNING_OUTPUT)
+                else -> consoleView.print(s, ConsoleViewContentType.NORMAL_OUTPUT)
+            }
+        }
 
         override fun eprintln(anything: Any?) =
             consoleView.print("$anything\n", ConsoleViewContentType.ERROR_OUTPUT)
