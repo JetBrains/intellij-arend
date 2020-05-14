@@ -1,0 +1,5 @@
+\data List (A : \Type)
+  | nil | \infixr 5 :: A (List A)
+\func \infixr 6 ++ {A : \Type} (a b : List A) : List A \elim a
+  | nil => b
+  | :: a as => a :: (as ++ b)
