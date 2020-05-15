@@ -1,22 +1,18 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
-import com.intellij.openapi.util.Pair
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.SearchScope
 import com.intellij.refactoring.rename.RenameProcessor
+import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
+import com.intellij.refactoring.util.TextOccurrencesUtil
+import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendAlias
 import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.resolving.ArendDefReferenceImpl
-import org.arend.resolving.ArendReference
-import org.arend.resolving.ArendReferenceImpl
-import org.jetbrains.annotations.NotNull
 
 class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
@@ -29,7 +25,11 @@ class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
                 caretElement != null && caretElement.text == elementToRename.refName -> false
                 else -> null
             }
-            if (aliasUnderCaret != null) return ArendInplaceRenamer(elementToRename, element, editor, project, aliasUnderCaret)
+            if (aliasUnderCaret != null) {
+                val aliasName = elementToRename.aliasName
+                val name = if (aliasUnderCaret && aliasName != null) aliasName else elementToRename.refName
+                return ArendInplaceRenamer(elementToRename, element, editor, name, aliasUnderCaret)
+            }
         }
 
         return super.createMemberRenamer(element, elementToRename, editor)
@@ -40,15 +40,9 @@ class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
 class ArendInplaceRenamer(elementToRename: PsiNamedElement,
                           substituted: PsiElement?,
                           editor: Editor,
-                          val project: Project,
-                          val aliasUnderCaret: Boolean): MemberInplaceRenamer(elementToRename, substituted, editor) {
-    override fun getInitialName(): String {
-        val element = myElementToRename
-        if (element is GlobalReferable) {
-            return if (aliasUnderCaret) element.aliasName!! else element.refName
-        }
-        return super.getInitialName()
-    }
+                          name: String,
+                          val aliasUnderCaret: Boolean):
+        MemberInplaceRenamer(elementToRename, substituted, editor, name, name) {
 
     override fun collectRefs(referencesSearchScope: SearchScope?): MutableCollection<PsiReference> {
         val collection = super.collectRefs(referencesSearchScope)
@@ -74,12 +68,21 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
             val element = reference.element
             val textRange = getRangeToRename(reference)
             val referenceText = element.text.substring(textRange.startOffset, textRange.endOffset)
-            return Comparing.strEqual(referenceText, if (aliasUnderCaret) (myElementToRename as GlobalReferable).aliasName else (myElementToRename as GlobalReferable).refName)
+            return Comparing.strEqual(referenceText, myOldName)
         }
         return super.acceptReference(reference)
     }
 
-    override fun createRenameProcessor(element: PsiElement?, newName: String?): RenameProcessor {
-        return super.createRenameProcessor(element, newName) //TODO: Implement proper rename processor
+    override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor = ArendRenameProcessor(element, newName)
+
+    private inner class ArendRenameProcessor(element: PsiElement, newName: String) :
+            RenameProcessor(this@ArendInplaceRenamer.myProject, element, newName,
+                    RenamePsiElementProcessor.forElement(element).isToSearchInComments(element),
+                    RenamePsiElementProcessor.forElement(element).isToSearchForTextOccurrences(element)
+                            && TextOccurrencesUtil.isSearchTextOccurrencesEnabled(element)) {
+        override fun findUsages(): Array<UsageInfo> {
+            val superUsages = super.findUsages()
+            return superUsages
+        }
     }
 }
