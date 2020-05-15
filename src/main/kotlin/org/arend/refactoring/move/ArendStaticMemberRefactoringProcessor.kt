@@ -274,7 +274,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (remainderAnchor is ArendCompositeElement) {
                 val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
                 val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
-                val importData = computeInplaceLongName(targetLocation, sourceContainerFile, remainderAnchor)
+                val importData = calculateReferenceName(targetLocation, sourceContainerFile, remainderAnchor)
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
@@ -322,7 +322,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            val importData = computeInplaceLongName(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
+            val importData = calculateReferenceName(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
             val currentName: List<String>? = importData?.second
 
             if (renamings.isNotEmpty() && currentName != null) {

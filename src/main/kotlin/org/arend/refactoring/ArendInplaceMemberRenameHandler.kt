@@ -3,11 +3,20 @@ package org.arend.refactoring
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
+import com.intellij.openapi.util.Pair
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.search.SearchScope
 import com.intellij.refactoring.rename.RenameProcessor
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
 import org.arend.naming.reference.GlobalReferable
+import org.arend.psi.ArendAlias
+import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.resolving.ArendDefReferenceImpl
+import org.arend.resolving.ArendReference
+import org.arend.resolving.ArendReferenceImpl
+import org.jetbrains.annotations.NotNull
 
 class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
@@ -39,6 +48,25 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
             return if (aliasUnderCaret) element.aliasName!! else element.refName
         }
         return super.getInitialName()
+    }
+
+    override fun collectRefs(referencesSearchScope: SearchScope?): MutableCollection<PsiReference> {
+        val collection = super.collectRefs(referencesSearchScope)
+        val element = myElementToRename
+        if (aliasUnderCaret && element is ReferableAdapter<*>) {
+            val alias = element.getAlias()
+            if (alias?.id != null) collection.add(MyReference(alias))
+        }
+        return collection
+    }
+
+    override fun getNameIdentifier(): PsiElement? {
+        if (aliasUnderCaret) return null
+        return super.getNameIdentifier()
+    }
+
+    inner class MyReference(element: ArendAlias): PsiReferenceBase<ArendAlias>(element, element.id!!.textRangeInParent){
+        override fun resolve(): PsiElement? = element
     }
 
     override fun acceptReference(reference: PsiReference?): Boolean {

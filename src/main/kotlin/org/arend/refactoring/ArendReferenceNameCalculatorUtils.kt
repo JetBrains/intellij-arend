@@ -17,7 +17,7 @@ import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import java.util.Collections.singletonList
 
-fun doComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
+fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
     val targetModulePath = defaultLocation.myContainingFile.modulePath!! //safe to write thanks to a check in canComputeInplaceLongName
     val alternativeLocation = when (defaultLocation.target) {
@@ -50,18 +50,17 @@ fun doComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFi
     }
 
     if (isPrelude(targetFile) && !preludeImportedManually) {
-        defaultLocation.addLongNameAsInplaceName() // items from prelude are visible in any context
+        defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
         fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
-
-    if (locations.first().getInplaceNames().isEmpty()) { // target definition is inaccessible in current context
+    if (locations.first().getReferenceNames().isEmpty()) { // target definition is inaccessible in current context
         modifyingImportsNeeded = true
 
-        defaultLocation.addLongNameAsInplaceName()
+        defaultLocation.addLongNameAsReferenceName()
         if (alternativeLocation != null) {
             val alternativeFullName = alternativeLocation.getLongName()
-            if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsInplaceName()
+            if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsReferenceName()
         }
 
         if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
@@ -95,9 +94,9 @@ fun doComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFi
     val ancestorGroups = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
 
     var psi: PsiElement = anchor
-    while (psi.parent != null) { //File also passes well (its parent is a directory)
+    while (psi.parent != null) {
         val containingGroup: ChildGroup? = when (psi) {
-            is ArendWhere -> psi.parent as? ChildGroup /* in fact ArendGroup */
+            is ArendWhere -> psi.parent as? ChildGroup
             is ArendFile -> psi
             is ArendDefClass -> psi
             else -> null
@@ -129,7 +128,7 @@ fun doComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFi
     val resultingDecisions = ArrayList<Pair<List<String>, AbstractRefactoringAction?>>()
 
     for (location in locations) {
-        location.getInplaceNames().map { inplaceName ->
+        location.getReferenceNames().map { inplaceName ->
             if (inplaceName.isEmpty() || Scope.Utils.resolveName(correctedScope, inplaceName)?.underlyingReferable == defaultLocation.target) {
                 resultingDecisions.add(Pair(inplaceName, fileResolveActions[location]))
             }
@@ -152,19 +151,18 @@ fun doComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFi
     return Pair(importAction, resultingName)
 }
 
-fun canComputeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
+fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
         defaultLocation.myContainingFile.modulePath != null &&
                 ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
 
-
-fun computeInplaceLongName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
-    if (!canComputeInplaceLongName(defaultLocation, currentFile)) return null
-    return doComputeInplaceLongName(defaultLocation, currentFile, anchor, allowSelfImport)
+fun calculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+    if (!canCalculateReferenceName(defaultLocation, currentFile)) return null
+    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport)
 }
 
 class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
     private val myLongNameWithRefs: List<Pair<String, Referable>>
-    private val myInplaceNames: MutableSet<List<String>> = HashSet()
+    private val myReferenceNames: MutableSet<List<String>> = HashSet()
     val myContainingFile: ArendFile
 
     init {
@@ -204,18 +202,18 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
     }
 
     fun processStatCmd(statCmd: ArendStatCmd) {
-        myInplaceNames.addAll(calculateShorterNames(statCmd))
+        myReferenceNames.addAll(calculateShorterNames(statCmd))
     }
 
     fun processParentGroup(group: PsiLocatedReferable) {
-        calculateRemainder(group)?.let { myInplaceNames.add(it) }
+        calculateRemainder(group)?.let { myReferenceNames.add(it) }
     }
 
-    fun addLongNameAsInplaceName() {
-        myInplaceNames.add(getLongName())
+    fun addLongNameAsReferenceName() {
+        myReferenceNames.add(getLongName())
     }
 
-    fun getInplaceNames(): Set<List<String>> = myInplaceNames
+    fun getReferenceNames(): Set<List<String>> = myReferenceNames
 
     private fun calculateShorterNames(statCmd: ArendStatCmd): List<List<String>> {
         val lastRef = statCmd.longName?.refIdentifierList?.lastOrNull()

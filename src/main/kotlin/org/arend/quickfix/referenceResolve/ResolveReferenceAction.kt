@@ -27,7 +27,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     companion object {
         fun checkIfAvailable(target: PsiLocatedReferable, element: ArendReferenceElement): Boolean { // should return true iff getProposedFix with the same arguments returns a nonnull value
             val containingFile = element.containingFile as? ArendFile ?: return false
-            return canComputeInplaceLongName(LocationData(target), containingFile)
+            return canCalculateReferenceName(LocationData(target), containingFile)
         }
 
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
@@ -35,7 +35,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val fixRequired = currentTarget != target
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
-            val (importAction, resultName) = computeInplaceLongName(location, containingFile, element, true) ?: return null
+            val (importAction, resultName) = calculateReferenceName(location, containingFile, element, true) ?: return null
             val renameAction = when {
                 !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
                 target is ArendFile -> RenameReferenceAction(element, target.modulePath?.toList() ?: return null)
@@ -49,7 +49,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         fun getTargetName(target: PsiLocatedReferable?, element: ArendCompositeElement): String? {
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target ?: return null)
-            val (importAction, resultName) = computeInplaceLongName(location, containingFile, element) ?: return null
+            val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
             importAction?.execute(null)
             return LongName(resultName).toString()
         }
