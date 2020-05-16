@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.module.ModulePath
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
@@ -49,7 +48,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
-    val updatedModules = HashSet<ModulePath>()
+    val updatedModules = HashSet<FullModulePath>()
 
     fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
