@@ -8,6 +8,7 @@ import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -38,7 +39,8 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                     val last = if (dot != null) dot else {
                         val refs = o.refIdentifierList
                         val ref = refs.lastOrNull()
-                        if ((ref?.reference?.resolve() as? ArendDefinition)?.precedence?.isInfix == true) {
+                        val resolved = ref?.reference?.let { runReadAction { it.resolve() } } as? ArendDefinition
+                        if (resolved?.precedence?.isInfix == true) {
                             holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
                         }
                         if (refs.size > 1) ref?.prevSibling else null
