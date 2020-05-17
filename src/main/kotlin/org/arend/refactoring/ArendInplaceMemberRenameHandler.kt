@@ -12,7 +12,10 @@ import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendAlias
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.childOfType
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.replaceWithNotification
 
 class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
@@ -73,16 +76,28 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
         return super.acceptReference(reference)
     }
 
-    override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor = ArendRenameProcessor(element, newName)
+    override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor =
+            ArendRenameProcessor(element, newName)
 
-    private inner class ArendRenameProcessor(element: PsiElement, newName: String) :
+    private inner class ArendRenameProcessor(val element: PsiElement, newName: String) :
             RenameProcessor(this@ArendInplaceRenamer.myProject, element, newName,
                     RenamePsiElementProcessor.forElement(element).isToSearchInComments(element),
                     RenamePsiElementProcessor.forElement(element).isToSearchForTextOccurrences(element)
                             && TextOccurrencesUtil.isSearchTextOccurrencesEnabled(element)) {
         override fun findUsages(): Array<UsageInfo> {
             val superUsages = super.findUsages()
-            return superUsages
+            return superUsages.filter { it.element?.text == this@ArendInplaceRenamer.myOldName }.toTypedArray()
+        }
+
+        override fun performRefactoring(usages: Array<out UsageInfo>) {
+            val oldRefName = (element as? GlobalReferable)?.refName
+            val newName = getNewName(element)
+            super.performRefactoring(usages)
+            if (aliasUnderCaret) {
+                if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
+                val newId = ArendPsiFactory(myProject).createFromText("\\func foo \\alias $newName")?.childOfType<ArendAlias>()!!.id!!
+                (element as? ReferableAdapter<*>)?.getAlias()?.id?.replaceWithNotification(newId)
+            }
         }
     }
 }
