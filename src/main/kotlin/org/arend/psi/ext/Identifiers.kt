@@ -45,7 +45,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun getName(): String = referenceName
 
     override fun setName(name: String): PsiElement? =
-        nameIdentifier?.replace(ArendPsiFactory(project).createDefIdentifier(name))
+        ArendPsiFactory(project).createDefIdentifier(name)
 
     override fun textRepresentation(): String = referenceName
 
@@ -162,5 +162,5 @@ abstract class ArendAliasIdentifierImplMixin(node: ASTNode) : ArendCompositeElem
     override fun getNameIdentifier(): PsiElement? = firstChild
 
     override fun setName(name: String): PsiElement? =
-        nameIdentifier?.replace(ArendPsiFactory(project).createAliasIdentifier(name))
+        ArendPsiFactory(project).createAliasIdentifier(name)
 }
