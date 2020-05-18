@@ -17,7 +17,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendAlias
 import org.arend.psi.ArendElementTypes.ID
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.replaceWithNotification
 
@@ -85,7 +84,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
         val element = myElementToRename
         if (aliasUnderCaret && element is ReferableAdapter<*>) {
             val alias = element.getAlias()
-            if (alias?.id != null) collection.add(MyReference(alias))
+            if (alias?.aliasIdentifier != null) collection.add(MyReference(alias))
         }
         return collection
     }
@@ -95,7 +94,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
         return super.getNameIdentifier()
     }
 
-    inner class MyReference(element: ArendAlias) : PsiReferenceBase<ArendAlias>(element, element.id!!.textRangeInParent) {
+    inner class MyReference(element: ArendAlias) : PsiReferenceBase<ArendAlias>(element, element.aliasIdentifier!!.textRangeInParent) {
         override fun resolve(): PsiElement? = element
     }
 
@@ -128,8 +127,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
             super.performRefactoring(usages)
             if (aliasUnderCaret) {
                 if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
-                val newId = ArendPsiFactory(myProject).createFromText("\\func foo \\alias $newName")?.childOfType<ArendAlias>()!!.id!!
-                (element as? ReferableAdapter<*>)?.getAlias()?.id?.replaceWithNotification(newId)
+                (element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.replaceWithNotification(ArendPsiFactory(myProject).createAliasIdentifier(newName))
             }
         }
     }

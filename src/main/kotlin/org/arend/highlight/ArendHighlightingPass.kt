@@ -174,7 +174,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     ref.nameIdentifier?.let {
                         holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                     }
-                    (ref as? ReferableAdapter<*>)?.getAlias()?.id?.let {
+                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
                         holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
                     }
                 }

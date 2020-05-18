@@ -438,7 +438,12 @@ private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW 
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
-alias ::= ALIAS_KW prec? ID { pin = 1 }
+alias ::= ALIAS_KW prec? aliasIdentifier { pin = 1 }
+
+aliasIdentifier ::= ID {
+    implements = "org.arend.psi.ext.ArendCompositeElement"
+    mixin = "org.arend.psi.ext.ArendAliasIdentifierImplMixin"
+}
 
 prec ::= assoc NUMBER { pin = 1 }
 

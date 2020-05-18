@@ -71,7 +71,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         wrapTag("b") {
             html(element.textRepresentation())
         }
-        (element as? ReferableAdapter<*>)?.getAlias()?.id?.text?.let {
+        (element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text?.let {
             html(" $it")
         }
 
@@ -104,7 +104,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         (element as? ReferableAdapter<*>)?.getAlias()?.let { alias ->
             alias.prec?.let {
                 generatePrecedence(it)
-                html(" ${alias.id?.text ?: ""}")
+                html(" ${alias.aliasIdentifier?.id?.text ?: ""}")
             }
         }
 

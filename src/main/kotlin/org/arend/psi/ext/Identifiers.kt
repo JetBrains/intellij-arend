@@ -3,6 +3,7 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.ClassReferable
@@ -42,6 +43,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         get() = null
 
     override fun getName(): String = referenceName
+
+    override fun setName(name: String): PsiElement? =
+        nameIdentifier?.replace(ArendPsiFactory(project).createDefIdentifier(name))
 
     override fun textRepresentation(): String = referenceName
 
@@ -152,4 +156,11 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
 
     override val rangeInElement: TextRange
         get() = TextRange(0, text.length)
+}
+
+abstract class ArendAliasIdentifierImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), PsiNameIdentifierOwner {
+    override fun getNameIdentifier(): PsiElement? = firstChild
+
+    override fun setName(name: String): PsiElement? =
+        nameIdentifier?.replace(ArendPsiFactory(project).createAliasIdentifier(name))
 }

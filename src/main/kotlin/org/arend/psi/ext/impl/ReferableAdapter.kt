@@ -25,7 +25,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun hasAlias() = getAlias() != null
 
-    override fun getAliasName() = getAlias()?.id?.text
+    override fun getAliasName() = getAlias()?.aliasIdentifier?.id?.text
 
     override fun getAliasPrecedence() = calcPrecedence(getAlias()?.prec)
 

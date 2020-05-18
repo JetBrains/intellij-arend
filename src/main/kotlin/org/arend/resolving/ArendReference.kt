@@ -1,6 +1,5 @@
 package org.arend.resolving
 
-import com.intellij.codeInsight.completion.PrioritizedLookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
@@ -75,7 +74,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
-                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.id?.text
+                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
                     var builder = LookupElementBuilder.create(ref, origElement.textRepresentation() + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
                     if (alias != null) {
                         builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
