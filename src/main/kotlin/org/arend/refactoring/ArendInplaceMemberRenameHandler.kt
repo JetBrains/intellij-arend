@@ -15,10 +15,10 @@ import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendAlias
+import org.arend.psi.ArendAliasIdentifier
 import org.arend.psi.ArendElementTypes.ID
-import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ext.ArendAliasIdentifierImplMixin
 import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.psi.replaceWithNotification
 
 class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
@@ -44,18 +44,11 @@ class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
         return super.createMemberRenamer(element, elementToRename, editor)
     }
 
-    override fun isAvailable(element: PsiElement?, editor: Editor, file: PsiFile): Boolean {
-        val elementAtCaret = findElementAtCaret(file, editor)
-        val isIDinAlias = elementAtCaret is LeafPsiElement && elementAtCaret.elementType == ID && elementAtCaret.psi.parent is ArendAlias
-        if (isIDinAlias) return true
-        return super.isAvailable(element, editor, file)
-    }
-
     override fun invoke(project: Project, editor: Editor, file: PsiFile, dataContext: DataContext?) {
         val elementAtCaret = findElementAtCaret(file, editor)
-        val isIDinAlias = elementAtCaret is LeafPsiElement && elementAtCaret.elementType == ID && elementAtCaret.psi.parent is ArendAlias
+        val isIDinAlias = elementAtCaret is LeafPsiElement && elementAtCaret.elementType == ID && elementAtCaret.psi.parent is ArendAliasIdentifier
         if (isIDinAlias) {
-            val globalReferable = (elementAtCaret as? LeafPsiElement)?.psi?.parent?.parent as? GlobalReferable
+            val globalReferable = (elementAtCaret as? LeafPsiElement)?.psi?.parent?.parent?.parent as? GlobalReferable
             if (globalReferable is PsiElement) doRename(globalReferable, editor, dataContext)
         } else
             super.invoke(project, editor, file, dataContext)
@@ -63,7 +56,7 @@ class ArendInplaceMemberRenameHandler : MemberInplaceRenameHandler() {
 
     companion object {
         fun findElementAtCaret(file: PsiFile, editor: Editor): PsiElement? {
-            var caretElement: PsiElement? = null
+            var caretElement: PsiElement?
             val offset = editor.caretModel.offset
             caretElement = file.findElementAt(offset)
             if (caretElement == null || caretElement is PsiWhiteSpace || caretElement is PsiComment) caretElement = file.findElementAt(offset-1)
@@ -127,7 +120,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
             super.performRefactoring(usages)
             if (aliasUnderCaret) {
                 if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
-                (element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.replaceWithNotification(ArendPsiFactory(myProject).createAliasIdentifier(newName))
+                ((element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier as? ArendAliasIdentifierImplMixin)?.setName(newName)
             }
         }
     }
