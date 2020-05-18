@@ -49,9 +49,12 @@ import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.typing.parseBinOp
 import java.util.function.Supplier
 
+/**
+ * @param def for storing function-level elim/clauses bodies
+ */
 class SubExprException(
     message: String,
-    val functionBody: ArendFunctionalBody? = null
+    val def: Pair<Concrete.Definition, TCDefinition>? = null
 ) : Throwable(message)
 
 class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseReferableConverter() {
@@ -59,7 +62,7 @@ class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseR
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }
 
-private fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
+fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
         .psiTraverser(p)
         .onRange { selected in it.textRange }
         .filter(ArendDefIdentifier::class.java)
@@ -105,15 +108,17 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             file.findElementAt(range.endOffset - 1)
     )) ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val psiDef = possibleParent.ancestor<TCDefinition>()
-        ?: throw SubExprException("selected text is not in a definition")
-    val body = (psiDef as? ArendFunctionalDefinition)?.body
-    val exprAncestor = possibleParent.ancestor<ArendExpr>()
-            ?: throw SubExprException("selected text is not an arend expression", body)
-    val parent = exprAncestor.parent
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
     val concreteProvider = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
+    val psiDef = possibleParent.ancestor<TCDefinition>()
+        ?: throw SubExprException("selected text is not in a definition")
+    val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
+    val body = concreteDef?.let { it to psiDef }
+
+    val exprAncestor = possibleParent.ancestor<ArendExpr>()
+            ?: throw SubExprException("selected text is not an arend expression", body)
+    val parent = exprAncestor.parent
 
     val (head, tail) = collectArendExprs(parent, range)
         ?: throw SubExprException("cannot find a suitable concrete expression", body)
@@ -144,8 +149,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             null
         }
     } else {
-        val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
-            ?: throw SubExprException("selected text is not in a definition")
+        concreteDef ?: throw SubExprException("selected text is not in a definition")
         val def = service.getTypechecked(psiDef)
             ?: throw SubExprException("underlying definition is not type checked")
         val subDefVisitor = CorrespondedSubDefVisitor(subExpr)
