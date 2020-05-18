@@ -160,11 +160,11 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
 
-fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor): SubExprResult? =
+fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor, showError : Boolean = true): SubExprResult? =
     try {
         correspondedSubExpr(range, file, project)
     } catch (e: SubExprException) {
-        ApplicationManager.getApplication().invokeLater {
+        if (showError) ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
         }
         null
