@@ -207,8 +207,7 @@
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
         <refactoring.moveHandler implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
         <renameHandler implementation="org.arend.refactoring.ArendRenameModuleHandler"/>
-        <renameHandler implementation="org.arend.refactoring.ArendInplaceMemberRenameHandler"/>
-
+        <renameHandler implementation="org.arend.refactoring.ArendGlobalReferableRenameHandler"/>
         <!-- Run Configurations -->
 
         <programRunner implementation="org.arend.typechecking.execution.TypeCheckRunner"/>
