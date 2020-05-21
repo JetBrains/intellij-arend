@@ -202,12 +202,16 @@
         <!-- Refactoring -->
 
         <renameInputValidator implementation="org.arend.refactoring.ArendRenameInputValidator"/>
-        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
+        <!-- Renaming of files -->
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
         <refactoring.moveHandler implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
         <renameHandler implementation="org.arend.refactoring.ArendRenameModuleHandler"/>
-        <renameHandler implementation="org.arend.refactoring.ArendGlobalReferableRenameHandler"/>
+        <!-- Renaming of referables with aliases -->
+        <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>
+        <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
+        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.rename.ArendRefactoringSupportProvider"/>
+
         <!-- Run Configurations -->
 
         <programRunner implementation="org.arend.typechecking.execution.TypeCheckRunner"/>

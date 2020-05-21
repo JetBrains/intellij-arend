@@ -7,6 +7,7 @@ import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.FullModulePath
@@ -18,6 +19,7 @@ import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
@@ -186,7 +188,7 @@ fun PsiElement?.findPrevSibling(pred: (PsiElement) -> Boolean): PsiElement? {
 
 /** Returns the last irrelevant element (i.e., whitespace or comment) to the right of the given element
  *  or the element itself if there are no irrelevant elements
-  */
+ */
 val PsiElement.extendRight: PsiElement
     get() {
         var result = this
@@ -383,4 +385,22 @@ fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChil
 fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
     notifyRange(firstElement, lastElement, this)
     return this.addRangeAfter(firstElement, lastElement, anchor)
+}
+
+fun getArendNameText(element: PsiElement?): String? = when (element) {
+    is LeafPsiElement -> when (element.elementType) {
+        ID -> element.text
+        POSTFIX -> element.text.removePrefix("`")
+        INFIX -> element.text.removeSurrounding("`")
+        else -> null
+    }
+    is ArendRefIdentifier -> getArendNameText(element.id)
+    is ArendIPName -> when {
+        (element.infix != null) -> getArendNameText(element.infix)
+        (element.postfix != null) -> getArendNameText(element.postfix)
+        else -> null
+    }
+    is ArendDefIdentifier -> getArendNameText(element.id)
+    is ArendFieldDefIdentifier -> getArendNameText(element.defIdentifier)
+    else -> null
 }

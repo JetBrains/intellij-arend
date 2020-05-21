@@ -29,7 +29,6 @@ open class ArendWordScanner : VersionedWordsScanner() {
     }
 
     companion object {
-
         fun isArendIdentifierPart(c: Char): Boolean =
             isArendIdentifierStart(c) || c in '0'..'9' || c == '\''
 
