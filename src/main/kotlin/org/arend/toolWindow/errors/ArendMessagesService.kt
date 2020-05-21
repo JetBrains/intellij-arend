@@ -9,7 +9,8 @@ import org.arend.typechecking.error.ErrorService
 
 
 class ArendMessagesService(private val project: Project) {
-    private var view: ArendMessagesView? = null
+    var view: ArendMessagesView? = null
+        private set
     var isErrorTextPinned: Boolean = false
 
     private fun activate(project: Project) {

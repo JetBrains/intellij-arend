@@ -263,6 +263,8 @@
 
         <projectService serviceImplementation="org.arend.highlight.ArendPassFactoryService"/>
 
+        <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
+
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
@@ -306,6 +308,20 @@
                 class="org.arend.module.ReloadLibrariesAction"
                 text="Reload Arend Libraries">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
+        </action>
+
+        <action id="Arend.GotoNextError"
+                class="org.arend.actions.ArendGotoNextErrorAction"
+                text="Goto Next Error"
+                description="Moves the cursor to the next error">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F2"/>
+        </action>
+
+        <action id="Arend.GotoPreviousError"
+                class="org.arend.actions.ArendGotoPreviousErrorAction"
+                text="Goto Previous Error"
+                description="Moves the cursor to the previous error">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift F2"/>
         </action>
 
         <action id="Arend.ShowExpr.Type"

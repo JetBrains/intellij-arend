@@ -15,12 +15,30 @@ import org.arend.navigation.getPresentation
 import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.childOfType
+import org.arend.psi.oneLineText
 import org.arend.psi.stubs.ArendNamedStub
+import org.arend.term.abs.Abstract
 
 interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable {
     val psiElementType: PsiElement?
         get() = null
 }
+
+val Abstract.ParametersHolder.parametersText: String?
+    get() {
+        val parameters = (this as? Abstract.ParametersHolder)?.parameters ?: return null
+        if (parameters.isEmpty()) {
+            return null
+        }
+
+        val stringBuilder = StringBuilder()
+        for (parameter in parameters) {
+            if (parameter is PsiElement) {
+                stringBuilder.append(' ').append(parameter.oneLineText)
+            }
+        }
+        return stringBuilder.toString()
+    }
 
 class PsiModuleReferable(val modules: List<PsiFileSystemItem>, modulePath: ModulePath) : ModuleReferable(modulePath)
 

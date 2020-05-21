@@ -1,9 +1,15 @@
 package org.arend.quickfix
 
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.Precedence
+import org.arend.module.ArendRawLibrary
 import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.ImportFileAction
 import org.arend.refactoring.RemoveRefFromStatCmdAction
+import org.arend.typechecking.TypeCheckingService
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -823,8 +829,23 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                \func foo => Main 
             """)
 
+    fun `test importing of meta`() {
+        addGeneratedModules {
+            declare(ModulePath("Foo"), LongName("foo"), "", Precedence.DEFAULT, null)
+        }
+
+        simpleImportFixTest("""
+            \func d => {-caret-}foo
+        """,
+        """
+            \import Foo
+
+            \func d => foo
+        """)
+    }
+
     fun `test alias import 1`() =
-            simpleImportFixTest("""
+        simpleImportFixTest("""
                --! A.ard
                \func foo \alias bar => 101 
                --! Main.ard
@@ -836,7 +857,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             """)
 
     fun `test alias import 2`() =
-            simpleImportFixTest("""
+        simpleImportFixTest("""
                --! A.ard
                \func M \alias N => 202 \where {
                  \func foo \alias bar => 101

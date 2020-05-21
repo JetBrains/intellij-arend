@@ -13,15 +13,21 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.arend.error.DummyErrorReporter
+import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.ModulePath
+import org.arend.extImpl.DefinitionContributorImpl
 import org.arend.module.ArendModuleType
+import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.scopeprovider.SimpleModuleScopeProvider
 import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
+import java.lang.IllegalStateException
 
 abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
@@ -54,6 +60,19 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
         super.runTest()
     }
+
+    protected fun addGeneratedModules(filler : DefinitionContributor.() -> Unit) {
+        val library = library
+        val moduleScopeProvider = SimpleModuleScopeProvider()
+        filler(DefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+        for (entry in moduleScopeProvider.registeredEntries) {
+            library.addGeneratedModule(entry.key, entry.value)
+        }
+    }
+
+    protected val library: ArendRawLibrary
+        get() = ArendRawLibrary.getLibraryFor(project.service<TypeCheckingService>().libraryManager, module)
+            ?: throw IllegalStateException("Cannot find library")
 
     protected val fileName: String
         get() = testName + FileUtils.EXTENSION

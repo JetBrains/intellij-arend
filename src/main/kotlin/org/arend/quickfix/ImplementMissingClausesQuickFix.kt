@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
@@ -16,14 +15,14 @@ import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.EmptyPattern
 import org.arend.core.pattern.ExpressionPattern
+import org.arend.ext.variable.Variable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
-import org.arend.refactoring.VariableImpl
-import org.arend.refactoring.calculateOccupiedNames
+import org.arend.refactoring.*
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
@@ -78,8 +77,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val pattern = iterator.next()
                     val nRecursiveBindings = recursiveTypeUsagesInBindingsIterator.next()
                     val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES
-                    val sampleParameter = if (elimMode) missingClausesError.eliminatedParameters[i] else parameter2
-                    val patternData = doTransformPattern(pattern, element, editor, filters, braces, clauseBindings, sampleParameter?.name, (sampleParameter?.type as? DefCallExpression)?.definition, nRecursiveBindings)
+                    val sampleParameter = if (elimMode) missingClausesError.eliminatedParameters[i] else parameter2!!
+                    val patternData = doTransformPattern(pattern, element, project, filters, braces, clauseBindings, sampleParameter, nRecursiveBindings, missingClausesError)
                     patternStrings.add(patternData.first)
                     containsEmptyPattern = containsEmptyPattern || patternData.second
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
@@ -236,7 +235,6 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
         }
 
-
         private fun getIntegralNumber(pattern: ConstructorExpressionPattern): Int? {
             val isSuc = pattern.definition == Prelude.SUC
             val isPos = pattern.definition == Prelude.POS
@@ -255,20 +253,34 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return null
         }
 
-        fun doTransformPattern(pattern: ExpressionPattern, cause: ArendCompositeElement, editor: Editor?,
+        fun doTransformPattern(pattern: ExpressionPattern, cause: ArendCompositeElement, project: Project,
                                filters: Map<ConstructorExpressionPattern, List<Boolean>>, paren: Braces,
                                occupiedNames: MutableList<Variable>,
-                               parameterName: String?,
-                               recursiveTypeDefinition: Definition?,
-                               nRecursiveBindings: Int): Pair<String, Boolean> {
+                               sampleParameter: DependentLink,
+                               nRecursiveBindings: Int,
+                               missingClausesError: MissingClausesError): Pair<String, Boolean> {
             var containsEmptyPattern = false
+
+            val parameterName: String? = sampleParameter.name
+            val recursiveTypeDefinition: Definition? = (sampleParameter.type as? DefCallExpression)?.definition
+
+            fun getFreshName(binding: DependentLink): String {
+                val renamer = StringRenamer()
+                if (recursiveTypeDefinition != null) renamer.setParameterName(recursiveTypeDefinition, parameterName)
+                return renamer.generateFreshName(binding, calculateOccupiedNames(occupiedNames, parameterName, nRecursiveBindings))
+            }
+
             val result = when (pattern) {
                 is ConstructorExpressionPattern -> {
                     val definition: Definition? = pattern.definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
                     val integralNumber = getIntegralNumber(pattern)
-
-                    if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
+                    val patternMatchingOnIdp = admitsPatternMatchingOnIdp(sampleParameter.type.expr, if (cause is ArendCaseExpr) missingClausesError.parameters else null)
+                    if (patternMatchingOnIdp != PatternMatchingOnIdpResult.INAPPLICABLE) {
+                        if (patternMatchingOnIdp == PatternMatchingOnIdpResult.IDP)
+                            getCorrectPreludeItemStringReference(project, cause, Prelude.IDP)
+                        else getFreshName(sampleParameter)
+                    } else if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
                         integralNumber.toString()
                     } else {
                         val tupleMode = definition == null || definition is ClassDefinition && definition.isRecord
@@ -284,7 +296,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                     constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                     else -> Companion.Braces.BRACES
                                 }
-                                val argPattern = doTransformPattern(argumentPattern, cause, editor, filters, argumentParen, occupiedNames, parameterName, recursiveTypeDefinition, nRecursiveBindings)
+                                val argPattern = doTransformPattern(argumentPattern, cause, project, filters, argumentParen, occupiedNames, sampleParameter, nRecursiveBindings, missingClausesError)
                                 argumentPatterns.add(argPattern.first)
                                 containsEmptyPattern = containsEmptyPattern || argPattern.second
                                 constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
@@ -309,10 +321,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
 
                 is BindingPattern -> {
-                    val binding = pattern.binding
-                    val renamer = StringRenamer()
-                    if (recursiveTypeDefinition != null && parameterName != null) renamer.setParameterName(recursiveTypeDefinition, parameterName)
-                    val result = renamer.generateFreshName(binding, calculateOccupiedNames(occupiedNames, parameterName, nRecursiveBindings))
+                    val result = getFreshName(pattern.binding)
                     occupiedNames.add(VariableImpl(result))
                     result
                 }

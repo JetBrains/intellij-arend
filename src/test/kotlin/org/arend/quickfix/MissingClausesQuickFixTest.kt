@@ -440,4 +440,67 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc b, 0 => {?}
          | suc b, suc c => {?}
     """)
+
+    fun test_86_1() = typedQuickFixTest("Implement", """
+       \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat \elim p
+         | idp => {?}
+    """)
+
+    fun test_86_2() = typedQuickFixTest("Implement", """
+       \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim x, p 
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat \elim x, p
+         | 0, idp => {?}
+         | suc x, idp => {?}
+    """)
+
+    fun test_86_3() = typedQuickFixTest("Implement", """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p{-caret-} \with {}
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
+         | 0, idp => {?}
+         | suc x, idp => {?}
+       }
+    """)
+
+    fun test_86_4() = typedQuickFixTest("Implement", """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y{-caret-} \with {} 
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y \with {
+         | 0, idp => {?}
+         | suc x', idp => {?}
+       } 
+    """)
+
+    fun test_86_5() = typedQuickFixTest("Implement", """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case x, p{-caret-} \with {}
+    """, """
+       \func foo (x y : Nat) (p : x = y) : Nat => \case x, p \with {
+         | 0, p => {?}
+         | suc n, p => {?}
+       }
+    """)
+
+    fun test86_6() = typedQuickFixTest("Implement", """
+       \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p 
+    """, """
+       \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p
+         | 0, p => {?}
+         | suc x, p => {?} 
+    """)
+
+    fun test86_7() = typedQuickFixTest("Implement", """
+       \data Lol | idp
+
+       \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
+    """, """
+       \import Prelude 
+       
+       \data Lol | idp
+
+       \func foo (x y : Nat) (p : x = y) : Nat \elim p
+         | Prelude.idp => {?} 
+    """)
 }

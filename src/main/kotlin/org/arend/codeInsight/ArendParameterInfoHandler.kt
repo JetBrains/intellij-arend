@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
@@ -155,15 +156,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return true
     }
 
-    private fun adjustOffset(file: PsiFile, offset: Int): Int {
-        val element = file.findElementAt(offset)
-
-        if (element?.text == ")" || element?.text == "}" || element?.text == "," || element == null) {
-            return offset - 1
+    private fun isClosingElement(element: PsiElement?) =
+        when (element?.elementType) {
+            null, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.COMMA -> true
+            else -> false
         }
 
-        return offset
-    }
+    private fun adjustOffset(file: PsiFile, offset: Int) =
+        if (isClosingElement(file.findElementAt(offset))) offset - 1 else offset
 
     private fun skipWhitespaces(file: PsiFile, offset: Int): PsiElement? {
         var shiftedOffset = offset
@@ -279,9 +279,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             }, null)
 
     private fun isNewArgumentPosition(file: PsiFile, offset: Int): Boolean {
-        val element: PsiElement = file.findElementAt(offset) ?: return file.findElementAt(offset - 1) is PsiWhiteSpace
-
-        return (element is PsiWhiteSpace || element.text == ")" || element.text == "}" || element.text == ",") && (file.findElementAt(offset - 1) is PsiWhiteSpace)
+        val element = file.findElementAt(offset)
+        return (element is PsiWhiteSpace || isClosingElement(element)) && file.findElementAt(offset - 1) is PsiWhiteSpace
     }
 
     private fun isBinOpSeq(expr: ArendExpr): Boolean =
