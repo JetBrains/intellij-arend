@@ -402,5 +402,5 @@ fun getArendNameText(element: PsiElement?): String? = when (element) {
     }
     is ArendDefIdentifier -> getArendNameText(element.id)
     is ArendFieldDefIdentifier -> getArendNameText(element.defIdentifier)
-    else -> null
+    else -> element?.text //fallback
 }
