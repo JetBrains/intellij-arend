@@ -13,7 +13,7 @@ class ArendMessagesService(private val project: Project) {
         private set
     var isErrorTextPinned: Boolean = false
 
-    private fun activate(project: Project) {
+    fun activate(project: Project) {
         runInEdt {
             ToolWindowManager.getInstance(project).getToolWindow("Arend Errors")?.activate({
                 val service = project.service<ArendMessagesService>()
