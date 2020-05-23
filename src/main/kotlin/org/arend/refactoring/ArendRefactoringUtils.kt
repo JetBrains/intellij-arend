@@ -12,7 +12,8 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
-import com.intellij.psi.util.parents
+import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.parentsWithSelf
 import com.intellij.psi.util.siblings
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Definition
@@ -599,15 +600,24 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
 
 fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable> {
-    val identifiers = mutableListOf<ArendDefIdentifier>()
-    for (element: PsiElement in startElement.parents) {
-        identifiers.addAll(when (element) {
+    val startCaseExpr = startElement.parentOfType<ArendCaseExpr>(true) ?: return emptyList()
+    val usedIdentifiers = mutableListOf<ArendDefIdentifier>()
+    val eliminatedIdentifiers = mutableListOf<ArendDefIdentifier>()
+    for (element: PsiElement in startCaseExpr.parentsWithSelf) {
+        usedIdentifiers.addAll(when (element) {
             is ArendClause -> element.patternList.flatMap { it.atomPatternOrPrefixList }.mapNotNull { it.defIdentifier }
             is ArendLetExpr -> element.letClauseList.mapNotNull { it.defIdentifier }
+            is ArendDefFunction -> element.nameTeleList.flatMap { it.identifierOrUnknownList }.mapNotNull { it.defIdentifier }
             else -> emptyList()
         })
+        if (element is ArendCaseExpr) {
+            element.caseArgList
+                    .mapNotNull { caseArg -> caseArg.caseArgExprAs.takeIf { it.elimKw != null }?.refIdentifier?.resolve }
+                    .forEach { (it as? ArendDefIdentifier)?.run(eliminatedIdentifiers::add) }
+        }
     }
-    return identifiers.mapNotNull { it.name?.run(::VariableImpl) }
+    usedIdentifiers.removeAll(eliminatedIdentifiers)
+    return usedIdentifiers.mapNotNull { it.name?.run(::VariableImpl) }
 }
 
 /**
