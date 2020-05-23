@@ -19,6 +19,7 @@ import com.intellij.util.containers.MultiMap
 import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
@@ -497,7 +498,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return if (childPath.isEmpty()) element else {
             val shorterPrefix = childPath.subList(1, childPath.size)
             val childElement = element.children[childPath[0]]
-            if (childElement != null) locateChild(childElement, shorterPrefix) else null
+            locateChild(childElement, shorterPrefix)
         }
     }
 
@@ -576,7 +577,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
             val localNamesMap = HashMap<String, ArendGroup>()
-            for (psi in localGroup) localNamesMap[psi.textRepresentation()] = psi
+            for (psi in localGroup) {
+                localNamesMap[psi.textRepresentation()] = psi
+                if (psi is GlobalReferable) {
+                    val aliasName = psi.aliasName
+                    if (aliasName != null) localNamesMap[aliasName] = psi
+                }
+            }
 
             for (member in myMembers) {
                 val text = member.textRepresentation()
