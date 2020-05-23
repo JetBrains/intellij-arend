@@ -520,4 +520,16 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             | :: x1 xs1 => {?}
           }
     """)
+
+    fun `test avoid shadowing let binding`() = typedQuickFixTest("Implement", """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w : Wrapper Nat) : Nat => \let x => 0 \in \case \elim{-caret-} w \with 
+    """, """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w : Wrapper Nat) : Nat => \let x => 0 \in \case \elim w \with {
+         | wrapped x1 => {?}
+       }        
+    """)
 }

@@ -599,12 +599,15 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
 
 fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable> {
-    val definedVariables = mutableListOf<Variable>()
-    for (clause: ArendClause in startElement.parents.filterIsInstance<ArendClause>()) {
-        val identifiers: List<String> = clause.patternList.flatMap { it.atomPatternOrPrefixList }.mapNotNull { it.defIdentifier?.name }
-        definedVariables.addAll(identifiers.map(::VariableImpl))
+    val identifiers = mutableListOf<ArendDefIdentifier>()
+    for (element: PsiElement in startElement.parents) {
+        identifiers.addAll(when (element) {
+            is ArendClause -> element.patternList.flatMap { it.atomPatternOrPrefixList }.mapNotNull { it.defIdentifier }
+            is ArendLetExpr -> element.letClauseList.mapNotNull { it.defIdentifier }
+            else -> emptyList()
+        })
     }
-    return definedVariables
+    return identifiers.mapNotNull { it.name?.run(::VariableImpl) }
 }
 
 /**
