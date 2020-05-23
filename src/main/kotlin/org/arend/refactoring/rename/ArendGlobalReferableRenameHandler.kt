@@ -52,7 +52,7 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             val project = editor.project
             if (project != null && newName != null && elementToRename is PsiNameIdentifierOwner) {
                 val context = getContext(project, elementToRename, editor)
-                if (context != null) ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias).run()
+                if (context != null) ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias, null).run()
             }
             return null
         }
@@ -83,9 +83,8 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
                 val context = getContext(project, elementToRename, editor)
                 if (context != null) {
                     val dialog = object: RenameDialog(project, elementToRename, if (context.isAlias) elementToRename.getAlias() else elementToRename, editor) {
-                        override fun createRenameProcessor(newName: String): RenameProcessor {
-                            return ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias)
-                        }
+                        override fun createRenameProcessor(newName: String): RenameProcessor =
+                                ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias, null)
                     }
                     dialog.show()
                 }
@@ -137,15 +136,16 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
         val element = myElementToRename
         if (aliasUnderCaret && element is ReferableAdapter<*>) {
             val alias = element.getAlias()
-            if (alias?.aliasIdentifier != null) collection.add(MyReference(alias))
+            val aliasIdentifier = alias?.aliasIdentifier
+            if (aliasIdentifier != null) collection.add(object: PsiReferenceBase<ArendAlias>(alias, aliasIdentifier.textRangeInParent) {
+                override fun resolve(): PsiElement? = element
+            })
         }
         return collection
     }
 
-    override fun getNameIdentifier(): PsiElement? {
-        if (aliasUnderCaret) return null
-        return super.getNameIdentifier()
-    }
+    override fun getNameIdentifier(): PsiElement? =
+            if (aliasUnderCaret) null else super.getNameIdentifier()
 
     override fun performInplaceRename(): Boolean {
         if (!myEditor.settings.isVariableInplaceRenameEnabled) return false // initiate dialog rename
@@ -155,10 +155,6 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     override fun startsOnTheSameElement(handler: RefactoringActionHandler?, element: PsiElement?): Boolean {
         variable.let { v -> if (v is ReferableAdapter<*> && v.getAlias()?.aliasIdentifier == element && element != null) return true }
         return super.startsOnTheSameElement(handler, element)
-    }
-
-    inner class MyReference(element: ArendAlias) : PsiReferenceBase<ArendAlias>(element, element.aliasIdentifier!!.textRangeInParent) {
-        override fun resolve(): PsiElement? = element
     }
 
     override fun acceptReference(reference: PsiReference?): Boolean {
@@ -172,10 +168,10 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     }
 
     override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor =
-            ArendRenameProcessor(myProject, element, newName, oldName, aliasUnderCaret)
+            ArendRenameProcessor(myProject, element, newName, oldName, aliasUnderCaret, Runnable { restoreCaretOffsetAfterRename() })
 }
 
-class ArendRenameProcessor(project: Project, val element: PsiElement, newName: String, val oldName: String, val isAlias: Boolean) :
+class ArendRenameProcessor(project: Project, val element: PsiElement, newName: String, val oldName: String, val isAlias: Boolean, val restoreCaretCallBack: Runnable?) :
         RenameProcessor(project, element, newName,
                 RenamePsiElementProcessor.forElement(element).isToSearchInComments(element),
                 RenamePsiElementProcessor.forElement(element).isToSearchForTextOccurrences(element)
@@ -195,5 +191,6 @@ class ArendRenameProcessor(project: Project, val element: PsiElement, newName: S
             if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
             ((element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier as? ArendAliasIdentifierImplMixin)?.setName(newName)
         }
+        restoreCaretCallBack?.run()
     }
 }

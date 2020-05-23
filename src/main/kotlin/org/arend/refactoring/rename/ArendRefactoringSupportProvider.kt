@@ -11,7 +11,7 @@ class ArendRefactoringSupportProvider : RefactoringSupportProvider() {
     override fun isInplaceRenameAvailable(element: PsiElement, context: PsiElement?) =
         element is ArendDefIdentifier || element is ArendLetClause
 
-    /* this method is never invoked on an element of type GlobalReferable since rename refactorings of GlobalReferables are implemented via ArendInplaceMemberRenameHandler which does not invoke this method */
+    /* this method is never invoked on an element of type AliasIdentifier since rename refactorings of GlobalReferables with aliases are implemented via ArendGlobalReferableRenameHandler which does not use this method */
     override fun isMemberInplaceRenameAvailable(element: PsiElement, context: PsiElement?) =
             element is PsiLocatedReferable && element !is ArendFile
 }
