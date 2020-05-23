@@ -15,6 +15,7 @@ import com.intellij.refactoring.rename.*
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
+import com.intellij.refactoring.rename.inplace.VariableInplaceRenamer
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
@@ -147,6 +148,9 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     override fun getNameIdentifier(): PsiElement? =
             if (aliasUnderCaret) null else super.getNameIdentifier()
 
+    override fun createInplaceRenamerToRestart(variable: PsiNamedElement, editor: Editor, initialName: String?): VariableInplaceRenamer =
+            ArendInplaceRenamer(variable, editor, oldName, aliasUnderCaret)
+
     override fun performInplaceRename(): Boolean {
         if (!myEditor.settings.isVariableInplaceRenameEnabled) return false // initiate dialog rename
         return super.performInplaceRename()
@@ -176,12 +180,10 @@ class ArendRenameProcessor(project: Project, val element: PsiElement, newName: S
                 RenamePsiElementProcessor.forElement(element).isToSearchInComments(element),
                 RenamePsiElementProcessor.forElement(element).isToSearchForTextOccurrences(element)
                         && TextOccurrencesUtil.isSearchTextOccurrencesEnabled(element)) {
-    override fun findUsages(): Array<UsageInfo> {
-        val superUsages = super.findUsages()
-        return superUsages.filter {
-            getArendNameText(it.element) == oldName
-        }.toTypedArray()
-    }
+
+    override fun findUsages(): Array<UsageInfo> = super.findUsages().filter {
+        getArendNameText(it.element) == oldName
+    }.toTypedArray()
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         val oldRefName = (element as? GlobalReferable)?.refName
