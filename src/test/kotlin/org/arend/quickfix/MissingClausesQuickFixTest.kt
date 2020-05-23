@@ -503,4 +503,21 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        \func foo (x y : Nat) (p : x = y) : Nat \elim p
          | Prelude.idp => {?} 
     """)
+
+    fun `test shadowed names from parent case`() = typedQuickFixTest("Implement", """
+        $listDefinition
+        
+        \func foo {A : \Type} (list : List A) : Nat \elim list
+          | nil => 0
+          | :: x xs => \case \elim{-caret-} xs \with {}
+    """, """
+        $listDefinition
+        
+        \func foo {A : \Type} (list : List A) : Nat \elim list
+          | nil => 0
+          | :: x xs => \case \elim xs \with {
+            | nil => {?}
+            | :: x1 xs1 => {?}
+          }
+    """)
 }

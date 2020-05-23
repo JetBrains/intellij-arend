@@ -12,6 +12,7 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
+import com.intellij.psi.util.parents
 import com.intellij.psi.util.siblings
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Definition
@@ -596,6 +597,15 @@ fun isInfix(prec: ArendPrec): Boolean = prec.infixLeftKw != null || prec.infixNo
 fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: String?, nRecursiveBindings: Int) =
         if (nRecursiveBindings > 1 && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last()))
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
+
+fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable> {
+    val definedVariables = mutableListOf<Variable>()
+    for (clause: ArendClause in startElement.parents.filterIsInstance<ArendClause>()) {
+        val identifiers: List<String> = clause.patternList.flatMap { it.atomPatternOrPrefixList }.mapNotNull { it.defIdentifier?.name }
+        definedVariables.addAll(identifiers.map(::VariableImpl))
+    }
+    return definedVariables
+}
 
 /**
  * The purpose of this function is to insert a pair of parenthesis
