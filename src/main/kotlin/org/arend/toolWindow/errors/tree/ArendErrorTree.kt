@@ -93,7 +93,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
 
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
-            is ArendFile -> obj.modulePath?.toString() ?: obj.name
+            is ArendFile -> obj.moduleLocation?.toString() ?: obj.name
             is ArendError -> DocStringBuilder.build(obj.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT))
             is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
             else -> obj?.toString() ?: ""
@@ -178,7 +178,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             val obj2 = d2.userObject
             return when {
                 obj1 == obj2 -> 0
-                obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.modulePath?.toString() ?: obj1.name).compareTo(obj2.modulePath?.toString() ?: obj2.name))
+                obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.moduleLocation?.toString() ?: obj1.name).compareTo(obj2.moduleLocation?.toString() ?: obj2.name))
                 obj1 is TCDefinition && obj2 is TCDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
                 obj1 is ArendError && obj2 is ArendError -> fix(obj1.error.level.compareTo(obj2.error.level) * -1)
                 obj1 is ArendError -> 1

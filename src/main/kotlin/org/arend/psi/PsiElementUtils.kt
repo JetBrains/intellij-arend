@@ -10,7 +10,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
@@ -116,7 +116,7 @@ val PsiElement.moduleScopeProvider: ModuleScopeProvider
         val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
         val config = containingFile.libraryConfig
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
-        val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == FullModulePath.LocationKind.TEST
+        val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == ModuleLocation.LocationKind.TEST
         return ModuleScopeProvider { modulePath ->
             val file = if (modulePath == Prelude.MODULE_PATH) {
                 typecheckingService.prelude
@@ -312,21 +312,21 @@ fun getDocumentation(statement: ArendStatement): List<PsiElement> {
     var prev0: PsiElement? = statement.prevSibling
     if (prev0 is PsiWhiteSpace) prev0 = prev0.prevSibling
     val eT = prev0?.node?.elementType
-    if (eT == ArendElementTypes.LINE_DOC_TEXT) {
+    if (eT == LINE_DOC_TEXT) {
         val prev1 = prev0?.prevSibling
         val eT1 = prev1?.node?.elementType
-        if (eT1 == ArendElementTypes.LINE_DOC_COMMENT_START) {
+        if (eT1 == LINE_DOC_COMMENT_START) {
             result.add(prev1!!)
             result.add(prev0!!)
         }
     }
 
-    if (eT == ArendElementTypes.BLOCK_COMMENT_END) {
+    if (eT == BLOCK_COMMENT_END) {
         val prev1 = prev0?.prevSibling
         val eT1 = prev1?.node?.elementType
         val prev2 = prev1?.prevSibling
         val eT2 = prev2?.node?.elementType
-        if (eT1 == ArendElementTypes.BLOCK_DOC_TEXT && eT2 == ArendElementTypes.BLOCK_DOC_COMMENT_START) {
+        if (eT1 == BLOCK_DOC_TEXT && eT2 == BLOCK_DOC_COMMENT_START) {
             result.add(prev2!!)
             result.add(prev1)
             result.add(prev0!!)

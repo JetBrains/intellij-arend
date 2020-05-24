@@ -33,7 +33,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getTypecheckable(): PsiLocatedReferable = ancestor<TCDefinition>() ?: this
 
-    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.modulePath else null
+    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 

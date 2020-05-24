@@ -21,7 +21,7 @@ import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
@@ -55,17 +55,17 @@ class ImportFileAction(private val importFile: ArendFile, private val currentFil
     override fun toString() = "Import file " + importFile.fullName
 
     private fun importFileCanBeFound(): Boolean {
-        val modulePath = importFile.modulePath ?: return false
+        val modulePath = importFile.moduleLocation?.modulePath ?: return false
         val conf = currentFile.libraryConfig ?: return false
-        val inTests = conf.getFileLocationKind(currentFile) == FullModulePath.LocationKind.TEST
+        val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
         return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile
     }
 
-    fun isValid() = importFile.generatedModulePath != null || importFileCanBeFound()
+    fun isValid() = importFile.generatedModuleLocation != null || importFileCanBeFound()
 
     override fun execute(editor: Editor?) {
         val factory = ArendPsiFactory(importFile.project)
-        val modulePath = importFile.modulePath ?: return
+        val modulePath = importFile.moduleLocation?.modulePath ?: return
 
         addStatCmd(factory,
                 createStatCmdStatement(factory, modulePath.toString(), usingList?.map { Pair(it, null) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
@@ -223,7 +223,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
     }
 }
 
-fun isPrelude(file: ArendFile) = file.generatedModulePath == Prelude.MODULE_PATH
+fun isPrelude(file: ArendFile) = file.generatedModuleLocation == Prelude.MODULE_LOCATION
 
 fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompositeElement, preludeItem: Definition): String {
     //Notice that this method may modify PSI (by writing "import Prelude" in the file header)
@@ -233,7 +233,7 @@ fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompos
 }
 
 fun statCmdName(statCmd: ArendStatCmd) =
-        (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.modulePath?.toString()
+        (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.moduleLocation?.toString()
                 ?: "???"
 
 fun usingListToString(usingList: List<Pair<String, String?>>?): String {

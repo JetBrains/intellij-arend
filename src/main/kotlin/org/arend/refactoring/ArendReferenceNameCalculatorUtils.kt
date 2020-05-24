@@ -19,7 +19,7 @@ import java.util.Collections.singletonList
 
 fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetModulePath = defaultLocation.myContainingFile.modulePath!! //safe to write thanks to a check in canComputeInplaceLongName
+    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write thanks to a check in canComputeInplaceLongName
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
@@ -137,7 +137,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
 
     val veryLongName = ArrayList<String>()
     if (resultingDecisions.isEmpty()) {
-        veryLongName.addAll(targetModulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
+        veryLongName.addAll(targetModulePath.modulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
         veryLongName.addAll(defaultLocation.getLongName()) // Let us use the "longest possible name" when referring to the anchor
         resultingDecisions.add(Pair(veryLongName, fallbackImportAction))
     }
@@ -152,7 +152,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
 }
 
 fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
-        defaultLocation.myContainingFile.modulePath != null &&
+        defaultLocation.myContainingFile.moduleLocation != null &&
                 ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
 
 fun calculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {

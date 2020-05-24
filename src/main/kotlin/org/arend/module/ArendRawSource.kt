@@ -6,7 +6,7 @@ import org.arend.source.SourceLoader
 
 
 class ArendRawSource(private val file: ArendFile): Source {
-    override fun getModulePath() = file.modulePath
+    override fun getModulePath() = file.moduleLocation?.modulePath
 
     override fun preload(sourceLoader: SourceLoader) = true
 

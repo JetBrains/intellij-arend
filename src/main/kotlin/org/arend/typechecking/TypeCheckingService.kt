@@ -9,7 +9,7 @@ import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.module.ModuleSynchronizer
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
@@ -22,7 +22,6 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListener
@@ -49,7 +48,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
-    val updatedModules = HashSet<FullModulePath>()
+    val updatedModules = HashSet<ModuleLocation>()
 
     fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
@@ -66,7 +65,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
         this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
-        preludeLibrary.prelude?.generatedModulePath = FullModulePath(Prelude.LIBRARY_NAME, FullModulePath.LocationKind.GENERATED, Prelude.MODULE_PATH.toList())
+        preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)

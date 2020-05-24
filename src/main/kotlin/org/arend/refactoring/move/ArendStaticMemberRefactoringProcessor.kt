@@ -330,7 +330,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 importData.first?.execute(null)
                 val name = when {
                     currentName.isNotEmpty() -> LongName(currentName).toString()
-                    myTargetContainer is ArendFile -> myTargetContainer.modulePath?.lastName ?: ""
+                    myTargetContainer is ArendFile -> myTargetContainer.moduleLocation?.modulePath?.lastName ?: ""
                     else -> ""
                 }
                 addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))

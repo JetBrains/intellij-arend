@@ -15,7 +15,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()
-        val suffix = (target.containingFile as? ArendFile)?.modulePath?.toString() ?: "NULL"
+        val suffix = (target.containingFile as? ArendFile)?.moduleLocation?.toString() ?: "NULL"
         return if (prefix.isNotEmpty()) "$prefix in $suffix" else suffix
     }
 
@@ -38,7 +38,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val (importAction, resultName) = calculateReferenceName(location, containingFile, element, true) ?: return null
             val renameAction = when {
                 !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
-                target is ArendFile -> RenameReferenceAction(element, target.modulePath?.toList() ?: return null)
+                target is ArendFile -> RenameReferenceAction(element, target.moduleLocation?.modulePath?.toList() ?: return null)
                 else -> RenameReferenceAction(element, resultName)
             }
 
