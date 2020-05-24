@@ -13,16 +13,16 @@ class ArendMessagesService(private val project: Project) {
         private set
     var isErrorTextPinned: Boolean = false
 
-    fun activate(project: Project) {
+    fun activate(project: Project, selectFirst: Boolean) {
         runInEdt {
-            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors")?.activate({
+            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors")?.activate(if (selectFirst) Runnable {
                 val service = project.service<ArendMessagesService>()
                 val view = service.view
                 if (view != null) {
                     view.update()
                     view.tree.selectFirst()
                 }
-            }, false, false)
+            } else null, false, false)
         }
     }
 
@@ -34,7 +34,7 @@ class ArendMessagesService(private val project: Project) {
         val view = view
         if (view == null) {
             if (project.service<ErrorService>().hasErrors) {
-                activate(project)
+                activate(project, true)
             }
         } else {
             view.update()

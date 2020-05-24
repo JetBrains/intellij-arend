@@ -55,7 +55,7 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
             val messagesService = project.service<ArendMessagesService>()
             messagesService.view?.tree?.select(arendError.error)
             if (activate) {
-                messagesService.activate(project)
+                messagesService.activate(project, false)
             }
             break
         }
