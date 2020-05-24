@@ -22,6 +22,7 @@ import org.arend.prelude.Prelude
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListener
@@ -93,6 +94,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     val preludeScope: Scope
         get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
+
+    fun getDefinitionPsiReferable(definition: Definition) : PsiLocatedReferable? {
+        (definition.referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
+        return Scope.Utils.resolveName(preludeScope, definition.referable.refLongName.toList()) as? PsiLocatedReferable
+    }
 
     fun reload() {
         externalAdditionalNamesIndex.clear()

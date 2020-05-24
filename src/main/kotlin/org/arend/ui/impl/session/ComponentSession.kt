@@ -70,14 +70,14 @@ abstract class ComponentSession : BaseSession(), ComponentSessionItem {
         return query
     }
 
-    protected fun <T> comboBoxQuery(index: Int, message: String?, options: List<T>, defaultOption: T?): ComboBoxQuery<T> {
+    protected fun <T : Any> comboBoxQuery(index: Int, message: String?, options: List<T>, defaultOption: T?): ComboBoxQuery<T> {
         val query = ComboBoxQuery(options)
         query.comboBox.selectedItem = defaultOption
         items.add(index, LabeledComponent(message, query.comboBox))
         return query
     }
 
-    override fun <T> listQuery(message: String?, options: List<T>, defaultOption: T?): ArendQuery<T> =
+    override fun <T : Any> listQuery(message: String?, options: List<T>, defaultOption: T?): ArendQuery<T> =
         comboBoxQuery(items.size, message, options, defaultOption)
 
     override fun embedded(session: ArendSession) {

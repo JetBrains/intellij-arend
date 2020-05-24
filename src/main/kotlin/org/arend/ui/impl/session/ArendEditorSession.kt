@@ -1,5 +1,6 @@
 package org.arend.ui.impl.session
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
@@ -11,7 +12,7 @@ import org.arend.ArendIcons
 import org.arend.core.definition.Definition
 import org.arend.extImpl.ui.DelegateQuery
 import org.arend.extImpl.ui.SimpleQuery
-import org.arend.psi.ext.PsiReferable
+import org.arend.typechecking.TypeCheckingService
 import org.arend.ui.cellRenderer.ArendDefinitionListCellRenderer
 import org.arend.ui.ArendDialog
 import javax.swing.*
@@ -37,7 +38,7 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
         }
     }
 
-    override fun <T> listQuery(message: String?, options: List<T>, defaultOption: T?) =
+    override fun <T : Any> listQuery(message: String?, options: List<T>, defaultOption: T?) =
         if (singleListRequest == null && items.isEmpty() && options.isNotEmpty()) {
             val request = ListRequest(message, options, defaultOption)
             val query = request.query
@@ -53,7 +54,8 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
         val query = SimpleQuery<T>()
         request.query.setDelegate(query)
 
-        val psiList = request.list.mapNotNull { (it as? Definition)?.referable?.underlyingReferable as? PsiReferable }
+        val service = project.service<TypeCheckingService>()
+        val psiList = request.list.mapNotNull { if (it is Definition) service.getDefinitionPsiReferable(it) else null }
         val usePsi = psiList.size == request.list.size
         val builder = if (usePsi) {
             JBPopupFactory.getInstance().createPopupChooserBuilder(psiList)
