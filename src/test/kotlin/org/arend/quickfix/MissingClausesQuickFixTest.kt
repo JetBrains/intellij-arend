@@ -578,4 +578,37 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | wrapped x1 => {?}
         }
     """)
+
+    fun `test avoid shadowing function parameter`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (w x : Wrapper Nat) : Nat \elim w
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (w x : Wrapper Nat) : Nat \elim w
+          | wrapped x1 => {?}
+    """)
+
+    fun `test names of eliminated function parameters may be reused`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (x : Wrapper Nat) : Nat \elim x
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (x : Wrapper Nat) : Nat \elim x
+          | wrapped x => {?}
+    """)
+
+    fun `test names of eliminated function parameters may be reused 2`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
+          | x, wrapped x1 => {?}
+    """)
 }

@@ -12,8 +12,6 @@ import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
-import com.intellij.psi.util.parentOfType
-import com.intellij.psi.util.parentsWithSelf
 import com.intellij.psi.util.siblings
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Definition
@@ -24,14 +22,18 @@ import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.module.FullModulePath
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
+import org.arend.naming.scope.local.ElimScope
+import org.arend.naming.scope.local.ListScope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
@@ -600,24 +602,25 @@ fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: S
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
 
 fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable> {
-    val startCaseExpr = startElement.parentOfType<ArendCaseExpr>(true) ?: return emptyList()
-    val usedIdentifiers = mutableListOf<ArendDefIdentifier>()
-    val eliminatedIdentifiers = mutableListOf<ArendDefIdentifier>()
-    for (element: PsiElement in startCaseExpr.parentsWithSelf) {
-        usedIdentifiers.addAll(when (element) {
-            is ArendClause -> element.patternList.flatMap { it.atomPatternOrPrefixList }.mapNotNull { it.defIdentifier }
-            is ArendLetExpr -> element.letClauseList.mapNotNull { it.defIdentifier }
-            is ArendDefFunction -> element.nameTeleList.flatMap { it.identifierOrUnknownList }.mapNotNull { it.defIdentifier }
-            else -> emptyList()
-        })
-        if (element is ArendCaseExpr) {
-            element.caseArgList
-                    .mapNotNull { caseArg -> caseArg.caseArgExprAs.takeIf { it.elimKw != null }?.refIdentifier?.resolve }
-                    .forEach { (it as? ArendDefIdentifier)?.run(eliminatedIdentifiers::add) }
+    val elementScope = startElement.scope
+
+    val excluded: Set<Referable> = if (startElement is ArendCaseExpr) {
+        startElement.caseArgList.mapNotNullTo(HashSet()) { caseArg ->
+            caseArg.caseArgExprAs.takeIf { it.elimKw != null }?.refIdentifier?.let { ExpressionResolveNameVisitor.resolve(it.referent, elementScope) }
         }
+    } else emptySet()
+
+    val added: List<Referable> = if ((startElement as? FunctionDefinitionAdapter)?.functionBody?.elim?.elimKw != null) {
+        val eliminated = startElement.eliminatedExpressions.mapTo(HashSet()) { it.referenceName }
+        startElement.parameters.flatMap { it.referableList }.filter { !eliminated.contains(it.refName) }
+    } else emptyList()
+
+    val scope = when {
+        excluded.isNotEmpty() -> ElimScope(elementScope, excluded)
+        added.isNotEmpty() -> ListScope(elementScope, added)
+        else -> elementScope
     }
-    usedIdentifiers.removeAll(eliminatedIdentifiers)
-    return usedIdentifiers.mapNotNull { it.name?.run(::VariableImpl) }
+    return scope.elements.mapNotNull { if (it is GlobalReferable) null else VariableImpl(it.refName) }
 }
 
 /**
