@@ -6,14 +6,15 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendFileType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.Referable
+import org.arend.codeInsight.completion.ReplaceInsertHandler
+import org.arend.naming.reference.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiModuleReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.parametersText
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
 import org.arend.typechecking.TypeCheckingService
@@ -70,11 +71,15 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
         return element.scope.elements.mapNotNull { origElement ->
             val ref = origElement.underlyingReferable
-            if (ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
+            if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
-                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation()).withIcon(ref.getIcon(0))
+                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
+                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation() + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
+                    if (alias != null) {
+                        builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
+                    }
                     (ref as? Abstract.ParametersHolder)?.parametersText?.let {
                         builder = builder.withTailText(it, true)
                     }

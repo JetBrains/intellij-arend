@@ -19,6 +19,7 @@ import com.intellij.util.containers.MultiMap
 import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
@@ -274,7 +275,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             if (remainderAnchor is ArendCompositeElement) {
                 val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
                 val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
-                val importData = computeAliases(targetLocation, sourceContainerFile, remainderAnchor)
+                val importData = calculateReferenceName(targetLocation, sourceContainerFile, remainderAnchor)
 
                 if (importData != null) {
                     val importAction: AbstractRefactoringAction? = importData.first
@@ -322,7 +323,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 }
             }
 
-            val importData = computeAliases(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
+            val importData = calculateReferenceName(LocationData(myTargetContainer as PsiLocatedReferable), usageFile, statCmd, myTargetContainer is ArendFile)
             val currentName: List<String>? = importData?.second
 
             if (renamings.isNotEmpty() && currentName != null) {
@@ -497,7 +498,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         return if (childPath.isEmpty()) element else {
             val shorterPrefix = childPath.subList(1, childPath.size)
             val childElement = element.children[childPath[0]]
-            if (childElement != null) locateChild(childElement, shorterPrefix) else null
+            locateChild(childElement, shorterPrefix)
         }
     }
 
@@ -576,7 +577,13 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
             val localNamesMap = HashMap<String, ArendGroup>()
-            for (psi in localGroup) localNamesMap[psi.textRepresentation()] = psi
+            for (psi in localGroup) {
+                localNamesMap[psi.textRepresentation()] = psi
+                if (psi is GlobalReferable) {
+                    val aliasName = psi.aliasName
+                    if (aliasName != null) localNamesMap[aliasName] = psi
+                }
+            }
 
             for (member in myMembers) {
                 val text = member.textRepresentation()

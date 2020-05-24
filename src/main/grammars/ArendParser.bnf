@@ -56,6 +56,7 @@
         NO_CLASSIFYING_KW   = '\noclassifying'
         COERCE_KW           = '\coerce'
         USE_KW              = '\use'
+        ALIAS_KW            = '\alias'
         NON_ASSOC_KW        = '\fix'
         LEFT_ASSOC_KW       = '\fixl'
         RIGHT_ASSOC_KW      = '\fixr'
@@ -191,8 +192,8 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     mixin = "org.arend.psi.ext.ArendOverriddenFieldImplMixin"
 }
 
-classField ::= prec? defIdentifier_typeTele typeTele* COLON returnExpr {
-    pin = 4
+classField ::= prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 5
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.naming.reference.FieldReferable"
@@ -234,7 +235,7 @@ definition ::= defFunction
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
-defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module where? {
+defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module alias? where? {
     pin(".*") = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
@@ -243,10 +244,12 @@ defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module where? {
 }
 
 private defIdentifier_module ::= defIdentifier {
-    recoverWhile = statement_recover
+    recoverWhile = defIdentifier_module_recover
 }
 
-defFunction ::= functionKw prec? defIdentifier_func nameTele* functionType? functionBody? where? {
+private defIdentifier_module_recover ::= !ALIAS_KW & statement_recover
+
+defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -268,9 +271,9 @@ private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
 }
 
-private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE) & nameTele_first & statement_recover
+private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE | ALIAS_KW) & nameTele_first & statement_recover
 
-defInstance ::= instanceOrCons prec? defIdentifier_func nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -282,7 +285,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func nameTele* functionType? 
 
 instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_typeTele typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_typeTele alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefDataStub"
@@ -315,7 +318,7 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
+private defClassHeader ::= prec? defIdentifier alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
@@ -416,7 +419,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_constructor typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
+constructor ::= prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
     pin = 2
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
@@ -431,9 +434,16 @@ private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
 }
 
-private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
+private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
+
+alias ::= ALIAS_KW prec? aliasIdentifier { pin = 1 }
+
+aliasIdentifier ::= ID {
+    implements = "org.arend.psi.ext.ArendCompositeElement"
+    mixin = "org.arend.psi.ext.ArendAliasIdentifierImplMixin"
+}
 
 prec ::= assoc NUMBER { pin = 1 }
 
@@ -875,7 +885,7 @@ private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 

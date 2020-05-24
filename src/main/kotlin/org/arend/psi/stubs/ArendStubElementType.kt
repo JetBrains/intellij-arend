@@ -9,6 +9,7 @@ import com.intellij.psi.tree.IStubFileElementType
 import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.ext.reference.Precedence.Associativity.*
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ext.PsiLocatedReferable
 
 abstract class ArendStubElementType<StubT : ArendStub<*>, PsiT : PsiLocatedReferable>(debugName: String)
@@ -16,19 +17,21 @@ abstract class ArendStubElementType<StubT : ArendStub<*>, PsiT : PsiLocatedRefer
 
     final override fun getExternalId(): String = "arend.${super.toString()}"
 
-    abstract fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?): StubT
+    abstract fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?): StubT
 
-    override fun createStub(psi: PsiT, parentStub: StubElement<*>?) = createStub(parentStub, psi.name, psi.precedence)
+    override fun createStub(psi: PsiT, parentStub: StubElement<*>?) = createStub(parentStub, psi.name, psi.precedence, (psi as? GlobalReferable)?.aliasName)
 
     override fun serialize(stub: StubT, dataStream: StubOutputStream) {
         dataStream.writeName(stub.name)
+        dataStream.writeName(stub.aliasName)
         serializePrecedence(stub.precedence, dataStream)
     }
 
     override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?): StubT {
         val name = dataStream.readNameString()
+        val aliasName = dataStream.readNameString()
         val prec = deserializePrecedence(dataStream)
-        return createStub(parentStub, name, prec)
+        return createStub(parentStub, name, prec, aliasName)
     }
 
     private fun createStubIfParentIsStub(node: ASTNode): Boolean {

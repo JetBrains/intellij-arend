@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.SourceInfo
+import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
@@ -14,12 +15,20 @@ import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
 
 
+private data class Alias(val name: String, val precedence: Precedence)
+
 open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: LocatedReferable,
     parent: LocatedReferable?,
     typeClassReference: TCClassReferable?)
     : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), SourceInfo {
+
+    private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
+
+    override fun getAliasName() = alias?.name
+
+    override fun getAliasPrecedence(): Precedence = alias?.precedence ?: Precedence.DEFAULT
 
     override fun getData() = psiElementPointer
 

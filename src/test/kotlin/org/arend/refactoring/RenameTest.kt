@@ -153,6 +153,30 @@ class RenameTest : ArendTestBase() {
             "\\class Lol (p{-caret-} : Nat) {}\n\\func lol => Lol.p",
             "\\class Lol (q : Nat) {}\n\\func lol => Lol.q")
 
+    fun `test rename definition with alias 1`() = doTest("foo2",
+            "\\func foo \\alias bar{-caret-}\n\n\\func fubar1 => foo\n\n\\func fubar2 => bar",
+            "\\func foo \\alias foo2\n\n\\func fubar1 => foo\n\n\\func fubar2 => foo2", usingHandler = true)
+
+    fun `test rename definition with alias 2`() = doTest("foo2",
+            "\\func foo \\alias bar\n\n\\func fubar1 => foo\n\n\\func fubar2 => bar{-caret-}",
+            "\\func foo \\alias foo2\n\n\\func fubar1 => foo\n\n\\func fubar2 => foo2", usingHandler = true)
+
+    fun `test rename definition with alias 3`() = doTest("foo2",
+            "\\func foo{-caret-} \\alias bar\n\n\\func fubar1 => foo\n\n\\func fubar2 => bar",
+            "\\func foo2 \\alias bar\n\n\\func fubar1 => foo2\n\n\\func fubar2 => bar", usingHandler = true)
+
+    fun `test rename definition with alias 4`() = doTest("foo2",
+            "\\func foo \\alias bar\n\n\\func fubar1 => foo{-caret-}\n\n\\func fubar2 => bar",
+            "\\func foo2 \\alias bar\n\n\\func fubar1 => foo2\n\n\\func fubar2 => bar", usingHandler = true)
+
+    fun `test rename definition with alias 5`() = doTest("foo2",
+            "\\func foo \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo{-caret-} 1\n\n\\func fubar2 => bar",
+            "\\func foo2 \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo2 1\n\n\\func fubar2 => bar", usingHandler = true)
+
+    fun `test rename definition with alias 6`() = doTest("foo2",
+            "\\func foo{-caret-} \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo 1\n\n\\func fubar2 => bar",
+            "\\func foo2 \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo2 1\n\n\\func fubar2 => bar", usingHandler = true)
+
     fun `test rename file`() = checkByDirectory(
             """
                 --! Main.ard
@@ -216,10 +240,11 @@ class RenameTest : ArendTestBase() {
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,
-            @Language("Arend") after: String
+            @Language("Arend") after: String,
+            usingHandler: Boolean = false
     ) {
         InlineFile(before).withCaret()
-        myFixture.renameElementAtCaret(newName)
+        if (usingHandler) myFixture.renameElementAtCaretUsingHandler(newName) else myFixture.renameElementAtCaret(newName)
         myFixture.checkResult(after)
     }
 }
