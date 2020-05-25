@@ -19,7 +19,6 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.ScopeDefinitionRenamer
-import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
@@ -38,6 +37,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.ArendCancellationIndicator
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
@@ -49,14 +49,20 @@ import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.typing.parseBinOp
 import java.util.function.Supplier
 
-class SubExprException(message: String) : Throwable(message)
+/**
+ * @param def for storing function-level elim/clauses bodies
+ */
+class SubExprException(
+    message: String,
+    val def: Pair<Concrete.Definition, TCDefinition>? = null
+) : Throwable(message)
 
 class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseReferableConverter() {
     override fun toDataReferable(referable: Referable?) = referable
     override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
 }
 
-private fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
+fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
         .psiTraverser(p)
         .onRange { selected in it.textRange }
         .filter(ArendDefIdentifier::class.java)
@@ -102,17 +108,20 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             file.findElementAt(range.endOffset - 1)
     )) ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val exprAncestor = possibleParent.ancestor<ArendExpr>()
-            ?: throw SubExprException("selected text is not an arend expression")
-    val parent = exprAncestor.parent
-    val psiDef = parent.ancestor<TCDefinition>()
-            ?: throw SubExprException("selected text is not in a definition")
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
     val concreteProvider = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
+    val psiDef = possibleParent.ancestor<TCDefinition>()
+        ?: throw SubExprException("selected text is not in a definition")
+    val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
+    val body = concreteDef?.let { it to psiDef }
+
+    val exprAncestor = possibleParent.ancestor<ArendExpr>()
+            ?: throw SubExprException("selected text is not an arend expression", body)
+    val parent = exprAncestor.parent
 
     val (head, tail) = collectArendExprs(parent, range)
-        ?: throw SubExprException("cannot find a suitable concrete expression")
+        ?: throw SubExprException("cannot find a suitable concrete expression", body)
     val subExpr =
         if (tail.isNotEmpty()) parseBinOp(head, tail)
         else ConcreteBuilder.convertExpression(refConverter, head)
@@ -140,8 +149,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             null
         }
     } else {
-        val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
-            ?: throw SubExprException("selected text is not in a function definition")
+        concreteDef ?: throw SubExprException("selected text is not in a definition")
         val def = service.getTypechecked(psiDef)
             ?: throw SubExprException("underlying definition is not type checked")
         val subDefVisitor = CorrespondedSubDefVisitor(subExpr)
@@ -151,16 +159,16 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         append("cannot find a suitable subexpression")
         if (errors.any { it.kind == SubExprError.Kind.MetaRef })
             append(" (maybe because you're using meta defs)")
-    })
+    }, body)
 
     return SubExprResult(result.proj1, result.proj2, exprAncestor)
 }
 
-fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor): SubExprResult? =
+fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor, showError : Boolean = true): SubExprResult? =
     try {
         correspondedSubExpr(range, file, project)
     } catch (e: SubExprException) {
-        ApplicationManager.getApplication().invokeLater {
+        if (showError) ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
         }
         null
@@ -201,18 +209,21 @@ private fun collectArendExprs(
     val head: PsiElement
     val tail: Sequence<PsiElement>
     if (range.isEmpty) {
-        val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()
-            ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()
-            ?: return null
-        if (firstExpr is ArendTuple) {
-            val tupleExprList = firstExpr.tupleExprList
-            head = tupleExprList.firstOrNull() ?: return null
-            tail = tupleExprList.asSequence().drop(1)
-        } else if (firstExpr is ArendTupleExpr) {
-            val exprList = firstExpr.exprList
-            head = exprList.firstOrNull() ?: return null
-            tail = exprList.asSequence().drop(1)
-        } else return firstExpr to emptyList()
+        when (val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()
+            ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()) {
+            is ArendTuple -> {
+                val tupleExprList = firstExpr.tupleExprList
+                head = tupleExprList.firstOrNull() ?: return null
+                tail = tupleExprList.asSequence().drop(1)
+            }
+            is ArendTupleExpr -> {
+                val exprList = firstExpr.exprList
+                head = exprList.firstOrNull() ?: return null
+                tail = exprList.asSequence().drop(1)
+            }
+            null -> return null
+            else -> return firstExpr to emptyList()
+        }
     } else {
         val exprSeq = parent.childrenWithLeaves
             .dropWhile { it.textRange.endOffset < range.startOffset }

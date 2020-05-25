@@ -140,7 +140,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     fun onTestStarted(ref: PsiLocatedReferable) {
         addToInvokeLater {
             synchronized(this@TypecheckingEventsProcessor) {
-                val modulePath = (ref.containingFile as? ArendFile)?.modulePath
+                val modulePath = (ref.containingFile as? ArendFile)?.moduleLocation?.modulePath
                 if (modulePath != null) onSuiteStarted(modulePath)
 
                 val fullName = ref.fullName

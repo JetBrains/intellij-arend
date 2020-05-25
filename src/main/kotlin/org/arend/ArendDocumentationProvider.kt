@@ -71,6 +71,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         wrapTag("b") {
             html(element.textRepresentation())
         }
+        (element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text?.let {
+            html(" $it")
+        }
 
         for (parameter in (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()) {
             if (parameter is PsiElement) {
@@ -81,18 +84,27 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         element.psiElementType?.let { html(" : ${it.text}") }
     }
 
+    private fun StringBuilder.generatePrecedence(prec: ArendPrec) {
+        append(", ")
+        append(prec.firstChild.text.drop(1))
+        prec.number?.let { priority ->
+            append(" ")
+            append(priority.text)
+        }
+    }
+
     private fun StringBuilder.generateContent(element: PsiElement, originalElement: PsiElement?) {
         wrapTag("em") {
             getType(element)?.let { append(it) }
         }
         getSuperType(element)?.let { append(it) }
 
-        (element as? ReferableAdapter<*>)?.getPrec()?.let {
-            append(", ")
-            append(it.firstChild.text.drop(1))
-            it.number?.let { priority ->
-                append(" ")
-                append(priority.text)
+        (element as? ReferableAdapter<*>)?.getPrec()?.let { generatePrecedence(it) }
+
+        (element as? ReferableAdapter<*>)?.getAlias()?.let { alias ->
+            alias.prec?.let {
+                generatePrecedence(it)
+                html(" ${alias.aliasIdentifier?.id?.text ?: ""}")
             }
         }
 

@@ -49,7 +49,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
                 }
                 return@runReadAction NullDefinition
             } else {
-                if (resolve && def.relatedDefinition.resolved == Concrete.Resolved.NOT_RESOLVED) {
+                if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
                     def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
                 }
@@ -65,7 +65,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             return result
         }
 
-        if (resolve && result.relatedDefinition.resolved != Concrete.Resolved.RESOLVED) {
+        if (resolve && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
             runReadAction {
                 if (scope == null) {
                     scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))

@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.reference.Precedence
+import org.arend.psi.ArendAlias
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
 import org.arend.psi.ancestor
@@ -20,11 +21,19 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     abstract fun getPrec(): ArendPrec?
 
+    abstract fun getAlias(): ArendAlias?
+
+    override fun hasAlias() = getAlias() != null
+
+    override fun getAliasName() = getAlias()?.aliasIdentifier?.id?.text
+
+    override fun getAliasPrecedence() = calcPrecedence(getAlias()?.prec)
+
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(getPrec())
 
     override fun getTypecheckable(): PsiLocatedReferable = ancestor<TCDefinition>() ?: this
 
-    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.modulePath else null
+    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 

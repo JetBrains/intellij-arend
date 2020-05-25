@@ -116,7 +116,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
-                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
+                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)),
+                and(ofType(ID), withAncestors(ArendAliasIdentifier::class.java, ArendAlias::class.java, ArendDefClass::class.java)))
 
         val noExtendsPattern = elementPattern {
             val dC = it.ancestor<ArendDefClass>()
@@ -427,6 +428,12 @@ class ArendCompletionContributor : CompletionContributor() {
 
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
+
+        basic(and(afterLeaf(ID), or(
+                withAncestors(PsiErrorElement::class.java, ArendDefModule::class.java),
+                after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
+                        ArendDefFunction::class.java, ArendConstructor::class.java, ArendDefClass::class.java, ArendClassField::class.java))),
+                after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST)
 
         //basic(PlatformPatterns.psiElement(), Logger())
     }

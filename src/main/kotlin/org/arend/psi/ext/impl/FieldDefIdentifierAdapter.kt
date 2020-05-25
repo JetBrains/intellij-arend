@@ -10,11 +10,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendFieldDefIdentifier
-import org.arend.psi.ArendFieldTele
-import org.arend.psi.ArendPrec
+import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
@@ -52,6 +48,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override fun getReference(): ArendReference = ArendDefReferenceImpl<ArendFieldDefIdentifier>(this)
 
     override fun getPrec(): ArendPrec? = null
+
+    override fun getAlias(): ArendAlias? = null
 
     override fun getReferable() = this
 

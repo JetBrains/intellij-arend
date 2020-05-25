@@ -24,10 +24,12 @@ import org.arend.ui.impl.ArendEditorUI
 class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val goal: GoalError, private val solver: InteractiveGoalSolver) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
-            if (it !is Concrete.Expression) throw IllegalArgumentException()
-            CommandProcessor.getInstance().executeCommand(project, {
-                invokeOnConcrete(it, project, editor)
-            }, text, null, editor.document)
+            if (it != null) {
+                if (it !is Concrete.Expression) throw IllegalArgumentException()
+                CommandProcessor.getInstance().executeCommand(project, {
+                    invokeOnConcrete(it, project, editor)
+                }, text, null, editor.document)
+            }
         }
     }
 

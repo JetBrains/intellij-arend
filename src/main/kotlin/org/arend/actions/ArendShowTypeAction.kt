@@ -6,9 +6,16 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import org.arend.core.expr.*
+import org.arend.core.definition.Function
+import org.arend.core.elimtree.ElimBody
+import org.arend.core.expr.Expression
+import org.arend.ext.core.definition.CoreFunctionDefinition
+import org.arend.psi.ArendDefFunction
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.concrete.Concrete
+import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.subexpr.FindBinding
 import org.jetbrains.annotations.Nls
 
 class ArendShowTypeAction : ArendPopupAction() {
@@ -28,9 +35,9 @@ class ArendShowTypeAction : ArendPopupAction() {
     @Throws(SubExprException::class)
     private fun ArendPopupHandler.doInvoke(editor: Editor, file: PsiFile, project: Project) {
         val selected = EditorUtil.getSelectionInAnyMode(editor)
-        val sub = correspondedSubExpr(selected, file, project)
+
         fun select(range: TextRange) =
-                editor.selectionModel.setSelection(range.startOffset, range.endOffset)
+            editor.selectionModel.setSelection(range.startOffset, range.endOffset)
 
         fun hint(e: Expression?) = e?.let {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
@@ -40,6 +47,26 @@ class ArendShowTypeAction : ArendPopupAction() {
                 displayEditorHint(exprToConcrete(project, it).toString(), project, editor, AD_TEXT)
             }
         } ?: throw SubExprException("failed to synthesize type from given expr")
+
+        val sub = try {
+            correspondedSubExpr(selected, file, project)
+        } catch (e: SubExprException) {
+            val (function, tc) = e.def ?: throw e
+            if (function !is Concrete.FunctionDefinition || tc !is ArendDefFunction) throw e
+            val body = function.body
+            // Make sure it's not an expr body
+            if (body.term != null) throw e
+            val coreDef = project.service<TypeCheckingService>().getTypechecked(tc)
+            val coreBody = (coreDef as? Function)?.body as? ElimBody
+                ?: (coreDef as? CoreFunctionDefinition)?.actualBody as? ElimBody
+                ?: throw e
+            val psiBody = tc.functionBody ?: throw e
+            val bind = binding(psiBody, selected) ?: throw e
+            val ref = FindBinding.visitClauses(bind, body.clauses, coreBody.clauses) ?: throw e
+            select(bind.textRange)
+            hint(ref.typeExpr)
+            return
+        }
 
         val findBinding = sub.findBinding(selected)
         if (findBinding == null) {

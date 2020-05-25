@@ -17,6 +17,8 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
 
     override fun getPrec(): ArendPrec? = null
 
+    override fun getAlias(): ArendAlias? = null
+
     override val defIdentifier: ArendDefIdentifier?
         get() = null
 
