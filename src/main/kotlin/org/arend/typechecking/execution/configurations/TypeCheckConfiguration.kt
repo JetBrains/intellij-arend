@@ -59,7 +59,7 @@ class TypeCheckConfiguration(
         if (environment.runnerSettings is DebuggingRunnerData) {
             val jarConfiguration = JarApplicationConfigurationType.getInstance().createTemplateConfiguration(project) as JarApplicationConfiguration
             jarConfiguration.jarPath = arendSettings.pathToArendJar
-            jarConfiguration.programParameters = project.basePath
+            jarConfiguration.programParameters = "-r " + project.basePath
             val jarAppState = jarConfiguration.getState(executor, environment)
             if (jarAppState != null) {
                 return jarAppState
