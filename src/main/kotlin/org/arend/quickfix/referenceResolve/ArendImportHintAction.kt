@@ -80,6 +80,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     private fun doFix(editor: Editor, silentFixMode: Boolean = false): Result {
         val psiFile = referenceElement.containingFile
+        val refElementUnderCaret = referenceElement.textRange.contains(editor.caretModel.offset)
         val project = psiFile.project
 
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
@@ -91,7 +92,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         val actionsIterator = referenceResolveActions.iterator()
 
         if (availability == ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX &&
-                service<ArendSettings>().autoImportOnTheFly &&
+                service<ArendSettings>().autoImportOnTheFly && !refElementUnderCaret /* prevent on-the-fly autoimport of element under caret */ &&
                 (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
                 isInModlessContext) {
             val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions.toList(), true)
@@ -99,7 +100,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             return Result.CLASS_AUTO_IMPORTED
         }
 
-        if (silentFixMode) return Result.POPUP_NOT_SHOWN //This reduces number of calls to "getProposedFix" and greatly boosts performance
+        if (silentFixMode) return Result.POPUP_NOT_SHOWN
 
         val firstAction = if (actionsIterator.hasNext()) actionsIterator.next() else null
         val moreThanOneActionAvailable = actionsIterator.hasNext()
