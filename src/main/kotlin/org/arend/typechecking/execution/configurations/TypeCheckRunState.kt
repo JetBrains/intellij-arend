@@ -25,8 +25,7 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 class TypeCheckRunState(
         environment: ExecutionEnvironment,
         private val command: TypeCheckCommand
-) : // PatchedRunnableState,
-          CommandLineState(environment) {
+) : CommandLineState(environment) {
 
     override fun startProcess() = TypeCheckProcessHandler(environment.project.service(), command)
 

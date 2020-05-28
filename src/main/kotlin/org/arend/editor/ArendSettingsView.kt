@@ -1,7 +1,11 @@
 package org.arend.editor
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.TextBrowseFolderListener
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.and
@@ -33,6 +37,11 @@ class ArendSettingsView {
     private val clauseLimitSwitch = JBCheckBox("Limit the maximum number of clauses generated at once: ", true)
     private val clauseLimit = JBIntSpinner(10, 1, 1000)
 
+    private val arendJarTextField = TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptor(false, false, true, false, false, false)))
+        //addBrowseFolderListener("Path to Arend jar for debugger", "Specify the path to Arend console application jar to be used in debugger", , FileChooserDescriptorFactory.createSingleFileDescriptor(".jar"), textComponentAccessor)
+    }
+
     val isModified: Boolean
         get() =
             // Background typechecking
@@ -41,7 +50,8 @@ class ArendSettingsView {
             timeLimit.number != arendSettings.typecheckingTimeLimit ||
             // Other settings
             clauseLimitSwitch.isSelected != arendSettings.withClauseLimit ||
-            clauseLimit.number != arendSettings.clauseLimit
+            clauseLimit.number != arendSettings.clauseLimit ||
+            arendJarTextField.text != arendSettings.pathToArendJar
 
     fun apply() {
         // Background typechecking
@@ -54,6 +64,7 @@ class ArendSettingsView {
         // Other settings
         arendSettings.withClauseLimit = clauseLimitSwitch.isSelected
         arendSettings.clauseLimit = clauseLimit.number
+        arendSettings.pathToArendJar = arendJarTextField.text
     }
 
     fun reset() {
@@ -65,6 +76,7 @@ class ArendSettingsView {
         // Other settings
         clauseLimitSwitch.isSelected = arendSettings.withClauseLimit
         clauseLimit.value = arendSettings.clauseLimit
+        arendJarTextField.text = arendSettings.pathToArendJar
     }
 
     fun createComponent() = panel {
@@ -79,6 +91,10 @@ class ArendSettingsView {
 
         titledRow("Other settings") {
             checked(clauseLimitSwitch, clauseLimit)
+            cellRow {
+                label("Path to Arend jar for debugger: ")
+                arendJarTextField()
+            }
         }
     }
 }

@@ -8,7 +8,6 @@ import com.intellij.debugger.engine.PositionManagerImpl
 
 class ArendPositionManagerFactory: PositionManagerFactory() {
     override fun createPositionManager(process: DebugProcess): PositionManager? {
-        println("Position Manager entry")
         return (process as? DebugProcessImpl)?.let { PositionManagerImpl(it) }
     }
 

@@ -17,17 +17,4 @@ class ArendDebuggerRunner: GenericDebuggerRunner() {
     override fun canRun(executorId: String, profile: RunProfile): Boolean {
         return true
     }
-
-    /*override fun createContentDescriptor(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
-        val javaParameters = JavaParameters()
-        javaParameters.jdk = ProjectRootManager.getInstance(environment.project).projectSdk
-        val remoteConnection = DebuggerManagerImpl.createDebugParameters(javaParameters,
-                true,
-                DebuggerSettings.SOCKET_TRANSPORT,
-                "",
-                false)
-        return attachVirtualMachine(state, environment, remoteConnection,
-                //RemoteConnection(true, "127.0.0.1", "0", true),
-                true)
-    } */
 }
