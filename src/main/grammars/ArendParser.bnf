@@ -263,7 +263,7 @@ functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
 
 private functionType ::= COLON returnExpr { pin = 1 }
 
-returnExpr ::= expr | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
+returnExpr ::= expr [LEVEL_KW expr] | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
 
 private useMod ::= USE_KW (COERCE_KW | LEVEL_KW) { pin = 1 }
 
@@ -460,7 +460,7 @@ expr ::= arrExpr
     mixin = "org.arend.psi.ext.ArendExprImplMixin"
 }
 
-private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON) & statement_recover
+private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON | LEVEL_KW) & statement_recover
 
 arrExpr ::= expr ARROW expr {
     pin = 2
@@ -885,7 +885,7 @@ private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 

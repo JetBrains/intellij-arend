@@ -43,15 +43,6 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             }
 
             val atomParent = atomFieldsAcc?.parent
-            if (atomParent is ArendReturnExpr) {
-                val list = atomParent.atomFieldsAccList
-                if (list.size > 1 && list[1] == atomFieldsAcc) {
-                    return levelProof
-                }
-                expr = atomFieldsAcc
-                break
-            }
-
             val ppParent = (atomParent as? ArendArgumentAppExpr ?: (atomParent as? ArendAtomArgument)?.parent as? ArendArgumentAppExpr)?.parent
             val newExpr = ppParent as? ArendNewExpr ?: expr as? ArendNewExpr
             val appExpr = newExpr?.argumentAppExpr ?: (ppParent as? ArendNewArg)?.argumentAppExpr ?: return defaultUsage
@@ -125,7 +116,6 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         val usagesInPatterns  = UsageType { "Patterns" }
         val newInstances      = UsageType { "New instances" }
         val classExt          = UsageType { "Class extensions" }
-        val levelProof        = UsageType { "Level proof" }
         val parameters        = UsageType { "Parameter types" }
         val resultTypes       = UsageType { "Result types" }
         val extendsUsages     = UsageType { "Extends clauses" }

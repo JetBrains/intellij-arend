@@ -81,7 +81,7 @@ class ArendInstanceInserter(private val instance: ArendDefInstance) : ArendFunct
         var instanceBody = instance.instanceBody
         if (instanceBody == null) {
             val instanceBodySample = factory.createCoClause(name).parent as ArendInstanceBody
-            val anchor = if (instance.returnExpr != null) instance.returnExpr else instance.defIdentifier
+            val anchor = instance.returnExpr ?: instance.defIdentifier
             instanceBody = instance.addAfterWithNotification(instanceBodySample, anchor) as ArendInstanceBody
             instance.addBefore(factory.createWhitespace("\n"), instanceBody)
             moveCaretToEndOffset(editor, instanceBody.lastChild)
