@@ -506,27 +506,27 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) => lol {-caret-} a 1 2")
 
     fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level {-caret-}")
+            "\\func lol => lol \\levels {-caret-}")
 
     fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level \\lp {-caret-}",
+            "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
-            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2") //,"\\func lol => lol \\level (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2") //,"\\func lol => lol \\levels (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
 
     fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level ({-caret-})",
-            "\\func lol => lol \\level \\lp ({-caret-})",
+            "\\func lol => lol \\levels ({-caret-})",
+            "\\func lol => lol \\levels \\lp ({-caret-})",
             "\\func lol => lol \\lp ({-caret-})")
 
     fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\level \\lp \\lh {-caret-}",
+            "\\func lol => lol \\levels \\lp \\lh {-caret-}",
             "\\func lol => lol \\lp \\lh {-caret-}",
             "\\func lol (a : Nat) => lol a {-caret-}",
             "\\func lol => 1 {-caret-}",
             "\\func lol => 1 ({-caret-})")
 
     fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\level \\lp {-caret-}",
+            "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
             "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
             "\\func lol (a : Nat) => lol ({-caret-})")

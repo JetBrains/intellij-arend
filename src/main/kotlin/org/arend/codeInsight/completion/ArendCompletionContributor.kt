@@ -395,7 +395,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ch is ArendAtomArgument) forbidden = true
                     }
                     counter < threshold && !forbidden
-                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
+                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
             }
         }
 
@@ -410,7 +410,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(withParent(ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS) { parameters ->
             val argumentAppExpr: ArendArgumentAppExpr? = parameters.position.parent as ArendArgumentAppExpr
-            argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
+            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }
 
 

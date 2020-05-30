@@ -93,6 +93,7 @@
         OO_KW               = '\oo'
         SUC_KW              = '\suc'
         LEVEL_KW            = '\level'
+        LEVELS_KW           = '\levels'
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
@@ -705,7 +706,7 @@ levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-private levelsLevels ::= LEVEL_KW (PROP_KW | maybeAtomLevelExpr maybeAtomLevelExpr) { pin = 1 }
+private levelsLevels ::= LEVELS_KW (PROP_KW | maybeAtomLevelExpr maybeAtomLevelExpr) { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
