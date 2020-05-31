@@ -246,10 +246,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
-                is AnotherClassifyingFieldError ->
-                    (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
-                        (it.parent as? ArendFieldTele)?.classifyingKw ?: it
-                    }
                 is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
                 else -> null
             }
