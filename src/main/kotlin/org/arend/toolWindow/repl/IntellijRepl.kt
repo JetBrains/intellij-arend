@@ -2,7 +2,7 @@ package org.arend.toolWindow.repl
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import org.arend.error.ListErrorReporter
+import org.arend.ext.error.ListErrorReporter
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendPsiFactory

@@ -101,12 +101,11 @@ data class SubExprResult(
 
 @Throws(SubExprException::class)
 fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
-    val possibleParent = (if (range.isEmpty)
-        file.findElementAt(range.startOffset)
-    else PsiTreeUtil.findCommonParent(
-            file.findElementAt(range.startOffset),
-            file.findElementAt(range.endOffset - 1)
-    )) ?: throw SubExprException("selected expr in bad position")
+    val startElement = file.findElementAt(range.startOffset) ?: throw SubExprException("selected expr in bad position")
+    val possibleParent = if (range.isEmpty) startElement
+    else file.findElementAt(range.endOffset - 1)?.let {
+        PsiTreeUtil.findCommonParent(startElement, it)
+    } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
