@@ -17,6 +17,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
@@ -169,8 +170,13 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.nameIdentifier?.let {
-                    holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
+                    ref.nameIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
+                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
                 }
 
                 highlightParameters(definition)

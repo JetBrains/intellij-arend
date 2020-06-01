@@ -1,6 +1,8 @@
 package org.arend.typechecking.execution
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -20,7 +22,7 @@ import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.FullModuleReferable
@@ -49,6 +51,7 @@ class TypeCheckProcessHandler(
     private val typeCheckerService: TypeCheckingService,
     private val command: TypeCheckCommand
 ) : ProcessHandler() {
+        //OSProcessHandler(GeneralCommandLine()) {
     var eventsProcessor: TypecheckingEventsProcessor? = null
     private val indicator: ProgressIndicator = ProgressIndicatorBase()
 
@@ -99,7 +102,7 @@ class TypeCheckProcessHandler(
         for (module in typeCheckerService.updatedModules) {
             val library = typeCheckerService.libraryManager.getRegisteredLibrary(module.libraryName) as? SourceLibrary
             if (library?.supportsPersisting() == true) {
-                library.deleteModule(module)
+                library.deleteModule(module.modulePath)
             }
         }
         typeCheckerService.updatedModules.clear()
@@ -124,7 +127,7 @@ class TypeCheckProcessHandler(
                             runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
                         } else if (command.definitionFullName == "") {
                             val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
-                            val moduleScopeProvider = if (module.modulePath?.locationKind == FullModulePath.LocationKind.TEST) {
+                            val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
                                 val testsModuleScopeProvider = library.testsModuleScopeProvider
                                 ModuleScopeProvider {
                                     sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
@@ -235,14 +238,14 @@ class TypeCheckProcessHandler(
         for (child in group.children) {
             when (child) {
                 is PsiErrorElement -> {
-                    val modulePath = module.modulePath
-                    if (modulePath != null) {
+                    val moduleLocation = module.moduleLocation
+                    if (moduleLocation != null) {
                         typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child),
-                            group as? PsiLocatedReferable ?: FullModuleReferable(modulePath), child.errorDescription))
+                            group as? PsiLocatedReferable ?: FullModuleReferable(moduleLocation), child.errorDescription))
                         if (group is PsiLocatedReferable) {
                             typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
                         } else {
-                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(modulePath)
+                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(moduleLocation.modulePath)
                         }
                     }
                 }

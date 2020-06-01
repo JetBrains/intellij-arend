@@ -27,9 +27,9 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
-    override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
+    override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
-    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
+    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.let { it.exprList.getOrNull(1) ?: it.atomFieldsAccList.getOrNull(1) }
 
     override fun getTerm(): ArendExpr? = instanceBody?.expr
 

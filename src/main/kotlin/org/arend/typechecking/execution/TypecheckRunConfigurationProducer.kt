@@ -37,14 +37,14 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
         when (val definition = element?.parentOfType<TCDefinition>(false) ?: element?.parentOfType<ArendFile>(false)) {
             is TCDefinition -> {
                 val file = definition.containingFile as? ArendFile ?: return null
-                val modulePath = file.modulePath ?: return null
+                val modulePath = file.moduleLocation ?: return null
                 sourceElement?.set(definition)
                 val fullName = definition.fullName
                 return MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.libraryName ?: "", modulePath.toString(), fullName))
             }
             is ArendFile -> {
                 sourceElement?.set(definition)
-                val fullName = definition.modulePath?.toString() ?: return null
+                val fullName = definition.moduleLocation?.toString() ?: return null
                 return MyConfiguration("Typecheck $fullName", TypeCheckCommand(definition.libraryName ?: "", fullName))
             }
             else -> return null

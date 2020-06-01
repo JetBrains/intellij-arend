@@ -56,7 +56,7 @@ class ArendRawLibrary(val config: LibraryConfig)
         scopeToText(scope, "", builder)
         val file = PsiFileFactory.getInstance(config.project).createFileFromText(modulePath.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return
         file.virtualFile.isWritable = false
-        file.generatedModulePath = FullModulePath(name, FullModulePath.LocationKind.GENERATED, modulePath.toList())
+        file.generatedModuleLocation = ModuleLocation(name, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)
         config.project.service<TypeCheckingService>().fillAdditionalNames(file, isExternal)
         config.addAdditionalModule(modulePath, file)

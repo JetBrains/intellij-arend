@@ -12,6 +12,12 @@ abstract class TCReferableWrapper : TCReferable {
 
     override fun getPrecedence() = referable.precedence
 
+    override fun hasAlias() = referable.hasAlias()
+
+    override fun getAliasName(): String? = referable.aliasName
+
+    override fun getAliasPrecedence() = referable.aliasPrecedence
+
     override fun getTypecheckable(): TCReferable {
         val tc = referable.typecheckable
         return if (tc !== referable && tc is LocatedReferable) (wrap(tc) ?: this) else this

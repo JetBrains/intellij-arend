@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.error.SourceInfo
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.naming.scope.*
@@ -52,7 +52,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
 
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
         val containingFile = sourceNode.containingFile as? ArendFile
-        containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == FullModulePath.LocationKind.TEST) } ?: EmptyScope.INSTANCE
+        containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
     })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
         val classRef = scope.classReference

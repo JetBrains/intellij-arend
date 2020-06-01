@@ -119,7 +119,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
-                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)))
+                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)),
+                and(ofType(ID), withAncestors(ArendAliasIdentifier::class.java, ArendAlias::class.java, ArendDefClass::class.java)))
 
         val noExtendsPattern = elementPattern {
             val dC = it.ancestor<ArendDefClass>()
@@ -397,12 +398,12 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ch is ArendAtomArgument) forbidden = true
                     }
                     counter < threshold && !forbidden
-                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
+                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
             }
         }
 
         basic(ARGUMENT_EXPRESSION, LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2))
-        basic(ARGUMENT_EXPRESSION, LEVEL_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
+        basic(ARGUMENT_EXPRESSION, LEVELS_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
         basic(ARGUMENT_EXPRESSION_IN_BRACKETS, LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
         basic(afterLeaf(NEW_KW), listOf(EVAL_KW.toString()))
@@ -412,7 +413,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(withParent(ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS) { parameters ->
             val argumentAppExpr: ArendArgumentAppExpr? = parameters.position.parent as ArendArgumentAppExpr
-            argumentAppExpr?.longNameExpr?.levelsExpr?.levelKw != null && isLiteralApp(argumentAppExpr)
+            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }
 
 
@@ -430,6 +431,12 @@ class ArendCompletionContributor : CompletionContributor() {
 
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
+
+        basic(and(afterLeaf(ID), or(
+                withAncestors(PsiErrorElement::class.java, ArendDefModule::class.java),
+                after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
+                        ArendDefFunction::class.java, ArendConstructor::class.java, ArendDefClass::class.java, ArendClassField::class.java))),
+                after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST)
 
         //basic(PlatformPatterns.psiElement(), Logger())
     }
@@ -536,7 +543,10 @@ class ArendCompletionContributor : CompletionContributor() {
         private val LEVEL_CONTEXT = or(
                 and(afterLeaf(COLON), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java),
                         withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
-                and(afterLeaf(RETURN_KW), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))))
+                and(afterLeaf(RETURN_KW), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))),
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java),
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
+                        ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java))
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)

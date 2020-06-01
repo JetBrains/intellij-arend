@@ -16,11 +16,15 @@ class ArendPsiFactory(private val project: Project) {
         createStatCmd(name).refIdentifierList.getOrNull(0)
             ?: error("Failed to create identifier: $name")
 
+    fun createAliasIdentifier(name: String): ArendAliasIdentifier =
+        createFromText("\\func foo \\alias $name")?.childOfType<ArendAlias>()?.aliasIdentifier
+            ?: error("Failed to create alias identifier: `$name`")
+
     fun createLongName(name: String): ArendLongName =
         createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
 
     private fun createIPName(name: String): ArendIPName =
-        ((createFunction("dummy", emptyList(), name).returnExpr?.expr as? ArendNewExpr)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal?.ipName
+        ((createFunction("dummy", emptyList(), name).returnExpr?.exprList?.firstOrNull() as? ArendNewExpr)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal?.ipName
             ?: error("Failed to create identifier: $name")
 
     fun createInfixName(name: String) = createIPName("`$name`")

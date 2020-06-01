@@ -14,7 +14,7 @@ import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -35,15 +35,15 @@ import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
-    var generatedModulePath: FullModulePath? = null
+    var generatedModuleLocation: ModuleLocation? = null
 
     val isFragment get() = virtualFile == null || virtualFile?.name == ArendReplFactory.VIRTUAL_FILE_NAME
 
-    val modulePath: FullModulePath?
-        get() = generatedModulePath ?: libraryConfig?.getFileModulePath(this)
+    val moduleLocation: ModuleLocation?
+        get() = generatedModuleLocation ?: libraryConfig?.getFileModulePath(this)
 
     val fullName: String
-        get() = modulePath?.toString() ?: name
+        get() = moduleLocation?.toString() ?: name
 
     val libraryName: String?
         get() = libraryConfig?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
@@ -84,7 +84,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override val defIdentifier: ArendDefIdentifier?
         get() = null
 
-    override fun getLocation() = modulePath
+    override fun getLocation() = moduleLocation
 
     override fun getTypecheckable(): PsiLocatedReferable = this
 

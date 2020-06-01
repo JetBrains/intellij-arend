@@ -44,6 +44,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         val psiFactory = ArendPsiFactory(project)
         val element = causeRef.element ?: return
         clauses.clear()
+        val definedVariables: List<Variable> = collectDefinedVariables(element)
 
         missingClausesError.setMaxListSize(service<ArendSettings>().clauseActualLimit)
         for (clause in missingClausesError.limitedMissingClauses.reversed()) if (clause != null) {
@@ -71,7 +72,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 val recursiveTypeUsagesInBindingsIterator = recursiveTypeUsagesInBindings.iterator()
                 val elimMode = missingClausesError.isElim
                 var parameter2: DependentLink? = if (!elimMode) missingClausesError.parameters else null
-                val clauseBindings = ArrayList<Variable>()
+                val clauseBindings: MutableList<Variable> = definedVariables.toMutableList()
                 var i = 0
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()

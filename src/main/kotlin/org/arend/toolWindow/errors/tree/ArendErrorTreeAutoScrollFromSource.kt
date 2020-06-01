@@ -70,7 +70,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
     private fun selectElementFromEditor(editor: Editor) {
         if (editor.project == project) {
-            selectErrorFromEditor(project, editor, tree, null, false)
+            selectErrorFromEditor(project, editor, null, always = false, activate = false)
         }
     }
 

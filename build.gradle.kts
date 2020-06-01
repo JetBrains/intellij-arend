@@ -12,8 +12,8 @@ version = "1.3.0"
 plugins {
     idea
     kotlin("jvm") version "1.3.72"
-    id("org.jetbrains.intellij") version "0.4.18"
-    id("org.jetbrains.grammarkit") version "2020.1.2"
+    id("org.jetbrains.intellij") version "0.4.21"
+    id("org.jetbrains.grammarkit") version "2020.1.4"
 }
 
 repositories {
@@ -65,7 +65,7 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java", "IdeaVIM:0.56", "org.vayafulano.relativeLineNumbers:1.0.1")
+    setPlugins("yaml", "java", "IdeaVIM:0.56")
 }
 
 tasks.withType<PatchPluginXmlTask> {

@@ -7,7 +7,6 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.term.FunctionKind
@@ -29,6 +28,8 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override fun getName() = stub?.name ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
 
     override fun getPrec(): ArendPrec? = parentCoClause?.prec
+
+    override fun getAlias(): ArendAlias? = null
 
     override val defIdentifier: ArendDefIdentifier?
         get() = null
@@ -60,9 +61,9 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getCoClauseElements(): List<Abstract.ClassFieldImpl> = emptyList()
 
-    override fun getResultType(): ArendExpr? = returnExpr?.let { it.expr ?: it.atomFieldsAccList.firstOrNull() }
+    override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
-    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.atomFieldsAccList?.getOrNull(1)
+    override fun getResultTypeLevel(): ArendExpr? = returnExpr?.let { it.exprList.getOrNull(1) ?: it.atomFieldsAccList.getOrNull(1) }
 
     override fun getTerm(): Abstract.Expression? = null
 

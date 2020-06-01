@@ -238,15 +238,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
-                    PROPERTY_LEVEL -> ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
-                    LEMMA_LEVEL -> if (element is ArendDefFunction) element.functionKw.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
                     else -> null
                 }
+                is LevelMismatchError -> if (error.isLemma) {
+                    if (element is ArendDefFunction) element.functionKw.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
+                } else {
+                    ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
+                }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
-                is AnotherClassifyingFieldError ->
-                    (error.candidate.underlyingReferable as? ArendFieldDefIdentifier)?.let {
-                        (it.parent as? ArendFieldTele)?.classifyingKw ?: it
-                    }
                 is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
                 else -> null
             }

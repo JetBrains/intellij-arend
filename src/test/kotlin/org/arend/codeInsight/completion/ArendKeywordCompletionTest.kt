@@ -205,7 +205,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\func foo => 0 \\where {\\func bar => 0}\n{-caret-}",
                     "\\func foo => 0 \\where \n {-caret-}",
-                    "\\instance Foo {-caret-}" /* \\where not allowed in incomplete instance */,
                     "\\func foo => \\case {-caret-}" /* where not allowed after case keyword */,
                     "\\func lol => Foo { {-caret-} }",
                     "\\func lol => Foo { | {-caret-} }",
@@ -215,6 +214,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Foo { {-caret-} }",
                     "\\class C { } \\func lol : C \\cowith | {-caret-}")
 
+    fun `test no where completion after iterated where 2`() =
+            checkKeywordCompletionVariants(ALIAS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+                    "\\instance Foo {-caret-}" ) /* \\where not allowed in incomplete instance */
+
     fun `test no keyword completion before crlf`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN, "\\func foo => 0 {-caret-}\n")
 
@@ -223,7 +226,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Lol {-caret-}",
                     "\\class Lol {-caret-}{}",
                     "\\class Lol (n : Nat){-caret-}",
-                    "\\class Lol (n : Nat){-caret-}{}")
+                    "\\class Lol (n : Nat){-caret-}{}",
+                    "\\class Lol \\alias Lol1 {-caret-}")
 
     fun `test absence of extends`() =
             checkKeywordCompletionVariants(EXTENDS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
@@ -278,7 +282,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => (\\new () {-caret-})")
 
     fun `test only new & universes in application expression or after new expr 2`() =
-            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVEL_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f {-caret-}")
 
     fun `test no basic expression kws in argument position`() =
@@ -391,13 +395,14 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\class C {-caret-}")
 
     fun `test noclassifying keyword before parameter`() =
-        checkKeywordCompletionVariants(NO_CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+        checkKeywordCompletionVariants(NO_CLASSIFYING_KW_LIST + ALIAS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
             "\\class C {-caret-} (a : Nat)")
 
     fun `test level keyword completion`() =
             checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.CONTAINS,
                     "\\func foo => \\case 0 \\return {-caret-} \\with {}",
-                    "\\func foo => \\case 0 \\return {-caret-} Nat \\with {}")
+                    "\\func foo => \\case 0 \\return {-caret-} Nat \\with {}",
+                    "\\lemma foo (A : \\Type) (a : A) (p : \\Pi (x y : A) -> x = y) : A {-caret-}")
 
     fun `test in keyword completion`() = checkKeywordCompletionVariants(IN_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\let a => 1 + {-caret-}",
@@ -492,35 +497,37 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func foo (a : Nat) => \\case a, {-caret-} b \\with")
 
     fun `test no elim and no fixity completion`() = checkKeywordCompletionVariants(WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
-            "\\func lol {-caret-}", /* No elim if there are no arguments; No fixity */
             "\\class C { } \\func lol : C \\cowith {-caret-}")
 
-    fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVEL_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test no elim and no fixity completion 2`() = checkKeywordCompletionVariants(WHERE_KW_LIST + ALIAS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            "\\func lol {-caret-}") /* No elim if there are no arguments; No fixity */
+
+    fun `test leveled application expression`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => lol {-caret-} a",
             "\\func lol (a : Nat) => lol {-caret-} a 1 2")
 
     fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level {-caret-}")
+            "\\func lol => lol \\levels {-caret-}")
 
     fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level \\lp {-caret-}",
+            "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
-            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2") //,"\\func lol => lol \\level (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
+            "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2") //,"\\func lol => lol \\levels (\\suc \\lp) {-caret-}" //Fixme: Better parser recovery needed to fix this
 
     fun `test leveled application expression 4`() = checkKeywordCompletionVariants(LPH_LEVEL_KWS, CompletionCondition.CONTAINS,
-            "\\func lol => lol \\level ({-caret-})",
-            "\\func lol => lol \\level \\lp ({-caret-})",
+            "\\func lol => lol \\levels ({-caret-})",
+            "\\func lol => lol \\levels \\lp ({-caret-})",
             "\\func lol => lol \\lp ({-caret-})")
 
-    fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\level \\lp \\lh {-caret-}",
+    fun `test no leveled application`() = checkKeywordCompletionVariants(LPH_KW_LIST + LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol => lol \\levels \\lp \\lh {-caret-}",
             "\\func lol => lol \\lp \\lh {-caret-}",
             "\\func lol (a : Nat) => lol a {-caret-}",
             "\\func lol => 1 {-caret-}",
             "\\func lol => 1 ({-caret-})")
 
-    fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVEL_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol => lol \\level \\lp {-caret-}",
+    fun `test no leveled application 2`() = checkKeywordCompletionVariants(LEVELS_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
+            "\\func lol => lol \\levels \\lp {-caret-}",
             "\\func lol => lol \\lp {-caret-}",
             "\\func lol (a : Nat) => lol \\lp {-caret-} a 1 2",
             "\\func lol (a : Nat) => lol ({-caret-})")
@@ -549,4 +556,12 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun test_186_5() = checkCompletionVariants(kwTest186Sample2, STATEMENT_WT_KWS, CompletionCondition.CONTAINS)
 
     fun test_186_6() = checkCompletionVariants(kwTest186Sample3, STATEMENT_WT_KWS, CompletionCondition.CONTAINS)
+
+    fun test_alias() = checkKeywordCompletionVariants(ALIAS_KW_LIST, CompletionCondition.CONTAINS,
+            "\\module M {-caret-}",
+            "\\data Unit {-caret-}",
+            "\\data Unit | unit {-caret-}",
+            "\\class C {-caret-}",
+            "\\class C\n  | E {-caret-}",
+            "\\class C (E : \\Type)\n  | X {-caret-}: E -> E -> \\Set")
 }

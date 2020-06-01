@@ -16,7 +16,6 @@ import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.toolWindow.errors.satisfies
-import org.arend.toolWindow.errors.tree.ArendErrorTree
 import org.arend.typechecking.error.ErrorService
 
 class ArendGotoNextErrorAction : GotoNextErrorAction() {
@@ -31,12 +30,12 @@ class ArendGotoNextErrorHandler(goForward: Boolean) : GotoNextErrorHandler(goFor
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
         super.invoke(project, editor, file)
         if (file is ArendFile) {
-            selectErrorFromEditor(project, editor, null, file, true)
+            selectErrorFromEditor(project, editor, file, always = true, activate = true)
         }
     }
 }
 
-fun selectErrorFromEditor(project: Project, editor: Editor, tree: ArendErrorTree?, file: ArendFile?, always: Boolean) {
+fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, always: Boolean, activate: Boolean) {
     val document = editor.document
     val offset = editor.caretModel.offset
     // Check that we are in a problem range
@@ -53,7 +52,11 @@ fun selectErrorFromEditor(project: Project, editor: Editor, tree: ArendErrorTree
     val service = project.service<ArendProjectSettings>()
     for (arendError in arendErrors) {
         if ((always || arendError.error.satisfies(service.autoScrollFromSource)) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
-            (tree ?: project.service<ArendMessagesService>().view?.tree)?.select(arendError.error)
+            val messagesService = project.service<ArendMessagesService>()
+            messagesService.view?.tree?.select(arendError.error)
+            if (activate) {
+                messagesService.activate(project, false)
+            }
             break
         }
     }

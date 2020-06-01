@@ -15,7 +15,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()
-        val suffix = (target.containingFile as? ArendFile)?.modulePath?.toString() ?: "NULL"
+        val suffix = (target.containingFile as? ArendFile)?.moduleLocation?.toString() ?: "NULL"
         return if (prefix.isNotEmpty()) "$prefix in $suffix" else suffix
     }
 
@@ -27,7 +27,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     companion object {
         fun checkIfAvailable(target: PsiLocatedReferable, element: ArendReferenceElement): Boolean { // should return true iff getProposedFix with the same arguments returns a nonnull value
             val containingFile = element.containingFile as? ArendFile ?: return false
-            return canComputeAliases(LocationData(target), containingFile)
+            return canCalculateReferenceName(LocationData(target), containingFile)
         }
 
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
@@ -35,21 +35,20 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val fixRequired = currentTarget != target
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target)
-            val (importAction, resultName) = computeAliases(location, containingFile, element, true) ?: return null
+            val (importAction, resultName) = calculateReferenceName(location, containingFile, element, true) ?: return null
             val renameAction = when {
                 !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
-                target is ArendFile -> RenameReferenceAction(element, target.modulePath?.toList() ?: return null)
+                target is ArendFile -> RenameReferenceAction(element, target.moduleLocation?.modulePath?.toList() ?: return null)
                 else -> RenameReferenceAction(element, resultName)
             }
 
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
         }
 
-
         fun getTargetName(target: PsiLocatedReferable?, element: ArendCompositeElement): String? {
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target ?: return null)
-            val (importAction, resultName) = computeAliases(location, containingFile, element) ?: return null
+            val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
             importAction?.execute(null)
             return LongName(resultName).toString()
         }

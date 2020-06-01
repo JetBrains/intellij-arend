@@ -186,7 +186,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
             """, """
                \func test (n : Nat) : Nat => \case n \with {
                  | 0 => {?}
-                 | suc n => {?}
+                 | suc n1 => {?}
                }
             """)
 
@@ -478,8 +478,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        \func foo (x y : Nat) (p : x = y) : Nat => \case x, p{-caret-} \with {}
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case x, p \with {
-         | 0, p => {?}
-         | suc n, p => {?}
+         | 0, p1 => {?}
+         | suc n, p1 => {?}
        }
     """)
 
@@ -502,5 +502,113 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
        \func foo (x y : Nat) (p : x = y) : Nat \elim p
          | Prelude.idp => {?} 
+    """)
+
+    fun `test shadowed names from parent case`() = typedQuickFixTest("Implement", """
+        $listDefinition
+        
+        \func foo {A : \Type} (list : List A) : Nat \elim list
+          | nil => 0
+          | :: x xs => \case{-caret-} xs \with {}
+    """, """
+        $listDefinition
+        
+        \func foo {A : \Type} (list : List A) : Nat \elim list
+          | nil => 0
+          | :: x xs => \case xs \with {
+            | nil => {?}
+            | :: x1 xs1 => {?}
+          }
+    """)
+
+    fun `test avoid shadowing let binding`() = typedQuickFixTest("Implement", """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w : Wrapper Nat) : Nat => \let x => 0 \in \case \elim{-caret-} w \with 
+    """, """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w : Wrapper Nat) : Nat => \let x => 0 \in \case \elim w \with {
+         | wrapped x1 => {?}
+       }        
+    """)
+
+    fun `test avoid shadowing parameter`() = typedQuickFixTest("Implement", """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w x : Wrapper Nat) : Nat => \case \elim{-caret-} w \with 
+    """, """
+       \data Wrapper (A : \Type) | wrapped (x : A)
+        
+       \func foo (w x : Wrapper Nat) : Nat => \case \elim w \with {
+         | wrapped x1 => {?}
+       }        
+    """)
+
+    fun `test names of eliminated variables may be reused`() = typedQuickFixTest("Implement", """
+       \func foo (n : Nat) : Nat => \case \elim{-caret-} n \with
+    """, """
+       \func foo (n : Nat) : Nat => \case \elim n \with {
+         | 0 => {?}
+         | suc n => {?}
+       }
+    """)
+
+    fun `test names of eliminated variables may be reused 2`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        \func foo : Nat => \let x => wrapped 1 \in \case \elim{-caret-} x \with
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo : Nat => \let x => wrapped 1 \in \case \elim x \with {
+          | wrapped x => {?}
+        }
+    """)
+
+
+    fun `test names of eliminated variables may be reused 3`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        \func foo (x : Nat) : Nat => \let x => wrapped 1 \in \case \elim{-caret-} x \with
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (x : Nat) : Nat => \let x => wrapped 1 \in \case \elim x \with {
+          | wrapped x1 => {?}
+        }
+    """)
+
+    fun `test avoid shadowing function parameter`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (w x : Wrapper Nat) : Nat \elim w
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (w x : Wrapper Nat) : Nat \elim w
+          | wrapped x1 => {?}
+    """)
+
+    fun `test names of eliminated function parameters may be reused`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (x : Wrapper Nat) : Nat \elim x
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (x : Wrapper Nat) : Nat \elim x
+          | wrapped x => {?}
+    """)
+
+    fun `test names of eliminated function parameters may be reused 2`() = typedQuickFixTest("Implement", """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+        
+        {-caret-}\func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
+    """, """
+        \data Wrapper (A : \Type) | wrapped (x : A)
+
+        \func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
+          | x, wrapped x1 => {?}
     """)
 }

@@ -9,7 +9,7 @@ import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
 import org.arend.module.ArendPreludeLibrary
-import org.arend.module.FullModulePath
+import org.arend.module.ModuleLocation
 import org.arend.module.ModuleSynchronizer
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
@@ -48,7 +48,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val simpleReferableConverter = SimpleReferableConverter()
 
-    val updatedModules = HashSet<FullModulePath>()
+    val updatedModules = HashSet<ModuleLocation>()
 
     fun newReferableConverter(withPsiReferences: Boolean) =
         ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
@@ -65,7 +65,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
         this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
-        preludeLibrary.prelude?.generatedModulePath = FullModulePath(Prelude.LIBRARY_NAME, FullModulePath.LocationKind.GENERATED, Prelude.MODULE_PATH.toList())
+        preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
         val referableConverter = newReferableConverter(false)
         val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
@@ -93,6 +93,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     val preludeScope: Scope
         get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
+
+    fun getDefinitionPsiReferable(definition: Definition) : PsiLocatedReferable? {
+        (definition.referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
+        return Scope.Utils.resolveName(preludeScope, definition.referable.refLongName.toList()) as? PsiLocatedReferable
+    }
 
     fun reload() {
         externalAdditionalNamesIndex.clear()

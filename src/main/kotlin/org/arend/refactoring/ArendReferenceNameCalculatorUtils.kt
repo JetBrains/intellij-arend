@@ -2,6 +2,8 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
+import org.arend.naming.reference.AliasReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -15,9 +17,9 @@ import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import java.util.Collections.singletonList
 
-fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
+fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetModulePath = defaultLocation.myContainingFile.modulePath!! //safe to write thanks to check in canComputeAliases
+    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write thanks to a check in canComputeInplaceLongName
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
@@ -48,18 +50,17 @@ fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anch
     }
 
     if (isPrelude(targetFile) && !preludeImportedManually) {
-        defaultLocation.addLongNameAsAlias() // items from prelude are visible in any context
+        defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
         fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
-
-    if (locations.first().getAliases().isEmpty()) { // target definition is inaccessible in current context
+    if (locations.first().getReferenceNames().isEmpty()) { // target definition is inaccessible in current context
         modifyingImportsNeeded = true
 
-        defaultLocation.addLongNameAsAlias()
+        defaultLocation.addLongNameAsReferenceName()
         if (alternativeLocation != null) {
             val alternativeFullName = alternativeLocation.getLongName()
-            if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsAlias()
+            if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsReferenceName()
         }
 
         if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
@@ -93,9 +94,9 @@ fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anch
     val ancestorGroups = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
 
     var psi: PsiElement = anchor
-    while (psi.parent != null) { //File also passes well (its parent is a directory)
+    while (psi.parent != null) {
         val containingGroup: ChildGroup? = when (psi) {
-            is ArendWhere -> psi.parent as? ChildGroup /* in fact ArendGroup */
+            is ArendWhere -> psi.parent as? ChildGroup
             is ArendFile -> psi
             is ArendDefClass -> psi
             else -> null
@@ -127,16 +128,16 @@ fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anch
     val resultingDecisions = ArrayList<Pair<List<String>, AbstractRefactoringAction?>>()
 
     for (location in locations) {
-        location.getAliases().map { alias ->
-            if (alias.isEmpty() || Scope.Utils.resolveName(correctedScope, alias)?.underlyingReferable == defaultLocation.target) {
-                resultingDecisions.add(Pair(alias, fileResolveActions[location]))
+        location.getReferenceNames().map { inplaceName ->
+            if (inplaceName.isEmpty() || Scope.Utils.resolveName(correctedScope, inplaceName)?.underlyingReferable == defaultLocation.target) {
+                resultingDecisions.add(Pair(inplaceName, fileResolveActions[location]))
             }
         }
     }
 
     val veryLongName = ArrayList<String>()
     if (resultingDecisions.isEmpty()) {
-        veryLongName.addAll(targetModulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
+        veryLongName.addAll(targetModulePath.modulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
         veryLongName.addAll(defaultLocation.getLongName()) // Let us use the "longest possible name" when referring to the anchor
         resultingDecisions.add(Pair(veryLongName, fallbackImportAction))
     }
@@ -150,19 +151,18 @@ fun doComputeAliases(defaultLocation: LocationData, currentFile: ArendFile, anch
     return Pair(importAction, resultingName)
 }
 
-fun canComputeAliases(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
-        defaultLocation.myContainingFile.modulePath != null &&
+fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
+        defaultLocation.myContainingFile.moduleLocation != null &&
                 ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
 
-
-fun computeAliases(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
-    if (!canComputeAliases(defaultLocation, currentFile)) return null
-    return doComputeAliases(defaultLocation, currentFile, anchor, allowSelfImport)
+fun calculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+    if (!canCalculateReferenceName(defaultLocation, currentFile)) return null
+    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport)
 }
 
 class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
-    private val myLongName: List<Pair<String, Referable>>
-    private val myAliases: MutableSet<List<String>> = HashSet()
+    private val myLongNameWithRefs: List<Pair<String, Referable>>
+    private val myReferenceNames: MutableSet<List<String>> = HashSet()
     val myContainingFile: ArendFile
 
     init {
@@ -170,15 +170,16 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         var skipFlag = skipFirstParent
         var containingFile: ArendFile? = null
 
-        myLongName = ArrayList()
+        myLongNameWithRefs = ArrayList()
         while (psi != null) {
             if (psi is PsiReferable && psi !is ArendFile) {
-                val name = psi.name ?: throw IllegalStateException() //Fix later :)
+                val name = if (psi is GlobalReferable) psi.representableName else
+                    psi.name ?: throw IllegalStateException() //Fix later :)
 
-                if (skipFlag && myLongName.isNotEmpty()) {
+                if (skipFlag && myLongNameWithRefs.isNotEmpty()) {
                     skipFlag = false
                 } else {
-                    myLongName.add(0, Pair(name, psi))
+                    myLongNameWithRefs.add(0, Pair(name, psi))
                 }
             }
             if (psi is ArendFile) containingFile = psi
@@ -188,31 +189,31 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         myContainingFile = containingFile ?: throw IllegalStateException() //Fix later :)
     }
 
-    fun getLongName(): List<String> = myLongName.map { it.first }.toList()
+    fun getLongName(): List<String> = myLongNameWithRefs.map { it.first }.toList()
 
     fun getComplementScope(): Scope {
-        val targetContainers = myLongName.reversed().map { it.second }
-        return object : ListScope(targetContainers) {
+        val targetContainers = myLongNameWithRefs.reversed().map { it.second }
+        return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
             override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
-                    .firstOrNull { name == it.textRepresentation() }
+                    .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
         }
     }
 
     fun processStatCmd(statCmd: ArendStatCmd) {
-        myAliases.addAll(calculateShorterNames(statCmd))
+        myReferenceNames.addAll(calculateShorterNames(statCmd))
     }
 
     fun processParentGroup(group: PsiLocatedReferable) {
-        calculateRemainder(group)?.let { myAliases.add(it) }
+        calculateRemainder(group)?.let { myReferenceNames.add(it) }
     }
 
-    fun addLongNameAsAlias() {
-        myAliases.add(getLongName())
+    fun addLongNameAsReferenceName() {
+        myReferenceNames.add(getLongName())
     }
 
-    fun getAliases(): Set<List<String>> = myAliases
+    fun getReferenceNames(): Set<List<String>> = myReferenceNames
 
     private fun calculateShorterNames(statCmd: ArendStatCmd): List<List<String>> {
         val lastRef = statCmd.longName?.refIdentifierList?.lastOrNull()
@@ -232,7 +233,7 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
 
     private fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
         var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
-        for (entry in myLongName) {
+        for (entry in myLongNameWithRefs) {
             result?.add(entry.first)
             if (entry.second == referable) result = ArrayList()
         }

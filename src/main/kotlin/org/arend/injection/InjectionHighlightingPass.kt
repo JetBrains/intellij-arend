@@ -17,6 +17,7 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.*
+import org.arend.psi.ext.impl.ReferableAdapter
 
 class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val editor: Editor)
     : TextEditorHighlightingPass(file.project, editor.document, false) {
@@ -39,9 +40,12 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                     val last = if (dot != null) dot else {
                         val refs = o.refIdentifierList
                         val ref = refs.lastOrNull()
-                        val resolved = ref?.reference?.let { runReadAction { it.resolve() } } as? ArendDefinition
-                        if (resolved?.precedence?.isInfix == true) {
-                            holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                        val resolved = ref?.reference?.let { runReadAction { it.resolve() } } as? ReferableAdapter<*>
+                        if (resolved != null) {
+                            val alias = resolved.getAlias()
+                            if (ReferableAdapter.calcPrecedence(alias?.prec).isInfix || alias == null && ReferableAdapter.calcPrecedence(resolved.getPrec()).isInfix) {
+                                holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                            }
                         }
                         if (refs.size > 1) ref?.prevSibling else null
                     }
