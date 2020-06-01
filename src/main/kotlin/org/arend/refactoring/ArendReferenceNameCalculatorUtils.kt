@@ -2,6 +2,7 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
+import org.arend.module.ModuleLocation
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -15,11 +16,17 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
+import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
-fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
+fun doCalculateReferenceName(defaultLocation: LocationData,
+                             currentFile: ArendFile,
+                             anchor: ArendCompositeElement,
+                             allowSelfImport: Boolean = false,
+                             deferredImports: List<AbstractRefactoringAction>? = null /* TODO: implement me */): Pair<AbstractRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write thanks to a check in canComputeInplaceLongName
+    val targetFilePath = targetFile.moduleLocation?.modulePath!! //safe to write (see canComputeInplaceLongName)
+    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
@@ -41,9 +48,10 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
     val fileResolveActions = HashMap<LocationData, AbstractRefactoringAction?>()
 
     for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-        preludeImportedManually = preludeImportedManually || namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
+        val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
+        preludeImportedManually = preludeImportedManually || nsCmdLongName == Prelude.MODULE_PATH.toString()
 
-        if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
+        if (nsCmdLongName == targetFile.fullName) {
             suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
             for (location in locations) location.processStatCmd(namespaceCommand)
         }
@@ -51,7 +59,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
 
     if (isPrelude(targetFile) && !preludeImportedManually) {
         defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
-        fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
+        fallbackImportAction = ImportFileAction(currentFile, targetFilePath, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
     if (locations.first().getReferenceNames().isEmpty()) { // target definition is inaccessible in current context
@@ -64,29 +72,17 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
         }
 
         if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
-            val nsUsing = suitableImport.nsUsing
-            val hiddenList = suitableImport.refIdentifierList
-
-            for (location in locations) if (location.getLongName().isNotEmpty()) {
-                val locationFullName = location.getLongName()
-                val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == locationFullName[0] }
-                fileResolveActions[location] = when {
-                    hiddenRef != null -> RemoveRefFromStatCmdAction(suitableImport, hiddenRef)
-                    nsUsing != null -> AddIdToUsingAction(suitableImport, singletonList(Pair(locationFullName[0], null)))
-                    else -> null
-                }
-            }
+            for (location in locations) if (location.getLongName().isNotEmpty())
+                fileResolveActions[location] = AddIdToUsingAction(currentFile, targetFilePath, location.getLongName()[0])
 
             fallbackImportAction = null
         } else { // targetFile has not been imported
-            fallbackImportAction =
-                    if (minimalImportMode) ImportFileAction(targetFile, currentFile, emptyList())
-                    else ImportFileAction(targetFile, currentFile, null)
+            fallbackImportAction = ImportFileAction(currentFile, targetFilePath, if (minimalImportMode) emptyList() else null)
 
             for (location in locations) {
                 val fName = location.getLongName()
                 val importList = if (fName.isEmpty()) emptyList() else singletonList(fName[0])
-                fileResolveActions[location] = if (minimalImportMode) ImportFileAction(targetFile, currentFile, importList) else fallbackImportAction
+                fileResolveActions[location] = if (minimalImportMode) ImportFileAction(currentFile, targetFilePath, importList) else fallbackImportAction
             }
         }
     }
@@ -151,13 +147,25 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
     return Pair(importAction, resultingName)
 }
 
-fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
-        defaultLocation.myContainingFile.moduleLocation != null &&
-                ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
+fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
+    val importFile = defaultLocation.myContainingFile
+    val conf = currentFile.libraryConfig ?: return false
+    val modulePath = importFile.moduleLocation?.modulePath ?: return false
+    val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 
-fun calculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+    return defaultLocation.myContainingFile.moduleLocation != null &&
+            importFile.moduleLocation?.modulePath != null &&
+            (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
+}
+
+
+fun calculateReferenceName(defaultLocation: LocationData,
+                           currentFile: ArendFile,
+                           anchor: ArendCompositeElement,
+                           allowSelfImport: Boolean = false,
+                           deferredImports: List<AbstractRefactoringAction>? = null): Pair<AbstractRefactoringAction?, List<String>>? {
     if (!canCalculateReferenceName(defaultLocation, currentFile)) return null
-    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport)
+    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport, deferredImports)
 }
 
 class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {

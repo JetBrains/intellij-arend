@@ -292,7 +292,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         val target = nsId.refIdentifier.reference?.resolve()
                         val name = nsId.refIdentifier.referenceName
                         if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
-                            RemoveRefFromStatCmdAction(null, nsId.refIdentifier).execute(null)
+                            AddIdToUsingAction.doRemoveRefFromStatCmd(nsId.refIdentifier) //RemoveRefFromStatCmdAction(null, nsId.refIdentifier).execute(null)
                     }
                 }
             }
@@ -336,8 +336,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
-            for (nsId in nsIdToRemove)
-                RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
+            for (nsId in nsIdToRemove) AddIdToUsingAction.doRemoveRefFromStatCmd(nsId.refIdentifier) //RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
         }
 
         //Now fix references of "normal" usages
@@ -346,7 +345,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val referenceParent = referenceElement?.parent
 
             if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) //Usage in "hiding" list which we simply delete
-                RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
+                AddIdToUsingAction.doRemoveRefFromStatCmd(referenceElement) //RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
             else if (referenceElement is ArendReferenceElement) //Normal usage which we try to fix
                 movedReferablesMap[usage.referableDescriptor]?.let { ResolveReferenceAction.getProposedFix(it, referenceElement)?.execute(null) }
         }

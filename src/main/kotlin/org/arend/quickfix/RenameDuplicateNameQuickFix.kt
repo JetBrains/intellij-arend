@@ -13,7 +13,6 @@ import org.arend.psi.ArendNsId
 import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
 import org.arend.refactoring.AddIdToUsingAction
-import org.arend.refactoring.RemoveRefFromStatCmdAction
 import org.arend.refactoring.VariableImpl
 
 class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
@@ -34,7 +33,7 @@ class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<P
                 if (using is ArendNsUsing && statCmd is ArendStatCmd) {
                     val oldName = cause.oldReference.textRepresentation()
                     val newName = cause.name
-                    RemoveRefFromStatCmdAction(statCmd, cause.refIdentifier, false).execute(editor)
+                    AddIdToUsingAction.doRemoveRefFromStatCmd(cause.refIdentifier, false) //RemoveRefFromStatCmdAction(statCmd, cause.refIdentifier, false).execute(editor)
                     doRenameDuplicateName(editor, statCmd, oldName, newName)
                 }
             }
@@ -51,7 +50,7 @@ class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<P
             val variable = object : Variable { override fun getName(): String = newName ?: oldName }
             val freshName = StringRenamer().generateFreshName(variable, referables)
             val renamings = ArrayList<Pair<String, String?>>(); renamings.add(Pair(oldName, freshName))
-            AddIdToUsingAction(statCmd, renamings).execute(editor)
+            AddIdToUsingAction.doAddIdToUsing(statCmd, renamings)
         }
 
 
