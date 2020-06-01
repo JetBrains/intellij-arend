@@ -278,11 +278,11 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 val importData = calculateReferenceName(targetLocation, sourceContainerFile, remainderAnchor)
 
                 if (importData != null) {
-                    val importAction: AbstractRefactoringAction? = importData.first
+                    val importAction: NsCmdRefactoringAction? = importData.first
                     val openedName: List<String> = importData.second
 
-                    importAction?.execute(null)
-                    val renamings = movedReferablesUniqueNames.map { Pair(it, null) }
+                    importAction?.execute()
+                    val renamings = movedReferablesUniqueNames.map { Pair(it, null as String?) }
                     val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) {
                         if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
                     } else remainderAnchor
@@ -327,7 +327,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val currentName: List<String>? = importData?.second
 
             if (renamings.isNotEmpty() && currentName != null) {
-                importData.first?.execute(null)
+                importData.first?.execute()
                 val name = when {
                     currentName.isNotEmpty() -> LongName(currentName).toString()
                     myTargetContainer is ArendFile -> myTargetContainer.moduleLocation?.modulePath?.lastName ?: ""

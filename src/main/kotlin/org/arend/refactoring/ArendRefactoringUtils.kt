@@ -20,6 +20,7 @@ import org.arend.core.expr.FunCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
@@ -48,24 +49,35 @@ interface AbstractRefactoringAction {
     fun execute(editor: Editor?)
 }
 
-class ImportFileAction(val currentFile: ArendFile, val longName: LongName, val usingList: List<String>?) : AbstractRefactoringAction {
-    override fun toString() = "Import file " + longName
+abstract class NsCmdRefactoringAction(val currentFile: ArendFile,
+                                      val longName: ModulePath) {
+    abstract fun execute()
 
-    override fun execute(editor: Editor?) {
+    abstract fun getImportedParts(): List<String>?
+}
+
+class ImportFileAction(currentFile: ArendFile,
+                       longName: ModulePath,
+                       val usingList: List<String>?) : NsCmdRefactoringAction(currentFile, longName) {
+    override fun toString() = "Import file $longName"
+
+    override fun execute() {
         val factory = ArendPsiFactory(currentFile.project)
 
         addStatCmd(factory,
-                createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
+                createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
                 findPlaceForNsCmd(currentFile, longName))
     }
+
+    override fun getImportedParts(): List<String>? = usingList
 }
 
-class AddIdToUsingAction(val currentFile: ArendFile,
-                         val longName: LongName,
-                         val id: String) : AbstractRefactoringAction {
+class AddIdToUsingAction(currentFile: ArendFile,
+                         longName: ModulePath,
+                         val id: String) : NsCmdRefactoringAction(currentFile, longName) {
     override fun toString(): String = "Add $id to the \"using\" list of the namespace command `$longName`"
 
-    override fun execute(editor: Editor?) {
+    override fun execute() {
         /* locate statCmd using longName */
         var statCmd: ArendStatCmd? = null
         for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
@@ -82,6 +94,8 @@ class AddIdToUsingAction(val currentFile: ArendFile,
         val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == id }
         if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(id, null))) else doRemoveRefFromStatCmd(hiddenRef)
     }
+
+    override fun getImportedParts(): List<String>? = singletonList(id)
 
     companion object {
         private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {

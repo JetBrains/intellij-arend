@@ -10,7 +10,7 @@ import org.arend.refactoring.*
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
-                             private val statCmdFixAction: AbstractRefactoringAction?,
+                             private val statCmdFixAction: NsCmdRefactoringAction?,
                              private val nameFixAction: RenameReferenceAction) {
 
     override fun toString(): String {
@@ -20,7 +20,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     }
 
     fun execute(editor: Editor?) {
-        statCmdFixAction?.execute(editor)
+        statCmdFixAction?.execute()
         nameFixAction.execute(editor)
     }
 
@@ -49,7 +49,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target ?: return null)
             val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
-            importAction?.execute(null)
+            importAction?.execute()
             return LongName(resultName).toString()
         }
     }

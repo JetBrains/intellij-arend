@@ -1,6 +1,5 @@
 package org.arend.refactoring
 
-import com.intellij.openapi.editor.Editor
 import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.reference.ArendRef
@@ -9,7 +8,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 
 class PsiLocatedRenamer(val element: ArendCompositeElement): DefinitionRenamer {
-    private val deferredNsCmdActions = ArrayList<AbstractRefactoringAction>()
+    private val deferredNsCmdActions = ArrayList<NsCmdRefactoringAction>()
 
     override fun renameDefinition(ref: ArendRef?): LongName? {
         if (ref is PsiLocatedReferable) {
@@ -22,8 +21,8 @@ class PsiLocatedRenamer(val element: ArendCompositeElement): DefinitionRenamer {
         return null
     }
 
-    fun writeAllImportCommands(editor: Editor?) {
-        for (l in deferredNsCmdActions) l.execute(editor)
+    fun writeAllImportCommands() {
+        for (l in deferredNsCmdActions) l.execute()
         deferredNsCmdActions.clear()
     }
 }
