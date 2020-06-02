@@ -8,10 +8,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
-import org.arend.core.expr.visitor.ScopeDefinitionRenamer
 import org.arend.ext.typechecking.InteractiveGoalSolver
-import org.arend.naming.scope.ConvertingScope
+import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.psi.ArendExpr
+import org.arend.refactoring.PsiLocatedRenamer
 import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
@@ -27,18 +27,20 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val 
             if (it != null) {
                 if (it !is Concrete.Expression) throw IllegalArgumentException()
                 CommandProcessor.getInstance().executeCommand(project, {
-                    invokeOnConcrete(it, project, editor)
+                    invokeOnConcrete(it, editor)
                 }, text, null, editor.document)
             }
         }
     }
 
-    private fun invokeOnConcrete(concrete: Concrete.Expression, project: Project, editor: Editor) {
+    private fun invokeOnConcrete(concrete: Concrete.Expression, editor: Editor) {
         runReadAction {
             if (element.isValid && !editor.isDisposed) {
-                val text = concrete.accept(DefinitionRenamerConcreteVisitor(ScopeDefinitionRenamer(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), element.scope))), null).toString()
+                val definitionRenamer = PsiLocatedRenamer(element)
+                val text = concrete.accept(DefinitionRenamerConcreteVisitor(CachingDefinitionRenamer(definitionRenamer)), null).toString()
                 ApplicationManager.getApplication().runWriteAction {
                     replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                    definitionRenamer.writeAllImportCommands()
                 }
             }
         }

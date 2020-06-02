@@ -10,7 +10,9 @@ import org.arend.core.definition.Function
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.Expression
 import org.arend.ext.core.definition.CoreFunctionDefinition
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.psi.ArendDefFunction
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
@@ -39,14 +41,15 @@ class ArendShowTypeAction : ArendPopupAction() {
         fun select(range: TextRange) =
             editor.selectionModel.setSelection(range.startOffset, range.endOffset)
 
-        fun hint(e: Expression?) = e?.let {
+        fun hint(e: Expression?, element: ArendCompositeElement?) = if (e != null) {
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
-            if (normalizePopup) normalizeExpr(project, it) { exprStr ->
+            val definitionRenamer = element?.let { PsiLocatedRenamer(it) }
+            if (normalizePopup) normalizeExpr(project, e, NormalizationMode.RNF, definitionRenamer) { exprStr ->
                 displayEditorHint(exprStr.toString(), project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(exprToConcrete(project, it).toString(), project, editor, AD_TEXT)
+                displayEditorHint(exprToConcrete(project, e, NormalizationMode.RNF, definitionRenamer).toString(), project, editor, AD_TEXT)
             }
-        } ?: throw SubExprException("failed to synthesize type from given expr")
+        } else throw SubExprException("failed to synthesize type from given expr")
 
         val sub = try {
             correspondedSubExpr(selected, file, project)
@@ -64,18 +67,18 @@ class ArendShowTypeAction : ArendPopupAction() {
             val bind = binding(psiBody, selected) ?: throw e
             val ref = FindBinding.visitClauses(bind, body.clauses, coreBody.clauses) ?: throw e
             select(bind.textRange)
-            hint(ref.typeExpr)
+            hint(ref.typeExpr, null)
             return
         }
 
         val findBinding = sub.findBinding(selected)
         if (findBinding == null) {
             select(rangeOfConcrete(sub.subConcrete))
-            hint(sub.subCore.type)
+            hint(sub.subCore.type, sub.subPsi)
             return
         }
         val (param, type) = findBinding
         select(param.textRange)
-        hint(type)
+        hint(type, null)
     }
 }

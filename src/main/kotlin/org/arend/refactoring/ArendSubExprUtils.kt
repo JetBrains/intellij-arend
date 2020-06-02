@@ -18,9 +18,9 @@ import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.*
-import org.arend.core.expr.visitor.ScopeDefinitionRenamer
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
+import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.reference.LocatedReferable
@@ -251,17 +251,13 @@ fun exprToConcrete(
         project: Project,
         expression: Expression,
         mode: NormalizationMode? = null,
-        element: PsiElement? = null
+        renamer: DefinitionRenamer? = null
 ): Concrete.Expression {
     val settings = project.service<ArendProjectSettings>()
     return ToAbstractVisitor.convert(expression, object : PrettyPrinterConfig {
         override fun getExpressionFlags() = settings.popupPrintingOptionsFilterSet
         override fun getNormalizationMode() = mode
-        override fun getDefinitionRenamer() = if (element == null) null else runReadAction {
-            element.ancestor<ArendCompositeElement>()?.let {
-                ScopeDefinitionRenamer(ConvertingScope(it.project.service<TypeCheckingService>().newReferableConverter(false), it.scope))
-            }
-        }
+        override fun getDefinitionRenamer() = renamer
     })
 }
 
@@ -269,7 +265,7 @@ inline fun normalizeExpr(
         project: Project,
         subCore: Expression,
         mode: NormalizationMode = NormalizationMode.RNF,
-        element: PsiElement? = null,
+        renamer: DefinitionRenamer? = null,
         crossinline after: (Concrete.Expression) -> Unit
 ) {
     val title = "Running normalization"
@@ -277,7 +273,9 @@ inline fun normalizeExpr(
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) {
             result = ComputationRunner<Concrete.Expression>().run(ArendCancellationIndicator(indicator), Supplier {
-                exprToConcrete(project, subCore, mode, element)
+                runReadAction {
+                    exprToConcrete(project, subCore, mode, renamer)
+                }
             })
         }
 

@@ -94,10 +94,12 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     val preludeScope: Scope
         get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
 
-    fun getDefinitionPsiReferable(definition: Definition) : PsiLocatedReferable? {
-        (definition.referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
-        return Scope.Utils.resolveName(preludeScope, definition.referable.refLongName.toList()) as? PsiLocatedReferable
+    fun getPsiReferable(referable: LocatedReferable): PsiLocatedReferable? {
+        (referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
+        return Scope.Utils.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
     }
+
+    fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
     fun reload() {
         externalAdditionalNamesIndex.clear()
