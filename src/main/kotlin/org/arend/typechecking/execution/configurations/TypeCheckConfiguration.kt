@@ -12,14 +12,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
+import org.arend.module.ArendRawLibrary
 import org.arend.settings.ArendSettings
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckRunConfigurationEditor
 import org.arend.util.arendModules
 import org.jdom.Element
-import java.net.URI
-import java.nio.file.FileSystems
-import java.nio.file.Paths
 
 class TypeCheckConfiguration(
         project: Project,
@@ -57,9 +56,21 @@ class TypeCheckConfiguration(
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         if (environment.runnerSettings is DebuggingRunnerData) {
+            val libraryManager = project.service<TypeCheckingService>().libraryManager
+            val libPaths = if (arendTypeCheckCommand.library.isEmpty()) {
+                libraryManager.registeredLibraries.filterIsInstance<ArendRawLibrary>().mapNotNull { it.config.rootDir }
+            } else {
+                (libraryManager.getRegisteredLibrary(arendTypeCheckCommand.library) as? ArendRawLibrary)?.config?.rootDir?.let { listOf(it) } ?: emptyList()
+            }
+            val projectPath = if (libPaths.isEmpty()) project.basePath else libPaths.joinToString(" ")
+
             val jarConfiguration = JarApplicationConfigurationType.getInstance().createTemplateConfiguration(project) as JarApplicationConfiguration
             jarConfiguration.jarPath = arendSettings.pathToArendJar
-            jarConfiguration.programParameters = "-r " + project.basePath
+            jarConfiguration.programParameters = "$projectPath --recompile" +
+                if (arendTypeCheckCommand.modulePath.isEmpty()) ""
+                else ("=" + arendTypeCheckCommand.modulePath +
+                    if (arendTypeCheckCommand.definitionFullName.isEmpty()) ""
+                    else ":" + arendTypeCheckCommand.definitionFullName)
             val jarAppState = jarConfiguration.getState(executor, environment)
             if (jarAppState != null) {
                 return jarAppState
