@@ -17,6 +17,8 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
         myPassId = registrar.registerTextEditorHighlightingPass(this, intArrayOf(service.highlightingPassId, service.backgroundTypecheckerPassId), null, false, -1)
     }
 
+    override fun allowWhiteSpaces() = true
+
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
         TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
 
