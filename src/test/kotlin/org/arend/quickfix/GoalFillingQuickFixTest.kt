@@ -64,4 +64,61 @@ class GoalFillingQuickFixTest: QuickFixTestBase() {
             
         """)
     }
+
+    fun `test fix incomplete lam`() {
+        setGoalSolver()
+        typedQuickFixTest("Fill", """
+            \func test : Nat -> Nat => \lam x{-caret-}
+        """, """
+            \func test : Nat -> Nat => \lam x => zero
+        """)
+    }
+
+    fun `test fix incomplete lam 2`() {
+        setGoalSolver()
+        typedQuickFixTest("Fill", """
+            \func test : Nat -> Nat => \lam x =>{-caret-}
+            
+        """, """
+            \func test : Nat -> Nat => \lam x => zero
+            
+        """)
+    }
+
+    fun `test fix incomplete tuple`() {
+        setGoalSolver()
+        typedQuickFixTest("Fill", """
+            \func test => (1,{-caret-})
+        """, """
+            \func test => (1,zero)
+        """)
+    }
+
+    fun `test fix incomplete implicit tuple`() {
+        setGoalSolver()
+        typedQuickFixTest("Fill", """
+            \func f {p : \Sigma Nat Nat} => p.1
+            \func test => f {1,{-caret-}}
+        """, """
+            \func f {p : \Sigma Nat Nat} => p.1
+            \func test => f {1,zero}
+        """)
+    }
+
+    fun `test fix incomplete implicit tuple with indent`() {
+        setGoalSolver()
+        typedQuickFixTest("Fill", """
+            \func f {p : \Sigma Nat Nat} => p.1
+            \func test => f {
+              1,
+              {-caret-}
+            }
+        """.trimIndent(), """
+            \func f {p : \Sigma Nat Nat} => p.1
+            \func test => f {
+              1,
+              zero
+            }
+        """.trimIndent())
+    }
 }

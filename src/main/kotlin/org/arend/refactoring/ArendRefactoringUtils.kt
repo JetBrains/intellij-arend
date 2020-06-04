@@ -660,7 +660,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
     override fun visitApplyHole(data: Any?, params: Void?) = MAX_PREC
     override fun visitInferHole(data: Any?, params: Void?) = MAX_PREC
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, params: Void?) = MAX_PREC
-    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, params: Void?) = MAX_PREC
+    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, trailingComma: Any?, params: Void?) = MAX_PREC
     override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, params: Void?) = MIN_PREC
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = APP_PREC
     override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, params: Void?) = MIN_PREC

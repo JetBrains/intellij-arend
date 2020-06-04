@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
@@ -86,7 +87,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     fun reportToEditor(error: GeneralError, cause: PsiElement) {
-        if (error is IncompleteExpressionError || cause !is ArendCompositeElement || file != cause.containingFile) {
+        if (error is IncompleteExpressionError || file != cause.containingFile) {
             return
         }
 
@@ -156,13 +157,15 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         }
                     }
 
-                is MissingClausesError -> annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
+                is MissingClausesError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
 
-                is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
+                is DataTypeNotEmptyError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
                 is GoalError -> {
-                    val incomplete = cause is ArendLetExpr && cause.expr == null
-                    if (incomplete) {
+                    val incomplete = isIncomplete(cause)
+                    if (incomplete && cause !is LeafPsiElement) {
                         val next = cause.nextElement
                         if (next == null || next is PsiWhiteSpace && next.text.firstOrNull().let { it == '\n' || it == '\r' }) {
                             annotation.isAfterEndOfLine = true
@@ -176,12 +179,32 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                 else -> it
                             }
                             val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
-                                val prefix = when {
-                                    cause is ArendLetExpr && cause.inKw == null -> "\\in "
-                                    else -> ""
-                                }
-                                if (incomplete) doc.insertString(expr.textRange.endOffset, " $prefix$text")
-                                else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
+                                if (incomplete) {
+                                    var offset = cause.textRange.endOffset
+                                    var reformat = false
+                                    if (cause is LeafPsiElement) {
+                                        val next = cause.nextSibling
+                                        if (next is PsiWhiteSpace) {
+                                            val index = next.text.indexOf('\n')
+                                            if (index != -1) {
+                                                offset = next.textRange.startOffset + index + 1
+                                                reformat = true
+                                            }
+                                        }
+                                    }
+                                    val prefix = when {
+                                        cause is ArendLetExpr && cause.inKw == null -> " \\in "
+                                        cause is ArendLamExpr && cause.fatArrow == null -> " => "
+                                        cause is LeafPsiElement -> ""
+                                        else -> " "
+                                    }
+                                    doc.insertString(offset, "$prefix$text")
+
+                                    if (reformat) {
+                                        val file = cause.containingFile
+                                        CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
+                                    }
+                                } else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
                             }
                             annotation.registerFix(GoalSolverFillingQuickFix(expr, error, action))
                             for (solver in error.goalSolver.additionalSolvers) {
@@ -336,13 +359,37 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            if (error is GoalError && improvedElement is ArendLetExpr && improvedElement.expr == null) {
-                val offset = improvedElement.textRange.endOffset
-                return TextRange(offset, offset + if (improvedElement.nextElement == null) 0 else 1)
+            if (error is GoalError && isIncomplete(improvedElement)) {
+                if (improvedElement !is LeafPsiElement) {
+                    val offset = improvedElement.textRange.endOffset
+                    return TextRange(offset, offset + if (improvedElement.nextElement == null) 0 else 1)
+                }
+
+                var next = improvedElement.nextSibling
+                if (next is PsiWhiteSpace) {
+                    val text = next.text
+                    val first = text.indexOf('\n')
+                    if (first == -1) {
+                        next = next.nextSibling
+                    } else {
+                        val second = text.indexOf('\n', first + 1)
+                        val offset = next.textRange.startOffset
+                        return TextRange(offset + first + 1, offset + if (second > first + 1) second else first + 2)
+                    }
+                }
+                if (next != null) {
+                    val offset = next.textRange.startOffset
+                    return TextRange(offset, offset + 1)
+                }
             }
 
             return improvedElement.textRange
         }
+
+        private fun isIncomplete(element: PsiElement) =
+            element is ArendLetExpr && element.expr == null ||
+            element is ArendLamExpr && element.expr == null ||
+            element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA
 
         private val GOAL_IN_COPATTERN_PREFIX : Array<Class<out PsiElement>> =
                 arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)

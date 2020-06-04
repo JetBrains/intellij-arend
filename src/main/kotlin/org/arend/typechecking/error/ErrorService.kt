@@ -1,6 +1,7 @@
 package org.arend.typechecking.error
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.ErrorReporter
@@ -41,15 +42,15 @@ class ErrorService : ErrorReporter {
         val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         runReadAction {
             loop@ for (data in list) {
-                val element: ArendCompositeElement
+                val element: PsiElement
                 val pointer: SmartPsiElementPointer<*>
                 when (val cause = (data as? DataContainer)?.data ?: data) {
-                    is ArendCompositeElement -> {
+                    is PsiElement -> {
                         element = cause
                         pointer = SmartPointerManager.createPointer(cause)
                     }
                     is SmartPsiElementPointer<*> -> {
-                        element = cause.element as? ArendCompositeElement ?: continue@loop
+                        element = cause.element ?: continue@loop
                         pointer = cause
                     }
                     else -> continue@loop
@@ -106,12 +107,12 @@ class ErrorService : ErrorReporter {
             emptyList()
         }
 
-    fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, ArendCompositeElement>> {
+    fun getTypecheckingErrors(file: ArendFile): List<Pair<GeneralError, PsiElement>> {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()
 
-        val list = ArrayList<Pair<GeneralError, ArendCompositeElement>>()
+        val list = ArrayList<Pair<GeneralError, PsiElement>>()
         for (arendError in arendErrors) {
-            (arendError.cause as? ArendCompositeElement)?.let {
+            arendError.cause?.let {
                 list.add(Pair(arendError.error, it))
             }
         }
