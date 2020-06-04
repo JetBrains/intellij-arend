@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -21,7 +22,7 @@ import org.arend.typechecking.error.local.GoalError
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.ui.impl.ArendEditorUI
 
-class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val goal: GoalError, private val solver: InteractiveGoalSolver) : IntentionAction {
+class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val goal: GoalError, private val solver: InteractiveGoalSolver, private val action: (Document, Concrete.Expression, String) -> Unit) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
             if (it != null) {
@@ -39,7 +40,7 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val 
                 val definitionRenamer = PsiLocatedRenamer(element)
                 val text = concrete.accept(DefinitionRenamerConcreteVisitor(CachingDefinitionRenamer(definitionRenamer)), null).toString()
                 ApplicationManager.getApplication().runWriteAction {
-                    replaceExprSmart(editor.document, element, null, element.textRange, null, concrete, text)
+                    action(editor.document, concrete, text)
                     definitionRenamer.writeAllImportCommands()
                 }
             }

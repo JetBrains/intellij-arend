@@ -569,7 +569,7 @@ private pipe_def_un ::= PIPE {
 
 private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recover
 
-letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* IN_KW expr {
+letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }

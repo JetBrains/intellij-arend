@@ -38,7 +38,9 @@ import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
+import org.arend.refactoring.replaceExprSmart
 import org.arend.term.abs.IncompleteExpressionError
+import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
@@ -158,19 +160,36 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is DataTypeNotEmptyError -> annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
-                is GoalError -> if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
-                    error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
-                        val expr = when (it) {
-                            is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
-                            is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr ?: it
-                            else -> it
-                        }
-                        annotation.registerFix(GoalSolverFillingQuickFix(expr, error))
-                        for (solver in error.goalSolver.additionalSolvers) {
-                            annotation.registerFix(InteractiveGoalSolverQuickFix(expr, error, solver))
+                is GoalError -> {
+                    val incomplete = cause is ArendLetExpr && cause.expr == null
+                    if (incomplete) {
+                        val next = cause.nextElement
+                        if (next == null || next is PsiWhiteSpace && next.text.firstOrNull().let { it == '\n' || it == '\r' }) {
+                            annotation.isAfterEndOfLine = true
                         }
                     }
-                    cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
+                    if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
+                        error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
+                            val expr = when (it) {
+                                is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
+                                is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr ?: it
+                                else -> it
+                            }
+                            val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
+                                val prefix = when {
+                                    cause is ArendLetExpr && cause.inKw == null -> "\\in "
+                                    else -> ""
+                                }
+                                if (incomplete) doc.insertString(expr.textRange.endOffset, " $prefix$text")
+                                else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
+                            }
+                            annotation.registerFix(GoalSolverFillingQuickFix(expr, error, action))
+                            for (solver in error.goalSolver.additionalSolvers) {
+                                annotation.registerFix(InteractiveGoalSolverQuickFix(expr, error, solver, action))
+                            }
+                        }
+                        cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
+                    }
                 }
 
                 is CertainTypecheckingError -> when (error.kind) {
@@ -315,6 +334,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     }
                 }
                 return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
+            }
+
+            if (error is GoalError && improvedElement is ArendLetExpr && improvedElement.expr == null) {
+                val offset = improvedElement.textRange.endOffset
+                return TextRange(offset, offset + if (improvedElement.nextElement == null) 0 else 1)
             }
 
             return improvedElement.textRange
