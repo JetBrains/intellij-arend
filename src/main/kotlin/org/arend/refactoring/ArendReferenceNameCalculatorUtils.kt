@@ -67,6 +67,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
     if (isPrelude(targetFile) && !preludeImportedManually) {
         defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
+        alternativeLocation?.addLongNameAsReferenceName()
         fallbackImportAction = ImportFileAction(currentFile, targetFilePath, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
