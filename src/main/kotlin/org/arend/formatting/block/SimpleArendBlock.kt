@@ -12,7 +12,6 @@ import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.term.abs.Abstract
 import org.arend.util.mapFirstNotNull
 import java.util.*
 
@@ -212,8 +211,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 ARR_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                TUPLE -> when (prevET) {
-                    RPAREN -> {
+                TUPLE, IMPLICIT_ARGUMENT -> when (prevET) {
+                    RPAREN, RBRACE -> {
                     }
                     COMMA -> subBlocks.mapFirstNotNull { it.alignment }?.let {
                         return ChildAttributes(Indent.getNormalIndent(), it)
@@ -289,6 +288,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             LET_CLAUSE -> alignment
                             else -> null
                         }
+                    IMPLICIT_ARGUMENT -> if ((nodePsi as ArendImplicitArgument).tupleExprList.size > 1) when (childET) {
+                        TUPLE_EXPR -> alignment
+                        else -> null
+                    } else null
                     TUPLE -> if ((nodePsi as ArendTuple).tupleExprList.size > 1) when (childET) {
                         TUPLE_EXPR -> alignment
                         else -> null
