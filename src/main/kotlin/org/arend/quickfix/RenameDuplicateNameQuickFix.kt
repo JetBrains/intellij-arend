@@ -7,13 +7,14 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.variable.Variable
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.ArendNsId
 import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
-import org.arend.refactoring.AddIdToUsingAction
-import org.arend.refactoring.VariableImpl
+import org.arend.refactoring.doAddIdToUsing
+import org.arend.refactoring.doRemoveRefFromStatCmd
 
 class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
                                   private val referable: Referable?) : IntentionAction {
@@ -33,24 +34,24 @@ class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<P
                 if (using is ArendNsUsing && statCmd is ArendStatCmd) {
                     val oldName = cause.oldReference.textRepresentation()
                     val newName = cause.name
-                    AddIdToUsingAction.doRemoveRefFromStatCmd(cause.refIdentifier, false) //RemoveRefFromStatCmdAction(statCmd, cause.refIdentifier, false).execute(editor)
-                    doRenameDuplicateName(editor, statCmd, oldName, newName)
+                    doRemoveRefFromStatCmd(cause.refIdentifier, false)
+                    doRenameDuplicateName(statCmd, oldName, newName)
                 }
             }
             is ArendStatCmd -> {
                 if (referable != null)
-                    doRenameDuplicateName(editor, cause, referable.textRepresentation(), null)
+                    doRenameDuplicateName(cause, referable.textRepresentation(), null)
             }
         }
     }
 
     companion object {
-        fun doRenameDuplicateName(editor: Editor?, statCmd: ArendStatCmd, oldName: String, newName: String?) {
+        fun doRenameDuplicateName(statCmd: ArendStatCmd, oldName: String, newName: String?) {
             val referables = statCmd.scope.elements.map { VariableImpl(it.textRepresentation()) }
             val variable = object : Variable { override fun getName(): String = newName ?: oldName }
             val freshName = StringRenamer().generateFreshName(variable, referables)
             val renamings = ArrayList<Pair<String, String?>>(); renamings.add(Pair(oldName, freshName))
-            AddIdToUsingAction.doAddIdToUsing(statCmd, renamings)
+            doAddIdToUsing(statCmd, renamings)
         }
 
 

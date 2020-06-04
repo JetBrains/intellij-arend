@@ -2,6 +2,7 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
@@ -25,7 +26,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
                              allowSelfImport: Boolean = false,
                              deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetFilePath = targetFile.moduleLocation?.modulePath!! //safe to write (see canComputeInplaceLongName)
+    val targetFilePath = targetFile.moduleLocation?.modulePath!! //safe to write (see canCalculateReferenceName)
     val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
@@ -133,9 +134,9 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     val resultingDecisions = ArrayList<Pair<List<String>, NsCmdRefactoringAction?>>()
 
     for (location in locations) {
-        location.getReferenceNames().map { inplaceName ->
-            if (inplaceName.isEmpty() || Scope.Utils.resolveName(correctedScope, inplaceName)?.underlyingReferable == defaultLocation.target) {
-                resultingDecisions.add(Pair(inplaceName, fileResolveActions[location]))
+        location.getReferenceNames().map { referenceName ->
+            if (referenceName.isEmpty() || Scope.Utils.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
+                resultingDecisions.add(Pair(referenceName, fileResolveActions[location]))
             }
         }
     }
@@ -264,4 +265,53 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         }
         return result
     }
+}
+
+abstract class NsCmdRefactoringAction(val currentFile: ArendFile,
+                                      val longName: ModulePath) {
+    abstract fun execute()
+
+    abstract fun getImportedParts(): List<String>?
+}
+
+class ImportFileAction(currentFile: ArendFile,
+                       longName: ModulePath,
+                       val usingList: List<String>?) : NsCmdRefactoringAction(currentFile, longName) {
+    override fun toString() = "Import file $longName"
+
+    override fun execute() {
+        val factory = ArendPsiFactory(currentFile.project)
+
+        addStatCmd(factory,
+                createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
+                findPlaceForNsCmd(currentFile, longName))
+    }
+
+    override fun getImportedParts(): List<String>? = usingList
+}
+
+class AddIdToUsingAction(currentFile: ArendFile,
+                         longName: ModulePath,
+                         val id: String) : NsCmdRefactoringAction(currentFile, longName) {
+    override fun toString(): String = "Add $id to the \"using\" list of the namespace command `$longName`"
+
+    override fun execute() {
+        /* locate statCmd using longName */
+        var statCmd: ArendStatCmd? = null
+        for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
+            val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
+            if (nsCmdLongName == longName.toString()) {
+                statCmd = namespaceCommand
+                break
+            }
+        }
+
+        if (statCmd == null) return
+        /* if statCmd was found -- execute refactoring action */
+        val hiddenList = statCmd.refIdentifierList
+        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == id }
+        if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(id, null))) else doRemoveRefFromStatCmd(hiddenRef)
+    }
+
+    override fun getImportedParts(): List<String>? = singletonList(id)
 }

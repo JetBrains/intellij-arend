@@ -20,6 +20,7 @@ import org.arend.core.pattern.ExpressionPattern
 import org.arend.core.pattern.Pattern
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.renamer.StringRenamer

@@ -4,8 +4,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
-import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.ImportFileAction
+import org.arend.refactoring.doAddIdToUsing
+import org.arend.refactoring.doRemoveRefFromStatCmd
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -666,7 +667,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import A \\using (b \\as b')") { file ->
         val cmd = file.namespaceCommands.first()
         WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
-            AddIdToUsingAction.doAddIdToUsing(cmd, listOf(Pair("b", "b'")))
+            doAddIdToUsing(cmd, listOf(Pair("b", "b'")))
         }, file) }
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
@@ -680,7 +681,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
         val cmd = file.namespaceCommands.first()
         val ref = cmd.refIdentifierList[1]
         WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
-            AddIdToUsingAction.doRemoveRefFromStatCmd(ref)
+            doRemoveRefFromStatCmd(ref)
         }, file)
     }
 

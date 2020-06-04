@@ -17,6 +17,7 @@ import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.ext.module.LongName
+import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
@@ -292,7 +293,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                         val target = nsId.refIdentifier.reference?.resolve()
                         val name = nsId.refIdentifier.referenceName
                         if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
-                            AddIdToUsingAction.doRemoveRefFromStatCmd(nsId.refIdentifier) //RemoveRefFromStatCmdAction(null, nsId.refIdentifier).execute(null)
+                            doRemoveRefFromStatCmd(nsId.refIdentifier)
                     }
                 }
             }
@@ -336,7 +337,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 addIdToUsing(statCmdStatement, myTargetContainer, name, renamings, psiFactory, RelativePosition(PositionKind.AFTER_ANCHOR, statCmdStatement))
             }
 
-            for (nsId in nsIdToRemove) AddIdToUsingAction.doRemoveRefFromStatCmd(nsId.refIdentifier) //RemoveRefFromStatCmdAction(statCmd, nsId.refIdentifier).execute(null)
+            for (nsId in nsIdToRemove) doRemoveRefFromStatCmd(nsId.refIdentifier)
         }
 
         //Now fix references of "normal" usages
@@ -345,7 +346,7 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
             val referenceParent = referenceElement?.parent
 
             if (referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd) //Usage in "hiding" list which we simply delete
-                AddIdToUsingAction.doRemoveRefFromStatCmd(referenceElement) //RemoveRefFromStatCmdAction(referenceParent, referenceElement).execute(null)
+                doRemoveRefFromStatCmd(referenceElement)
             else if (referenceElement is ArendReferenceElement) //Normal usage which we try to fix
                 movedReferablesMap[usage.referableDescriptor]?.let { ResolveReferenceAction.getProposedFix(it, referenceElement)?.execute(null) }
         }
