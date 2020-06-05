@@ -181,6 +181,10 @@ class ArendNewlineTest : ArendFormatterTestBase() {
             "\\func foo => run {\n  suc,{-caret-}\n  suc,\n}",
             "\\func foo => run {\n  suc,\n  {-caret-}\n  suc,\n}")
 
+    fun testTuple3() = checkNewLine(
+            "\\func foo => run {suc,{-caret-}\n}",
+            "\\func foo => run {suc,\n                  {-caret-}\n}")
+
     fun testNoIndentAfterWhere1() = checkNewLine(
             "\\module Foo \\where {}{-caret-}",
             "\\module Foo \\where {}\n{-caret-}")

@@ -288,10 +288,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             LET_CLAUSE -> alignment
                             else -> null
                         }
-                    IMPLICIT_ARGUMENT -> if ((nodePsi as ArendImplicitArgument).tupleExprList.size > 1) when (childET) {
+                    IMPLICIT_ARGUMENT -> when (childET) {
                         TUPLE_EXPR -> alignment
                         else -> null
-                    } else null
+                    }
                     TUPLE -> if ((nodePsi as ArendTuple).tupleExprList.size > 1) when (childET) {
                         TUPLE_EXPR -> alignment
                         else -> null
