@@ -5,10 +5,10 @@ import com.intellij.openapi.util.TextRange
 import org.arend.core.expr.Expression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.*
-import org.arend.typechecking.error.PsiHyperlinkInfo
+import org.arend.typechecking.error.createHyperlinkInfo
 
 
-class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError?) : DocStringBuilder(builder) {
+class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError) : DocStringBuilder(builder) {
     val textRanges = ArrayList<List<TextRange>>()
     val hyperlinks = ArrayList<Pair<TextRange,HyperlinkInfo>>()
     val expressions = ArrayList<Expression>()
@@ -17,7 +17,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
     override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
         val start = builder.length
         super.visitReference(doc, newLine)
-        val hyperlink = PsiHyperlinkInfo.create(doc.reference, error).first
+        val hyperlink = createHyperlinkInfo(doc.reference, error).first
         if (hyperlink != null) {
             hyperlinks.add(Pair(TextRange(start, builder.length), hyperlink))
         }

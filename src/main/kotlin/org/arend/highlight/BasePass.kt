@@ -359,7 +359,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return TextRange(improvedElement.textRange.startOffset, endElement.textRange.endOffset)
             }
 
-            if (error is GoalError && isIncomplete(improvedElement)) {
+            if ((error is GoalError || error == null) && isIncomplete(improvedElement)) {
                 if (improvedElement !is LeafPsiElement) {
                     val offset = improvedElement.textRange.endOffset
                     return TextRange(offset, offset + if (improvedElement.nextElement == null) 0 else 1)
@@ -386,7 +386,31 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return improvedElement.textRange
         }
 
-        private fun isIncomplete(element: PsiElement) =
+        fun getImprovedTextOffset(error: GeneralError?, element: PsiElement): Int {
+            val textRange = getImprovedTextRange(error, element)
+            if (!isIncomplete(element) || element !is LeafPsiElement) {
+                return textRange.startOffset
+            }
+
+            val next = element.nextSibling
+            if (next !is PsiWhiteSpace) {
+                return textRange.startOffset
+            }
+
+            val text = next.text
+            val first = text.indexOf('\n')
+            if (first == -1) {
+                return textRange.startOffset
+            }
+            val second = text.indexOf('\n', first + 1)
+            if (second <= first + 1) {
+                return textRange.startOffset
+            }
+
+            return textRange.endOffset
+        }
+
+        fun isIncomplete(element: PsiElement) =
             element is ArendLetExpr && element.expr == null ||
             element is ArendLamExpr && element.expr == null ||
             element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA

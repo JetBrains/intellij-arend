@@ -5,6 +5,7 @@ import com.intellij.psi.util.elementType
 import org.arend.psi.*
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
+import org.arend.typechecking.error.FixedPsiSourceInfo
 
 
 abstract class ArendImplicitArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendImplicitArgument, Abstract.Expression {
@@ -26,7 +27,7 @@ internal fun <P : Any?, R : Any?> acceptTupleExpression(data: Any?, exprList: Li
     return if (exprList.size == 1 && !isComma) {
         exprList[0].accept(visitor, params)
     } else {
-        visitor.visitTuple(data, exprList, if (isComma) element else null, params)
+        visitor.visitTuple(data, exprList, if (isComma) FixedPsiSourceInfo(element!!) else null, params)
     }
 }
 

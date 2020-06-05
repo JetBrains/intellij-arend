@@ -23,7 +23,7 @@ interface ArendCompositeElement : PsiElement, SourceInfo {
     override fun getReference(): ArendReference?
 }
 
-fun PsiElement.moduleTextRepresentationImpl(): String? = if (isValid) (containingFile as? ArendFile)?.name else null
+fun PsiElement.moduleTextRepresentationImpl(): String? = if (isValid) containingFile?.name else null
 
 fun PsiElement.positionTextRepresentationImpl(): String? {
     if (!isValid) {

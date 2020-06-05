@@ -108,7 +108,7 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
         }
 
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
-            val (hyperlink, reference) = PsiHyperlinkInfo.create(doc.reference, error)
+            val (hyperlink, reference) = createHyperlinkInfo(doc.reference, error)
             if (hyperlink == null) {
                 printText(reference.refName)
             } else {
