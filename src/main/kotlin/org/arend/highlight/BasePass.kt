@@ -374,7 +374,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     } else {
                         val second = text.indexOf('\n', first + 1)
                         val offset = next.textRange.startOffset
-                        return TextRange(offset + first + 1, offset + if (second > first + 1) second else first + 2)
+                        return if (second == -1) TextRange(offset + first + 1, offset + first + 2)
+                            else TextRange(offset + second, offset + second + 1)
                     }
                 }
                 if (next != null) {
@@ -386,29 +387,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return improvedElement.textRange
         }
 
-        fun getImprovedTextOffset(error: GeneralError?, element: PsiElement): Int {
-            val textRange = getImprovedTextRange(error, element)
-            if (!isIncomplete(element) || element !is LeafPsiElement) {
-                return textRange.startOffset
-            }
-
-            val next = element.nextSibling
-            if (next !is PsiWhiteSpace) {
-                return textRange.startOffset
-            }
-
-            val text = next.text
-            val first = text.indexOf('\n')
-            if (first == -1) {
-                return textRange.startOffset
-            }
-            val second = text.indexOf('\n', first + 1)
-            if (second <= first + 1) {
-                return textRange.startOffset
-            }
-
-            return textRange.endOffset
-        }
+        fun getImprovedTextOffset(error: GeneralError?, element: PsiElement) =
+            getImprovedTextRange(error, element).startOffset
 
         fun isIncomplete(element: PsiElement) =
             element is ArendLetExpr && element.expr == null ||
