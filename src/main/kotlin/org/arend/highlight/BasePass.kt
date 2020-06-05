@@ -115,10 +115,15 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 }
             }
         } else {
-            val annotation = createAnnotation(error, getImprovedTextRange(error, cause))
+            val textRange = getImprovedTextRange(error, cause)
+            val annotation = createAnnotation(error, textRange)
             if (error.level == GeneralError.Level.WARNING_UNUSED) {
                 annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
             }
+            if (textRange.endOffset == textRange.startOffset + 1 && document.charsSequence[textRange.startOffset] == '\n') {
+                annotation.isAfterEndOfLine = true
+            }
+
             when (error) {
                 is ParsingError -> when (error.kind) {
                      MISPLACED_IMPORT -> {
