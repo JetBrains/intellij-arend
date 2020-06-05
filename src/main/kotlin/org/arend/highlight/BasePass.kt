@@ -190,9 +190,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                     if (cause is LeafPsiElement) {
                                         val next = cause.nextSibling
                                         if (next is PsiWhiteSpace) {
-                                            val index = next.text.indexOf('\n')
-                                            if (index != -1) {
-                                                offset = next.textRange.startOffset + index + 1
+                                            val whitespaces = next.text
+                                            val first = whitespaces.indexOf('\n')
+                                            if (first != -1) {
+                                                val second = whitespaces.indexOf('\n', first + 1)
+                                                offset = next.textRange.startOffset + if (second == -1) first + 1 else second
                                                 reformat = true
                                             }
                                         }
