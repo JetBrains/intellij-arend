@@ -8,7 +8,8 @@ import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
-import org.arend.naming.scope.ImportedScope
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.LocatedReferableConverter
@@ -63,14 +64,16 @@ abstract class IntellijRepl private constructor(
 
     fun withArendFile(arendFile: ArendFile) {
         arendFile.enforcedScope = myScope
-        arendFile.enforcedLibraryConfig = object : LibraryConfig(service.project) {
-            override val name: String get() = replModulePath.libraryName
-            override val rootDir: String? get() = null
-            override val dependencies: List<LibraryDependency>
-                get() = myLibraryManager.registeredLibraries.map { LibraryDependency(it.name) }
-            override val modules: List<ModulePath>
-                get() = service.updatedModules.map { it.modulePath }
-        }
-        addScope(ImportedScope(arendFile, availableModuleScopeProvider))
+        arendFile.enforcedLibraryConfig = myLibraryConfig
+        addScope(LexicalScope.insideOf(arendFile, EmptyScope.INSTANCE))
+    }
+
+    private val myLibraryConfig = object : LibraryConfig(service.project) {
+        override val name: String get() = replModulePath.libraryName
+        override val rootDir: String? get() = null
+        override val dependencies: List<LibraryDependency>
+            get() = myLibraryManager.registeredLibraries.map { LibraryDependency(it.name) }
+        override val modules: List<ModulePath>
+            get() = service.updatedModules.map { it.modulePath }
     }
 }
