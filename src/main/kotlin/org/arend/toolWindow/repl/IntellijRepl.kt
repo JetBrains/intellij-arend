@@ -5,6 +5,8 @@ import com.intellij.openapi.project.Project
 import org.arend.ext.error.ListErrorReporter
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
+import org.arend.naming.scope.ImportedScope
+import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.LocatedReferableConverter
 import org.arend.repl.Repl
@@ -44,8 +46,6 @@ abstract class IntellijRepl private constructor(
         myScope = ConvertingScope(refConverter, myScope)
     }
 
-    val replScope get() = myScope
-
     private val psiFactory = ArendPsiFactory(service.project)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
@@ -56,5 +56,10 @@ abstract class IntellijRepl private constructor(
         val prelude = service.preludeScope
         myMergedScopes.add(prelude)
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
+    }
+
+    fun withArendFile(arendFile: ArendFile) {
+        arendFile.enforcedScope = myScope
+        addScope(ImportedScope(arendFile, availableModuleScopeProvider))
     }
 }

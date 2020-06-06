@@ -74,20 +74,21 @@ fun PsiElement.navigate(requestFocus: Boolean = true) {
 val PsiElement.module: Module?
     get() {
         val file = containingFile ?: return null
-        val virtualFile = file.virtualFile ?: file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
+        val virtualFile = file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
 fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
-    val virtualFile = virtualFile ?: containingFile.originalFile.virtualFile ?: return null
+    val virtualFile = originalFile.virtualFile
     val project = project
     val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
-    val module = fileIndex.getModuleForFile(virtualFile)
+    val module = virtualFile?.let(fileIndex::getModuleForFile) ?: getUserData(KEY_MODULE)
     if (module != null) {
         return ArendModuleConfigService.getInstance(module)
     }
 
+    virtualFile ?: return null
     if (onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
         return null
     }

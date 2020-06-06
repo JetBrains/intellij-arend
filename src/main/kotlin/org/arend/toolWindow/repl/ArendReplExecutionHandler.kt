@@ -50,7 +50,7 @@ class ArendReplExecutionHandler(
     init {
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
-        arendFile.enforcedScope = repl.replScope
+        repl.withArendFile(arendFile)
         repl.initialize()
         resetRepl()
     }

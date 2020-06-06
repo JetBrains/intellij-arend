@@ -51,7 +51,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
-        val containingFile = sourceNode.containingFile as? ArendFile
+        val containingFile = sourceNode.containingFile?.originalFile as? ArendFile
         containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
     })
     if (scope is ClassFieldImplScope && scope.withSuperClasses()) {
