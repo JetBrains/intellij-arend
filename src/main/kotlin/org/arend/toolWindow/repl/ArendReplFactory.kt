@@ -14,8 +14,8 @@ class ArendReplFactory : ToolWindowFactory {
     companion object Constants {
         const val TITLE = "Arend REPL"
         const val ID = "Arend.REPL"
-        // Hacking a behaviour of LanguageConsoleViewBuilder.build
-        val VIRTUAL_FILE_NAME = ArendLanguage.INSTANCE.displayName + " Console"
+        // // Hacking a behaviour of LanguageConsoleViewBuilder.build
+        // val VIRTUAL_FILE_NAME = ArendLanguage.INSTANCE.displayName + " Console"
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {

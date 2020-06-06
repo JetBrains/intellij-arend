@@ -10,12 +10,9 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
-import com.intellij.psi.PsiManager
 import org.arend.ArendLanguage
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendPsiFactory
 import org.arend.repl.CommandHandler
 
 class ArendReplExecutionHandler(
@@ -38,14 +35,12 @@ class ArendReplExecutionHandler(
     }
 
     val consoleView = LanguageConsoleBuilder()
-        .psiFileFactory(::toPsiFile)
         .executionEnabled { true }
         .oneLineInput(false)
         .initActions(this, ArendReplFactory.ID)
         .build(project, ArendLanguage.INSTANCE)
 
-    private fun toPsiFile(v: VirtualFile, p: Project) =
-        PsiManager.getInstance(p).findFile(v) as? ArendFile ?: createFile(p, v)
+    val arendFile = consoleView.file as ArendFile
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
@@ -55,12 +50,10 @@ class ArendReplExecutionHandler(
     init {
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
+        arendFile.isFragment = true
         repl.initialize()
         resetRepl()
     }
-
-    private fun createFile(p: Project, v: VirtualFile) = ArendPsiFactory(p)
-        .createFromText(v.inputStream.reader().readText())
 
     private fun resetRepl() {
         consoleView.clear()
