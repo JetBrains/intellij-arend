@@ -88,8 +88,7 @@ fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
         return ArendModuleConfigService.getInstance(module)
     }
 
-    virtualFile ?: return null
-    if (onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
+    if (virtualFile == null || onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
         return null
     }
 
@@ -110,7 +109,7 @@ fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
 }
 
 val PsiFile.libraryConfig: LibraryConfig?
-    get() = getLibraryConfig(false)
+    get() = (this as? ArendFile)?.enforcedLibraryConfig ?: getLibraryConfig(false)
 
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {

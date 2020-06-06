@@ -15,6 +15,7 @@ import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ModuleLocation
+import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -39,7 +40,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     /**
      * You can enforce the scope of a file to be something else.
      */
-    var enforcedScope : Scope? = null
+    var enforcedScope: Scope? = null
+
+    var enforcedLibraryConfig: LibraryConfig? = null
 
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: libraryConfig?.getFileModulePath(this)
