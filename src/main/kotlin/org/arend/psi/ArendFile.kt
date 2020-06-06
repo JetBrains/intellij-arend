@@ -36,8 +36,6 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     var generatedModuleLocation: ModuleLocation? = null
 
-    var isFragment = false
-
     /**
      * You can enforce the scope of a file to be something else.
      */
@@ -76,7 +74,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = injectionContext != null
 
     override val scope: Scope
-        get() = enforcedScope ?: CachedValuesManager.getCachedValue(this) {
+        get() = (originalFile as? ArendFile ?: this).enforcedScope ?: CachedValuesManager.getCachedValue(this) {
             val injectedIn = injectionContext
             CachedValueProvider.Result(if (injectedIn != null) {
                 (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE
