@@ -20,8 +20,7 @@ import org.arend.core.expr.FunCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
-import org.arend.ext.module.ModulePath
-import org.arend.module.ModuleLocation
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
@@ -43,150 +42,108 @@ import org.arend.term.concrete.ConcreteExpressionVisitor
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
-import org.arend.util.mapFirstNotNull
 import java.math.BigInteger
 import java.util.Collections.singletonList
 
-interface AbstractRefactoringAction {
-    fun execute(editor: Editor?)
-}
+private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
+    val nsIds = using.nsIdList
+    var anchor = using.lparen
+    var needsCommaBefore = false
 
-class ImportFileAction(private val importFile: ArendFile, private val currentFile: ArendFile, private val usingList: List<String>?) : AbstractRefactoringAction {
-    override fun toString() = "Import file " + importFile.fullName
-
-    private fun importFileCanBeFound(): Boolean {
-        val modulePath = importFile.moduleLocation?.modulePath ?: return false
-        val conf = currentFile.libraryConfig ?: return false
-        val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
-        return conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile
+    for (nsId in nsIds) {
+        val idRefName = nsId.refIdentifier.referenceName
+        val idDefName = nsId.defIdentifier?.name
+        if (idRefName <= id) {
+            anchor = nsId
+            needsCommaBefore = true
+        }
+        if (id == idRefName && newName == idDefName) return null
     }
 
-    fun isValid() = importFile.generatedModuleLocation != null || importFileCanBeFound()
+    val nsIdStr = if (newName == null) id else "$id \\as $newName"
+    val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
+    val newNsUsing = nsCmd!!.nsUsing!!
+    val nsId = newNsUsing.nsIdList[1]!!
+    val comma = nsId.prevSibling
 
-    override fun execute(editor: Editor?) {
-        val factory = ArendPsiFactory(importFile.project)
-        val modulePath = importFile.moduleLocation?.modulePath ?: return
-
-        addStatCmd(factory,
-                createStatCmdStatement(factory, modulePath.toString(), usingList?.map { Pair(it, null) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
-                findPlaceForNsCmd(currentFile, modulePath))
+    if (anchor == null) {
+        anchor = using.usingKw ?: error("Can't find anchor within namespace command")
+        anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
+        anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
+        anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
     }
+
+    if (anchor != null) {
+        if (!needsCommaBefore && nsIds.isNotEmpty()) anchor.parent.addAfter(comma, anchor)
+        val insertedId = anchor.parent.addAfterWithNotification(nsId, anchor)
+        if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
+        return insertedId as ArendNsId
+    }
+
+    return null
 }
 
-class AddIdToUsingAction(private val statCmd: ArendStatCmd, private val idList: List<Pair<String, String?>>) : AbstractRefactoringAction {
+fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): ArrayList<ArendNsId> {
     val insertedNsIds = ArrayList<ArendNsId>()
+    val factory = ArendPsiFactory(statCmd.project)
+    val insertAnchor = statCmd.longName
 
-    override fun toString(): String = "Add ${usingListToString(idList)} to the \"using\" list of the namespace command `${statCmd.text}`"
+    val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
+            ?: if (idList.any { it.second != null } && insertAnchor != null) {
+                val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
+                val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
+                insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
+                insertedUsing as ArendNsUsing
+            } else null
 
-    private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
-        val nsIds = using.nsIdList
-        var anchor = using.lparen
-        var needsCommaBefore = false
-
-        for (nsId in nsIds) {
-            val idRefName = nsId.refIdentifier.referenceName
-            val idDefName = nsId.defIdentifier?.name
-            if (idRefName <= id) {
-                anchor = nsId
-                needsCommaBefore = true
-            }
-            if (id == idRefName && newName == idDefName) return null
-        }
-
-        val nsIdStr = if (newName == null) id else "$id \\as $newName"
-        val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
-        val newNsUsing = nsCmd!!.nsUsing!!
-        val nsId = newNsUsing.nsIdList[1]!!
-        val comma = nsId.prevSibling
-
-        if (anchor == null) {
-            anchor = using.usingKw ?: error("Can't find anchor within namespace command")
-            anchor = anchor.parent.addAfter(newNsUsing.lparen!!, anchor)
-            anchor.parent.addBefore(factory.createWhitespace(" "), anchor)
-            anchor.parent.addAfter(newNsUsing.rparen!!, anchor)
-        }
-
-        if (anchor != null) {
-            if (!needsCommaBefore && nsIds.isNotEmpty()) anchor.parent.addAfter(comma, anchor)
-            val insertedId = anchor.parent.addAfterWithNotification(nsId, anchor)
-            if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
-            return insertedId as ArendNsId
-        }
-
-        return null
-    }
-
-    override fun execute(editor: Editor?) {
-        val factory = ArendPsiFactory(statCmd.project)
-        val insertAnchor = statCmd.longName
-
-        val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
-                ?: if (idList.any { it.second != null } && insertAnchor != null) {
-                    val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
-                    val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
-                    insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
-                    insertedUsing as ArendNsUsing
-                } else null
-
-        val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
-        if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
-    }
+    val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
+    if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
+    return insertedNsIds
 }
 
-class RemoveRefFromStatCmdAction(private val statCmd: ArendStatCmd?, val id: ArendRefIdentifier, private val deleteEmptyCommands: Boolean = true) : AbstractRefactoringAction {
-    override fun toString(): String {
-        val listType = when (id.parent) {
-            is ArendStatCmd -> "\"hiding\" list"
-            /* ArendNsUsing */ else -> "\"using\" list"
+fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean = true) {
+    val elementToRemove = if (id.parent is ArendNsId) id.parent else id
+    val parent = elementToRemove.parent
+
+    val prevSibling = elementToRemove.findPrevSibling()
+    val nextSibling = elementToRemove.findNextSibling()
+
+    elementToRemove.deleteWithNotification()
+
+    if (prevSibling?.node?.elementType == ArendElementTypes.COMMA) {
+        prevSibling?.delete()
+    } else if (prevSibling?.node?.elementType == ArendElementTypes.LPAREN) {
+        if (nextSibling?.node?.elementType == ArendElementTypes.COMMA) {
+            nextSibling?.delete()
         }
-        val name = if (statCmd != null) statCmdName(statCmd) else "???"
-        return "Remove " + id.referenceName + " from " + name + " import's $listType"
     }
 
-    override fun execute(editor: Editor?) {
-        val elementToRemove = if (id.parent is ArendNsId) id.parent else id
-        val parent = elementToRemove.parent
+    if (parent is ArendStatCmd && parent.refIdentifierList.isEmpty()) { // This means that we are removing something from "hiding" list
+        parent.lparen?.delete()
+        parent.rparen?.delete()
+        parent.hidingKw?.delete()
+    }
 
-        val prevSibling = elementToRemove.findPrevSibling()
-        val nextSibling = elementToRemove.findNextSibling()
+    val statCmd = if (parent is ArendStatCmd) parent else {
+        val grandParent = parent.parent
+        if (grandParent is ArendStatCmd) grandParent else null
+    }
 
-        elementToRemove.deleteWithNotification()
-
-        if (prevSibling?.node?.elementType == ArendElementTypes.COMMA) {
-            prevSibling?.delete()
-        } else if (prevSibling?.node?.elementType == ArendElementTypes.LPAREN) {
-            if (nextSibling?.node?.elementType == ArendElementTypes.COMMA) {
-                nextSibling?.delete()
-            }
-        }
-
-        if (parent is ArendStatCmd && parent.refIdentifierList.isEmpty()) { // This means that we are removing something from "hiding" list
-            parent.lparen?.delete()
-            parent.rparen?.delete()
-            parent.hidingKw?.delete()
-        }
-
-        val statCmd = if (parent is ArendStatCmd) parent else {
-            val grandParent = parent.parent
-            if (grandParent is ArendStatCmd) grandParent else null
-        }
-
-        if (statCmd != null && statCmd.openKw != null && deleteEmptyCommands) { //Remove open command with null effect
-            val nsUsing = statCmd.nsUsing
-            if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
-                val statCmdStatement = statCmd.parent
-                statCmdStatement.deleteWithNotification()
-            }
+    if (statCmd != null && statCmd.openKw != null && deleteEmptyCommands) { //Remove open command with null effect
+        val nsUsing = statCmd.nsUsing
+        if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
+            val statCmdStatement = statCmd.parent
+            statCmdStatement.deleteWithNotification()
         }
     }
 }
 
-class RenameReferenceAction constructor(private val element: ArendReferenceElement, private val id: List<String>) : AbstractRefactoringAction {
+class RenameReferenceAction constructor(private val element: ArendReferenceElement, private val id: List<String>) {
     private val needsModification = element.longName != id
 
     override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
 
-    override fun execute(editor: Editor?) {
+    fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
 
@@ -232,10 +189,6 @@ fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompos
     return ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location) ?: itemName
 }
 
-fun statCmdName(statCmd: ArendStatCmd) =
-        (statCmd.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? ArendFile)?.moduleLocation?.toString()
-                ?: "???"
-
 fun usingListToString(usingList: List<Pair<String, String?>>?): String {
     if (usingList == null) return ""
     val buffer = StringBuffer()
@@ -248,7 +201,7 @@ fun usingListToString(usingList: List<Pair<String, String?>>?): String {
     return buffer.toString()
 }
 
-fun findPlaceForNsCmd(currentFile: ArendFile, fileToImport: ModulePath): RelativePosition =
+fun findPlaceForNsCmd(currentFile: ArendFile, fileToImport: LongName): RelativePosition =
         if (currentFile.children.isEmpty()) RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, currentFile) else {
             var anchor: PsiElement = currentFile.children[0]
             val fullName = fileToImport.toString()
@@ -304,15 +257,12 @@ fun addIdToUsing(groupMember: PsiElement?,
                  relativePosition: RelativePosition): List<ArendNsId> {
     groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
         val statCmd = it.statCmd
-        if (statCmd != null/* && statCmd.nsUsing != null*/) {
+        if (statCmd != null) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
-                if (target == targetContainer) {
-                    val action = AddIdToUsingAction(statCmd, renamings)
-                    action.execute(null)
-                    return action.insertedNsIds
-                }
+                if (target == targetContainer)
+                    return doAddIdToUsing(statCmd, renamings)
             }
         }
     }
@@ -386,10 +336,6 @@ fun getAllBindings(psi: PsiElement, stopAtWhere: Boolean = true): Set<String> {
         }
     })
     return result
-}
-
-data class VariableImpl(private val varName: String) : Variable {
-    override fun getName() = varName
 }
 
 fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
@@ -714,7 +660,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
     override fun visitApplyHole(data: Any?, params: Void?) = MAX_PREC
     override fun visitInferHole(data: Any?, params: Void?) = MAX_PREC
     override fun visitGoal(data: Any?, name: String?, expression: Abstract.Expression?, params: Void?) = MAX_PREC
-    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, params: Void?) = MAX_PREC
+    override fun visitTuple(data: Any?, fields: Collection<Abstract.Expression>, trailingComma: Any?, params: Void?) = MAX_PREC
     override fun visitSigma(data: Any?, parameters: Collection<Abstract.Parameter>, params: Void?) = MIN_PREC
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = APP_PREC
     override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, params: Void?) = MIN_PREC

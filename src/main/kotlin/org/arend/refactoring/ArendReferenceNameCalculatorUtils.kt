@@ -2,6 +2,8 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
+import org.arend.module.ModuleLocation
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -15,11 +17,17 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
+import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
-fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>> {
+fun doCalculateReferenceName(defaultLocation: LocationData,
+                             currentFile: ArendFile,
+                             anchor: ArendCompositeElement,
+                             allowSelfImport: Boolean = false,
+                             deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
-    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write thanks to a check in canComputeInplaceLongName
+    val targetFilePath = targetFile.moduleLocation?.modulePath!! //safe to write (see canCalculateReferenceName)
+    val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
     val alternativeLocation = when (defaultLocation.target) {
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
@@ -29,29 +37,39 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
     locations.add(defaultLocation)
 
     var modifyingImportsNeeded = false
-    var fallbackImportAction: AbstractRefactoringAction? = null
+    var fallbackImportAction: NsCmdRefactoringAction? = null
 
     val fileGroup = object : Group by currentFile {
         override fun getSubgroups(): Collection<Group> = emptyList()
     }
     val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
     val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
-    var suitableImport: ArendStatCmd? = null
+    var targetFileAlreadyImported = false
     var preludeImportedManually = false
-    val fileResolveActions = HashMap<LocationData, AbstractRefactoringAction?>()
+    val fileResolveActions = HashMap<LocationData, NsCmdRefactoringAction?>()
 
     for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-        preludeImportedManually = preludeImportedManually || namespaceCommand.longName?.referent?.textRepresentation() == Prelude.MODULE_PATH.toString()
+        val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
+        preludeImportedManually = preludeImportedManually || nsCmdLongName == Prelude.MODULE_PATH.toString()
 
-        if (namespaceCommand.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() == targetFile) {
-            suitableImport = namespaceCommand // even if some of the members are unused or hidden we still can access them using "very long name"
+        if (nsCmdLongName == targetFile.fullName) {
+            targetFileAlreadyImported = true // even if some of the members are unused or hidden we still can access them using "very long name"
             for (location in locations) location.processStatCmd(namespaceCommand)
+        }
+    }
+
+    if (deferredImports != null) for (deferredImport in deferredImports) if (deferredImport.currentFile == currentFile) {
+        if (deferredImport is ImportFileAction) preludeImportedManually = preludeImportedManually || deferredImport.longName.toString() == Prelude.MODULE_PATH.toString()
+        if (deferredImport.longName.toString() == targetFile.fullName) {
+            targetFileAlreadyImported = true
+            for (location in locations) location.processDeferredImport(deferredImport)
         }
     }
 
     if (isPrelude(targetFile) && !preludeImportedManually) {
         defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
-        fallbackImportAction = ImportFileAction(targetFile, currentFile, null) // however if long name is to be used "\import Prelude" will be added to imports
+        alternativeLocation?.addLongNameAsReferenceName()
+        fallbackImportAction = ImportFileAction(currentFile, targetFilePath, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
     if (locations.first().getReferenceNames().isEmpty()) { // target definition is inaccessible in current context
@@ -63,30 +81,18 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
             if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsReferenceName()
         }
 
-        if (suitableImport != null) { // target definition is hidden or not included into using list but targetFile already has been imported
-            val nsUsing = suitableImport.nsUsing
-            val hiddenList = suitableImport.refIdentifierList
-
-            for (location in locations) if (location.getLongName().isNotEmpty()) {
-                val locationFullName = location.getLongName()
-                val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == locationFullName[0] }
-                fileResolveActions[location] = when {
-                    hiddenRef != null -> RemoveRefFromStatCmdAction(suitableImport, hiddenRef)
-                    nsUsing != null -> AddIdToUsingAction(suitableImport, singletonList(Pair(locationFullName[0], null)))
-                    else -> null
-                }
-            }
+        if (targetFileAlreadyImported) { // target definition is hidden or not included into using list but targetFile already has been imported
+            for (location in locations) if (location.getLongName().isNotEmpty())
+                fileResolveActions[location] = AddIdToUsingAction(currentFile, targetFilePath, location.getLongName()[0])
 
             fallbackImportAction = null
         } else { // targetFile has not been imported
-            fallbackImportAction =
-                    if (minimalImportMode) ImportFileAction(targetFile, currentFile, emptyList())
-                    else ImportFileAction(targetFile, currentFile, null)
+            fallbackImportAction = ImportFileAction(currentFile, targetFilePath, if (minimalImportMode) emptyList() else null)
 
             for (location in locations) {
                 val fName = location.getLongName()
                 val importList = if (fName.isEmpty()) emptyList() else singletonList(fName[0])
-                fileResolveActions[location] = if (minimalImportMode) ImportFileAction(targetFile, currentFile, importList) else fallbackImportAction
+                fileResolveActions[location] = if (minimalImportMode) ImportFileAction(currentFile, targetFilePath, importList) else fallbackImportAction
             }
         }
     }
@@ -125,12 +131,12 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
         correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
 
-    val resultingDecisions = ArrayList<Pair<List<String>, AbstractRefactoringAction?>>()
+    val resultingDecisions = ArrayList<Pair<List<String>, NsCmdRefactoringAction?>>()
 
     for (location in locations) {
-        location.getReferenceNames().map { inplaceName ->
-            if (inplaceName.isEmpty() || Scope.Utils.resolveName(correctedScope, inplaceName)?.underlyingReferable == defaultLocation.target) {
-                resultingDecisions.add(Pair(inplaceName, fileResolveActions[location]))
+        location.getReferenceNames().map { referenceName ->
+            if (referenceName.isEmpty() || Scope.Utils.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
+                resultingDecisions.add(Pair(referenceName, fileResolveActions[location]))
             }
         }
     }
@@ -151,13 +157,25 @@ fun doCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFi
     return Pair(importAction, resultingName)
 }
 
-fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean =
-        defaultLocation.myContainingFile.moduleLocation != null &&
-                ImportFileAction(defaultLocation.myContainingFile, currentFile, null).isValid() //Needed to prevent attempts of reference link repairing in a situation when the target directory is not marked as a content root
+fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
+    val importFile = defaultLocation.myContainingFile
+    val conf = currentFile.libraryConfig ?: return false
+    val modulePath = importFile.moduleLocation?.modulePath ?: return false
+    val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 
-fun calculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile, anchor: ArendCompositeElement, allowSelfImport: Boolean = false): Pair<AbstractRefactoringAction?, List<String>>? {
+    return defaultLocation.myContainingFile.moduleLocation != null &&
+            importFile.moduleLocation?.modulePath != null &&
+            (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
+}
+
+
+fun calculateReferenceName(defaultLocation: LocationData,
+                           currentFile: ArendFile,
+                           anchor: ArendCompositeElement,
+                           allowSelfImport: Boolean = false,
+                           deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>>? {
     if (!canCalculateReferenceName(defaultLocation, currentFile)) return null
-    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport)
+    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport, deferredImports)
 }
 
 class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
@@ -205,6 +223,14 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         myReferenceNames.addAll(calculateShorterNames(statCmd))
     }
 
+    fun processDeferredImport(deferredAction: NsCmdRefactoringAction) {
+        if (deferredAction.longName == myContainingFile.moduleLocation?.modulePath) {
+            val elements = deferredAction.getImportedParts()
+            val topLevelModule = myLongNameWithRefs.firstOrNull()
+            if (elements == null || (topLevelModule != null && elements.contains(topLevelModule.first))) addLongNameAsReferenceName()
+        }
+    }
+
     fun processParentGroup(group: PsiLocatedReferable) {
         calculateRemainder(group)?.let { myReferenceNames.add(it) }
     }
@@ -239,4 +265,53 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         }
         return result
     }
+}
+
+abstract class NsCmdRefactoringAction(val currentFile: ArendFile,
+                                      val longName: ModulePath) {
+    abstract fun execute()
+
+    abstract fun getImportedParts(): List<String>?
+}
+
+class ImportFileAction(currentFile: ArendFile,
+                       longName: ModulePath,
+                       val usingList: List<String>?) : NsCmdRefactoringAction(currentFile, longName) {
+    override fun toString() = "Import file $longName"
+
+    override fun execute() {
+        val factory = ArendPsiFactory(currentFile.project)
+
+        addStatCmd(factory,
+                createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
+                findPlaceForNsCmd(currentFile, longName))
+    }
+
+    override fun getImportedParts(): List<String>? = usingList
+}
+
+class AddIdToUsingAction(currentFile: ArendFile,
+                         longName: ModulePath,
+                         val id: String) : NsCmdRefactoringAction(currentFile, longName) {
+    override fun toString(): String = "Add $id to the \"using\" list of the namespace command `$longName`"
+
+    override fun execute() {
+        /* locate statCmd using longName */
+        var statCmd: ArendStatCmd? = null
+        for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
+            val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
+            if (nsCmdLongName == longName.toString()) {
+                statCmd = namespaceCommand
+                break
+            }
+        }
+
+        if (statCmd == null) return
+        /* if statCmd was found -- execute refactoring action */
+        val hiddenList = statCmd.refIdentifierList
+        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == id }
+        if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(id, null))) else doRemoveRefFromStatCmd(hiddenRef)
+    }
+
+    override fun getImportedParts(): List<String>? = singletonList(id)
 }

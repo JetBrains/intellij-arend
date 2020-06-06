@@ -12,16 +12,19 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.DocFactory
+import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.term.concrete.Concrete
@@ -88,8 +91,9 @@ class InjectedArendEditor(val project: Project,
         var fileScope: Scope = EmptyScope.INSTANCE
         runReadAction {
             val causeSourceNode = error.causeSourceNode
-            val unresolvedRef = (causeSourceNode?.data as? Reference)?.referent
-            val scope = if (unresolvedRef != null || error.hasExpressions()) (causeSourceNode?.data as? ArendCompositeElement)?.scope?.let { CachingScope.make(it) } else null
+            val data = (causeSourceNode.data as? DataContainer)?.data ?: causeSourceNode.data
+            val unresolvedRef = (data as? Reference)?.referent
+            val scope = if (unresolvedRef != null || error.hasExpressions()) (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) } else null
             if (scope != null) {
                 fileScope = scope
             }

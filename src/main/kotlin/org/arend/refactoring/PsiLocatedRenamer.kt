@@ -1,28 +1,28 @@
 package org.arend.refactoring
 
-import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.components.service
 import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.reference.ArendRef
+import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.TypeCheckingService
 
-class PsiLocatedRenamer(val element: ArendCompositeElement): DefinitionRenamer {
-    val list = ArrayList<AbstractRefactoringAction>()
+class PsiLocatedRenamer(private val element: ArendCompositeElement, private val file: ArendFile = element.containingFile as ArendFile) : DefinitionRenamer {
+    private val service = file.project.service<TypeCheckingService>()
+    private val deferredNsCmdActions = ArrayList<NsCmdRefactoringAction>()
 
-    override fun renameDefinition(ref: ArendRef?): LongName? {
-        if (ref is PsiLocatedReferable) {
-            val file = element.containingFile as? ArendFile ?: return null
-            val pair = calculateReferenceName(LocationData(ref), file, element) ?: return null
-            val action = pair.first
-            if (action != null) list.add(action)
-            return LongName(pair.second)
-        }
-        return null
+    override fun renameDefinition(arendRef: ArendRef): LongName? {
+        val ref = (arendRef as? LocatedReferable)?.let { service.getPsiReferable(it) } ?: return null
+        val pair = calculateReferenceName(LocationData(ref), file, element, false, deferredNsCmdActions) ?: return null
+        val action = pair.first
+        if (action != null) deferredNsCmdActions.add(action)
+        return LongName(pair.second)
     }
 
-    fun writeAllImportCommands(editor: Editor?) {
-        for (l in list) l.execute(editor)
+    fun writeAllImportCommands() {
+        for (l in deferredNsCmdActions) l.execute()
+        deferredNsCmdActions.clear()
     }
 }

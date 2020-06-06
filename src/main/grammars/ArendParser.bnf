@@ -560,7 +560,7 @@ sigmaExpr ::= SIGMA_KW typeTele* {
     mixin = "org.arend.psi.ext.ArendSigmaExprImplMixin"
 }
 
-lamExpr ::= LAM_KW nameTele+ FAT_ARROW expr {
+lamExpr ::= LAM_KW nameTele+ [FAT_ARROW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
@@ -571,7 +571,7 @@ private pipe_def_un ::= PIPE {
 
 private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recover
 
-letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* IN_KW expr {
+letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }
@@ -742,7 +742,7 @@ atom ::= literal
     mixin = "org.arend.psi.ext.ArendAtomImplMixin"
 }
 
-tuple ::= LPAREN <<comma_separated_sequence tupleExpr>>? RPAREN {
+tuple ::= LPAREN <<comma_separated_sequence_trail tupleExpr>>? RPAREN {
     implements = "org.arend.psi.ArendExpr"
     mixin = "org.arend.psi.ext.ArendTupleImplMixin"
 }
@@ -784,7 +784,7 @@ atomArgument ::= atomFieldsAcc {
     mixin = "org.arend.psi.ext.ArendAtomArgumentImplMixin"
 }
 
-implicitArgument ::= LBRACE <<comma_separated_sequence tupleExpr>> RBRACE {
+implicitArgument ::= LBRACE <<comma_separated_sequence_trail tupleExpr>> RBRACE {
     pin = 2
     implements = "org.arend.psi.ext.ArendCompositeElement"
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
@@ -927,5 +927,7 @@ refIdentifier ::= ID {
 }
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
+
+private meta comma_separated_sequence_trail ::= <<p>> (COMMA <<p>>)* COMMA? { pin = 1 }
 
 private meta piped ::= pipe_def <<p>> { pin = 1 }

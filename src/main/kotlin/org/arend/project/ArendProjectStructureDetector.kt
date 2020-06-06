@@ -1,4 +1,4 @@
-package org.arend.module
+package org.arend.project
 
 import com.intellij.ide.util.importProject.ModuleDescriptor
 import com.intellij.ide.util.importProject.ProjectDescriptor
@@ -6,6 +6,7 @@ import com.intellij.ide.util.projectWizard.importSources.DetectedProjectRoot
 import com.intellij.ide.util.projectWizard.importSources.DetectedSourceRoot
 import com.intellij.ide.util.projectWizard.importSources.ProjectFromSourcesBuilder
 import com.intellij.ide.util.projectWizard.importSources.ProjectStructureDetector
+import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigurationUpdater
 import org.arend.util.FileUtils
 import java.io.File
@@ -24,12 +25,16 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
         return DirectoryProcessingResult.PROCESS_CHILDREN
     }
 
-    override fun setupProjectStructure(roots: MutableCollection<DetectedProjectRoot>, projectDescriptor: ProjectDescriptor, builder: ProjectFromSourcesBuilder) {
+    fun setupProjectStructure(roots: List<File>, projectDescriptor: ProjectDescriptor) {
         projectDescriptor.modules = ArrayList()
         for (root in roots) {
-            val moduleDescriptor = ModuleDescriptor(root.directory, ArendModuleType, emptyList<DetectedSourceRoot>())
+            val moduleDescriptor = ModuleDescriptor(root, ArendModuleType, emptyList<DetectedSourceRoot>())
             moduleDescriptor.addConfigurationUpdater(ArendModuleConfigurationUpdater(false))
             projectDescriptor.modules.add(moduleDescriptor)
         }
+    }
+
+    override fun setupProjectStructure(roots: MutableCollection<DetectedProjectRoot>, projectDescriptor: ProjectDescriptor, builder: ProjectFromSourcesBuilder) {
+        setupProjectStructure(roots.map { it.directory }, projectDescriptor)
     }
 }

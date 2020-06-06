@@ -1,10 +1,11 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.psi.ArendAtomArgument
-import org.arend.psi.ArendImplicitArgument
+import com.intellij.psi.util.elementType
+import org.arend.psi.*
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
+import org.arend.typechecking.error.FixedPsiSourceInfo
 
 
 abstract class ArendImplicitArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendImplicitArgument, Abstract.Expression {
@@ -16,9 +17,17 @@ abstract class ArendImplicitArgumentImplMixin(node: ASTNode) : ArendSourceNodeIm
 
     override fun getData() = this
 
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        val list = tupleExprList
-        return if (list.size == 1) list[0].accept(visitor, params) else visitor.visitTuple(this, list, params)
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+        acceptTupleExpression(this, tupleExprList, visitor, params)
+}
+
+internal fun <P : Any?, R : Any?> acceptTupleExpression(data: Any?, exprList: List<ArendTupleExpr>, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
+    val element = exprList.lastOrNull()?.findNextSibling()
+    val isComma = element?.elementType == ArendElementTypes.COMMA
+    return if (exprList.size == 1 && !isComma) {
+        exprList[0].accept(visitor, params)
+    } else {
+        visitor.visitTuple(data, exprList, if (isComma) FixedPsiSourceInfo(element!!) else null, params)
     }
 }
 

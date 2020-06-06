@@ -1,7 +1,6 @@
 package org.arend.typechecking.execution
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
@@ -122,7 +121,7 @@ class TypeCheckProcessHandler(
 
                     val modulePaths = if (modulePath == null) runReadAction { library.loadedModules } else listOf(modulePath)
                     val modules = modulePaths.mapNotNull {
-                        val module = runReadAction { library.getModuleGroup(it) }
+                        val module = runReadAction { library.config.findArendFile(it, withAdditional = false, withTests = true) }
                         if (module == null) {
                             runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
                         } else if (command.definitionFullName == "") {

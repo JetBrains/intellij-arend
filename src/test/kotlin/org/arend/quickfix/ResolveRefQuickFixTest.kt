@@ -1,15 +1,12 @@
 package org.arend.quickfix
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.components.service
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
-import org.arend.module.ArendRawLibrary
-import org.arend.refactoring.AddIdToUsingAction
 import org.arend.refactoring.ImportFileAction
-import org.arend.refactoring.RemoveRefFromStatCmdAction
-import org.arend.typechecking.TypeCheckingService
+import org.arend.refactoring.doAddIdToUsing
+import org.arend.refactoring.doRemoveRefFromStatCmd
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fileA =
@@ -669,21 +666,23 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import A \\using {-caret-}",
             "\\import A \\using (b \\as b')") { file ->
         val cmd = file.namespaceCommands.first()
-        val action = AddIdToUsingAction(cmd, listOf(Pair("b", "b'")))
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
+            doAddIdToUsing(cmd, listOf(Pair("b", "b'")))
+        }, file) }
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
             "{-caret-}", "\\import Main") { file ->
-        val action = ImportFileAction(file, file, null)
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file) }
+        val action = ImportFileAction(file, file.moduleLocation!!.modulePath, null)
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute() }, file) }
 
     fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
             "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
             "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
         val cmd = file.namespaceCommands.first()
         val ref = cmd.refIdentifierList[1]
-        val action = RemoveRefFromStatCmdAction(cmd, ref)
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute(myFixture.editor) }, file)
+        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
+            doRemoveRefFromStatCmd(ref)
+        }, file)
     }
 
 

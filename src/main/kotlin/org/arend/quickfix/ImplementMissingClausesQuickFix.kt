@@ -16,6 +16,7 @@ import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.EmptyPattern
 import org.arend.core.pattern.ExpressionPattern
 import org.arend.ext.variable.Variable
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.renamer.StringRenamer
 import org.arend.prelude.Prelude
 import org.arend.psi.*

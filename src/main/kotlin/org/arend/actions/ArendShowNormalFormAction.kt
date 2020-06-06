@@ -22,11 +22,11 @@ class ArendShowNormalFormAction : ArendPopupAction() {
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) = try {
             val range = EditorUtil.getSelectionInAnyMode(editor)
-            val (subCore, subExpr) = correspondedSubExpr(range, file, project)
+            val (subCore, subExpr, subPsi) = correspondedSubExpr(range, file, project)
             val textRange = rangeOfConcrete(subExpr)
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
             val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
-            if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF) {
+            if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF, PsiLocatedRenamer(subPsi)) {
                 displayEditorHint(it.toString(), project, editor, AD_TEXT_N)
             } else {
                 displayEditorHint(exprToConcrete(project, subCore).toString(), project, editor, AD_TEXT)

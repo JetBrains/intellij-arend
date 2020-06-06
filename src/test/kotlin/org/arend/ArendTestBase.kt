@@ -47,7 +47,8 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         val module = module
         val service = module.project.service<TypeCheckingService>()
         service.initialize()
-        service.libraryManager.reloadInternalLibraries(null)
+        library.config.clearAdditionalModules()
+        library.setArendExtension(null)
     }
 
     override fun runTest() {

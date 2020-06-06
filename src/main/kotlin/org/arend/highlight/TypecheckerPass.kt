@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import org.arend.actions.selectErrorFromEditor
 import org.arend.psi.ArendFile
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
@@ -38,5 +39,6 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
         if (file.isFragment) return
         myProject.service<ErrorService>().updateTypecheckingErrors(file, null)
         myProject.service<ArendMessagesService>().update()
+        selectErrorFromEditor(file.project, editor, file, always = false, activate = false)
     }
 }

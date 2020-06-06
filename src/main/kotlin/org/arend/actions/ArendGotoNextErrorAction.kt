@@ -39,7 +39,7 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
     val document = editor.document
     val offset = editor.caretModel.offset
     // Check that we are in a problem range
-    if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset, CommonProcessors.alwaysFalse()) == true) {
+    if ((DocumentMarkupModel.forDocument(document, project, true) as? MarkupModelEx)?.processRangeHighlightersOverlappingWith(offset, offset + 1, CommonProcessors.alwaysFalse()) == true) {
         return
     }
 
@@ -51,13 +51,16 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
 
     val service = project.service<ArendProjectSettings>()
     for (arendError in arendErrors) {
-        if ((always || arendError.error.satisfies(service.autoScrollFromSource)) && BasePass.getImprovedTextRange(arendError.error)?.contains(offset) == true) {
-            val messagesService = project.service<ArendMessagesService>()
-            messagesService.view?.tree?.select(arendError.error)
-            if (activate) {
-                messagesService.activate(project, false)
+        if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
+            val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
+            if (textRange.contains(offset)) {
+                val messagesService = project.service<ArendMessagesService>()
+                messagesService.view?.tree?.select(arendError.error)
+                if (activate) {
+                    messagesService.activate(project, false)
+                }
+                break
             }
-            break
         }
     }
 }

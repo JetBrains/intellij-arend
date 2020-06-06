@@ -13,12 +13,17 @@
 
     <extensions defaultExtensionNs="com.intellij">
 
+        <!-- Project -->
+
+        <projectStructureDetector implementation="org.arend.project.ArendProjectStructureDetector"/>
+        <projectImportProvider implementation="org.arend.project.ArendProjectImportProvider"/>
+        <projectOpenProcessor implementation="org.arend.project.ArendProjectOpenProcessor"/>
+        <projectImportBuilder implementation="org.arend.project.ArendProjectImportBuilder"/>
+
         <!-- Module -->
 
         <moduleType id="AREND_MODULE" implementationClass="org.arend.module.ArendModuleType"/>
         <moduleBuilder builderClass="org.arend.module.ArendModuleBuilder"/>
-        <projectStructureDetector
-                implementation="org.arend.module.ArendProjectStructureDetector"/>
         <library.type implementation="org.arend.module.ArendLibraryType"/>
         <moduleConfigurationEditorProvider implementation="org.arend.module.editor.ArendModuleConfigEditorProvider"/>
 
