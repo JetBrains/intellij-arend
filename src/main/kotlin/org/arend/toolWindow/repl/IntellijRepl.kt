@@ -44,6 +44,8 @@ abstract class IntellijRepl private constructor(
         myScope = ConvertingScope(refConverter, myScope)
     }
 
+    val replScope get() = myScope
+
     private val psiFactory = ArendPsiFactory(service.project)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
