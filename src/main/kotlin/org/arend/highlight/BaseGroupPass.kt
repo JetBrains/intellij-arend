@@ -44,7 +44,7 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         setProgressLimit(numberOfDefinitions(group).toLong())
-        if (!file.isFragment) collectInfo(progress)
+        collectInfo(progress)
     }
 
     protected open fun countDefinition(def: TCDefinition) = true

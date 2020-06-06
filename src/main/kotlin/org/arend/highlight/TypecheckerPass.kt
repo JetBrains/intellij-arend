@@ -35,7 +35,8 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
 
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
+        if (file.isFragment) return
         myProject.service<ErrorService>().updateTypecheckingErrors(file, null)
-        if (!file.isFragment) myProject.service<ArendMessagesService>().update()
+        myProject.service<ArendMessagesService>().update()
     }
 }
