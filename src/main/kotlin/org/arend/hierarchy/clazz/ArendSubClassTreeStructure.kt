@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ArendDefClass
-import org.arend.search.ClassInheritorsSearch
+import org.arend.search.ClassDescendantsSearch
 import org.arend.settings.ArendProjectSettings
 
 class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
@@ -16,7 +16,7 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private
 
     private fun getChildren(descriptor: HierarchyNodeDescriptor): Array<ArendHierarchyNodeDescriptor> {
         val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
-        val subClasses = myProject.service<ClassInheritorsSearch>().search(classElement)
+        val subClasses = myProject.service<ClassDescendantsSearch>().search(classElement).filterIsInstance<ArendDefClass>()
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
         val settings = myProject.service<ArendProjectSettings>().data
 

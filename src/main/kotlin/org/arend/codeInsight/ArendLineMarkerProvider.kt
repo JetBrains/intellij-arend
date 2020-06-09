@@ -18,7 +18,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.util.containers.toArray
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefIdentifier
-import org.arend.search.ClassInheritorsSearch
+import org.arend.psi.ArendDefinition
+import org.arend.search.ClassDescendantsSearch
 import org.arend.util.FullName
 import java.awt.event.MouseEvent
 
@@ -32,7 +33,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             if (element is ArendDefIdentifier) {
                 (element.parent as? ArendDefClass)?.let { clazz ->
                     ProgressManager.checkCanceled()
-                    if (clazz.project.service<ClassInheritorsSearch>().search(clazz).isNotEmpty()) {
+                    if (clazz.project.service<ClassDescendantsSearch>().search(clazz).isNotEmpty()) {
                         result.add(LineMarkerInfo(element.id, element.textRange, AllIcons.Gutter.OverridenMethod,
                             SUPERCLASS_OF.tooltip, SUPERCLASS_OF.navigationHandler,
                             GutterIconRenderer.Alignment.RIGHT))
@@ -47,19 +48,19 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             object : LineMarkerNavigator() {
                 override fun browse(e: MouseEvent, element: PsiElement) {
                     val clazz = element.parent.parent as? ArendDefClass ?: return
-                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassInheritorsSearch>().getAllInheritors(clazz).toArray(arrayOf()), "Subclasses of " + clazz.name,
+                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassDescendantsSearch>().getAllDescendants(clazz).toArray(arrayOf()), "Subclasses of " + clazz.name,
                         CodeInsightBundle.message("goto.implementation.findUsages.title", clazz.refName), MyListCellRenderer, null as BackgroundUpdaterTask?)
                 }
             })
     }
 
-    private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefClass>() {
-        override fun getElementText(element: ArendDefClass): String {
+    private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefinition>() {
+        override fun getElementText(element: ArendDefinition): String {
             val fullName = FullName(element)
             return PsiBundle.message("class.context.display", fullName.longName.toString(), fullName.modulePath.toString())
         }
 
-        override fun getContainerText(element: ArendDefClass, name: String) =
+        override fun getContainerText(element: ArendDefinition, name: String) =
             PsiClassListCellRenderer.getContainerTextStatic(element)
 
         override fun getIconFlags() = 0

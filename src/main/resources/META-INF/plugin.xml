@@ -256,7 +256,7 @@
 
         <projectService serviceImplementation="org.arend.typechecking.BinaryFileSaver"/>
 
-        <projectService serviceImplementation="org.arend.search.ClassInheritorsSearch"/>
+        <projectService serviceImplementation="org.arend.search.ClassDescendantsSearch"/>
 
         <projectService serviceImplementation="org.arend.resolving.ArendResolveCache"/>
 
