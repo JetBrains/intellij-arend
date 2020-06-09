@@ -8,8 +8,7 @@ import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.ConvertingScope
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.LocatedReferableConverter
@@ -57,15 +56,14 @@ abstract class IntellijRepl private constructor(
 
     final override fun loadLibraries() {
         if (service.initialize()) println("[INFO] Initialized prelude.")
-        val prelude = service.preludeScope
-        myMergedScopes.add(prelude)
+        val prelude = service.preludeScope.also { myReplScope.addPreludeScope(it) }
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
     }
 
     fun withArendFile(arendFile: ArendFile) {
         arendFile.enforcedScope = myScope
         arendFile.enforcedLibraryConfig = myLibraryConfig
-        addScope(LexicalScope.insideOf(arendFile, EmptyScope.INSTANCE))
+        myReplScope.currentLine(ScopeFactory.forGroup(arendFile, availableModuleScopeProvider))
     }
 
     private val myLibraryConfig = object : LibraryConfig(service.project) {
