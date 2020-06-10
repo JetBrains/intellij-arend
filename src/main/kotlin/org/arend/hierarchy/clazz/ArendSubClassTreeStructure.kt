@@ -16,7 +16,7 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private
 
     private fun getChildren(descriptor: HierarchyNodeDescriptor): Array<ArendHierarchyNodeDescriptor> {
         val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
-        val subClasses = myProject.service<ClassDescendantsSearch>().search(classElement).filterIsInstance<ArendDefClass>()
+        val subClasses = myProject.service<ClassDescendantsSearch>().search(classElement)
         val result = ArrayList<ArendHierarchyNodeDescriptor>()
         val settings = myProject.service<ArendProjectSettings>().data
 
