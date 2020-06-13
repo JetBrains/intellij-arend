@@ -91,7 +91,7 @@ class InjectedArendEditor(val project: Project,
         var fileScope: Scope = EmptyScope.INSTANCE
         runReadAction {
             val causeSourceNode = error.causeSourceNode
-            val data = (causeSourceNode.data as? DataContainer)?.data ?: causeSourceNode.data
+            val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
             val unresolvedRef = (data as? Reference)?.referent
             val scope = if (unresolvedRef != null || error.hasExpressions()) (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) } else null
             if (scope != null) {
