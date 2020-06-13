@@ -40,7 +40,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     /**
      * You can enforce the scope of a file to be something else.
      */
-    var enforcedScope: Scope? = null
+    var enforcedScope: (() -> Scope)? = null
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
@@ -77,7 +77,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = injectionContext != null
 
     override val scope: Scope
-        get() = (originalFile as? ArendFile ?: this).enforcedScope ?: CachedValuesManager.getCachedValue(this) {
+        get() = (originalFile as? ArendFile ?: this).enforcedScope?.invoke() ?: CachedValuesManager.getCachedValue(this) {
             val injectedIn = injectionContext
             CachedValueProvider.Result(if (injectedIn != null) {
                 (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE

@@ -7,7 +7,9 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
+import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
@@ -61,9 +63,15 @@ abstract class IntellijRepl private constructor(
     }
 
     fun withArendFile(arendFile: ArendFile) {
-        arendFile.enforcedScope = myScope
+        arendFile.enforcedScope = { resetCurrentLineScope(arendFile) }
         arendFile.enforcedLibraryConfig = myLibraryConfig
-        myReplScope.currentLine(ScopeFactory.forGroup(arendFile, availableModuleScopeProvider))
+        resetCurrentLineScope(arendFile)
+    }
+
+    private fun resetCurrentLineScope(arendFile: ArendFile): Scope {
+        val scope = ScopeFactory.forGroup(arendFile, availableModuleScopeProvider)
+        myReplScope.setCurrentLineScope(CachingScope.makeWithModules(scope))
+        return myScope
     }
 
     private val myLibraryConfig = object : LibraryConfig(service.project) {
