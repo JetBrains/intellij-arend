@@ -51,7 +51,7 @@ abstract class IntellijRepl private constructor(
         myScope = ConvertingScope(refConverter, myScope)
     }
 
-    private val psiFactory = ArendPsiFactory(service.project)
+    private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }

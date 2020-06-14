@@ -6,7 +6,10 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
 
-class ArendPsiFactory(private val project: Project) {
+class ArendPsiFactory(
+    private val project: Project,
+    private val fileName: String = "DUMMY.ard"
+) {
     enum class StatCmdKind {OPEN, IMPORT}
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
@@ -142,7 +145,7 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     fun createFromText(code: String): ArendFile? =
-        PsiFileFactory.getInstance(project).createFileFromText("DUMMY.ard", ArendFileType, code) as? ArendFile
+        PsiFileFactory.getInstance(project).createFileFromText(fileName, ArendFileType, code) as? ArendFile
 
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
