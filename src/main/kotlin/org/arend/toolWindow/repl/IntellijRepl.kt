@@ -34,12 +34,11 @@ abstract class IntellijRepl private constructor(
     errorReporter,
     service.libraryManager,
     psiConcreteProvider,
-    psiInstanceProviderSet,
     ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, refConverter, errorReporter, DummyDependencyListener.INSTANCE, LibraryArendExtensionProvider(service.libraryManager)),
     service.typecheckerState
 ) {
     constructor(project: Project) : this(project.service(), ListErrorReporter())
-    constructor(service: TypeCheckingService, errorReporter: ListErrorReporter) : this(
+    private constructor(service: TypeCheckingService, errorReporter: ListErrorReporter) : this(
         service,
         LocatedReferableConverter(service.newReferableConverter(false)),
         errorReporter,
