@@ -37,7 +37,7 @@ class ArendReplExecutionHandler(
     val consoleView = LanguageConsoleBuilder()
         .executionEnabled { true }
         .oneLineInput(false)
-        .initActions(this, ArendReplFactory.ID)
+        .initActions(this, ArendReplService.ID)
         .build(project, ArendLanguage.INSTANCE)
 
     val arendFile = consoleView.file as ArendFile
