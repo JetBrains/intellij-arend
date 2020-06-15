@@ -1479,4 +1479,22 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo => C.bar Nat.+ (C.bar {\this}) Nat.+ number 
                } 
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
+
+    fun testInstanceRefFix() =
+            testMoveRefactoring("""
+               --! A.ard
+               \record C (f : Nat -> Nat)
+                
+               \func bar : C => \new C (\lam n => suc n)
+                
+               \func foo => bar.f 1
+               --! Main.ard
+               \module M{-caret-}
+            """, """
+               \import A
+               
+               \module M \where {
+                 \func foo => bar.f 1
+               } 
+            """, "Main", "M", "A", "foo")
 }

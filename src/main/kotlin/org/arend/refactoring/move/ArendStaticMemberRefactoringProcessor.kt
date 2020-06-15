@@ -26,6 +26,7 @@ import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
@@ -539,19 +540,26 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
     private fun computeReferenceToBeFixed(element: ArendLongName, recordFields: Set<PsiLocatedReferable>): IndexedValue<PsiElement>? {
         val references = element.children.withIndex().filter { (_, m) -> m is ArendReferenceElement }
         var classReference = true
-
+        var prevTarget: PsiElement? = null
         for (ref in references) { // This piece of code works nontrivially only when we are moving static definitions out of a record
             val refElement = ref.value
             val target = refElement.reference?.resolve()
             if (target is ArendDefClass) {
                 classReference = true
+                prevTarget = target
                 continue
             }
             if (recordFields.contains(target)) {
                 return if (classReference) ref else
                     null //Prevents the default mechanism of links repairing from being engaged on a longName which includes reference to a non-local classfield (it may break the reference by writing unnecessary "this" before it)
             }
+            if (prevTarget is ArendGroup &&
+                    (target is ArendGroup && !prevTarget.subgroups.contains(target) && !prevTarget.dynamicSubgroups.contains(target) ||
+                            target is ArendInternalReferable && !prevTarget.internalReferables.contains(target))) { // this indicates that prevTarget is a class/record instance, so we only need to fix the link to "prevTarget" (and not to the instance member)
+                return references[references.indexOf(ref)-1]
+            }
             classReference = false
+            prevTarget = target
         }
 
         return references.lastOrNull() //this is the default behavior
