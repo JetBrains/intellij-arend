@@ -441,8 +441,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 var localArgumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
                 var localLiteral = literal
                 var localArgumentOrFieldsAcc = argumentOrFieldsAcc
-                val atomFieldsAcc = localArgumentAppExpr.atomFieldsAcc
-                var needsBeingSurroundedByParentheses = atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isNotEmpty()
+                val atomFieldsAcc = if (argumentOrFieldsAcc is ArendAtomArgument) argumentOrFieldsAcc.atomFieldsAcc else argumentOrFieldsAcc as? ArendAtomFieldsAcc
+                var needsBeingSurroundedByParentheses = atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isNotEmpty() || fieldsSuffixes.isNotEmpty() && argumentOrFieldsAcc is ArendAtomArgument
                 while ((surroundingTupleExpr(localArgumentAppExpr)?.parent as? ArendTuple)?.let { tuple ->
                             tuple.tupleExprList.size == 1 && tuple.tupleExprList.first().colon == null
                         } == true) {
