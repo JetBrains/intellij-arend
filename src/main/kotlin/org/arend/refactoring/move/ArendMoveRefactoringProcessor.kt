@@ -52,13 +52,13 @@ import kotlin.collections.toSet
 import kotlin.collections.toTypedArray
 import kotlin.collections.withIndex
 
-class ArendStaticMemberRefactoringProcessor(project: Project,
-                                            private val myMoveCallback: () -> Unit,
-                                            private var myMembers: List<ArendGroup>,
-                                            private val mySourceContainer: ArendGroup,
-                                            private val myTargetContainer: ArendGroup,
-                                            private val insertIntoDynamicPart: Boolean,
-                                            private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
+class ArendMoveRefactoringProcessor(project: Project,
+                                    private val myMoveCallback: () -> Unit,
+                                    private var myMembers: List<ArendGroup>,
+                                    private val mySourceContainer: ArendGroup,
+                                    private val myTargetContainer: ArendGroup,
+                                    private val insertIntoDynamicPart: Boolean,
+                                    private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
 
     override fun findUsages(): Array<UsageInfo> {
