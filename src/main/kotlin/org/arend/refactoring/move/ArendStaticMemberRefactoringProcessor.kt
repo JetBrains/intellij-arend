@@ -436,38 +436,75 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                                             psiFactory: ArendPsiFactory,
                                             argument: String,
                                             proceedEvenIfThereIsAnImplicitFirstParameter: Boolean = false) {
-        fun addImplicitFirstArgument(literal: ArendLiteral) {
+        fun addImplicitFirstArgument(literal: ArendLiteral, fieldsSuffixes: List<PsiLocatedReferable>) {
             fun doAddImplicitFirstArgument(argumentOrFieldsAcc: PsiElement) {
-                var argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-                while ((surroundingTupleExpr(argumentAppExpr)?.parent as? ArendTuple)?.let { tuple ->
+                var localArgumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+                var localLiteral = literal
+                var localArgumentOrFieldsAcc = argumentOrFieldsAcc
+                val atomFieldsAcc = localArgumentAppExpr.atomFieldsAcc
+                var needsBeingSurroundedByParentheses = atomFieldsAcc != null && atomFieldsAcc.fieldAccList.isNotEmpty()
+                while ((surroundingTupleExpr(localArgumentAppExpr)?.parent as? ArendTuple)?.let { tuple ->
                             tuple.tupleExprList.size == 1 && tuple.tupleExprList.first().colon == null
                         } == true) {
-                    val tuple = argumentAppExpr.parent.parent.parent
+                    val tuple = localArgumentAppExpr.parent.parent.parent
                     if ((tuple.parent as? ArendAtom)?.let {
                                 (it.parent as? ArendAtomFieldsAcc)?.let { atomFieldsAcc ->
                                     atomFieldsAcc.fieldAccList.isEmpty() && (atomFieldsAcc.parent is ArendArgumentAppExpr)
                                 }
-                            } == true)
-                        argumentAppExpr = tuple.parent.parent.parent as ArendArgumentAppExpr
+                            } == true) {
+                        localArgumentAppExpr = tuple.parent.parent.parent as ArendArgumentAppExpr
+                        needsBeingSurroundedByParentheses = false
+                    }
                     else break
                 }
-                val cExpr = appExprToConcrete(argumentAppExpr)
-                val defArgsData = if (cExpr != null) findDefAndArgsInParsedBinop(literal, cExpr) else null
+
+                if (needsBeingSurroundedByParentheses) {
+                    val tupleExpr = psiFactory.createExpression("(${localLiteral.text})").childOfType<ArendTuple>()
+                    val replacedExpr = if (tupleExpr != null) localLiteral.replaceWithNotification(tupleExpr) else null
+                    if (replacedExpr != null)  {
+                        val newArgumentAppExpr = replacedExpr.childOfType<ArendArgumentAppExpr>()
+                        if (newArgumentAppExpr != null) localArgumentAppExpr = newArgumentAppExpr
+                        localLiteral = localArgumentAppExpr.atomFieldsAcc?.atom?.literal ?: localLiteral
+                        localArgumentOrFieldsAcc = localArgumentAppExpr.atomFieldsAcc ?: localArgumentOrFieldsAcc
+                    }
+                }
+
+                if (fieldsSuffixes.isNotEmpty()) {
+                    var template = "{?}"
+                    val renamer = PsiLocatedRenamer(localLiteral)
+                    for (suffix in fieldsSuffixes) template = "${renamer.renameDefinition(suffix).toString()} {$template}"
+                    renamer.writeAllImportCommands()
+                    val newAppExpr = psiFactory.createExpression(template).childOfType<ArendArgumentAppExpr>()
+                    val literalCopy = localLiteral.copy()
+                    val currentAtomFieldsAcc = localArgumentAppExpr.atomFieldsAcc
+                    if (currentAtomFieldsAcc != null && newAppExpr != null) {
+                        val insertedAtomFieldsAcc = currentAtomFieldsAcc.replaceWithNotification(newAppExpr.atomFieldsAcc!!)
+                        val insertedImplicitArgument = localArgumentAppExpr.addAfterWithNotification(newAppExpr.argumentList.first(), insertedAtomFieldsAcc)
+                        localArgumentAppExpr.addAfterWithNotification(psiFactory.createWhitespace(" "), insertedAtomFieldsAcc)
+                        val goalLiteral = insertedImplicitArgument.childOfType<ArendGoal>()!!.parent as ArendLiteral
+                        localLiteral = goalLiteral.replaceWithNotification(literalCopy) as ArendLiteral
+                        localArgumentOrFieldsAcc = localLiteral.parent.parent
+                        localArgumentAppExpr = localArgumentOrFieldsAcc.parent as ArendArgumentAppExpr
+                     }
+                }
+
+                val cExpr = appExprToConcrete(localArgumentAppExpr)
+                val defArgsData = if (cExpr != null) findDefAndArgsInParsedBinop(localLiteral, cExpr) else null
                 if (defArgsData != null && (defArgsData.argumentsConcrete.isEmpty() || defArgsData.argumentsConcrete.first().isExplicit || proceedEvenIfThereIsAnImplicitFirstParameter)) {
                     val ipName = defArgsData.functionReferenceContainer as? ArendIPName
                     if (ipName != null) when {
-                        ipName.infix != null -> addImplicitArgAfter(psiFactory, argumentOrFieldsAcc, argument, true)
+                        ipName.infix != null -> addImplicitArgAfter(psiFactory, localArgumentOrFieldsAcc, argument, true)
                         ipName.postfix != null -> {
-                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, argumentOrFieldsAcc, defArgsData)?.atomFieldsAcc
+                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, localArgumentOrFieldsAcc, defArgsData)?.atomFieldsAcc
                             if (transformedAtomFieldsAcc != null) addImplicitArgAfter(psiFactory, transformedAtomFieldsAcc, argument, true)
                         }
                     } else {
-                        val prec = getPrec(literal.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve())
-                        val infixMode = literal.ipName?.infix != null || prec != null && isInfix(prec)
-                        addImplicitArgAfter(psiFactory, argumentOrFieldsAcc, argument, infixMode)
+                        val prec = getPrec(localLiteral.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve())
+                        val infixMode = localLiteral.ipName?.infix != null || prec != null && isInfix(prec)
+                        addImplicitArgAfter(psiFactory, localArgumentOrFieldsAcc, argument, infixMode)
                     }
                 }
-            }
+             }
 
             val parent = literal.parent
             val grandparent = parent.parent
@@ -488,12 +525,25 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
         for (child in psiElementToModify.children) {
             modifyRecordDynamicDefCalls(child, dynamicMembers, psiFactory, argument, proceedEvenIfThereIsAnImplicitFirstParameter)
             if (child is ArendLiteral) {
-                val target = child.ipName?.resolve ?: child.longName?.refIdentifierList?.last()?.resolve
-                if (target != null && dynamicMembers.contains(target)) addImplicitFirstArgument(child)
+                val longName = child.longName
+                val refIdentifierList = longName?.refIdentifierList
+                val firstDynamicMember = refIdentifierList?.withIndex()?.firstOrNull{ dynamicMembers.contains(it.value.resolve) }
+                val target = child.ipName?.resolve.let{ if (dynamicMembers.contains(it)) it else null } ?: firstDynamicMember?.value?.resolve
+                val suffixTargets = ArrayList<PsiLocatedReferable>()
+                if (firstDynamicMember != null) {
+                    val suffix = refIdentifierList.drop(firstDynamicMember.index + 1)
+                    if (suffix.isNotEmpty()) {
+                        val suffixElements = suffix.map { it.resolve }
+                        if (suffixElements.all { it is PsiLocatedReferable }) {
+                            suffixTargets.addAll(suffixElements.filterIsInstance<PsiLocatedReferable>())
+                            longName.deleteChildRangeWithNotification(firstDynamicMember.value.nextSibling, suffix.last())
+                        }
+                    }
+                }
+                if (target != null) addImplicitFirstArgument(child, suffixTargets)
             }
         }
     }
-
 
     private fun locateChild(element: PsiElement, childPath: List<Int>): PsiElement? {
         return if (childPath.isEmpty()) element else {
@@ -553,10 +603,8 @@ class ArendStaticMemberRefactoringProcessor(project: Project,
                 return if (classReference) ref else
                     null //Prevents the default mechanism of links repairing from being engaged on a longName which includes reference to a non-local classfield (it may break the reference by writing unnecessary "this" before it)
             }
-            if (prevTarget is ArendGroup &&
-                    (target is ArendGroup && !prevTarget.subgroups.contains(target) && !prevTarget.dynamicSubgroups.contains(target) ||
-                            target is ArendInternalReferable && !prevTarget.internalReferables.contains(target))) { // this indicates that prevTarget is a class/record instance, so we only need to fix the link to "prevTarget" (and not to the instance member)
-                return references[references.indexOf(ref)-1]
+            if (prevTarget is ArendGroup && (target is ArendInternalReferable && !prevTarget.internalReferables.contains(target))) { // this indicates that prevTarget is a class/record instance, so we only need to fix the link to "prevTarget" (and not to the instance member)
+                return references[references.indexOf(ref) - 1]
             }
             classReference = false
             prevTarget = target
