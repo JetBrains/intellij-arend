@@ -77,14 +77,20 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = injectionContext != null
 
     override val scope: Scope
-        get() = (originalFile as? ArendFile ?: this).enforcedScope?.invoke() ?: CachedValuesManager.getCachedValue(this) {
+        get() = CachedValuesManager.getCachedValue(this) {
+            val scopeSupplier = (originalFile as? ArendFile ?: this).enforcedScope
+            if (scopeSupplier != null) return@getCachedValue cachedScope(scopeSupplier())
             val injectedIn = injectionContext
-            CachedValueProvider.Result(if (injectedIn != null) {
-                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE
+            cachedScope(if (injectedIn != null) {
+                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
+                    ?: EmptyScope.INSTANCE
             } else {
                 CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider))
-            }, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
+            })
         }
+
+    private fun cachedScope(scope: Scope?) =
+        CachedValueProvider.Result(scope, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
 
     override val defIdentifier: ArendDefIdentifier?
         get() = null
