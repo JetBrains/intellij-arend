@@ -37,13 +37,13 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     var generatedModuleLocation: ModuleLocation? = null
 
     val moduleLocation: ModuleLocation?
-        get() = generatedModuleLocation ?: libraryConfig?.getFileModulePath(this)
+        get() = generatedModuleLocation ?: arendLibrary?.config?.getFileModulePath(this)
 
     val fullName: String
         get() = moduleLocation?.toString() ?: name
 
     val libraryName: String?
-        get() = libraryConfig?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
+        get() = arendLibrary?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
 
     var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 

@@ -10,6 +10,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
@@ -74,47 +75,52 @@ fun PsiElement.navigate(requestFocus: Boolean = true) {
 val PsiElement.module: Module?
     get() {
         val file = containingFile ?: return null
-        val virtualFile = file.virtualFile ?: file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
+        val virtualFile = file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
-fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
-    val virtualFile = virtualFile ?: containingFile.originalFile.virtualFile ?: return null
-    val project = project
-    val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
-
-    val module = fileIndex.getModuleForFile(virtualFile)
-    if (module != null) {
-        return ArendModuleConfigService.getInstance(module)
+val PsiFile.libraryConfig: LibraryConfig?
+    get() {
+        val virtualFile = originalFile.virtualFile ?: return null
+        val module = ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
+        return if (module != null) ArendModuleConfigService.getInstance(module) else null
     }
 
-    if (onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
+val PsiFile.arendLibrary: ArendRawLibrary?
+    get() {
+        val virtualFile = originalFile.virtualFile ?: return null
+        val project = project
+        val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
+
+        val module = fileIndex.getModuleForFile(virtualFile)
+        if (module != null) {
+            return ArendModuleConfigService.getInstance(module)?.library
+        }
+
+        if (!fileIndex.isInLibrarySource(virtualFile)) {
+            return null
+        }
+
+        for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
+            if (orderEntry is LibraryOrderEntry) {
+                for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
+                    val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
+                    if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
+                        continue
+                    }
+                    val name = yaml.virtualFile?.parent?.name ?: continue
+                    return ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, name)
+                }
+            }
+        }
+
         return null
     }
 
-    for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
-        if (orderEntry is LibraryOrderEntry) {
-            for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
-                val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
-                if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
-                    continue
-                }
-                val name = yaml.virtualFile?.parent?.name ?: continue
-                return ExternalLibraryConfig(name, yaml)
-            }
-        }
-    }
-
-    return null
-}
-
-val PsiFile.libraryConfig: LibraryConfig?
-    get() = getLibraryConfig(false)
-
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
-        val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
-        val config = containingFile.libraryConfig
+        val containingFile = containingFile?.originalFile ?: return EmptyModuleScopeProvider.INSTANCE
+        val config = containingFile.arendLibrary?.config
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
         val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == ModuleLocation.LocationKind.TEST
         return ModuleScopeProvider { modulePath ->

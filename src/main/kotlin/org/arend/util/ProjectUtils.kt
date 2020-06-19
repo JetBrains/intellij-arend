@@ -11,7 +11,6 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import org.arend.module.ArendModuleType
-import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.psi.listener.ArendDefinitionChangeService
@@ -39,9 +38,10 @@ fun Project.findPsiFileByPath(path: Path): PsiFile? {
 fun Module.register() {
     val service = project.service<TypeCheckingService>()
     service.initialize()
-    ArendModuleConfigService.getInstance(this)?.copyFromYAML()
-    service.libraryManager.loadLibrary(ArendRawLibrary(this), ArendTypechecking.create(project))
-    service<ArendExtensionChangeListener>().initializeModule(this)
+    val config = ArendModuleConfigService.getInstance(this) ?: return
+    config.copyFromYAML()
+    service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
+    service<ArendExtensionChangeListener>().initializeModule(config)
 }
 
 fun Project.reload() {

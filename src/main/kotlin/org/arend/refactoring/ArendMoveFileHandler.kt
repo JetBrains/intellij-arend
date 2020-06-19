@@ -27,7 +27,7 @@ class ArendMoveFileHandler: MoveFileHandler() {
 
         val fileName = file.virtualFile?.name?.removeSuffix('.' + ArendFileType.defaultExtension) ?: return
         val newDirPath = moveDestination.virtualFile.path
-        val srcDir = file.libraryConfig?.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
+        val srcDir = file.arendLibrary?.config?.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
         val newRelativePath = if (srcDir == null || !newDirPath.startsWith(srcDir)) return else newDirPath.removePrefix(srcDir)
         val newModulePath = if (newRelativePath.isEmpty()) fileName else
             newRelativePath.removePrefix("/").replace('/', '.') + "." + fileName
