@@ -1479,4 +1479,63 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  \func foo => C.bar Nat.+ (C.bar {\this}) Nat.+ number 
                } 
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
+
+    fun testInstanceRefFix() =
+            testMoveRefactoring("""
+               --! A.ard
+               \record C (f : Nat -> Nat)
+                
+               \func bar : C => \new C (\lam n => suc n)
+                
+               \func foo => bar.f 1
+               --! Main.ard
+               \module M{-caret-}
+            """, """
+               \import A
+               
+               \module M \where {
+                 \func foo => bar.f 1
+               } 
+            """, "Main", "M", "A", "foo")
+
+    val testMOR8Header =
+            """\record C (f : Nat -> Nat)
+                
+\record P (a b : Nat)
+               
+\record C2 (f : P)
+               
+\record C3 (f : \Sigma Nat Nat)
+                
+\record D {
+  \func bar1 : \Sigma Nat Nat => (1, 2)
+                 
+  \func bar2 : C => \new C (\lam n => suc n)
+                 
+  \func bar3 : C2 => \new C2 (\new P 1 2)
+                 
+  \func bar4 : C3 => \new C3 (1, 2)"""
+
+    fun testMoveOutOfRecord8() =
+            testMoveRefactoring("""
+$testMOR8Header
+
+  \func fubar{-caret-} => (bar1.1,
+                           suc bar1.1,
+                           bar2.f 1, 
+                           bar3.f.a,
+                           suc bar3.f.a,
+                           bar4.f.1,
+                           suc bar4.f.1)
+}""", """
+$testMOR8Header
+}  
+
+\func fubar {this : D} => ((D.bar1 {this}).1,
+                           suc (D.bar1 {this}).1,
+                           C.f {D.bar2 {this}} 1, 
+                           P.a {C2.f {D.bar3 {this}}},
+                           suc (P.a {C2.f {D.bar3 {this}}}),
+                           (C3.f {D.bar4 {this}}).1,
+                           suc (C3.f {D.bar4 {this}}).1)""", "Main", "")
 }

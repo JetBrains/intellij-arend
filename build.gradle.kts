@@ -119,7 +119,7 @@ task<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "6.3"
+    gradleVersion = "6.5"
 }
 
 // Utils
