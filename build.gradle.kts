@@ -13,7 +13,7 @@ plugins {
     idea
     kotlin("jvm") version "1.3.72"
     id("org.jetbrains.intellij") version "0.4.21"
-    id("org.jetbrains.grammarkit") version "2020.1.4"
+    id("org.jetbrains.grammarkit") version "2020.2.1"
 }
 
 repositories {
@@ -60,11 +60,11 @@ idea {
 }
 
 intellij {
-    version = "2020.1"
+    // version = "2020.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java", "IdeaVIM:0.56")
+    setPlugins("yaml", "java", "IdeaVIM:0.57")
 }
 
 tasks.withType<PatchPluginXmlTask> {

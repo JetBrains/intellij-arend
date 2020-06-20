@@ -28,7 +28,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
-    override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<LineMarkerInfo<PsiElement>>) {
+    override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         for (element in elements) {
             if (element is ArendDefIdentifier) {
                 (element.parent as? ArendDefClass)?.let { clazz ->
