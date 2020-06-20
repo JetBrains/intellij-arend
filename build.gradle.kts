@@ -53,11 +53,11 @@ idea {
 }
 
 intellij {
-    version = "2020.1"
+    // version = "2020.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = false
-    setPlugins("yaml", "java", "IdeaVIM:0.56")
+    setPlugins("yaml", "java", "IdeaVIM:0.57")
 }
 
 tasks.withType<PatchPluginXmlTask> {
