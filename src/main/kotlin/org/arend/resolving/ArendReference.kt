@@ -34,6 +34,8 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiRefe
     override fun getVariants(): Array<Any> = emptyArray()
 
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
+
+    override fun isReferenceTo(element: PsiElement): Boolean = false
 }
 
 open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, private val onlyResolve: Boolean): ArendReferenceImpl<T>(element) {
