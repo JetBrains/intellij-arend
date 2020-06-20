@@ -5,15 +5,20 @@ import com.intellij.execution.console.LanguageConsoleBuilder
 import com.intellij.execution.console.LanguageConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import org.arend.ArendLanguage
 import org.arend.psi.ArendFile
 import org.arend.repl.CommandHandler
+import org.arend.repl.action.NormalizeCommand
+import org.arend.settings.ArendProjectSettings
 
 class ArendReplExecutionHandler(
     project: Project,
@@ -44,15 +49,27 @@ class ArendReplExecutionHandler(
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
-        if (repl.repl(text) { "" }) toolWindow.hide()
+        if (repl.repl(text) { "" }) {
+            toolWindow.hide()
+            saveSettings()
+        }
     }
 
     init {
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
+        Disposer.register(consoleView, Disposable(::saveSettings))
+        val normalization = consoleView.project.service<ArendProjectSettings>().data
+            .replNormalizationMode
+        NormalizeCommand.INSTANCE.loadNormalize(normalization, repl, false)
         repl.withArendFile(arendFile)
         repl.initialize()
         resetRepl()
+    }
+
+    private fun saveSettings() {
+        consoleView.project.service<ArendProjectSettings>().data
+            .replNormalizationMode = repl.normalizationMode.toString()
     }
 
     private fun resetRepl() {

@@ -34,6 +34,9 @@ class ArendProjectSettingsState {
     var popupPrintingOptions = ArendPrintingOptions()
 
     var normalizePopup = false
+
+    // Repl options
+    var replNormalizationMode = "null"
 }
 
 class ArendPrintingOptions {
