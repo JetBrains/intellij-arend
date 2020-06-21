@@ -113,7 +113,7 @@ afterEvaluate {
 
 task<Copy>("prelude") {
     val dir = projectArend.projectDir
-    from(dir.resolve("lib/Prelude.ard"), dir.resolve("lib/Prelude.arc"))
+    from(dir.resolve("lib/Prelude.ard"))
     into("src/main/resources/lib")
     dependsOn(projectArend.task(":cli:buildPrelude"))
 }
