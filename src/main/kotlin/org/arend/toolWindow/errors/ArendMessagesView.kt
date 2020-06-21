@@ -49,7 +49,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         val contentManager = toolWindow.contentManager
         contentManager.addContent(contentManager.factory.createContent(splitter, "", false))
 
-        tree.cellRenderer = ArendErrorTreeCellRenderer(tree)
+        tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
 
         val actionGroup = DefaultActionGroup()
