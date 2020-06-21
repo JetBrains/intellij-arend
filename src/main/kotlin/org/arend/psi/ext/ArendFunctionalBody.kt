@@ -17,8 +17,6 @@ interface ArendFunctionalBody : ArendCompositeElement {
 
     val fatArrow: PsiElement?
 
-    val functionClauses: ArendFunctionClauses?
-
     val elim: ArendElim?
 
     val expr: ArendExpr?

@@ -143,15 +143,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     })
                 }
                 is ArendCoClauseDef -> {
-                    val elim = cause.elim ?: run {
+                    val elim = cause.coClauseBody?.elim ?: run {
                         val withKw = cause.addAfter(psiFactory.createWith(), cause.lastChild)
                         cause.addBefore(psiFactory.createWhitespace(" "), withKw)
                         withKw
                     }
-                    if (cause.lbrace == null)
+                    if (cause.coClauseBody?.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
-                    cause.clauseList.lastOrNull() ?: cause.lbrace ?: cause.lastChild
+                    cause.coClauseBody?.clauseList?.lastOrNull() ?: cause.coClauseBody?.lbrace ?: cause.lastChild
                 }
                 else -> null
             }
