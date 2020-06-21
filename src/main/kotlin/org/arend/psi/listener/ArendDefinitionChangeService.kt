@@ -15,7 +15,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     private var modificationCount: Long = 0
 
     init {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(this)
+        PsiManager.getInstance(project).addPsiTreeChangeListener(this, project)
     }
 
     override fun getModificationCount() = modificationCount

@@ -10,6 +10,6 @@ class EmptyHighlightingPass(project: Project, document: Document) : TextEditorHi
     override fun doCollectInformation(progress: ProgressIndicator) {}
 
     override fun doApplyInformationToEditor() {
-        DaemonCodeAnalyzerEx.getInstanceEx(myProject).fileStatusMap.markFileUpToDate(document!!, id)
+        DaemonCodeAnalyzerEx.getInstanceEx(myProject).fileStatusMap.markFileUpToDate(document, id)
     }
 }

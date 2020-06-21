@@ -40,7 +40,6 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
     override fun cleanup() {
         super.cleanup()
         myParameters = null
-        fileToImport = null
     }
 
     override fun getList() = fileToImport?.let { listOf(it + "/" + FileUtils.LIBRARY_CONFIG_FILE) } ?: emptyList()
