@@ -27,6 +27,7 @@ import org.arend.refactoring.*
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
+import org.jetbrains.annotations.Nullable
 import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError,
@@ -143,15 +144,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     })
                 }
                 is ArendCoClauseDef -> {
-                    val elim = cause.coClauseBody?.elim ?: run {
-                        val withKw = cause.addAfter(psiFactory.createWith(), cause.lastChild)
-                        cause.addBefore(psiFactory.createWhitespace(" "), withKw)
-                        withKw
-                    }
-                    if (cause.coClauseBody?.lbrace == null)
+                    val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
+                    val elim = coClauseBody.elim ?:
+                        coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                    if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
-                    cause.coClauseBody?.clauseList?.lastOrNull() ?: cause.coClauseBody?.lbrace ?: cause.lastChild
+                    coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
                 }
                 else -> null
             }

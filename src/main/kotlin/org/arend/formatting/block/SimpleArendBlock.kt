@@ -46,7 +46,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         if (isCoClauseOrLocalCoClause(nodePsi) && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
 
-        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseDef) {
+        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseBody) {
             if ((child1 is AbstractArendBlock && child1.node.elementType == LBRACE) xor
                     (child2 is AbstractArendBlock && child2.node.elementType == RBRACE))
                 return oneCrlf
@@ -79,6 +79,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW)) return oneSpaceWrap
+
+            if (myNode.psi is ArendCoClauseDef && psi1 is ArendNameTele && psi2 is ArendCoClauseBody) return oneSpaceWrap
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
@@ -304,7 +306,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, CO_CLAUSE_DEF, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
+                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
