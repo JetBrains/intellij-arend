@@ -98,12 +98,6 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
                 }
                 node = first
             }
-            if (node is LeafPsiElement && node.textLength == 1) {
-                val ch = node.charAt(0)
-                if (ch == '-' || ch == '{' || ch == '}') {
-                    return
-                }
-            }
         }
 
         ((parent as? ArendDefIdentifier)?.parent as? ArendGroup)?.let { invalidateChildren(it, file) }
