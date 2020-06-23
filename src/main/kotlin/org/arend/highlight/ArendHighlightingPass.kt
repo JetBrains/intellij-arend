@@ -67,6 +67,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                     is ArendReferenceElement -> listOf(data)
                     is ArendPattern -> data.defIdentifier?.let { listOf(it) } ?: data.longName?.refIdentifierList ?: return
+                    is ArendAtomPatternOrPrefix -> data.defIdentifier?.let { listOf(it) } ?: return
                     else -> return
                 }
                 val lastReference = list.lastOrNull() ?: return
