@@ -25,7 +25,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -38,11 +38,11 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiRefe
     override fun isReferenceTo(element: PsiElement): Boolean = false
 }
 
-open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, private val onlyResolve: Boolean): ArendReferenceImpl<T>(element) {
-    override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
+open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
+    override fun resolve() = resolve(true)
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false): PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -105,7 +105,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }.toTypedArray()
     }
 
-    override fun resolve(): PsiElement? {
+    override fun resolve() = resolve(false)
+
+    protected fun resolve(onlyConstructor: Boolean): PsiElement? {
         val cache = element.project.service<ArendResolveCache>()
         val resolver = { element : ArendReferenceElement ->
             if (beforeImportDot) {
@@ -121,7 +123,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
                 result
             } else {
-                element.scope.resolveName(element.referenceName)
+                val ref = element.scope.resolveName(element.referenceName)
+                if (!onlyConstructor || ref is GlobalReferable && ref.kind.isConstructor) ref else null
             }
         }
 

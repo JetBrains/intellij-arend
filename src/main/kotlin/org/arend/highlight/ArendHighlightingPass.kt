@@ -111,6 +111,12 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 resolveReference(pattern.data, pattern.constructor, resolvedRefs)
             }
 
+            override fun patternResolved(pattern: Concrete.NamePattern) {
+                pattern.referable?.let {
+                    resolveReference(pattern.data, it, listOf(it))
+                }
+            }
+
             override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
                 val data = element.data
                 (((data as? ArendCoClauseDef)?.parent ?: data) as? CoClauseBase)?.longName?.let {
