@@ -41,6 +41,9 @@ class ArendReplService(private val project: Project) {
         val content = ContentFactory.SERVICE.getInstance()
             .createContent(toolWindowPanel.component, null, false)
         toolWindow.contentManager.addContent(content)
-        manager.focusManager.requestFocusInProject(toolWindow.component, project)
+        content.preferredFocusableComponent = toolWindowPanel.content
+        toolWindow.activate {
+            manager.focusManager.requestFocusInProject(toolWindow.component, project)
+        }
     }
 }
