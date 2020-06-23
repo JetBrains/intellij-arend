@@ -124,7 +124,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 result
             } else {
                 val ref = element.scope.resolveName(element.referenceName)
-                if (!onlyConstructor || ref is GlobalReferable && ref.kind.isConstructor) ref else null
+                if (!onlyConstructor || ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
             }
         }
 
