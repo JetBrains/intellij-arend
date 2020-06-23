@@ -333,7 +333,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
@@ -348,7 +348,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
@@ -363,7 +363,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
