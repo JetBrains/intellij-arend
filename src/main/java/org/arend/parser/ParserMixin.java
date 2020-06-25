@@ -11,7 +11,7 @@ import org.arend.psi.doc.ArendDocComment;
 import org.jetbrains.annotations.NotNull;
 
 public class ParserMixin {
-  public static final ArendTokenType DOC_START = new ArendTokenType("-- |");
+  public static final ArendTokenType DOC_START = new ArendTokenType("DOC_START");
   public static final ArendTokenType DOC_IGNORED = new ArendTokenType("DOC_IGNORED");
   public static final ArendTokenType DOC_TEXT = new ArendTokenType("DOC_TEXT");
   public static final ArendTokenType DOC_CODE = new ArendTokenType("DOC_CODE");
