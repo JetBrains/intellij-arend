@@ -1,31 +1,42 @@
 package org.arend
 
+import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.lang.documentation.AbstractDocumentationProvider
+import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.lang.documentation.DocumentationMarkup.*
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
+import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.term.abs.Abstract
 
 
-private fun String.htmlEscape(): String = XmlStringUtil.escapeString(this)
+private fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, true)
 
+    override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String?, context: PsiElement?): PsiElement? {
+        return context?.parentOfType<ArendSourceNode>()?.scope?.resolveName(link) as? PsiElement
+    }
+
     private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean) =
         if (element !is PsiReferable) {
             null
-        } else buildString { wrapTag("html") { wrapTag("body") {
+        } else buildString { wrapTag("html") {
+            wrapTag("head") {
+                wrapTag("style") {
+                    append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
+                }
+            }
+
+            wrapTag("body") {
             wrap(DEFINITION_START, DEFINITION_END) {
                 generateDefinition(element)
             }
@@ -35,18 +46,20 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
 
             if (withDocComments) {
-                generateDocComments(element)
+                generateDocComments(element, originalElement)
             }
         } } }
 
-    private fun StringBuilder.generateDocComments(element: PsiReferable) {
+    private fun StringBuilder.generateDocComments(element: PsiReferable, originalElement: PsiElement?) {
         val parent = element.parent
         var curElement = if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
         while (curElement is PsiWhiteSpace || curElement is PsiComment && (curElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
             curElement = curElement.prevSibling
         }
 
+        // <a href="psi_element://Main"><code>Main</code></a>
         append(CONTENT_START)
+        // append("<p>")//"<p class=\"normal_text\">")
         if (curElement is PsiComment && curElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
             html(curElement.text)
         } else {
@@ -59,7 +72,36 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     html(curElement.text.substringBefore("\n\n"))
                     append(" ")
                 }
-                curElement = curElement.nextSibling
+                /*
+                if (curElement.tokenType == ArendElementTypes.DOC_CODE_MLINE_BOUND) {
+                    if (!isInsideMLineCode) {
+                        append("<pre>")//"<p class=\"normal_text\">")
+                    } else {
+                        append("</pre>")
+                    }
+                    isInsideMLineCode = !isInsideMLineCode
+                }
+                curElement = if (curElement.tokenType == ArendElementTypes.DOC_LINK_START) {
+                    val link = curElement.nextSibling as? PsiComment ?: break
+
+                    if (link.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
+                        val refName = link.text
+                        val target = originalElement?.parentOfType<ArendSourceNode>()?.scope?.resolveName(refName) as? PsiElement
+
+                        if (target != null) {
+                            DocumentationManagerUtil.createHyperlink(this, target, refName, refName, true)
+                        }
+                        // append("<a href=\"psi_element://${refName}\"><code>${refName}</code></a>")
+                        val endBrace = link.nextSibling as? PsiComment ?: break
+                        if (endBrace.tokenType != ArendElementTypes.DOC_LINK_END) break
+                        endBrace.nextSibling
+                    } else {
+                        if (link.tokenType != ArendElementTypes.DOC_LINK_END) break
+                        link.nextSibling
+                    }
+                } else {
+                    curElement.nextSibling
+                }*/
             }
         }
         append(CONTENT_END)
