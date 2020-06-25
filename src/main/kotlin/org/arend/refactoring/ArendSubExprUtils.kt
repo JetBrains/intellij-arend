@@ -231,14 +231,16 @@ private fun collectArendExprs(
         head = (exprSeq.firstOrNull() ?: return null)
         tail = exprSeq.drop(1)
     }
-    return if (tail.none()) {
+    if (tail.none()) {
         val subCollected = collectArendExprs(head, range)
-        when {
-            subCollected != null -> subCollected
-            head is Abstract.Expression -> Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
-            else -> null
+        if (subCollected != null) {
+            val (expr) = subCollected
+            if (expr is PsiElement && expr.textRange == head.textRange)
+                return subCollected
         }
-    } else when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
+        return if (head is Abstract.Expression) Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
+        else null
+    } else return when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
         null -> null
         else -> headExpr to tail.mapNotNull {
             it.linearDescendants.filterIsInstance<Abstract.BinOpSequenceElem>().firstOrNull()
