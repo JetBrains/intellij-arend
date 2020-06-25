@@ -6,6 +6,7 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import org.arend.lexer.ArendLexerAdapter
+import org.arend.parser.ParserMixin
 import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ArendElementTypes
 
@@ -36,8 +37,7 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 
             ArendElementTypes.BLOCK_COMMENT -> ArendHighlightingColors.BLOCK_COMMENT
             ArendElementTypes.LINE_COMMENT -> ArendHighlightingColors.LINE_COMMENT
-            ArendElementTypes.LINE_DOC_COMMENT_START, ArendElementTypes.LINE_DOC_TEXT,
-                ArendElementTypes.BLOCK_DOC_COMMENT_START, ArendElementTypes.BLOCK_DOC_TEXT, ArendElementTypes.BLOCK_COMMENT_END -> ArendHighlightingColors.DOC_COMMENT
+            ParserMixin.DOC_COMMENT -> ArendHighlightingColors.DOC_COMMENT
 
             TokenType.BAD_CHARACTER -> ArendHighlightingColors.BAD_CHARACTER
             else -> null

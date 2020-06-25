@@ -93,10 +93,10 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
         return found
     }
 
-    fun initializeModule(module: Module) {
-        val path = ArendModuleConfigService.getInstance(module)?.extensionClassPath ?: return
+    fun initializeModule(config: ArendModuleConfigService) {
+        val path = config.extensionClassPath ?: return
         try {
-            modificationStamps[module] = Files.getLastModifiedTime(path)
+            modificationStamps[config.module] = Files.getLastModifiedTime(path)
         } catch (e: IOException) {}
     }
 }

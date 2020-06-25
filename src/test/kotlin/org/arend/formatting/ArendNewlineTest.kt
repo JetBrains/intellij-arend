@@ -227,8 +227,6 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     // Test newline in docs
 
-    fun testInlineDoc() = checkNewLine("-- | Foo {-caret-} Bar", "-- | Foo \n-- {-caret-} Bar")
-
     fun testBlockDoc1() = checkNewLine("{- | Foo{-caret-}\n -}", "{- | Foo\n - {-caret-}\n -}")
 
     fun testBlockDoc2() = checkNewLine("{- | Foo\n - Bar{-caret-}\n -}", "{- | Foo\n - Bar\n - {-caret-}\n -}")

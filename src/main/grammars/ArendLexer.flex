@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType;
 
 import static com.intellij.psi.TokenType.BAD_CHARACTER;
 import static com.intellij.psi.TokenType.WHITE_SPACE;
+import static org.arend.parser.ParserMixin.*;
 import static org.arend.psi.ArendElementTypes.*;
 
 %%
@@ -24,27 +25,21 @@ import static org.arend.psi.ArendElementTypes.*;
 
 %{
     private int commentStart;
-    private int docCommentStart;
     private int commentDepth;
     private boolean isInsideDocComment;
 %}
 
 %state BLOCK_COMMENT_INNER
-%state BLOCK_DOC_COMMENT_INNER
-%state LINE_DOC_COMMENT_INNER
 
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
 LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})?)
+BLOCK_DOC_COMMENT_START = "{- |"
 BLOCK_COMMENT_START = "{-"
 BLOCK_COMMENT_END   = "-}"
 
-LINE_DOC_COMMENT_START  = "-- |"
-BLOCK_DOC_COMMENT_START = "{- |"
-
-BLOCK_DOC_TEXT = ([^\{-] | \{[^-] | -[^\}])+
-LINE_DOC_TEXT = .* | {EOL}
+LINE_DOC  = "-- |" (.* | {EOL})
 
 NUMBER              = [0-9]+
 NEGATIVE_NUMBER     = -{NUMBER}
@@ -145,17 +140,13 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
                                 commentDepth = 0;
                                 commentStart = getTokenStart();
                             }
-    {BLOCK_COMMENT_END}     { return BLOCK_COMMENT_END; }
-
-    {LINE_DOC_COMMENT_START}
-                            { yybegin(LINE_DOC_COMMENT_INNER);
-                              return LINE_DOC_COMMENT_START; }
-    {BLOCK_DOC_COMMENT_START}
-                            { yybegin(BLOCK_DOC_COMMENT_INNER);
-                              isInsideDocComment = true;
-                              docCommentStart = getTokenStart();
-                              return BLOCK_DOC_COMMENT_START;
+    {BLOCK_DOC_COMMENT_START} {
+                                yybegin(BLOCK_COMMENT_INNER);
+                                isInsideDocComment = true;
+                                commentDepth = 0;
+                                commentStart = getTokenStart();
                             }
+    {LINE_DOC}              { return DOC_COMMENT; }
 
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
@@ -173,43 +164,6 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     {ID}                    { return ID; }
 }
 
-<LINE_DOC_COMMENT_INNER> {
-    {LINE_DOC_TEXT} {
-        yybegin(YYINITIAL);
-        return LINE_DOC_TEXT;
-    }
-
-    [^] {}
- }
-
-<BLOCK_DOC_COMMENT_INNER> {
-    {BLOCK_DOC_TEXT} { return BLOCK_DOC_TEXT; }
-
-    {BLOCK_COMMENT_START} {
-          yybegin(BLOCK_COMMENT_INNER);
-          commentDepth = 0;
-          commentStart = getTokenStart();
-    }
-
-    {BLOCK_DOC_COMMENT_START} {
-          yybegin(BLOCK_COMMENT_INNER);
-          commentDepth = 0;
-          commentStart = getTokenStart();
-    }
-
-    {BLOCK_COMMENT_END} {
-        yybegin(YYINITIAL);
-        return BLOCK_COMMENT_END;
-    }
-
-    <<EOF>> {
-        yybegin(YYINITIAL);
-        return BLOCK_COMMENT_END;
-    }
-
-    [^] {}
-}
-
 <BLOCK_COMMENT_INNER> {
     {BLOCK_COMMENT_START} {
         commentDepth++;
@@ -223,26 +177,16 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
         if (commentDepth > 0) {
             commentDepth--;
         } else {
-             int state = yystate();
              zzStartRead = commentStart;
-             if (isInsideDocComment) {
-                 yybegin(BLOCK_DOC_COMMENT_INNER);
-             } else {
-                 yybegin(YYINITIAL);
-             }
-             return BLOCK_COMMENT;
+             yybegin(YYINITIAL);
+             return isInsideDocComment ? DOC_COMMENT : BLOCK_COMMENT;
         }
     }
 
     <<EOF>> {
-        int state = yystate();
-        if (isInsideDocComment) {
-            yybegin(BLOCK_DOC_COMMENT_INNER);
-        } else {
-            yybegin(YYINITIAL);
-        }
         zzStartRead = commentStart;
-        return BLOCK_COMMENT;
+        yybegin(YYINITIAL);
+        return isInsideDocComment ? DOC_COMMENT : BLOCK_COMMENT;
     }
 
     [^] {}

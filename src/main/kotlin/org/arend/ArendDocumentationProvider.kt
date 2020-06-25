@@ -2,10 +2,8 @@ package org.arend
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
-import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
@@ -40,28 +38,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         } } }
 
     private fun StringBuilder.generateDocComments(element: PsiReferable) {
-        val parent = element.parent
-        var curElement = if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
-        while (curElement is PsiWhiteSpace || curElement is PsiComment && (curElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
-            curElement = curElement.prevSibling
-        }
-
+        val doc = getDocumentation(element) ?: return
         append(CONTENT_START)
-        if (curElement is PsiComment && curElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
-            html(curElement.text)
-        } else {
-            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
-                curElement = curElement.prevSibling
-            }
-
-            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_COMMENT_END) {
-                if (curElement.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
-                    html(curElement.text.substringBefore("\n\n"))
-                    append(" ")
-                }
-                curElement = curElement.nextSibling
-            }
-        }
+        html(doc.text)
         append(CONTENT_END)
     }
 

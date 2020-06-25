@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
-import org.arend.psi.getLibraryConfig
+import org.arend.psi.libraryConfig
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.YAMLFile
@@ -119,6 +119,6 @@ val PsiFile.isYAMLConfig: Boolean
             return false
         }
 
-        val rootPath = getLibraryConfig(true)?.rootPath ?: return false
+        val rootPath = libraryConfig?.rootPath ?: return false
         return virtualFile.parent.path == FileUtil.toSystemIndependentName(rootPath.toString())
     }

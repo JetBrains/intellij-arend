@@ -10,9 +10,9 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
-import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
@@ -20,13 +20,14 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.doc.ArendDocComment
+import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.arend.util.mapFirstNotNull
 import org.jetbrains.yaml.psi.YAMLFile
-import java.util.ArrayList
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -78,43 +79,50 @@ val PsiElement.module: Module?
         return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
     }
 
-fun PsiFile.getLibraryConfig(onlyInternal: Boolean): LibraryConfig? {
-    val virtualFile = originalFile.virtualFile
-    val project = project
-    val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
-
-    val module = virtualFile?.let(fileIndex::getModuleForFile) ?: getUserData(KEY_MODULE)
-    if (module != null) {
-        return ArendModuleConfigService.getInstance(module)
+val PsiFile.libraryConfig: LibraryConfig?
+    get() {
+        val enforcedConfig = (this as? ArendFile)?.enforcedLibraryConfig
+        if (enforcedConfig != null) return enforcedConfig
+        val virtualFile = originalFile.virtualFile ?: return null
+        val module = ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
+        return if (module != null) ArendModuleConfigService.getInstance(module) else null
     }
 
-    if (virtualFile == null || onlyInternal || !fileIndex.isInLibrarySource(virtualFile)) {
+val PsiFile.arendLibrary: ArendRawLibrary?
+    get() {
+        val virtualFile = originalFile.virtualFile ?: return null
+        val project = project
+        val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
+
+        val module = fileIndex.getModuleForFile(virtualFile)
+        if (module != null) {
+            return ArendModuleConfigService.getInstance(module)?.library
+        }
+
+        if (!fileIndex.isInLibrarySource(virtualFile)) {
+            return null
+        }
+
+        for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
+            if (orderEntry is LibraryOrderEntry) {
+                for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
+                    val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
+                    if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
+                        continue
+                    }
+                    val name = yaml.virtualFile?.parent?.name ?: continue
+                    return ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, name)
+                }
+            }
+        }
+
         return null
     }
 
-    for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
-        if (orderEntry is LibraryOrderEntry) {
-            for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
-                val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
-                if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
-                    continue
-                }
-                val name = yaml.virtualFile?.parent?.name ?: continue
-                return ExternalLibraryConfig(name, yaml)
-            }
-        }
-    }
-
-    return null
-}
-
-val PsiFile.libraryConfig: LibraryConfig?
-    get() = (this as? ArendFile)?.enforcedLibraryConfig ?: getLibraryConfig(false)
-
 val PsiElement.moduleScopeProvider: ModuleScopeProvider
     get() {
-        val containingFile = containingFile ?: return EmptyModuleScopeProvider.INSTANCE
-        val config = containingFile.libraryConfig
+        val containingFile = containingFile?.originalFile ?: return EmptyModuleScopeProvider.INSTANCE
+        val config = containingFile.arendLibrary?.config
         val typecheckingService = containingFile.project.service<TypeCheckingService>()
         val inTests = (containingFile as? ArendFile)?.let { config?.getFileLocationKind(it) } == ModuleLocation.LocationKind.TEST
         return ModuleScopeProvider { modulePath ->
@@ -307,32 +315,16 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
     return result
 }
 
-fun getDocumentation(statement: ArendStatement): List<PsiElement> {
-    val result = ArrayList<PsiElement>()
-    var prev0: PsiElement? = statement.prevSibling
-    if (prev0 is PsiWhiteSpace) prev0 = prev0.prevSibling
-    val eT = prev0?.node?.elementType
-    if (eT == LINE_DOC_TEXT) {
-        val prev1 = prev0?.prevSibling
-        val eT1 = prev1?.node?.elementType
-        if (eT1 == LINE_DOC_COMMENT_START) {
-            result.add(prev1!!)
-            result.add(prev0!!)
-        }
+fun getDocumentation(definition: PsiReferable): ArendDocComment? {
+    val stat = definition.parent
+    if (!(stat is ArendClassStat || stat is ArendStatement)) {
+        return null
     }
-
-    if (eT == BLOCK_COMMENT_END) {
-        val prev1 = prev0?.prevSibling
-        val eT1 = prev1?.node?.elementType
-        val prev2 = prev1?.prevSibling
-        val eT2 = prev2?.node?.elementType
-        if (eT1 == BLOCK_DOC_TEXT && eT2 == BLOCK_DOC_COMMENT_START) {
-            result.add(prev2!!)
-            result.add(prev1)
-            result.add(prev0!!)
-        }
+    var sibling = stat.prevSibling
+    while (sibling is PsiWhiteSpace) {
+        sibling = sibling.prevSibling
     }
-    return result
+    return sibling as? ArendDocComment
 }
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {

@@ -159,7 +159,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
 fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
     val importFile = defaultLocation.myContainingFile
-    val conf = currentFile.libraryConfig ?: return false
+    val conf = currentFile.arendLibrary?.config ?: return false
     val modulePath = importFile.moduleLocation?.modulePath ?: return false
     val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 

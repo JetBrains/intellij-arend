@@ -72,7 +72,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     }
 
     protected val library: ArendRawLibrary
-        get() = ArendRawLibrary.getLibraryFor(project.service<TypeCheckingService>().libraryManager, module)
+        get() = ArendModuleConfigService.getInstance(module)?.library
             ?: throw IllegalStateException("Cannot find library")
 
     protected val fileName: String

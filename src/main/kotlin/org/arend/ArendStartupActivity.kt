@@ -7,7 +7,7 @@ import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import org.arend.module.ArendModuleType
-import org.arend.module.ArendRawLibrary
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.arendModules
 import org.arend.util.register
@@ -25,7 +25,7 @@ class ArendStartupActivity : StartupActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                ArendRawLibrary.getLibraryFor(libraryManager, module)?.let {
+                ArendModuleConfigService.getInstance(module)?.library?.let {
                     libraryManager.unloadLibrary(it)
                 }
             }
