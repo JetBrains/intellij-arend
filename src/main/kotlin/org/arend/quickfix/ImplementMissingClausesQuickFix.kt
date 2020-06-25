@@ -27,7 +27,6 @@ import org.arend.refactoring.*
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.MissingClausesError
-import org.jetbrains.annotations.Nullable
 import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError,
@@ -223,7 +222,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
                 is BindingPattern -> {
                     val bindingType = pattern.binding.type
-                    if (recursiveTypeDefinition != null && bindingType is DefCallExpression && bindingType.definition == recursiveTypeDefinition) {
+                    if (recursiveTypeDefinition != null && bindingType is DefCallExpression && bindingType.definition == recursiveTypeDefinition && pattern.binding.name == null) {
                         recursiveTypeUsages.add(pattern)
                     }
                     return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT

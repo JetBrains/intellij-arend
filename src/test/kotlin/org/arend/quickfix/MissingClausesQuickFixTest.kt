@@ -441,6 +441,17 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc b, suc c => {?}
     """)
 
+    fun test_88_6() = typedQuickFixTest("Implement", """
+       \data D | con (t s : D)
+       
+       \func foo{-caret-} (t : D) : Nat 
+    """, """
+       \data D | con (t s : D)
+       
+       \func foo (t : D) : Nat
+         | con t s => {?} 
+    """)
+
     fun test_86_1() = typedQuickFixTest("Implement", """
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
     """, """
