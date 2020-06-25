@@ -234,9 +234,8 @@ private fun collectArendExprs(
     if (tail.none()) {
         val subCollected = collectArendExprs(head, range)
         if (subCollected != null) {
-            val (expr) = subCollected
-            if (expr is PsiElement && expr.textRange == head.textRange)
-                return subCollected
+            val (_, tails) = subCollected
+            if (tails.isNotEmpty()) return subCollected
         }
         return if (head is Abstract.Expression) Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
         else null
