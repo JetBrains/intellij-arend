@@ -10,6 +10,7 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.util.mapFirstNotNull
@@ -73,7 +74,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val c1comment = child1 is DocCommentBlock
 
             if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStatement || psi2 is ArendClassStat))
-                return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
+                return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
             else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
@@ -100,7 +101,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
-                    c1et == LBRACE && (psi2 is ArendStatement || child2 is DocCommentBlock || c2et == LINE_DOC_COMMENT_START)) oneCrlf
+                    c1et == LBRACE && (psi2 is ArendStatement || child2 is DocCommentBlock || c2et == DOC_COMMENT)) oneCrlf
             else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd)) { /* Spacing rules for hiding/using refs in namespace commands */
                 when {
                     (c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID || c2et == RPAREN)) ||
@@ -316,15 +317,15 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     }
                 }
 
-                if (childET == BLOCK_DOC_COMMENT_START) {
+                if (childET == DOC_COMMENT) {
                     val commentStart = child
                     var commentBody: ASTNode? = null
                     var commentEnd: ASTNode? = null
                     child = child.treeNext
-                    if (child != null && child.elementType == BLOCK_DOC_TEXT) {
+                    if (child != null && child.elementType == DOC_COMMENT) {
                         commentBody = child
                         child = child.treeNext
-                        if (child != null && child.elementType == BLOCK_COMMENT_END) {
+                        if (child != null && child.elementType == DOC_COMMENT) {
                             commentEnd = child
                             child = child.treeNext
                         }

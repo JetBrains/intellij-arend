@@ -37,7 +37,7 @@ tasks.withType<KotlinCompile> {
         languageVersion = "1.3"
         apiVersion = "1.3"
     }
-    dependsOn("generateArendLexer", "generateArendParser")
+    dependsOn("generateArendLexer", "generateArendParser", "generateArendDocLexer")
 }
 
 tasks["jar"].dependsOn(
@@ -91,6 +91,15 @@ task<GenerateParser>("generateArendParser") {
     targetRoot = "src/gen"
     pathToParser = "/org/arend/parser/ArendParser.java"
     pathToPsiRoot = "/org/arend/psi"
+    purgeOldFiles = true
+}
+
+task<GenerateLexer>("generateArendDocLexer") {
+    description = "Generates doc lexer"
+    group = "Source"
+    source = "src/main/grammars/ArendDocLexer.flex"
+    targetDir = "src/gen/org/arend/lexer"
+    targetClass = "ArendDocLexer"
     purgeOldFiles = true
 }
 

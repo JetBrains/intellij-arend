@@ -189,9 +189,9 @@ class ArendMoveRefactoringProcessor(project: Project,
 
         for (member in myMembers) {
             val mStatementOrClassStat = member.parent
-            val docs = (mStatementOrClassStat as? ArendStatement)?.let { getDocumentation(it) }
+            val doc = (member as? ArendDefinition)?.let { getDocumentation(it) }
             val memberIsInDynamicPart = isInDynamicPart(mStatementOrClassStat) != null
-            val docsCopy = docs?.map { it.copy() }
+            val docCopy = doc?.copy()
 
             val copyOfMemberStatement: PsiElement =
                     if (myTargetContainer is ArendDefClass && insertIntoDynamicPart) {
@@ -226,16 +226,18 @@ class ArendMoveRefactoringProcessor(project: Project,
                 copyOfMemberStatement.defModule?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
             }
 
-            docsCopy?.forEach { copyOfMemberStatement.parent?.addBefore(it, copyOfMemberStatement) }
+            if (docCopy != null) {
+                copyOfMemberStatement.parent?.addBefore(docCopy, copyOfMemberStatement)
+            }
 
             val mCopy = copyOfMemberStatement.childOfType<ArendGroup>()!!
             newMemberList.add(mCopy)
 
-            if (docs != null && docs.isNotEmpty()) (docs.first().prevSibling as? PsiWhiteSpace)?.delete()
+            (doc?.prevSibling as? PsiWhiteSpace)?.delete()
             (mStatementOrClassStat.prevSibling as? PsiWhiteSpace)?.delete()
             mStatementOrClassStat.deleteAndGetPosition()?.let { if (!memberIsInDynamicPart) holes.add(it) }
 
-            if (docs != null) for (doc in docs) doc.delete()
+            doc?.delete()
             insertAnchor = copyOfMemberStatement
         }
 
