@@ -318,19 +318,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == DOC_COMMENT) {
-                    val commentStart = child
-                    var commentBody: ASTNode? = null
-                    var commentEnd: ASTNode? = null
+                    blocks.add(processDocComment(settings, this, alignment, indent, child))
                     child = child.treeNext
-                    if (child != null && child.elementType == DOC_COMMENT) {
-                        commentBody = child
-                        child = child.treeNext
-                        if (child != null && child.elementType == DOC_COMMENT) {
-                            commentEnd = child
-                            child = child.treeNext
-                        }
-                    }
-                    blocks.add(processDocComment(settings, this, alignment, indent, commentStart, commentBody, commentEnd))
                     continue@mainLoop
                 }
 
@@ -366,12 +355,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
     }
 
     private fun processDocComment(settings: CommonCodeStyleSettings?, parent: AbstractArendBlock,
-                                  globalAlignment: Alignment?, globalIndent: Indent,
-                                  startNode: ASTNode, body: ASTNode?, endNode: ASTNode?): AbstractArendBlock {
+                                  globalAlignment: Alignment?, globalIndent: Indent, commentNode: ASTNode): AbstractArendBlock {
         val blocks = ArrayList<Block>()
         val oneSpaceIndent = Indent.getSpaceIndent(1)
-        var startOffset = startNode.startOffset
-        var commentText = startNode.text + (body?.text ?: "")
+        var startOffset = commentNode.startOffset
+        var commentText = commentNode.text
 
         fun parseCommentPiece(index: Int, indent: Indent?, isDash: Boolean) {
             val endOffset = startOffset + index
@@ -403,9 +391,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             skipWhitespace { c -> c.isWhitespace() }
         }
-
-        if (endNode != null)
-            blocks.add(CommentPieceBlock(endNode.textRange, null, oneSpaceIndent, true))
 
         return DocCommentBlock(settings, blocks, globalAlignment, globalIndent, parent)
     }
