@@ -13,7 +13,10 @@ import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.naming.scope.*
+import org.arend.naming.scope.local.TelescopeScope
 import org.arend.psi.*
+import org.arend.psi.doc.ArendDocComment
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendReference
 import org.arend.term.abs.Abstract
 import org.arend.typing.ModifiedClassFieldImplScope
@@ -43,6 +46,14 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 
 private fun getArendScope(element: ArendCompositeElement): Scope {
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+    ((sourceNode as? ArendLongName)?.parent as? ArendDocComment)?.let { doc ->
+        return when (val owner = doc.owner) {
+            is Abstract.ParametersHolder -> TelescopeScope(owner.scope, owner.parameters)
+            null -> doc.ancestor<ArendGroup>()?.scope ?: EmptyScope.INSTANCE
+            else -> owner.scope
+        }
+    }
+
     val parentScope = sourceNode.parentSourceNode?.let {
         if (it is ArendDefClass && sourceNode is ArendLongName)
             // The last parameters is set to true to prevent infinite recursion during resolving of references in \\extends
