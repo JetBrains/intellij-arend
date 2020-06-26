@@ -333,7 +333,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
@@ -348,7 +348,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
@@ -363,7 +363,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                \func foo (n : Nat) : R \cowith
                  | f x \with {
                    | 0 => {?}
-                   | suc n => {?}
+                   | suc x => {?}
                  }
     """)
 
@@ -439,6 +439,17 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | 0, suc c => {?}
          | suc b, 0 => {?}
          | suc b, suc c => {?}
+    """)
+
+    fun test_88_6() = typedQuickFixTest("Implement", """
+       \data D | con (t s : D)
+       
+       \func foo{-caret-} (t : D) : Nat 
+    """, """
+       \data D | con (t s : D)
+       
+       \func foo (t : D) : Nat
+         | con t s => {?} 
     """)
 
     fun test_86_1() = typedQuickFixTest("Implement", """

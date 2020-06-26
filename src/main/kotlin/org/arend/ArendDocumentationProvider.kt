@@ -1,12 +1,12 @@
 package org.arend
 
-import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.lang.documentation.AbstractDocumentationProvider
-import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.naming.reference.FieldReferable
+import org.arend.parser.ParserMixin
 import org.arend.psi.*
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
@@ -46,10 +46,11 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
 
             if (withDocComments) {
-                generateDocComments(element, originalElement)
+                generateDocComments(element)
             }
         } } }
 
+/*
     private fun StringBuilder.generateDocComments(element: PsiReferable, originalElement: PsiElement?) {
         val parent = element.parent
         var curElement = if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
@@ -102,6 +103,26 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 } else {
                     curElement.nextSibling
                 }*/
+            }
+        }
+*/
+
+    private fun StringBuilder.generateDocComments(element: PsiReferable) {
+        val doc = getDocumentation(element) ?: return
+        append(CONTENT_START)
+        for (docElement in doc.children) {
+            val leafElement = docElement as? LeafPsiElement
+            if (leafElement?.elementType == ParserMixin.DOC_TEXT) {
+                html(docElement.text)
+            } else if (leafElement?.elementType == ParserMixin.DOC_CODE) {
+                append("<pre>${leafElement?.text}</pre>")
+            } else if (docElement is ArendLongName) {
+                val ref = docElement.resolve
+                if (ref is ArendDefinition) {
+                    append("<a href=\"psi_element://${docElement.text}\"><code>${docElement.text}</code></a>")
+                } else {
+                    append("<code>${docElement.text}</code>")
+                }
             }
         }
         append(CONTENT_END)

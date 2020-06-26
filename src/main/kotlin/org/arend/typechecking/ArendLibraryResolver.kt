@@ -1,6 +1,5 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import org.arend.library.Library
@@ -21,7 +20,7 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
 
         val depModule = ModuleManager.getInstance(project)?.findModuleByName(name)
         if (depModule != null && ArendModuleType.has(depModule)) {
-            return ArendRawLibrary.getLibraryFor(project.service<TypeCheckingService>().libraryManager, depModule) ?: ArendRawLibrary(depModule)
+            return ArendModuleConfigService.getInstance(depModule)?.library
         }
 
         if (library !is ArendRawLibrary) {

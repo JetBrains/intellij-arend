@@ -100,6 +100,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             } else librariesRoot
         }
 
+    val library = ArendRawLibrary(this)
+
     private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean) {
         val oldDependencies = dependencies
         dependencies = ArrayList(newDependencies)
@@ -121,7 +123,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         if (reloadLib) {
             libraryManager.reloadInternalLibraries(typechecking)
         } else {
-            val library = ArendRawLibrary.getLibraryFor(libraryManager, module) ?: return
             for (dependency in newDependencies) {
                 if (!oldDependencies.contains(dependency)) {
                     var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)

@@ -2,7 +2,6 @@ package org.arend.module
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.module.Module
 import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
 import org.arend.ext.error.ErrorReporter
@@ -12,7 +11,6 @@ import org.arend.ext.ui.ArendUI
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
-import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.EmptyGlobalReferable
@@ -34,8 +32,6 @@ import java.lang.StringBuilder
 
 class ArendRawLibrary(val config: LibraryConfig)
     : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
-
-    constructor(module: Module): this(ArendModuleConfigService.getConfig(module))
 
     override fun isExternal() = config is ExternalLibraryConfig
 
@@ -113,9 +109,6 @@ class ArendRawLibrary(val config: LibraryConfig)
     override fun getDependencyListener() = config.project.service<TypeCheckingService>().dependencyListener
 
     companion object {
-        fun getLibraryFor(libraryManager: LibraryManager, module: Module) =
-            libraryManager.getRegisteredLibrary { ((it as? ArendRawLibrary)?.config as? ArendModuleConfigService)?.module == module } as? ArendRawLibrary
-
         fun getExternalLibrary(libraryManager: LibraryManager, name: String) =
             libraryManager.getRegisteredLibrary { ((it as? ArendRawLibrary)?.config as? ExternalLibraryConfig)?.name == name } as? ArendRawLibrary
 

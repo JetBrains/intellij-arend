@@ -10,9 +10,7 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
-import org.arend.psi.ArendElementTypes
-import org.arend.psi.ArendElementTypes.LINE_DOC_COMMENT_START
-import org.arend.psi.ArendElementTypes.LINE_DOC_TEXT
+import org.arend.parser.ParserMixin
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendTuple
 import org.arend.psi.ArendTypeTele
@@ -39,7 +37,7 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
 
         val comment = file.findElementAt(currentOffset)
 
-        if (comment != null && (comment.node.elementType == ArendElementTypes.BLOCK_DOC_TEXT)) {
+        if (comment != null && (comment.node.elementType == ParserMixin.DOC_COMMENT)) {
             val commentStart = comment.node.treePrev
             val relativeOffset = currentOffset - commentStart.startOffset
             val commentStartPortion = (commentStart.text + comment.text).substring(0, relativeOffset)
@@ -47,14 +45,6 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
             if (lastMatch != null) {
                 val dashIndex = lastMatch.range.last + commentStart.startOffset
                 insertLineBreak(editor, dashIndex, "- ")
-                return EnterHandlerDelegate.Result.Stop
-            }
-        }
-
-        if (comment != null && (comment.node.elementType == LINE_DOC_TEXT)) {
-            val commentStart = comment.node.treePrev
-            if (commentStart.elementType == LINE_DOC_COMMENT_START) {
-                insertLineBreak(editor, commentStart.startOffset, "-- ")
                 return EnterHandlerDelegate.Result.Stop
             }
         }
@@ -82,8 +72,7 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
                 val brace = file.findElementAt(parenOffset)
                 val isBrace = charSeq[parenOffset] == '}'
                 if (brace != null) {
-                    val parent = brace.parent
-                    val startBrace = when (parent) {
+                    val startBrace = when (val parent = brace.parent) {
                         is ArendTuple -> if (parent.tupleExprList.isEmpty()) return -1 else parent.lparen
                         is ArendTypeTele -> if (isBrace) parent.lbrace else parent.lparen
                         else -> null

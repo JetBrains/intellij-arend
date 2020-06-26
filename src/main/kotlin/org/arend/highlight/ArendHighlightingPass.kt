@@ -67,6 +67,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                     is ArendReferenceElement -> listOf(data)
                     is ArendPattern -> data.defIdentifier?.let { listOf(it) } ?: data.longName?.refIdentifierList ?: return
+                    is ArendAtomPatternOrPrefix -> data.defIdentifier?.let { listOf(it) } ?: return
                     else -> return
                 }
                 val lastReference = list.lastOrNull() ?: return
@@ -109,6 +110,12 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
             override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
                 resolveReference(pattern.data, pattern.constructor, resolvedRefs)
+            }
+
+            override fun patternResolved(pattern: Concrete.NamePattern) {
+                pattern.referable?.let {
+                    resolveReference(pattern.data, it, listOf(it))
+                }
             }
 
             override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {

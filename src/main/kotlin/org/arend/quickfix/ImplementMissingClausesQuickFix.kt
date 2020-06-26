@@ -143,15 +143,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     })
                 }
                 is ArendCoClauseDef -> {
-                    val elim = cause.elim ?: run {
-                        val withKw = cause.addAfter(psiFactory.createWith(), cause.lastChild)
-                        cause.addBefore(psiFactory.createWhitespace(" "), withKw)
-                        withKw
-                    }
-                    if (cause.lbrace == null)
+                    val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
+                    val elim = coClauseBody.elim ?:
+                        coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                    if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
-                    cause.clauseList.lastOrNull() ?: cause.lbrace ?: cause.lastChild
+                    coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
                 }
                 else -> null
             }
@@ -224,7 +222,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
                 is BindingPattern -> {
                     val bindingType = pattern.binding.type
-                    if (recursiveTypeDefinition != null && bindingType is DefCallExpression && bindingType.definition == recursiveTypeDefinition) {
+                    if (recursiveTypeDefinition != null && bindingType is DefCallExpression && bindingType.definition == recursiveTypeDefinition && pattern.binding.name == null) {
                         recursiveTypeUsages.add(pattern)
                     }
                     return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT

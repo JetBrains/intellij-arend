@@ -10,6 +10,7 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.util.mapFirstNotNull
@@ -46,7 +47,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         if (isCoClauseOrLocalCoClause(nodePsi) && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
 
-        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseDef) {
+        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseBody) {
             if ((child1 is AbstractArendBlock && child1.node.elementType == LBRACE) xor
                     (child2 is AbstractArendBlock && child2.node.elementType == RBRACE))
                 return oneCrlf
@@ -73,12 +74,14 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val c1comment = child1 is DocCommentBlock
 
             if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStatement || psi2 is ArendClassStat))
-                return (if ((c1et == LINE_DOC_TEXT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
+                return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
             else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW)) return oneSpaceWrap
+
+            if (myNode.psi is ArendCoClauseDef && psi1 is ArendNameTele && psi2 is ArendCoClauseBody) return oneSpaceWrap
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
@@ -98,7 +101,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return if (psi1 is ArendStatement && psi2 is ArendStatement) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
             } else if (psi1 is ArendStatement && c2et == RBRACE ||
-                    c1et == LBRACE && (psi2 is ArendStatement || child2 is DocCommentBlock || c2et == LINE_DOC_COMMENT_START)) oneCrlf
+                    c1et == LBRACE && (psi2 is ArendStatement || child2 is DocCommentBlock || c2et == DOC_COMMENT)) oneCrlf
             else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd)) { /* Spacing rules for hiding/using refs in namespace commands */
                 when {
                     (c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID || c2et == RPAREN)) ||
@@ -304,7 +307,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, CO_CLAUSE_DEF, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
+                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
@@ -314,20 +317,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     }
                 }
 
-                if (childET == BLOCK_DOC_COMMENT_START) {
-                    val commentStart = child
-                    var commentBody: ASTNode? = null
-                    var commentEnd: ASTNode? = null
+                if (childET == DOC_COMMENT) {
+                    blocks.add(processDocComment(settings, this, alignment, indent, child))
                     child = child.treeNext
-                    if (child != null && child.elementType == BLOCK_DOC_TEXT) {
-                        commentBody = child
-                        child = child.treeNext
-                        if (child != null && child.elementType == BLOCK_COMMENT_END) {
-                            commentEnd = child
-                            child = child.treeNext
-                        }
-                    }
-                    blocks.add(processDocComment(settings, this, alignment, indent, commentStart, commentBody, commentEnd))
                     continue@mainLoop
                 }
 
@@ -363,12 +355,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
     }
 
     private fun processDocComment(settings: CommonCodeStyleSettings?, parent: AbstractArendBlock,
-                                  globalAlignment: Alignment?, globalIndent: Indent,
-                                  startNode: ASTNode, body: ASTNode?, endNode: ASTNode?): AbstractArendBlock {
+                                  globalAlignment: Alignment?, globalIndent: Indent, commentNode: ASTNode): AbstractArendBlock {
         val blocks = ArrayList<Block>()
         val oneSpaceIndent = Indent.getSpaceIndent(1)
-        var startOffset = startNode.startOffset
-        var commentText = startNode.text + (body?.text ?: "")
+        var startOffset = commentNode.startOffset
+        var commentText = commentNode.text
 
         fun parseCommentPiece(index: Int, indent: Indent?, isDash: Boolean) {
             val endOffset = startOffset + index
@@ -400,9 +391,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             skipWhitespace { c -> c.isWhitespace() }
         }
-
-        if (endNode != null)
-            blocks.add(CommentPieceBlock(endNode.textRange, null, oneSpaceIndent, true))
 
         return DocCommentBlock(settings, blocks, globalAlignment, globalIndent, parent)
     }

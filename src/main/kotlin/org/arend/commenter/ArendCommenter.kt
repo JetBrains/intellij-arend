@@ -3,8 +3,9 @@ package org.arend.commenter
 import com.intellij.lang.CodeDocumentationAwareCommenter
 import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
-import org.arend.psi.AREND_COMMENTS
+import org.arend.parser.ParserMixin
 import org.arend.psi.ArendElementTypes
+import org.arend.psi.doc.ArendDocComment
 
 class ArendCommenter : CodeDocumentationAwareCommenter {
     override fun getLineCommentPrefix(): String = "--"
@@ -17,9 +18,9 @@ class ArendCommenter : CodeDocumentationAwareCommenter {
 
     override fun getCommentedBlockCommentSuffix(): String? = null
 
-    override fun isDocumentationComment(element: PsiComment?) = element == ArendElementTypes.BLOCK_DOC_TEXT
+    override fun isDocumentationComment(element: PsiComment?) = element is ArendDocComment
 
-    override fun getDocumentationCommentTokenType(): IElementType? = ArendElementTypes.BLOCK_DOC_TEXT
+    override fun getDocumentationCommentTokenType(): IElementType? = ParserMixin.DOC_COMMENT
 
     override fun getLineCommentTokenType(): IElementType = ArendElementTypes.LINE_COMMENT
 

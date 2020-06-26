@@ -25,7 +25,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -34,13 +34,15 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T): PsiRefe
     override fun getVariants(): Array<Any> = emptyArray()
 
     override fun resolve(): PsiElement = element.parent as? PsiReferable ?: element
+
+    override fun isReferenceTo(element: PsiElement): Boolean = false
 }
 
-open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T, private val onlyResolve: Boolean): ArendReferenceImpl<T>(element) {
-    override fun resolve(): PsiElement? = super.resolve() ?: if (onlyResolve) null else element
+open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
+    override fun resolve() = resolve(true)
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false): PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -90,7 +92,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (ref is PsiModuleReferable) {
                         ref.modules.firstOrNull()
                     } else {
-                        element.containingFile?.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                        element.containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                     }
                     when (module) {
                         null -> LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
@@ -103,7 +105,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }.toTypedArray()
     }
 
-    override fun resolve(): PsiElement? {
+    override fun resolve() = resolve(false)
+
+    protected fun resolve(onlyConstructor: Boolean): PsiElement? {
         val cache = element.project.service<ArendResolveCache>()
         val resolver = { element : ArendReferenceElement ->
             if (beforeImportDot) {
@@ -119,7 +123,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
                 result
             } else {
-                element.scope.resolveName(element.referenceName)
+                val ref = element.scope.resolveName(element.referenceName)
+                if (!onlyConstructor || ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
             }
         }
 
@@ -130,7 +135,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     element.project.service<TypeCheckingService>().prelude
                 } else {
-                    element.containingFile?.libraryConfig?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                    element.containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                 }
             }
             else -> null

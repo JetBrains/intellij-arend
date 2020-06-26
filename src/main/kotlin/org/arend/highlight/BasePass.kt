@@ -102,7 +102,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is PsiDirectory -> holder.createErrorAnnotation(ref, "Unexpected reference to a directory")
                 is PsiFile -> holder.createErrorAnnotation(ref, "Unexpected reference to a file")
                 else -> {
-                    val annotation = createAnnotation(error, (ref ?: cause).textRange)
+                    val annotation = createAnnotation(error, ref?.textRange ?: getImprovedTextRange(error, cause))
                     if (resolved == null) {
                         annotation.highlightType = ProblemHighlightType.ERROR
                         if (ref != null && error.index == 0) {
@@ -274,6 +274,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         private fun getImprovedErrorElement(error: GeneralError?, element: PsiElement): PsiElement? {
             val result = when (error) {
+                is NotInScopeError -> (element as? ArendStatCmd)?.longName
                 is ParsingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw

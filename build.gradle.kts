@@ -37,7 +37,7 @@ tasks.withType<KotlinCompile> {
         languageVersion = "1.3"
         apiVersion = "1.3"
     }
-    dependsOn("generateArendLexer", "generateArendParser")
+    dependsOn("generateArendLexer", "generateArendParser", "generateArendDocLexer")
 }
 
 tasks["jar"].dependsOn(
@@ -94,6 +94,15 @@ task<GenerateParser>("generateArendParser") {
     purgeOldFiles = true
 }
 
+task<GenerateLexer>("generateArendDocLexer") {
+    description = "Generates doc lexer"
+    group = "Source"
+    source = "src/main/grammars/ArendDocLexer.flex"
+    targetDir = "src/gen/org/arend/lexer"
+    targetClass = "ArendDocLexer"
+    purgeOldFiles = true
+}
+
 tasks.withType<Test> {
     testLogging {
         exceptionFormat = TestExceptionFormat.FULL
@@ -113,13 +122,13 @@ afterEvaluate {
 
 task<Copy>("prelude") {
     val dir = projectArend.projectDir
-    from(dir.resolve("lib/Prelude.ard"), dir.resolve("lib/Prelude.arc"))
+    from(dir.resolve("lib/Prelude.ard"))
     into("src/main/resources/lib")
     dependsOn(projectArend.task(":cli:buildPrelude"))
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "6.3"
+    gradleVersion = "6.5"
 }
 
 // Utils

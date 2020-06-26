@@ -168,7 +168,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (recursiveTypeDefinition != null && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last())) {
                     while (parameter.hasNext()) {
                         val parameterType = parameter.type
-                        if (parameterType is DataCallExpression && parameterType.definition == recursiveTypeDefinition) nRecursiveBindings += 1
+                        if (parameterType is DataCallExpression && parameterType.definition == recursiveTypeDefinition && parameter.name == null) nRecursiveBindings += 1
                         parameter = parameter.next
                     }
                     parameter = getDependentLink()

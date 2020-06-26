@@ -50,8 +50,8 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
     override fun textRepresentation(): String = referenceName
 
     override fun getReference(): ArendReference {
-        return when (val parent = parent) {
-            is ArendPattern, is ArendAtomPatternOrPrefix -> ArendPatternDefReferenceImpl<ArendDefIdentifier>(this, parent is ArendPattern && parent.atomPatternOrPrefixList.isNotEmpty())
+        return when (parent) {
+            is ArendPattern, is ArendAtomPatternOrPrefix -> ArendPatternDefReferenceImpl<ArendDefIdentifier>(this)
             else -> ArendDefReferenceImpl<ArendDefIdentifier>(this)
         }
     }

@@ -32,12 +32,6 @@
         APPLY_HOLE          = '__'
         UNDERSCORE          = '_'
         PIPE                = '|'
-        LINE_DOC_COMMENT_START = '-- |'
-        BLOCK_COMMENT_START = '{-'
-        BLOCK_COMMENT_END   = '-}'
-        BLOCK_DOC_COMMENT_START = '{- |'
-        BLOCK_DOC_TEXT      = "regexp:([^{-]|-[^}]|\{[^-])+"
-        LINE_DOC_TEXT       = "regexp:[^\r\n]*"
 
         OPEN_KW             = '\open'
         IMPORT_KW           = '\import'
@@ -97,10 +91,8 @@
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
-        LINE_COMMENT        = "regexp:-- ([^|])[^\r\n]*"
-        BLOCK_COMMENT       = '{- BLOCK_COMMENT -}'
-        // LINE_DOC_COMMENT    = '  '
-
+        LINE_COMMENT        = "LINE_COMMENT"
+        BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
@@ -213,18 +205,27 @@ classImplement ::= localCoClausePrivate {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-coClauseDef ::= nameTele* [COLON returnExpr] elim clausesWithBraces {
+coClauseDef ::= nameTele* [functionType] coClauseBody? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
                    "org.arend.psi.ext.PsiConcreteReferable"
                    "org.arend.psi.ext.TCDefinition"
-                   "org.arend.psi.ext.ArendFunctionalBody"
                    "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.CoClauseDefAdapter"
     stubClass = "org.arend.psi.stubs.ArendCoClauseDefStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+coClauseBody ::= functionTermBody
+    | COWITH_KW coClauses?
+    | elim clausesWithBraces? {
+    pin(".*") = 1
+    recoverWhile = coClauseBody_recover
+    implements = "org.arend.psi.ext.ArendFunctionalBody"
+}
+
+private coClauseBody_recover ::= !PIPE & statement_recover
 
 definition ::= defFunction
     | defData
@@ -600,7 +601,7 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= PIPE prec? longName (coClauseRec | coClauseImpl | coClauseDef) {
+coClause ::= PIPE (longName (coClauseRec | coClauseImpl) | prec? longName coClauseDef?) {
     pin = 1
     implements = [ "org.arend.psi.CoClauseBase"
                    "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
