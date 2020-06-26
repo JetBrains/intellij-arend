@@ -101,12 +101,11 @@ data class SubExprResult(
 
 @Throws(SubExprException::class)
 fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
-    val possibleParent = (if (range.isEmpty)
-        file.findElementAt(range.startOffset)
-    else PsiTreeUtil.findCommonParent(
-            file.findElementAt(range.startOffset),
-            file.findElementAt(range.endOffset - 1)
-    )) ?: throw SubExprException("selected expr in bad position")
+    val startElement = file.findElementAt(range.startOffset) ?: throw SubExprException("selected expr in bad position")
+    val possibleParent = if (range.isEmpty) startElement
+    else file.findElementAt(range.endOffset - 1)?.let {
+        PsiTreeUtil.findCommonParent(startElement, it)
+    } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val service = project.service<TypeCheckingService>()
     val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
@@ -232,14 +231,15 @@ private fun collectArendExprs(
         head = (exprSeq.firstOrNull() ?: return null)
         tail = exprSeq.drop(1)
     }
-    return if (tail.none()) {
+    if (tail.none()) {
         val subCollected = collectArendExprs(head, range)
-        when {
-            subCollected != null -> subCollected
-            head is Abstract.Expression -> Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
-            else -> null
+        if (subCollected != null) {
+            val (_, tails) = subCollected
+            if (tails.isNotEmpty()) return subCollected
         }
-    } else when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
+        return if (head is Abstract.Expression) Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
+        else null
+    } else return when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
         null -> null
         else -> headExpr to tail.mapNotNull {
             it.linearDescendants.filterIsInstance<Abstract.BinOpSequenceElem>().firstOrNull()

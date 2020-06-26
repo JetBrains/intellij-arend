@@ -31,6 +31,9 @@ import static org.arend.psi.ArendElementTypes.*;
 %state CODE1
 %state CODE2
 %state CODE3
+%state CLOSE_CODE1
+%state CLOSE_CODE2
+%state CLOSE_CODE3
 %state REFERENCE
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
@@ -101,7 +104,14 @@ ID                  = {START_CHAR} {ID_CHAR}*
 }
 
 <CODE1> {
-    ("`" | "\n") {
+    "`" {
+        zzMarkedPos--;
+        zzStartRead = textStart;
+        yybegin(CLOSE_CODE1);
+        return DOC_CODE;
+    }
+    "\n" {
+        zzMarkedPos--;
         zzStartRead = textStart;
         yybegin(CONTENTS);
         return DOC_CODE;
@@ -110,7 +120,14 @@ ID                  = {START_CHAR} {ID_CHAR}*
 }
 
 <CODE2> {
-    ("``" | "\n") {
+    "``" {
+        zzMarkedPos -= 2;
+        zzStartRead = textStart;
+        yybegin(CLOSE_CODE2);
+        return DOC_CODE;
+     }
+    "\n" {
+        zzMarkedPos--;
         zzStartRead = textStart;
         yybegin(CONTENTS);
         return DOC_CODE;
@@ -120,8 +137,9 @@ ID                  = {START_CHAR} {ID_CHAR}*
 
 <CODE3> {
     "```" {
+        zzMarkedPos -= 3;
         zzStartRead = textStart;
-        yybegin(CONTENTS);
+        yybegin(CLOSE_CODE3);
         return DOC_CODE;
     }
     [^] {}
@@ -144,6 +162,21 @@ ID                  = {START_CHAR} {ID_CHAR}*
         yybegin(YYINITIAL);
         return isText ? DOC_TEXT : DOC_CODE;
     }
+}
+
+<CLOSE_CODE1>"`" {
+    yybegin(CONTENTS);
+    return DOC_IGNORED;
+}
+
+<CLOSE_CODE2>"``" {
+    yybegin(CONTENTS);
+    return DOC_IGNORED;
+}
+
+<CLOSE_CODE3>"```" {
+    yybegin(CONTENTS);
+    return DOC_IGNORED;
 }
 
 [^] { return BAD_CHARACTER; }

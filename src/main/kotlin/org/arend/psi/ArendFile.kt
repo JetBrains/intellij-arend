@@ -15,6 +15,7 @@ import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ModuleLocation
+import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
@@ -35,6 +36,13 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     var generatedModuleLocation: ModuleLocation? = null
+
+    /**
+     * You can enforce the scope of a file to be something else.
+     */
+    var enforcedScope: (() -> Scope)? = null
+
+    var enforcedLibraryConfig: LibraryConfig? = null
 
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: arendLibrary?.config?.getFileModulePath(this)
@@ -70,13 +78,19 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
+            val scopeSupplier = (originalFile as? ArendFile ?: this).enforcedScope
+            if (scopeSupplier != null) return@getCachedValue cachedScope(scopeSupplier())
             val injectedIn = injectionContext
-            CachedValueProvider.Result(if (injectedIn != null) {
-                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope ?: EmptyScope.INSTANCE
+            cachedScope(if (injectedIn != null) {
+                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
+                    ?: EmptyScope.INSTANCE
             } else {
                 CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider))
-            }, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
+            })
         }
+
+    private fun cachedScope(scope: Scope?) =
+        CachedValueProvider.Result(scope, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
 
     override val defIdentifier: ArendDefIdentifier?
         get() = null

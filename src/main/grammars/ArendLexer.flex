@@ -42,7 +42,7 @@ BLOCK_COMMENT_END   = "-}"
 LINE_DOC  = "-- |" (.* | {EOL})
 
 NUMBER              = [0-9]+
-NEGATIVE_NUMBER     = -[0-9]+
+NEGATIVE_NUMBER     = -{NUMBER}
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
 KEYWORD             = \\[0-9]*{ID}
@@ -57,6 +57,7 @@ UNIVERSE            = \\Type[0-9]*
 TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
 %%
+
 <YYINITIAL> {
     {WHITE_SPACE}           { return WHITE_SPACE; }
 
@@ -158,6 +159,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
     {POSTFIX}               { return POSTFIX; }
     {INFIX}                 { return INFIX; }
+    // For REPL
+    :{ID}                   { return getTokenStart() == 0 ? REPL_COMMAND : ID; }
     {ID}                    { return ID; }
 }
 

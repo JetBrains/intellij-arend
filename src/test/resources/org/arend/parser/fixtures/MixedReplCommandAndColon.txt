@@ -1,0 +1,12 @@
+FILE
+  ArendReplLineImpl(REPL_LINE)
+    PsiElement(REPL_COMMAND)(':type')
+    PsiWhiteSpace(' ')
+    ArendNewExprImpl(NEW_EXPR)
+      ArendArgumentAppExprImpl(ARGUMENT_APP_EXPR)
+        ArendAtomFieldsAccImpl(ATOM_FIELDS_ACC)
+          ArendAtomImpl(ATOM)
+            ArendLiteralImpl(LITERAL)
+              ArendLongNameImpl(LONG_NAME)
+                ArendRefIdentifierImpl(REF_IDENTIFIER)
+                  PsiElement(ID)('::')

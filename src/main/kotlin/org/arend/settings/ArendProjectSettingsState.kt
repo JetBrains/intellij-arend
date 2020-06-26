@@ -1,6 +1,7 @@
 package org.arend.settings
 
 import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
+import org.arend.ext.core.ops.NormalizationMode
 
 // This class is needed since EnumSet<MessageType> does not serialize correctly for some reason
 class ArendProjectSettingsState {
@@ -34,6 +35,9 @@ class ArendProjectSettingsState {
     var popupPrintingOptions = ArendPrintingOptions()
 
     var normalizePopup = false
+
+    // Repl options
+    var replNormalizationMode = NormalizationMode.RNF.toString()
 }
 
 class ArendPrintingOptions {

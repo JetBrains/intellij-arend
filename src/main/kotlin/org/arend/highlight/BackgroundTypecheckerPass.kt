@@ -84,6 +84,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
+        if (file.enforcedScope != null) return
         when (arendSettings.typecheckingMode) {
             ArendSettings.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty()) {
                 val typechecking = ArendTypechecking.create(myProject, BackgroundTypecheckerState(typeCheckingService.typecheckerState))

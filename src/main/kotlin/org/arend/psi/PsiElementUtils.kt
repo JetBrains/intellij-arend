@@ -81,6 +81,8 @@ val PsiElement.module: Module?
 
 val PsiFile.libraryConfig: LibraryConfig?
     get() {
+        val enforcedConfig = (this as? ArendFile)?.enforcedLibraryConfig
+        if (enforcedConfig != null) return enforcedConfig
         val virtualFile = originalFile.virtualFile ?: return null
         val module = ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
         return if (module != null) ArendModuleConfigService.getInstance(module) else null

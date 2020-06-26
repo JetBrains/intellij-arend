@@ -20,7 +20,7 @@ class ReplaceWithNormalFormIntention : SelectionIntention<ArendExpr>(ArendExpr::
         val definitionRenamer = PsiLocatedRenamer(element, file)
         normalizeExpr(project, subCore, NormalizationMode.WHNF, CachingDefinitionRenamer(definitionRenamer)) {
             val text = it.toString()
-            WriteCommandAction.runWriteCommandAction(project) {
+            WriteCommandAction.writeCommandAction(project).run<Exception> {
                 val range = rangeOfConcrete(subConcrete)
                 val length = replaceExprSmart(editor.document, element, subConcrete, range, null, it, text).length
                 val start = range.startOffset

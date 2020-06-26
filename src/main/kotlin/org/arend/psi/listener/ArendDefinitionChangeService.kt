@@ -57,6 +57,8 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     }
 
     override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
+        val file = event.file
+        if (file is ArendFile && file.enforcedScope != null) return
         val child = event.child
         if (child is ArendFile) { // whole file has been removed
             invalidateChildren(child, child)

@@ -276,6 +276,8 @@
 
         <projectService serviceImplementation="org.arend.highlight.ArendPassFactoryService"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
+
         <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
 
         <!-- Task Execution Listener -->
@@ -349,6 +351,13 @@
                 text="Show Elaborated Expression"
                 description="Show the elaborated form of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
+        </action>
+
+        <action class="org.arend.toolWindow.repl.ArendShowReplAction"
+                id="Arend.ShowRepl"
+                text="Show Arend REPL"
+                description="Display the Arend REPL as a tool window">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
 
         <action id="Arend.Config.ToggleNormalize"

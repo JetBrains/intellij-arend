@@ -57,6 +57,11 @@ class ArendDocParser : PsiParser {
             }
         }
 
+        if (longMarker != null) {
+            builder.error("Expected '}'")
+            longMarker.done(LONG_NAME)
+        }
+
         rootMarker.done(root)
         return builder.treeBuilt
     }

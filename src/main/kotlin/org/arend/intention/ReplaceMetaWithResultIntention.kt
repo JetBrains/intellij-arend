@@ -32,7 +32,7 @@ class ReplaceMetaWithResultIntention : BaseArendIntention("Replace meta with res
         }
 
         val text = cExpr.toString()
-        WriteCommandAction.runWriteCommandAction(project) {
+        WriteCommandAction.writeCommandAction(project).run<Exception> {
             replaceExprSmart(editor.document, expr, subConcrete, rangeOfConcrete(subConcrete), null, cExpr, text).length
             definitionRenamer.writeAllImportCommands()
         }

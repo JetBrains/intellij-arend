@@ -6,7 +6,10 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
 
-class ArendPsiFactory(private val project: Project) {
+class ArendPsiFactory(
+    private val project: Project,
+    private val fileName: String = "DUMMY.ard"
+) {
     enum class StatCmdKind {OPEN, IMPORT}
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
@@ -63,10 +66,16 @@ class ArendPsiFactory(private val project: Project) {
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
-    fun createExpression(expr: String): ArendExpr {
-        val code = "\\func foo => $expr"
-        return createFromText(code)?.childOfType() ?: error("Failed to create expr: `$code`")
+    fun createExpressionMaybe(expr: String): ArendExpr? {
+        return createReplLine(expr)?.childOfType()
     }
+
+    fun createReplLine(expr: String): ArendReplLine? {
+        return createFromText(expr)?.childOfType()
+    }
+
+    fun createExpression(expr: String) =
+        createExpressionMaybe(expr) ?: error("Failed to create expr: `$expr`")
 
     fun createFunctionClauses(): ArendFunctionClauses {
         val code = "\\func foo (a : Nat) : Nat\n  | 0 => {?}"
@@ -136,7 +145,7 @@ class ArendPsiFactory(private val project: Project) {
     }
 
     fun createFromText(code: String): ArendFile? =
-        PsiFileFactory.getInstance(project).createFileFromText("DUMMY.ard", ArendFileType, code) as? ArendFile
+        PsiFileFactory.getInstance(project).createFileFromText(fileName, ArendFileType, code) as? ArendFile
 
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)

@@ -36,6 +36,7 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
 
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
+        if (file.enforcedScope != null) return
         myProject.service<ErrorService>().updateTypecheckingErrors(file, null)
         myProject.service<ArendMessagesService>().update()
         selectErrorFromEditor(file.project, editor, file, always = false, activate = false)

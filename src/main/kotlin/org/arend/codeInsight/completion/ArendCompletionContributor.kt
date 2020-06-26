@@ -17,6 +17,7 @@ import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.repl.CommandHandler
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
 import java.util.*
@@ -27,6 +28,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
     init {
         basic(PREC_CONTEXT, FIXITY_KWS)
+
+        basic(PlatformPatterns.psiElement(REPL_COMMAND), CommandHandler.INSTANCE.commandMap.keys)
 
         basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
 
@@ -442,11 +445,11 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, pattern, provider)
     }
 
-    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>, tailSpaceNeeded: Boolean = true) {
+    private fun basic(place: ElementPattern<PsiElement>, keywords: Collection<String>, tailSpaceNeeded: Boolean = true) {
         basic(place, KeywordCompletionProvider(keywords, tailSpaceNeeded = tailSpaceNeeded))
     }
 
-    private fun basic(place: ElementPattern<PsiElement>, keywords: List<String>, condition: (CompletionParameters) -> Boolean) {
+    private fun basic(place: ElementPattern<PsiElement>, keywords: Collection<String>, condition: (CompletionParameters) -> Boolean) {
         basic(place, ConditionalProvider(keywords, condition))
     }
 
@@ -579,7 +582,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class KeywordCompletionProvider(private val keywords: List<String>,
+    private open class KeywordCompletionProvider(private val keywords: Collection<String>,
                                                  private val tailSpaceNeeded: Boolean = true,
                                                  private val disableAfter2Crlfs: Boolean = true) : CompletionProvider<CompletionParameters>() {
 
@@ -618,7 +621,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class ConditionalProvider(keywords: List<String>, val condition: (CompletionParameters) -> Boolean,
+    private open class ConditionalProvider(keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
                                            tailSpaceNeeded: Boolean = true,
                                            disableAfter2Crlfs: Boolean = true) :
             KeywordCompletionProvider(keywords, tailSpaceNeeded, disableAfter2Crlfs) {

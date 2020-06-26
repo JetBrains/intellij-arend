@@ -207,6 +207,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+        if (file.enforcedScope != null) return
         if (ComputationRunner.getCancellationIndicator() is ArendCancellationIndicator) {
             synchronized(typecheckerState) {
                 (ComputationRunner.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
