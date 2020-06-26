@@ -113,7 +113,10 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         for (docElement in doc.children) {
             val leafElement = docElement as? LeafPsiElement
             if (leafElement?.elementType == ParserMixin.DOC_TEXT) {
-                html(docElement.text)
+                val lines = docElement.text.split(Regex("\n[ ]*-"), 0)
+                for (line in lines) {
+                    html(line)
+                }
             } else if (leafElement?.elementType == ParserMixin.DOC_CODE) {
                 append("<pre>${leafElement?.text}</pre>")
             } else if (docElement is ArendLongName) {
