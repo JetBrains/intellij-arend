@@ -2,8 +2,10 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiDocCommentBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.ClassReferable
@@ -12,6 +14,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
+import org.arend.psi.doc.ArendDocComment
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendPatternDefReferenceImpl
 import org.arend.resolving.ArendReference
@@ -105,7 +108,13 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
             parent is ArendLetClausePattern -> parent.ancestor<ArendLetExpr>()?.let { return LocalSearchScope(it) } // Let clause pattern
             parent is ArendLetClause -> return LocalSearchScope(parent.parent) // Let clause
             (parent?.parent as? ArendTypedExpr)?.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
-            parent?.parent is ArendNameTele -> return LocalSearchScope(parent.parent.parent)
+            parent?.parent is ArendNameTele -> {
+                val function = parent.parent.parent
+                var prevSibling = function.parent.prevSibling
+                if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
+                val docComment = prevSibling as? ArendDocComment
+                return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
+            }
             (parent as? ArendAtomPatternOrPrefix)?.parent != null -> {
                 var p = parent.parent.parent
                 while (p != null && p !is ArendClause) p = p.parent
