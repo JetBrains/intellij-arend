@@ -177,6 +177,10 @@ class RenameTest : ArendTestBase() {
             "\\func foo{-caret-} \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo 1\n\n\\func fubar2 => bar",
             "\\func foo2 \\alias bar (a b : Nat)\n\n\\func fubar1 => `foo2 1\n\n\\func fubar2 => bar", usingHandler = true)
 
+    fun `test rename nametele defIdentifier with doc comment`() = doTest("fubar",
+            "-- | {bar{-caret-}}\n\\func foo (bar : Nat) => bar",
+             "-- | {fubar}\n\\func foo (fubar : Nat) => fubar")
+
     fun `test rename file`() = checkByDirectory(
             """
                 --! Main.ard
