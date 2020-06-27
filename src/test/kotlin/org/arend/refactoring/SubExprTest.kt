@@ -48,28 +48,28 @@ class SubExprTest : ArendTestBase() {
         \func yukio => 114 Nat.+ 514
         """, "114 Nat.+ 514").run {
         assertEquals("114 + 514", subConcrete.toString())
-        assertEquals("114 + 514", subCore.toString())
+        assertEquals("628", subCore.toString())
     }
 
     fun `test infix only select op`() = subexpr("""
         \func yukio => 114 Nat.+ 514
         """, "+").run {
         assertEquals("114 + 514", subConcrete.toString())
-        assertEquals("114 + 514", subCore.toString())
+        assertEquals("628", subCore.toString())
     }
 
     fun `test infix caret at op`() = subexpr("""
         \func yukio => 114 {-caret-}Nat.+ 514
         """).run {
         assertEquals("114 + 514", subConcrete.toString())
-        assertEquals("114 + 514", subCore.toString())
+        assertEquals("628", subCore.toString())
     }
 
     fun `test infix caret at op 2`() = subexpr("""
         \func yukio => 114 Nat.{-caret-}+ 514
         """).run {
         assertEquals("114 + 514", subConcrete.toString())
-        assertEquals("114 + 514", subCore.toString())
+        assertEquals("628", subCore.toString())
     }
 
     fun `test paren select left paren`() = subexpr("""
