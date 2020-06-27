@@ -52,15 +52,20 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             val filters = HashMap<ConstructorExpressionPattern, List<Boolean>>()
             val previewResults = ArrayList<PatternKind>()
             val recursiveTypeUsagesInBindings = ArrayList<Int>()
+            val elimMode = missingClausesError.isElim
+
             run {
                 var parameter: DependentLink? = if (!missingClausesError.isElim) missingClausesError.parameters else null
                 val iterator = clause.iterator()
+                var i = 0
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     val recTypeUsagesInPattern = HashSet<BindingPattern>()
-                    previewResults.add(previewPattern(pattern, filters, if (parameter == null || parameter.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES, recTypeUsagesInPattern, (parameter?.type as? DefCallExpression)?.definition))
+                    val sampleParameter = if (elimMode) missingClausesError.eliminatedParameters[i] else parameter!!
+                    previewResults.add(previewPattern(pattern, filters, if (parameter == null || parameter.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES, recTypeUsagesInPattern, (sampleParameter?.type as? DefCallExpression)?.definition))
                     recursiveTypeUsagesInBindings.add(recTypeUsagesInPattern.size)
                     parameter = if (parameter != null && parameter.hasNext()) parameter.next else null
+                    i++
                 }
             }
 
@@ -71,7 +76,6 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             run {
                 val iterator = clause.iterator()
                 val recursiveTypeUsagesInBindingsIterator = recursiveTypeUsagesInBindings.iterator()
-                val elimMode = missingClausesError.isElim
                 var parameter2: DependentLink? = if (!elimMode) missingClausesError.parameters else null
                 val clauseBindings: MutableList<Variable> = definedVariables.toMutableList()
                 var i = 0

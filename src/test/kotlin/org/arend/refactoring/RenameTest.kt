@@ -179,7 +179,7 @@ class RenameTest : ArendTestBase() {
 
     fun `test rename nametele defIdentifier with doc comment`() = doTest("fubar",
             "-- | {bar{-caret-}}\n\\func foo (bar : Nat) => bar",
-             "-- | {fubar}\n\\func foo (fubar : Nat) => fubar")
+            "-- | {fubar}\n\\func foo (fubar : Nat) => fubar")
 
     fun `test rename file`() = checkByDirectory(
             """

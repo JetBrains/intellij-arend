@@ -452,6 +452,18 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | con t s => {?} 
     """)
 
+    fun test_88_7() = typedQuickFixTest("Implement", """
+       \data Tree (A : \Type) | Leaf | Branch (Tree A) A (Tree A)
+       
+       \func foo{-caret-} {A : \Type} (t : Tree A) : Nat \elim t
+    """, """
+       \data Tree (A : \Type) | Leaf | Branch (Tree A) A (Tree A)
+       
+       \func foo {A : \Type} (t : Tree A) : Nat \elim t
+         | Leaf => {?}
+         | Branch t1 a t2 => {?}
+    """)
+
     fun test_86_1() = typedQuickFixTest("Implement", """
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
     """, """
