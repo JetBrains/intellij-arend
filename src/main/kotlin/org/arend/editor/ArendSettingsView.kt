@@ -38,7 +38,7 @@ class ArendSettingsView {
     private val clauseLimit = JBIntSpinner(10, 1, 1000)
 
     private val arendJarTextField = TextFieldWithBrowseButton().apply {
-        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptor(false, false, true, false, false, false)))
+        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptor(false, false, true, true, false, false)))
         //addBrowseFolderListener("Path to Arend jar for debugger", "Specify the path to Arend console application jar to be used in debugger", , FileChooserDescriptorFactory.createSingleFileDescriptor(".jar"), textComponentAccessor)
     }
 
