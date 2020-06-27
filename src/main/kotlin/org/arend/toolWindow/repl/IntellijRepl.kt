@@ -27,22 +27,37 @@ import org.arend.typechecking.order.dependency.DummyDependencyListener
 abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
     private val refConverter: ReferableConverter,
+    extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
     psiConcreteProvider: PsiConcreteProvider,
     psiInstanceProviderSet: PsiInstanceProviderSet
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    psiConcreteProvider,
-    ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, refConverter, errorReporter, DummyDependencyListener.INSTANCE, LibraryArendExtensionProvider(service.libraryManager)),
+    ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, refConverter, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
     service.typecheckerState
 ) {
     constructor(project: Project) : this(project.service(), ListErrorReporter())
-    private constructor(service: TypeCheckingService, errorReporter: ListErrorReporter) : this(
+
+    private constructor(
+        service: TypeCheckingService,
+        errorReporter: ListErrorReporter
+    ) : this(
         service,
-        LocatedReferableConverter(service.newReferableConverter(false)),
         errorReporter,
-        PsiConcreteProvider(service.project, LocatedReferableConverter(service.newReferableConverter(false)), errorReporter, null, false),
+        service.newReferableConverter(false)
+    )
+
+    private constructor(
+        service: TypeCheckingService,
+        errorReporter: ListErrorReporter,
+        refConverter: ReferableConverter
+    ) : this(
+        service,
+        refConverter,
+        LibraryArendExtensionProvider(service.libraryManager),
+        errorReporter,
+        PsiConcreteProvider(service.project, refConverter, errorReporter, null, true),
         PsiInstanceProviderSet(PsiConcreteProvider(service.project, LocatedReferableConverter(service.newReferableConverter(false)), errorReporter, null, false), LocatedReferableConverter(service.newReferableConverter(false)))
     )
 
