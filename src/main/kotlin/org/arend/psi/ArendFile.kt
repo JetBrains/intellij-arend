@@ -42,6 +42,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
      */
     var enforcedScope: (() -> Scope)? = null
 
+    val isReplFile get() = enforcedScope != null
+
     var enforcedLibraryConfig: LibraryConfig? = null
 
     val moduleLocation: ModuleLocation?
