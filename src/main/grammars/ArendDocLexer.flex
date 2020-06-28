@@ -35,6 +35,7 @@ import static org.arend.psi.ArendElementTypes.*;
 %state CLOSE_CODE2
 %state CLOSE_CODE3
 %state REFERENCE
+%state REFERENCE_TEXT
 
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
 ID_CHAR             = {START_CHAR} | [0-9']
@@ -56,7 +57,15 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
 <CONTENTS> {
     "{" {
         yybegin(REFERENCE);
-        return DOC_IGNORED;
+        return LBRACE;
+    }
+    "[" {
+        textStart = zzMarkedPos;
+        yybegin(REFERENCE_TEXT);
+        return DOC_LBRACKET;
+    }
+    "]" {
+        return DOC_RBRACKET;
     }
     "`" {
         textStart = getTokenStart();
@@ -71,7 +80,7 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
     "```" {
         textStart = getTokenStart();
         yybegin(CODE3);
-        return DOC_IGNORED;
+        return DOC_CODE_BLOCK_BORDER;
     }
     "-}" {
         if (zzMarkedPos == zzBuffer.length()) {
@@ -95,7 +104,7 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
 }
 
 <TEXT> {
-    ("{" | "`" | {NEW_LINE}) {
+    ("{" | "[" | "`" | {NEW_LINE}) {
         zzMarkedPos = zzStartRead;
         zzStartRead = textStart;
         yybegin(CONTENTS);
@@ -107,10 +116,20 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
 <REFERENCE> {
     "}" {
         yybegin(CONTENTS);
-        return DOC_IGNORED;
+        return RBRACE;
     }
     "." { return DOT; }
     {ID} { return ID; }
+}
+
+<REFERENCE_TEXT> {
+    "]" {
+        zzMarkedPos--;
+        zzStartRead = textStart;
+        yybegin(CONTENTS);
+        return DOC_TEXT;
+    }
+    [^] {}
 }
 
 <CODE1> {
@@ -193,7 +212,7 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
 <CLOSE_CODE3> {
     "```" {
         yybegin(CONTENTS);
-        return DOC_IGNORED;
+        return DOC_CODE_BLOCK_BORDER;
     }
     {CODE_NEW_LINE} {
         yybegin(CODE3);

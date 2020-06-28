@@ -1,85 +1,142 @@
 package org.arend.parser
 
 import com.intellij.lang.ASTNode
+import com.intellij.lang.LightPsiParser
 import com.intellij.lang.PsiBuilder
+import com.intellij.lang.PsiBuilder.Marker
 import com.intellij.lang.PsiParser
-import com.intellij.psi.TokenType
+import com.intellij.psi.TokenType.*
 import com.intellij.psi.tree.IElementType
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.ArendElementTypes.*
 
-class ArendDocParser : PsiParser {
+class ArendDocParser : PsiParser, LightPsiParser {
     override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
+        parseLight(root, builder)
+        return builder.treeBuilt
+    }
+
+    override fun parseLight(root: IElementType, builder: PsiBuilder) {
         val rootMarker = builder.mark()
         if (builder.tokenType === DOC_START) {
             builder.advanceLexer()
         }
 
-        var longMarker: PsiBuilder.Marker? = null
-        var bodyMarker: PsiBuilder.Marker? = null
-        var codeBlockMarker: PsiBuilder.Marker? = null
-        var last: IElementType? = null
+        var bodyMarker: Marker? = null
         while (!builder.eof()) {
-            val token = builder.tokenType
-
-            if (codeBlockMarker != null && token != DOC_CODE_LINE && token != TokenType.WHITE_SPACE) {
-                codeBlockMarker.done(DOC_CODE_BLOCK)
-                codeBlockMarker = null
-            }
-
-            when (token) {
-                ID -> {
-                    if (longMarker == null) {
-                        longMarker = builder.mark()
-                    }
-                    val marker = builder.mark()
+            when (val token = builder.tokenType) {
+                DOC_TEXT, DOC_IGNORED, DOC_CODE -> builder.advanceLexer()
+                DOC_PARAGRAPH_SEP -> {
+                    if (bodyMarker == null) bodyMarker = builder.mark()
                     builder.advanceLexer()
-                    if (last == ID) {
-                        marker.error("Unexpected identifier")
+                }
+                DOC_LBRACKET -> parseReferenceText(builder)
+                LBRACE -> parseReference(builder, builder.mark())
+                DOC_CODE_BLOCK_BORDER -> parseCodeBlock(builder)
+                else -> parseBad(token, builder)
+            }
+        }
+
+        bodyMarker?.done(DOC_BODY)
+        rootMarker.done(root)
+    }
+
+    private fun parseBad(token: IElementType?, builder: PsiBuilder) {
+        if (token == BAD_CHARACTER) {
+            builder.error("Unexpected character")
+        } else {
+            builder.error("Unexpected token: $token")
+        }
+        builder.advanceLexer()
+    }
+
+    private fun parseCodeBlock(builder: PsiBuilder) {
+        val marker = builder.mark()
+        builder.advanceLexer()
+
+        while (!builder.eof()) {
+            when (val token = builder.tokenType) {
+                DOC_CODE_LINE -> builder.advanceLexer()
+                DOC_CODE_BLOCK_BORDER -> {
+                    builder.advanceLexer()
+                    marker.done(DOC_CODE_BLOCK)
+                    return
+                }
+                else -> parseBad(token, builder)
+            }
+        }
+
+        builder.error("Expected '```'")
+        marker.done(DOC_CODE_BLOCK)
+    }
+
+    private fun parseReferenceText(builder: PsiBuilder) {
+        val refMarker = builder.mark()
+        val refTextMarker = builder.mark()
+        builder.advanceLexer()
+
+        while (!builder.eof()) {
+            when (val token = builder.tokenType) {
+                DOC_TEXT -> builder.advanceLexer()
+                DOC_RBRACKET -> {
+                    builder.advanceLexer()
+                    if (builder.tokenType == LBRACE) {
+                        refTextMarker.done(DOC_REFERENCE_TEXT)
+                        parseReference(builder, refMarker)
                     } else {
-                        marker.done(REF_IDENTIFIER)
-                        last = ID
+                        refTextMarker.drop()
+                        refMarker.drop()
+                    }
+                    return
+                }
+                else -> parseBad(token, builder)
+            }
+        }
+
+        refTextMarker.drop()
+        refMarker.drop()
+    }
+
+    private fun parseReference(builder: PsiBuilder, refMarker: Marker) {
+        builder.advanceLexer()
+        val marker = builder.mark()
+
+        var isComplete = false
+        while (!builder.eof()) {
+            when (val token = builder.tokenType) {
+                ID -> {
+                    val idMarker = builder.mark()
+                    builder.advanceLexer()
+                    if (isComplete) {
+                        idMarker.error("Unexpected identifier")
+                    } else {
+                        idMarker.done(REF_IDENTIFIER)
+                        isComplete = true
                     }
                 }
                 DOT -> {
-                    if (last != ID) {
+                    if (isComplete) {
+                        isComplete = false
+                    } else {
                         builder.error("Unexpected '.'")
                     }
                     builder.advanceLexer()
-                    last = DOT
                 }
-                TokenType.BAD_CHARACTER -> {
-                    builder.error("Unexpected character")
+                RBRACE -> {
+                    if (!isComplete) {
+                        builder.error("Expected an identifier")
+                    }
+                    marker.done(LONG_NAME)
                     builder.advanceLexer()
+                    refMarker.done(DOC_REFERENCE)
+                    return
                 }
-                else -> {
-                    if (longMarker != null) {
-                        if (last == DOT) {
-                            builder.error("Expected an identifier")
-                        }
-                        longMarker.done(LONG_NAME)
-                        longMarker = null
-                        last = null
-                    }
-                    if (token == DOC_PARAGRAPH_SEP && bodyMarker == null) {
-                        bodyMarker = builder.mark()
-                    }
-                    if (token == DOC_CODE_LINE && codeBlockMarker == null) {
-                        codeBlockMarker = builder.mark()
-                    }
-                    builder.advanceLexer()
-                }
+                else -> parseBad(token, builder)
             }
         }
 
-        if (longMarker != null) {
-            builder.error("Expected '}'")
-            longMarker.done(LONG_NAME)
-        }
-
-        codeBlockMarker?.done(DOC_CODE_BLOCK)
-        bodyMarker?.done(DOC_BODY)
-        rootMarker.done(root)
-        return builder.treeBuilt
+        builder.error("Expected '}'")
+        marker.done(LONG_NAME)
+        refMarker.done(DOC_REFERENCE)
     }
 }

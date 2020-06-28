@@ -18,8 +18,13 @@ public class ParserMixin {
   public static final ArendTokenType DOC_CODE = new ArendTokenType("DOC_CODE");
   public static final ArendTokenType DOC_CODE_LINE = new ArendTokenType("DOC_CODE_LINE");
   public static final ArendTokenType DOC_PARAGRAPH_SEP = new ArendTokenType("DOC_PARAGRAPH_SEP");
+  public static final ArendTokenType DOC_LBRACKET = new ArendTokenType("[");
+  public static final ArendTokenType DOC_RBRACKET = new ArendTokenType("]");
+  public static final ArendTokenType DOC_CODE_BLOCK_BORDER = new ArendTokenType("```");
   public static final ArendCompositeElementType DOC_BODY = new ArendCompositeElementType("DOC_BODY");
   public static final ArendCompositeElementType DOC_CODE_BLOCK = new ArendCompositeElementType("DOC_CODE_BLOCK");
+  public static final ArendCompositeElementType DOC_REFERENCE = new ArendCompositeElementType("DOC_REFERENCE");
+  public static final ArendCompositeElementType DOC_REFERENCE_TEXT = new ArendCompositeElementType("DOC_REFERENCE_TEXT");
 
   public static final ILazyParseableElementType DOC_COMMENT = new ILazyParseableElementType("DOC_COMMENT", ArendLanguage.INSTANCE) {
     @Override

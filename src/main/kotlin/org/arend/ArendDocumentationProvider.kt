@@ -3,13 +3,19 @@ package org.arend
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.psi.*
+import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.elementType
 import com.intellij.xml.util.XmlStringUtil
+import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
-import org.arend.parser.ParserMixin
+import org.arend.naming.reference.RedirectingReferable
+import org.arend.naming.scope.Scope
+import org.arend.parser.ParserMixin.*
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocCodeBlock
-import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.doc.ArendDocComment
+import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
@@ -24,7 +30,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, true)
 
     override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String?, context: PsiElement?): PsiElement? {
-        return context?.parentOfType<ArendSourceNode>()?.scope?.resolveName(link) as? PsiElement
+        val scope = ArendDocComment.getScope(context) ?: return null
+        return RedirectingReferable.getOriginalReferable(Scope.Utils.resolveName(scope, LongName.fromString(link).toList())) as? PsiElement
     }
 
     private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean) =
@@ -114,23 +121,40 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         for (docElement in doc.children) {
             val elementType = (docElement as? LeafPsiElement)?.elementType
             when {
-                elementType == ParserMixin.DOC_TEXT -> html(docElement.text)
-                elementType == TokenType.WHITE_SPACE -> append(" ")
-                elementType == ParserMixin.DOC_CODE -> append("<code>${docElement.text}</code>")
-                docElement is ArendLongName -> {
-                    val ref = docElement.resolve
-                    if (ref is PsiReferable) {
-                        append("<a href=\"psi_element://${docElement.text}\"><code>${docElement.text}</code></a>")
+                elementType == DOC_LBRACKET -> append("[")
+                elementType == DOC_RBRACKET -> append("]")
+                elementType == DOC_TEXT -> html(docElement.text)
+                elementType == WHITE_SPACE -> append(" ")
+                elementType == DOC_CODE -> append("<code>${docElement.text}</code>")
+                docElement is ArendDocReference -> {
+                    val longName = docElement.longName
+                    val link = longName.refIdentifierList.joinToString(".") { it.id.text }
+                    val isLink = longName.resolve is PsiReferable
+                    if (isLink) {
+                        append("<a href=\"psi_element://$link\">")
+                    }
+
+                    append("<code>")
+                    val text = docElement.docReferenceText
+                    if (text != null) {
+                        for (child in text.childrenWithLeaves) {
+                            if (child.elementType == DOC_TEXT) append(child.text)
+                        }
                     } else {
-                        append("<code>${docElement.text}</code>")
+                        append(link)
+                    }
+                    append("</code>")
+
+                    if (isLink) {
+                        append("</a>")
                     }
                 }
                 docElement is ArendDocCodeBlock -> {
                     append("<pre>")
                     for (child in docElement.childrenWithLeaves) {
                         when ((child as? LeafPsiElement)?.elementType) {
-                            ParserMixin.DOC_CODE_LINE -> append(child.text)
-                            TokenType.WHITE_SPACE -> append("\n")
+                            DOC_CODE_LINE -> append(child.text)
+                            WHITE_SPACE -> append("\n")
                         }
                     }
                     append("</pre>")
