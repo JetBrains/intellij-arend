@@ -13,7 +13,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class ParserMixin {
   public static final ArendTokenType DOC_START = new ArendTokenType("DOC_START");
-  public static final ArendTokenType DOC_IGNORED = new ArendTokenType("DOC_IGNORED");
+  public static final ArendTokenType DOC_END = new ArendTokenType("DOC_END");
+  public static final ArendTokenType DOC_INLINE_CODE_BORDER = new ArendTokenType("DOC_INLINE_CODE_BORDER");
   public static final ArendTokenType DOC_TEXT = new ArendTokenType("DOC_TEXT");
   public static final ArendTokenType DOC_CODE = new ArendTokenType("DOC_CODE");
   public static final ArendTokenType DOC_CODE_LINE = new ArendTokenType("DOC_CODE_LINE");

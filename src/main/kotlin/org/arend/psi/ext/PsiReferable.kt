@@ -2,26 +2,34 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
-import com.intellij.psi.NavigatablePsiElement
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFileSystemItem
-import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.*
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.TypedReferable
 import org.arend.navigation.getPresentation
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
-import org.arend.psi.oneLineText
+import org.arend.psi.*
+import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 
 interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable {
     val psiElementType: PsiElement?
         get() = null
+
+    val documentation: ArendDocComment?
+        get() {
+            val stat = parent
+            if (!(stat is ArendClassStat || stat is ArendStatement)) {
+                return null
+            }
+            var sibling = stat.prevSibling
+            while (sibling is PsiWhiteSpace) {
+                sibling = sibling.prevSibling
+            }
+            return sibling as? ArendDocComment
+        }
 }
 
 val Abstract.ParametersHolder.parametersText: String?

@@ -25,18 +25,25 @@ class ArendDocParser : PsiParser, LightPsiParser {
         var bodyMarker: Marker? = null
         while (!builder.eof()) {
             when (val token = builder.tokenType) {
-                DOC_TEXT, DOC_IGNORED, DOC_CODE -> builder.advanceLexer()
+                DOC_TEXT, DOC_INLINE_CODE_BORDER, DOC_CODE -> builder.advanceLexer()
                 DOC_PARAGRAPH_SEP -> {
-                    if (bodyMarker == null) bodyMarker = builder.mark()
                     builder.advanceLexer()
+                    if (bodyMarker == null) bodyMarker = builder.mark()
                 }
                 DOC_LBRACKET -> parseReferenceText(builder)
                 LBRACE -> parseReference(builder, builder.mark())
                 DOC_CODE_BLOCK_BORDER -> parseCodeBlock(builder)
+                DOC_END -> {
+                    bodyMarker?.done(DOC_BODY)
+                    builder.advanceLexer()
+                    rootMarker.done(root)
+                    return
+                }
                 else -> parseBad(token, builder)
             }
         }
 
+        builder.error("Expected '-}'")
         bodyMarker?.done(DOC_BODY)
         rootMarker.done(root)
     }
@@ -54,7 +61,7 @@ class ArendDocParser : PsiParser, LightPsiParser {
         val marker = builder.mark()
         builder.advanceLexer()
 
-        while (!builder.eof()) {
+        loop@ while (!builder.eof()) {
             when (val token = builder.tokenType) {
                 DOC_CODE_LINE -> builder.advanceLexer()
                 DOC_CODE_BLOCK_BORDER -> {
@@ -62,6 +69,7 @@ class ArendDocParser : PsiParser, LightPsiParser {
                     marker.done(DOC_CODE_BLOCK)
                     return
                 }
+                DOC_END -> break@loop
                 else -> parseBad(token, builder)
             }
         }
@@ -75,7 +83,7 @@ class ArendDocParser : PsiParser, LightPsiParser {
         val refTextMarker = builder.mark()
         builder.advanceLexer()
 
-        while (!builder.eof()) {
+        loop@ while (!builder.eof()) {
             when (val token = builder.tokenType) {
                 DOC_TEXT -> builder.advanceLexer()
                 DOC_RBRACKET -> {
@@ -83,12 +91,10 @@ class ArendDocParser : PsiParser, LightPsiParser {
                     if (builder.tokenType == LBRACE) {
                         refTextMarker.done(DOC_REFERENCE_TEXT)
                         parseReference(builder, refMarker)
-                    } else {
-                        refTextMarker.drop()
-                        refMarker.drop()
-                    }
-                    return
+                        return
+                    } else break@loop
                 }
+                DOC_END -> break@loop
                 else -> parseBad(token, builder)
             }
         }

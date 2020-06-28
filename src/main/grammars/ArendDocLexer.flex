@@ -13,6 +13,17 @@ import static org.arend.psi.ArendElementTypes.*;
     public ArendDocLexer() {
         this((java.io.Reader)null);
     }
+
+    private int textStart;
+
+    private boolean checkNextToLast() {
+      if (zzMarkedPos == zzBuffer.length() - 1) {
+        zzMarkedPos--;
+        return true;
+      } else {
+        return false;
+      }
+    }
 %}
 
 %public
@@ -21,10 +32,6 @@ import static org.arend.psi.ArendElementTypes.*;
 %function advance
 %type IElementType
 %unicode
-
-%{
-    private int textStart;
-%}
 
 %state CONTENTS
 %state TEXT
@@ -44,6 +51,7 @@ ID                  = {START_CHAR} {ID_CHAR}*
 NEW_LINE            = "\n" [ \t]* ("-" [ \t]*)?
 PARAGRAPH_SEP       = {NEW_LINE} ("\r"? {NEW_LINE})+
 CODE_NEW_LINE       = "\n" [ \t]* "-"?
+NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
 
 %%
 
@@ -68,31 +76,35 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
         return DOC_RBRACKET;
     }
     "`" {
-        textStart = getTokenStart();
-        yybegin(CODE1);
-        return DOC_IGNORED;
-    }
+            textStart = getTokenStart();
+            yybegin(CODE1);
+            return DOC_INLINE_CODE_BORDER;
+        }
     "``" {
-        textStart = getTokenStart();
-        yybegin(CODE2);
-        return DOC_IGNORED;
-    }
+            textStart = getTokenStart();
+            yybegin(CODE2);
+            return DOC_INLINE_CODE_BORDER;
+        }
     "```" {
         textStart = getTokenStart();
         yybegin(CODE3);
         return DOC_CODE_BLOCK_BORDER;
     }
     "-}" {
-        if (zzMarkedPos == zzBuffer.length()) {
-            yybegin(YYINITIAL);
-            return DOC_IGNORED;
-        } else {
-            textStart = getTokenStart();
-            yybegin(TEXT);
+            if (zzMarkedPos == zzBuffer.length()) {
+                yybegin(YYINITIAL);
+                return DOC_END;
+            } else {
+                textStart = getTokenStart();
+                yybegin(TEXT);
+            }
         }
-    }
     {PARAGRAPH_SEP} {
         return DOC_PARAGRAPH_SEP;
+    }
+    {NEW_LINE_HYPHEN} {
+        checkNextToLast();
+        return WHITE_SPACE;
     }
     {NEW_LINE} {
         return WHITE_SPACE;
@@ -180,7 +192,7 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
     [^] {}
 }
 
-<TEXT,CODE1,CODE2,CODE3> {
+<TEXT,CODE1,CODE2,CODE3,REFERENCE_TEXT> {
     "-}" {
         if (zzMarkedPos == zzBuffer.length()) {
             zzMarkedPos -= 2;
@@ -201,18 +213,26 @@ CODE_NEW_LINE       = "\n" [ \t]* "-"?
 
 <CLOSE_CODE1>"`" {
     yybegin(CONTENTS);
-    return DOC_IGNORED;
+    return DOC_INLINE_CODE_BORDER;
 }
 
 <CLOSE_CODE2>"``" {
     yybegin(CONTENTS);
-    return DOC_IGNORED;
+    return DOC_INLINE_CODE_BORDER;
 }
 
 <CLOSE_CODE3> {
     "```" {
         yybegin(CONTENTS);
         return DOC_CODE_BLOCK_BORDER;
+    }
+    {NEW_LINE_HYPHEN} {
+        if (checkNextToLast()) {
+          yybegin(CONTENTS);
+        } else {
+          yybegin(CODE3);
+        }
+        return WHITE_SPACE;
     }
     {CODE_NEW_LINE} {
         yybegin(CODE3);

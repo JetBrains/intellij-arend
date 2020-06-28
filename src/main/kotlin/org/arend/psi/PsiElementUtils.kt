@@ -315,18 +315,6 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
     return result
 }
 
-fun getDocumentation(definition: PsiReferable): ArendDocComment? {
-    val stat = definition.parent
-    if (!(stat is ArendClassStat || stat is ArendStatement)) {
-        return null
-    }
-    var sibling = stat.prevSibling
-    while (sibling is PsiWhiteSpace) {
-        sibling = sibling.prevSibling
-    }
-    return sibling as? ArendDocComment
-}
-
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
     file.project.service<ArendDefinitionChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)

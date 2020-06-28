@@ -13,6 +13,7 @@ import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.scope.Scope
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.*
+import org.arend.psi.doc.ArendDocBody
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
@@ -24,20 +25,23 @@ import org.arend.term.abs.Abstract
 
 private fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
 
+private const val FULL_PREFIX = "\\full:"
+
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, true)
 
-    override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String?, context: PsiElement?): PsiElement? {
-        val scope = ArendDocComment.getScope(context) ?: return null
-        return RedirectingReferable.getOriginalReferable(Scope.Utils.resolveName(scope, LongName.fromString(link).toList())) as? PsiElement
+    override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String, context: PsiElement?): PsiElement? {
+        val longName = link.removePrefix(FULL_PREFIX)
+        val scope = ArendDocComment.getScope((context as? ArendDocComment)?.owner ?: context) ?: return null
+        val ref = RedirectingReferable.getOriginalReferable(Scope.Utils.resolveName(scope, LongName.fromString(longName).toList()))
+        return if (ref is PsiReferable && longName.length != link.length) ref.documentation else ref as? PsiElement
     }
 
-    private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean) =
-        if (element !is PsiReferable) {
-            null
-        } else buildString { wrapTag("html") {
+    private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean): String? {
+        val ref = element as? PsiReferable ?: (element as? ArendDocComment)?.owner ?: return null
+        return buildString { wrapTag("html") {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
@@ -46,22 +50,26 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
             wrapTag("body") {
             wrap(DEFINITION_START, DEFINITION_END) {
-                generateDefinition(element)
+                generateDefinition(ref)
             }
 
             wrap(CONTENT_START, CONTENT_END) {
-                generateContent(element, originalElement)
+                generateContent(ref, originalElement)
             }
 
             if (withDocComments) {
-                generateDocComments(element)
+                val doc = element as? ArendDocComment ?: ref.documentation
+                if (doc != null) {
+                    append(CONTENT_START)
+                    generateDocComments(ref, doc, element is ArendDocComment)
+                    append(CONTENT_END)
+                }
             }
         } } }
+    }
 
-    private fun StringBuilder.generateDocComments(element: PsiReferable) {
-        val doc = getDocumentation(element) ?: return
-        append(CONTENT_START)
-        for (docElement in doc.children) {
+    private fun StringBuilder.generateDocComments(element: PsiReferable, doc: PsiElement, full: Boolean) {
+        for (docElement in doc.childrenWithLeaves) {
             val elementType = (docElement as? LeafPsiElement)?.elementType
             when {
                 elementType == DOC_LBRACKET -> append("[")
@@ -69,6 +77,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 elementType == DOC_TEXT -> html(docElement.text)
                 elementType == WHITE_SPACE -> append(" ")
                 elementType == DOC_CODE -> append("<code>${docElement.text}</code>")
+                elementType == DOC_PARAGRAPH_SEP -> append("<br>")
                 docElement is ArendDocReference -> {
                     val longName = docElement.longName
                     val link = longName.refIdentifierList.joinToString(".") { it.id.text }
@@ -102,9 +111,13 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     }
                     append("</pre>")
                 }
+                docElement is ArendDocBody -> if (full) {
+                    generateDocComments(element, docElement, true)
+                } else {
+                    append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
+                }
             }
         }
-        append(CONTENT_END)
     }
 
     private fun StringBuilder.html(text: String) = append(text.htmlEscape())

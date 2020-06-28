@@ -189,7 +189,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
         for (member in myMembers) {
             val mStatementOrClassStat = member.parent
-            val doc = (member as? ArendDefinition)?.let { getDocumentation(it) }
+            val doc = (member as? ArendDefinition)?.documentation
             val memberIsInDynamicPart = isInDynamicPart(mStatementOrClassStat) != null
             val docCopy = doc?.copy()
 
