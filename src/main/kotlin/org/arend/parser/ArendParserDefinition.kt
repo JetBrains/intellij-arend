@@ -11,10 +11,12 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.arend.lexer.ArendLexerAdapter
+import org.arend.parser.ParserMixin.DOC_BODY
 import org.arend.psi.AREND_COMMENTS
 import org.arend.psi.AREND_WHITE_SPACES
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
+import org.arend.psi.doc.ArendDocBody
 import org.arend.psi.stubs.ArendFileStub
 
 class ArendParserDefinition : ParserDefinition {
@@ -38,6 +40,8 @@ class ArendParserDefinition : ParserDefinition {
             right: ASTNode
     ): ParserDefinition.SpaceRequirements = ParserDefinition.SpaceRequirements.MAY
 
-    override fun createElement(node: ASTNode): PsiElement =
-            ArendElementTypes.Factory.createElement(node)
+    override fun createElement(node: ASTNode): PsiElement = when (node.elementType) {
+        DOC_BODY -> ArendDocBody(node)
+        else -> ArendElementTypes.Factory.createElement(node)
+    }
 }

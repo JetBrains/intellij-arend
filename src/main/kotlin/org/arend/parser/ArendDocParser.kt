@@ -16,9 +16,10 @@ class ArendDocParser : PsiParser {
         }
 
         var longMarker: PsiBuilder.Marker? = null
+        var bodyMarker: PsiBuilder.Marker? = null
         var last: IElementType? = null
         while (!builder.eof()) {
-            when (builder.tokenType) {
+            when (val token = builder.tokenType) {
                 ID -> {
                     if (longMarker == null) {
                         longMarker = builder.mark()
@@ -52,6 +53,9 @@ class ArendDocParser : PsiParser {
                         longMarker = null
                         last = null
                     }
+                    if (token == DOC_PARAGRAPH_SEP && bodyMarker == null) {
+                        bodyMarker = builder.mark()
+                    }
                     builder.advanceLexer()
                 }
             }
@@ -62,6 +66,7 @@ class ArendDocParser : PsiParser {
             longMarker.done(LONG_NAME)
         }
 
+        bodyMarker?.done(DOC_BODY)
         rootMarker.done(root)
         return builder.treeBuilt
     }

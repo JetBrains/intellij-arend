@@ -6,6 +6,7 @@ import com.intellij.lang.PsiBuilderFactory;
 import com.intellij.psi.tree.ILazyParseableElementType;
 import org.arend.ArendLanguage;
 import org.arend.lexer.ArendDocLexerAdapter;
+import org.arend.psi.ArendCompositeElementType;
 import org.arend.psi.ArendTokenType;
 import org.arend.psi.doc.ArendDocComment;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,8 @@ public class ParserMixin {
   public static final ArendTokenType DOC_IGNORED = new ArendTokenType("DOC_IGNORED");
   public static final ArendTokenType DOC_TEXT = new ArendTokenType("DOC_TEXT");
   public static final ArendTokenType DOC_CODE = new ArendTokenType("DOC_CODE");
+  public static final ArendTokenType DOC_PARAGRAPH_SEP = new ArendTokenType("DOC_PARAGRAPH_SEP");
+  public static final ArendCompositeElementType DOC_BODY = new ArendCompositeElementType("DOC_BODY");
 
   public static final ILazyParseableElementType DOC_COMMENT = new ILazyParseableElementType("DOC_COMMENT", ArendLanguage.INSTANCE) {
     @Override

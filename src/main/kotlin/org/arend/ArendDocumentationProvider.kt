@@ -121,7 +121,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 append("<pre>${leafElement?.text}</pre>")
             } else if (docElement is ArendLongName) {
                 val ref = docElement.resolve
-                if (ref is ArendDefinition) {
+                if (ref is PsiReferable) {
                     append("<a href=\"psi_element://${docElement.text}\"><code>${docElement.text}</code></a>")
                 } else {
                     append("<code>${docElement.text}</code>")

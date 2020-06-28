@@ -3,7 +3,7 @@ package org.arend.lexer;
 import com.intellij.lexer.FlexLexer;
 import com.intellij.psi.tree.IElementType;
 
-import static com.intellij.psi.TokenType.BAD_CHARACTER;
+import static com.intellij.psi.TokenType.*;
 import static org.arend.parser.ParserMixin.*;
 import static org.arend.psi.ArendElementTypes.*;
 
@@ -39,6 +39,9 @@ import static org.arend.psi.ArendElementTypes.*;
 START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
 ID_CHAR             = {START_CHAR} | [0-9']
 ID                  = {START_CHAR} {ID_CHAR}*
+
+NEW_LINE            = "\n" [ \t]* ("-" [ \t]*)?
+PARAGRAPH_SEP       = {NEW_LINE} ("\r"? {NEW_LINE})+
 
 %%
 
@@ -78,6 +81,12 @@ ID                  = {START_CHAR} {ID_CHAR}*
             yybegin(TEXT);
         }
     }
+    {PARAGRAPH_SEP} {
+        return DOC_PARAGRAPH_SEP;
+    }
+    {NEW_LINE} {
+        return WHITE_SPACE;
+    }
     [^] {
         textStart = getTokenStart();
         yybegin(TEXT);
@@ -85,8 +94,8 @@ ID                  = {START_CHAR} {ID_CHAR}*
 }
 
 <TEXT> {
-    ("{" | "`") {
-        zzMarkedPos--;
+    ("{" | "`" | {NEW_LINE}) {
+        zzMarkedPos = zzStartRead;
         zzStartRead = textStart;
         yybegin(CONTENTS);
         return DOC_TEXT;
