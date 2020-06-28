@@ -8,6 +8,7 @@ import com.intellij.xml.util.XmlStringUtil
 import org.arend.naming.reference.FieldReferable
 import org.arend.parser.ParserMixin
 import org.arend.psi.*
+import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -115,7 +116,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             when {
                 elementType == ParserMixin.DOC_TEXT -> html(docElement.text)
                 elementType == TokenType.WHITE_SPACE -> append(" ")
-                elementType == ParserMixin.DOC_CODE -> append("<pre>${docElement.text}</pre>")
+                elementType == ParserMixin.DOC_CODE -> append("<code>${docElement.text}</code>")
                 docElement is ArendLongName -> {
                     val ref = docElement.resolve
                     if (ref is PsiReferable) {
@@ -123,6 +124,16 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     } else {
                         append("<code>${docElement.text}</code>")
                     }
+                }
+                docElement is ArendDocCodeBlock -> {
+                    append("<pre>")
+                    for (child in docElement.childrenWithLeaves) {
+                        when ((child as? LeafPsiElement)?.elementType) {
+                            ParserMixin.DOC_CODE_LINE -> append(child.text)
+                            TokenType.WHITE_SPACE -> append("\n")
+                        }
+                    }
+                    append("</pre>")
                 }
             }
         }

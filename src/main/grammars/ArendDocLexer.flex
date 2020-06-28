@@ -42,6 +42,7 @@ ID                  = {START_CHAR} {ID_CHAR}*
 
 NEW_LINE            = "\n" [ \t]* ("-" [ \t]*)?
 PARAGRAPH_SEP       = {NEW_LINE} ("\r"? {NEW_LINE})+
+CODE_NEW_LINE       = "\n" [ \t]* "-"?
 
 %%
 
@@ -149,8 +150,14 @@ PARAGRAPH_SEP       = {NEW_LINE} ("\r"? {NEW_LINE})+
         zzMarkedPos -= 3;
         zzStartRead = textStart;
         yybegin(CLOSE_CODE3);
-        return DOC_CODE;
+        return DOC_CODE_LINE;
     }
+    {CODE_NEW_LINE} {
+        zzMarkedPos = zzStartRead;
+        zzStartRead = textStart;
+        yybegin(CLOSE_CODE3);
+        return DOC_CODE_LINE;
+      }
     [^] {}
 }
 
@@ -183,9 +190,15 @@ PARAGRAPH_SEP       = {NEW_LINE} ("\r"? {NEW_LINE})+
     return DOC_IGNORED;
 }
 
-<CLOSE_CODE3>"```" {
-    yybegin(CONTENTS);
-    return DOC_IGNORED;
+<CLOSE_CODE3> {
+    "```" {
+        yybegin(CONTENTS);
+        return DOC_IGNORED;
+    }
+    {CODE_NEW_LINE} {
+        yybegin(CODE3);
+        return WHITE_SPACE;
+    }
 }
 
 [^] { return BAD_CHARACTER; }
