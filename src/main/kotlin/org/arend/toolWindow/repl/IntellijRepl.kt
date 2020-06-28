@@ -69,11 +69,10 @@ abstract class IntellijRepl private constructor(
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
-        ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
+        ?.let { ConcreteBuilder.convertExpression(refConverter.apply { clearCache() }, it) }
 
     fun clearScope() {
         myMergedScopes.clear()
-        refConverter.clearCache()
     }
 
     final override fun loadLibraries() {
