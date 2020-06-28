@@ -111,20 +111,18 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         val doc = getDocumentation(element) ?: return
         append(CONTENT_START)
         for (docElement in doc.children) {
-            val leafElement = docElement as? LeafPsiElement
-            if (leafElement?.elementType == ParserMixin.DOC_TEXT) {
-                val lines = docElement.text.split(Regex("\n[ ]*-"), 0)
-                for (line in lines) {
-                    html(line)
-                }
-            } else if (leafElement?.elementType == ParserMixin.DOC_CODE) {
-                append("<pre>${leafElement?.text}</pre>")
-            } else if (docElement is ArendLongName) {
-                val ref = docElement.resolve
-                if (ref is PsiReferable) {
-                    append("<a href=\"psi_element://${docElement.text}\"><code>${docElement.text}</code></a>")
-                } else {
-                    append("<code>${docElement.text}</code>")
+            val elementType = (docElement as? LeafPsiElement)?.elementType
+            when {
+                elementType == ParserMixin.DOC_TEXT -> html(docElement.text)
+                elementType == TokenType.WHITE_SPACE -> append(" ")
+                elementType == ParserMixin.DOC_CODE -> append("<pre>${docElement.text}</pre>")
+                docElement is ArendLongName -> {
+                    val ref = docElement.resolve
+                    if (ref is PsiReferable) {
+                        append("<a href=\"psi_element://${docElement.text}\"><code>${docElement.text}</code></a>")
+                    } else {
+                        append("<code>${docElement.text}</code>")
+                    }
                 }
             }
         }
