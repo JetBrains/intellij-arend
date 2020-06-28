@@ -1,4 +1,4 @@
-package org.arend
+package org.arend.debug
 
 import com.intellij.debugger.PositionManager
 import com.intellij.debugger.PositionManagerFactory

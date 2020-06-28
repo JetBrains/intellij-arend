@@ -6,7 +6,6 @@ import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope

@@ -27,9 +27,9 @@
         <library.type implementation="org.arend.module.ArendLibraryType"/>
         <moduleConfigurationEditorProvider implementation="org.arend.module.editor.ArendModuleConfigEditorProvider"/>
 
-        <debugger.positionManagerFactory implementation="org.arend.ArendPositionManagerFactory"/>
+        <debugger.positionManagerFactory implementation="org.arend.debug.ArendPositionManagerFactory"/>
 
-        <programRunner implementation="org.arend.ArendDebuggerRunner"/>
+        <programRunner implementation="org.arend.debug.ArendDebuggerRunner"/>
 
         <!-- Startup -->
 
