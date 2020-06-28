@@ -58,63 +58,6 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
         } } }
 
-/*
-    private fun StringBuilder.generateDocComments(element: PsiReferable, originalElement: PsiElement?) {
-        val parent = element.parent
-        var curElement = if (parent is ArendClassStat || parent is ArendStatement) parent.prevSibling else null
-        while (curElement is PsiWhiteSpace || curElement is PsiComment && (curElement.tokenType in arrayOf(ArendElementTypes.LINE_COMMENT, ArendElementTypes.BLOCK_COMMENT, ArendElementTypes.BLOCK_COMMENT_END))) {
-            curElement = curElement.prevSibling
-        }
-
-        // <a href="psi_element://Main"><code>Main</code></a>
-        append(CONTENT_START)
-        // append("<p>")//"<p class=\"normal_text\">")
-        if (curElement is PsiComment && curElement.tokenType == ArendElementTypes.LINE_DOC_TEXT) {
-            html(curElement.text)
-        } else {
-            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_DOC_COMMENT_START) {
-                curElement = curElement.prevSibling
-            }
-
-            while (curElement is PsiComment && curElement.tokenType != ArendElementTypes.BLOCK_COMMENT_END) {
-                if (curElement.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
-                    html(curElement.text.substringBefore("\n\n"))
-                    append(" ")
-                }
-                /*
-                if (curElement.tokenType == ArendElementTypes.DOC_CODE_MLINE_BOUND) {
-                    if (!isInsideMLineCode) {
-                        append("<pre>")//"<p class=\"normal_text\">")
-                    } else {
-                        append("</pre>")
-                    }
-                    isInsideMLineCode = !isInsideMLineCode
-                }
-                curElement = if (curElement.tokenType == ArendElementTypes.DOC_LINK_START) {
-                    val link = curElement.nextSibling as? PsiComment ?: break
-
-                    if (link.tokenType == ArendElementTypes.BLOCK_DOC_TEXT) {
-                        val refName = link.text
-                        val target = originalElement?.parentOfType<ArendSourceNode>()?.scope?.resolveName(refName) as? PsiElement
-
-                        if (target != null) {
-                            DocumentationManagerUtil.createHyperlink(this, target, refName, refName, true)
-                        }
-                        // append("<a href=\"psi_element://${refName}\"><code>${refName}</code></a>")
-                        val endBrace = link.nextSibling as? PsiComment ?: break
-                        if (endBrace.tokenType != ArendElementTypes.DOC_LINK_END) break
-                        endBrace.nextSibling
-                    } else {
-                        if (link.tokenType != ArendElementTypes.DOC_LINK_END) break
-                        link.nextSibling
-                    }
-                } else {
-                    curElement.nextSibling
-                }*/
-            }
-        }
-*/
-
     private fun StringBuilder.generateDocComments(element: PsiReferable) {
         val doc = getDocumentation(element) ?: return
         append(CONTENT_START)
@@ -214,7 +157,6 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 wrapTag("b") {
                     append(fileName)
                 }
-                // createHyperlink(this, fileName, fileName, false)
             }
         }
     }
