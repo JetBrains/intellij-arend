@@ -15,6 +15,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.LocatedReferableConverter
 import org.arend.repl.Repl
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
@@ -26,7 +27,7 @@ import org.arend.typechecking.order.dependency.DummyDependencyListener
 
 abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
-    private val refConverter: ReferableConverter,
+    private val refConverter: ArendReferableConverter,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
     psiConcreteProvider: PsiConcreteProvider,
@@ -51,7 +52,7 @@ abstract class IntellijRepl private constructor(
     private constructor(
         service: TypeCheckingService,
         errorReporter: ListErrorReporter,
-        refConverter: ReferableConverter
+        refConverter: ArendReferableConverter
     ) : this(
         service,
         refConverter,
@@ -70,6 +71,11 @@ abstract class IntellijRepl private constructor(
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(refConverter, it) }
 
+    fun clearScope() {
+        myMergedScopes.clear()
+        refConverter.clearCache()
+    }
+
     final override fun loadLibraries() {
         if (service.initialize()) println("[INFO] Initialized prelude.")
         val prelude = service.preludeScope.also { myReplScope.addPreludeScope(it) }
@@ -82,7 +88,7 @@ abstract class IntellijRepl private constructor(
         resetCurrentLineScope(arendFile)
     }
 
-    private fun resetCurrentLineScope(arendFile: ArendFile): Scope {
+    fun resetCurrentLineScope(arendFile: ArendFile): Scope {
         val scope = ScopeFactory.forGroup(arendFile, availableModuleScopeProvider)
         myReplScope.setCurrentLineScope(CachingScope.makeWithModules(scope))
         return myScope

@@ -51,6 +51,9 @@ class ArendReplExecutionHandler(
         super.execute(text, console)
         if (repl.repl(text) { "" }) {
             toolWindow.hide()
+            repl.clearScope()
+            repl.resetCurrentLineScope(arendFile)
+            resetRepl()
             saveSettings()
         }
     }

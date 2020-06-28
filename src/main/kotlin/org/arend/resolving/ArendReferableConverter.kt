@@ -14,6 +14,10 @@ import org.arend.psi.ext.PsiReferable
 class ArendReferableConverter(private val project: Project?, private val state: SimpleReferableConverter) : BaseReferableConverter() {
     private val cache = HashMap<PsiElement, TCReferable?>()
 
+    fun clearCache() {
+        cache.clear()
+    }
+
     fun putIfAbsent(referable: PsiLocatedReferable, tcReferable: TCReferable) {
         cache.putIfAbsent(referable, tcReferable)
         state.putIfAbsent(referable, tcReferable)
