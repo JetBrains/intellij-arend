@@ -13,7 +13,6 @@ import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.scope.Scope
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.*
-import org.arend.psi.doc.ArendDocBody
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
@@ -77,7 +76,13 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 elementType == DOC_TEXT -> html(docElement.text)
                 elementType == WHITE_SPACE -> append(" ")
                 elementType == DOC_CODE -> append("<code>${docElement.text}</code>")
-                elementType == DOC_PARAGRAPH_SEP -> append("<br>")
+                elementType == DOC_PARAGRAPH_SEP -> {
+                    append("<br>")
+                    if (!full) {
+                        append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
+                        return
+                    }
+                }
                 docElement is ArendDocReference -> {
                     val longName = docElement.longName
                     val link = longName.refIdentifierList.joinToString(".") { it.id.text }
@@ -110,11 +115,6 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                         }
                     }
                     append("</pre>")
-                }
-                docElement is ArendDocBody -> if (full) {
-                    generateDocComments(element, docElement, true)
-                } else {
-                    append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
                 }
             }
         }

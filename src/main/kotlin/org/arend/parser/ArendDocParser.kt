@@ -23,19 +23,13 @@ class ArendDocParser : PsiParser, LightPsiParser {
             builder.advanceLexer()
         }
 
-        var bodyMarker: Marker? = null
         while (!builder.eof()) {
             when (val token = builder.tokenType) {
-                DOC_TEXT, DOC_INLINE_CODE_BORDER, DOC_CODE -> builder.advanceLexer()
-                DOC_PARAGRAPH_SEP -> {
-                    builder.advanceLexer()
-                    if (bodyMarker == null) bodyMarker = builder.mark()
-                }
+                DOC_INLINE_CODE_BORDER, DOC_CODE, DOC_PARAGRAPH_SEP -> builder.advanceLexer()
                 DOC_LBRACKET -> parseReferenceText(builder)
                 LBRACE -> parseReference(builder, builder.mark())
                 DOC_CODE_BLOCK_BORDER -> parseCodeBlock(builder)
                 DOC_END -> {
-                    bodyMarker?.done(DOC_BODY)
                     builder.advanceLexer()
                     rootMarker.done(root)
                     return
@@ -47,7 +41,6 @@ class ArendDocParser : PsiParser, LightPsiParser {
         if (isMultiLine) {
             builder.error("Expected '-}'")
         }
-        bodyMarker?.done(DOC_BODY)
         rootMarker.done(root)
     }
 
@@ -88,7 +81,6 @@ class ArendDocParser : PsiParser, LightPsiParser {
 
         loop@ while (!builder.eof()) {
             when (val token = builder.tokenType) {
-                DOC_TEXT -> builder.advanceLexer()
                 DOC_RBRACKET -> {
                     builder.advanceLexer()
                     if (builder.tokenType == LBRACE) {

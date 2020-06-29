@@ -17,5 +17,5 @@ class ArendDocReference(node: ASTNode) : ArendCompositeElementImpl(node) {
         notNullChild<ArendLongName>(PsiTreeUtil.getChildOfType(this, ArendLongName::class.java))
 
     override val scope: Scope =
-        ArendDocComment.getScope((parent as? ArendDocComment)?.owner) ?: ancestor<ArendGroup>()?.scope ?: EmptyScope.INSTANCE
+        ArendDocComment.getScope(ancestor<ArendDocComment>()?.owner) ?: ancestor<ArendGroup>()?.scope ?: EmptyScope.INSTANCE
 }

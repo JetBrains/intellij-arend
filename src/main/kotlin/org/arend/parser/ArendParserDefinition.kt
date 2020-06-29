@@ -16,7 +16,6 @@ import org.arend.psi.AREND_COMMENTS
 import org.arend.psi.AREND_WHITE_SPACES
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
-import org.arend.psi.doc.ArendDocBody
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.doc.ArendDocReferenceText
@@ -44,7 +43,6 @@ class ArendParserDefinition : ParserDefinition {
     ): ParserDefinition.SpaceRequirements = ParserDefinition.SpaceRequirements.MAY
 
     override fun createElement(node: ASTNode): PsiElement = when (node.elementType) {
-        DOC_BODY -> ArendDocBody(node)
         DOC_CODE_BLOCK -> ArendDocCodeBlock(node)
         DOC_REFERENCE -> ArendDocReference(node)
         DOC_REFERENCE_TEXT -> ArendDocReferenceText(node)
