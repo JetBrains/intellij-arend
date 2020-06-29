@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import org.arend.ArendLanguage
 import org.arend.parser.ParserMixin.DOC_COMMENT
+import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.ArendElementTypes.*
 
 class ArendTokenType(debugName: String) : IElementType(debugName, ArendLanguage.INSTANCE)
@@ -20,7 +21,7 @@ val AREND_KEYWORDS: TokenSet = TokenSet.create(
         EVAL_KW, PEVAL_KW
 )
 
-val AREND_COMMENTS: TokenSet = TokenSet.create(LINE_COMMENT, BLOCK_COMMENT, DOC_COMMENT)
+val AREND_COMMENTS: TokenSet = TokenSet.create(LINE_COMMENT, BLOCK_COMMENT, DOC_COMMENT, DOC_TEXT)
 
 val AREND_NAMES: TokenSet = TokenSet.create(ID, INFIX, POSTFIX)
 
