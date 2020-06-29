@@ -7,7 +7,7 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.3.0"
+version = "1.4.0"
 
 plugins {
     idea
