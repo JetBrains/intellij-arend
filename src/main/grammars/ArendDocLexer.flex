@@ -56,7 +56,11 @@ NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
 %%
 
 <YYINITIAL> {
-    ("-- |" | "{- |") {
+    "-- |" {
+        yybegin(CONTENTS);
+        return DOC_SINGLE_LINE_START;
+    }
+    "{- |" {
         yybegin(CONTENTS);
         return DOC_START;
     }

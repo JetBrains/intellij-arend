@@ -18,7 +18,8 @@ class ArendDocParser : PsiParser, LightPsiParser {
 
     override fun parseLight(root: IElementType, builder: PsiBuilder) {
         val rootMarker = builder.mark()
-        if (builder.tokenType === DOC_START) {
+        val isMultiLine = builder.tokenType === DOC_START
+        if (isMultiLine || builder.tokenType == DOC_SINGLE_LINE_START) {
             builder.advanceLexer()
         }
 
@@ -43,7 +44,9 @@ class ArendDocParser : PsiParser, LightPsiParser {
             }
         }
 
-        builder.error("Expected '-}'")
+        if (isMultiLine) {
+            builder.error("Expected '-}'")
+        }
         bodyMarker?.done(DOC_BODY)
         rootMarker.done(root)
     }
