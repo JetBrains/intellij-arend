@@ -365,7 +365,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 return false
             }
 
-            val constructor = (pattern.headReference as? UnresolvedReference)?.resolve(pattern.scope, null) as? ArendConstructor
+            val constructor = (pattern.headReference as? UnresolvedReference)?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
                     ?: return false
             return constructor.name == Prelude.SUC.name && project.service<TypeCheckingService>().getTypechecked(constructor.ancestor<ArendDefData>()
                     ?: return false) == Prelude.NAT
