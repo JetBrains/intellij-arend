@@ -8,7 +8,6 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldParamStub
@@ -35,9 +34,6 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
         get() = listOf(referenceName)
 
     override val resolve: PsiElement?
-        get() = this
-
-    override val resolvedInScope: Referable?
         get() = this
 
     override val unresolvedReference: UnresolvedReference?

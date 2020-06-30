@@ -2,9 +2,7 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.LongUnresolvedReference
-import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ArendLongName
 import org.arend.term.abs.Abstract
 
@@ -15,9 +13,6 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
 
     override val unresolvedReference: UnresolvedReference?
         get() = referent
-
-    override val resolvedInScope: Referable?
-        get() = referenceNameElement?.resolvedInScope
 
     override val resolve
         get() = referenceNameElement?.reference?.resolve()

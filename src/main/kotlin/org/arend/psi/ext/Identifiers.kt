@@ -2,7 +2,6 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDocCommentBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiWhiteSpace
@@ -10,9 +9,7 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.NamedUnresolvedReference
-import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.resolving.ArendDefReferenceImpl
@@ -37,9 +34,6 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         get() = listOf(referenceName)
 
     override val resolve: PsiElement?
-        get() = this
-
-    override val resolvedInScope: Referable?
         get() = this
 
     override val unresolvedReference: UnresolvedReference?
@@ -143,9 +137,6 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
 
     override val resolve: PsiElement?
         get() = reference.resolve()
-
-    override val resolvedInScope: Referable?
-        get() = ExpressionResolveNameVisitor.resolve(referent, scope)
 
     override val unresolvedReference: UnresolvedReference?
         get() = referent
