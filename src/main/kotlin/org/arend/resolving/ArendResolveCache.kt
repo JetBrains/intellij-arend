@@ -14,7 +14,7 @@ class ArendResolveCache(project: Project) {
     private val typeCheckingService = project.service<TypeCheckingService>()
     private val refMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
 
-    fun resolveCached(resolver: (ArendReferenceElement) -> Referable?, reference: ArendReferenceElement): Referable? {
+    fun resolveCached(resolver: () -> Referable?, reference: ArendReferenceElement): Referable? {
         val globalRef = refMap[reference]
         if (globalRef == TCClassReferable.NULL_REFERABLE) {
             return null
@@ -23,7 +23,7 @@ class ArendResolveCache(project: Project) {
             return globalRef
         }
 
-        val result = resolver(reference)
+        val result = resolver()
         if (result == null && !typeCheckingService.isInitialized) {
             return null
         }

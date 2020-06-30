@@ -109,8 +109,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
     protected fun resolve(onlyConstructor: Boolean): PsiElement? {
         val cache = element.project.service<ArendResolveCache>()
-        val resolver = { element : ArendReferenceElement ->
-            if (beforeImportDot) {
+        val resolver = { when {
+            beforeImportDot -> {
                 val refName = element.referenceName
                 var result: Referable? = null
                 for (ref in element.scope.elements) {
@@ -122,11 +122,13 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     }
                 }
                 result
-            } else {
-                val ref = element.scope.resolveName(element.referenceName)
-                if (!onlyConstructor || ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
             }
-        }
+            onlyConstructor -> {
+                val ref = element.scope.globalSubscope.resolveName(element.referenceName)
+                if (ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
+            }
+            else -> element.scope.resolveName(element.referenceName)
+        } }
 
         return when (val ref = cache.resolveCached(resolver, element)?.underlyingReferable) {
             is PsiElement -> ref
