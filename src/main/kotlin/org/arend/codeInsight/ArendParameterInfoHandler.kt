@@ -21,7 +21,6 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typing.parseBinOp
 import org.arend.util.checkConcreteExprIsArendExpr
-import org.arend.util.checkConcreteExprIsFunc
 
 class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, List<Abstract.Parameter>> {
 
@@ -39,7 +38,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             }
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
-            if (!vars.isEmpty()) {
+            if (vars.isNotEmpty()) {
                 vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
             } else {
                 nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
@@ -135,7 +134,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         val referable = ref?.resolve as? Referable //ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
         val params = referable?.let { getAllParametersForReferable(it) }
 
-        if (params != null && !params.isEmpty()) {
+        if (params != null && params.isNotEmpty()) {
             context.itemsToShow = arrayOf(params) //(referable as Abstract.ParametersHolder).parameters)
         } else {
             context.itemsToShow = null
@@ -200,7 +199,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             }
         }
         var paramIndex = 0
-        loop@for (p in 0 until params.size) {
+        loop@for (p in params.indices) {
             for (v in params[p].referableList) {
                 if (numExplicitsBefore == 0) {
                     if ((argIsExplicit && params[p].isExplicit) ||
@@ -221,10 +220,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
     private fun findArgInParsedBinopSeq(arg: ArendSourceNode, expr: Concrete.Expression, curArgInd: Int, curFunc: ArendReferenceContainer?): Pair<Int, ArendReferenceContainer>? {
         if (checkConcreteExprIsArendExpr(arg, expr)) {
             if (curFunc == null) {
-                if (checkConcreteExprIsFunc(expr, arg.scope)) {
-                    return Pair(-1, expr.data as ArendReferenceContainer)
-                }
-                return null
+                return (expr.data as? ArendReferenceContainer)?.let { Pair(-1, it) }
             }
             return Pair(curArgInd, curFunc)
         }
@@ -355,7 +351,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         if (refContainer != null) {
             val ref = refContainer.resolve as? Referable
             val params = ref?.let { getAllParametersForReferable(it) }
-            if (params != null && !params.isEmpty()) {
+            if (params != null && params.isNotEmpty()) {
                 val isBinOp = isBinOp(ref, refContainer)
                 val parentAppExprCandidate = absNodeParent.parentSourceNode
                 if (parentAppExprCandidate is ArendExpr) {

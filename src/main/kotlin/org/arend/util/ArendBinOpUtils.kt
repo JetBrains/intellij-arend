@@ -5,13 +5,11 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
 import org.arend.naming.reference.Referable
-import org.arend.naming.scope.Scope
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendIPName
 import org.arend.psi.ArendImplicitArgument
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
-import org.arend.refactoring.resolveIfNeeded
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -89,30 +87,34 @@ fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Express
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 
-fun checkConcreteExprIsFunc(expr: Concrete.Expression, scope: Scope): Boolean =
-        expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, scope) is Abstract.ParametersHolder && expr.data as? ArendReferenceContainer != null
+private fun getReferenceContainer(expr: Concrete.Expression) = (expr as? Concrete.ReferenceExpression)?.data as? ArendReferenceContainer
 
 data class DefAndArgsInParsedBinopResult(val functionReferenceContainer: ArendReferenceContainer,
                                          val operatorConcrete: Concrete.Expression,
                                          val argumentsConcrete: List<Concrete.Argument>)
 
 fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): DefAndArgsInParsedBinopResult? {
-    if (checkConcreteExprIsArendExpr(arg, parsedExpr) && checkConcreteExprIsFunc(parsedExpr, arg.scope))
-        return DefAndArgsInParsedBinopResult(parsedExpr.data as ArendReferenceContainer, parsedExpr, emptyList())
+    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
+        getReferenceContainer(parsedExpr)?.let {
+            return DefAndArgsInParsedBinopResult(it, parsedExpr, emptyList())
+        }
+    }
 
     if (parsedExpr is Concrete.AppExpression) {
-        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function) && checkConcreteExprIsFunc(parsedExpr.function, arg.scope))
-            return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
+        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
+            getReferenceContainer(parsedExpr.function)?.let {
+                return DefAndArgsInParsedBinopResult(it, parsedExpr, parsedExpr.arguments)
+            }
+        }
 
         findDefAndArgsInParsedBinop(arg, parsedExpr.function)?.let { return it }
 
         for (argument in parsedExpr.arguments) {
             if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
-                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
-                    return DefAndArgsInParsedBinopResult(argument.expression.data as ArendReferenceContainer, argument.expression, emptyList())
+                getReferenceContainer(argument.expression)?.let {
+                    return DefAndArgsInParsedBinopResult(it, argument.expression, emptyList())
                 }
-                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                return DefAndArgsInParsedBinopResult(parsedExpr.function.data as ArendReferenceContainer, parsedExpr, parsedExpr.arguments)
+                return getReferenceContainer(parsedExpr.function)?.let { DefAndArgsInParsedBinopResult(it, parsedExpr, parsedExpr.arguments) }
             }
         }
 
