@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
@@ -86,6 +87,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     override fun getCoClauseElements(): List<ArendCoClause> = functionBody?.coClauseList ?: emptyList()
 
     override fun getImplementedField(): Abstract.Reference? = null
+
+    override fun getKind() = GlobalReferable.Kind.FUNCTION
 
     override val psiElementType: PsiElement?
         get() = resultType

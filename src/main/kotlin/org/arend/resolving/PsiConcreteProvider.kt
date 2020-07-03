@@ -24,7 +24,7 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {
+private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.OTHER)) {
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
@@ -134,20 +134,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
     override fun getConcreteData(referable: GlobalReferable): Concrete.DataDefinition? {
         val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
-    }
-
-    override fun isInstance(ref: GlobalReferable) = ref.underlyingReferable is ArendDefInstance
-
-    override fun isData(ref: GlobalReferable) = ref.underlyingReferable is ArendDefData
-
-    override fun isFunction(ref: GlobalReferable): Boolean {
-        val psiRef = ref.underlyingReferable
-        return psiRef is ArendDefFunction || psiRef is ArendDefInstance
-    }
-
-    override fun isUse(ref: GlobalReferable): Boolean {
-        val psiReferable = ref.underlyingReferable
-        return psiReferable is ArendDefFunction && runReadAction { psiReferable.functionKw.useKw != null }
     }
 
     override fun getTCReferable(referable: GlobalReferable) =

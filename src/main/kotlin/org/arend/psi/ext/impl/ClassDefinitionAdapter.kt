@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
@@ -69,6 +70,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
         (dynamicSubgroups + subgroups).mapNotNull { if ((it as? ArendDefFunction)?.functionKw?.useKw != null) it else null }
 
     override fun getTypeOf() = Universe
+
+    override fun getKind() = GlobalReferable.Kind.CLASS
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
