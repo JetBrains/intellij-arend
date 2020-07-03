@@ -6,9 +6,10 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.Precedence
 import org.arend.naming.error.ReferenceError
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.LocatedReferableImpl
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -125,7 +126,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         return if (psiReferable is ArendDefInstance) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
-    override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
+    override fun getConcreteClass(referable: GlobalReferable): Concrete.ClassDefinition? {
         val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
     }
@@ -148,4 +149,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         val psiReferable = ref.underlyingReferable
         return psiReferable is ArendDefFunction && runReadAction { psiReferable.functionKw.useKw != null }
     }
+
+    override fun getTCReferable(referable: GlobalReferable) =
+        referable as? TCReferable ?: (referable as? LocatedReferable)?.let { referableConverter.toDataLocatedReferable(it) }
 }

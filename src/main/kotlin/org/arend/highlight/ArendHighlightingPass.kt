@@ -8,7 +8,7 @@ import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCClassReferable
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -46,7 +46,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
                 val oldRef = resolverCache.replaceCache(newRef, reference)
-                if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCClassReferable.NULL_REFERABLE)) {
+                if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCReferable.NULL_REFERABLE)) {
                     resetDefinition = true
                 }
             }
@@ -145,7 +145,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
             private fun highlightParameters(definition: Concrete.ReferableDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
-                    if (parameter.type?.underlyingTypeClass != null) {
+                    if (((parameter.type?.underlyingReferable as? GlobalReferable)?.underlyingReferable as? ArendDefClass)?.isRecord == false) {
                         val list = when (val param = parameter.data) {
                             is ArendFieldTele -> param.fieldDefIdentifierList
                             is ArendNameTele -> param.identifierOrUnknownList

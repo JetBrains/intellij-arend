@@ -44,7 +44,6 @@ abstract class TCReferableWrapper : TCReferable {
             null -> null
             is TCReferable -> referable
             is FieldReferable -> TCFieldReferableWrapper(referable)
-            is ClassReferable -> TCClassReferableWrapper(referable)
             else -> TCReferableWrapperImpl(referable)
         }
     }
@@ -57,18 +56,6 @@ class TCFieldReferableWrapper(override val referable: FieldReferable) : TCFieldR
     override fun isExplicitField() = referable.isExplicitField
 
     override fun isParameterField() = referable.isParameterField
-}
-
-class TCClassReferableWrapper(override val referable: ClassReferable) : TCClassReferable, TCReferableWrapper() {
-    override fun getUnresolvedSuperClassReferences(): Collection<Reference> = referable.unresolvedSuperClassReferences
-
-    override fun getSuperClassReferences() = referable.superClassReferences.map { TCClassReferableWrapper(it) }
-
-    override fun getFieldReferables() = referable.fieldReferables.map { TCFieldReferableWrapper(it) }
-
-    override fun getImplementedFields() = referable.implementedFields.map { if (it is FieldReferable) TCFieldReferableWrapper(it) else it }
-
-    override fun isRecord() = referable.isRecord
 }
 
 object WrapperReferableConverter : BaseReferableConverter() {

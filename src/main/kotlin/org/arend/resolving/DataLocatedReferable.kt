@@ -20,9 +20,8 @@ private data class Alias(val name: String, val precedence: Precedence)
 open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: LocatedReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?)
-    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), SourceInfo {
+    parent: LocatedReferable?)
+    : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -65,9 +64,8 @@ open class DataLocatedReferable(
 class FieldDataLocatedReferable(
     psiElementPointer: SmartPsiElementPointer<PsiElement>?,
     referable: FieldReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?)
-    : DataLocatedReferable(psiElementPointer, referable, parent, typeClassReference), TCFieldReferable {
+    parent: LocatedReferable?)
+    : DataLocatedReferable(psiElementPointer, referable, parent), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
 
@@ -76,27 +74,4 @@ class FieldDataLocatedReferable(
     override fun isExplicitField() = isExplicit
 
     override fun isParameterField() = isParameter
-}
-
-class ClassDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
-    referable: LocatedReferable,
-    parent: LocatedReferable?,
-    var isRecordFlag: Boolean,
-    val superClasses: MutableList<TCClassReferable>,
-    val fieldReferables: MutableList<TCFieldReferable>,
-    val implementedFields: MutableList<TCReferable>)
-    : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
-
-    var filledIn = false
-
-    override fun isRecord() = isRecordFlag
-
-    override fun getSuperClassReferences(): List<TCClassReferable> = superClasses
-
-    override fun getFieldReferables(): Collection<TCFieldReferable> = fieldReferables
-
-    override fun getImplementedFields(): Collection<TCReferable> = implementedFields
-
-    override fun getUnresolvedSuperClassReferences(): List<Reference> = emptyList()
 }
