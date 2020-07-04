@@ -33,7 +33,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     private var lineMarkersPass: LineMarkersPass? = null
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
-        DesugarVisitor.desugar(definition, file.concreteProvider, typeCheckingService.typecheckerState, this)
+        DesugarVisitor.desugar(definition, typeCheckingService.typecheckerState, this)
 
         progress.checkCanceled()
         definition.accept(object : DumbTypechecker(this) {
