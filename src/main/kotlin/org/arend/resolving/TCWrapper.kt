@@ -31,10 +31,6 @@ abstract class TCReferableWrapper : TCReferable {
 
     override fun getKind() = referable.kind
 
-    override fun getTypeClassReference() = referable.typeClassReference
-
-    override fun getTypeOf() = referable.typeOf
-
     override fun equals(other: Any?) = this === other || referable == (other as? TCReferableWrapper)?.referable
 
     override fun hashCode() = referable.hashCode()

@@ -16,6 +16,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStub>, ArendDefFunction, ArendFunctionalDefinition {
@@ -70,7 +71,8 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
     private val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, resultType)
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(allParameters, resultType)
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null

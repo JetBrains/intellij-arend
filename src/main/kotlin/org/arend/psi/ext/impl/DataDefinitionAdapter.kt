@@ -12,6 +12,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.Universe
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, ArendDefData, Abstract.DataDefinition {
@@ -47,7 +48,8 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
     internal val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, Universe)
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(allParameters, Universe)
 
     override fun getKind() = GlobalReferable.Kind.DATA
 

@@ -62,8 +62,8 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
         }
     }
 
-    override fun getTypeOf(): Abstract.Expression? {
-        return when (val parent = parent) {
+    override val typeOf: Abstract.Expression?
+        get() = when (val parent = parent) {
             is ArendIdentifierOrUnknown -> {
                 when (val pParent = parent.parent) {
                     is ArendNameTele -> pParent.expr
@@ -78,7 +78,6 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
             is ArendAsPattern -> parent.expr
             else -> null
         }
-    }
 
     override val psiElementType: PsiElement?
         get() {
