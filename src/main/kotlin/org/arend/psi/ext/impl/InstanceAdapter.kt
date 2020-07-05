@@ -7,6 +7,8 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -63,6 +65,11 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
+    }
+
+    override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? {
+        val expr = instanceBody?.expr ?: return null
+        return if (visitor.decrease(parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 })) ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr) else null
     }
 
     private val allParameters
