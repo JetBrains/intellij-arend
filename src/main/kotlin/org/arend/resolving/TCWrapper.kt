@@ -55,7 +55,5 @@ class TCFieldReferableWrapper(override val referable: FieldReferable) : TCFieldR
 }
 
 object WrapperReferableConverter : BaseReferableConverter() {
-    override fun toDataReferable(referable: Referable?) = referable
-
     override fun toDataLocatedReferable(referable: LocatedReferable?) = TCReferableWrapper.wrap(referable)
 }

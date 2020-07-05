@@ -12,7 +12,6 @@ import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
-import org.arend.refactoring.LocatedReferableConverter
 import org.arend.repl.Repl
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
@@ -58,7 +57,7 @@ abstract class IntellijRepl private constructor(
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
         PsiConcreteProvider(service.project, refConverter, errorReporter, null, true),
-        PsiInstanceProviderSet(PsiConcreteProvider(service.project, LocatedReferableConverter(service.newReferableConverter(false)), errorReporter, null, false), LocatedReferableConverter(service.newReferableConverter(false)))
+        PsiInstanceProviderSet(PsiConcreteProvider(service.project, service.newReferableConverter(false), errorReporter, null, false), service.newReferableConverter(false))
     )
 
     init {

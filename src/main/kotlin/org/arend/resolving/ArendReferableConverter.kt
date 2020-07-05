@@ -23,17 +23,6 @@ class ArendReferableConverter(private val project: Project?, private val state: 
         state.putIfAbsent(referable, tcReferable)
     }
 
-    override fun toDataReferable(referable: Referable?): Referable? =
-        if (referable is PsiElement) {
-            if (project != null) {
-                DataLocalReferable(SmartPointerManager.getInstance(project).createSmartPsiElementPointer(referable), referable.textRepresentation())
-            } else {
-                LocalReferable(referable.textRepresentation())
-            }
-        } else {
-            referable
-        }
-
     override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
         when (referable) {
             is ArendFile -> null

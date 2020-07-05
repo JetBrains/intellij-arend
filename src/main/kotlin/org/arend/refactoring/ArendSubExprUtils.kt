@@ -23,15 +23,11 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.PsiInjectionTextFile
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.resolving.BaseReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
@@ -56,11 +52,6 @@ class SubExprException(
     message: String,
     val def: Pair<Concrete.Definition, TCDefinition>? = null
 ) : Throwable(message)
-
-class LocatedReferableConverter(private val wrapped: ReferableConverter) : BaseReferableConverter() {
-    override fun toDataReferable(referable: Referable?) = referable
-    override fun toDataLocatedReferable(referable: LocatedReferable?) = wrapped.toDataLocatedReferable(referable)
-}
 
 fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
         .psiTraverser(p)
@@ -108,7 +99,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val service = project.service<TypeCheckingService>()
-    val refConverter = LocatedReferableConverter(service.newReferableConverter(true))
+    val refConverter = service.newReferableConverter(true)
     val concreteProvider = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
     val psiDef = possibleParent.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
