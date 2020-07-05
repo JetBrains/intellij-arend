@@ -1,7 +1,6 @@
 package org.arend.typechecking.execution
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -132,7 +131,7 @@ class TypeCheckProcessHandler(
                                     sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
                                 }
                             } else sourcesModuleScopeProvider
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, moduleScopeProvider)) }
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, referableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider)) }
                         }
                         module
                     }

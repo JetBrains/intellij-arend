@@ -104,6 +104,6 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
                 }
             }
         }
-        runReadAction { DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope) }
+        runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, scope) }
     }
 }

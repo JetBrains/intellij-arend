@@ -42,7 +42,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
         file.concreteProvider = concreteProvider
         val resolverCache = myProject.service<ArendResolveCache>()
-        DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
+        DefinitionResolveNameVisitor(concreteProvider, WrapperReferableConverter, this, object : ResolverListener {
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
                 val oldRef = resolverCache.replaceCache(newRef, reference)
@@ -197,7 +197,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
                 advanceProgress(1)
             }
-        }).resolveGroup(group, WrapperReferableConverter, group.scope)
+        }).resolveGroup(group, group.scope)
     }
 
     override fun applyInformationWithProgress() {

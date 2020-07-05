@@ -60,10 +60,6 @@ abstract class IntellijRepl private constructor(
         PsiInstanceProviderSet(PsiConcreteProvider(service.project, service.newReferableConverter(false), errorReporter, null, false), service.newReferableConverter(false))
     )
 
-    init {
-        myScope = ConvertingScope(refConverter, myScope)
-    }
-
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)

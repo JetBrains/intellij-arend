@@ -128,10 +128,10 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         }
         val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(refConverter, it) }
         if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
-            val scope = CachingScope.make(ConvertingScope(refConverter, injectionHost.scope))
+            val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
             errors = subExprVisitor.errors
-            cExpr.accept(ExpressionResolveNameVisitor(concreteProvider, scope, null, DummyErrorReporter.INSTANCE, null), null)
+            cExpr.accept(ExpressionResolveNameVisitor(concreteProvider, refConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
                 .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
                 .accept(subExprVisitor, injectionHost.injectedExpressions[index])
         } else {
