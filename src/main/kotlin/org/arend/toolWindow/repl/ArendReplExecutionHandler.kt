@@ -24,7 +24,7 @@ class ArendReplExecutionHandler(
     project: Project,
     private val toolWindow: ToolWindow
 ) : BaseConsoleExecuteActionHandler(true) {
-    private val repl = object : IntellijRepl(project) {
+    private val repl = object : IntellijRepl(this, project) {
         override fun print(anything: Any?) {
             val s = anything.toString()
             when {

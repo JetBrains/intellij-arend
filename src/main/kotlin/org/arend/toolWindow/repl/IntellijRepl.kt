@@ -18,6 +18,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
+import org.arend.toolWindow.repl.action.SetPromptCommand
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.LibraryArendExtensionProvider
 import org.arend.typechecking.PsiInstanceProviderSet
@@ -25,6 +26,7 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.order.dependency.DummyDependencyListener
 
 abstract class IntellijRepl private constructor(
+    val handler: ArendReplExecutionHandler,
     private val service: TypeCheckingService,
     private val refConverter: ArendReferableConverter,
     extensionProvider: LibraryArendExtensionProvider,
@@ -37,22 +39,29 @@ abstract class IntellijRepl private constructor(
     ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, refConverter, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
     service.typecheckerState
 ) {
-    constructor(project: Project) : this(project.service(), ListErrorReporter())
+    constructor(
+        handler: ArendReplExecutionHandler,
+        project: Project
+    ) : this(handler, project.service(), ListErrorReporter())
 
     private constructor(
+        handler: ArendReplExecutionHandler,
         service: TypeCheckingService,
         errorReporter: ListErrorReporter
     ) : this(
+        handler,
         service,
         errorReporter,
         service.newReferableConverter(false)
     )
 
     private constructor(
+        handler: ArendReplExecutionHandler,
         service: TypeCheckingService,
         errorReporter: ListErrorReporter,
         refConverter: ArendReferableConverter
     ) : this(
+        handler,
         service,
         refConverter,
         LibraryArendExtensionProvider(service.libraryManager),
@@ -72,6 +81,11 @@ abstract class IntellijRepl private constructor(
 
     fun clearScope() {
         myMergedScopes.clear()
+    }
+
+    override fun loadCommands() {
+        super.loadCommands()
+        registerAction("prompt", SetPromptCommand)
     }
 
     final override fun loadLibraries() {
