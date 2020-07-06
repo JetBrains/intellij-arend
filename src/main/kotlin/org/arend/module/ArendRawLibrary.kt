@@ -20,6 +20,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
@@ -104,7 +105,7 @@ class ArendRawLibrary(val config: LibraryConfig)
         }
     }
 
-    override fun getReferableConverter() = config.project.service<TypeCheckingService>().newReferableConverter(true)
+    override fun getReferableConverter() = ArendReferableConverter
 
     override fun getDependencyListener() = config.project.service<TypeCheckingService>().dependencyListener
 

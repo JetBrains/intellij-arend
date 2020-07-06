@@ -7,7 +7,6 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -25,7 +24,6 @@ import org.arend.typechecking.order.dependency.DummyDependencyListener
 
 abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
-    private val refConverter: ArendReferableConverter,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
     psiConcreteProvider: PsiConcreteProvider,
@@ -33,7 +31,7 @@ abstract class IntellijRepl private constructor(
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, refConverter, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
+    ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
     service.typecheckerState
 ) {
     constructor(project: Project) : this(project.service(), ListErrorReporter())
@@ -43,27 +41,16 @@ abstract class IntellijRepl private constructor(
         errorReporter: ListErrorReporter
     ) : this(
         service,
-        errorReporter,
-        service.newReferableConverter(false)
-    )
-
-    private constructor(
-        service: TypeCheckingService,
-        errorReporter: ListErrorReporter,
-        refConverter: ArendReferableConverter
-    ) : this(
-        service,
-        refConverter,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
-        PsiConcreteProvider(service.project, refConverter, errorReporter, null, true),
-        PsiInstanceProviderSet(PsiConcreteProvider(service.project, service.newReferableConverter(false), errorReporter, null, false), service.newReferableConverter(false))
+        PsiConcreteProvider(service.project, ArendReferableConverter, errorReporter, null, true),
+        PsiInstanceProviderSet(PsiConcreteProvider(service.project, ArendReferableConverter, errorReporter, null, false))
     )
 
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
-        ?.let { ConcreteBuilder.convertExpression(refConverter.apply { clearCache() }, it) }
+        ?.let { ConcreteBuilder.convertExpression(ArendReferableConverter, it) }
 
     fun clearScope() {
         myMergedScopes.clear()

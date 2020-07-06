@@ -13,7 +13,6 @@ import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable

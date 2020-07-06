@@ -27,6 +27,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
@@ -98,8 +99,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val service = project.service<TypeCheckingService>()
-    val refConverter = service.newReferableConverter(true)
-    val concreteProvider = PsiConcreteProvider(project, refConverter, DummyErrorReporter.INSTANCE, null)
+    val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
     val psiDef = possibleParent.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
     val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
@@ -113,7 +113,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         ?: throw SubExprException("cannot find a suitable concrete expression", body)
     val subExpr =
         if (tail.isNotEmpty()) parseBinOp(head, tail)
-        else ConcreteBuilder.convertExpression(refConverter, head)
+        else ConcreteBuilder.convertExpression(ArendReferableConverter, head)
             .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
 
     val injectionContext = (file as? ArendFile)?.injectionContext
@@ -125,12 +125,12 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             1 -> 0
             else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
         }
-        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(refConverter, it) }
+        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(ArendReferableConverter, it) }
         if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
             errors = subExprVisitor.errors
-            cExpr.accept(ExpressionResolveNameVisitor(refConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
+            cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
                 .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
                 .accept(subExprVisitor, injectionHost.injectedExpressions[index])
         } else {

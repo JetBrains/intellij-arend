@@ -3,7 +3,6 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.SourceInfo
 import org.arend.ext.reference.Precedence
@@ -18,10 +17,10 @@ import org.arend.typechecking.TypeCheckingService
 private data class Alias(val name: String, val precedence: Precedence)
 
 open class DataLocatedReferable(
-    private var psiElementPointer: SmartPsiElementPointer<PsiElement>?,
+    private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: LocatedReferable,
-    parent: LocatedReferable?)
-    : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
+    parent: LocatedReferable?
+) : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -32,7 +31,7 @@ open class DataLocatedReferable(
     override fun getData() = psiElementPointer
 
     override fun getUnderlyingReferable() =
-        psiElementPointer?.let { (runReadAction { it.element } as? Referable)?.underlyingReferable } ?: this
+        psiElementPointer?.let { runReadAction { it.element }?.underlyingReferable } ?: this
 
     override fun moduleTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } } ?: location?.toString()
@@ -62,10 +61,10 @@ open class DataLocatedReferable(
 }
 
 class FieldDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
+    psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: FieldReferable,
-    parent: LocatedReferable?)
-    : DataLocatedReferable(psiElementPointer, referable, parent), TCFieldReferable {
+    parent: LocatedReferable?
+) : DataLocatedReferable(psiElementPointer, referable, parent), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
 

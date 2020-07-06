@@ -30,6 +30,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.findGroupByFullName
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
@@ -106,11 +107,10 @@ class TypeCheckProcessHandler(
         typeCheckerService.updatedModules.clear()
 
         PooledThreadExecutor.INSTANCE.execute {
-            val referableConverter = typeCheckerService.newReferableConverter(true)
-            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
+            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, ArendReferableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
-            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
+            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
 
             try {
                 for (library in libraries) {
@@ -131,7 +131,7 @@ class TypeCheckProcessHandler(
                                     sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
                                 }
                             } else sourcesModuleScopeProvider
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, referableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider)) }
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider)) }
                         }
                         module
                     }
@@ -153,7 +153,7 @@ class TypeCheckProcessHandler(
                                 runReadAction { typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath)) }
                             }
                         } else {
-                            val tcReferable = runReadAction { referableConverter.toDataLocatedReferable(ref) }
+                            val tcReferable = runReadAction { ArendReferableConverter.toDataLocatedReferable(ref) }
                             val typechecked =
                                 if (tcReferable != null) {
                                     if (PsiLocatedReferable.isValid(tcReferable)) {
@@ -184,7 +184,7 @@ class TypeCheckProcessHandler(
                 }
 
                 if (!indicator.isCanceled) {
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, referableConverter, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
                         typechecking.typecheckCollected(collector) { indicator.isCanceled }
                         typeCheckerService.project.service<BinaryFileSaver>().saveAll()

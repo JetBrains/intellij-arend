@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.module.LongName
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
@@ -14,7 +15,6 @@ import org.arend.module.ModuleSynchronizer
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
-import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
@@ -32,6 +32,7 @@ import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
@@ -46,12 +47,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     private val externalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
     private val internalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
-    private val simpleReferableConverter = SimpleReferableConverter()
+    val tcRefMaps = HashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
 
     val updatedModules = HashSet<ModuleLocation>()
-
-    fun newReferableConverter(withPsiReferences: Boolean) =
-        ArendReferableConverter(if (withPsiReferences) project else null, simpleReferableConverter)
 
     var isInitialized = false
         private set
@@ -66,10 +64,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
         preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
-        val referableConverter = newReferableConverter(false)
-        val concreteProvider = PsiConcreteProvider(project, referableConverter, DummyErrorReporter.INSTANCE, null)
-        preludeLibrary.resolveNames(referableConverter, concreteProvider, libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(PsiInstanceProviderSet(concreteProvider, referableConverter), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
+        val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
+        preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
+        Prelude.PreludeTypechecking(InstanceProviderSet(), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
         preludeLibrary.prelude?.let {
             fillAdditionalNames(it, true)
         }
@@ -143,7 +140,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
     fun getTypechecked(definition: TCDefinition) =
-        simpleReferableConverter.toDataLocatedReferable(definition)?.let { typecheckerState.getTypechecked(it) }
+        definition.tcReferable?.let { typecheckerState.getTypechecked(it) }
 
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
@@ -151,7 +148,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
         val fullName = FullName(referable)
-        val tcReferable = simpleReferableConverter.remove(fullName) ?: return null
+        val tcRefMap = tcRefMaps[fullName.modulePath] ?: return null
+        val tcReferable = tcRefMap[fullName.longName] ?: return null
         if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
@@ -159,14 +157,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val curRef = referable.underlyingReferable
         val prevRef = tcReferable.underlyingReferable
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
-            if (FullName(prevRef) == fullName) {
-                simpleReferableConverter.putIfAbsent(referable, tcReferable)
-            } else {
-                simpleReferableConverter.removeInternalReferables(referable, fullName)
-            }
             return null
         }
-        simpleReferableConverter.removeInternalReferables(referable, fullName)
+        tcRefMap.remove(fullName.longName)
 
         if (curRef is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(curRef)
@@ -215,6 +208,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
+        def.checkTCReferable()
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
 }
