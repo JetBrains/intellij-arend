@@ -214,6 +214,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Foo { {-caret-} }",
                     "\\class C { } \\func lol : C \\cowith | {-caret-}")
 
+    fun `test braces after completing where`() =
+            doSingleCompletion("\\func foo => 101 \\where{-caret-}",
+                    "\\func foo => 101 \\where {{-caret-}}")
+
     fun `test no where completion after iterated where 2`() =
             checkKeywordCompletionVariants(ALIAS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\instance Foo {-caret-}" ) /* \\where not allowed in incomplete instance */

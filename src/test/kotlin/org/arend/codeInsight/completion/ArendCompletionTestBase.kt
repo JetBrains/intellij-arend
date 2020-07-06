@@ -2,6 +2,7 @@ package org.arend.codeInsight.completion
 
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import junit.framework.TestCase
 import org.intellij.lang.annotations.Language
@@ -17,10 +18,13 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         executeSoloCompletion()
 
         val normName = target.substringAfterLast(".")
-        val element = myFixture.file.findElementAt(myFixture.caretOffset - 2)!!
+        var element = myFixture.file.findElementAt(myFixture.caretOffset - 2)
+        if (element is PsiWhiteSpace) element = element.prevSibling //Needed to correctly process the situation when braces {} are inserted after a keyword
+
         val skipTextCheck = normName.isEmpty() || normName.contains(' ')
-        check((skipTextCheck || element.text == normName)
-                && (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
+        check((element != null) &&
+                (skipTextCheck || element.text == normName) &&
+                (element.fitsHierarchically(target) || element.fitsLinearly(target))) {
             "Wrong completion, expected `$target`, but got\n${myFixture.file.text}"
         }
     }
