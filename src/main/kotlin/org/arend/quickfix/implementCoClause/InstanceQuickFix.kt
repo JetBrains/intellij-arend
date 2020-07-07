@@ -8,13 +8,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import org.arend.highlight.BasePass
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.*
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendNewExprImplMixin
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.removers.RemoveCoClauseQuickFix
 
 enum class InstanceQuickFixAnnotation {
@@ -68,9 +67,7 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
 
             val fieldToImplement = superClassesFields[referable]
             if (fieldToImplement != null) {
-                val scope = CachingScope.make(ClassFieldImplScope(referable, false))
-                val fieldsList = fieldToImplement.map { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
-                coClause.putUserData(CoClausesKey, fieldsList)
+                coClause.putUserData(CoClausesKey, makeFieldList(fieldToImplement, referable))
             }
 
             if (subClauses.isEmpty() && fatArrow == null) {
@@ -137,9 +134,14 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
     return emptyList()
 }
 
+private fun getTCRef(ref: Referable?) = (ref as? PsiLocatedReferable)?.tcReferable ?: ref
+
 fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-    return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
+    return fields.map { field ->
+        val field2 = scope.resolveName(field.textRepresentation())
+        Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
+    }
 }
 
 fun doAnnotate(element: PsiElement?, holder: AnnotationHolder) {
