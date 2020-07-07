@@ -113,8 +113,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         ?: throw SubExprException("cannot find a suitable concrete expression", body)
     val subExpr =
         if (tail.isNotEmpty()) parseBinOp(head, tail)
-        else ConcreteBuilder.convertExpression(ArendReferableConverter, head)
-            .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+        else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
 
     val injectionContext = (file as? ArendFile)?.injectionContext
     val injectionHost = injectionContext?.containingFile as? PsiInjectionTextFile
@@ -125,7 +124,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             1 -> 0
             else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
         }
-        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(ArendReferableConverter, it) }
+        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(it) }
         if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(subExpr)

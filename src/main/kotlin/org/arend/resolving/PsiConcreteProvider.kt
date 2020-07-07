@@ -41,21 +41,12 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             }
 
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
-            if (def == null) {
-                if (eventsProcessor != null) {
-                    eventsProcessor.stopTimer(psiReferable)
-                    eventsProcessor.onTestFailure(psiReferable)
-                    eventsProcessor.onTestFinished(psiReferable)
-                }
-                return@runReadAction NullDefinition
-            } else {
-                if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
-                    scope = CachingScope.make(psiReferable.scope)
-                    def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter), scope)
-                }
-                eventsProcessor?.stopTimer(psiReferable)
-                return@runReadAction def
+            if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
+                scope = CachingScope.make(psiReferable.scope)
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter), scope)
             }
+            eventsProcessor?.stopTimer(psiReferable)
+            return@runReadAction def
         } }
 
         if (result === NullDefinition) {
