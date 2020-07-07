@@ -47,6 +47,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         val module = module
         val service = module.project.service<TypeCheckingService>()
         service.initialize()
+        service.tcRefMaps.clear()
         library.config.clearAdditionalModules()
         library.setArendExtension(null)
     }

@@ -19,10 +19,9 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.resolving.TCReferableWrapper
-import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
@@ -39,10 +38,10 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
-        val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
+        val concreteProvider = PsiConcreteProvider(myProject, ArendReferableConverter, this, null, false)
         file.concreteProvider = concreteProvider
         val resolverCache = myProject.service<ArendResolveCache>()
-        DefinitionResolveNameVisitor(concreteProvider, WrapperReferableConverter, this, object : ResolverListener {
+        DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ResolverListener {
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
                 val oldRef = resolverCache.replaceCache(newRef, reference)
@@ -150,7 +149,6 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                             is ArendFieldTele -> param.fieldDefIdentifierList
                             is ArendNameTele -> param.identifierOrUnknownList
                             is ArendTypeTele -> param.typedExpr?.identifierOrUnknownList
-                            is TCReferableWrapper -> (param.data as? ArendFieldDefIdentifier)?.let { listOf(it) }
                             else -> null
                         }
                         for (id in list ?: emptyList()) {
@@ -198,6 +196,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 advanceProgress(1)
             }
         }).resolveGroup(group, group.scope)
+
+        concreteProvider.resolve = true
     }
 
     override fun applyInformationWithProgress() {

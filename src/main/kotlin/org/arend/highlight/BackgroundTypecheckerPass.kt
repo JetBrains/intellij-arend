@@ -39,7 +39,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         definition.accept(object : DumbTypechecker(this) {
             override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
                 super.visitFunction(def, params)
-                doAnnotate(def.data.data as? PsiElement, holder)
+                doAnnotate(def.data.underlyingReferable as? PsiElement, holder)
                 return null
             }
 
@@ -86,7 +86,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     override fun collectInfo(progress: ProgressIndicator) {
         when (arendSettings.typecheckingMode) {
             ArendSettings.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty() && !file.isReplFile) {
-                val typechecking = ArendTypechecking.create(myProject, BackgroundTypecheckerState(typeCheckingService.typecheckerState))
+                val typechecking = ArendTypechecking.create(myProject, BackgroundTypecheckerState(typeCheckingService.typecheckerState), file.concreteProvider)
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {

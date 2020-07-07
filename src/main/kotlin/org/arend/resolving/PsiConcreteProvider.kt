@@ -27,7 +27,7 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precede
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
-class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, private val resolve: Boolean = true) : ConcreteProvider {
+class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, var resolve: Boolean = true) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.ReferableDefinition> = HashMap()
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
