@@ -26,14 +26,13 @@ import org.arend.util.FullName
 class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend background typechecker annotator", textRange, highlightInfoProcessor) {
 
-    private val typeCheckingService = myProject.service<TypeCheckingService>()
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val arendSettings = service<ArendSettings>()
     private val definitionsToTypecheck = ArrayList<TCDefinition>()
     private var lineMarkersPass: LineMarkersPass? = null
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
-        DesugarVisitor.desugar(definition, typeCheckingService.typecheckerState, this)
+        DesugarVisitor.desugar(definition, this)
 
         progress.checkCanceled()
         definition.accept(object : DumbTypechecker(this) {
@@ -86,11 +85,11 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     override fun collectInfo(progress: ProgressIndicator) {
         when (arendSettings.typecheckingMode) {
             ArendSettings.TypecheckingMode.SMART -> if (definitionsToTypecheck.isNotEmpty() && !file.isReplFile) {
-                val typechecking = ArendTypechecking.create(myProject, BackgroundTypecheckerState(typeCheckingService.typecheckerState), file.concreteProvider)
+                val typechecking = ArendTypechecking.create(myProject, file.concreteProvider)
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {
-                        typecheckDefinition(typechecking, lastModified, progress)?.let { typeCheckingService.typecheckerState.getTypechecked(it.data) }
+                        typecheckDefinition(typechecking, lastModified, progress)?.data?.typechecked
                     } else null
                     if (typechecked?.status()?.withoutErrors() == true) {
                         file.lastModifiedDefinition = null
@@ -131,7 +130,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     }
 
     override fun countDefinition(def: TCDefinition) =
-        if (!definitionBlackListService.isBlacklisted(def) && typeCheckingService.getTypechecked(def) == null) {
+        if (!definitionBlackListService.isBlacklisted(def) && def.tcReferable?.typechecked == null) {
             definitionsToTypecheck.add(def)
             true
         } else false

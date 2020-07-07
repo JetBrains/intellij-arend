@@ -17,15 +17,15 @@ import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, typecheckerState: TypecheckerState, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
-    : TypecheckingOrderingListener(instanceProviderSet, typecheckerState, concreteProvider, ArendReferableConverter, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
+open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
+    : TypecheckingOrderingListener(instanceProviderSet, concreteProvider, ArendReferableConverter, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
 
     companion object {
-        fun create(project: Project, typecheckerState: TypecheckerState? = null, concreteProvider: ConcreteProvider? = null): ArendTypechecking {
+        fun create(project: Project, concreteProvider: ConcreteProvider? = null): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
             val errorReporter = project.service<ErrorService>()
             val nnConcreteProvider = concreteProvider ?: PsiConcreteProvider(project, ArendReferableConverter, errorReporter, null, true)
-            return ArendTypechecking(PsiInstanceProviderSet(nnConcreteProvider), typecheckerState ?: typecheckingService.typecheckerState, nnConcreteProvider, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
+            return ArendTypechecking(PsiInstanceProviderSet(nnConcreteProvider), nnConcreteProvider, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }
 

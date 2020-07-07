@@ -35,7 +35,6 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.ArendCancellationIndicator
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
 import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
@@ -98,7 +97,6 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         PsiTreeUtil.findCommonParent(startElement, it)
     } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val service = project.service<TypeCheckingService>()
     val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
     val psiDef = possibleParent.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
@@ -138,7 +136,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         }
     } else {
         concreteDef ?: throw SubExprException("selected text is not in a definition")
-        val def = service.getTypechecked(psiDef)
+        val def = psiDef.tcReferable?.typechecked
             ?: throw SubExprException("underlying definition is not type checked")
         val subDefVisitor = CorrespondedSubDefVisitor(subExpr)
         errors = subDefVisitor.exprError

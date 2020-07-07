@@ -16,7 +16,6 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.subexpr.FindBinding
 import org.jetbrains.annotations.Nls
 
@@ -59,7 +58,7 @@ class ArendShowTypeAction : ArendPopupAction() {
             val body = function.body
             // Make sure it's not an expr body
             if (body.term != null) throw e
-            val coreDef = project.service<TypeCheckingService>().getTypechecked(tc)
+            val coreDef = tc.tcReferable?.typechecked
             val coreBody = (coreDef as? Function)?.body as? ElimBody
                 ?: (coreDef as? CoreFunctionDefinition)?.actualBody as? ElimBody
                 ?: throw e

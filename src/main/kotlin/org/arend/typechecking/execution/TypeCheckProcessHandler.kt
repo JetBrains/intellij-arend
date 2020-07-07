@@ -110,7 +110,7 @@ class TypeCheckProcessHandler(
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, ArendReferableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
             val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, PsiElementComparator)
 
             try {
                 for (library in libraries) {
@@ -157,7 +157,7 @@ class TypeCheckProcessHandler(
                             val typechecked =
                                 if (tcReferable != null) {
                                     if (PsiLocatedReferable.isValid(tcReferable)) {
-                                        typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                                        tcReferable.typechecked
                                     } else {
                                         typeCheckerService.dependencyListener.update(tcReferable)
                                         null
@@ -217,7 +217,7 @@ class TypeCheckProcessHandler(
         val referable = group.referable
         val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
         if (tcReferable != null) {
-            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+            val typechecked = tcReferable.typechecked
             if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)
             }

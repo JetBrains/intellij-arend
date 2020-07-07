@@ -31,8 +31,7 @@ import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
 
-class ArendRawLibrary(val config: LibraryConfig)
-    : SourceLibrary(config.project.service<TypeCheckingService>().typecheckerState) {
+class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun isExternal() = config is ExternalLibraryConfig
 

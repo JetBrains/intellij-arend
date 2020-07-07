@@ -37,8 +37,7 @@ import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
-    val typecheckerState = SimpleTypecheckerState()
-    val dependencyListener = DependencyCollector(typecheckerState)
+    val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
     val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
 
@@ -60,13 +59,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
         // Initialize prelude
-        val preludeLibrary = ArendPreludeLibrary(project, typecheckerState)
+        val preludeLibrary = ArendPreludeLibrary(project)
         this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
         preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
         val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(InstanceProviderSet(), typecheckerState, concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
+        Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
         preludeLibrary.prelude?.let {
             fillAdditionalNames(it, true)
         }
@@ -139,9 +138,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
-    fun getTypechecked(definition: TCDefinition) =
-        definition.tcReferable?.let { typecheckerState.getTypechecked(it) }
-
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
@@ -165,7 +161,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             project.service<ErrorService>().clearTypecheckingErrors(curRef)
         }
 
-        val tcTypecheckable = tcReferable.typecheckable ?: return null
+        val tcTypecheckable = tcReferable.typecheckable
         tcTypecheckable.location?.let { updatedModules.add(it) }
         return tcTypecheckable
     }
@@ -202,7 +198,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         if (file.isReplFile) return
         if (ComputationRunner.getCancellationIndicator() is ArendCancellationIndicator) {
-            synchronized(typecheckerState) {
+            synchronized(SyncObject) {
                 (ComputationRunner.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
                 ComputationRunner.resetCancellationIndicator()
             }
@@ -211,4 +207,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         def.checkTCReferable()
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
+
+    object SyncObject
 }

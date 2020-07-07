@@ -31,8 +31,7 @@ abstract class IntellijRepl private constructor(
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(psiInstanceProviderSet, service.typecheckerState, psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
-    service.typecheckerState
+    ArendTypechecking(psiInstanceProviderSet, psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider)
 ) {
     constructor(project: Project) : this(project.service(), ListErrorReporter())
 

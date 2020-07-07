@@ -11,7 +11,6 @@ import org.arend.library.LibraryDependency
 import org.arend.library.LibraryManager
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.converter.SimpleReferableConverter
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.LexicalScope
@@ -19,7 +18,6 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.term.group.Group
-import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
@@ -27,7 +25,7 @@ import org.arend.util.FileUtils
 import java.nio.charset.StandardCharsets
 
 
-class ArendPreludeLibrary(private val project: Project, typecheckerState: TypecheckerState?) : BaseLibrary(typecheckerState) {
+class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     var prelude: ArendFile? = null
         private set
     private var isTypechecked: Boolean = false
@@ -63,7 +61,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
         }
 
         isTypechecked = true
-        Prelude.fillInTypecheckerState(typecheckerState)
+        Prelude.fillInTypecheckerState()
         return true
     }
 
