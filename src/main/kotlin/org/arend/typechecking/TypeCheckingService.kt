@@ -204,7 +204,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        def.checkTCReferable()
+        if (!isExternalUpdate) {
+            def.checkTCReferable()
+        }
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
     }
 
