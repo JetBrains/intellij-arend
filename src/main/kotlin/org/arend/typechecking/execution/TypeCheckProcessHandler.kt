@@ -29,11 +29,11 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
-import org.arend.term.group.Group
 import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
@@ -137,10 +137,13 @@ class TypeCheckProcessHandler(
                     }
 
                     if (command.definitionFullName == "") {
-                        for (module in modules) {
-                            runReadAction {
+                        runReadAction {
+                            for (module in modules) {
                                 reportParserErrors(module, module, typecheckingErrorReporter)
+                                resetGroup(module)
                             }
+                        }
+                        for (module in modules) {
                             orderGroup(module, ordering)
                             module.lastModifiedDefinition = null
                         }
@@ -209,20 +212,33 @@ class TypeCheckProcessHandler(
         }
     }
 
-    private fun orderGroup(group: Group, ordering: Ordering) {
+    private fun resetGroup(group: ArendGroup) {
         if (indicator.isCanceled) {
             return
         }
 
-        val referable = group.referable
-        val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
+        val tcReferable = group.tcReferable
         if (tcReferable != null) {
             val typechecked = tcReferable.typechecked
             if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)
             }
-            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.order(it) }
         }
+
+        for (subgroup in group.subgroups) {
+            resetGroup(subgroup)
+        }
+        for (subgroup in group.dynamicSubgroups) {
+            resetGroup(subgroup)
+        }
+    }
+
+    private fun orderGroup(group: ArendGroup, ordering: Ordering) {
+        if (indicator.isCanceled) {
+            return
+        }
+
+        (ordering.concreteProvider.getConcrete(group) as? Concrete.Definition)?.let { ordering.order(it) }
 
         for (subgroup in runReadAction { group.subgroups }) {
             orderGroup(subgroup, ordering)
