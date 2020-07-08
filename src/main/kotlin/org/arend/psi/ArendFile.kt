@@ -79,6 +79,10 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             }
         }
 
+    fun dropTCRefMapCache() {
+        tcRefMapCache = null
+    }
+
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
 
@@ -113,6 +117,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val tcReferable: TCReferable?
         get() = null
+
+    override fun dropTypechecked() {}
 
     override fun checkTCReferable() {}
 

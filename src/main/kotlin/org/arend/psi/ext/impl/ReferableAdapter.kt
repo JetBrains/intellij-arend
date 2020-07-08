@@ -2,6 +2,7 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
@@ -19,6 +20,7 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.FieldDataLocatedReferable
+import org.arend.typechecking.TypeCheckingService
 
 abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -63,6 +65,17 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 }
             }
         }
+
+    override fun dropTypechecked() {
+        val service = project.service<TypeCheckingService>()
+        val tcRef = tcReferableCache ?: run {
+            val file = containingFile as? ArendFile ?: return
+            service.tcRefMaps[file.moduleLocation]?.get(refLongName)
+        } ?: return
+        tcRef.typechecked = null
+        service.dependencyListener.update(tcRef)
+        tcReferableCache = null
+    }
 
     override fun checkTCReferable() {
         val tcRef = tcReferableCache ?: return

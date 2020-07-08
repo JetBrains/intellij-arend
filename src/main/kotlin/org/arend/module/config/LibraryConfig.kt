@@ -160,6 +160,10 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun clearAdditionalModules() {
+        val maps = project.service<TypeCheckingService>().tcRefMaps
+        for (file in additionalModules.values) {
+            maps.remove(file.moduleLocation)
+        }
         additionalModules.clear()
     }
 

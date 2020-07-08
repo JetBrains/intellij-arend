@@ -17,6 +17,8 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val tcReferable: TCReferable?
 
+    fun dropTypechecked()
+
     fun checkTCReferable()
 
     companion object {

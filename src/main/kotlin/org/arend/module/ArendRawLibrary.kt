@@ -17,8 +17,9 @@ import org.arend.naming.reference.EmptyGlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
@@ -26,6 +27,7 @@ import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
@@ -86,13 +88,26 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)
 
+    override fun resetGroup(group: Group) {
+        super.resetGroup(group)
+        (group as? ArendFile)?.let {
+            it.concreteProvider = EmptyConcreteProvider.INSTANCE
+            it.dropTCRefMapCache()
+            config.project.service<TypeCheckingService>().tcRefMaps.remove(it.moduleLocation)
+        }
+    }
+
     override fun resetDefinition(referable: LocatedReferable) {
-        if (referable !is ArendDefinition) {
+        if (referable !is PsiLocatedReferable) {
             return
         }
         runReadAction {
             if (!config.project.isDisposed) {
-                config.project.service<TypeCheckingService>().updateDefinition(referable, null, TypeCheckingService.LastModifiedMode.DO_NOT_TOUCH)
+                referable.dropTypechecked()
+                if (referable !is ArendGroup) return@runReadAction
+                for (ref in referable.internalReferables) {
+                    ref.dropTypechecked()
+                }
             }
         }
     }
