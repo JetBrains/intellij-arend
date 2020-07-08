@@ -3,12 +3,13 @@ package org.arend.module
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
-import org.arend.util.reloadInternal
+import com.intellij.openapi.components.service
+import org.arend.typechecking.TypeCheckingService
 
 
 class ReloadLibrariesAction : AnAction("Reload Arend Libraries") {
     override fun actionPerformed(e: AnActionEvent) {
-        e.project?.reloadInternal()
+        e.project?.service<TypeCheckingService>()?.reloadInternal()
     }
 
     override fun update(e: AnActionEvent) {

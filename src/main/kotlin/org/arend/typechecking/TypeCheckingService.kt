@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -27,6 +28,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
@@ -98,26 +100,33 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
     fun reload() {
-        externalAdditionalNamesIndex.clear()
-        internalAdditionalNamesIndex.clear()
-        extensionDefinitions.clear()
+        libraryManager.reload {
+            project.service<ArendResolveCache>().clear()
+            externalAdditionalNamesIndex.clear()
+            internalAdditionalNamesIndex.clear()
+            extensionDefinitions.clear()
 
-        libraryManager.reload(ArendTypechecking.create(project))
+            ArendTypechecking.create(project)
+        }
     }
 
     fun reloadInternal() {
-        internalAdditionalNamesIndex.clear()
+        libraryManager.reloadInternalLibraries {
+            internalAdditionalNamesIndex.clear()
 
-        val it = extensionDefinitions.iterator()
-        while (it.hasNext()) {
-            if (it.next().value) {
-                it.remove()
+            val it = extensionDefinitions.iterator()
+            while (it.hasNext()) {
+                if (it.next().value) {
+                    it.remove()
+                }
             }
+
+            project.service<ErrorService>().clearAllErrors()
+            project.service<ArendDefinitionChangeService>().incModificationCount()
+            DaemonCodeAnalyzer.getInstance(project).restart()
+
+            ArendTypechecking.create(project)
         }
-
-        project.service<ErrorService>().clearAllErrors()
-
-        libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
     }
 
     override fun request(definition: Definition, library: Library) {
@@ -170,7 +179,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
 
-    fun updateDefinition(referable: LocatedReferable, file: ArendFile?, mode: LastModifiedMode) {
+    private fun updateDefinition(referable: LocatedReferable, file: ArendFile?, mode: LastModifiedMode) {
         if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is TCDefinition) {
             val isValid = referable.isValid
             (file ?: if (isValid) referable.containingFile as? ArendFile else null)?.let {
