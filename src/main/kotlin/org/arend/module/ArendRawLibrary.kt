@@ -26,7 +26,6 @@ import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
@@ -58,16 +57,10 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         config.addAdditionalModule(modulePath, file)
     }
 
-    override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
-        if (!super.load(libraryManager, typechecking)) {
-            return false
-        }
-
+    override fun loadGeneratedModules() {
         for (entry in additionalModules) {
             addGeneratedModule(entry.key, entry.value)
         }
-
-        return true
     }
 
     override fun unload(): Boolean {
