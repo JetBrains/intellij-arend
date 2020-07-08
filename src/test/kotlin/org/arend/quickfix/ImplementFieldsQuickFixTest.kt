@@ -129,7 +129,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """)
 
 
-    fun `test removing redundant clause`() = simpleQuickFixTest("Remove",
+    fun `test removing redundant coclause`() = simpleQuickFixTest("Remove",
             """
                 --! A.ard
                 \class Foo (A : Nat)
