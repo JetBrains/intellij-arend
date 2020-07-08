@@ -115,6 +115,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
+        project.service<ErrorService>().clearAllErrors()
+
         libraryManager.reloadInternalLibraries(ArendTypechecking.create(project))
     }
 
