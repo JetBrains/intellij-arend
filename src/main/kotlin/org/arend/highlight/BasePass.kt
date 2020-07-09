@@ -33,9 +33,11 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.impl.ArendNewExprImpl
 import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
+import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
@@ -126,19 +128,20 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             when (error) {
                 is ParsingError -> when (error.kind) {
-                     MISPLACED_IMPORT -> {
-                         val errorCause = error.cause
-                         if (errorCause is ArendStatCmd && errorCause.isValid) {
-                             annotation.registerFix(MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
-                         }
-                     }
-                    else -> {}
+                    MISPLACED_IMPORT -> {
+                        val errorCause = error.cause
+                        if (errorCause is ArendStatCmd && errorCause.isValid) {
+                            annotation.registerFix(MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
+                        }
+                    }
+                    else -> {
+                    }
                 }
 
                 is DuplicateOpenedNameError -> {
                     val errorCause = error.cause
                     if (errorCause is PsiElement && errorCause.isValid) {
-                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause),  error.referable))
+                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
                     }
                 }
 
@@ -180,7 +183,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
                             val expr = when (it) {
                                 is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
-                                is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr ?: it
+                                is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr
+                                        ?: it
                                 else -> it
                             }
                             val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
@@ -220,6 +224,15 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         }
                         cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
                     }
+
+                    val localCoClause = cause.parent?.parent?.parent?.parent?.parent?.parent as? ArendLocalCoClause
+
+                    if (localCoClause != null) {
+                        var annotationRoot: PsiElement? = localCoClause
+                        while (annotationRoot != null && annotationRoot !is ArendNewExprImpl && annotationRoot !is ArendDefInstance &&
+                                annotationRoot !is ArendDefFunction && annotationRoot !is ArendCoClause) annotationRoot = annotationRoot.parent
+                        if (annotationRoot != null) doAnnotate(annotationRoot, holder)
+                    }
                 }
 
                 is CertainTypecheckingError -> when (error.kind) {
@@ -247,7 +260,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
                     REDUNDANT_COCLAUSE -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
-                    else -> {}
+                    else -> {
+                    }
                 }
             }
         }
@@ -259,13 +273,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     companion object {
         fun levelToSeverity(level: GeneralError.Level): HighlightSeverity =
-            when (level) {
-                GeneralError.Level.ERROR -> HighlightSeverity.ERROR
-                GeneralError.Level.WARNING -> HighlightSeverity.WARNING
-                GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
-                GeneralError.Level.GOAL -> HighlightSeverity.WARNING
-                GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
-            }
+                when (level) {
+                    GeneralError.Level.ERROR -> HighlightSeverity.ERROR
+                    GeneralError.Level.WARNING -> HighlightSeverity.WARNING
+                    GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
+                    GeneralError.Level.GOAL -> HighlightSeverity.WARNING
+                    GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
+                }
 
         fun getCauseElement(data: Any?): PsiElement? {
             val cause = data?.let { (it as? DataContainer)?.data ?: it }
@@ -279,7 +293,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw
                     ParsingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
-                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent?.let { (it as? ArendFieldTele)?.classifyingKw ?: it }
+                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent?.let {
+                        (it as? ArendFieldTele)?.classifyingKw ?: it
+                    }
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
                     MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
                     else -> null
@@ -307,7 +323,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         }
 
-        fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedErrorElement(error, it) ?: it }
+        fun getImprovedCause(error: GeneralError) = getCauseElement(error.cause)?.let {
+            getImprovedErrorElement(error, it) ?: it
+        }
 
         fun getImprovedTextRange(error: GeneralError) = getCauseElement(error.cause)?.let { getImprovedTextRange(error, it) }
 
@@ -323,7 +341,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
 
             ((improvedElement as? ArendLongName)?.parent as? CoClauseBase)?.let { coClause ->
-                val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow ?: coClause.lbrace ?: improvedElement
+                val endElement = coClause.expr?.let { if (isEmptyGoal(it)) it else null } ?: coClause.fatArrow
+                ?: coClause.lbrace ?: improvedElement
                 return TextRange(coClause.textRange.startOffset, endElement.textRange.endOffset)
             }
 
@@ -346,8 +365,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 val prev = improvedElement.extendLeft.prevSibling
                 val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
                 val endOffset =
-                    if (error is ConditionsError) (improvedElement.patternList.lastOrNull() ?: improvedElement as PsiElement).textRange.endOffset
-                    else improvedElement.textRange.endOffset
+                        if (error is ConditionsError) (improvedElement.patternList.lastOrNull()
+                                ?: improvedElement as PsiElement).textRange.endOffset
+                        else improvedElement.textRange.endOffset
                 return TextRange(startElement.textRange.startOffset, endOffset)
             }
 
@@ -383,7 +403,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         val second = text.indexOf('\n', first + 1)
                         val offset = next.textRange.startOffset
                         return if (second == -1) TextRange(offset + first + 1, offset + first + 2)
-                            else TextRange(offset + second, offset + second + 1)
+                        else TextRange(offset + second, offset + second + 1)
                     }
                 }
                 if (next != null) {
@@ -396,17 +416,17 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }
 
         fun getImprovedTextOffset(error: GeneralError?, element: PsiElement) =
-            getImprovedTextRange(error, element).startOffset
+                getImprovedTextRange(error, element).startOffset
 
         fun isIncomplete(element: PsiElement) =
-            element is ArendLetExpr && element.expr == null ||
-            element is ArendLamExpr && element.expr == null ||
-            element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA
+                element is ArendLetExpr && element.expr == null ||
+                        element is ArendLamExpr && element.expr == null ||
+                        element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA
 
-        private val GOAL_IN_COPATTERN_PREFIX : Array<Class<out PsiElement>> =
+        private val GOAL_IN_COPATTERN_PREFIX: Array<Class<out PsiElement>> =
                 arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)
-        private val GOAL_IN_COPATTERN = StandardPatterns.or(withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendLocalCoClause::class.java))),
-                withAncestors( *(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
+        private val GOAL_IN_COPATTERN = StandardPatterns.or(withAncestors(*(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendLocalCoClause::class.java))),
+                withAncestors(*(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
 
         fun isEmptyGoal(element: PsiElement): Boolean {
             val goal: ArendGoal? = element.childOfType()

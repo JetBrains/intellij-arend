@@ -13,7 +13,10 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendDefInstance
+import org.arend.psi.ClassReferenceHolder
+import org.arend.psi.CoClauseBase
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.removers.RemoveCoClauseQuickFix
 
@@ -125,7 +128,8 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
                         }
                         holder.createErrorAnnotation(rangeToReport, message).registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(classReferenceHolder), annotationToShow != InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR, fieldsList))
                     }
-                    InstanceQuickFixAnnotation.NO_ANNOTATION -> classReferenceHolder.putUserData(CoClausesKey, fieldsList)
+                    InstanceQuickFixAnnotation.NO_ANNOTATION ->
+                        classReferenceHolder.putUserData(CoClausesKey, fieldsList)
                 }
 
                 return fieldsList
