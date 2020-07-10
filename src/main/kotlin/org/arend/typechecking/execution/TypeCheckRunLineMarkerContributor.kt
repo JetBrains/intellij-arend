@@ -4,7 +4,6 @@ import com.intellij.execution.lineMarker.ExecutorAction
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.Function
@@ -12,7 +11,6 @@ import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.*
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.fullName
-import org.arend.typechecking.TypeCheckingService
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
@@ -26,8 +24,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> null
         } ?: return null
 
-        val service = parent.project.service<TypeCheckingService>()
-        val def = service.getTypechecked(parent)
+        val def = parent.tcReferable?.typechecked
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2

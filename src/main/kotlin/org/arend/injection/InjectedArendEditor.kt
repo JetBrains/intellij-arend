@@ -6,7 +6,6 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
@@ -27,12 +26,12 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.local.GoalError
 import java.awt.BorderLayout
@@ -98,7 +97,7 @@ class InjectedArendEditor(val project: Project,
                 fileScope = scope
             }
             val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
-            val ppConfig = ProjectPrintConfig(project, printOptionsKind, scope?.let { CachingScope.make(ConvertingScope(project.service<TypeCheckingService>().newReferableConverter(false), it)) })
+            val ppConfig = ProjectPrintConfig(project, printOptionsKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
             val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else

@@ -121,7 +121,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         val typechecking = ArendTypechecking.create(project)
         if (reloadLib) {
-            libraryManager.reloadInternalLibraries(typechecking)
+            libraryManager.reloadInternalLibraries { typechecking }
         } else {
             for (dependency in newDependencies) {
                 if (!oldDependencies.contains(dependency)) {
@@ -225,7 +225,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         if (reload) {
             librariesRoot = newLibrariesRoot
-            project.reload()
+            project.service<TypeCheckingService>().reload()
         }
     }
 

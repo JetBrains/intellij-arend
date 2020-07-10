@@ -6,13 +6,13 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.Precedence
 import org.arend.naming.error.ReferenceError
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.LocatedReferableImpl
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
@@ -23,11 +23,11 @@ import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.TYPECHECKABLE)) {
+private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.OTHER)) {
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
-class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, private val resolve: Boolean = true) : ConcreteProvider {
+class PsiConcreteProvider(private val project: Project, private val referableConverter: ReferableConverter, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, var resolve: Boolean = true) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.ReferableDefinition> = HashMap()
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
@@ -41,21 +41,12 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
             }
 
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
-            if (def == null) {
-                if (eventsProcessor != null) {
-                    eventsProcessor.stopTimer(psiReferable)
-                    eventsProcessor.onTestFailure(psiReferable)
-                    eventsProcessor.onTestFinished(psiReferable)
-                }
-                return@runReadAction NullDefinition
-            } else {
-                if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
-                    scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
-                    def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter), scope)
-                }
-                eventsProcessor?.stopTimer(psiReferable)
-                return@runReadAction def
+            if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
+                scope = CachingScope.make(psiReferable.scope)
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter), scope)
             }
+            eventsProcessor?.stopTimer(psiReferable)
+            return@runReadAction def
         } }
 
         if (result === NullDefinition) {
@@ -68,9 +59,9 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         if (resolve && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
             runReadAction {
                 if (scope == null) {
-                    scope = CachingScope.make(ConvertingScope(referableConverter, psiReferable.scope))
+                    scope = CachingScope.make(psiReferable.scope)
                 }
-                result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, errorReporter), scope)
+                result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, errorReporter), scope)
             }
         }
 
@@ -125,7 +116,7 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         return if (psiReferable is ArendDefInstance) getConcreteDefinition(psiReferable) as? Concrete.FunctionDefinition else null
     }
 
-    override fun getConcreteClass(referable: ClassReferable): Concrete.ClassDefinition? {
+    override fun getConcreteClass(referable: GlobalReferable): Concrete.ClassDefinition? {
         val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
     }
@@ -135,17 +126,6 @@ class PsiConcreteProvider(private val project: Project, private val referableCon
         return if (psiReferable is ArendDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
     }
 
-    override fun isInstance(ref: GlobalReferable) = ref.underlyingReferable is ArendDefInstance
-
-    override fun isData(ref: GlobalReferable) = ref.underlyingReferable is ArendDefData
-
-    override fun isFunction(ref: GlobalReferable): Boolean {
-        val psiRef = ref.underlyingReferable
-        return psiRef is ArendDefFunction || psiRef is ArendDefInstance
-    }
-
-    override fun isUse(ref: GlobalReferable): Boolean {
-        val psiReferable = ref.underlyingReferable
-        return psiReferable is ArendDefFunction && runReadAction { psiReferable.functionKw.useKw != null }
-    }
+    override fun getTCReferable(referable: GlobalReferable) =
+        referable as? TCReferable ?: (referable as? LocatedReferable)?.let { referableConverter.toDataLocatedReferable(it) }
 }

@@ -7,6 +7,8 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -16,6 +18,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferableExtractVisitor
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendDefInstance, ArendFunctionalDefinition {
@@ -53,7 +56,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getFunctionKind() = if (instanceOrCons.consKw != null) FunctionKind.CONS else FunctionKind.INSTANCE
 
-    override fun getKind() = if (instanceOrCons.consKw != null) GlobalReferable.Kind.DEFINED_CONSTRUCTOR else GlobalReferable.Kind.TYPECHECKABLE
+    override fun getKind() = if (instanceOrCons.consKw != null) GlobalReferable.Kind.DEFINED_CONSTRUCTOR else GlobalReferable.Kind.FUNCTION
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
@@ -64,10 +67,16 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
+    override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? {
+        val expr = instanceBody?.expr ?: return null
+        return if (visitor.decrease(parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 })) ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr) else null
+    }
+
     private val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, resultType)
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(allParameters, resultType)
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null

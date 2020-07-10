@@ -15,6 +15,12 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val defIdentifier: ArendDefIdentifier?
 
+    val tcReferable: TCReferable?
+
+    fun dropTypechecked()
+
+    fun checkTCReferable()
+
     companion object {
         fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
 

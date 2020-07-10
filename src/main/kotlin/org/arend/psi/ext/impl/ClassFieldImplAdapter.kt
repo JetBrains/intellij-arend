@@ -3,6 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -44,4 +45,6 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
     override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
 
     override fun getIcon(flags: Int) = ArendIcons.IMPLEMENTATION
+
+    override fun getKind() = GlobalReferable.Kind.OTHER
 }

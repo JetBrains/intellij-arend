@@ -29,9 +29,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val statements: List<ArendStatement>
         get() = where?.statementList ?: emptyList()
 
-    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition? {
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
-        if (def?.status == Concrete.Status.HAS_ERRORS) {
+        if (def.status == Concrete.Status.HAS_ERRORS) {
             accept(object : PsiRecursiveElementVisitor() {
                 override fun visitErrorElement(element: PsiErrorElement) {
                     errorReporter.report(IncompleteExpressionError(SourceInfoErrorData(element)))

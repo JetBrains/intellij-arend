@@ -1,16 +1,14 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
-import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCClassReferable
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -21,17 +19,15 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeService
-import org.arend.quickfix.implementCoClause.doAnnotate
+import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.resolving.TCReferableWrapper
-import org.arend.resolving.WrapperReferableConverter
 import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
-import org.arend.typechecking.visitor.VoidConcreteVisitor
 
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -43,14 +39,14 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
-        val concreteProvider = PsiConcreteProvider(myProject, WrapperReferableConverter, this, null, false)
+        val concreteProvider = PsiConcreteProvider(myProject, ArendReferableConverter, this, null, false)
         file.concreteProvider = concreteProvider
         val resolverCache = myProject.service<ArendResolveCache>()
-        DefinitionResolveNameVisitor(concreteProvider, this, object : ResolverListener {
+        DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ResolverListener {
             private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
                 val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
                 val oldRef = resolverCache.replaceCache(newRef, reference)
-                if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCClassReferable.NULL_REFERABLE)) {
+                if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCReferable.NULL_REFERABLE)) {
                     resetDefinition = true
                 }
             }
@@ -149,12 +145,11 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
 
             private fun highlightParameters(definition: Concrete.ReferableDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
-                    if (parameter.type?.underlyingTypeClass != null) {
+                    if (((parameter.type?.underlyingReferable as? GlobalReferable)?.underlyingReferable as? ArendDefClass)?.isRecord == false) {
                         val list = when (val param = parameter.data) {
                             is ArendFieldTele -> param.fieldDefIdentifierList
                             is ArendNameTele -> param.identifierOrUnknownList
                             is ArendTypeTele -> param.typedExpr?.identifierOrUnknownList
-                            is TCReferableWrapper -> (param.data as? ArendFieldDefIdentifier)?.let { listOf(it) }
                             else -> null
                         }
                         for (id in list ?: emptyList()) {
@@ -199,40 +194,17 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                 }
 
-                definition.accept(IntentionBackEndPass(holder), null)
+                definition.accept(IntentionBackEndVisitor(holder), null)
 
                 advanceProgress(1)
             }
-        }).resolveGroup(group, WrapperReferableConverter, group.scope)
+        }).resolveGroup(group, group.scope)
+
+        concreteProvider.resolve = true
     }
 
     override fun applyInformationWithProgress() {
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
-    }
-}
-
-class IntentionBackEndPass(val holder: AnnotationHolder?) : VoidConcreteVisitor<Void, Void>() {
-    override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
-        super.visitFunction(def, params)
-        doAnnotate(def.data.data as? PsiElement, holder)
-        return null
-    }
-
-    override fun visitClassFieldImpl(classFieldImpl: Concrete.ClassFieldImpl, params: Void?) {
-        super.visitClassFieldImpl(classFieldImpl, params)
-        doAnnotate(classFieldImpl.data as? PsiElement, holder)
-    }
-
-    override fun visitClassExt(expr: Concrete.ClassExtExpression, params: Void?): Void? {
-        super.visitClassExt(expr, params)
-        doAnnotate(expr.data as? PsiElement, holder)
-        return null
-    }
-
-    override fun visitNew(expr: Concrete.NewExpression, params: Void?): Void? {
-        super.visitNew(expr, params)
-        if (expr.expression !is Concrete.ClassExtExpression) doAnnotate(expr.data as? PsiElement, holder)
-        return null
     }
 }

@@ -4,9 +4,7 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.*
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.ArendDefFunction
@@ -14,6 +12,7 @@ import org.arend.psi.ArendDefInstance
 import org.arend.psi.ClassReferenceHolder
 import org.arend.psi.CoClauseBase
 import org.arend.psi.ext.ArendNewExprImplMixin
+import org.arend.psi.ext.PsiLocatedReferable
 
 enum class InstanceQuickFixAnnotation {
     IMPLEMENT_FIELDS_ERROR,
@@ -66,9 +65,7 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
 
             val fieldToImplement = superClassesFields[referable]
             if (fieldToImplement != null) {
-                val scope = CachingScope.make(ClassFieldImplScope(referable, false))
-                val fieldsList = fieldToImplement.map { Pair(it as LocatedReferable, scope.resolveName(it.textRepresentation()) != it) }
-                coClause.putUserData(CoClausesKey, fieldsList)
+                coClause.putUserData(CoClausesKey, makeFieldList(fieldToImplement, referable))
             }
 
             if (subClauses.isEmpty() && fatArrow == null) {
@@ -136,9 +133,14 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
     return emptyList()
 }
 
+private fun getTCRef(ref: Referable?) = (ref as? PsiLocatedReferable)?.tcReferable ?: ref
+
 fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-    return fields.map { field -> Pair(field as LocatedReferable, scope.resolveName(field.textRepresentation()) != field) }
+    return fields.map { field ->
+        val field2 = scope.resolveName(field.textRepresentation())
+        Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
+    }
 }
 
 fun doAnnotate(element: PsiElement?, holder: AnnotationHolder?) {

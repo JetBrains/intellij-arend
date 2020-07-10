@@ -5,6 +5,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiReferable
 import org.arend.term.abs.Abstract
 import org.arend.typing.ReferableExtractVisitor
 
@@ -37,7 +38,7 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
             }
 
             val visitor = ReferableExtractVisitor(true)
-            val classRef = visitor.findReferable((resolved as? TypedReferable)?.typeOf) as? ClassReferable ?: return null
+            val classRef = visitor.findReferable((resolved as? PsiReferable)?.typeOf) as? ClassReferable ?: return null
             return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
         }
     }

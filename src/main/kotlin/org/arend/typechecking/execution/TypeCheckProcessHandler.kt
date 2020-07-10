@@ -1,7 +1,6 @@
 package org.arend.typechecking.execution
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -30,10 +29,11 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
-import org.arend.term.group.Group
 import org.arend.typechecking.BinaryFileSaver
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TestBasedTypechecking
@@ -107,11 +107,10 @@ class TypeCheckProcessHandler(
         typeCheckerService.updatedModules.clear()
 
         PooledThreadExecutor.INSTANCE.execute {
-            val referableConverter = typeCheckerService.newReferableConverter(true)
-            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, referableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
+            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, ArendReferableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
-            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider, referableConverter)
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, referableConverter, typeCheckerService.typecheckerState, PsiElementComparator)
+            val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, PsiElementComparator)
 
             try {
                 for (library in libraries) {
@@ -132,16 +131,19 @@ class TypeCheckProcessHandler(
                                     sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
                                 }
                             } else sourcesModuleScopeProvider
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, referableConverter, ScopeFactory.forGroup(module, moduleScopeProvider)) }
+                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider)) }
                         }
                         module
                     }
 
                     if (command.definitionFullName == "") {
-                        for (module in modules) {
-                            runReadAction {
+                        runReadAction {
+                            for (module in modules) {
                                 reportParserErrors(module, module, typecheckingErrorReporter)
+                                resetGroup(module)
                             }
+                        }
+                        for (module in modules) {
                             orderGroup(module, ordering)
                             module.lastModifiedDefinition = null
                         }
@@ -154,11 +156,11 @@ class TypeCheckProcessHandler(
                                 runReadAction { typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath)) }
                             }
                         } else {
-                            val tcReferable = runReadAction { referableConverter.toDataLocatedReferable(ref) }
+                            val tcReferable = runReadAction { ArendReferableConverter.toDataLocatedReferable(ref) }
                             val typechecked =
                                 if (tcReferable != null) {
                                     if (PsiLocatedReferable.isValid(tcReferable)) {
-                                        typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+                                        tcReferable.typechecked
                                     } else {
                                         typeCheckerService.dependencyListener.update(tcReferable)
                                         null
@@ -185,7 +187,7 @@ class TypeCheckProcessHandler(
                 }
 
                 if (!indicator.isCanceled) {
-                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, referableConverter, typecheckingErrorReporter, typeCheckerService.dependencyListener)
+                    val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
                         typechecking.typecheckCollected(collector) { indicator.isCanceled }
                         typeCheckerService.project.service<BinaryFileSaver>().saveAll()
@@ -210,20 +212,33 @@ class TypeCheckProcessHandler(
         }
     }
 
-    private fun orderGroup(group: Group, ordering: Ordering) {
+    private fun resetGroup(group: ArendGroup) {
         if (indicator.isCanceled) {
             return
         }
 
-        val referable = group.referable
-        val tcReferable = runReadAction { ordering.referableConverter.toDataLocatedReferable(referable) }
+        val tcReferable = group.tcReferable
         if (tcReferable != null) {
-            val typechecked = typeCheckerService.typecheckerState.getTypechecked(tcReferable)
+            val typechecked = tcReferable.typechecked
             if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)
             }
-            (ordering.concreteProvider.getConcrete(referable) as? Concrete.Definition)?.let { ordering.order(it) }
         }
+
+        for (subgroup in group.subgroups) {
+            resetGroup(subgroup)
+        }
+        for (subgroup in group.dynamicSubgroups) {
+            resetGroup(subgroup)
+        }
+    }
+
+    private fun orderGroup(group: ArendGroup, ordering: Ordering) {
+        if (indicator.isCanceled) {
+            return
+        }
+
+        (ordering.concreteProvider.getConcrete(group) as? Concrete.Definition)?.let { ordering.order(it) }
 
         for (subgroup in runReadAction { group.subgroups }) {
             orderGroup(subgroup, ordering)

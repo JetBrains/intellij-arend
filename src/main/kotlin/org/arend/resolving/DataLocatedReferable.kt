@@ -3,8 +3,8 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
+import org.arend.core.definition.Definition
 import org.arend.ext.error.SourceInfo
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
@@ -13,16 +13,16 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.computation.ComputationRunner
 
 
 private data class Alias(val name: String, val precedence: Precedence)
 
 open class DataLocatedReferable(
-    private var psiElementPointer: SmartPsiElementPointer<PsiElement>?,
+    private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: LocatedReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?)
-    : DataLocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, typeClassReference, referable.kind), SourceInfo {
+    parent: LocatedReferable?
+) : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -33,13 +33,29 @@ open class DataLocatedReferable(
     override fun getData() = psiElementPointer
 
     override fun getUnderlyingReferable() =
-        psiElementPointer?.let { (runReadAction { it.element } as? Referable)?.underlyingReferable } ?: this
+        psiElementPointer?.let { runReadAction { it.element }?.underlyingReferable } ?: this
 
     override fun moduleTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.moduleTextRepresentationImpl() } } ?: location?.toString()
 
     override fun positionTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
+
+    override fun setTypechecked(definition: Definition?) {
+        if (definition == null) {
+            super.setTypechecked(null)
+        } else synchronized(TypeCheckingService.SyncObject) {
+            ComputationRunner.checkCanceled()
+            super.setTypechecked(definition)
+        }
+    }
+
+    override fun setTypecheckedIfAbsent(definition: Definition) {
+        synchronized(TypeCheckingService.SyncObject) {
+            ComputationRunner.checkCanceled()
+            super.setTypecheckedIfAbsent(definition)
+        }
+    }
 
     fun fixPointer(project: Project) =
         if (psiElementPointer == null) {
@@ -63,11 +79,10 @@ open class DataLocatedReferable(
 }
 
 class FieldDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
+    psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: FieldReferable,
-    parent: LocatedReferable?,
-    typeClassReference: TCClassReferable?)
-    : DataLocatedReferable(psiElementPointer, referable, parent, typeClassReference), TCFieldReferable {
+    parent: LocatedReferable?
+) : DataLocatedReferable(psiElementPointer, referable, parent), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
 
@@ -76,27 +91,4 @@ class FieldDataLocatedReferable(
     override fun isExplicitField() = isExplicit
 
     override fun isParameterField() = isParameter
-}
-
-class ClassDataLocatedReferable(
-    psiElementPointer: SmartPsiElementPointer<PsiElement>?,
-    referable: LocatedReferable,
-    parent: LocatedReferable?,
-    var isRecordFlag: Boolean,
-    val superClasses: MutableList<TCClassReferable>,
-    val fieldReferables: MutableList<TCFieldReferable>,
-    val implementedFields: MutableList<TCReferable>)
-    : DataLocatedReferable(psiElementPointer, referable, parent, null), TCClassReferable {
-
-    var filledIn = false
-
-    override fun isRecord() = isRecordFlag
-
-    override fun getSuperClassReferences(): List<TCClassReferable> = superClasses
-
-    override fun getFieldReferables(): Collection<TCFieldReferable> = fieldReferables
-
-    override fun getImplementedFields(): Collection<TCReferable> = implementedFields
-
-    override fun getUnresolvedSuperClassReferences(): List<Reference> = emptyList()
 }

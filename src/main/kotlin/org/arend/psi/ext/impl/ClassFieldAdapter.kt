@@ -12,7 +12,9 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendTypeTele
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.term.ClassFieldKind
+import org.arend.term.abs.Abstract
 import org.arend.typing.ReferableExtractVisitor
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendClassField {
@@ -52,7 +54,8 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
     }
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(parameters, resultType)
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

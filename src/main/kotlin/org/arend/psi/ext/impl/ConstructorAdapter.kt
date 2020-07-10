@@ -9,6 +9,7 @@ import org.arend.psi.stubs.ArendConstructorStub
 import org.arend.term.abs.Abstract
 import org.arend.typing.ParameterImpl
 import org.arend.typing.ReferenceImpl
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, ArendConstructor {
@@ -39,7 +40,8 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
     private val allParameters
         get() = (ancestor<DataDefinitionAdapter>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, ancestor<ArendDefData>()?.let { ReferenceImpl(it) })
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(allParameters, ancestor<ArendDefData>()?.let { ReferenceImpl(it) })
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CONSTRUCTOR
 

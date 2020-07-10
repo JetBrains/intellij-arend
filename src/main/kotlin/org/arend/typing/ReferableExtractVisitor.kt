@@ -17,9 +17,9 @@ import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 
 
-class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = false) : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
+class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = false, isExpr: Boolean = false) : BaseAbstractExpressionVisitor<Void?, Referable?>(null) {
     private enum class Mode { TYPE, EXPRESSION, NONE }
-    private var mode: Mode = Mode.NONE
+    private var mode: Mode = if (isExpr) Mode.EXPRESSION else Mode.NONE
     var argumentsExplicitness: MutableList<Boolean> = ArrayList()
         private set
     var implementedFields: MutableSet<FieldReferable> = HashSet()
