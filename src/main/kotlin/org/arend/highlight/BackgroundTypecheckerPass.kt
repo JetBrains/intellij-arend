@@ -8,11 +8,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
@@ -36,31 +34,8 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         DesugarVisitor.desugar(definition, file.concreteProvider, this)
 
         progress.checkCanceled()
-        definition.accept(object : DumbTypechecker(this) {
-            override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
-                super.visitFunction(def, params)
-                doAnnotate(def.data.data as? PsiElement, holder)
-                return null
-            }
 
-            override fun visitClassFieldImpl(classFieldImpl: Concrete.ClassFieldImpl, params: Void?) {
-                doAnnotate(classFieldImpl.data as? PsiElement, holder)
-                super.visitClassFieldImpl(classFieldImpl, params)
-            }
-
-            override fun visitClassExt(expr: Concrete.ClassExtExpression, params: Void?): Void? {
-                doAnnotate(expr.data as? PsiElement, holder)
-                super.visitClassExt(expr, params)
-                return null
-            }
-
-            override fun visitNew(expr: Concrete.NewExpression, params: Void?): Void? {
-                if (expr.expression !is Concrete.ClassExtExpression)
-                    doAnnotate(expr.data as? PsiElement, holder)
-                super.visitNew(expr, params)
-                return null
-            }
-        }, null)
+        definition.accept(DumbTypechecker(this), null)
     }
 
     private fun typecheckDefinition(typechecking: ArendTypechecking, definition: TCDefinition, progress: ProgressIndicator): Concrete.Definition? {

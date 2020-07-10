@@ -14,7 +14,8 @@ class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPoi
 
     override fun getFamilyName() = "arend.pattern"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = atomPatternRef.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) =
+            atomPatternRef.element != null
 
     override fun getText() = "Make pattern explicit"
 

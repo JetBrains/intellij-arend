@@ -129,7 +129,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
             """)
 
 
-    fun `test removing redundant clause`() = simpleQuickFixTest("Remove",
+    fun `test removing redundant coclause`() = simpleQuickFixTest("Remove",
             """
                 --! A.ard
                 \class Foo (A : Nat)
@@ -147,7 +147,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    fun `test adding empty implementations to a clause corresponding to an ancestor class`() = simpleQuickFixTest("Implement",
+    fun `test adding empty implementations to a clause corresponding to an ancestor class`() = simpleQuickFixTest("Implement fields",
             """
                 --! A.ard
                 \record A (x y : Nat)

@@ -1,21 +1,19 @@
 package org.arend.quickfix.implementCoClause
 
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
-import org.arend.highlight.BasePass
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendDefInstance
+import org.arend.psi.ClassReferenceHolder
+import org.arend.psi.CoClauseBase
 import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.quickfix.removers.RemoveCoClauseQuickFix
 
 enum class InstanceQuickFixAnnotation {
     IMPLEMENT_FIELDS_ERROR,
@@ -44,14 +42,14 @@ private fun findImplementedCoClauses(coClauseList: List<CoClauseBase>,
             continue
         }
 
-        if (!fields.remove(referable)) holder?.createErrorAnnotation(BasePass.getImprovedTextRange(null, coClause), "Field ${referable.textRepresentation()} is already implemented")?.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
+        //if (!fields.remove(referable)) holder?.createErrorAnnotation(BasePass.getImprovedTextRange(null, coClause), "Field ${referable.textRepresentation()} is already implemented")?.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
 
         for (superClassFields in superClassesFields.values) superClassFields.remove(referable)
     }
 }
 
 private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
-                              holder: AnnotationHolder,
+                              holder: AnnotationHolder?,
                               superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>,
                               fields: MutableSet<FieldReferable>) {
     for (coClause in coClauseList) {
@@ -61,7 +59,7 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
         val emptyGoal = expr != null && isEmptyGoal(expr)
         val referable = coClause.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable
                 ?: continue
-        val rangeToReport = BasePass.getImprovedTextRange(null, coClause)
+        //val rangeToReport = BasePass.getImprovedTextRange(null, coClause)
 
         if (referable is ClassReferable) {
             val subClauses = if (fatArrow != null) emptyList() else coClause.localCoClauseList
@@ -69,16 +67,16 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
             val fieldToImplement = superClassesFields[referable]
             if (fieldToImplement != null) {
                 val scope = CachingScope.make(ClassFieldImplScope(referable, false))
-                val fieldsList = fieldToImplement.map { Pair(it, scope.resolveName(it.textRepresentation()) != it) }
+                val fieldsList = fieldToImplement.map { Pair(it as LocatedReferable, scope.resolveName(it.textRepresentation()) != it) }
                 coClause.putUserData(CoClausesKey, fieldsList)
             }
 
             if (subClauses.isEmpty() && fatArrow == null) {
-                val warningAnnotation = holder.createWeakWarningAnnotation(rangeToReport, "Coclause is redundant")
+                /*val warningAnnotation = holder?.createWeakWarningAnnotation(rangeToReport, "Coclause is redundant")
                 if (warningAnnotation != null) {
                     warningAnnotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
                     warningAnnotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(coClause)))
-                }
+                }*/
             } else {
                 annotateCoClauses(subClauses, holder, superClassesFields, fields)
             }
@@ -87,15 +85,15 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
 
         if (clauseBlock || emptyGoal) {
             val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.NO_ANNOTATION
-            doAnnotateInternal(coClause, rangeToReport, coClause.localCoClauseList, holder, severity)
+            doAnnotateInternal(coClause, /*rangeToReport,*/ coClause.localCoClauseList, holder, severity)
         }
     }
 }
 
 private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
-                               rangeToReport: TextRange,
+        //rangeToReport: TextRange,
                                coClausesList: List<CoClauseBase>,
-                               holder: AnnotationHolder,
+                               holder: AnnotationHolder?,
                                annotationToShow: InstanceQuickFixAnnotation = InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR,
                                onlyCheckFields: Boolean = false): List<Pair<LocatedReferable, Boolean>> {
     val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
@@ -113,7 +111,7 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
 
                 when (annotationToShow) {
                     InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR -> {
-                        val message = buildString {
+                        /*val message = buildString {
                             append("The following fields are not implemented: ")
                             val iterator = fields.iterator()
                             do {
@@ -123,9 +121,10 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
                                 }
                             } while (iterator.hasNext())
                         }
-                        holder.createErrorAnnotation(rangeToReport, message).registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(classReferenceHolder), annotationToShow != InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR, fieldsList))
+                        holder?.createErrorAnnotation(rangeToReport, message)?.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(classReferenceHolder), annotationToShow != InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR, fieldsList))*/
                     }
-                    InstanceQuickFixAnnotation.NO_ANNOTATION -> classReferenceHolder.putUserData(CoClausesKey, fieldsList)
+                    InstanceQuickFixAnnotation.NO_ANNOTATION ->
+                        classReferenceHolder.putUserData(CoClausesKey, fieldsList)
                 }
 
                 return fieldsList
@@ -137,26 +136,26 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
     return emptyList()
 }
 
-fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<FieldReferable, Boolean>> {
+fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-    return fields.map { field -> Pair(field, scope.resolveName(field.textRepresentation()) != field) }
+    return fields.map { field -> Pair(field as LocatedReferable, scope.resolveName(field.textRepresentation()) != field) }
 }
 
-fun doAnnotate(element: PsiElement?, holder: AnnotationHolder) {
+fun doAnnotate(element: PsiElement?, holder: AnnotationHolder?) {
     when (element) {
         is ArendNewExprImplMixin -> element.argumentAppExpr?.let {
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, it), element.localCoClauseList, holder, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, holder, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
         }
         is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.instanceBody.let { it == null || it.fatArrow == null && it.elim == null })
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.instanceBody?.coClauseList
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.instanceBody?.coClauseList
                     ?: emptyList(), holder)
         is ArendDefFunction -> if (element.functionBody?.cowithKw != null)
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.functionBody?.coClauseList
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.functionBody?.coClauseList
                     ?: emptyList(), holder)
         is CoClauseBase -> if (element.fatArrow == null)
-            doAnnotateInternal(element, BasePass.getImprovedTextRange(null, element), element.localCoClauseList, holder, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.localCoClauseList, holder, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
     }
 }
 
 
-object CoClausesKey : Key<List<Pair<FieldReferable, Boolean>>>("coClausesInfo")
+object CoClausesKey : Key<List<Pair<LocatedReferable, Boolean>>>("coClausesInfo")

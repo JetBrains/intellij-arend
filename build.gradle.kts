@@ -32,9 +32,10 @@ configure<JavaPluginConvention> {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
         languageVersion = "1.3"
         apiVersion = "1.3"
+        freeCompilerArgs = listOf("-Xjvm-default=enable")
     }
     dependsOn("generateArendLexer", "generateArendParser", "generateArendDocLexer")
 }

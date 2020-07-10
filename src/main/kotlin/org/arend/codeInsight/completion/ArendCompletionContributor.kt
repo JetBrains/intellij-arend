@@ -116,7 +116,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(and(WHERE_CONTEXT, after(wherePattern)),
-                JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false))
+                JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false, completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
                 and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)),
@@ -141,7 +141,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 notWithGrandparentFieldTelePattern),
                 EXTENDS_KW_LIST)
 
-        basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
+        basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
 
         val bareSigmaOrPiPattern = elementPattern { o ->
             var result: PsiElement? = o
@@ -195,8 +195,8 @@ class ArendCompletionContributor : CompletionContributor() {
                         or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))))
         }
 
-        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
-        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW, tailSpaceNeeded = false)
+        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
+        basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
 
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, true)), NEW_KW_LIST)
@@ -225,13 +225,13 @@ class ArendCompletionContributor : CompletionContributor() {
             originalPositionParent != null && originalPositionParent.text == "\\" && originalPositionParent.nextSibling?.node?.elementType == NUMBER
         }
 
-        basic(and(DATA_OR_EXPRESSION_CONTEXT), object : ConditionalProvider(listOf("-Type"), numberCondition, tailSpaceNeeded = false) {
+        basic(and(DATA_OR_EXPRESSION_CONTEXT), object : ConditionalProvider(listOf("-Type"), numberCondition, completionBehavior = KeywordCompletionBehavior.DEFAULT) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String = ""
         })
 
         basic(DATA_OR_EXPRESSION_CONTEXT, object : ConditionalProvider(listOf("Type"), { parameters ->
             parameters.originalPosition?.text?.matches(Regex("\\\\[0-9]+(-(T(y(pe?)?)?)?)?")) ?: false
-        }, tailSpaceNeeded = false) {
+        }, completionBehavior = KeywordCompletionBehavior.DEFAULT) {
             override fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String =
                     super.computePrefix(parameters, resultSet).replace(Regex("\\\\[0-9]+-?"), "")
         })
@@ -301,7 +301,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
                 not(afterLeaves(WITH_KW, CASE_KW, SCASE_KW, COLON)))
 
-        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, tailSpaceNeeded = false))
+        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, completionBehavior = KeywordCompletionBehavior.DEFAULT))
 
         basic(and(caseContext, argEndPattern), AS_KW_LIST)
 
@@ -354,8 +354,8 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(ELIM_CONTEXT, ELIM_KW_LIST, elimOrCoWithCondition.invoke(false))
-        basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), tailSpaceNeeded = false))
-        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), tailSpaceNeeded = false))
+        basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), completionBehavior = KeywordCompletionBehavior.DEFAULT))
+        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), completionBehavior = KeywordCompletionBehavior.DEFAULT))
 
         basic(and(
                 afterLeaves(COMMA, CASE_KW),
@@ -445,8 +445,8 @@ class ArendCompletionContributor : CompletionContributor() {
         extend(CompletionType.BASIC, pattern, provider)
     }
 
-    private fun basic(place: ElementPattern<PsiElement>, keywords: Collection<String>, tailSpaceNeeded: Boolean = true) {
-        basic(place, KeywordCompletionProvider(keywords, tailSpaceNeeded = tailSpaceNeeded))
+    private fun basic(place: ElementPattern<PsiElement>, keywords: Collection<String>, completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.ADD_WHITESPACE) {
+        basic(place, KeywordCompletionProvider(keywords, completionBehavior))
     }
 
     private fun basic(place: ElementPattern<PsiElement>, keywords: Collection<String>, condition: (CompletionParameters) -> Boolean) {
@@ -582,15 +582,24 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
+    private enum class KeywordCompletionBehavior {DEFAULT, ADD_WHITESPACE, ADD_BRACES}
+
     private open class KeywordCompletionProvider(private val keywords: Collection<String>,
-                                                 private val tailSpaceNeeded: Boolean = true,
+                                                 private val completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.DEFAULT,
                                                  private val disableAfter2Crlfs: Boolean = true) : CompletionProvider<CompletionParameters>() {
 
         open fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
             val document = insertContext.document
-            if (tailSpaceNeeded) document.insertString(insertContext.tailOffset, " ") // add tail whitespace
+            when (completionBehavior) {
+                KeywordCompletionBehavior.ADD_WHITESPACE -> document.insertString(insertContext.tailOffset, " ")
+                KeywordCompletionBehavior.ADD_BRACES -> document.insertString(insertContext.tailOffset, " {}")
+                else -> {}
+            }
             insertContext.commitDocument()
-            insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
+            when (completionBehavior) {
+                KeywordCompletionBehavior.ADD_BRACES -> insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset - 1)
+                else -> insertContext.editor.caretModel.moveToOffset(insertContext.tailOffset)
+            }
         }
 
         open fun lookupElement(keyword: String): LookupElementBuilder = LookupElementBuilder.create(keyword)
@@ -622,9 +631,9 @@ class ArendCompletionContributor : CompletionContributor() {
     }
 
     private open class ConditionalProvider(keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
-                                           tailSpaceNeeded: Boolean = true,
+                                           completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.ADD_WHITESPACE,
                                            disableAfter2Crlfs: Boolean = true) :
-            KeywordCompletionProvider(keywords, tailSpaceNeeded, disableAfter2Crlfs) {
+            KeywordCompletionProvider(keywords, completionBehavior, disableAfter2Crlfs) {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
             if (condition.invoke(parameters)) {
                 super.addCompletions(parameters, context, resultSet)
@@ -634,7 +643,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
     private open class JointOfStatementsProvider(keywords: List<String>,
                                                  additionalCondition: (ArendCompletionParameters) -> Boolean = { true },
-                                                 tailSpaceNeeded: Boolean = true,
+                                                 completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.ADD_WHITESPACE,
                                                  noCrlfRequired: Boolean = false,
                                                  allowInsideBraces: Boolean = true,
                                                  allowBeforeClassFields: Boolean = false) :
@@ -645,7 +654,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (allowBeforeClassFields || !arendCompletionParameters.isBeforeClassFields)
 
                 (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
-            }, tailSpaceNeeded, disableAfter2Crlfs = false)
+            }, completionBehavior, disableAfter2Crlfs = false)
 
     private class ArendCompletionParameters(completionParameters: CompletionParameters) {
         val prevElement: PsiElement?
@@ -681,8 +690,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
             val statementCondition = { psi: PsiElement ->
                 if (psi is ArendStatement) {
-                    val p = psi.parent
-                    !(p is ArendWhere && p.lbrace == null)
+                    val psiParent = psi.parent
+                    !(psiParent is ArendWhere && psiParent.lbrace == null)
                 } else psi is ArendClassStat
             }
 

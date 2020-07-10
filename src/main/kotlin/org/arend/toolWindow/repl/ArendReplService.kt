@@ -15,24 +15,19 @@ class ArendReplService(private val project: Project) {
     companion object Constants {
         const val TITLE = "Arend REPL"
         const val ID = "Arend.REPL"
-        // // Hacking a behaviour of LanguageConsoleViewBuilder.build
-        // val VIRTUAL_FILE_NAME = ArendLanguage.INSTANCE.displayName + " Console"
     }
 
     private var myToolWindow: ToolWindow? = null
+    private var handler: ArendReplExecutionHandler? = null
 
     fun show() {
         val manager = ToolWindowManager.getInstance(project)
         val rawToolWindow = myToolWindow
-        if (rawToolWindow != null) {
-            rawToolWindow.activate {
-                manager.focusManager.requestFocusInProject(rawToolWindow.component, project)
-            }
-            return
-        }
+        if (rawToolWindow != null) return activate(rawToolWindow, manager)
         val toolWindow = manager.registerToolWindow(RegisterToolWindowTask(TITLE, ToolWindowAnchor.BOTTOM, canWorkInDumbMode = false))
         myToolWindow = toolWindow
         val handler = ArendReplExecutionHandler(project, toolWindow)
+        this.handler = handler
         Disposer.register(toolWindow.disposable, handler.consoleView)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)
         toolWindowPanel.setContent(handler.consoleView.component)
@@ -42,8 +37,11 @@ class ArendReplService(private val project: Project) {
             .createContent(toolWindowPanel.component, null, false)
         toolWindow.contentManager.addContent(content)
         content.preferredFocusableComponent = toolWindowPanel.content
+        activate(toolWindow, manager)
+    }
+
+    private fun activate(toolWindow: ToolWindow, manager: ToolWindowManager) =
         toolWindow.activate {
             manager.focusManager.requestFocusInProject(toolWindow.component, project)
         }
-    }
 }
