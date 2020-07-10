@@ -27,7 +27,6 @@ import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.intellij.lang.annotations.Language
-import java.lang.IllegalStateException
 
 abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
@@ -42,7 +41,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     override fun setUp() {
         super.setUp()
 
-        service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.DUMB
+        service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.SMART
 
         val module = module
         val service = module.project.service<TypeCheckingService>()
