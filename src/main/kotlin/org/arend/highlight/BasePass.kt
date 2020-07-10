@@ -33,11 +33,9 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.psi.impl.ArendNewExprImpl
 import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
-import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
@@ -223,15 +221,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         }
                         cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
-                    }
-
-                    val localCoClause = cause.parent?.parent?.parent?.parent?.parent?.parent as? ArendLocalCoClause
-
-                    if (localCoClause != null) {
-                        var annotationRoot: PsiElement? = localCoClause
-                        while (annotationRoot != null && annotationRoot !is ArendNewExprImpl && annotationRoot !is ArendDefInstance &&
-                                annotationRoot !is ArendDefFunction && annotationRoot !is ArendCoClause) annotationRoot = annotationRoot.parent
-                        if (annotationRoot != null) doAnnotate(annotationRoot, holder)
                     }
                 }
 

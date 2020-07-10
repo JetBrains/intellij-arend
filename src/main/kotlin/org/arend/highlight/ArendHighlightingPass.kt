@@ -1,10 +1,12 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -19,6 +21,7 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.quickfix.implementCoClause.doAnnotate
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.resolving.TCReferableWrapper
@@ -28,6 +31,7 @@ import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
+import org.arend.typechecking.visitor.VoidConcreteVisitor
 
 class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -195,6 +199,8 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                 }
 
+                definition.accept(IntentionBackEndPass(holder), null)
+
                 advanceProgress(1)
             }
         }).resolveGroup(group, WrapperReferableConverter, group.scope)
@@ -203,5 +209,30 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     override fun applyInformationWithProgress() {
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
+    }
+}
+
+class IntentionBackEndPass(val holder: AnnotationHolder?) : VoidConcreteVisitor<Void, Void>() {
+    override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
+        super.visitFunction(def, params)
+        doAnnotate(def.data.data as? PsiElement, holder)
+        return null
+    }
+
+    override fun visitClassFieldImpl(classFieldImpl: Concrete.ClassFieldImpl, params: Void?) {
+        super.visitClassFieldImpl(classFieldImpl, params)
+        doAnnotate(classFieldImpl.data as? PsiElement, holder)
+    }
+
+    override fun visitClassExt(expr: Concrete.ClassExtExpression, params: Void?): Void? {
+        super.visitClassExt(expr, params)
+        doAnnotate(expr.data as? PsiElement, holder)
+        return null
+    }
+
+    override fun visitNew(expr: Concrete.NewExpression, params: Void?): Void? {
+        super.visitNew(expr, params)
+        if (expr.expression !is Concrete.ClassExtExpression) doAnnotate(expr.data as? PsiElement, holder)
+        return null
     }
 }
