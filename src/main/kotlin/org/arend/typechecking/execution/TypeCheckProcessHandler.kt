@@ -107,7 +107,7 @@ class TypeCheckProcessHandler(
         typeCheckerService.updatedModules.clear()
 
         PooledThreadExecutor.INSTANCE.execute {
-            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, ArendReferableConverter, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
+            val concreteProvider = PsiConcreteProvider(typeCheckerService.project, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
             val instanceProviderSet = PsiInstanceProviderSet(concreteProvider)
             val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, PsiElementComparator)

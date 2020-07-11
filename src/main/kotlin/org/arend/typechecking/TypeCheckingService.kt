@@ -27,7 +27,6 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.computation.ComputationRunner
@@ -65,7 +64,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         this.preludeLibrary = preludeLibrary
         libraryManager.loadLibrary(preludeLibrary, null)
         preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
-        val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
+        val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
         preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
         Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
         preludeLibrary.prelude?.let {

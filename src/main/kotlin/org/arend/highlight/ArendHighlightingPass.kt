@@ -39,7 +39,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
     }
 
     override fun collectInfo(progress: ProgressIndicator) {
-        val concreteProvider = PsiConcreteProvider(myProject, ArendReferableConverter, this, null, false)
+        val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
         file.concreteProvider = concreteProvider
         val resolverCache = myProject.service<ArendResolveCache>()
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ResolverListener {

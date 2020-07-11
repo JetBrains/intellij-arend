@@ -97,7 +97,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         PsiTreeUtil.findCommonParent(startElement, it)
     } ?: throw SubExprException("selected expr in bad position")
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val concreteProvider = PsiConcreteProvider(project, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
+    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
     val psiDef = possibleParent.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
     val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition

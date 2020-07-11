@@ -12,7 +12,6 @@ import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.Repl
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
@@ -49,8 +48,8 @@ abstract class IntellijRepl private constructor(
         service,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
-        PsiConcreteProvider(service.project, ArendReferableConverter, errorReporter, null, true),
-        PsiInstanceProviderSet(PsiConcreteProvider(service.project, ArendReferableConverter, errorReporter, null, false))
+        PsiConcreteProvider(service.project, errorReporter, null, true),
+        PsiInstanceProviderSet(PsiConcreteProvider(service.project, errorReporter, null, false))
     )
 
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
