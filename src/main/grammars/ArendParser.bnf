@@ -415,7 +415,7 @@ private defIdentifier_pattern ::= defIdentifier !DOT | longName {
     recoverWhile = defIdentifier_pattern_recover
 }
 
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE | COLON | AS_KW) & pattern_recover
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE | COLON | AS_KW) & pattern_recover
 
 atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
@@ -586,7 +586,7 @@ private pipe_pattern ::= PIPE {
     recoverWhile = pipe_pattern_recover
 }
 
-private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | UNDERSCORE) & statement_recover
+private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE) & statement_recover
 
 private coClauses ::= LBRACE coClauseSequence RBRACE | coClauseReg+ {
     pin(".*") = 1
@@ -778,7 +778,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"
@@ -816,6 +816,7 @@ literal ::= longNameIP
     | PROP_KW
     | APPLY_HOLE
     | UNDERSCORE
+    | STRING
     | IPName
     | goal {
     implements = "org.arend.psi.ArendExpr"

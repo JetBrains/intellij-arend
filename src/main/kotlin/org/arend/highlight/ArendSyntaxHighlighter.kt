@@ -21,6 +21,7 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
         fun map(tokenType: IElementType?): ArendHighlightingColors? = when (tokenType) {
             ArendElementTypes.ID -> ArendHighlightingColors.IDENTIFIER
             ArendElementTypes.NUMBER, ArendElementTypes.NEGATIVE_NUMBER -> ArendHighlightingColors.NUMBER
+            ArendElementTypes.STRING -> ArendHighlightingColors.STRING
             ArendElementTypes.PROP_KW, ArendElementTypes.SET, ArendElementTypes.UNIVERSE, ArendElementTypes.TRUNCATED_UNIVERSE -> ArendHighlightingColors.UNIVERSE
             in AREND_KEYWORDS -> ArendHighlightingColors.KEYWORD
             ArendElementTypes.UNDERSCORE, ArendElementTypes.APPLY_HOLE -> ArendHighlightingColors.IMPLICIT

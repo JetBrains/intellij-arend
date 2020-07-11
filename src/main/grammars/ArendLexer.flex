@@ -56,6 +56,13 @@ SET                 = \\Set[0-9]*
 UNIVERSE            = \\Type[0-9]*
 TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
 
+STRING              = \"{STRING_CONTENT}*\"
+STRING_CONTENT      = [^\"\\\r\n] | \\[btnfr\"\'\\] | {OCT_ESCAPE} | {UNICODE_ESCAPE}
+OCT_ESCAPE          = \\{OCT_DIGIT}{OCT_DIGIT}? | \\[0-3]{OCT_DIGIT}{2}
+UNICODE_ESCAPE      = \\u+{HEX_DIGIT}{4}
+HEX_DIGIT           = [0-9a-fA-F]
+OCT_DIGIT           = [0-8]
+
 %%
 
 <YYINITIAL> {
@@ -132,6 +139,8 @@ TRUNCATED_UNIVERSE  = \\([0-9]+-|oo-|h)Type[0-9]*
     "\\level"               { return LEVEL_KW; }
     "\\levels"              { return LEVELS_KW; }
     "\\max"                 { return MAX_KW; }
+
+    {STRING}                { return STRING; }
 
     {LINE_COMMENT}          { return LINE_COMMENT; }
     {BLOCK_COMMENT_START}   {

@@ -22,6 +22,10 @@ abstract class ArendLiteralImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
         if (applyHole != null) {
             return visitor.visitApplyHole(this, params)
         }
+        string?.let {
+            val str = it.text
+            return visitor.visitStringLiteral(this, str.removeSurrounding("\""), params)
+        }
         goal?.let {
             return visitor.visitGoal(it, it.defIdentifier?.textRepresentation(), it.expr, params)
         }
