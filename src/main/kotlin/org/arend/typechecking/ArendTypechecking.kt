@@ -24,8 +24,7 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
         fun create(project: Project, concreteProvider: ConcreteProvider? = null): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
             val errorReporter = project.service<ErrorService>()
-            val nnConcreteProvider = concreteProvider ?: PsiConcreteProvider(project, errorReporter, null, true)
-            return ArendTypechecking(PsiInstanceProviderSet(nnConcreteProvider), nnConcreteProvider, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
+            return ArendTypechecking(PsiInstanceProviderSet(), concreteProvider ?: PsiConcreteProvider(project, errorReporter, null, true), errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }
 

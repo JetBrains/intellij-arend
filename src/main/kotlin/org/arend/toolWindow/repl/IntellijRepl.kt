@@ -27,12 +27,11 @@ abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
-    psiConcreteProvider: PsiConcreteProvider,
-    psiInstanceProviderSet: PsiInstanceProviderSet
+    psiConcreteProvider: PsiConcreteProvider
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(psiInstanceProviderSet, psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider)
+    ArendTypechecking(PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider)
 ) {
     constructor(
         handler: ArendReplExecutionHandler,
@@ -48,8 +47,7 @@ abstract class IntellijRepl private constructor(
         service,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
-        PsiConcreteProvider(service.project, errorReporter, null, true),
-        PsiInstanceProviderSet(PsiConcreteProvider(service.project, errorReporter, null, false))
+        PsiConcreteProvider(service.project, errorReporter, null, true)
     )
 
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
