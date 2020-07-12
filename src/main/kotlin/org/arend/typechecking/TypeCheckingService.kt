@@ -15,6 +15,7 @@ import org.arend.module.ModuleLocation
 import org.arend.module.ModuleSynchronizer
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
@@ -148,28 +149,36 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
+    private fun resetErrors(def: Referable) {
+        if (def is TCDefinition) {
+            project.service<ErrorService>().clearTypecheckingErrors(def)
+        }
+    }
+
     private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
         }
 
+        val curRef = referable.underlyingReferable
         val fullName = FullName(referable)
-        val tcRefMap = tcRefMaps[fullName.modulePath] ?: return null
-        val tcReferable = tcRefMap[fullName.longName] ?: return null
+        val tcRefMap = tcRefMaps[fullName.modulePath]
+        val tcReferable = tcRefMap?.get(fullName.longName)
+        if (tcReferable == null) {
+            resetErrors(curRef)
+            return null
+        }
+
         if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
 
-        val curRef = referable.underlyingReferable
         val prevRef = tcReferable.underlyingReferable
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
             return null
         }
         tcRefMap.remove(fullName.longName)
-
-        if (curRef is TCDefinition) {
-            project.service<ErrorService>().clearTypecheckingErrors(curRef)
-        }
+        resetErrors(curRef)
 
         val tcTypecheckable = tcReferable.typecheckable
         tcTypecheckable.location?.let { updatedModules.add(it) }
