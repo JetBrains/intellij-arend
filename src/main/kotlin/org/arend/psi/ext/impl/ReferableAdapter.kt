@@ -48,6 +48,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     private var tcReferableCache: TCReferable? = null
 
+    fun dropTCCache() {
+        tcReferableCache = null
+    }
+
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
             synchronized(this) {

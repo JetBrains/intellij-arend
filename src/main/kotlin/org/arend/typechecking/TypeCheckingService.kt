@@ -26,6 +26,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendResolveCache
@@ -150,6 +151,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
     private fun resetErrors(def: Referable) {
+        (def as? ReferableAdapter<*>)?.dropTCCache()
         if (def is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
