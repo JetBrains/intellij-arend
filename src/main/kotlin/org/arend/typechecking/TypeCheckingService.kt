@@ -150,14 +150,16 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
 
-    private fun resetErrors(def: Referable) {
-        (def as? ReferableAdapter<*>)?.dropTCCache()
+    private fun resetErrors(def: Referable, removeTCRef: Boolean) {
+        if (removeTCRef) {
+            (def as? ReferableAdapter<*>)?.dropTCCache()
+        }
         if (def is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
     }
 
-    private fun removeDefinition(referable: LocatedReferable): TCReferable? {
+    private fun removeDefinition(referable: LocatedReferable, removeTCRef: Boolean): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
         }
@@ -167,7 +169,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val tcRefMap = tcRefMaps[fullName.modulePath]
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable == null) {
-            resetErrors(curRef)
+            resetErrors(curRef, removeTCRef)
             return null
         }
 
@@ -179,8 +181,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
             return null
         }
-        tcRefMap.remove(fullName.longName)
-        resetErrors(curRef)
+        if (removeTCRef) {
+            tcRefMap.remove(fullName.longName)
+        }
+        tcReferable.typechecked = null
+        resetErrors(curRef, removeTCRef)
 
         val tcTypecheckable = tcReferable.typecheckable
         tcTypecheckable.location?.let { updatedModules.add(it) }
@@ -189,30 +194,28 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
 
-    private fun updateDefinition(referable: LocatedReferable, file: ArendFile?, mode: LastModifiedMode) {
+    private fun updateDefinition(referable: LocatedReferable, file: ArendFile, mode: LastModifiedMode, removeTCRef: Boolean) {
         if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is TCDefinition) {
             val isValid = referable.isValid
-            (file ?: if (isValid) referable.containingFile as? ArendFile else null)?.let {
-                if (mode == LastModifiedMode.SET) {
-                    it.lastModifiedDefinition = if (isValid) referable else null
-                } else {
-                    if (it.lastModifiedDefinition != referable) {
-                        it.lastModifiedDefinition = null
-                    }
+            if (mode == LastModifiedMode.SET) {
+                file.lastModifiedDefinition = if (isValid) referable else null
+            } else {
+                if (file.lastModifiedDefinition != referable) {
+                    file.lastModifiedDefinition = null
                 }
             }
         }
 
-        val tcReferable = removeDefinition(referable) ?: return
+        val tcReferable = removeDefinition(referable, removeTCRef) ?: return
         val dependencies = synchronized(project) {
             dependencyListener.update(tcReferable)
         }
         for (ref in dependencies) {
-            removeDefinition(ref)
+            removeDefinition(ref, removeTCRef)
         }
 
         if ((referable as? ArendDefFunction)?.functionKw?.useKw != null) {
-            (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH) }
+            (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH, removeTCRef) }
         }
     }
 
@@ -228,7 +231,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (!isExternalUpdate) {
             def.checkTCReferable()
         }
-        updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET)
+        updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
     }
 
     object SyncObject
