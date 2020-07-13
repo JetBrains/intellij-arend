@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
@@ -11,6 +12,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.typing.ParameterImpl
 import org.arend.typing.Universe
+import org.arend.typing.getTypeOf
 import javax.swing.Icon
 
 abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, ArendDefData, Abstract.DataDefinition {
@@ -46,7 +48,10 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
     internal val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 
-    override fun getTypeOf() = org.arend.typing.getTypeOf(allParameters, Universe)
+    override val typeOf: Abstract.Expression?
+        get() = getTypeOf(allParameters, Universe)
+
+    override fun getKind() = GlobalReferable.Kind.DATA
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitData(this)
 

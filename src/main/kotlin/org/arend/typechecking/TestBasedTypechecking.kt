@@ -4,7 +4,6 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCReferable
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
@@ -20,10 +19,9 @@ class TestBasedTypechecking(
     instanceProviderSet: PsiInstanceProviderSet,
     private val typeCheckingService: TypeCheckingService,
     concreteProvider: ConcreteProvider,
-    referableConverter: ReferableConverter,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : ArendTypechecking(instanceProviderSet, typeCheckingService.typecheckerState, concreteProvider, referableConverter, errorReporter, dependencyListener, LibraryArendExtensionProvider(typeCheckingService.libraryManager)) {
+    : ArendTypechecking(instanceProviderSet, concreteProvider, errorReporter, dependencyListener, LibraryArendExtensionProvider(typeCheckingService.libraryManager)) {
 
     private val definitionBlacklistService = service<DefinitionBlacklistService>()
     val filesToRestart = LinkedHashSet<ArendFile>()

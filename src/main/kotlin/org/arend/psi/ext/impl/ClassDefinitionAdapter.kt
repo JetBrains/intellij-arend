@@ -5,8 +5,8 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Reference
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
@@ -26,8 +26,6 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun withoutClassifying(): Boolean = noClassifyingKw != null
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
-
-    override fun getUnresolvedSuperClassReferences(): List<Reference> = longNameList
 
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: it.defModule }
 
@@ -71,7 +69,10 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getUsedDefinitions(): List<LocatedReferable> =
         (dynamicSubgroups + subgroups).mapNotNull { if ((it as? ArendDefFunction)?.functionKw?.useKw != null) it else null }
 
-    override fun getTypeOf() = Universe
+    override val typeOf: Abstract.Expression
+        get() = Universe
+
+    override fun getKind() = GlobalReferable.Kind.CLASS
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 

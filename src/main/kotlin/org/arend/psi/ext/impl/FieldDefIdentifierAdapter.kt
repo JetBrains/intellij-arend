@@ -58,7 +58,8 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getTypeOf() = resultType
+    override val typeOf: ArendExpr?
+        get() = resultType
 
     override fun getParameters(): List<Abstract.Parameter> = emptyList()
 

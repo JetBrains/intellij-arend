@@ -143,4 +143,9 @@ class ErrorService : ErrorReporter {
     fun clearTypecheckingErrors(definition: TCDefinition) {
         updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
+
+    fun clearAllErrors() {
+        nameResolverErrors.clear()
+        typecheckingErrors.clear()
+    }
 }

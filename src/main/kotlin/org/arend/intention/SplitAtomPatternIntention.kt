@@ -1,6 +1,5 @@
 package org.arend.intention
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -32,7 +31,6 @@ import org.arend.refactoring.*
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
-import org.arend.typechecking.TypeCheckingService
 import java.util.*
 import java.util.Collections.singletonList
 
@@ -101,7 +99,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (definition != null && clauseIndex != -1) {
-                val typeCheckedDefinition = project.service<TypeCheckingService>().getTypechecked(definition)
+                val typeCheckedDefinition = definition.tcReferable?.typechecked
                 if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
                     val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise
                             ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
@@ -325,7 +323,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                                 var path = localIndexList.drop(1)
                                 while (path.isNotEmpty()) {
                                     val patternPiece = findAbstractPattern(path.dropLast(1), abstractPattern)
-                                    if (patternPiece !is PsiElement || !isSucPattern(patternPiece, project)) break
+                                    if (patternPiece !is PsiElement || !isSucPattern(patternPiece)) break
                                     path = path.dropLast(1)
                                     number += 1
                                 }
@@ -360,15 +358,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        private fun isSucPattern(pattern: PsiElement, project: Project): Boolean {
+        private fun isSucPattern(pattern: PsiElement): Boolean {
             if (pattern !is ArendPatternImplMixin || pattern.arguments.size != 1) {
                 return false
             }
 
             val constructor = (pattern.headReference as? UnresolvedReference)?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
                     ?: return false
-            return constructor.name == Prelude.SUC.name && project.service<TypeCheckingService>().getTypechecked(constructor.ancestor<ArendDefData>()
-                    ?: return false) == Prelude.NAT
+            return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT
         }
 
         private fun findAllVariablePatterns(clause: ArendClause, element: PsiElement): HashSet<ArendDefIdentifier> {

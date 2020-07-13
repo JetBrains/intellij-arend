@@ -2,18 +2,17 @@ package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
 import org.arend.naming.reference.TCReferable
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.typechecking.instance.provider.InstanceProvider
 import org.arend.typechecking.instance.provider.InstanceProviderSet
-import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.moduleScopeProvider
+import org.arend.resolving.ArendReferableConverter
 
 
-class PsiInstanceProviderSet(private val concreteProvider: ConcreteProvider, private val referableConverter: ReferableConverter) : InstanceProviderSet() {
+class PsiInstanceProviderSet : InstanceProviderSet() {
     override fun get(referable: TCReferable): InstanceProvider? {
         val result = super.get(referable)
         if (result != null) {
@@ -23,7 +22,7 @@ class PsiInstanceProviderSet(private val concreteProvider: ConcreteProvider, pri
         val psiElement = PsiLocatedReferable.fromReferable(referable) ?: return null
         return runReadAction {
             val file = psiElement.containingFile as? ArendFile ?: return@runReadAction null
-            if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, true)), concreteProvider, referableConverter)) super.get(referable) else null
+            if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, true)), ArendReferableConverter)) super.get(referable) else null
         }
     }
 }

@@ -3,6 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
@@ -33,6 +34,8 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+
+    override fun getKind() = GlobalReferable.Kind.OTHER
 
     override fun getIcon(flags: Int) = if (metaReferable != null) ArendIcons.META_DEFINITION else ArendIcons.MODULE_DEFINITION
 }

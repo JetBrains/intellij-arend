@@ -17,10 +17,7 @@ import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.resolving.ArendReferableConverter
 import org.arend.term.group.Group
-import org.arend.typechecking.TypecheckerState
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
@@ -28,7 +25,7 @@ import org.arend.util.FileUtils
 import java.nio.charset.StandardCharsets
 
 
-class ArendPreludeLibrary(private val project: Project, typecheckerState: TypecheckerState?) : BaseLibrary(typecheckerState) {
+class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     var prelude: ArendFile? = null
         private set
     private var isTypechecked: Boolean = false
@@ -64,7 +61,7 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
         }
 
         isTypechecked = true
-        Prelude.fillInTypecheckerState(typecheckerState)
+        Prelude.fillInTypecheckerState()
         return true
     }
 
@@ -90,20 +87,10 @@ class ArendPreludeLibrary(private val project: Project, typecheckerState: Typech
 
     override fun reset() {}
 
-    fun resolveNames(referableConverter: ArendReferableConverter, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
+    fun resolveNames(concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
         scope = CachingScope.make(LexicalScope.opened(preludeFile))
-        if (Prelude.isInitialized()) {
-            Prelude.forEach {
-                val fullName = ArrayList<String>(2)
-                LocatedReferable.Helper.getLocation(it.referable, fullName)
-                val psiRef = Scope.Utils.resolveName(scope, fullName)
-                if (psiRef is PsiLocatedReferable) {
-                    referableConverter.putIfAbsent(psiRef, it.referable)
-                }
-            }
-        }
-        runReadAction { DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, null, scope) }
+        runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, scope) }
     }
 }

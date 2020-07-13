@@ -13,10 +13,8 @@ import org.arend.ext.typechecking.InteractiveGoalSolver
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.psi.ArendExpr
 import org.arend.refactoring.PsiLocatedRenamer
-import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.typechecking.visitor.CheckTypeVisitor
@@ -24,7 +22,7 @@ import org.arend.ui.impl.ArendEditorUI
 
 class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val goal: GoalError, private val solver: InteractiveGoalSolver, private val action: (Document, Concrete.Expression, String) -> Unit) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
-        solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<TypeCheckingService>().typecheckerState, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
+        solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
             if (it != null) {
                 if (it !is Concrete.Expression) throw IllegalArgumentException()
                 CommandProcessor.getInstance().executeCommand(project, {

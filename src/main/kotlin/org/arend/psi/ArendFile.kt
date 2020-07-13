@@ -12,12 +12,14 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
+import org.arend.ext.module.LongName
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ModuleLocation
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
@@ -31,6 +33,7 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.provider.EmptyConcreteProvider
 
@@ -65,6 +68,21 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             return field
         }
 
+    private var tcRefMapCache: HashMap<LongName, TCReferable>? = null
+
+    val tcRefMap: HashMap<LongName, TCReferable>
+        get() {
+            tcRefMapCache?.let { return it }
+            val location = moduleLocation ?: return HashMap()
+            return synchronized(this) {
+                tcRefMapCache ?: project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { HashMap() }.also { tcRefMapCache = it }
+            }
+        }
+
+    fun dropTCRefMapCache() {
+        tcRefMapCache = null
+    }
+
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
 
@@ -96,6 +114,13 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val defIdentifier: ArendDefIdentifier?
         get() = null
+
+    override val tcReferable: TCReferable?
+        get() = null
+
+    override fun dropTypechecked() {}
+
+    override fun checkTCReferable() {}
 
     override fun getLocation() = moduleLocation
 

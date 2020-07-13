@@ -9,7 +9,6 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.converter.IdReferableConverter
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
@@ -39,9 +38,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (vars.isNotEmpty()) {
-                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()) }
+                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
             } else {
-                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, pm.type).toString()))
+                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(pm.type).toString()))
             }
             for (v in nameTypeList) {
                 if (text != "") {
@@ -92,7 +91,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 val defData = def.parent?.parent as? ArendDefData
                 if (defData != null) {
                     for (tele in defData.typeTeleList.reversed()) {
-                        val type = ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, tele.type).toString()
+                        val type = ConcreteBuilder.convertExpression(tele.type).toString()
                         for (p in tele.referableList.reversed()) {
                             params.add(0, psiFactory.createNameTele(p.textRepresentation(), type, false))
                         }
@@ -103,7 +102,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 resType = when(resType) {
                     is ArendArrExpr -> {
                         params.add(psiFactory.createNameTele(null,
-                                ConcreteBuilder.convertExpression(IdReferableConverter.INSTANCE, resType.exprList.first()).toString(), true))
+                                ConcreteBuilder.convertExpression(resType.exprList.first()).toString(), true))
                         resType.exprList[1]
                     }
                     is ArendPiExpr -> {
