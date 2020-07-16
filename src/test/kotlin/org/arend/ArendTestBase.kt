@@ -42,6 +42,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         super.setUp()
 
         service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.SMART
+        service<ArendSettings>().withTimeLimit = false
 
         val module = module
         val service = module.project.service<TypeCheckingService>()
