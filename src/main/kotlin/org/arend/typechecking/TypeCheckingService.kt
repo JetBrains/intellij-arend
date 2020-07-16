@@ -184,7 +184,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (removeTCRef) {
             tcRefMap.remove(fullName.longName)
         }
-        tcReferable.typechecked = null
         resetErrors(curRef, removeTCRef)
 
         val tcTypecheckable = tcReferable.typecheckable
