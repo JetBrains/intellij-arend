@@ -3,6 +3,7 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.LocalSearchScope
@@ -95,27 +96,42 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
             }
         }
 
+    private fun getTopmostExpression(element: PsiElement): ArendCompositeElement? {
+        var expr: ArendExpr? = null
+        var cur = element
+        while (cur !is PsiLocatedReferable && cur !is PsiFile) {
+            if (cur is ArendExpr) {
+                expr = cur
+            }
+            cur = cur.parent
+        }
+        return expr ?: cur as? PsiLocatedReferable
+    }
+
     override fun getUseScope(): SearchScope {
         val parent = parent
-        when {
-            parent is ArendLetClausePattern -> parent.ancestor<ArendLetExpr>()?.let { return LocalSearchScope(it) } // Let clause pattern
-            parent is ArendLetClause -> return LocalSearchScope(parent.parent) // Let clause
-            (parent?.parent as? ArendTypedExpr)?.parent is ArendTypeTele -> return LocalSearchScope(parent.parent.parent.parent) // Pi expression
-            parent?.parent is ArendNameTele -> {
-                val function = parent.parent.parent
-                var prevSibling = function.parent.prevSibling
-                if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
-                val docComment = prevSibling as? ArendDocComment
-                return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
-            }
-            (parent as? ArendAtomPatternOrPrefix)?.parent != null -> {
-                var p = parent.parent.parent
-                while (p != null && p !is ArendClause) p = p.parent
-                if (p is ArendClause) return LocalSearchScope(p) // Pattern variables
-            }
-            (parent as? ArendPattern)?.parent is ArendClause -> return LocalSearchScope(parent.parent)
-            parent is ArendCaseArg -> return LocalSearchScope(parent.parent)
+        val pParent = parent?.parent
+        if (pParent is ArendNameTele) {
+            val function = parent.parent.parent
+            var prevSibling = function.parent.prevSibling
+            if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
+            val docComment = prevSibling as? ArendDocComment
+            return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
         }
+
+        if (parent is ArendLetClausePattern ||
+            parent is ArendLetClause ||
+            (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
+            pParent is ArendNameTele ||
+            parent is ArendAtomPatternOrPrefix && pParent != null ||
+            parent is ArendPattern && pParent is ArendClause ||
+            parent is ArendCaseArg) {
+
+            getTopmostExpression(parent)?.let {
+                return LocalSearchScope(it)
+            }
+        }
+
         return super.getUseScope()
     }
 
