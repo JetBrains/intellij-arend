@@ -10,7 +10,6 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -90,7 +89,10 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
             }
         when {
-            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ReferableConverter { if (it == null) null else LocatedReferableImpl(it.precedence, it.refName, null, GlobalReferable.Kind.OTHER) }).getConcrete(def)
+            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, object : BaseReferableConverter() {
+                override fun toDataLocatedReferable(referable: LocatedReferable?) =
+                    if (referable == null) null else LocatedReferableImpl(referable.precedence, referable.refName, null, GlobalReferable.Kind.OTHER)
+            }).getConcrete(def)
             expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
             else -> {}
         }
