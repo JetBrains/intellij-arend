@@ -4,19 +4,25 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
+import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
+import org.arend.naming.reference.converter.ReferableConverter
+import org.arend.naming.resolving.ResolverListener
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiModuleReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.parametersText
+import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 
 interface ArendReference : PsiReference {
@@ -54,8 +60,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         var notARecord = false
         var clazz: Class<*>? = null
         val element = element
-        val parent = element.parent
-        val pParent = (parent as? ArendLongName)?.parent
+        val parent = element.parent as? ArendLongName
+        val pParent = parent?.parent
         if (pParent is ArendDefClass) {
             clazz = ArendDefClass::class.java
         } else {
@@ -71,7 +77,25 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        return element.scope.elements.mapNotNull { origElement ->
+        val expr = if (element is ArendIPName && element.longName.size > 1 || parent != null && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null) {
+            element.ancestor<ArendExpr>()
+        } else null
+        val def = expr?.ancestor<PsiConcreteReferable>()
+        var elements = if (expr == null) element.scope.elements else emptyList()
+        val resolverListener = if (expr == null) null else object : ResolverListener {
+                override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+                    if (refExpr.data == parent || refExpr.data == element) {
+                        elements = scope.elements
+                    }
+                }
+            }
+        when {
+            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ReferableConverter { if (it == null) null else LocatedReferableImpl(it.precedence, it.refName, null, GlobalReferable.Kind.OTHER) }).getConcrete(def)
+            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
+            else -> {}
+        }
+
+        return elements.mapNotNull { origElement ->
             val ref = origElement.underlyingReferable
             if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
@@ -127,7 +151,22 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 val ref = element.scope.globalSubscope.resolveName(element.referenceName)
                 if (ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
             }
-            else -> element.scope.resolveName(element.referenceName)
+            else -> {
+                val expr = element.ancestor<ArendExpr>()
+                val def = expr?.ancestor<PsiConcreteReferable>()
+                when {
+                    def != null -> {
+                        val project = def.project
+                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache)).getConcrete(def)
+                        cache.getCached(element)
+                    }
+                    expr != null -> {
+                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
+                        cache.getCached(element)
+                    }
+                    else -> element.scope.resolveName(element.referenceName)
+                }
+            }
         } }
 
         return when (val ref = cache.resolveCached(resolver, element)?.underlyingReferable) {
