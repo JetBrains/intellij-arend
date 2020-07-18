@@ -858,7 +858,7 @@ private nameTeleImplicit ::= LBRACE identifierOrUnknown [identifierOrUnknown* CO
 
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
-private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN | LBRACE | FAT_ARROW | COLON | PIPE | RBRACE | WITH_KW | COWITH_KW | ELIM_KW) & statement_recover
+private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         implements = [ "org.arend.psi.ext.ArendCompositeElement"
