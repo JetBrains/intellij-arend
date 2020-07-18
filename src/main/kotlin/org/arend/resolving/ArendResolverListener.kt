@@ -38,7 +38,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
                 data.parentLongName?.let { it.refIdentifierList + last } ?: last
             }
             is ArendReferenceElement -> listOf(data)
-            is ArendPattern -> data.defIdentifier?.let { listOf(it) } ?: data.longName?.refIdentifierList ?: return
+            is ArendPattern -> data.defIdentifier?.let { listOf<ArendReferenceElement>(it) } ?: data.longName?.refIdentifierList ?: return
             is ArendAtomPatternOrPrefix -> data.defIdentifier?.let { listOf(it) } ?: return
             else -> return
         }

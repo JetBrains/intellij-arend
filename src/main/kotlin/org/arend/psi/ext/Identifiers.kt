@@ -22,12 +22,58 @@ import org.arend.typing.ReferableExtractVisitor
 import org.arend.typing.getTypeOf
 import org.arend.util.mapUntilNotNull
 
-abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(node), ArendDefIdentifier {
+abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), ArendReferenceElement {
     override fun getNameIdentifier(): PsiElement? = firstChild
 
     override val referenceNameElement
         get() = this
 
+    override fun getName(): String = referenceName
+
+    override val rangeInElement: TextRange
+        get() = TextRange(0, text.length)
+
+    private fun getTopmostExpression(element: PsiElement): ArendCompositeElement? {
+        var expr: ArendExpr? = null
+        var cur = element
+        while (cur !is PsiLocatedReferable && cur !is PsiFile) {
+            if (cur is ArendExpr) {
+                expr = cur
+            }
+            cur = cur.parent
+        }
+        return expr ?: cur as? PsiLocatedReferable
+    }
+
+    override fun getUseScope(): SearchScope {
+        val parent = parent
+        val pParent = parent?.parent
+        if (pParent is ArendNameTele) {
+            val function = parent.parent.parent
+            var prevSibling = function.parent.prevSibling
+            if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
+            val docComment = prevSibling as? ArendDocComment
+            return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
+        }
+
+        if (parent is ArendLetClausePattern ||
+            parent is ArendLetClause ||
+            (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
+            pParent is ArendNameTele ||
+            parent is ArendAtomPatternOrPrefix && pParent != null ||
+            parent is ArendPattern && pParent is ArendClause ||
+            parent is ArendCaseArg) {
+
+            getTopmostExpression(parent)?.let {
+                return LocalSearchScope(it)
+            }
+        }
+
+        return super.getUseScope()
+    }
+}
+
+abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(node), ArendDefIdentifier {
     override val referenceName: String
         get() = id.text
 
@@ -39,8 +85,6 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
 
     override val unresolvedReference: UnresolvedReference?
         get() = null
-
-    override fun getName(): String = referenceName
 
     override fun setName(name: String): PsiElement? =
             this.replaceWithNotification(ArendPsiFactory(project).createDefIdentifier(name))
@@ -95,54 +139,9 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : PsiReferableImpl(nod
                 else -> null
             }
         }
-
-    private fun getTopmostExpression(element: PsiElement): ArendCompositeElement? {
-        var expr: ArendExpr? = null
-        var cur = element
-        while (cur !is PsiLocatedReferable && cur !is PsiFile) {
-            if (cur is ArendExpr) {
-                expr = cur
-            }
-            cur = cur.parent
-        }
-        return expr ?: cur as? PsiLocatedReferable
-    }
-
-    override fun getUseScope(): SearchScope {
-        val parent = parent
-        val pParent = parent?.parent
-        if (pParent is ArendNameTele) {
-            val function = parent.parent.parent
-            var prevSibling = function.parent.prevSibling
-            if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
-            val docComment = prevSibling as? ArendDocComment
-            return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
-        }
-
-        if (parent is ArendLetClausePattern ||
-            parent is ArendLetClause ||
-            (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
-            pParent is ArendNameTele ||
-            parent is ArendAtomPatternOrPrefix && pParent != null ||
-            parent is ArendPattern && pParent is ArendClause ||
-            parent is ArendCaseArg) {
-
-            getTopmostExpression(parent)?.let {
-                return LocalSearchScope(it)
-            }
-        }
-
-        return super.getUseScope()
-    }
-
-    override val rangeInElement: TextRange
-        get() = TextRange(0, text.length)
 }
 
-abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendRefIdentifier {
-    override val referenceNameElement
-        get() = this
-
+abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(node), ArendRefIdentifier {
     override val referenceName: String
         get() = id.text
 
@@ -156,8 +155,6 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
     override val unresolvedReference: UnresolvedReference?
         get() = referent
 
-    override fun getName(): String = referenceName
-
     override fun getData() = this
 
     override fun getReferent() = NamedUnresolvedReference(this, referenceName)
@@ -169,8 +166,9 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this)
     }
 
-    override val rangeInElement: TextRange
-        get() = TextRange(0, text.length)
+    override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
+
+    override fun getParentSourceNode() = getParentSourceNode(this)
 }
 
 abstract class ArendAliasIdentifierImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), PsiNameIdentifierOwner {

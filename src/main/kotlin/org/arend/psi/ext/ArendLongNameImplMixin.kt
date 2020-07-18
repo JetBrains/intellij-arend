@@ -2,6 +2,7 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.LongUnresolvedReference
+import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.ArendLongName
 import org.arend.term.abs.Abstract
@@ -19,8 +20,10 @@ abstract class ArendLongNameImplMixin(node: ASTNode) : ArendSourceNodeImpl(node)
 
     override fun getData() = this
 
-    override fun getReferent(): UnresolvedReference =
-            LongUnresolvedReference.make(this, refIdentifierList.map { it.referenceName })
+    override fun getReferent(): UnresolvedReference {
+        val refList = refIdentifierList
+        return if (refList.size == 1) NamedUnresolvedReference(refList[0], refList[0].referenceName) else LongUnresolvedReference.make(this, refList.map { it.referenceName })
+    }
 
     override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]
 

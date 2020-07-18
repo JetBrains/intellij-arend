@@ -923,7 +923,9 @@ private defIdentifier_typeTele ::= defIdentifier {
 }
 
 refIdentifier ::= ID {
-    implements = [ "org.arend.psi.ext.ArendReferenceElement"
+    implements = [ "org.arend.psi.ext.PsiReferable"
+                   "org.arend.psi.ext.ArendReferenceElement"
+                   "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.Reference" ]
     mixin = "org.arend.psi.ext.ArendRefIdentifierImplMixin"
 }
