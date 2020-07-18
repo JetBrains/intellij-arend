@@ -43,4 +43,21 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
             \func test => (1, 2, 3)
         """)
     }
+
+    fun `test meta resolver argument`() {
+        addGeneratedModules {
+            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+                override fun resolvePrefix(resolver: ExpressionResolver, refExpr: ConcreteReferenceExpression, arguments: List<ConcreteArgument>) =
+                    arguments[1].expression
+            })
+        }
+
+        simpleQuickFixTest("Replace meta with result", """
+            \import Meta
+            \func test => {-caret-}myMeta 1 2 3
+        """, """
+            \import Meta
+            \func test => 2
+        """)
+    }
 }

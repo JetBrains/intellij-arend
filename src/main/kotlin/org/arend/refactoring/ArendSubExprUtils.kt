@@ -23,6 +23,8 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.PsiInjectionTextFile
+import org.arend.naming.reference.MetaReferable
+import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
@@ -89,6 +91,16 @@ data class SubExprResult(
     } else null
 }
 
+private class MyResolverListener(private val data: Any) : ResolverListener {
+    var result: Concrete.Expression? = null
+
+    override fun metaResolved(expression: Concrete.ReferenceExpression, result: Concrete.Expression) {
+        if (expression.data == data) {
+            this.result = result
+        }
+    }
+}
+
 @Throws(SubExprException::class)
 fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
     val startElement = file.findElementAt(range.startOffset) ?: throw SubExprException("selected expr in bad position")
@@ -96,22 +108,23 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     else file.findElementAt(range.endOffset - 1)?.let {
         PsiTreeUtil.findCommonParent(startElement, it)
     } ?: throw SubExprException("selected expr in bad position")
+    val exprAncestor = possibleParent.ancestor<ArendExpr>()
+        ?: throw SubExprException("selected text is not an arend expression")
+    val parent = exprAncestor.parent
+
+    val (head, tail) = collectArendExprs(parent, range)
+        ?: throw SubExprException("cannot find a suitable concrete expression")
+    val subExpr =
+        if (tail.isNotEmpty()) parseBinOp(head, tail)
+        else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+    val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
+
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
+    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver)
     val psiDef = possibleParent.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
     val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }
-
-    val exprAncestor = possibleParent.ancestor<ArendExpr>()
-            ?: throw SubExprException("selected text is not an arend expression", body)
-    val parent = exprAncestor.parent
-
-    val (head, tail) = collectArendExprs(parent, range)
-        ?: throw SubExprException("cannot find a suitable concrete expression", body)
-    val subExpr =
-        if (tail.isNotEmpty()) parseBinOp(head, tail)
-        else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
 
     val injectionContext = (file as? ArendFile)?.injectionContext
     val injectionHost = injectionContext?.containingFile as? PsiInjectionTextFile
@@ -125,7 +138,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(it) }
         if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
             val scope = CachingScope.make(injectionHost.scope)
-            val subExprVisitor = CorrespondedSubExprVisitor(subExpr)
+            val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
             cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
                 .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
@@ -138,7 +151,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         concreteDef ?: throw SubExprException("selected text is not in a definition")
         val def = psiDef.tcReferable?.typechecked
             ?: throw SubExprException("underlying definition is not type checked")
-        val subDefVisitor = CorrespondedSubDefVisitor(subExpr)
+        val subDefVisitor = CorrespondedSubDefVisitor(resolver?.result ?: subExpr)
         errors = subDefVisitor.exprError
         concreteDef.accept(subDefVisitor, def)
     }) ?: throw SubExprException(buildString {
