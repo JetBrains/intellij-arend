@@ -46,15 +46,17 @@ tasks["jar"].dependsOn(
         projectArend.task(":base:jar")
 )
 
+val generated = arrayOf("src/main/doc-lexer", "src/main/lexer", "src/main/parser")
+
 sourceSets {
     main {
-        java.srcDirs("src/gen")
+        java.srcDirs(*generated)
     }
 }
 
 idea {
     module {
-        generatedSourceDirs.add(file("src/gen"))
+        generatedSourceDirs.addAll(generated.map(::file))
         outputDir = file("$buildDir/classes/main")
         testOutputDir = file("$buildDir/classes/test")
     }
@@ -77,18 +79,18 @@ tasks.withType<PatchPluginXmlTask> {
 
 task<GenerateLexer>("generateArendLexer") {
     description = "Generates lexer"
-    group = "Source"
+    group = "build setup"
     source = "src/main/grammars/ArendLexer.flex"
-    targetDir = "src/gen/org/arend/lexer"
+    targetDir = "src/main/lexer/org/arend/lexer"
     targetClass = "ArendLexer"
     purgeOldFiles = true
 }
 
 task<GenerateParser>("generateArendParser") {
     description = "Generates parser"
-    group = "Source"
+    group = "build setup"
     source = "src/main/grammars/ArendParser.bnf"
-    targetRoot = "src/gen"
+    targetRoot = "src/main/parser"
     pathToParser = "/org/arend/parser/ArendParser.java"
     pathToPsiRoot = "/org/arend/psi"
     purgeOldFiles = true
@@ -96,9 +98,9 @@ task<GenerateParser>("generateArendParser") {
 
 task<GenerateLexer>("generateArendDocLexer") {
     description = "Generates doc lexer"
-    group = "Source"
+    group = "build setup"
     source = "src/main/grammars/ArendDocLexer.flex"
-    targetDir = "src/gen/org/arend/lexer"
+    targetDir = "src/main/doc-lexer/org/arend/lexer"
     targetClass = "ArendDocLexer"
     purgeOldFiles = true
 }

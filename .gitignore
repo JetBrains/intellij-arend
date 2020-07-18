@@ -36,3 +36,6 @@ build/
 
 out/
 src/gen/
+src/main/doc-lexer
+src/main/lexer
+src/main/parser
