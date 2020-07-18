@@ -28,7 +28,7 @@ class ArendColorSettingsPage : ColorSettingsPage {
         |
         |\func <decl>f</decl> (<class_param>c</class_param> <class_param>d</class_param> : <id>C</id>) (<id>a</id> <id>b</id> _ : <id>Nat</id>) => <id>C</id> { | <id>x</id> => \lam <id>n</id> => <id>n</id> | <id>y</id> => <id>a</id> <long>Nat.</long><op>+</op> <id>b</id> }
         |
-        |\func <decl>tuple</decl> => (<id>one</id>, <long>one.</long><id>two</id>, <long>one.two.</long><id>three</id>, 0 <op>`f`</op> 1, \Set0, _)
+        |\func <decl>tuple</decl> => (<id>one</id>, <long>one.</long><id>two</id>, <long>one.two.</long><id>three</id>, 0 <op>`f`</op> 1, \Set0, _, <meta>meta</meta>)
         |
         |-- comment
         |
@@ -47,6 +47,7 @@ class ArendColorSettingsPage : ColorSettingsPage {
         Pair("long", ArendHighlightingColors.LONG_NAME.textAttributesKey),
         Pair("op",   ArendHighlightingColors.OPERATORS.textAttributesKey),
         Pair("id",   ArendHighlightingColors.IDENTIFIER.textAttributesKey),
+        Pair("meta", ArendHighlightingColors.META_RESOLVER.textAttributesKey),
         Pair("class_param", ArendHighlightingColors.CLASS_PARAMETER.textAttributesKey)
     )
 

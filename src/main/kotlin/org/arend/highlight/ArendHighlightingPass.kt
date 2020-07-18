@@ -5,9 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import org.arend.naming.reference.ErrorReference
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.Referable
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendIPNameImplMixin
@@ -40,8 +38,13 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
-                if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier) && referent is GlobalReferable && referent.precedence.isInfix) {
-                    holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
+                    when {
+                        (((referent as? RedirectingReferable)?.originalReferable ?: referent) as? MetaReferable)?.resolver != null ->
+                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.META_RESOLVER.textAttributesKey
+                        referent is GlobalReferable && referent.precedence.isInfix ->
+                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                    }
                 }
 
                 var index = 0

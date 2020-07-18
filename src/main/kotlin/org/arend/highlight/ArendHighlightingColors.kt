@@ -8,6 +8,7 @@ import com.intellij.ide.highlighter.JavaHighlightingColors as Java
 
 enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey) {
     IDENTIFIER("Identifier", Default.IDENTIFIER),
+    META_RESOLVER("Meta resolvers", Default.STATIC_METHOD),
     NUMBER("Literals//Number", Default.NUMBER),
     STRING("Literals//String", Default.STRING),
     KEYWORD("Keyword", Default.KEYWORD),
