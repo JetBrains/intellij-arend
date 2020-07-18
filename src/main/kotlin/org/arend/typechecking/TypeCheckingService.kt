@@ -38,6 +38,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
+import java.util.concurrent.ConcurrentHashMap
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
     val dependencyListener = DependencyCollector()
@@ -49,7 +50,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     private val externalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
     private val internalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
-    val tcRefMaps = HashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
+    val tcRefMaps = ConcurrentHashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
 
     val updatedModules = HashSet<ModuleLocation>()
 
