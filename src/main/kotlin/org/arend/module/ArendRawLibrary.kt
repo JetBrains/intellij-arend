@@ -167,10 +167,20 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                     if (prec != Precedence.DEFAULT && prec.priority >= 0) {
                         builder.append('\\').append(prec).append(' ')
                     }
+                    builder.append(name)
+
+                    val alias = element.aliasName
+                    if (alias != null) {
+                        builder.append(" \\alias")
+                        val aliasPrec = element.aliasPrecedence
+                        if (aliasPrec != Precedence.DEFAULT && aliasPrec.priority >= 0) {
+                            builder.append(" \\").append(aliasPrec)
+                        }
+                        builder.append(' ').append(alias)
+                    }
                 } else {
-                    builder.append("\\module ")
+                    builder.append("\\module ").append(name)
                 }
-                builder.append(name)
 
                 if (subscope != null) {
                     builder.append(" \\where {\n")
