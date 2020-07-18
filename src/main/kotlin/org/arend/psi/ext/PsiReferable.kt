@@ -66,8 +66,6 @@ abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node)
         return this
     }
 
-    override fun getNavigationElement(): PsiElement = nameIdentifier ?: this
-
     override fun getTextOffset(): Int = nameIdentifier?.textOffset ?: super.getTextOffset()
 
     override fun getPresentation(): ItemPresentation = getPresentation(this)
