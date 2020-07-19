@@ -2,6 +2,16 @@ package org.arend.refactoring
 
 import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
+import org.arend.ext.concrete.expr.ConcreteArgument
+import org.arend.ext.concrete.expr.ConcreteExpression
+import org.arend.ext.concrete.expr.ConcreteReferenceExpression
+import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.ExpressionResolver
+import org.arend.ext.reference.Precedence
+import org.arend.ext.typechecking.MetaResolver
+import org.arend.extImpl.ConcreteFactoryImpl
+import org.arend.term.concrete.Concrete
 
 class RenameTest : ArendTestBase() {
 
@@ -239,6 +249,28 @@ class RenameTest : ArendTestBase() {
     ) {
         val file = myFixture.configureFromTempProjectFile("DirA/Foo.ard")
         myFixture.renameElement(file.containingDirectory, "DirB")
+    }
+
+    fun `test rename refIdentifier`() {
+        addGeneratedModules {
+            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+                override fun resolvePrefix(resolver: ExpressionResolver, refExpr: ConcreteReferenceExpression, arguments: List<ConcreteArgument>): ConcreteExpression {
+                    val factory = ConcreteFactoryImpl(refExpr.data)
+                    val ref = (arguments[0].expression as Concrete.ReferenceExpression).referent
+                    return resolver.resolve(factory.lam(listOf(factory.param(true, ref)), arguments[1].expression))
+                }
+            })
+        }
+
+        doTest("xoox", """
+           \import Meta 
+             
+           \func test => myMeta oxxo{-caret-} (oxxo = 0)
+        """, """
+           \import Meta 
+             
+           \func test => myMeta xoox (xoox = 0)
+        """)
     }
 
     private fun doTest(
