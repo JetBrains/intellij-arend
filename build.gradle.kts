@@ -30,16 +30,6 @@ configure<JavaPluginConvention> {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "11"
-        languageVersion = "1.3"
-        apiVersion = "1.3"
-        freeCompilerArgs = listOf("-Xjvm-default=enable")
-    }
-    dependsOn("generateArendLexer", "generateArendParser", "generateArendDocLexer")
-}
-
 tasks["jar"].dependsOn(
         projectArend.task(":api:jar"),
         projectArend.task(":proto:jar"),
@@ -77,7 +67,7 @@ tasks.withType<PatchPluginXmlTask> {
     pluginDescription(file("src/main/html/description.html").readText())
 }
 
-task<GenerateLexer>("generateArendLexer") {
+val generateArendLexer = task<GenerateLexer>("genArendLexer") {
     description = "Generates lexer"
     group = "build setup"
     source = "src/main/grammars/ArendLexer.flex"
@@ -86,7 +76,7 @@ task<GenerateLexer>("generateArendLexer") {
     purgeOldFiles = true
 }
 
-task<GenerateParser>("generateArendParser") {
+val generateArendParser = task<GenerateParser>("genArendParser") {
     description = "Generates parser"
     group = "build setup"
     source = "src/main/grammars/ArendParser.bnf"
@@ -96,13 +86,23 @@ task<GenerateParser>("generateArendParser") {
     purgeOldFiles = true
 }
 
-task<GenerateLexer>("generateArendDocLexer") {
+val generateArendDocLexer = task<GenerateLexer>("genArendDocLexer") {
     description = "Generates doc lexer"
     group = "build setup"
     source = "src/main/grammars/ArendDocLexer.flex"
     targetDir = "src/main/doc-lexer/org/arend/lexer"
     targetClass = "ArendDocLexer"
     purgeOldFiles = true
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "11"
+        languageVersion = "1.3"
+        apiVersion = "1.3"
+        freeCompilerArgs = listOf("-Xjvm-default=enable")
+    }
+    dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
 }
 
 tasks.withType<Test> {
