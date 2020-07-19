@@ -62,7 +62,8 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
             pParent is ArendNameTele ||
             parent is ArendAtomPatternOrPrefix && pParent != null ||
             parent is ArendPattern && pParent is ArendClause ||
-            parent is ArendCaseArg) {
+            parent is ArendCaseArg ||
+            parent is ArendLongName) {
 
             getTopmostExpression(parent)?.let {
                 return LocalSearchScope(it)
