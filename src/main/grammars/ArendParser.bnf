@@ -756,7 +756,7 @@ tupleExpr ::= expr [COLON expr] {
     mixin = "org.arend.psi.ext.ArendTupleExprImplMixin"
 }
 
-private tupleExpr_recover ::= !(RPAREN | COMMA) & statement_recover
+private tupleExpr_recover ::= !(RPAREN | RBRACE | COMMA) & statement_recover
 
 atomFieldsAcc ::= atom fieldAcc* {
     pin = 1
@@ -786,7 +786,6 @@ atomArgument ::= atomFieldsAcc {
 }
 
 implicitArgument ::= LBRACE <<comma_separated_sequence_trail tupleExpr>> RBRACE {
-    pin = 2
     implements = "org.arend.psi.ext.ArendCompositeElement"
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
