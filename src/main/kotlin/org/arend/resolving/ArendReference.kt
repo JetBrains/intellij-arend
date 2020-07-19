@@ -10,6 +10,7 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
+import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -17,6 +18,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
@@ -45,6 +47,16 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiRef
 
 open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
     override fun resolve() = resolve(true)
+}
+
+private object ArendIdReferableConverter : ReferableConverter {
+    override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
+        null -> null
+        is TCReferable -> referable
+        else -> LocatedReferableImpl(referable.precedence, referable.refName, null, GlobalReferable.Kind.OTHER)
+    }
+
+    override fun convert(referable: Referable?) = (referable as? ModuleAdapter)?.metaReferable ?: referable
 }
 
 open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
@@ -89,11 +101,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
             }
         when {
-            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, object : BaseReferableConverter() {
-                override fun toDataLocatedReferable(referable: LocatedReferable?) =
-                    if (referable == null) null else LocatedReferableImpl(referable.precedence, referable.refName, null, GlobalReferable.Kind.OTHER)
-            }).getConcrete(def)
-            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
+            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
+            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
             else -> {}
         }
 
@@ -159,11 +168,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 when {
                     def != null -> {
                         val project = def.project
-                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache)).getConcrete(def)
+                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache), ArendIdReferableConverter).getConcrete(def)
                         cache.getCached(element)
                     }
                     expr != null -> {
-                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
+                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
                         cache.getCached(element)
                     }
                     else -> element.scope.resolveName(element.referenceName)
