@@ -23,7 +23,6 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.PsiInjectionTextFile
-import org.arend.naming.reference.MetaReferable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -93,10 +92,12 @@ data class SubExprResult(
 
 private class MyResolverListener(private val data: Any) : ResolverListener {
     var result: Concrete.Expression? = null
+    var originalExpr: Concrete.Expression? = null
 
-    override fun metaResolved(expression: Concrete.ReferenceExpression, result: Concrete.Expression) {
+    override fun metaResolved(expression: Concrete.ReferenceExpression, args: List<Concrete.Argument>, result: Concrete.Expression) {
         if (expression.data == data) {
             this.result = result
+            originalExpr = Concrete.AppExpression.make(data, expression, args)
         }
     }
 }
@@ -160,7 +161,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             append(" (maybe because you're using meta defs)")
     }, body)
 
-    return SubExprResult(result.proj1, result.proj2, exprAncestor)
+    return SubExprResult(result.proj1, resolver?.originalExpr ?: result.proj2, exprAncestor)
 }
 
 fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor, showError : Boolean = true): SubExprResult? =
