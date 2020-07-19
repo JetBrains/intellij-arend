@@ -155,6 +155,9 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override val unresolvedReference: UnresolvedReference?
         get() = referent
 
+    override fun setName(name: String): PsiElement? =
+        this.replaceWithNotification(ArendPsiFactory(project).createRefIdentifier(name))
+
     override fun getData() = this
 
     override fun getReferent() = NamedUnresolvedReference(this, referenceName)
