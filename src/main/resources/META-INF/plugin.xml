@@ -117,6 +117,8 @@
         <fileStructureGroupRuleProvider
                 implementation="org.arend.search.ArendConstructorGroupingRuleProvider"-->
 
+        <targetElementEvaluator language="Arend" implementationClass="org.arend.highlight.ArendTargetElementEvaluator"/>
+
         <!-- Navigation -->
 
         <gotoClassContributor implementation="org.arend.navigation.ArendClassNavigationContributor"/>

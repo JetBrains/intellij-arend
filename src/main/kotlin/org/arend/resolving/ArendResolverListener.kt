@@ -1,5 +1,6 @@
 package org.arend.resolving
 
+import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCReferable
@@ -45,6 +46,11 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
 
         resolveReference(data, referent, list, resolvedRefs)
         replaceCache(list, resolvedRefs)
+    }
+
+    override fun bindingResolved(binding: Referable) {
+        val ref = (binding as? DataContainer)?.data as? ArendRefIdentifier ?: return
+        resolverCache.replaceCache(ref, ref)
     }
 
     override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
