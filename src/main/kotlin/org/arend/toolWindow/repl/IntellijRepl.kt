@@ -78,7 +78,7 @@ abstract class IntellijRepl private constructor(
 
     fun resetCurrentLineScope(arendFile: ArendFile): Scope {
         val scope = ScopeFactory.forGroup(arendFile, availableModuleScopeProvider)
-        myReplScope.setCurrentLineScope(CachingScope.makeWithModules(scope))
+        myReplScope.setCurrentLineScope(CachingScope.make(scope))
         return myScope
     }
 

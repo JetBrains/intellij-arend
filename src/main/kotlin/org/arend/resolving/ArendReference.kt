@@ -53,7 +53,8 @@ private object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
-        else -> LocatedReferableImpl(referable.precedence, referable.refName, null, GlobalReferable.Kind.OTHER)
+        is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCReferable.NULL_REFERABLE)
+        else -> LocatedReferableImpl(referable.precedence, referable.refName, TCReferable.NULL_REFERABLE, referable.kind)
     }
 
     override fun convert(referable: Referable?) = (referable as? ModuleAdapter)?.metaReferable ?: referable
@@ -149,7 +150,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 val refName = element.referenceName
                 var result: Referable? = null
                 for (ref in element.scope.elements) {
-                    if (ref.textRepresentation() == refName) {
+                    val name = if (ref is ModuleReferable) ref.path.lastName else ref.refName
+                    if (name == refName) {
                         result = ref
                         if (ref !is PsiModuleReferable || ref.modules.firstOrNull() is PsiDirectory) {
                             break
@@ -168,11 +170,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 when {
                     def != null -> {
                         val project = def.project
-                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache), ArendIdReferableConverter).getConcrete(def)
+                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache)).getConcrete(def)
                         cache.getCached(element)
                     }
                     expr != null -> {
-                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
+                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
                         cache.getCached(element)
                     }
                     else -> element.scope.resolveName(element.referenceName)

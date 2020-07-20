@@ -105,7 +105,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
                 (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
                     ?: EmptyScope.INSTANCE
             } else {
-                CachingScope.makeWithModules(ScopeFactory.forGroup(this, moduleScopeProvider))
+                CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider))
             })
         }
 
