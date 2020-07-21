@@ -148,6 +148,7 @@
         <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
 
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionContributor"/>
+        <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendNoVariantsDelegator"/>
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 

@@ -1,5 +1,6 @@
 package org.arend.resolving
 
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
@@ -108,36 +109,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }
 
         return elements.mapNotNull { origElement ->
-            val ref = origElement.underlyingReferable
-            if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
-                null
-            } else when (ref) {
-                is PsiNamedElement -> {
-                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
-                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation() + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
-                    if (alias != null) {
-                        builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
-                    }
-                    (ref as? Abstract.ParametersHolder)?.parametersText?.let {
-                        builder = builder.withTailText(it, true)
-                    }
-                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) }
-                    builder
-                }
-                is ModuleReferable -> {
-                    val module = if (ref is PsiModuleReferable) {
-                        ref.modules.firstOrNull()
-                    } else {
-                        element.containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
-                    }
-                    when (module) {
-                        null -> LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
-                        is ArendFile -> LookupElementBuilder.create(module, ref.path.lastName).withIcon(ArendIcons.AREND_FILE)
-                        else -> LookupElementBuilder.createWithIcon(module)
-                    }
-                }
-                else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
-            }
+            createArendLookUpElement(origElement, element.containingFile, clazz, notARecord)
         }.toTypedArray()
     }
 
@@ -193,6 +165,41 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
             }
             else -> null
+        }
+    }
+
+    companion object {
+        fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, clazz: Class<*>?, notARecord: Boolean): LookupElementBuilder? {
+            val ref = origElement.underlyingReferable
+            return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
+                null
+            } else when (ref) {
+                is PsiNamedElement -> {
+                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
+                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation() + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
+                    if (alias != null) {
+                        builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
+                    }
+                    (ref as? Abstract.ParametersHolder)?.parametersText?.let {
+                        builder = builder.withTailText(it, true)
+                    }
+                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) }
+                    builder
+                }
+                is ModuleReferable -> {
+                    val module = if (ref is PsiModuleReferable) {
+                        ref.modules.firstOrNull()
+                    } else {
+                        containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                    }
+                    when (module) {
+                        null -> LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
+                        is ArendFile -> LookupElementBuilder.create(module, ref.path.lastName).withIcon(ArendIcons.AREND_FILE)
+                        else -> LookupElementBuilder.createWithIcon(module)
+                    }
+                }
+                else -> LookupElementBuilder.create(ref, origElement.textRepresentation())
+            }
         }
     }
 }
