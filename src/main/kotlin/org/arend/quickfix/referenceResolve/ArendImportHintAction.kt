@@ -141,7 +141,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): List<PsiLocatedReferable> {
             val name = refElement.referenceName
             val service = project.service<TypeCheckingService>()
-            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + service.getAdditionalNames(name)
+            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + service.getAdditionalReferables(name)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {

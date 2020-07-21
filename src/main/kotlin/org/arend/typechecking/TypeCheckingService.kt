@@ -149,7 +149,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         (if (isExternal) externalAdditionalNamesIndex else internalAdditionalNamesIndex).computeIfAbsent(ref.refName) { ArrayList() }.add(ref)
     }
 
-    fun getAdditionalNames(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
+    fun getAdditionalReferables(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList<PsiLocatedReferable>()) + (externalAdditionalNamesIndex[name] ?: emptyList())
+
+    fun getAdditionalNames() = internalAdditionalNamesIndex.keys.union(externalAdditionalNamesIndex.keys)
 
     private fun resetErrors(def: Referable, removeTCRef: Boolean) {
         if (removeTCRef) {
