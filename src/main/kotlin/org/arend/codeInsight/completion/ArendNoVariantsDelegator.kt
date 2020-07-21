@@ -20,10 +20,10 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.typechecking.TypeCheckingService
 
-class ArendNoVariantsDelegator: CompletionContributor() {
+class ArendNoVariantsDelegator : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
-        val tracker = object: Consumer<CompletionResult> {
-            var noLookup : Boolean = true
+        val tracker = object : Consumer<CompletionResult> {
+            var noLookup: Boolean = true
             override fun consume(plainResult: CompletionResult) {
                 result.passResult(plainResult)
                 val element: LookupElement? = plainResult.lookupElement
@@ -31,7 +31,7 @@ class ArendNoVariantsDelegator: CompletionContributor() {
             }
         }
         result.runRemainingContributors(parameters, tracker)
-        val refElementAtCaret = parameters.originalFile.findElementAt(parameters.offset-1)?.parent
+        val refElementAtCaret = parameters.originalFile.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
         val refElementIsLeftmost = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null
 
@@ -42,20 +42,27 @@ class ArendNoVariantsDelegator: CompletionContributor() {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
-            val consumer = {name: String ->
+            val consumer = { name: String ->
                 if (result.prefixMatcher.prefixMatches(name)) {
                     val locatedReferables = StubIndex.getElements<String, PsiReferable>(ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
                     locatedReferables.forEach {
-                        if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, null, true)?.let{ result.addElement(it.withInsertHandler { context, item ->
-                            val refIdentifier = context.file.findElementAt(context.tailOffset-1)?.parent
-                            val locatedReferable = item.`object`
-                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)?.execute(editor)
-                        }) }
+                        if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, null, true)?.let {
+                            result.addElement(
+                                    run {
+                                        val oldHandler = it.insertHandler
+                                        it.withInsertHandler { context, item ->
+                                            oldHandler?.handleInsert(context, item)
+                                            val refIdentifier = context.file.findElementAt(context.tailOffset - 1)?.parent
+                                            val locatedReferable = item.`object`
+                                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)?.execute(editor)
+                                        }
+                                    })
+                        }
                     }
                 }
             }
 
-            tcService.getAdditionalNames().map{
+            tcService.getAdditionalNames().map {
                 consumer.invoke(it)
             }
 
