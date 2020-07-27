@@ -52,7 +52,7 @@ class ArendReplExecutionHandler(
         if (repl.repl(text) { "" }) {
             toolWindow.hide()
             repl.clearScope()
-            repl.resetCurrentLineScope(arendFile)
+            repl.resetCurrentLineScope()
             resetRepl()
             saveSettings()
         }
@@ -65,7 +65,6 @@ class ArendReplExecutionHandler(
         val normalization = consoleView.project.service<ArendProjectSettings>().data
             .replNormalizationMode
         NormalizeCommand.INSTANCE.loadNormalize(normalization, repl, false)
-        repl.withArendFile(arendFile)
         repl.initialize()
         resetRepl()
     }
