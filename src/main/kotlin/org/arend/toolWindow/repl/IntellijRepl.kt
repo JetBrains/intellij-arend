@@ -7,6 +7,7 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendPsiFactory
@@ -51,6 +52,7 @@ abstract class IntellijRepl private constructor(
 
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
+        ?.also { resetCurrentLineScope() }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 
