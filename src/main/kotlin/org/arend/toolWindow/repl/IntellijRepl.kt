@@ -12,6 +12,7 @@ import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.Repl
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
@@ -49,6 +50,10 @@ abstract class IntellijRepl private constructor(
         errorReporter,
         PsiConcreteProvider(service.project, errorReporter, null, true)
     )
+
+    init {
+        myScope = ConvertingScope(ArendReferableConverter, myScope)
+    }
 
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
