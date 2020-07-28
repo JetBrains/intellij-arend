@@ -62,6 +62,8 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun isCowith() = coClauseBody?.cowithKw != null
 
+    override fun isStrict() = false
+
     override fun getFunctionKind() = FunctionKind.COCLAUSE_FUNC
 
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
