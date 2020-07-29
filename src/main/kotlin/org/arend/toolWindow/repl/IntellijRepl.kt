@@ -7,11 +7,12 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.repl.Repl
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
@@ -50,8 +51,13 @@ abstract class IntellijRepl private constructor(
         PsiConcreteProvider(service.project, errorReporter, null, true)
     )
 
+    init {
+        myScope = ConvertingScope(ArendReferableConverter, myScope)
+    }
+
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
+        ?.also { resetCurrentLineScope() }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 
@@ -62,6 +68,10 @@ abstract class IntellijRepl private constructor(
     override fun loadCommands() {
         super.loadCommands()
         registerAction("prompt", SetPromptCommand)
+        val arendFile = handler.arendFile
+        arendFile.enforcedScope = ::resetCurrentLineScope
+        arendFile.enforcedLibraryConfig = myLibraryConfig
+        resetCurrentLineScope()
     }
 
     final override fun loadLibraries() {
@@ -70,14 +80,8 @@ abstract class IntellijRepl private constructor(
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
     }
 
-    fun withArendFile(arendFile: ArendFile) {
-        arendFile.enforcedScope = { resetCurrentLineScope(arendFile) }
-        arendFile.enforcedLibraryConfig = myLibraryConfig
-        resetCurrentLineScope(arendFile)
-    }
-
-    fun resetCurrentLineScope(arendFile: ArendFile): Scope {
-        val scope = ScopeFactory.forGroup(arendFile, availableModuleScopeProvider)
+    fun resetCurrentLineScope(): Scope {
+        val scope = ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider)
         myReplScope.setCurrentLineScope(CachingScope.make(scope))
         return myScope
     }

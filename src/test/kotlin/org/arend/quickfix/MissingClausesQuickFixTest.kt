@@ -634,4 +634,32 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         \func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
           | x, wrapped x1 => {?}
     """)
+
+    fun `test proper ordering of empty clauses`() = typedQuickFixTest("Implement", """
+        \data Bool | true | false
+        \data Empty
+        
+        \func ff (x y : Bool) : \Type \elim x, y
+          | true, true => \Sigma
+          | true, false => Empty
+          | false, true => Empty
+          | false, false => \Sigma
+        
+        \func {-caret-}emp (x y z : Bool) (b : ff x y) (c : ff y z) : Nat \elim x, y, z, b, c
+            """, """
+        \data Bool | true | false
+        \data Empty
+                
+        \func ff (x y : Bool) : \Type \elim x, y
+          | true, true => \Sigma
+          | true, false => Empty
+          | false, true => Empty
+          | false, false => \Sigma
+        
+        \func emp (x y z : Bool) (b : ff x y) (c : ff y z) : Nat \elim x, y, z, b, c
+          | true, true, true, b, c => {?}
+          | true, false, true, (), c
+          | false, true, true, (), c
+          | false, false, false, b, c => {?}
+    """)
 }

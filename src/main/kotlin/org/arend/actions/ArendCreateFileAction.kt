@@ -19,8 +19,8 @@ class ArendCreateFileAction : CreateFileFromTemplateAction(CAPTION, "", ArendIco
     ): String = CAPTION
 
     override fun buildDialog(
-            project: Project?,
-            directory: PsiDirectory?,
+            project: Project,
+            directory: PsiDirectory,
             builder: CreateFileFromTemplateDialog.Builder
     ) {
         builder.setTitle(CAPTION).addKind("Empty File", ArendIcons.AREND_FILE, "Arend File")

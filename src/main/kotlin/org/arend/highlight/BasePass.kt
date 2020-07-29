@@ -57,7 +57,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
     private val errorList = ArrayList<GeneralError>()
 
-    override fun getDocument(): Document = super.getDocument()!!
+    override fun getDocument(): Document = super.getDocument()
 
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()

@@ -1,6 +1,5 @@
 package org.arend.project
 
-import com.intellij.ide.util.importProject.ProjectDescriptor
 import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.ide.util.projectWizard.importSources.ProjectStructureDetector
 import com.intellij.ide.util.projectWizard.importSources.impl.ProjectFromSourcesBuilderImpl
@@ -32,10 +31,7 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
     override fun commit(project: Project, model: ModifiableModuleModel?, modulesProvider: ModulesProvider?, artifactModel: ModifiableArtifactModel?): List<Module>? {
         val rootPath = fileToImport ?: return null
         val detector = ProjectStructureDetector.EP_NAME.findExtensionOrFail(ArendProjectStructureDetector::class.java)
-        val builder = object : ProjectFromSourcesBuilderImpl(WizardContext(project, project), ModulesProvider.EMPTY_MODULES_PROVIDER) {
-            override fun getSelectedDescriptors(): List<ProjectDescriptor> =
-                listOf(getProjectDescriptor(detector))
-        }
+        val builder = ProjectFromSourcesBuilderImpl(WizardContext(project, project), ModulesProvider.EMPTY_MODULES_PROVIDER)
         builder.baseProjectPath = rootPath
         detector.setupProjectStructure(listOf(File(rootPath)), builder.getProjectDescriptor(detector))
         return builder.commit(project, model, modulesProvider, artifactModel)
@@ -44,7 +40,6 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
     override fun cleanup() {
         super.cleanup()
         myParameters = null
-        fileToImport = null
     }
 
     override fun getList() = fileToImport?.let { listOf(it + "/" + FileUtils.LIBRARY_CONFIG_FILE) } ?: emptyList()

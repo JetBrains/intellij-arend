@@ -1,32 +1,5 @@
-Language updates:
 <ul>
-    <li>Implicit lambdas.</li>
-    <li>Tests directory can be used to store files with tests, examples, and other code which is not a part of the library.</li>
-    <li>Improved pretty printer: if some definition is not available in the current context, it will be replaced with its full name.</li>
-    <li>REPL</li>
-    <li>Arend now supports unicode symbols through aliases.</li>
-    <li>Equality between disjoint constructors is now considered empty.</li>
-    <li>Added support for incomplete lambdas, let expressions, and tuples.</li>
-    <li>Implemented tail call optimization.</li>
-</ul>
-
-Plugin updates:
-<ul>
-    <li>Highlighting and resolving of expressions in error messages.</li>
-    <li>Fill goal and refine intentions can be invoked on goals. The latter is implemented through language extensions.</li>
-    <li>REPL can be invoked from the main menu.</li>
-    <li>Aliases support.</li>
-    <li>Improved goto next/previous error.</li>
-    <li>Debug for meta definitions.</li>
-    <li>Improved documentation support.</li>
-</ul>
-
-API:
-<ul>
-    <li>Goal solvers can be used to replace goals with expressions.</li>
-    <li>Arend UI allows meta definitions to interact with the user.</li>
-    <li>Level solvers can be used to automatically prove that a type belongs to a certain homotopy level.</li>
-    <li>Number type-checker can be used to elaborate numerical literals to arbitrary expressions.</li>
-    <li>User data in definitions can be used to store arbitrary user data.</li>
-    <li>User data in ContextData can be used to pass information between meta definitions.</li>
+    <li>Improved implicit arguments inference.</li>
+    <li>Fixed a bug aliases in namespace commands.</li>
+    <li>Fixed a bug with defined constructors.</li>
 </ul>

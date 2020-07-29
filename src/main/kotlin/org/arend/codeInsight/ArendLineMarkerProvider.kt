@@ -13,7 +13,6 @@ import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.progress.ProgressManager
-import com.intellij.psi.PsiBundle
 import com.intellij.psi.PsiElement
 import com.intellij.util.containers.toArray
 import org.arend.psi.ArendDefClass
@@ -28,7 +27,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
-    override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<LineMarkerInfo<PsiElement>>) {
+    override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         for (element in elements) {
             if (element is ArendDefIdentifier) {
                 (element.parent as? ArendDefClass)?.let { clazz ->
@@ -57,7 +56,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
     private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefinition>() {
         override fun getElementText(element: ArendDefinition): String {
             val fullName = FullName(element)
-            return PsiBundle.message("class.context.display", fullName.longName.toString(), fullName.modulePath.toString())
+            return fullName.longName.toString() + " in " + fullName.modulePath.toString()
         }
 
         override fun getContainerText(element: ArendDefinition, name: String) =
