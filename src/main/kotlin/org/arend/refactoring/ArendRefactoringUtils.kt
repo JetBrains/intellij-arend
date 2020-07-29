@@ -16,7 +16,6 @@ import com.intellij.psi.util.siblings
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.Expression
-import org.arend.core.expr.FunCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
@@ -411,27 +410,19 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
 
 fun admitsPatternMatchingOnIdp(expr: Expression, caseParameters: DependentLink?): PatternMatchingOnIdpResult {
-    if (expr is FunCallExpression && expr.definition == Prelude.PATH_INFIX) {
-        val leftSide = expr.defCallArguments.getOrNull(1)
-        val rightSide = expr.defCallArguments.getOrNull(2)
-        if (leftSide != null && rightSide != null) {
-            val leftBinding = (leftSide as? ReferenceExpression)?.binding
-            val rightBinding = (rightSide as? ReferenceExpression)?.binding
-            var leftSideOk = caseParameters == null && leftBinding != null
-            var rightSideOk = caseParameters == null && rightBinding != null
-            if (caseParameters != null) {
-                var caseP = caseParameters
-                while (caseP?.hasNext() == true) {
-                    if (caseP == leftBinding) leftSideOk = true
-                    if (caseP == rightBinding) rightSideOk = true
-                    caseP = caseP.next
-                }
-            }
-            return if ((leftSideOk || rightSideOk) && leftBinding != rightBinding)
-                PatternMatchingOnIdpResult.IDP else PatternMatchingOnIdpResult.DO_NOT_ELIMINATE
-        }
+    val equality = expr.toEquality() ?: return PatternMatchingOnIdpResult.INAPPLICABLE
+    val leftBinding = (equality.defCallArguments[1] as? ReferenceExpression)?.binding
+    val rightBinding = (equality.defCallArguments[2] as? ReferenceExpression)?.binding
+    var leftSideOk = caseParameters == null && leftBinding != null
+    var rightSideOk = caseParameters == null && rightBinding != null
+    var caseP = caseParameters
+    while (caseP?.hasNext() == true) {
+        if (caseP == leftBinding) leftSideOk = true
+        if (caseP == rightBinding) rightSideOk = true
+        caseP = caseP.next
     }
-    return PatternMatchingOnIdpResult.INAPPLICABLE
+    return if ((leftSideOk || rightSideOk) && leftBinding != rightBinding)
+        PatternMatchingOnIdpResult.IDP else PatternMatchingOnIdpResult.DO_NOT_ELIMINATE
 }
 
 // Binop util method plus auxiliary stuff
