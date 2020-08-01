@@ -169,7 +169,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val curRef = referable.underlyingReferable
         val fullName = FullName(referable)
-        val tcRefMap = tcRefMaps[fullName.modulePath]
+        val tcRefMap = fullName.modulePath?.let { tcRefMaps[it] }
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable == null) {
             resetErrors(curRef, removeTCRef)
