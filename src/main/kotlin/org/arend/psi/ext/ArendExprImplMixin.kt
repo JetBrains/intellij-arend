@@ -12,4 +12,6 @@ abstract class ArendExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), Ar
     override fun getReferableList() = listOf(null)
 
     override fun getType() = this
+
+    override fun isStrict() = false
 }

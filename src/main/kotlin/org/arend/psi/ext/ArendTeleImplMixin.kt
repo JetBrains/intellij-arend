@@ -16,6 +16,8 @@ abstract class ArendNameTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
 
     override fun getType() = expr
+
+    override fun isStrict() = strictKw != null
 }
 
 abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendTypeTele {
@@ -29,6 +31,8 @@ abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     }
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
+
+    override fun isStrict() = strictKw != null
 }
 
 abstract class ArendFieldTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendFieldTele {
@@ -39,6 +43,8 @@ abstract class ArendFieldTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node)
     override fun getReferableList(): List<Referable> = fieldDefIdentifierList
 
     override fun getType() = expr
+
+    override fun isStrict() = false
 
     override fun isClassifying() = classifyingKw != null
 }

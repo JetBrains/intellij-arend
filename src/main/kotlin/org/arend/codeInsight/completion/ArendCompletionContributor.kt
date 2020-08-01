@@ -463,7 +463,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val RETURN_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendReturnExpr::class.java)
 
         private val PREC_CONTEXT = or(
-                afterLeaves(FUNC_KW, SFUNC_KW, FUNC_S_KW, LEMMA_KW, CONS_KW, CONS_S_KW, DATA_KW, CLASS_KW, RECORD_KW),
+                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
@@ -521,7 +521,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val LPH_LEVEL_CONTEXT = and(withAncestors(PsiErrorElement::class.java, ArendAtomLevelExpr::class.java))
 
         private val ELIM_CONTEXT = and(
-                not(afterLeaves(DATA_KW, FUNC_KW, SFUNC_KW, FUNC_S_KW, LEMMA_KW, CONS_KW, CONS_S_KW, COERCE_KW, TRUNCATED_KW, COLON)),
+                not(afterLeaves(DATA_KW, FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, COERCE_KW, TRUNCATED_KW, COLON)),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT, ARGUMENT_EXPRESSION,
                         withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),

@@ -90,7 +90,6 @@ OCT_DIGIT           = [0-8]
     "\\as"                  { return AS_KW; }
     "\\module"              { return MODULE_KW; }
     "\\func"                { return FUNC_KW; }
-    "\\func!"               { return FUNC_S_KW; }
     "\\sfunc"               { return SFUNC_KW; }
     "\\lemma"               { return LEMMA_KW; }
     "\\meta"                { return META_KW; }
@@ -128,12 +127,12 @@ OCT_DIGIT           = [0-8]
     "\\return"              { return RETURN_KW; }
     "\\data"                { return DATA_KW; }
     "\\cons"                { return CONS_KW; }
-    "\\cons!"               { return CONS_S_KW; }
     "\\class"               { return CLASS_KW; }
     "\\record"              { return RECORD_KW; }
     "\\extends"             { return EXTENDS_KW; }
     "\\instance"            { return INSTANCE_KW; }
     "\\truncated"           { return TRUNCATED_KW; }
+    "\\strict"              { return STRICT_KW; }
     "\\lp"                  { return LP_KW; }
     "\\lh"                  { return LH_KW; }
     "\\oo"                  { return OO_KW; }

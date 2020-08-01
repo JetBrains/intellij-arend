@@ -40,7 +40,6 @@
         AS_KW               = '\as'
         MODULE_KW           = '\module'
         FUNC_KW             = '\func'
-        FUNC_S_KW           = '\func!'
         META_KW             = '\meta'
         SFUNC_KW            = '\sfunc'
         LEMMA_KW            = '\lemma'
@@ -49,6 +48,7 @@
         PROPERTY_KW         = '\property'
         CLASSIFYING_KW      = '\classifying'
         NO_CLASSIFYING_KW   = '\noclassifying'
+        STRICT_KW           = '\strict'
         COERCE_KW           = '\coerce'
         USE_KW              = '\use'
         ALIAS_KW            = '\alias'
@@ -78,7 +78,6 @@
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
         CONS_KW             = '\cons'
-        CONS_S_KW           = '\cons!'
         CLASS_KW            = '\class'
         RECORD_KW           = '\record'
         EXTENDS_KW          = '\extends'
@@ -113,7 +112,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | FUNC_S_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | CONS_S_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -265,7 +264,7 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionKw ::= FUNC_KW | FUNC_S_KW | SFUNC_KW | LEMMA_KW | useMod
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
 
 private functionType ::= COLON returnExpr { pin = 1 }
 
@@ -289,7 +288,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functio
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-instanceOrCons ::= INSTANCE_KW | CONS_KW | CONS_S_KW
+instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_typeTele alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
@@ -853,9 +852,9 @@ nameTele ::= identifierOrUnknown
         recoverWhile = nameTele_recover
     }
 
-private nameTeleExplicit ::= LPAREN identifierOrUnknown+ COLON expr RPAREN { pin = 1}
+private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1}
 
-private nameTeleImplicit ::= LBRACE identifierOrUnknown [identifierOrUnknown* COLON expr] RBRACE { pin = 1 }
+private nameTeleImplicit ::= LBRACE (STRICT_KW identifierOrUnknown+ COLON expr | identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE { pin = 1 }
 
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
@@ -887,9 +886,9 @@ typeTele ::= literal
         recoverWhile = typeTele_recover
     }
 
-private typedTeleExplicit ::= LPAREN typedExpr RPAREN { pin = 1 }
+private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
 
-private typedTeleImplicit ::= LBRACE typedExpr RBRACE { pin = 1 }
+private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
 
 private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW) & statement_recover
 

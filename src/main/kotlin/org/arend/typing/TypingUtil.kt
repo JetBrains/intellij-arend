@@ -13,6 +13,8 @@ open class ParameterImpl(private val isExplicit: Boolean, private val referables
     override fun getReferableList() = referables
 
     override fun getType() = type
+
+    override fun isStrict() = false
 }
 
 class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(), Abstract.Expression {

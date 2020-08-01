@@ -51,8 +51,6 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun isCowith() = functionBody?.cowithKw != null
 
-    override fun isStrict() = functionKw.funcSKw != null
-
     override fun getFunctionKind() = functionKw.let {
         when {
             it.lemmaKw != null -> FunctionKind.LEMMA

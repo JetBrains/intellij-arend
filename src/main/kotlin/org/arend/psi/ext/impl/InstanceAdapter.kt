@@ -54,8 +54,6 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
         return body == null || body.elim == null && body.fatArrow == null
     }
 
-    override fun isStrict() = instanceOrCons.consSKw != null
-
     override fun getFunctionKind() = if (instanceOrCons.consKw != null) FunctionKind.CONS else FunctionKind.INSTANCE
 
     override fun getKind() = if (instanceOrCons.consKw != null) GlobalReferable.Kind.DEFINED_CONSTRUCTOR else GlobalReferable.Kind.INSTANCE
