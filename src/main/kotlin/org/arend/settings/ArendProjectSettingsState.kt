@@ -37,7 +37,7 @@ class ArendProjectSettingsState {
     var normalizePopup = false
 
     // Repl options
-    var replNormalizationMode = NormalizationMode.RNF.toString()
+    var replNormalizationMode = NormalizationMode.WHNF.toString()
 }
 
 class ArendPrintingOptions {
