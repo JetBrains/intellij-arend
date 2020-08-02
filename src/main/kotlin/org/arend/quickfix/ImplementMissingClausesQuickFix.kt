@@ -78,13 +78,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 val recursiveTypeUsagesInBindingsIterator = recursiveTypeUsagesInBindings.iterator()
                 var parameter2: DependentLink? = if (!elimMode) missingClausesError.parameters else null
                 val clauseBindings: MutableList<Variable> = definedVariables.toMutableList()
+                val eliminatedBindings = HashSet<DependentLink>()
                 var i = 0
                 while (iterator.hasNext()) {
                     val pattern = iterator.next()
                     val nRecursiveBindings = recursiveTypeUsagesInBindingsIterator.next()
                     val braces = if (parameter2 == null || parameter2.isExplicit) Companion.Braces.NONE else Companion.Braces.BRACES
                     val sampleParameter = if (elimMode) missingClausesError.eliminatedParameters[i] else parameter2!!
-                    val patternData = doTransformPattern(pattern, element, project, filters, braces, clauseBindings, sampleParameter, nRecursiveBindings, missingClausesError)
+                    val patternData = doTransformPattern(pattern, element, project, filters, braces, clauseBindings, sampleParameter, nRecursiveBindings, eliminatedBindings, missingClausesError)
                     patternStrings.add(patternData.first)
                     containsEmptyPattern = containsEmptyPattern || patternData.second
                     parameter2 = if (parameter2 != null && parameter2.hasNext()) parameter2.next else null
@@ -262,6 +263,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                occupiedNames: MutableList<Variable>,
                                sampleParameter: DependentLink,
                                nRecursiveBindings: Int,
+                               eliminatedBindings: MutableSet<DependentLink>,
                                missingClausesError: MissingClausesError): Pair<String, Boolean> {
             var containsEmptyPattern = false
 
@@ -276,10 +278,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
             val result = when (pattern) {
                 is ConstructorExpressionPattern -> {
+                    eliminatedBindings.add(sampleParameter)
                     val definition: Definition? = pattern.definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
                     val integralNumber = getIntegralNumber(pattern)
-                    val patternMatchingOnIdp = admitsPatternMatchingOnIdp(sampleParameter.type.expr, if (cause is ArendCaseExpr) missingClausesError.parameters else null)
+                    val patternMatchingOnIdp = admitsPatternMatchingOnIdp(sampleParameter.type.expr, if (cause is ArendCaseExpr) missingClausesError.parameters else null, eliminatedBindings)
                     if (patternMatchingOnIdp != PatternMatchingOnIdpResult.INAPPLICABLE) {
                         if (patternMatchingOnIdp == PatternMatchingOnIdpResult.IDP)
                             getCorrectPreludeItemStringReference(project, cause, Prelude.IDP)
@@ -300,7 +303,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                     constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                     else -> Companion.Braces.BRACES
                                 }
-                                val argPattern = doTransformPattern(argumentPattern, cause, project, filters, argumentParen, occupiedNames, sampleParameter, nRecursiveBindings, missingClausesError)
+                                val argPattern = doTransformPattern(argumentPattern, cause, project, filters, argumentParen, occupiedNames, sampleParameter, nRecursiveBindings, eliminatedBindings, missingClausesError)
                                 argumentPatterns.add(argPattern.first)
                                 containsEmptyPattern = containsEmptyPattern || argPattern.second
                                 constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null

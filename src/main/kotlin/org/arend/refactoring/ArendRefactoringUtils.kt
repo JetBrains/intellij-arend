@@ -409,16 +409,20 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 // Support of pattern-matching on idp in refactorings
 enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
 
-fun admitsPatternMatchingOnIdp(expr: Expression, caseParameters: DependentLink?): PatternMatchingOnIdpResult {
+fun admitsPatternMatchingOnIdp(expr: Expression,
+                               caseParameters: DependentLink?,
+                               eliminatedBindings: Set<DependentLink>? = null): PatternMatchingOnIdpResult {
     val equality = expr.toEquality() ?: return PatternMatchingOnIdpResult.INAPPLICABLE
     val leftBinding = (equality.defCallArguments[1] as? ReferenceExpression)?.binding
     val rightBinding = (equality.defCallArguments[2] as? ReferenceExpression)?.binding
-    var leftSideOk = caseParameters == null && leftBinding != null
-    var rightSideOk = caseParameters == null && rightBinding != null
+    val leftNotEliminated = eliminatedBindings == null || !eliminatedBindings.contains(leftBinding)
+    val rightNotEliminated = eliminatedBindings == null || !eliminatedBindings.contains(rightBinding)
+    var leftSideOk = caseParameters == null && leftBinding != null && leftNotEliminated
+    var rightSideOk = caseParameters == null && rightBinding != null && rightNotEliminated
     var caseP = caseParameters
     while (caseP?.hasNext() == true) {
-        if (caseP == leftBinding) leftSideOk = true
-        if (caseP == rightBinding) rightSideOk = true
+        if (caseP == leftBinding && leftNotEliminated) leftSideOk = true
+        if (caseP == rightBinding && rightNotEliminated) rightSideOk = true
         caseP = caseP.next
     }
     return if ((leftSideOk || rightSideOk) && leftBinding != rightBinding)

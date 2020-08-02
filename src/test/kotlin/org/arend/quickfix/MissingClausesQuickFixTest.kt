@@ -483,8 +483,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p{-caret-} \with {}
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
-         | 0, idp => {?}
-         | suc x, idp => {?}
+         | 0, p1 => {?}
+         | suc x, p1 => {?}
        }
     """)
 
@@ -492,8 +492,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y{-caret-} \with {} 
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y \with {
-         | 0, idp => {?}
-         | suc x', idp => {?}
+         | 0, p' => {?}
+         | suc x', p' => {?}
        } 
     """)
 
@@ -506,7 +506,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }
     """)
 
-    fun test86_6() = typedQuickFixTest("Implement", """
+    fun test_86_6() = typedQuickFixTest("Implement", """
        \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p 
     """, """
        \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p
@@ -514,7 +514,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc x, p => {?} 
     """)
 
-    fun test86_7() = typedQuickFixTest("Implement", """
+    fun test_86_7() = typedQuickFixTest("Implement", """
        \data Lol | idp
 
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
@@ -525,6 +525,13 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
        \func foo (x y : Nat) (p : x = y) : Nat \elim p
          | Prelude.idp => {?} 
+    """)
+
+    fun test_86_8() = typedQuickFixTest("Implement", """
+       \func foo{-caret-} (x : Nat) (p : 0 = x) : Nat 
+    """, """
+       \func foo (x : Nat) (p : 0 = x) : Nat
+         | 0, p => {?} 
     """)
 
     fun `test shadowed names from parent case`() = typedQuickFixTest("Implement", """
