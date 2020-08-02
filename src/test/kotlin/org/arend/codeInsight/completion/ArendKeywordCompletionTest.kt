@@ -543,6 +543,12 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test absence of completion after dot`() = checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
             "\\func f => 0\n \\func g (x : Nat) => f x.{-caret-}")
 
+    fun `test strict`() = checkKeywordCompletionVariants(STRICT_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func foo ({-caret-}a b : Nat)",
+            "\\func foo ({-caret-})",
+            "\\data D (A : \\Type) | con ({-caret-} a b : A)",
+            "\\data D (A : \\Type) | con ({-caret-})")
+
     // Tests related to #186
 
     private val kwTest186Sample1 = "\\data d\n  | c1\n\n\\{-caret-}func x"

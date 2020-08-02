@@ -438,6 +438,15 @@ class ArendCompletionContributor : CompletionContributor() {
                         ArendDefFunction::class.java, ArendConstructor::class.java, ArendDefClass::class.java, ArendClassField::class.java))),
                 after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST)
 
+        basic(and(afterLeaf(LPAREN), or(withAncestors(ArendNameTele::class.java, ArendDefFunction::class.java),
+                withAncestors(ArendTypeTele::class.java, ArendConstructor::class.java),
+                withAncestors(*(DEF_IDENTIFIER_PREFIX + arrayOf(ArendDefFunction::class.java))),
+                withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java,
+                              ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java),
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java,
+                              ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java,
+                              ArendNewExpr::class.java, ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java))), STRICT_KW_LIST)
+
         //basic(PlatformPatterns.psiElement(), Logger())
     }
 
@@ -461,6 +470,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ARGUMENT_APP_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendArgumentAppExpr::class.java)
         private val NEW_EXPR_PREFIX = ARGUMENT_APP_EXPR_PREFIX + arrayOf(ArendNewExpr::class.java)
         private val RETURN_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendReturnExpr::class.java)
+        private val DEF_IDENTIFIER_PREFIX = arrayOf<Class<out PsiElement>>(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)
 
         private val PREC_CONTEXT = or(
                 afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
@@ -477,7 +487,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT, withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)),
+                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, LET_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
