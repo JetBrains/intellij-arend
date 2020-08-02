@@ -23,11 +23,11 @@ import org.arend.typechecking.TypeCheckingService
 class ArendNoVariantsDelegator : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val tracker = object : Consumer<CompletionResult> {
-            var noLookup: Boolean = true
+            var hasVariant: Boolean = false
             override fun consume(plainResult: CompletionResult) {
                 result.passResult(plainResult)
                 val element: LookupElement? = plainResult.lookupElement
-                noLookup = element == null || !plainResult.isStartMatch
+                hasVariant = hasVariant || element != null
             }
         }
         result.runRemainingContributors(parameters, tracker)
@@ -38,7 +38,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
-        if (tracker.noLookup && project != null && refElementIsLeftmost) {
+        if (!tracker.hasVariant && project != null && refElementIsLeftmost) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
