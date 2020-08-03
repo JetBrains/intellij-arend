@@ -9,6 +9,7 @@ import com.intellij.openapi.components.service
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.util.Consumer
+import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
@@ -32,15 +33,13 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         result.runRemainingContributors(parameters, tracker)
         val refElementAtCaret = parameters.originalFile.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
-        val refElementIsLeftmost = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null &&
-                parent.parent !is ArendStatCmd && parent.parent !is ArendClassImplement
+        val allowedPosition = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null && isGlobalScopeVisible(refElementAtCaret)
         val classExtension = parent?.parent is ArendDefClass
-
 
         val editor = parameters.editor
         val project = editor.project
 
-        if (!tracker.hasVariant && project != null && refElementIsLeftmost) {
+        if (!tracker.hasVariant && project != null && allowedPosition) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
