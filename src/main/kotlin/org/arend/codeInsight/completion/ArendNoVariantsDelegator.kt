@@ -73,7 +73,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }
         } else {
-            result.restartCompletionOnAnyPrefixChange()
+            result.restartCompletionWhenNothingMatches()
         }
 
         super.fillCompletionVariants(parameters, result)
