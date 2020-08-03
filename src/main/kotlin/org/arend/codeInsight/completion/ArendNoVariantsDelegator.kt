@@ -9,13 +9,12 @@ import com.intellij.openapi.components.service
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.util.Consumer
-import org.arend.psi.ArendFile
-import org.arend.psi.ArendLongName
-import org.arend.psi.ArendRefIdentifier
+import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.typechecking.TypeCheckingService
@@ -33,7 +32,10 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         result.runRemainingContributors(parameters, tracker)
         val refElementAtCaret = parameters.originalFile.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
-        val refElementIsLeftmost = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null
+        val refElementIsLeftmost = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null &&
+                parent.parent !is ArendStatCmd && parent.parent !is ArendClassImplement
+        val classExtension = parent?.parent is ArendDefClass
+
 
         val editor = parameters.editor
         val project = editor.project
@@ -44,7 +46,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
 
             val consumer = { name: String ->
                 if (result.prefixMatcher.prefixMatches(name)) {
-                    val locatedReferables = StubIndex.getElements<String, PsiReferable>(ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
+                    val locatedReferables = StubIndex.getElements<String, PsiReferable>(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
                     locatedReferables.forEach {
                         if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, null, true)?.let {
                             result.addElement(
