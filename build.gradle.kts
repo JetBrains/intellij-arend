@@ -60,6 +60,10 @@ intellij {
     setPlugins("yaml", "java", "IdeaVIM:0.57")
 }
 
+tasks.named<JavaExec>("runIde") {
+    jvmArgs = listOf("-Xmx1g")
+}
+
 tasks.withType<PatchPluginXmlTask> {
     version(project.version)
     pluginId(project.group)
