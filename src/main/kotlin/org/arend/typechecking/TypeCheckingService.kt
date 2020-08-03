@@ -62,27 +62,44 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return false
         }
 
-        // Initialize prelude
-        val preludeLibrary = ArendPreludeLibrary(project)
-        this.preludeLibrary = preludeLibrary
-        libraryManager.loadLibrary(preludeLibrary, null)
-        preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
-        val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
-        preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
-        Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
-        preludeLibrary.prelude?.let {
-            fillAdditionalNames(it, true)
+        synchronized(ArendPreludeLibrary::class.java) {
+            if (isInitialized) {
+                return false
+            }
+
+            // Initialize prelude
+            val preludeLibrary = ArendPreludeLibrary(project)
+            this.preludeLibrary = preludeLibrary
+            libraryManager.loadLibrary(preludeLibrary, null)
+            preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
+
+            if (Prelude.isInitialized()) {
+                val tcRefMap = preludeLibrary.prelude?.tcRefMap
+                if (tcRefMap != null) {
+                    Prelude.forEach {
+                        tcRefMap[it.referable.refLongName] = it.referable
+                    }
+                }
+            }
+
+            val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
+            preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
+            Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, PsiElementComparator).typecheckLibrary(preludeLibrary)
+            preludeLibrary.prelude?.let {
+                fillAdditionalNames(it, true)
+            }
+
+            // Set the listener that updates typechecked definitions
+            project.service<ArendDefinitionChangeService>().addListener(this)
+
+            // Listen for YAML files changes
+            YAMLFileListener(project).register()
+
+            ModuleSynchronizer(project).install()
+
+            isInitialized = true
         }
 
-        // Set the listener that updates typechecked definitions
-        project.service<ArendDefinitionChangeService>().addListener(this)
-
-        // Listen for YAML files changes
-        YAMLFileListener(project).register()
-
-        ModuleSynchronizer(project).install()
-
-        isInitialized = true
         return true
     }
 

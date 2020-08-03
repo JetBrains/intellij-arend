@@ -50,30 +50,15 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
 
     override fun orderModules(ordering: Ordering): Boolean {
         if (isTypechecked) return true
-
-        if (!Prelude.isInitialized()) {
-            synchronized(ArendPreludeLibrary::class.java) {
-                if (!Prelude.isInitialized()) {
-                    isTypechecked = super.orderModules(ordering)
-                    return isTypechecked
-                }
-            }
-        }
-
-        isTypechecked = true
-        Prelude.fillInTypecheckerState()
-        return true
+        isTypechecked = Prelude.isInitialized() || super.orderModules(ordering)
+        return isTypechecked
     }
 
     override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (prelude == null) {
-            synchronized(ArendPreludeLibrary::class.java) {
-                if (prelude == null) {
-                    val text = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION).readBytes(), StandardCharsets.UTF_8)
-                    prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, ArendLanguage.INSTANCE, text) as? ArendFile
-                    prelude?.virtualFile?.isWritable = false
-                }
-            }
+            val text = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION).readBytes(), StandardCharsets.UTF_8)
+            prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, ArendLanguage.INSTANCE, text) as? ArendFile
+            prelude?.virtualFile?.isWritable = false
         }
 
         return prelude != null && super.load(libraryManager, typechecking)
