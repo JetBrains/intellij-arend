@@ -1,20 +1,23 @@
 package org.arend.injection
 
-import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.Reference
@@ -33,21 +36,27 @@ import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.typechecking.error.ArendError
-import org.arend.typechecking.error.local.GoalError
+import org.arend.ui.console.ArendClearConsoleAction
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-class InjectedArendEditor(val project: Project,
-                          val arendError: ArendError) {
+class InjectedArendEditor(val project: Project, name: String, val arendError: ArendError?) {
     private val editor: Editor?
     private val panel: JPanel?
 
-    val error: GeneralError
-        get() = arendError.error
+    val error: GeneralError?
+        get() = arendError?.error
+
+    private val printOptionKind: PrintOptionKind
+        get() = when (error?.level) {
+            null -> PrintOptionKind.CONSOLE_PRINT_OPTIONS
+            GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
+            else -> PrintOptionKind.ERROR_PRINT_OPTIONS
+        }
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText("Error Message", InjectionTextLanguage.INSTANCE, "")
+        val psi = PsiFileFactory.getInstance(project).createFileFromText(name, InjectionTextLanguage.INSTANCE, "")
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
@@ -60,8 +69,12 @@ class InjectedArendEditor(val project: Project,
             panel.add(editor.component, BorderLayout.CENTER)
 
             val actionGroup = DefaultActionGroup()
-            actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
-            actionGroup.add(ArendPrintOptionsActionGroup(project, if (error.level == GeneralError.Level.GOAL) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS, error.hasExpressions()))
+            if (error != null) {
+                actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
+            } else {
+                actionGroup.add(ArendClearConsoleAction(project, editor.contentComponent))
+            }
+            actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, error?.hasExpressions() ?: true))
             val toolbar = ActionManager.getInstance().createActionToolbar("ArendEditor.toolbar", actionGroup, false)
             toolbar.setTargetComponent(panel)
             panel.add(toolbar.component, BorderLayout.WEST)
@@ -83,10 +96,10 @@ class InjectedArendEditor(val project: Project,
 
     fun updateErrorText() {
         if (editor == null) return
+        val error = error ?: return
 
         val builder = StringBuilder()
         val visitor = CollectingDocStringBuilder(builder, error)
-        val printOptionsKind = if (error is GoalError) PrintOptionKind.GOAL_PRINT_OPTIONS else PrintOptionKind.ERROR_PRINT_OPTIONS
         var fileScope: Scope = EmptyScope.INSTANCE
         runReadAction {
             val causeSourceNode = error.causeSourceNode
@@ -97,7 +110,7 @@ class InjectedArendEditor(val project: Project,
                 fileScope = scope
             }
             val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
-            val ppConfig = ProjectPrintConfig(project, printOptionsKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
+            val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
             val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else
@@ -105,24 +118,54 @@ class InjectedArendEditor(val project: Project,
             doc.accept(visitor, false)
         }
 
-        val text: CharSequence = builder.toString()
-        val injectedTextRanges: List<List<TextRange>> = visitor.textRanges
-        val hyperlinks: List<Pair<TextRange, HyperlinkInfo>> = visitor.hyperlinks
-
-        val support = EditorHyperlinkSupport.get(editor)
+        val text = builder.toString()
         val document = editor.document
-        val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
         runWriteAction {
             document.setText(text)
         }
 
+        setEditorStructure(document, visitor, fileScope)
+    }
+
+    fun addDoc(doc: Doc) {
+        if (editor == null) return
+
+        val builder = StringBuilder()
+        val visitor = CollectingDocStringBuilder(builder, error)
+        doc.accept(visitor, false)
+        builder.append('\n')
+
+        val text = builder.toString()
+        val document = editor.document
+        ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
+            val len = document.textLength
+            document.insertString(len, text)
+            editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(len + text.length), ScrollType.MAKE_VISIBLE)
+        } }
+
+        setEditorStructure(document, visitor, EmptyScope.INSTANCE)
+    }
+
+    fun clearText() {
+        editor?.document?.let {
+            runWriteAction {
+                it.setText("")
+            }
+        }
+    }
+
+    private fun setEditorStructure(document: Document, visitor: CollectingDocStringBuilder, fileScope: Scope) {
+        val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
         (psi as? PsiInjectionTextFile)?.apply {
-            injectionRanges = injectedTextRanges
+            injectionRanges = visitor.textRanges
             scope = fileScope
             injectedExpressions = visitor.expressions
         }
+
+        if (editor == null) return
+        val support = EditorHyperlinkSupport.get(editor)
         support.clearHyperlinks()
-        for (hyperlink in hyperlinks) {
+        for (hyperlink in visitor.hyperlinks) {
             support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
         }
     }

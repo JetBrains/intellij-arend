@@ -7,6 +7,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.settings.ArendProjectSettings
+import org.arend.ui.console.ArendConsoleService
 
 class ArendPrintOptionsFilterAction(private val project: Project,
                                     private val printOptionKind: PrintOptionKind,
@@ -29,8 +30,10 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         else
             printOptionSet.remove(flag)
 
-        if (printOptionKind == PrintOptionKind.ERROR_PRINT_OPTIONS || printOptionKind == PrintOptionKind.GOAL_PRINT_OPTIONS) {
-            project.service<ArendMessagesService>().updateErrorText()
+        when (printOptionKind) {
+            PrintOptionKind.CONSOLE_PRINT_OPTIONS -> project.service<ArendConsoleService>().updateText()
+            PrintOptionKind.ERROR_PRINT_OPTIONS, PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateErrorText()
+            else -> {}
         }
     }
 
@@ -39,6 +42,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
     companion object {
         fun getFilterSet(project: Project, printOptionsKind: PrintOptionKind) = project.service<ArendProjectSettings>().let {
             when (printOptionsKind) {
+                PrintOptionKind.CONSOLE_PRINT_OPTIONS -> it.consolePrintingOptionsFilterSet
                 PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
                 PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
                 PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
@@ -61,6 +65,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
 }
 
 enum class PrintOptionKind(val kindName: String) {
+    CONSOLE_PRINT_OPTIONS("Console"),
     GOAL_PRINT_OPTIONS("Goal"),
     POPUP_PRINT_OPTIONS("Pop-up"),
     ERROR_PRINT_OPTIONS("Error")

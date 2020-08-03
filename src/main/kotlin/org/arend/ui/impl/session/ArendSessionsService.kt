@@ -17,7 +17,7 @@ class ArendSessionsService(private val project: Project) {
     private var myToolWindow: ToolWindow? = null
 
     private val toolWindow: ToolWindow
-        get() = synchronized(this) {
+        get() = myToolWindow ?: synchronized(this) {
             myToolWindow?.let { return it }
             val result = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask("Arend UI", ToolWindowAnchor.RIGHT, canWorkInDumbMode = false))
             myToolWindow = result

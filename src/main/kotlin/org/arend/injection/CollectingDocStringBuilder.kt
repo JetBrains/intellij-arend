@@ -8,7 +8,7 @@ import org.arend.ext.prettyprinting.doc.*
 import org.arend.typechecking.error.createHyperlinkInfo
 
 
-class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError) : DocStringBuilder(builder) {
+class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError?) : DocStringBuilder(builder) {
     val textRanges = ArrayList<List<TextRange>>()
     val hyperlinks = ArrayList<Pair<TextRange,HyperlinkInfo>>()
     val expressions = ArrayList<Expression>()

@@ -30,6 +30,7 @@ class ArendProjectSettingsState {
     var showParsing = false
 
     // Printing options
+    var consolePrintingOptions = ArendPrintingOptions()
     var errorPrintingOptions = ArendPrintingOptions()
     var goalPrintingOptions = ArendPrintingOptions()
     var popupPrintingOptions = ArendPrintingOptions()

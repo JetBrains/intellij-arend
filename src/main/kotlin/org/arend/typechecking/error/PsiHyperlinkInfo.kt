@@ -32,8 +32,8 @@ private class FixedHyperlinkInfo(private val error: GeneralError) : HyperlinkInf
     }
 }
 
-fun createHyperlinkInfo(referable: ArendRef, error: GeneralError): Pair<HyperlinkInfo?, ArendRef> =
-    if (referable is SourceInfoReference) {
+fun createHyperlinkInfo(referable: ArendRef, error: GeneralError?): Pair<HyperlinkInfo?, ArendRef> =
+    if (error != null && referable is SourceInfoReference) {
         Pair(FixedHyperlinkInfo(error), referable)
     } else {
         val data = (referable as? DataContainer)?.data

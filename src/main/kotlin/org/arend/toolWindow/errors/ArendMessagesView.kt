@@ -104,7 +104,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         if (arendError != null) {
             val arendEditor = errorEditors.computeIfAbsent(arendError.error) {
                 configureError(arendError.error)
-                InjectedArendEditor(project, arendError)
+                InjectedArendEditor(project, "Arend Messages", arendError)
             }
 
             if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {
