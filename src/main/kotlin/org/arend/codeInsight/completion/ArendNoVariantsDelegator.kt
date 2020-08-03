@@ -72,6 +72,8 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 consumer.invoke(name)
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }
+        } else {
+            result.restartCompletionOnAnyPrefixChange()
         }
 
         super.fillCompletionVariants(parameters, result)
