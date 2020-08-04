@@ -137,7 +137,7 @@ class InjectedArendEditor(val project: Project, name: String, val arendError: Ar
         }
     }
 
-    fun addDoc(doc: Doc) {
+    fun addDoc(doc: Doc, docScope: Scope) {
         if (editor == null) return
 
         val document = editor.document
@@ -153,8 +153,11 @@ class InjectedArendEditor(val project: Project, name: String, val arendError: Ar
             document.insertString(length, text)
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
-            file?.injectionRanges?.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
-            file?.injectedExpressions?.addAll(visitor.expressions)
+            file?.apply {
+                scope = docScope
+                injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
+                injectedExpressions.addAll(visitor.expressions)
+            }
 
             val support = EditorHyperlinkSupport.get(editor)
             for (hyperlink in visitor.hyperlinks) {

@@ -1,14 +1,12 @@
 package org.arend.ui.impl
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.ext.error.GeneralError
-import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.ui.ArendSession
 import org.arend.ext.ui.ArendUI
-import org.arend.settings.ArendProjectSettings
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.ui.console.ArendConsoleService
 import org.arend.ui.impl.session.ArendToolWindowSession
 
 open class ArendGeneralUI(protected val project: Project) : ArendUI {
@@ -22,9 +20,6 @@ open class ArendGeneralUI(protected val project: Project) : ArendUI {
         NotificationErrorReporter.notify(GeneralError.Level.ERROR, title, message, project)
     }
 
-    override fun getPrettyPrinterFlags() = project.service<ArendProjectSettings>().consolePrintingOptionsFilterSet
-
-    override fun println(doc: Doc) {
-        project.service<ArendConsoleService>().print(doc)
-    }
+    override fun getConsole(marker: Any?) =
+        ArendConsoleImpl(project, ((marker as? ConcreteSourceNode)?.data ?: marker) as? ArendCompositeElement)
 }

@@ -3,6 +3,7 @@ package org.arend.ui.console
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.doc.Doc
+import org.arend.naming.scope.Scope
 
 class ArendConsoleService(private val project: Project) {
     private var myView: ArendConsoleView? = null
@@ -20,12 +21,12 @@ class ArendConsoleService(private val project: Project) {
         }
     }
 
-    fun print(doc: Doc) {
+    fun print(doc: Doc, scope: Scope) {
         withView {
             runInEdt {
                 toolWindow.show()
             }
-            editor.addDoc(doc)
+            editor.addDoc(doc, scope)
         }
     }
 
