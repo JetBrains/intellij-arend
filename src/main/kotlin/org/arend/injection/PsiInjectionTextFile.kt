@@ -10,8 +10,8 @@ import org.arend.naming.scope.Scope
 
 
 class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTextFileElementType, InjectionTextFileElementType, provider) {
-    var injectionRanges: List<List<TextRange>> = emptyList()
-    var injectedExpressions: List<Expression> = emptyList()
+    var injectionRanges = ArrayList<List<TextRange>>()
+    var injectedExpressions = ArrayList<Expression>()
     var scope: Scope = EmptyScope.INSTANCE
 
     val hasInjection: Boolean

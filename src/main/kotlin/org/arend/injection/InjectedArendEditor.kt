@@ -7,7 +7,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
@@ -124,37 +123,6 @@ class InjectedArendEditor(val project: Project, name: String, val arendError: Ar
             document.setText(text)
         }
 
-        setEditorStructure(document, visitor, fileScope)
-    }
-
-    fun addDoc(doc: Doc) {
-        if (editor == null) return
-
-        val builder = StringBuilder()
-        val visitor = CollectingDocStringBuilder(builder, error)
-        doc.accept(visitor, false)
-        builder.append('\n')
-
-        val text = builder.toString()
-        val document = editor.document
-        ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
-            val len = document.textLength
-            document.insertString(len, text)
-            editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(len + text.length), ScrollType.MAKE_VISIBLE)
-        } }
-
-        setEditorStructure(document, visitor, EmptyScope.INSTANCE)
-    }
-
-    fun clearText() {
-        editor?.document?.let {
-            runWriteAction {
-                it.setText("")
-            }
-        }
-    }
-
-    private fun setEditorStructure(document: Document, visitor: CollectingDocStringBuilder, fileScope: Scope) {
         val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
         (psi as? PsiInjectionTextFile)?.apply {
             injectionRanges = visitor.textRanges
@@ -162,11 +130,48 @@ class InjectedArendEditor(val project: Project, name: String, val arendError: Ar
             injectedExpressions = visitor.expressions
         }
 
-        if (editor == null) return
         val support = EditorHyperlinkSupport.get(editor)
         support.clearHyperlinks()
         for (hyperlink in visitor.hyperlinks) {
             support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+        }
+    }
+
+    fun addDoc(doc: Doc) {
+        if (editor == null) return
+
+        val document = editor.document
+        val builder = StringBuilder()
+        val visitor = CollectingDocStringBuilder(builder, error)
+        doc.accept(visitor, false)
+        builder.append('\n')
+        val text = builder.toString()
+        val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile
+
+        ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
+            val length = document.textLength
+            document.insertString(length, text)
+            editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
+
+            file?.injectionRanges?.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
+            file?.injectedExpressions?.addAll(visitor.expressions)
+
+            val support = EditorHyperlinkSupport.get(editor)
+            for (hyperlink in visitor.hyperlinks) {
+                support.createHyperlink(length + hyperlink.first.startOffset, length + hyperlink.first.endOffset, null, hyperlink.second)
+            }
+        } }
+    }
+
+    fun clearText() {
+        editor?.document?.let {
+            (PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile)?.apply {
+                injectionRanges.clear()
+                injectedExpressions.clear()
+            }
+            runWriteAction {
+                it.setText("")
+            }
         }
     }
 
