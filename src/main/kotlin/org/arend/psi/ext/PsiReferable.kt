@@ -80,7 +80,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getNameIdentifier(): ArendCompositeElement? = childOfType<ArendDefIdentifier>()
 
-    override fun getName(): String? = stub?.name ?: childOfType<ArendDefIdentifier>()?.referenceName
+    override fun getName(): String? = stub?.name ?: if (isValid) childOfType<ArendDefIdentifier>()?.referenceName else null
 
     override fun textRepresentation(): String = name ?: "_"
 
