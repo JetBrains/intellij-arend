@@ -22,6 +22,8 @@ object ArendIcons {
     val FILTER = AllIcons.General.Filter
     val CONSOLE = AllIcons.Nodes.Console
     val CLEAR = AllIcons.Actions.GC
+    val CANCEL = AllIcons.Actions.Back
+    val CLOSE = AllIcons.Actions.Cancel
 
     val SHOW_FIELDS_IMPL = IconLoader.getIcon("/icons/showFieldImpl.svg")
     val SHOW_NON_IMPLEMENTED = IconLoader.getIcon("/icons/showNonImpl.svg")
