@@ -34,10 +34,7 @@ import org.arend.psi.findGroupByFullName
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.BinaryFileSaver
-import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.typechecking.TestBasedTypechecking
-import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.*
 import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.order.Ordering
@@ -189,7 +186,7 @@ class TypeCheckProcessHandler(
                 if (!indicator.isCanceled) {
                     val typechecking = TestBasedTypechecking(typecheckingErrorReporter.eventsProcessor, instanceProviderSet, typeCheckerService, concreteProvider, typecheckingErrorReporter, typeCheckerService.dependencyListener)
                     try {
-                        typechecking.typecheckCollected(collector) { indicator.isCanceled }
+                        typechecking.typecheckCollected(collector, ProgressCancellationIndicator(indicator))
                         typeCheckerService.project.service<BinaryFileSaver>().saveAll()
                     } finally {
                         typecheckingErrorReporter.flush()

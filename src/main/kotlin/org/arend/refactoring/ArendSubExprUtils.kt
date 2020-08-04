@@ -35,7 +35,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.typechecking.ArendCancellationIndicator
+import org.arend.typechecking.ProgressCancellationIndicator
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.subexpr.CorrespondedSubDefVisitor
 import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
@@ -43,7 +43,6 @@ import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.typing.parseBinOp
-import java.util.function.Supplier
 
 /**
  * @param def for storing function-level elim/clauses bodies
@@ -273,11 +272,11 @@ inline fun normalizeExpr(
     var result: Concrete.Expression? = null
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
         override fun run(indicator: ProgressIndicator) {
-            result = ComputationRunner<Concrete.Expression>().run(ArendCancellationIndicator(indicator), Supplier {
+            result = ComputationRunner<Concrete.Expression>().run(ProgressCancellationIndicator(indicator)) {
                 runReadAction {
                     exprToConcrete(project, subCore, mode, renamer)
                 }
-            })
+            }
         }
 
         override fun onFinished() = result?.let(after) ?: Unit

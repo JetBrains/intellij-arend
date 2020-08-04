@@ -8,6 +8,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import org.arend.core.definition.Definition
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
@@ -15,6 +16,7 @@ import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.typechecking.*
+import org.arend.typechecking.computation.DefinitionCancellationIndicator
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -37,10 +39,11 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
         definition.accept(DumbTypechecker(this), null)
     }
 
-    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: TCDefinition, progress: ProgressIndicator): Concrete.Definition? {
+    private fun typecheckDefinition(typechecking: ArendTypechecking, definition: TCDefinition): Concrete.Definition? {
         val result = (typechecking.concreteProvider.getConcrete(definition) as? Concrete.Definition)?.let {
-            val ok = definitionBlackListService.runTimed(definition, progress) {
-                typechecking.typecheckDefinitions(listOf(it), ArendCancellationIndicator(progress))
+            val cancellationIndicator = DefinitionCancellationIndicator(it.data)
+            val ok = definitionBlackListService.runTimed(definition, cancellationIndicator) {
+                typechecking.typecheckDefinitions(listOf(it), cancellationIndicator)
             }
 
             if (!ok) {
@@ -64,12 +67,12 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
                 val lastModified = file.lastModifiedDefinition
                 if (lastModified != null) {
                     val typechecked = if (definitionsToTypecheck.remove(lastModified)) {
-                        typecheckDefinition(typechecking, lastModified, progress)?.data?.typechecked
+                        typecheckDefinition(typechecking, lastModified)?.data?.typechecked
                     } else null
                     if (typechecked?.status()?.withoutErrors() == true) {
                         file.lastModifiedDefinition = null
                         for (definition in definitionsToTypecheck) {
-                            typecheckDefinition(typechecking, definition, progress)
+                            typecheckDefinition(typechecking, definition)
                         }
                     } else {
                         for (definition in definitionsToTypecheck) {
@@ -78,7 +81,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
                     }
                 } else {
                     for (definition in definitionsToTypecheck) {
-                        typecheckDefinition(typechecking, definition, progress)
+                        typecheckDefinition(typechecking, definition)
                     }
                 }
 
@@ -105,7 +108,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     }
 
     override fun countDefinition(def: TCDefinition) =
-        if (!definitionBlackListService.isBlacklisted(def) && def.tcReferable?.typechecked == null) {
+        if (!definitionBlackListService.isBlacklisted(def) && def.tcReferable?.typechecked.let { it == null || it.status() == Definition.TypeCheckingStatus.TYPE_CHECKING }) {
             definitionsToTypecheck.add(def)
             true
         } else false

@@ -193,6 +193,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return null
         }
 
+        if (ComputationRunner.isCancellationIndicatorSet()) {
+            synchronized(SyncObject) {
+                ComputationRunner.getCancellationIndicator().cancel(tcReferable)
+                ComputationRunner.resetCancellationIndicator()
+            }
+        }
+
         if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
@@ -240,12 +247,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
         if (file.isReplFile) return
-        if (ComputationRunner.getCancellationIndicator() is ArendCancellationIndicator) {
-            synchronized(SyncObject) {
-                (ComputationRunner.getCancellationIndicator() as? ArendCancellationIndicator)?.progress?.cancel()
-                ComputationRunner.resetCancellationIndicator()
-            }
-        }
 
         if (!isExternalUpdate) {
             def.checkTCReferable()
