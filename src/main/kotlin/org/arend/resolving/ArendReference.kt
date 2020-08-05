@@ -108,7 +108,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }
 
         return elements.mapNotNull { origElement ->
-            createArendLookUpElement(origElement, element.containingFile, clazz, notARecord)
+            createArendLookUpElement(origElement, element.containingFile, false, clazz, notARecord)
         }.toTypedArray()
     }
 
@@ -168,14 +168,14 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
     }
 
     companion object {
-        fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, clazz: Class<*>?, notARecord: Boolean): LookupElementBuilder? {
+        fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean): LookupElementBuilder? {
             val ref = origElement.underlyingReferable
             return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
                     val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
-                    var builder = LookupElementBuilder.create(ref, origElement.textRepresentation() + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
+                    var builder = LookupElementBuilder.create(ref, ((if (fullName) (ref as? PsiLocatedReferable)?.fullName else null) ?: origElement.textRepresentation()) + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
                     if (alias != null) {
                         builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
                     }
