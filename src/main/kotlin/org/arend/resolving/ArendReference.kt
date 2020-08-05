@@ -175,7 +175,13 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             } else when (ref) {
                 is PsiNamedElement -> {
                     val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
-                    var builder = LookupElementBuilder.create(ref, ((if (fullName) (ref as? PsiLocatedReferable)?.fullName else null) ?: origElement.textRepresentation()) + (if (alias == null) "" else " $alias")).withIcon(ref.getIcon(0))
+                    val aliasString = if (alias == null) "" else " $alias"
+                    val elementName = origElement.refName
+                    val lookupString = elementName + aliasString
+                    var builder = LookupElementBuilder.create(ref, lookupString).withIcon(ref.getIcon(0))
+                    if (fullName) {
+                        builder = builder.withPresentableText(((ref as? PsiLocatedReferable)?.fullName ?: elementName) + aliasString)
+                    }
                     if (alias != null) {
                         builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
                     }
