@@ -1,6 +1,5 @@
 package org.arend.resolving
 
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
@@ -73,7 +72,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         var notARecord = false
         var clazz: Class<*>? = null
         val element = element
-        val parent = element.parent as? ArendLongName
+        val parent = element.parent
         val pParent = parent?.parent
         if (pParent is ArendDefClass) {
             clazz = ArendDefClass::class.java
@@ -90,7 +89,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        val expr = if (element is ArendIPName && element.longName.size > 1 || parent != null && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null) {
+        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null) {
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
