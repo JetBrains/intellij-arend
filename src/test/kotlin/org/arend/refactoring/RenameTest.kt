@@ -9,6 +9,7 @@ import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.ExpressionResolver
 import org.arend.ext.reference.Precedence
+import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.term.concrete.Concrete
@@ -254,10 +255,10 @@ class RenameTest : ArendTestBase() {
     fun `test rename refIdentifier`() {
         addGeneratedModules {
             declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
-                override fun resolvePrefix(resolver: ExpressionResolver, refExpr: ConcreteReferenceExpression, arguments: List<ConcreteArgument>): ConcreteExpression {
-                    val factory = ConcreteFactoryImpl(refExpr.data)
-                    val ref = (arguments[0].expression as Concrete.ReferenceExpression).referent
-                    return resolver.resolve(factory.lam(listOf(factory.param(true, ref)), arguments[1].expression))
+                override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData): ConcreteExpression {
+                    val factory = ConcreteFactoryImpl(contextData.marker.data)
+                    val ref = (contextData.arguments[0].expression as Concrete.ReferenceExpression).referent
+                    return resolver.resolve(factory.lam(listOf(factory.param(true, ref)), contextData.arguments[1].expression))
                 }
             })
         }

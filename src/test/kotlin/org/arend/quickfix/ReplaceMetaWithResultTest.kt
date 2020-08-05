@@ -1,7 +1,5 @@
 package org.arend.quickfix
 
-import org.arend.ext.concrete.expr.ConcreteArgument
-import org.arend.ext.concrete.expr.ConcreteReferenceExpression
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.ExpressionResolver
@@ -30,8 +28,8 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
     fun `test meta resolver`() {
         addGeneratedModules {
             declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
-                override fun resolvePrefix(resolver: ExpressionResolver, refExpr: ConcreteReferenceExpression, arguments: List<ConcreteArgument>) =
-                    Concrete.TupleExpression(refExpr.data, arguments.map { it.expression as Concrete.Expression })
+                override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData) =
+                    Concrete.TupleExpression(contextData.marker.data, contextData.arguments.map { it.expression as Concrete.Expression })
             })
         }
 
@@ -47,8 +45,8 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
     fun `test meta resolver argument`() {
         addGeneratedModules {
             declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
-                override fun resolvePrefix(resolver: ExpressionResolver, refExpr: ConcreteReferenceExpression, arguments: List<ConcreteArgument>) =
-                    arguments[1].expression
+                override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData) =
+                    contextData.arguments[1].expression
             })
         }
 
