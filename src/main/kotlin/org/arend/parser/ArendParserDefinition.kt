@@ -12,10 +12,7 @@ import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.parser.ParserMixin.*
-import org.arend.psi.AREND_COMMENTS
-import org.arend.psi.AREND_WHITE_SPACES
-import org.arend.psi.ArendElementTypes
-import org.arend.psi.ArendFile
+import org.arend.psi.*
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.doc.ArendDocReferenceText
@@ -29,7 +26,7 @@ class ArendParserDefinition : ParserDefinition {
 
     override fun getCommentTokens(): TokenSet = AREND_COMMENTS
 
-    override fun getStringLiteralElements(): TokenSet = TokenSet.EMPTY
+    override fun getStringLiteralElements(): TokenSet = AREND_STRINGS
 
     override fun createParser(project: Project): PsiParser = ArendParser()
 

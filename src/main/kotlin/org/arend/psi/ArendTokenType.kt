@@ -26,3 +26,5 @@ val AREND_COMMENTS: TokenSet = TokenSet.create(LINE_COMMENT, BLOCK_COMMENT, DOC_
 val AREND_NAMES: TokenSet = TokenSet.create(ID, INFIX, POSTFIX)
 
 val AREND_WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)
+
+val AREND_STRINGS: TokenSet = TokenSet.create(STRING)
