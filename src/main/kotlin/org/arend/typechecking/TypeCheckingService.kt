@@ -57,6 +57,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     var isInitialized = false
         private set
 
+    var isLoaded = false
+        private set
+
     fun initialize(): Boolean {
         if (isInitialized) {
             return false
@@ -98,6 +101,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             ModuleSynchronizer(project).install()
 
             isInitialized = true
+            isLoaded = true
         }
 
         return true
@@ -119,6 +123,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
     fun reload() {
+        isLoaded = false
         libraryManager.reload {
             project.service<ArendResolveCache>().clear()
             externalAdditionalNamesIndex.clear()
@@ -127,9 +132,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
             ArendTypechecking.create(project)
         }
+
+        isLoaded = true
+        DaemonCodeAnalyzer.getInstance(project).restart()
     }
 
     fun reloadInternal() {
+        isLoaded = false
         libraryManager.reloadInternalLibraries {
             internalAdditionalNamesIndex.clear()
 
@@ -142,10 +151,12 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
             project.service<ErrorService>().clearAllErrors()
             project.service<ArendDefinitionChangeService>().incModificationCount()
-            DaemonCodeAnalyzer.getInstance(project).restart()
 
             ArendTypechecking.create(project)
         }
+
+        isLoaded = true
+        DaemonCodeAnalyzer.getInstance(project).restart()
     }
 
     override fun request(definition: Definition, library: Library) {

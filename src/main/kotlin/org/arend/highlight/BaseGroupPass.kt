@@ -1,6 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
@@ -10,6 +11,7 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
+import org.arend.typechecking.TypeCheckingService
 
 abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, editor: Editor, name: String, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, name, textRange, highlightInfoProcessor) {
@@ -43,8 +45,10 @@ abstract class BaseGroupPass(file: ArendFile, protected val group: ArendGroup, e
     }
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        setProgressLimit(numberOfDefinitions(group).toLong())
-        collectInfo(progress)
+        if (myProject.service<TypeCheckingService>().isLoaded) {
+            setProgressLimit(numberOfDefinitions(group).toLong())
+            collectInfo(progress)
+        }
     }
 
     protected open fun countDefinition(def: TCDefinition) = true
