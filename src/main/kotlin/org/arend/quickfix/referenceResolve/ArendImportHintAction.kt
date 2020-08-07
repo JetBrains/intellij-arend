@@ -48,7 +48,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             doFix(editor) != Result.POPUP_NOT_SHOWN
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-            checkAvailability(project) != ImportHintActionAvailability.UNAVAILABLE
+        referenceElement.isValid && checkAvailability(project) != ImportHintActionAvailability.UNAVAILABLE
 
     private fun checkAvailability(project: Project): ImportHintActionAvailability {
         if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailability.UNAVAILABLE

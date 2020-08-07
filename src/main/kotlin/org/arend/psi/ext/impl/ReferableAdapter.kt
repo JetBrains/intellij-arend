@@ -56,7 +56,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = tcReferableCache ?: runReadAction {
             synchronized(this) {
                 tcReferableCache ?: run {
-                    val file = containingFile as? ArendFile ?: return@run null
+                    val file = (if (isValid) containingFile as? ArendFile else null) ?: return@run null
                     val longName = refLongName
                     file.tcRefMap[longName]?.let { return@run it }
                     val locatedParent = locatedReferableParent
