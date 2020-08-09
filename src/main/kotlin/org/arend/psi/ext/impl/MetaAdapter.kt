@@ -8,7 +8,6 @@ import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
-import org.arend.psi.stubs.ArendDefModuleStub
 
 
 abstract class MetaAdapter : ReferableAdapter<ArendDefMetaStub>, ArendDefMeta {

@@ -19,6 +19,7 @@ import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
+import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.provider.ConcreteProvider
 
@@ -29,6 +30,11 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precede
 
 class PsiConcreteProvider(private val project: Project, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, var resolve: Boolean = true, private val resolverListener: ResolverListener? = null, private val referableConverter: ReferableConverter = ArendReferableConverter) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.ReferableDefinition> = HashMap()
+    private val cacheMeta: MutableMap<PsiLocatedReferable, DefinableMetaDefinition> = HashMap()
+
+    override fun getResolvable(referable: GlobalReferable): Concrete.ResolvableDefinition? {
+        TODO("Not yet implemented")
+    }
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.ReferableDefinition? {
         var cached = true
