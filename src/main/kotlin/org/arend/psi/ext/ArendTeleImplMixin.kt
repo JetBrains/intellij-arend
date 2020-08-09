@@ -5,6 +5,7 @@ import org.arend.naming.reference.Referable
 import org.arend.term.abs.Abstract
 import org.arend.psi.ArendFieldTele
 import org.arend.psi.ArendNameTele
+import org.arend.psi.ArendNameTeleUntyped
 import org.arend.psi.ArendTypeTele
 
 
@@ -18,6 +19,18 @@ abstract class ArendNameTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     override fun getType() = expr
 
     override fun isStrict() = strictKw != null
+}
+
+abstract class ArendNameTeleUntypedImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendNameTeleUntyped {
+    override fun getData() = this
+
+    override fun isExplicit() = true
+
+    override fun getReferableList(): List<Referable?> = listOf(defIdentifier)
+
+    override fun getType() = null
+
+    override fun isStrict() = false
 }
 
 abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendTypeTele {

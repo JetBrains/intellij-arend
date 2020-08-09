@@ -56,6 +56,11 @@ fun IndexSink.indexFunction(stub: ArendDefFunctionStub) {
     indexDefinitionStub(stub)
 }
 
+fun IndexSink.indexMeta(stub: ArendDefMetaStub) {
+    indexNamedStub(stub)
+    indexDefinitionStub(stub)
+}
+
 fun IndexSink.indexModule(stub: ArendDefModuleStub) {
     indexNamedStub(stub)
     indexDefinitionStub(stub)

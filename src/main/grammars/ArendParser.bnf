@@ -233,6 +233,7 @@ private coClauseBody_recover ::= !PIPE & statement_recover
 definition ::= defFunction
     | defData
     | defClass
+    | defMeta
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
                    "org.arend.psi.ext.TCDefinition"
@@ -240,11 +241,19 @@ definition ::= defFunction
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
-defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module alias? where? {
+defModule ::= MODULE_KW prec? defIdentifier_module alias? where? {
     pin(".*") = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
+defMeta ::= META_KW prec? defIdentifier_func alias? [nameTeleUntyped* functionTermBody] where? {
+    pin(".*") = 1
+    implements = "org.arend.psi.ext.impl.ArendGroup"
+    mixin = "org.arend.psi.ext.impl.MetaAdapter"
+    stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -846,11 +855,18 @@ universeAtom ::= SET
 nameTele ::= identifierOrUnknown
     | nameTeleExplicit
     | nameTeleImplicit {
-        implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.Parameter" ]
-        mixin = "org.arend.psi.ext.ArendNameTeleImplMixin"
-        recoverWhile = nameTele_recover
-    }
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Parameter" ]
+    mixin = "org.arend.psi.ext.ArendNameTeleImplMixin"
+    recoverWhile = nameTele_recover
+}
+
+nameTeleUntyped ::= defIdentifier {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Parameter" ]
+    mixin = "org.arend.psi.ext.ArendNameTeleUntypedImplMixin"
+    recoverWhile = nameTele_recover
+}
 
 private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1}
 

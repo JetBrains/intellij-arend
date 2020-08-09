@@ -18,7 +18,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
@@ -57,7 +57,7 @@ private object ArendIdReferableConverter : ReferableConverter {
         else -> LocatedReferableImpl(referable.precedence, referable.refName, TCReferable.NULL_REFERABLE, referable.kind)
     }
 
-    override fun convert(referable: Referable?) = (referable as? ModuleAdapter)?.metaReferable ?: referable
+    override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaReferable ?: referable
 }
 
 open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {

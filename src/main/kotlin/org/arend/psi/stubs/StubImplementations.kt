@@ -174,6 +174,19 @@ class ArendDefFunctionStub(parent: StubElement<*>?, elementType: IStubElementTyp
     }
 }
 
+class ArendDefMetaStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?, override val precedence: Precedence?, aliasName: String?)
+    : ArendStub<ArendDefMeta>(parent, elementType, name, aliasName) {
+
+    object Type : ArendStubElementType<ArendDefMetaStub, ArendDefMeta>("DEF_META") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
+            ArendDefMetaStub(parentStub, this, name, prec, aliasName)
+
+        override fun createPsi(stub: ArendDefMetaStub) = ArendDefMetaImpl(stub, this)
+
+        override fun indexStub(stub: ArendDefMetaStub, sink: IndexSink) = sink.indexMeta(stub)
+    }
+}
+
 class ArendDefModuleStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?, override val aliasName: String?)
     : ArendStub<ArendDefModule>(parent, elementType, name, aliasName) {
 
