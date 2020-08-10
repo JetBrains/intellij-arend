@@ -2,11 +2,8 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.naming.reference.Referable
+import org.arend.psi.*
 import org.arend.term.abs.Abstract
-import org.arend.psi.ArendFieldTele
-import org.arend.psi.ArendNameTele
-import org.arend.psi.ArendNameTeleUntyped
-import org.arend.psi.ArendTypeTele
 
 
 abstract class ArendNameTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendNameTele {
@@ -28,7 +25,7 @@ abstract class ArendNameTeleUntypedImplMixin(node: ASTNode): ArendSourceNodeImpl
 
     override fun getReferableList(): List<Referable?> = listOf(defIdentifier)
 
-    override fun getType() = null
+    override fun getType(): ArendExpr? = null
 
     override fun isStrict() = false
 }
