@@ -16,7 +16,7 @@ class ReplaceMetaWithResultIntention : BaseArendIntention("Replace meta with res
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val expr = element.ancestor<ArendExpr>()
         val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false
-        return (refElement.resolve as? MetaAdapter)?.metaReferable.let { it?.definition != null || it?.resolver != null }
+        return (refElement.resolve as? MetaAdapter)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {

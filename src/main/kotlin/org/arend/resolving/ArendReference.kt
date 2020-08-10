@@ -57,7 +57,7 @@ private object ArendIdReferableConverter : ReferableConverter {
         else -> LocatedReferableImpl(referable.precedence, referable.refName, TCReferable.NULL_REFERABLE, referable.kind)
     }
 
-    override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaReferable ?: referable
+    override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable
 }
 
 open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {

@@ -5,5 +5,5 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ext.impl.MetaAdapter
 
 abstract class BaseReferableConverter : ReferableConverter {
-    override fun convert(referable: Referable?): Referable? = (referable as? MetaAdapter)?.metaReferable ?: super.convert(referable)
+    override fun convert(referable: Referable?): Referable? = (referable as? MetaAdapter)?.metaRef ?: super.convert(referable)
 }

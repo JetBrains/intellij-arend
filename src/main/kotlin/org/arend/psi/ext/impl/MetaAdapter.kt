@@ -3,11 +3,14 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.typechecking.MetaDefinition
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendDefMeta
 import org.arend.psi.ArendNameTeleUntyped
 import org.arend.psi.stubs.ArendDefMetaStub
+import org.arend.resolving.ArendReferableConverter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 
@@ -17,9 +20,12 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
 
     constructor(stub: ArendDefMetaStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    var metaReferable: MetaReferable? = null
+    var metaRef: MetaReferable? = null
 
-    override fun getReferable() = metaReferable!!
+    override fun getMetaReferable() =
+        metaRef ?: MetaReferable(precedence, name, location, aliasPrecedence, aliasName, documentation.toString(), null, null)
+
+    override fun getReferable() = this
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 

@@ -110,7 +110,7 @@ class InjectedArendEditor(val project: Project, name: String, val arendError: Ar
             }
             val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
             val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
-            val doc = if ((ref as? MetaAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+            val doc = if ((ref as? MetaAdapter)?.metaRef?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                 error.getDoc(ppConfig)
             else
                 DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
