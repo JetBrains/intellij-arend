@@ -7,6 +7,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
@@ -43,7 +44,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getParentGroup() = parent?.ancestor<ArendGroup>()
 
-    override fun getReferable() = this
+    override fun getReferable(): LocatedReferable = this
 
     override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
 

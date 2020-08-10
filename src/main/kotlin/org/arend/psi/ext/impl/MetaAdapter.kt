@@ -7,16 +7,23 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendDefMeta
 import org.arend.psi.stubs.ArendDefMetaStub
+import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractDefinitionVisitor
 
 
-abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta {
+abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, Abstract.MetaDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefMetaStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     var metaReferable: MetaReferable? = null
 
+    override fun getReferable() = metaReferable!!
+
     override fun getKind() = GlobalReferable.Kind.OTHER
 
     override fun getIcon(flags: Int) = ArendIcons.META_DEFINITION
+
+    override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R =
+        visitor.visitMeta(this)
 }
