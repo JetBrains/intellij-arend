@@ -49,6 +49,7 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "CONSTRUCTOR" -> ArendConstructorStub.Type
     "DEF_DATA" -> ArendDefDataStub.Type
     "DEF_FUNCTION" -> ArendDefFunctionStub.Type
+    "DEF_META" -> ArendDefMetaStub.Type
     "DEF_MODULE" -> ArendDefModuleStub.Type
     else -> error("Unknown anchor $name")
 }
