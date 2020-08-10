@@ -96,7 +96,7 @@
         BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
-    extends("def(Function|Data|Class|Instance)") = definition
+    extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
