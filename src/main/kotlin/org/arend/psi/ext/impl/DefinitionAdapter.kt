@@ -29,7 +29,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val statements: List<ArendStatement>
         get() = where?.statementList ?: emptyList()
 
-    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition {
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
         if (def.status == Concrete.Status.HAS_ERRORS) {
             accept(object : PsiRecursiveElementVisitor() {
