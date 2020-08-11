@@ -20,7 +20,9 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
     var metaRef: MetaReferable? = null
 
     override fun getReferable() =
-        metaRef ?: MetaReferable(precedence, name, location, aliasPrecedence, aliasName, documentation.toString(), null, null)
+        metaRef ?: MetaReferable(precedence, name, location, aliasPrecedence, aliasName, documentation.toString(), null, null).apply {
+            underlyingReferable = this@MetaAdapter
+        }
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 

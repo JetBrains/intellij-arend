@@ -20,6 +20,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 
@@ -74,7 +75,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
-            private fun highlightParameters(definition: Concrete.ReferableDefinition) {
+            private fun highlightParameters(definition: Concrete.GeneralDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
                     if (((parameter.type?.underlyingReferable as? GlobalReferable)?.underlyingReferable as? ArendDefClass)?.isRecord == false) {
                         val list = when (val param = parameter.data) {
@@ -88,6 +89,25 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                         }
                     }
                 }
+            }
+
+            override fun definableMetaResolved(definition: DefinableMetaDefinition) {
+                progress.checkCanceled()
+
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
+                    ref.nameIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
+                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
+                }
+
+                highlightParameters(definition)
+
+                definition.accept(IntentionBackEndVisitor(holder), null)
+
+                advanceProgress(1)
             }
 
             override fun definitionResolved(definition: Concrete.Definition) {
