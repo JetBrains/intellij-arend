@@ -30,19 +30,6 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precede
 class PsiConcreteProvider(private val project: Project, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, var resolve: Boolean = true, private val resolverListener: ResolverListener? = null, private val referableConverter: ReferableConverter = ArendReferableConverter) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.GeneralDefinition> = HashMap()
 
-    override fun getResolvable(referable: GlobalReferable): Concrete.ResolvableDefinition? {
-        val psiReferable = convertReferable(referable) ?: return null
-
-        if (psiReferable is PsiConcreteReferable) {
-            return getConcreteDefinition(psiReferable) as Concrete.ResolvableDefinition
-        }
-
-        cache[psiReferable]?.let { return it as Concrete.ResolvableDefinition }
-        val concreteRef = runReadAction { psiReferable.ancestor<PsiConcreteReferable>() }
-            ?: return null
-        return getConcreteDefinition(concreteRef) as Concrete.ResolvableDefinition
-    }
-
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.GeneralDefinition? {
         var cached = true
         var scope: Scope? = null
@@ -111,17 +98,17 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
         return psiReferable
     }
 
-    override fun getConcrete(referable: GlobalReferable): Concrete.ReferableDefinition? {
+    override fun getConcrete(referable: GlobalReferable): Concrete.GeneralDefinition? {
         val psiReferable = convertReferable(referable) ?: return null
 
         if (psiReferable is PsiConcreteReferable) {
-            return getConcreteDefinition(psiReferable) as Concrete.ReferableDefinition
+            return getConcreteDefinition(psiReferable)
         }
 
-        cache[psiReferable]?.let { return it as Concrete.ReferableDefinition }
+        cache[psiReferable]?.let { return it }
         val concreteRef = runReadAction { psiReferable.ancestor<PsiConcreteReferable>() } ?: return null
         getConcreteDefinition(concreteRef) ?: return null
-        return cache[psiReferable] as Concrete.ReferableDefinition
+        return cache[psiReferable]
     }
 
     override fun getConcreteFunction(referable: GlobalReferable): Concrete.FunctionDefinition? {
