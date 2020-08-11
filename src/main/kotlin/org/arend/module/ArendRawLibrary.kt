@@ -199,7 +199,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 val name = subgroup.referable.refName
                 val meta = scope.resolveName(name)
                 if (meta is MetaReferable) {
-                    (subgroup.referable as? MetaAdapter)?.let { module ->
+                    (subgroup as? MetaAdapter)?.let { module ->
                         module.metaRef = meta
                         meta.underlyingReferable = module
                     }
