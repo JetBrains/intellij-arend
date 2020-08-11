@@ -482,15 +482,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (atom != null) {
                     val atomFieldsAcc = atom.parent as? ArendAtomFieldsAcc
                     val argumentAppExpr = atomFieldsAcc?.parent as? ArendArgumentAppExpr
-                    val arendNewExpr = argumentAppExpr?.parent as? ArendNewExpr
+                    val arendAppExpr = argumentAppExpr?.parent as? ArendAppExpr
 
-                    val substitutedExpression = factory.createExpression(expressionToInsert) as ArendNewExpr
+                    val substitutedExpression = factory.createExpression(expressionToInsert) as ArendAppExpr
                     val substitutedAtom = if (needParentheses(element, element.textRange, substitutedExpression, null))
                         factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
 
-                    if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
-                            arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
-                        arendNewExpr.replaceWithNotification(substitutedExpression)
+                    if (arendAppExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty()) {
+                        arendAppExpr.replaceWithNotification(substitutedExpression)
                     } else if (substitutedAtom is PsiElement) {
                         atom.replaceWithNotification(substitutedAtom)
                     }

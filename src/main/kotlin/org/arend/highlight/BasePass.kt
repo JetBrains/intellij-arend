@@ -57,8 +57,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     protected val holder = AnnotationHolderImpl(AnnotationSession(file))
     private val errorList = ArrayList<GeneralError>()
 
-    override fun getDocument(): Document = super.getDocument()
-
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
 
@@ -162,7 +160,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         if (classRef is ClassReferable) {
                             annotation.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
                         }
-                        if (cause is ArendNewExprImplMixin) {
+                        if (cause is ArendAppExpr) {
                             cause.putUserData(CoClausesKey, null)
                         }
                     }
@@ -417,7 +415,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA
 
         private val GOAL_IN_COPATTERN_PREFIX: Array<Class<out PsiElement>> =
-                arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)
+                arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendAppExpr::class.java)
         private val GOAL_IN_COPATTERN = StandardPatterns.or(withAncestors(*(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendLocalCoClause::class.java))),
                 withAncestors(*(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
 

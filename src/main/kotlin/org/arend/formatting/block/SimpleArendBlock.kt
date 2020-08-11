@@ -40,8 +40,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return super.getSpacing(child1, child2)
         }
 
-        if (nodePsi is ArendNewExpr && needsCrlfInCoClausesBlock(child1, child2)) {
-            val whitespace = nodePsi.lbrace?.nextSibling as? PsiWhiteSpace
+        if (nodePsi is ArendCoClausesArgument && needsCrlfInCoClausesBlock(child1, child2)) {
+            val whitespace = nodePsi.lbrace.nextSibling as? PsiWhiteSpace
             return if (whitespace != null && !whitespace.textContains('\n')) oneSpaceWrap else oneCrlf
         }
 
@@ -222,7 +222,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
-                NEW_EXPR -> when (prevET) {
+                CO_CLAUSES_ARGUMENT -> when (prevET) {
                     LBRACE -> {
                     }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
@@ -268,7 +268,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         } else if (AREND_COMMENTS.contains(childET)) when (nodeET) {
                             CO_CLAUSE, LOCAL_CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
                             FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR,
-                            DEF_FUNCTION, NEW_EXPR, WHERE, DEF_DATA -> Indent.getNormalIndent()
+                            DEF_FUNCTION, CO_CLAUSES_ARGUMENT, WHERE, DEF_DATA -> Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         } else if (nodeET == DEF_FUNCTION) {
                             val notFBodyWithClauses = if (childPsi is ArendFunctionBody) childPsi.fatArrow != null else true

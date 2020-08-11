@@ -97,9 +97,8 @@
     ]
 
     extends("def(Function|Data|Class|Instance)") = definition
-    extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
-    extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
-    extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
+    extends("(arr|new|pi|sigma|lam|let|case|universeApp|setUniverseApp|truncatedUniverseApp|app)Expr") = expr
+    extends("atomArgument|appKeywordArg|universeAtom|implicitArgument|coClausesArgument") = argument
 }
 
 statements ::= repl_line | (topStatement | topStatement_recovery)*
@@ -302,6 +301,14 @@ private dataUniverse ::= COLON universeExpr {
     recoverWhile = dataUniverse_recover
 }
 
+universeExpr ::= universeAppExpr
+    | setUniverseAppExpr
+    | truncatedUniverseAppExpr
+    | PROP_KW {
+    implements = "org.arend.psi.ArendExpr"
+    mixin = "org.arend.psi.ext.ArendUniverseExprImplMixin"
+}
+
 private dataUniverse_recover ::= !(PIPE | WITH_KW | ELIM_KW | FAT_ARROW) & statement_recover
 
 private dataKw ::= truncatedKW DATA_KW | DATA_KW {
@@ -458,7 +465,10 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | caseExpr
-    | newExpr {
+    | universeAppExpr
+    | setUniverseAppExpr
+    | truncatedUniverseAppExpr
+    | appExpr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.Expression"
                    "org.arend.term.abs.Abstract.Parameter" ]
@@ -473,16 +483,13 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.arend.psi.ext.ArendArrExprImplMixin"
 }
 
-newExpr ::= appPrefix argumentAppExpr newExprTail
-    | appExpr newExprTail {
+appExpr ::= appKeyword argumentAppExpr | argumentAppExpr {
     pin(".*") = 1
-    mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
+    mixin = "org.arend.psi.ext.ArendAppExprImplMixin"
     recoverWhile = expr_recover
 }
 
-appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
-    pin(".*") = 1
-}
+appKeyword ::= NEW_KW | EVAL_KW | PEVAL_KW
 
 private coClauseSequence ::= coClauseReg* {
     recoverWhile = statement_recover
@@ -490,25 +497,6 @@ private coClauseSequence ::= coClauseReg* {
 
 private localCoClauseSequence ::= localCoClause* {
     recoverWhile = statement_recover
-}
-
-private newExprTail ::= [LBRACE localCoClauseSequence RBRACE (argument | argumentRecovery)*]
-
-universeExpr ::= universeAppExpr
-    | setUniverseAppExpr
-    | truncatedUniverseAppExpr
-    | PROP_KW {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendUniverseExprImplMixin"
-}
-
-appExpr ::= universeAppExpr
-    | setUniverseAppExpr
-    | truncatedUniverseAppExpr
-    | argumentAppExpr {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendAppExprImplMixin"
-    recoverWhile = expr_recover
 }
 
 caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseExpr? WITH_KW clausesWithBraces {
@@ -767,9 +755,10 @@ atomFieldsAcc ::= atom fieldAcc* {
 }
 
 argument ::= atomArgument
-    | newArg
+    | appKeywordArg
     | universeAtom
-    | implicitArgument {
+    | implicitArgument
+    | coClausesArgument {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Argument"
                    "org.arend.term.abs.Abstract.BinOpSequenceElem" ]
@@ -791,10 +780,13 @@ implicitArgument ::= LBRACE <<comma_separated_sequence_trail tupleExpr>> RBRACE 
     mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
 }
 
-newArg ::= appPrefix argumentAppExpr [LBRACE localCoClauseSequence RBRACE] {
+appKeywordArg ::= appKeyword {
+    implements = "org.arend.psi.ext.ArendCompositeElement"
+}
+
+coClausesArgument ::= LBRACE localCoClauseSequence RBRACE {
     pin = 1
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
+    implements = "org.arend.psi.ext.ArendCompositeElement"
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {

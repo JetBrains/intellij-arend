@@ -445,7 +445,7 @@ class ArendCompletionContributor : CompletionContributor() {
                               ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java,
                               ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java,
-                              ArendNewExpr::class.java, ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java))), STRICT_KW_LIST)
+                              ArendAppExpr::class.java, ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java))), STRICT_KW_LIST)
 
         //basic(PlatformPatterns.psiElement(), Logger())
     }
@@ -468,7 +468,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ATOM_PREFIX = LITERAL_PREFIX + arrayOf(ArendAtom::class.java)
         private val ATOM_FIELDS_ACC_PREFIX = ATOM_PREFIX + arrayOf(ArendAtomFieldsAcc::class.java)
         private val ARGUMENT_APP_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendArgumentAppExpr::class.java)
-        private val NEW_EXPR_PREFIX = ARGUMENT_APP_EXPR_PREFIX + arrayOf(ArendNewExpr::class.java)
+        private val NEW_EXPR_PREFIX = ARGUMENT_APP_EXPR_PREFIX + arrayOf(ArendAppExpr::class.java)
         private val RETURN_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendReturnExpr::class.java)
         private val DEF_IDENTIFIER_PREFIX = arrayOf<Class<out PsiElement>>(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)
 
@@ -554,9 +554,9 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(COLON), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java),
                         withAncestors(ArendClassStat::class.java, ArendDefClass::class.java), withParent(ArendDefClass::class.java))),
                 and(afterLeaf(RETURN_KW), or(LEVEL_CONTEXT_0, withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java))),
-                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendAppExpr::class.java, ArendReturnExpr::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
-                        ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java))
+                        ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendAppExpr::class.java, ArendReturnExpr::class.java))
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)

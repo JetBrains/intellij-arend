@@ -3,10 +3,10 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.search.LocalSearchScope
 import org.arend.naming.reference.ClassReferable
+import org.arend.psi.ArendAppExpr
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLetClause
 import org.arend.psi.ArendNameTele
-import org.arend.psi.ArendNewExpr
 import org.arend.term.abs.Abstract
 import org.arend.typing.ReferableExtractVisitor
 
@@ -26,7 +26,7 @@ abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImp
 
     val typeClassReference: ClassReferable?
         get() {
-            val type = resultType ?: (expr as? ArendNewExpr)?.let { if (it.appPrefix?.newKw != null) it.argumentAppExpr else null } ?: return null
+            val type = resultType ?: (expr as? ArendAppExpr)?.let { if (it.appKeyword?.newKw != null) it.argumentAppExpr else null } ?: return null
             return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
         }
 

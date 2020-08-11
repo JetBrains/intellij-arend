@@ -148,7 +148,7 @@ fun doAnnotate(element: PsiElement?, holder: AnnotationHolder?) {
         is ArendNewExprImplMixin -> element.argumentAppExpr?.let {
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, holder, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
         }
-        is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.instanceBody.let { it == null || it.fatArrow == null && it.elim == null })
+        is ArendDefInstance -> if (element.returnExpr != null && element.instanceBody.let { it == null || it.fatArrow == null && it.elim == null })
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.instanceBody?.coClauseList
                     ?: emptyList(), holder)
         is ArendDefFunction -> if (element.functionBody?.cowithKw != null)
