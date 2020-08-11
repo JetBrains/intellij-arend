@@ -24,6 +24,10 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> null
         } ?: return null
 
+        if (parent is ArendDefMeta) {
+            return null
+        }
+
         val def = parent.tcReferable?.typechecked
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
