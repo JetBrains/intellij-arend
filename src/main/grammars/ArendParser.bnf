@@ -1,5 +1,6 @@
 {
     parserClass = "org.arend.parser.ArendParser"
+    parserUtilClass = "org.arend.parser.ParserUtil"
     parserImports = ["static org.arend.parser.ParserMixin.recursion_guard_"]
 
     implements = 'org.arend.psi.ext.ArendCompositeElement'
@@ -266,7 +267,12 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
 
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
 
-private functionType ::= COLON returnExpr { pin = 1 }
+private functionType ::= COLON returnExprWOB { pin = 1 }
+
+returnExprWOB ::= exprWOB [LEVEL_KW exprWOB] | LEVEL_KW atomFieldsAcc atomFieldsAcc {
+    pin(".*") = 1
+    elementType = returnExpr
+}
 
 returnExpr ::= expr [LEVEL_KW expr] | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
 
@@ -465,6 +471,11 @@ expr ::= arrExpr
     mixin = "org.arend.psi.ext.ArendExprImplMixin"
 }
 
+exprWOB ::= <<exprWOBImpl>> {
+    elementType = expr
+    name = expr
+}
+
 private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PIPE | COWITH_KW | WITH_KW | ELIM_KW | FAT_ARROW | AS_KW | RETURN_KW | COLON | LEVEL_KW) & statement_recover
 
 arrExpr ::= expr ARROW expr {
@@ -478,6 +489,14 @@ newExpr ::= appPrefix argumentAppExpr newExprTail withBody?
     pin(".*") = 1
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
     recoverWhile = expr_recover
+}
+
+//noinspection BnfUnusedRule
+newExprWOB ::= appPrefix argumentAppExpr newExprTail
+    | appExpr newExprTail {
+    pin(".*") = 1
+    recoverWhile = expr_recover
+    elementType = newExpr
 }
 
 withBody ::= USING_KW clausesWithBraces { pin = 1 }
@@ -523,14 +542,14 @@ casePrefix ::= [EVAL_KW | PEVAL_KW]
 
 caseOpt ::= CASE_KW | SCASE_KW
 
-private returnCaseExpr ::= RETURN_KW returnExpr {
+private returnCaseExpr ::= RETURN_KW returnExprWOB {
     pin = 1
     recoverWhile = returnCaseExpr_recover
 }
 
 private returnCaseExpr_recover ::= !WITH_KW & expr_recover
 
-caseArg ::= caseArgExprAs [COLON expr] {
+caseArg ::= caseArgExprAs [COLON exprWOB] {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.CaseArgument" ]
@@ -548,7 +567,7 @@ caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
 
 private caseArgExprAs_recover ::= !COLON & expr_recover
 
-private caseArgExpr ::= expr {
+private caseArgExpr ::= exprWOB {
     recoverWhile = caseArgExpr_recover
 }
 
@@ -557,6 +576,12 @@ private caseArgExpr_recover ::= !(AS_KW | COLON) & expr_recover
 piExpr ::= PI_KW typeTele+ ARROW expr {
     pin = 1
     mixin = "org.arend.psi.ext.ArendPiExprImplMixin"
+}
+
+//noinspection BnfUnusedRule
+piExprWOB ::= PI_KW typeTele+ ARROW exprWOB {
+    pin = 1
+    elementType = piExpr
 }
 
 sigmaExpr ::= SIGMA_KW typeTele* {
@@ -569,6 +594,12 @@ lamExpr ::= LAM_KW nameTele+ [FAT_ARROW expr?] {
     mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
 
+//noinspection BnfUnusedRule
+lamExprWOB ::= LAM_KW nameTele+ [FAT_ARROW exprWOB?] {
+    pin = 1
+    elementType = lamExpr
+}
+
 private pipe_def_un ::= PIPE {
     recoverWhile = def_un_recover
 }
@@ -578,6 +609,12 @@ private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recov
 letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
+}
+
+//noinspection BnfUnusedRule
+letExprWOB ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW exprWOB?] {
+    pin = 1
+    elementType = letExpr
 }
 
 functionClauses ::= clausesWithBraces | (pipe_pattern clause)+
