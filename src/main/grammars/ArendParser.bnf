@@ -473,12 +473,14 @@ arrExpr ::= expr ARROW expr {
     mixin = "org.arend.psi.ext.ArendArrExprImplMixin"
 }
 
-newExpr ::= appPrefix argumentAppExpr newExprTail
-    | appExpr newExprTail {
+newExpr ::= appPrefix argumentAppExpr newExprTail withBody?
+    | appExpr newExprTail withBody? {
     pin(".*") = 1
     mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
     recoverWhile = expr_recover
 }
+
+withBody ::= USING_KW clausesWithBraces { pin = 1 }
 
 appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
     pin(".*") = 1

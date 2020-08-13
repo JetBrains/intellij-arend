@@ -24,6 +24,9 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
 
     abstract val localCoClauseList: List<ArendLocalCoClause>
 
+    open val withBody: ArendWithBody?
+        get() = null
+
     fun isVariable() = false
 
     fun getExpression() = this
@@ -39,7 +42,7 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
             prefix.evalKw != null -> Abstract.EvalKind.EVAL
             else -> null
         }
-        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, params)
+        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, withBody?.clauseList, params)
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {
