@@ -413,8 +413,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun isIncomplete(element: PsiElement) =
                 element is ArendLetExpr && element.expr == null ||
-                        element is ArendLamExpr && element.expr == null ||
-                        element is LeafPsiElement && element.elementType == ArendElementTypes.COMMA
+                element is ArendLamExpr && element.expr == null ||
+                element is LeafPsiElement && element.elementType.let { it == ArendElementTypes.COMMA || it == ArendElementTypes.LBRACE }
 
         private val GOAL_IN_COPATTERN_PREFIX: Array<Class<out PsiElement>> =
                 arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)
