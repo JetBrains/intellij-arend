@@ -42,7 +42,8 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
             prefix.evalKw != null -> Abstract.EvalKind.EVAL
             else -> null
         }
-        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, if (lbrace == null) null else localCoClauseList, argumentList, withBody?.clauseList, params)
+        val lbrace = lbrace
+        return visitor.visitClassExt(this, prefix?.newKw != null, evalKind, if (prefix != null) argumentAppExpr else appExpr, lbrace, if (lbrace == null) null else localCoClauseList, argumentList, withBody, params)
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {

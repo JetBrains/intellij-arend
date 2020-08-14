@@ -499,7 +499,12 @@ newExprWOB ::= appPrefix argumentAppExpr newExprTail
     elementType = newExpr
 }
 
-withBody ::= USING_KW clausesWithBraces { pin = 1 }
+withBody ::= WITH_KW clausesWithBraces {
+    pin = 1
+    implements = [ "org.arend.psi.ext.ArendSourceNode"
+                   "org.arend.term.abs.Abstract.FunctionClauses" ]
+    mixin = "org.arend.psi.ext.ArendWithBodyImplMixin"
+}
 
 appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
     pin(".*") = 1

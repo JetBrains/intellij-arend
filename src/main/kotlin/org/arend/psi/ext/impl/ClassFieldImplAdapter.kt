@@ -6,7 +6,6 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.stubs.ArendClassImplementStub
 
 abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>, ArendClassImplement, CoClauseBase {
@@ -39,6 +38,8 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
     override fun getImplementation() = expr
 
     override fun hasImplementation() = fatArrow != null
+
+    override fun getCoClauseData() = lbrace
 
     override fun getClassReference() = CoClauseBase.getClassReference(this)
 

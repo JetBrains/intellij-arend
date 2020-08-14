@@ -131,7 +131,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return codomain.accept(this, null)
     }
 
-    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, implementations: MutableCollection<out Abstract.ClassFieldImpl>?, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, clauses: MutableCollection<out Abstract.FunctionClause>?, params: Void?): Referable? =
+    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, coclausesData: Any?, implementations: MutableCollection<out Abstract.ClassFieldImpl>?, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, clauses: Abstract.FunctionClauses?, params: Void?): Referable? =
         if (isNew || evalKind != null || !sequence.isEmpty() || baseClass == null || clauses != null) {
             null
         } else {
