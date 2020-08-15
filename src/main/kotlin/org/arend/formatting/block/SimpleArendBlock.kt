@@ -80,6 +80,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (myNode.psi is ArendWithBody && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
             if (myNode.psi is ArendCaseExpr && c1et == CASE_ARG && c2et == WITH_BODY) return oneSpaceWrap
+            if (myNode.psi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW)) return oneSpaceWrap
 
