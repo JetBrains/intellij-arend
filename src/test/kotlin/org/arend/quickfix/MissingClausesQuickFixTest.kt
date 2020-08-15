@@ -1,5 +1,15 @@
 package org.arend.quickfix
 
+import org.arend.ext.concrete.expr.ConcreteExpression
+import org.arend.ext.module.LongName
+import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.ExpressionResolver
+import org.arend.ext.reference.Precedence
+import org.arend.ext.typechecking.ContextData
+import org.arend.ext.typechecking.MetaResolver
+import org.arend.extImpl.ConcreteFactoryImpl
+import org.arend.prelude.Prelude
+
 class MissingClausesQuickFixTest: QuickFixTestBase() {
     private val listDefinition =
         """
@@ -669,4 +679,73 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | false, true, true, (), c
           | false, false, false, b, c => {?}
     """)
+
+    private fun addMeta(useClauses: Boolean) {
+        addGeneratedModules {
+            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+                override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData): ConcreteExpression {
+                    val factory = ConcreteFactoryImpl(if (useClauses) contextData.clauses?.data else contextData.marker.data)
+                    return resolver.resolve(factory.caseExpr(false, listOf(factory.caseArg(contextData.arguments[0].expression, null, null)), null, null, contextData.clauses?.clauseList ?: emptyList()))
+                }
+            })
+        }
+    }
+
+    fun `test case meta clauses`() {
+        addMeta(true)
+        typedQuickFixTest("Implement", """
+           \import Meta
+           \func foo (x : Nat) : Nat => myMeta x {-caret-}\with {
+              | suc n => 0
+           }
+        """, """
+           \import Meta
+           \func foo (x : Nat) : Nat => myMeta x \with {
+             | suc n => 0
+             | 0 => {?}
+           }
+        """)
+    }
+
+    fun `test case meta`() {
+        addMeta(false)
+        typedQuickFixTest("Implement", """
+           \import Meta
+           \func foo (x : Nat) : Nat => {-caret-}myMeta x \with {}
+        """, """
+           \import Meta
+           \func foo (x : Nat) : Nat => myMeta x \with {
+             | 0 => {?}
+             | suc n => {?}
+           }
+        """)
+    }
+
+    fun `test case meta without braces`() {
+        addMeta(false)
+        typedQuickFixTest("Implement", """
+           \import Meta
+           \func foo (x : Nat) : Nat => {-caret-}myMeta x \with
+        """, """
+           \import Meta
+           \func foo (x : Nat) : Nat => myMeta x \with {
+             | 0 => {?}
+             | suc n => {?}
+           }
+        """)
+    }
+
+    fun `test case meta without with`() {
+        addMeta(false)
+        typedQuickFixTest("Implement", """
+           \import Meta
+           \func foo (x : Nat) : Nat => {-caret-}myMeta x
+        """, """
+           \import Meta
+           \func foo (x : Nat) : Nat => myMeta x \with {
+             | 0 => {?}
+             | suc n => {?}
+           }
+        """)
+    }
 }
