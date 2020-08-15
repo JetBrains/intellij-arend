@@ -268,7 +268,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         val pairingInPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, o) }
-        val pairingWithPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, o) }
+        val pairingWithPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withBody == null }, o) }
 
         val returnPattern = elementPattern { o ->
             pairingWordCondition({ position: PsiElement? ->
