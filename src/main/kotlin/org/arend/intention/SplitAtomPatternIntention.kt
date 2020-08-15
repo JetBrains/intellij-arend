@@ -128,8 +128,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
             }
 
-            if (ownerParent is ArendCaseExpr && patternOwner is ArendClause) {
-                val clauseIndex2 = ownerParent.withBody?.clauseList?.indexOf(patternOwner) ?: -1
+            if (ownerParent is ArendWithBody && patternOwner is ArendClause) {
+                val clauseIndex2 = ownerParent.clauseList.indexOf(patternOwner) ?: -1
                 val caseExprData = tryCorrespondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project, editor, false)
                 val coreCaseExpr = caseExprData?.subCore
                 if (coreCaseExpr is CaseExpression) {

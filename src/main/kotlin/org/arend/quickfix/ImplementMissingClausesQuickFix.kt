@@ -139,14 +139,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 }
                 is ArendCaseExpr -> {
                     val body = cause.withBody
-                    body?.clauseList?.lastOrNull() ?: (body?.lbrace ?: (body?.withKw ?: (cause.returnExpr
-                            ?: cause.caseArgList.lastOrNull())?.let { withAnchor ->
-                        cause.addAfterWithNotification((psiFactory.createExpression("\\case 0 \\with") as ArendCaseExpr).withBody!!.withKw,
-                                cause.addAfter(psiFactory.createWhitespace(" "), withAnchor))
-                    })?.let {
-                        insertPairOfBraces(psiFactory, it)
-                        body?.lbrace
-                    })
+                    val caseExprAnchor = cause.returnExpr ?: cause.caseArgList.lastOrNull()
+                    body?.clauseList?.lastOrNull() ?: (body?.lbrace ?: (
+                            body?.let {
+                                insertPairOfBraces(psiFactory, it.withKw)
+                                body.lbrace
+                            } ?: (cause.addAfter((psiFactory.createExpression("\\case 0 \\with {}") as ArendCaseExpr).withBody!!, caseExprAnchor) as ArendWithBody).lbrace
+                            ))
                 }
                 is ArendCoClauseDef -> {
                     val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)

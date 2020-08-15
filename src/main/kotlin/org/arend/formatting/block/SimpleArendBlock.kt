@@ -77,7 +77,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
             else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
-            if (myNode.psi is ArendCaseExpr && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
+            if (myNode.psi is ArendWithBody && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
+
+            if (myNode.psi is ArendCaseExpr && c1et == CASE_ARG && c2et == WITH_BODY) return oneSpaceWrap
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW)) return oneSpaceWrap
 
@@ -267,7 +269,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             else -> Indent.getNoneIndent()
                         } else if (AREND_COMMENTS.contains(childET)) when (nodeET) {
                             CO_CLAUSE, LOCAL_CO_CLAUSE, LET_EXPR, LET_CLAUSE, CLAUSE, FUNCTION_BODY,
-                            FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR,
+                            FUNCTION_CLAUSES, CLASS_IMPLEMENT, DATA_BODY, CONSTRUCTOR, DEF_CLASS, WITH_BODY,
                             DEF_FUNCTION, NEW_EXPR, WHERE, DEF_DATA -> Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         } else if (nodeET == DEF_FUNCTION) {
@@ -307,7 +309,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, CASE_EXPR, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
+                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, WITH_BODY, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
