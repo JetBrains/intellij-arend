@@ -286,7 +286,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => (\\new () {-caret-})")
 
     fun `test only new & universes in application expression or after new expr 2`() =
-            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST + WHERE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST + WHERE_KW_LIST + WITH_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f {-caret-}")
 
     fun `test no basic expression kws in argument position`() =
@@ -455,9 +455,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
     fun `test absence of with completion`() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
-            "\\func lol (a : Nat) => \\case a {-caret-} \\with {}",
             "\\func lol (a : Nat) => \\case \\case a \\with {-caret-}",
-            "\\func lol (a : Nat) => \\case (a {-caret-}) \\with {}",
             "\\func lol (a : Nat) => \\case 0 \\as x : {-caret-}")
 
     fun `test elim completion 1`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
@@ -574,4 +572,12 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\class C {-caret-}",
             "\\class C\n  | E {-caret-}",
             "\\class C (E : \\Type)\n  | X {-caret-}: E -> E -> \\Set")
+
+    fun test_meta_with() = checkKeywordCompletionVariants(WITH_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => f a b c {-caret-}",
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => f {-caret-}",
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => f \\levels \\lp \\lh {-caret-}",
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\new f a b c {-caret-}",
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\eval f a b c {-caret-}",
+            "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\eval f a b c {} {-caret-}")
 }
