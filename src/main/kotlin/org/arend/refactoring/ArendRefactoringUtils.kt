@@ -575,9 +575,13 @@ fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, dele
     val project = psiFile.project
 
     val correctDeletedPsi =
-        if (deletedConcrete is Concrete.AppExpression)
-            (deletedConcrete.data as? ArendCompositeElement)?.ancestor<ArendArgumentAppExpr>()
-        else deletedConcrete?.data as? ArendExpr
+        if (deletedConcrete is Concrete.AppExpression || deletedConcrete is Concrete.BinOpSequenceExpression) {
+            val argumentAppExpr = (deletedConcrete.data as? ArendCompositeElement)?.ancestor<ArendArgumentAppExpr>()
+            if (argumentAppExpr != null && (deletedConcrete as? Concrete.BinOpSequenceExpression)?.clauses != null) {
+                val newExpr = argumentAppExpr.ancestor<ArendNewExpr>()
+                if (newExpr?.withBody != null) newExpr else argumentAppExpr
+            } else argumentAppExpr
+        } else deletedConcrete?.data as? ArendExpr
     val str = if (needParentheses(correctDeletedPsi ?: deletedPsi, deleting, aExpr, cExpr)) "($inserting)" else inserting
     document.insertString(deleting.startOffset, str)
     CodeStyleManager.getInstance(project).reformatText(psiFile, deleting.startOffset, deleting.startOffset + str.length)
@@ -605,7 +609,7 @@ fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange,
     val deletedExpr = deletedPsi.ancestor<ArendExpr>()
     val deletedPrec = deletedExpr?.accept(PrecVisitor, null) ?: MAX_PREC
 
-    // if the precedence of the inserted element equals to or large than the precedence of the original element,
+    // if the precedence of the inserted element equals to or larger than the precedence of the original element,
     // we do not need parentheses
     if (deletedPrec <= insertedPrec) {
         return false
