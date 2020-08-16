@@ -676,7 +676,6 @@ private object ConcretePrecVisitor : ConcreteExpressionVisitor<Void?, Int> {
 
     override fun visitApp(expr: Concrete.AppExpression, params: Void?) = APP_PREC
     override fun visitThis(expr: Concrete.ThisExpression, params: Void?) = MAX_PREC
-    override fun visitInferenceReference(expr: Concrete.InferenceReferenceExpression, params: Void?) = MAX_PREC
     override fun visitLam(expr: Concrete.LamExpression, params: Void?) = MIN_PREC
     override fun visitPi(expr: Concrete.PiExpression, params: Void?) = MIN_PREC
     override fun visitHole(expr: Concrete.HoleExpression, params: Void?) = MAX_PREC
