@@ -24,7 +24,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.naming.scope.Scope
 import org.arend.naming.scope.local.ElimScope
 import org.arend.naming.scope.local.ListScope
 import org.arend.prelude.Prelude
@@ -431,9 +430,6 @@ fun admitsPatternMatchingOnIdp(expr: Expression,
 
 // Binop util method plus auxiliary stuff
 
-fun resolveIfNeeded(referent: Referable, scope: Scope) =
-        ExpressionResolveNameVisitor.resolve(referent, scope, true, null)?.underlyingReferable
-
 fun getFirstExplicitParameter(definition: Referable?, defaultName: String): String {
     if (definition is Abstract.ParametersHolder) {
         val firstParameter = definition.parameters.firstOrNull { it.isExplicit }
@@ -579,9 +575,13 @@ fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, dele
     val project = psiFile.project
 
     val correctDeletedPsi =
-        if (deletedConcrete is Concrete.AppExpression)
-            (deletedConcrete.data as? ArendCompositeElement)?.ancestor<ArendArgumentAppExpr>()
-        else deletedConcrete?.data as? ArendExpr
+        if (deletedConcrete is Concrete.AppExpression || deletedConcrete is Concrete.BinOpSequenceExpression) {
+            val argumentAppExpr = (deletedConcrete.data as? ArendCompositeElement)?.ancestor<ArendArgumentAppExpr>()
+            if (argumentAppExpr != null && (deletedConcrete as? Concrete.BinOpSequenceExpression)?.clauses != null) {
+                val newExpr = argumentAppExpr.ancestor<ArendNewExpr>()
+                if (newExpr?.withBody != null) newExpr else argumentAppExpr
+            } else argumentAppExpr
+        } else deletedConcrete?.data as? ArendExpr
     val str = if (needParentheses(correctDeletedPsi ?: deletedPsi, deleting, aExpr, cExpr)) "($inserting)" else inserting
     document.insertString(deleting.startOffset, str)
     CodeStyleManager.getInstance(project).reformatText(psiFile, deleting.startOffset, deleting.startOffset + str.length)
@@ -609,7 +609,7 @@ fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange,
     val deletedExpr = deletedPsi.ancestor<ArendExpr>()
     val deletedPrec = deletedExpr?.accept(PrecVisitor, null) ?: MAX_PREC
 
-    // if the precedence of the inserted element equals to or large than the precedence of the original element,
+    // if the precedence of the inserted element equals to or larger than the precedence of the original element,
     // we do not need parentheses
     if (deletedPrec <= insertedPrec) {
         return false
@@ -660,7 +660,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = APP_PREC
     override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: Collection<Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: Collection<Abstract.FunctionClause>, params: Void?) = MIN_PREC
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: Collection<Int>, params: Void?) = MAX_PREC
-    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, implementations: Collection<Abstract.ClassFieldImpl>?, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = MIN_PREC
+    override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, coclausesData: Any?, implementations: MutableCollection<out Abstract.ClassFieldImpl>?, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, clauses: Abstract.FunctionClauses?, params: Void?) = MIN_PREC
     override fun visitLet(data: Any?, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, params: Void?) = MIN_PREC
     override fun visitNumericLiteral(data: Any?, number: BigInteger, params: Void?) = MAX_PREC
     override fun visitStringLiteral(data: Any?, unescapedString: String, params: Void?) = MAX_PREC

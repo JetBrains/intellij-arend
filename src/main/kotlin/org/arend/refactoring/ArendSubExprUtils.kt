@@ -31,6 +31,7 @@ import org.arend.psi.ext.*
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -93,10 +94,15 @@ private class MyResolverListener(private val data: Any) : ResolverListener {
     var result: Concrete.Expression? = null
     var originalExpr: Concrete.Expression? = null
 
-    override fun metaResolved(expression: Concrete.ReferenceExpression, args: List<Concrete.Argument>, result: Concrete.Expression) {
+    override fun metaResolved(expression: Concrete.ReferenceExpression, args: List<Concrete.Argument>, result: Concrete.Expression, coclauses: Concrete.Coclauses?, clauses: Concrete.FunctionClauses?) {
         if (expression.data == data) {
             this.result = result
-            originalExpr = Concrete.AppExpression.make(data, expression, args)
+            var expr = if (clauses == null) Concrete.AppExpression.make(data, expression, args) else
+                Concrete.BinOpSequenceExpression(data, listOf(Concrete.BinOpSequenceElem(expression)) + args.map { Concrete.BinOpSequenceElem(it.expression, Fixity.NONFIX, it.isExplicit) }, clauses)
+            if (coclauses != null) {
+                expr = Concrete.ClassExtExpression.make(data, expr, coclauses)
+            }
+            originalExpr = expr
         }
     }
 }
@@ -173,15 +179,18 @@ fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, ed
         null
     }
 
-private fun everyExprOf(concrete: Concrete.Expression): Sequence<Concrete.Expression> = sequence {
-    yield(concrete)
+private fun everyExprOf(concrete: Concrete.Expression): Sequence<Any?> = sequence {
+    yield(concrete.data)
     if (concrete is Concrete.AppExpression)
         for (arg in concrete.arguments) yieldAll(everyExprOf(arg.expression))
+    if (concrete is Concrete.BinOpSequenceExpression) {
+        for (arg in concrete.sequence) yieldAll(everyExprOf(arg.expression))
+        concrete.clauses?.let { yield(it.data) }
+    }
 }
 
 fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
     val exprs = everyExprOf(subConcrete)
-            .map { it.data }
             .filterIsInstance<PsiElement>()
             .toList()
     if (exprs.size == 1) return exprs.first().textRange

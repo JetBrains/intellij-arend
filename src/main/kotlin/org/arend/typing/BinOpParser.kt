@@ -53,6 +53,6 @@ fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSeq
     for (elem in sequence) {
         concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
-    return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(null, concreteSeq))
+    return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(null, concreteSeq, null))
 }
 

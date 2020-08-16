@@ -185,7 +185,7 @@ class ArendCompletionContributor : CompletionContributor() {
         val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
             not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
                     and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
-                    after(and(ofType(RBRACE), withParent(ArendCaseExpr::class.java))), //No keyword completion after \with or } in case expr
+                    after(and(ofType(RBRACE), withParent(ArendWithBody::class.java))), //No keyword completion after \with or } in case expr
                     after(ofType(LAM_KW, LET_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
                     after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
@@ -268,7 +268,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         val pairingInPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendLetExpr && position.inKw == null }, o) }
-        val pairingWithPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withKw == null }, o) }
+        val pairingWithPattern = elementPattern { o -> pairingWordCondition({ position: PsiElement? -> position is ArendCaseExpr && position.withBody == null }, o) }
 
         val returnPattern = elementPattern { o ->
             pairingWordCondition({ position: PsiElement? ->
@@ -446,6 +446,15 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java,
                               ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java,
                               ArendNewExpr::class.java, ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendConstructor::class.java))), STRICT_KW_LIST)
+
+        basic(and(or(withAncestors(*(ATOM_FIELDS_ACC_PREFIX + arrayOf<Class<out PsiElement>>(ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java))),
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java),
+                and(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java), after(withParent(ArendAtomLevelExpr::class.java))),
+                after(and(ofType(RBRACE), withParent(ArendNewExpr::class.java)))),
+                elementPattern { o -> o.parentOfType<ArendNewExpr>().let {
+                    it != null && it.withBody == null && (it.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.longName != null || it.argumentAppExpr?.longNameExpr != null)
+                }}), WITH_KW_LIST, KeywordCompletionBehavior.ADD_BRACES)
 
         //basic(PlatformPatterns.psiElement(), Logger())
     }

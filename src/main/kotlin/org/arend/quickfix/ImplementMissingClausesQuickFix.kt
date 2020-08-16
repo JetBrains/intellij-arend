@@ -138,14 +138,13 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     }
                 }
                 is ArendCaseExpr -> {
-                    cause.clauseList.lastOrNull() ?: (cause.lbrace ?: (cause.withKw ?: (cause.returnExpr
-                            ?: cause.caseArgList.lastOrNull())?.let { withAnchor ->
-                        cause.addAfterWithNotification((psiFactory.createExpression("\\case 0 \\with") as ArendCaseExpr).withKw!!,
-                                cause.addAfter(psiFactory.createWhitespace(" "), withAnchor))
-                    })?.let {
-                        insertPairOfBraces(psiFactory, it)
-                        cause.lbrace
-                    })
+                    val body = cause.withBody
+                    val caseExprAnchor = cause.returnExpr ?: cause.caseArgList.lastOrNull()
+                    body?.clauseList?.lastOrNull() ?: (body?.lbrace ?: (
+                            body?.let {
+                                insertPairOfBraces(psiFactory, it.withKw)
+                                body.lbrace
+                            } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
                 }
                 is ArendCoClauseDef -> {
                     val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
@@ -156,6 +155,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                     coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
                 }
+                is ArendLongName -> {
+                    val newExpr = ((cause.parent as? ArendLongNameExpr ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
+                    findWithBodyAnchor(newExpr, psiFactory)
+                }
+                is ArendWithBody -> findWithBodyAnchor(cause.parent as? ArendNewExpr, psiFactory)
                 else -> null
             }
             val anchorParent = anchor?.parent
@@ -173,6 +177,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 primerClause.delete()
             }
 
+        }
+
+        private fun findWithBodyAnchor(newExpr: ArendNewExpr?, psiFactory: ArendPsiFactory): PsiElement? {
+            if (newExpr == null) return null
+            val body = newExpr.withBody
+            return body?.clauseList?.lastOrNull() ?: body?.lbrace ?: body?.let {
+                insertPairOfBraces(psiFactory, it.withKw)
+                body.lbrace
+            } ?: (newExpr.add(psiFactory.createWithBody()) as? ArendWithBody)?.lbrace
         }
 
         private fun computeFilter(input: List<PatternKind>): List<Boolean> {

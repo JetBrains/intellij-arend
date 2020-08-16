@@ -40,7 +40,7 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
             private val descriptors: MutableList<FoldingDescriptor>
     ) : ArendVisitor() {
 
-        override fun visitCaseExpr(o: ArendCaseExpr) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitWithBody(o: ArendWithBody) = foldBetween(o, o.lbrace, o.rbrace)
 
         override fun visitFunctionBody(o: ArendFunctionBody) = fold(o)
 
