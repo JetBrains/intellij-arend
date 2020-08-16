@@ -5,9 +5,11 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
 import org.arend.ext.error.ErrorReporter
+import org.arend.naming.reference.MetaReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.error.ErrorService
@@ -33,6 +35,15 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
             runReadAction {
                 val file = ref.containingFile as? ArendFile ?: return@runReadAction
                 file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
+            }
+        }
+    }
+
+    override fun metaFound(metas: Collection<MetaReferable>) {
+        super.metaFound(metas)
+        metas.forEach { ref ->
+            if (ref is MetaAdapter) {
+                ref.computeConcrete(referableConverter, errorReporter)
             }
         }
     }

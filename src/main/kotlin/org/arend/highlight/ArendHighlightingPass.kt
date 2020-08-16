@@ -13,7 +13,6 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
