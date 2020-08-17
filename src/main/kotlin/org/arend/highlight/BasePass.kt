@@ -22,6 +22,7 @@ import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
+import org.arend.ext.error.MissingClausesError
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder

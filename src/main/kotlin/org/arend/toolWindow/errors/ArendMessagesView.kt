@@ -23,7 +23,7 @@ import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
-import org.arend.typechecking.error.local.MissingClausesError
+import org.arend.ext.error.MissingClausesError
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
