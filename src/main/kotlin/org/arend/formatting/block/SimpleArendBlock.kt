@@ -380,6 +380,11 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         parseCommentPiece(1, Indent.getNoneIndent(), false)
         while (commentText.isNotEmpty()) {
+            if (commentText == "-}") {
+                parseCommentPiece(commentText.length, oneSpaceIndent, false)
+                break
+            }
+
             if (commentText[0] == '-')
                 parseCommentPiece(1, oneSpaceIndent, true)
 
