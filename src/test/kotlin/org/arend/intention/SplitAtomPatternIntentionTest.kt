@@ -412,6 +412,16 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | con t s => {?} 
     """)
 
+    fun test_225() = typedQuickFixTest("Split", """
+       \lemma foo (n : Nat) : n = n
+         | 0 => {?}
+         | suc n{-caret-} => {?} 
+    """, """
+       \lemma foo (n : Nat) : n = n
+         | 0 => {?}
+         | 1 => {?}
+         | suc (suc n) => {?} 
+    """)
 
 
 
