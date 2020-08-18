@@ -260,9 +260,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 }
 
                 is IgnoredArgumentError -> {
-                    val argument = cause.ancestor<ArendArgument>()
-                    if (argument != null) {
-                        annotation.registerFix(RemoveArgumentQuickFix(SmartPointerManager.createPointer(argument)))
+                    when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                        is ArendArgument -> annotation.registerFix(RemoveArgumentQuickFix(SmartPointerManager.createPointer(parent)))
+                        is ArendTupleExpr -> annotation.registerFix(RemoveTupleExprQuickFix(SmartPointerManager.createPointer(parent), true))
                     }
                 }
             }
