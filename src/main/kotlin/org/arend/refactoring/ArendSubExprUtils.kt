@@ -195,8 +195,8 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
             .toList()
     if (exprs.size == 1) return exprs.first().textRange
     // exprs is guaranteed to be empty
-    val leftMost = exprs.minBy { it.textRange.startOffset }!!
-    val rightMost = exprs.maxBy { it.textRange.endOffset }!!
+    val leftMost = exprs.minByOrNull { it.textRange.startOffset }!!
+    val rightMost = exprs.maxByOrNull { it.textRange.endOffset }!!
     val siblings = PsiTreeUtil
             .findCommonParent(leftMost, rightMost)
             ?.childrenWithLeaves
