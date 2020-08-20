@@ -13,7 +13,6 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.navigate
-import org.arend.typechecking.error.ArendError
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JScrollPane
@@ -43,7 +42,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     }
 
     fun navigate(focus: Boolean) =
-        ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendError)?.let { BasePass.getImprovedCause(it.error) }?.navigate(focus)
+        ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement)?.let { BasePass.getImprovedCause(it.sampleError.error) }?.navigate(focus)
 
     fun select(error: GeneralError) = selectNode(error)
 
@@ -53,7 +52,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         val root = model.root as? DefaultMutableTreeNode ?: return false
         var node: DefaultMutableTreeNode? = null
         for (any in root.depthFirstEnumeration()) {
-            if (any is DefaultMutableTreeNode && (error != null && (any.userObject as? ArendError)?.error == error || error == null && any.userObject is ArendError)) {
+            if (any is DefaultMutableTreeNode && (error != null && (any.userObject as? ArendErrorTreeElement)?.errors?.any { it.error == error } == true || error == null && any.userObject is ArendErrorTreeElement)) {
                 node = any
                 break
             }
@@ -94,7 +93,13 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
             is ArendFile -> obj.moduleLocation?.toString() ?: obj.name
-            is ArendError -> DocStringBuilder.build(obj.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT))
+            is ArendErrorTreeElement -> {
+                val messages = LinkedHashSet<String>()
+                for (arendError in obj.errors) {
+                    messages.add(DocStringBuilder.build(arendError.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT)))
+                }
+                messages.joinToString("; ")
+            }
             is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
             else -> obj?.toString() ?: ""
         }
@@ -116,18 +121,22 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     }
 
     private fun <T : MutableTreeNode> insertNode(child: T, parent: T, comparator: Comparator<T>): T {
-        val arendError = (child as? DefaultMutableTreeNode)?.userObject as? ArendError
-        return if (arendError != null) {
+        val treeElement = (child as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
+        return if (treeElement != null) {
             var i = parent.childCount - 1
             while (i >= 0) {
-                val anotherError = (parent.getChildAt(i) as? DefaultMutableTreeNode)?.userObject as? ArendError
-                if (anotherError == null || arendError.error.level <= anotherError.error.level) {
+                val anotherError = (parent.getChildAt(i) as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
+                if (anotherError == null || treeElement.highestError.error.level <= anotherError.highestError.error.level) {
                     break
                 }
                 i--
             }
             (treeModel as DefaultTreeModel).insertNodeInto(child, parent, i + 1)
-            listener?.errorAdded(arendError)
+            listener?.let {
+                for (error in treeElement.errors) {
+                    it.errorAdded(error)
+                }
+            }
             child
         } else {
             val index = TreeUtil.indexedBinarySearch(parent, child, comparator)
@@ -142,8 +151,12 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     }
 
     private fun notifyRemoval(node: TreeNode) {
-        ((node as? DefaultMutableTreeNode)?.userObject as? ArendError)?.let {
-            listener?.errorRemoved(it)
+        ((node as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement)?.let { treeElement ->
+            listener?.let {
+                for (error in treeElement.errors) {
+                    it.errorRemoved(error)
+                }
+            }
         }
         for (child in node.children()) {
             if (child is TreeNode) {
@@ -152,7 +165,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         }
     }
 
-    fun update(node: DefaultMutableTreeNode, childrenFunc: (DefaultMutableTreeNode) -> Set<Any?>) {
+    fun update(node: DefaultMutableTreeNode, childrenFunc: (DefaultMutableTreeNode) -> Collection<Any?>) {
         val children = childrenFunc(node).let { it as? HashSet ?: LinkedHashSet(it) }
 
         var i = node.childCount - 1
@@ -180,9 +193,9 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
                 obj1 == obj2 -> 0
                 obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.moduleLocation?.toString() ?: obj1.name).compareTo(obj2.moduleLocation?.toString() ?: obj2.name))
                 obj1 is TCDefinition && obj2 is TCDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
-                obj1 is ArendError && obj2 is ArendError -> fix(obj1.error.level.compareTo(obj2.error.level) * -1)
-                obj1 is ArendError -> 1
-                obj2 is ArendError -> -1
+                obj1 is ArendErrorTreeElement && obj2 is ArendErrorTreeElement -> fix(obj1.highestError.error.level.compareTo(obj2.highestError.error.level) * -1)
+                obj1 is ArendErrorTreeElement -> 1
+                obj2 is ArendErrorTreeElement -> -1
                 obj1 is ArendFile -> 1
                 obj2 is ArendFile -> -1
                 else -> -1

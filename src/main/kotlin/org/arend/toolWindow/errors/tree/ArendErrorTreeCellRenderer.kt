@@ -4,7 +4,6 @@ import com.intellij.openapi.util.Iconable
 import com.intellij.ui.render.LabelBasedRenderer
 import org.arend.ArendIcons
 import org.arend.ext.module.ModulePath
-import org.arend.typechecking.error.ArendError
 import java.awt.Component
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
@@ -16,7 +15,7 @@ class ArendErrorTreeCellRenderer : LabelBasedRenderer.Tree() {
         when (val obj = (value as? DefaultMutableTreeNode)?.userObject) {
             is ModulePath -> icon = ArendIcons.AREND_FILE
             is Iconable -> icon = obj.getIcon(0)
-            is ArendError -> icon = ArendIcons.getErrorLevelIcon(obj.error.level)
+            is ArendErrorTreeElement -> icon = ArendIcons.getErrorLevelIcon(obj.highestError.error.level)
         }
         return this
     }

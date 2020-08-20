@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.wm.ToolWindow
+import com.intellij.psi.PsiElement
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.layout.panel
@@ -23,7 +24,7 @@ import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
-import org.arend.typechecking.error.local.MissingClausesError
+import org.arend.ext.error.MissingClausesError
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -100,21 +101,23 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     fun setActiveEditor() {
-        val arendError = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendError
-        if (arendError != null) {
-            val arendEditor = errorEditors.computeIfAbsent(arendError.error) {
-                configureError(arendError.error)
-                InjectedArendEditor(project, "Arend Messages", arendError)
+        val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
+        if (treeElement != null) {
+            val arendEditor = errorEditors.computeIfAbsent(treeElement.sampleError.error) {
+                for (arendError in treeElement.errors) {
+                    configureError(arendError.error)
+                }
+                InjectedArendEditor(project, "Arend Messages", treeElement)
             }
 
-            if (activeEditor?.error?.let { errorEditors.containsKey(it) } == false) {
+            if (activeEditor?.treeElement?.let { errorEditors.containsKey(it.sampleError.error) } == false) {
                 activeEditor?.release()
             }
 
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
         } else {
-            val activeError = activeEditor?.arendError
+            val activeError = activeEditor?.treeElement?.sampleError
             if (activeError != null && !errorEditors.containsKey(activeError.error)) {
                 val def = activeError.definition
                 if (def == null || !tree.containsNode(def)) {
@@ -153,7 +156,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
-        val map = HashMap<TCDefinition, HashSet<ArendError>>()
+        val map = HashMap<TCDefinition, HashMap<PsiElement?, ArendErrorTreeElement>>()
         tree.update(root) {
             if (it == root) errorsMap.keys
             else when (val obj = it.userObject) {
@@ -167,15 +170,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
                         val def = arendError.definition
                         if (def == null) {
-                            children.add(arendError)
+                            children.add(ArendErrorTreeElement(arendError))
                         } else {
                             children.add(def)
-                            map.computeIfAbsent(def) { LinkedHashSet() }.add(arendError)
+                            map.computeIfAbsent(def) { LinkedHashMap() }.computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
                         }
                     }
                     children
                 }
-                is TCDefinition -> map[obj] ?: emptySet()
+                is TCDefinition -> map[obj]?.values ?: emptySet()
                 else -> emptySet()
             }
         }

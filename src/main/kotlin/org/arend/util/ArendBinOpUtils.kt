@@ -39,8 +39,8 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? 
             elements.add(f.first().textRange)
         }
 
-        val startOffset = elements.asSequence().map { it.startOffset }.min()
-        val endOffset = elements.asSequence().map { it.endOffset }.max()
+        val startOffset = elements.asSequence().map { it.startOffset }.minOrNull()
+        val endOffset = elements.asSequence().map { it.endOffset }.maxOrNull()
         if (startOffset != null && endOffset != null) {
             return TextRange.create(startOffset, endOffset)
         }

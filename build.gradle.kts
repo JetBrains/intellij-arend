@@ -11,7 +11,7 @@ version = "1.4.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.3.72"
+    kotlin("jvm") version "1.4.0"
     id("org.jetbrains.intellij") version "0.4.21"
     id("org.jetbrains.grammarkit") version "2020.2.1"
 }
@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    compileOnly(kotlin("stdlib-jdk8"))
+    implementation(kotlin("reflect"))
 }
 
 configure<JavaPluginConvention> {
@@ -56,7 +56,7 @@ intellij {
     version = "2020.2"
     pluginName = "Arend"
     updateSinceUntilBuild = true
-    instrumentCode = false
+    instrumentCode = true
     setPlugins("yaml", "java", "IdeaVIM:0.57")
 }
 
@@ -102,8 +102,8 @@ val generateArendDocLexer = task<GenerateLexer>("genArendDocLexer") {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "11"
-        languageVersion = "1.3"
-        apiVersion = "1.3"
+        languageVersion = "1.4"
+        apiVersion = "1.4"
         freeCompilerArgs = listOf("-Xjvm-default=enable")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)

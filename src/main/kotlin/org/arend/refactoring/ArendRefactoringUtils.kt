@@ -13,10 +13,11 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
-import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Definition
-import org.arend.core.expr.Expression
-import org.arend.core.expr.ReferenceExpression
+import org.arend.ext.core.context.CoreBinding
+import org.arend.ext.core.context.CoreParameter
+import org.arend.ext.core.expr.CoreExpression
+import org.arend.ext.core.expr.CoreReferenceExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
 import org.arend.ext.variable.VariableImpl
@@ -408,12 +409,12 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 // Support of pattern-matching on idp in refactorings
 enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
 
-fun admitsPatternMatchingOnIdp(expr: Expression,
-                               caseParameters: DependentLink?,
-                               eliminatedBindings: Set<DependentLink>? = null): PatternMatchingOnIdpResult {
+fun admitsPatternMatchingOnIdp(expr: CoreExpression,
+                               caseParameters: CoreParameter?,
+                               eliminatedBindings: Set<CoreBinding>? = null): PatternMatchingOnIdpResult {
     val equality = expr.toEquality() ?: return PatternMatchingOnIdpResult.INAPPLICABLE
-    val leftBinding = (equality.defCallArguments[1] as? ReferenceExpression)?.binding
-    val rightBinding = (equality.defCallArguments[2] as? ReferenceExpression)?.binding
+    val leftBinding = (equality.defCallArguments[1] as? CoreReferenceExpression)?.binding
+    val rightBinding = (equality.defCallArguments[2] as? CoreReferenceExpression)?.binding
     val leftNotEliminated = eliminatedBindings == null || !eliminatedBindings.contains(leftBinding)
     val rightNotEliminated = eliminatedBindings == null || !eliminatedBindings.contains(rightBinding)
     var leftSideOk = caseParameters == null && leftBinding != null && leftNotEliminated
@@ -676,7 +677,6 @@ private object ConcretePrecVisitor : ConcreteExpressionVisitor<Void?, Int> {
 
     override fun visitApp(expr: Concrete.AppExpression, params: Void?) = APP_PREC
     override fun visitThis(expr: Concrete.ThisExpression, params: Void?) = MAX_PREC
-    override fun visitInferenceReference(expr: Concrete.InferenceReferenceExpression, params: Void?) = MAX_PREC
     override fun visitLam(expr: Concrete.LamExpression, params: Void?) = MIN_PREC
     override fun visitPi(expr: Concrete.PiExpression, params: Void?) = MIN_PREC
     override fun visitHole(expr: Concrete.HoleExpression, params: Void?) = MAX_PREC

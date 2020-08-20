@@ -106,4 +106,5 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\open Nat\n\n\\func test => 1\n+ 2\n+ 3",
             "\\open Nat\n\n\\func test => 1\n  + 2\n  + 3")
 
+    fun testMultilineDocCommentWithSuddenEnd() = checkReformat("{- | a\n -}", "{- | a\n -}")
 }

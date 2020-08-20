@@ -101,8 +101,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (definition != null && clauseIndex != -1) {
                 val typeCheckedDefinition = definition.tcReferable?.typechecked
                 if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
-                    val elimBody = (typeCheckedDefinition.body as? IntervalElim)?.otherwise
-                            ?: (typeCheckedDefinition.body as? ElimBody) ?: return null
+                    val elimBody = (typeCheckedDefinition.actualBody as? IntervalElim)?.otherwise
+                            ?: (typeCheckedDefinition.actualBody as? ElimBody) ?: return null
                     val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) }
                             ?: return null
 
@@ -129,7 +129,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (ownerParent is ArendWithBody && patternOwner is ArendClause) {
-                val clauseIndex2 = ownerParent.clauseList.indexOf(patternOwner) ?: -1
+                val clauseIndex2 = ownerParent.clauseList.indexOf(patternOwner)
                 val caseExprData = tryCorrespondedSubExpr(ownerParent.textRange, patternOwner.containingFile, project, editor, false)
                 val coreCaseExpr = caseExprData?.subCore
                 if (coreCaseExpr is CaseExpression) {

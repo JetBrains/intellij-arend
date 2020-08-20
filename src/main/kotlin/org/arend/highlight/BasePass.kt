@@ -22,6 +22,8 @@ import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
+import org.arend.ext.error.IgnoredArgumentError
+import org.arend.ext.error.MissingClausesError
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
@@ -254,6 +256,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
                     REDUNDANT_COCLAUSE -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
                     else -> {
+                    }
+                }
+
+                is IgnoredArgumentError -> {
+                    when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                        is ArendArgument -> annotation.registerFix(RemoveArgumentQuickFix(SmartPointerManager.createPointer(parent)))
+                        is ArendTupleExpr -> annotation.registerFix(RemoveTupleExprQuickFix(SmartPointerManager.createPointer(parent), true))
                     }
                 }
             }
