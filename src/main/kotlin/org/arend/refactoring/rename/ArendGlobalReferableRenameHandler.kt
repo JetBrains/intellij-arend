@@ -50,12 +50,14 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     override fun doRename(elementToRename: PsiElement, editor: Editor, dataContext: DataContext?): InplaceRefactoring? {
         if (ApplicationManager.getApplication().isUnitTestMode && dataContext != null) { //Invoked only in tests
             val newName = PsiElementRenameHandler.DEFAULT_NAME.getData(dataContext)
-            val project = editor.project
-            if (project != null && newName != null && elementToRename is PsiNameIdentifierOwner) {
-                val context = getContext(project, elementToRename, editor)
-                if (context != null) ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias, null).run()
+            if (newName != null) {
+                val project = editor.project
+                if (project != null && elementToRename is PsiNameIdentifierOwner) {
+                    val context = getContext(project, elementToRename, editor)
+                    if (context != null) ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias, null).run()
+                }
+                return null
             }
-            return null
         }
         if (elementToRename is PsiNameIdentifierOwner && elementToRename is GlobalReferable) {
             val renamer = createMemberRenamer(elementToRename, elementToRename, editor)

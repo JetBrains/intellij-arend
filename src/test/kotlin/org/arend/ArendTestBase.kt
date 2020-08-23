@@ -10,6 +10,7 @@ import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -135,12 +136,16 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     inner class InlineFile(@Language("Arend") private val code: String, name: String = "Main.ard") {
         private val hasCaretMarker = CARET_MARKER in code
+        val psiFile : PsiFile
 
         init {
-            myFixture.configureByText(name, replaceCaretMarker(code))
+            psiFile = myFixture.configureByText(name, replaceCaretMarker(code))
         }
 
-        fun withCaret() = check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
+        fun withCaret(): PsiFile {
+            check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
+            return psiFile
+        }
     }
 
     protected inline fun <reified T : PsiElement> findElementInEditor(marker: String = "^"): T {
