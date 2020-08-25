@@ -20,10 +20,7 @@ import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
-import org.arend.ext.error.ErrorReporter
-import org.arend.ext.error.GeneralError
-import org.arend.ext.error.IgnoredArgumentError
-import org.arend.ext.error.MissingClausesError
+import org.arend.ext.error.*
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
@@ -253,11 +250,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         }
                     PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                    REDUNDANT_CLAUSE -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
-                    REDUNDANT_COCLAUSE -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
-                    else -> {
-                    }
+                    else -> {}
                 }
+
+                is RedundantClauseError -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
+
+                is RedundantCoclauseError -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
                 is IgnoredArgumentError -> {
                     when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
