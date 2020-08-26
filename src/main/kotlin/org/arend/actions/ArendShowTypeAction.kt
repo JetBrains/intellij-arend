@@ -41,7 +41,7 @@ class ArendShowTypeAction : ArendPopupAction() {
             editor.selectionModel.setSelection(range.startOffset, range.endOffset)
 
         fun hint(e: Expression?, element: ArendCompositeElement?) = if (e != null) {
-            val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
+            val normalizePopup = project.service<ArendProjectSettings>().data.popupNormalize
             val definitionRenamer = element?.let { PsiLocatedRenamer(it) }
             if (normalizePopup) normalizeExpr(project, e, NormalizationMode.RNF, definitionRenamer) { exprStr ->
                 displayEditorHint(exprStr.toString(), project, editor, AD_TEXT_N)
