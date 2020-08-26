@@ -1,16 +1,20 @@
 package org.arend.psi.listener
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.resolving.ArendResolveCache
 
 
 class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), ModificationTracker {
+    private val resolveCache = project.service<ArendResolveCache>()
     private val listeners = HashSet<ArendDefinitionChangeListener>()
     private var modificationCount: Long = 0
 
@@ -78,6 +82,10 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     }
 
     private fun processParent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
+        if (parent is ArendReferenceElement) {
+            resolveCache.dropCache(parent)
+        }
+
         if (child is PsiErrorElement ||
             child is PsiWhiteSpace ||
             child is ArendWhere ||

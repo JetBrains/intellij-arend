@@ -70,7 +70,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
     var current = sourceNode
     while (true) {
         val parent = current.parent
-        if (current is Abstract.Expression != parent is Abstract.Expression) {
+        if (parent == null || current is Abstract.Expression != parent is Abstract.Expression) {
             return current
         }
         current = when {

@@ -40,6 +40,10 @@ class ArendResolveCache(project: Project) {
     fun replaceCache(newRef: Referable?, reference: ArendReferenceElement) =
         refMap.put(reference, newRef ?: TCReferable.NULL_REFERABLE)
 
+    fun dropCache(reference: ArendReferenceElement) {
+        refMap.remove(reference)
+    }
+
     fun clear() {
         refMap.clear()
     }
