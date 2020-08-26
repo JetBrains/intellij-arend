@@ -35,7 +35,8 @@ class ArendProjectSettingsState {
     var goalPrintingOptions = ArendPrintingOptions()
     var popupPrintingOptions = ArendPrintingOptions()
 
-    var normalizePopup = false
+    var popupNormalize = false
+    var popupFontSize = 12
 
     // Repl options
     var replNormalizationMode = NormalizationMode.ENF.toString()

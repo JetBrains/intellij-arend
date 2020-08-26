@@ -12,9 +12,9 @@ object ArendNormalizeToggleAction : ToggleAction() {
     }
 
     override fun isSelected(e: AnActionEvent) =
-            e.project?.run { service<ArendProjectSettings>().data.normalizePopup } ?: false
+            e.project?.run { service<ArendProjectSettings>().data.popupNormalize } ?: false
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-        e.project?.run { service<ArendProjectSettings>().data.normalizePopup = state }
+        e.project?.run { service<ArendProjectSettings>().data.popupNormalize = state }
     }
 }

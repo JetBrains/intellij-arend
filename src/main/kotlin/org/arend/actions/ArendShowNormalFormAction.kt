@@ -25,7 +25,7 @@ class ArendShowNormalFormAction : ArendPopupAction() {
             val (subCore, subExpr, subPsi) = correspondedSubExpr(range, file, project)
             val textRange = rangeOfConcrete(subExpr)
             editor.selectionModel.setSelection(textRange.startOffset, textRange.endOffset)
-            val normalizePopup = project.service<ArendProjectSettings>().data.normalizePopup
+            val normalizePopup = project.service<ArendProjectSettings>().data.popupNormalize
             if (normalizePopup) normalizeExpr(project, subCore, NormalizationMode.WHNF, PsiLocatedRenamer(subPsi)) {
                 displayEditorHint(it.toString(), project, editor, AD_TEXT_N)
             } else {
