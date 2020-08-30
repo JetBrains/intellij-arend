@@ -8,7 +8,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.param.DependentLink
-import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
 import org.arend.ext.core.body.CorePattern
@@ -230,7 +229,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     }
                     return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT
                 } else {
-                    val definition: CoreDefinition? = pattern.definition
+                    val definition: CoreDefinition? = pattern.constructor
                     val previewResults = ArrayList<PatternKind>()
 
                     val patternIterator = pattern.subPatterns.iterator()
@@ -251,7 +250,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         }
 
         private fun getIntegralNumber(pattern: CorePattern): Int? {
-            val definition = pattern.definition
+            val definition = pattern.constructor
             val isSuc = definition == Prelude.SUC
             val isPos = definition == Prelude.POS
             val isNeg = definition == Prelude.NEG
@@ -294,7 +293,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     result
                 } else {
                     eliminatedBindings.add(sampleParameter)
-                    val definition = pattern.definition as? Definition
+                    val definition = pattern.constructor as? Definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
                     val integralNumber = getIntegralNumber(pattern)
                     val patternMatchingOnIdp = if (missingClausesError.generateIdpPatterns) {
@@ -307,7 +306,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     } else if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
                         integralNumber.toString()
                     } else {
-                        val tupleMode = definition == null || definition is ClassDefinition && definition.isRecord
+                        val tupleMode = definition == null
                         val argumentPatterns = ArrayList<String>()
                         run {
                             val patternIterator = pattern.subPatterns.iterator()
