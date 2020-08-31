@@ -3,7 +3,6 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.ext.typechecking.MetaDefinition
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendDefMeta
