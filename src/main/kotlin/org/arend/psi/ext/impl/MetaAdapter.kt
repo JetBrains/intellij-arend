@@ -20,7 +20,7 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
     var metaRef: MetaReferable? = null
 
     override fun getReferable() =
-        metaRef ?: MetaReferable(precedence, name, location, aliasPrecedence, aliasName, documentation.toString(), null, null).apply {
+        metaRef ?: MetaReferable(precedence, name, location, aliasPrecedence, aliasName, documentation.toString(), null, null, parentGroup?.referable).apply {
             underlyingReferable = this@MetaAdapter
             metaRef = this
         }
