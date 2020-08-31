@@ -243,7 +243,7 @@ definition ::= defFunction
 }
 
 defModule ::= MODULE_KW prec? defIdentifier_module alias? where? {
-    pin(".*") = 1
+    pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
@@ -251,7 +251,7 @@ defModule ::= MODULE_KW prec? defIdentifier_module alias? where? {
 }
 
 defMeta ::= META_KW prec? defIdentifier_func alias? [nameTeleUntyped* functionTermBody] where? {
-    pin(".*") = 1
+    pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.MetaAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
@@ -909,8 +909,10 @@ nameTeleUntyped ::= defIdentifier {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Parameter" ]
     mixin = "org.arend.psi.ext.ArendNameTeleUntypedImplMixin"
-    recoverWhile = nameTele_recover
+    recoverWhile = nameTeleUntyped_recover
 }
+
+private nameTeleUntyped_recover ::= !(ID | FAT_ARROW) & statement_recover
 
 private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1}
 
