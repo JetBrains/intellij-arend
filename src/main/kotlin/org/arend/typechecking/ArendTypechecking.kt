@@ -42,9 +42,8 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
     override fun metaFound(metas: Collection<MetaReferable>) {
         super.metaFound(metas)
         metas.forEach { ref ->
-            if (ref is MetaAdapter) {
-                ref.computeConcrete(referableConverter, errorReporter)
-            }
+            val adapter = ref.underlyingReferable
+            if (adapter is MetaAdapter) adapter.computeConcrete(referableConverter, errorReporter)
         }
     }
 
