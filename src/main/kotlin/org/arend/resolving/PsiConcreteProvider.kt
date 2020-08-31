@@ -8,7 +8,6 @@ import org.arend.ext.reference.Precedence
 import org.arend.naming.error.ReferenceError
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferableImpl
-import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -130,7 +129,4 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
         val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefData) getConcreteDefinition(psiReferable) as? Concrete.DataDefinition else null
     }
-
-    override fun getTCReferable(referable: GlobalReferable) =
-        referable as? TCReferable ?: (referable as? PsiLocatedReferable)?.tcReferable
 }
