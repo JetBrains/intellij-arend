@@ -20,7 +20,6 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
-import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 
@@ -91,19 +90,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
-            override fun definableMetaResolved(definition: DefinableMetaDefinition) {
-                progress.checkCanceled()
-
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let(::highlightLocatedReferable)
-
-                highlightParameters(definition)
-
-                definition.accept(IntentionBackEndVisitor(holder), null)
-
-                advanceProgress(1)
-            }
-
-            override fun definitionResolved(definition: Concrete.Definition) {
+            override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
                 progress.checkCanceled()
 
                 if (resetDefinition) {
@@ -112,7 +99,14 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                     }
                 }
 
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let(::highlightLocatedReferable)
+                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
+                    ref.nameIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
+                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    }
+                }
 
                 highlightParameters(definition)
                 if (definition is Concrete.DataDefinition) {
@@ -126,15 +120,6 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 definition.accept(IntentionBackEndVisitor(holder), null)
 
                 advanceProgress(1)
-            }
-
-            private fun highlightLocatedReferable(ref: PsiLocatedReferable) {
-                ref.nameIdentifier?.let {
-                    holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
-                }
-                (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
-                    holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
-                }
             }
         }).resolveGroup(group, group.scope)
 

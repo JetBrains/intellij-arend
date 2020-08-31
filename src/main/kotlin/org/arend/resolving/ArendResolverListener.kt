@@ -94,9 +94,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
 
     protected var resetDefinition = false
 
-    override fun beforeDefinitionResolved(definition: Concrete.Definition?) {
+    override fun beforeDefinitionResolved(definition: Concrete.ResolvableDefinition?) {
         resetDefinition = false
     }
-
-    override fun definitionResolved(definition: Concrete.Definition) {}
 }
