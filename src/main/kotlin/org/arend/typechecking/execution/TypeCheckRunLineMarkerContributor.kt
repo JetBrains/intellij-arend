@@ -6,7 +6,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.util.Function
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.*
 import org.arend.psi.ext.TCDefinition
@@ -24,10 +23,6 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> null
         } ?: return null
 
-        if (parent is ArendDefMeta) {
-            return null
-        }
-
         val def = parent.tcReferable?.typechecked
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
@@ -38,7 +33,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         return Info(
                 icon,
-                Function { runReadAction {
+                { runReadAction {
                     if (parent.isValid) "Typecheck ${parent.fullName}" else "Typecheck definition"
                 } },
                 *ExecutorAction.getActions(1)

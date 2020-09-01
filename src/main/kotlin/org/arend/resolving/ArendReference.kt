@@ -53,8 +53,8 @@ private object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
-        is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCReferable.NULL_REFERABLE)
-        else -> LocatedReferableImpl(referable.precedence, referable.refName, TCReferable.NULL_REFERABLE, referable.kind)
+        is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
+        else -> LocatedReferableImpl(referable.precedence, referable.refName, TCDefReferable.NULL_REFERABLE, referable.kind)
     }
 
     override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable

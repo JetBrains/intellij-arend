@@ -1,15 +1,19 @@
 package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendDefMeta
 import org.arend.psi.ArendNameTeleUntyped
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendDefMetaStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
+import java.util.function.Supplier
 
 
 abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, Abstract.MetaDefinition {
@@ -17,21 +21,15 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
 
     constructor(stub: ArendDefMetaStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    var metaRef: MetaReferable? = null
+    var metaRef: MetaReferable?
+        get() = tcReferableCache as MetaReferable?
+        set(value) {
+            tcReferableCache = value
+        }
 
-    override fun getReferable() = metaRef
-        ?: object : MetaReferable(null, null, null, null, null, documentation.toString(), null, null, locatedReferableParent) {
-            init {
-                underlyingReferable = this@MetaAdapter
-                metaRef = this
-            }
-
-            override fun getPrecedence() = this@MetaAdapter.precedence
-            override fun getAliasName() = this@MetaAdapter.aliasName
-            override fun getAliasPrecedence() = this@MetaAdapter.aliasPrecedence
-            override fun getRefName() = this@MetaAdapter.refName
-            override fun textRepresentation() = this@MetaAdapter.textRepresentation()
-            override fun getLocation() = this@MetaAdapter.location!!
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
+        MetaReferable(precedence, refName, location, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
+            underlyingReferable = Supplier { data.element }
         }
 
     override fun getKind() = GlobalReferable.Kind.OTHER

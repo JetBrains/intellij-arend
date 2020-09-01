@@ -6,6 +6,7 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
@@ -71,4 +72,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
     override fun getIcon(flags: Int): Icon = ArendIcons.COCLAUSE_DEFINITION
+
+    override val tcReferable: TCDefReferable?
+        get() = super.tcReferable as TCDefReferable?
 }

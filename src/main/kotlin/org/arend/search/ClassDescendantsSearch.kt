@@ -7,7 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
 import org.arend.psi.*
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendDefinitionChangeService
@@ -101,7 +101,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         return visited.toList()
     }
 
-    override fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
         if (def is ArendDefClass && FIND_SUBCLASSES || def is ArendDefInstance && FIND_INSTANCES) {
             cache.clear()
         }

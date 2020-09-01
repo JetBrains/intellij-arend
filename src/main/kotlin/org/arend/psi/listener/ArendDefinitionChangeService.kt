@@ -8,7 +8,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendResolveCache
 
@@ -42,7 +42,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
         }
     }
 
-    fun updateDefinition(def: TCDefinition, file: ArendFile, isExternalUpdate: Boolean) {
+    fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
@@ -117,7 +117,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
             if (elem is ArendWhere || elem is ArendFile || isDynamicDef(elem)) {
                 return
             }
-            if (elem is TCDefinition) {
+            if (elem is PsiConcreteReferable) {
                 updateDefinition(elem, file, false)
                 return
             }
@@ -126,7 +126,7 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     }
 
     private fun invalidateChildren(group: ArendGroup, file: ArendFile) {
-        if (group is TCDefinition) {
+        if (group is PsiConcreteReferable) {
             updateDefinition(group, file, false)
         }
         for (subgroup in group.subgroups) {

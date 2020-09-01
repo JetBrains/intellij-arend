@@ -4,22 +4,19 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.reference.Precedence
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.FullModuleReferable
-import org.arend.naming.reference.TCReferable
+import org.arend.naming.reference.*
 import org.arend.psi.ArendAlias
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
 import org.arend.psi.ancestor
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
-import org.arend.psi.ext.TCDefinition
 import org.arend.psi.stubs.ArendNamedStub
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 
 abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
@@ -40,17 +37,19 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(getPrec())
 
-    override fun getTypecheckable(): PsiLocatedReferable = ancestor<TCDefinition>() ?: this
+    override fun getTypecheckable(): PsiLocatedReferable = ancestor<PsiConcreteReferable>() ?: this
 
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
-    private var tcReferableCache: TCReferable? = null
+    protected var tcReferableCache: TCReferable? = null
 
     fun dropTCCache() {
         tcReferableCache = null
     }
+
+    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable
 
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
@@ -62,7 +61,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                     val locatedParent = locatedReferableParent
                     val parent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
                     val pointer = SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(this, file)
-                    val ref = if (this is FieldReferable) FieldDataLocatedReferable(pointer, this, parent) else DataLocatedReferable(pointer, this, parent)
+                    val ref = makeTCReferable(pointer, parent)
                     tcReferableCache = ref
                     file.tcRefMap[longName] = ref
                     ref
@@ -76,8 +75,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
             val file = containingFile as? ArendFile ?: return
             service.tcRefMaps[file.moduleLocation]?.get(refLongName)
         } ?: return
-        tcRef.typechecked = null
         service.dependencyListener.update(tcRef)
+        (tcRef as? TCDefReferable)?.typechecked = null
         tcReferableCache = null
     }
 

@@ -31,6 +31,7 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
+import java.util.function.Supplier
 
 class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
@@ -201,7 +202,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 if (meta is MetaReferable) {
                     (subgroup as? MetaAdapter)?.let { module ->
                         module.metaRef = meta
-                        meta.underlyingReferable = module
+                        meta.underlyingReferable = Supplier { module }
                     }
                 }
                 scope.resolveNamespace(name, false)?.let {

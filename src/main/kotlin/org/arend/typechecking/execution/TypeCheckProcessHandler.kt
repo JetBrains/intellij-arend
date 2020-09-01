@@ -24,6 +24,7 @@ import org.arend.module.ModuleLocation
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.FullModuleReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -155,7 +156,7 @@ class TypeCheckProcessHandler(
                         } else {
                             val tcReferable = runReadAction { ArendReferableConverter.toDataLocatedReferable(ref) }
                             val typechecked =
-                                if (tcReferable != null) {
+                                if (tcReferable is TCDefReferable) {
                                     if (PsiLocatedReferable.isValid(tcReferable)) {
                                         tcReferable.typechecked
                                     } else {
@@ -215,7 +216,7 @@ class TypeCheckProcessHandler(
         }
 
         val tcReferable = group.tcReferable
-        if (tcReferable != null) {
+        if (tcReferable is TCDefReferable) {
             val typechecked = tcReferable.typechecked
             if (typechecked != null && !typechecked.status().isOK) {
                 typeCheckerService.dependencyListener.update(tcReferable)

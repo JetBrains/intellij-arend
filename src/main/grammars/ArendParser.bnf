@@ -237,12 +237,11 @@ definition ::= defFunction
     | defMeta
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
-defModule ::= MODULE_KW prec? defIdentifier_module alias? where? {
+defModule ::= MODULE_KW defIdentifier_module where? {
     pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
@@ -268,6 +267,7 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
@@ -297,6 +297,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functio
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.InstanceAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
@@ -307,6 +308,7 @@ instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_typeTele alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
+    implements = "org.arend.psi.ext.TCDefinition"
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefDataStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -328,7 +330,8 @@ private truncatedKW ::= TRUNCATED_KW {
 }
 
 defClass ::= (defClassClass | defClassRecord) where? {
-    implements = "org.arend.naming.reference.ClassReferable"
+    implements = [ "org.arend.naming.reference.ClassReferable"
+                   "org.arend.psi.ext.TCDefinition" ]
     mixin = "org.arend.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefClassStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"

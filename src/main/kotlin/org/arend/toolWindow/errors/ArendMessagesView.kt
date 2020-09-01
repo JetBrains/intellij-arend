@@ -18,13 +18,13 @@ import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.TCDefinition
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.ext.error.MissingClausesError
+import org.arend.psi.ext.PsiConcreteReferable
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -156,7 +156,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
-        val map = HashMap<TCDefinition, HashMap<PsiElement?, ArendErrorTreeElement>>()
+        val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
         tree.update(root) {
             if (it == root) errorsMap.keys
             else when (val obj = it.userObject) {
@@ -178,7 +178,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     }
                     children
                 }
-                is TCDefinition -> map[obj]?.values ?: emptySet()
+                is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
                 else -> emptySet()
             }
         }

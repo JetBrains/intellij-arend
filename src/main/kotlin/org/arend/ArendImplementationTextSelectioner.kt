@@ -6,13 +6,13 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendWhere
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiLocatedReferable
 
 class ArendImplementationTextSelectioner : ImplementationTextSelectioner {
     override fun getTextStartOffset(element: PsiElement): Int {
         if (element is ArendDefIdentifier) {
             val parent = element.parent
-            if (parent is TCDefinition) {
+            if (parent is PsiLocatedReferable) {
                 return parent.textRange.startOffset
             }
         }
@@ -22,7 +22,7 @@ class ArendImplementationTextSelectioner : ImplementationTextSelectioner {
     override fun getTextEndOffset(element: PsiElement): Int {
         if (element is ArendDefIdentifier) {
             val parent = element.parent
-            if (parent is TCDefinition) {
+            if (parent is PsiLocatedReferable) {
                 var elem = PsiTreeUtil.getChildOfType(parent, ArendWhere::class.java)?.prevSibling
                 while (elem is PsiWhiteSpace) {
                     elem = elem.prevSibling ?: break

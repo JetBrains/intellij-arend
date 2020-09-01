@@ -3,16 +3,18 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.UnresolvedReference
+import org.arend.naming.reference.*
 import org.arend.psi.*
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
+import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.term.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.typing.ReferableExtractVisitor
@@ -76,4 +78,7 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
 
     override val rangeInElement: TextRange
         get() = TextRange(0, text.length)
+
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
+        FieldDataLocatedReferable(data, this, parent)
 }

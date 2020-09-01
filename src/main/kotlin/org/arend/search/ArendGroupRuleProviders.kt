@@ -10,8 +10,8 @@ import com.intellij.usages.rules.PsiElementUsage
 import com.intellij.usages.rules.SingleParentUsageGroupingRule
 import com.intellij.usages.rules.UsageGroupingRule
 import org.arend.psi.*
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.TCDefinition
 
 class ArendDefClassGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
@@ -45,7 +45,7 @@ class ArendConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
 
 class ArendDefGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<TCDefinition>()
+            createGroupingRule<PsiConcreteReferable>()
 }
 
 private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {
