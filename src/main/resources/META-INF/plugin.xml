@@ -307,6 +307,9 @@
         <!-- Tool Windows -->
 
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
+
+        <!-- Search everywhere contributor-->
+        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
     </extensions>
 
     <actions>
@@ -369,6 +372,12 @@
                 text="Toggle Normalization"
                 description="Toggle normalization in popup actions"
                 class="org.arend.actions.ArendNormalizeToggleAction"/>
+
+        <action class="org.arend.actions.GotoArendFileAction"
+                text="Goto Arend File"
+                description="Go to Arend file">
+            <add-to-group group-id="GoToTargetEx" anchor="last" />
+        </action>
 
         <group id="ToolbarArendGroup"
                class="org.arend.actions.ArendToolbarGroup"
