@@ -4,7 +4,9 @@ import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.DumbService
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.term.abs.Abstract
@@ -57,17 +59,21 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
             if (fData is PsiElement) sampleBlockList.add(Pair(true, fData.node.startOffset))
             sampleBlockList.sortBy { it.second }
 
-            val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.first().first
+            val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.any { it.second == sampleBlockList.first().second && it.first }
             fun isFirst(argument: Concrete.Argument): Boolean =
                 sampleBlockList.size > 0 && (argument.expression.data as? PsiElement)?.node?.startOffset ?: -1 == sampleBlockList[0].second
 
-            val newAlign =  if (cExpr.arguments.size > 1) Alignment.createAlignment() else null
+            var newAlign =  if (cExpr.arguments.size > 1) Alignment.createAlignment() else null
             val newIndent = if (isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
 
             blocks.addAll(cExpr.arguments.asSequence().map {
                 val myBounds = getBounds(it.expression, aaeBlocks)!!
-                val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }
+                val aaeBlocksFiltered = aaeBlocks.filter { aaeBlock -> myBounds.contains(aaeBlock.textRange)  }.asSequence().sortedBy{ aaeBlock -> aaeBlock.startOffset }.toList()
                 val first = isFirst(it)
+                var leadingWhitespace = aaeBlocksFiltered.first().psi.prevSibling
+                if (leadingWhitespace is PsiComment) leadingWhitespace = leadingWhitespace.prevSibling
+                val hasLf = leadingWhitespace is PsiWhiteSpace && leadingWhitespace.textContains('\n')
+                if (hasLf) newAlign = Alignment.createAlignment()
                 transform(it.expression, aaeBlocksFiltered,
                         if (!first) newAlign else null,
                         if (!first) newIndent else Indent.getNoneIndent()) })
