@@ -10,8 +10,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \func abc{-caret-} => 1
             \module def \where {}
             """, """
-            \open def (abc)
-
             \module def \where {
               {- | Block
                - Doc -}
@@ -27,8 +25,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \func foo => 2 \where
               \func bar => 3
             """, """
-            \open foo (abc)
-
             \func foo => 2 \where {
               \func bar => 3
 
@@ -90,8 +86,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \func foobar => Foo.foo
             """, """
             \module Foo \where {
-              \open bar (foo)
-
               \func bar => 2 \where {
                 \func foo => 1
               }
@@ -106,8 +100,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \module abc{-caret-} \where {}
             \module def \where {}
             """, """
-            \open def (abc)
-
             \module def \where {
               \module abc \where {}
             }
@@ -120,7 +112,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func foo => 101
                 }
 
-                \func foo => 202
+                \func foo => bar
                 \func bar{-caret-} => foo
             """, """
                 \import DirB.Main
@@ -131,7 +123,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func bar => DirB.Main.foo
                 }
 
-                \func foo => 202
+                \func foo => bar
 
                 \open Foo (bar)
             """, "DirB.Main", "Foo")
@@ -172,7 +164,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             \func lol => myZero
             """, """
-            \open Foo (MyNat, myCons)
+            \open Foo (MyNat)
 
             \module Foo \where {
               \func myZero => 0
@@ -318,11 +310,8 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                 \module Bar \where
                   \func bar{-caret-} => 1
-            """, """
-                \import A
-
-                \module Bar \where
-                  \open lol (bar)
+            """, """ 
+                \module Bar
             """, "A", "lol")
 
     fun testMoveFromWhereBlock2() =
@@ -337,10 +326,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func bar{-caret-} => 1
                 }
             """, """
-                \import A
-
-                \module Bar \where {
-                  \open lol (bar)
+                \module Bar \where { 
                 }
             """, "A", "lol")
 
@@ -398,8 +384,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 --! B.ard
                 \module Bar \where {}
             """, """
-                \import B
-                \open Bar (foo)
             """, "B", "Bar")
 
     fun testRemovingEmptyImportCommand() =
@@ -414,7 +398,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 }
             """, """
                 \module Foo \where {
-                  \open Bar (foo)
                 }
 
                 \module Bar \where {
@@ -496,8 +479,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
             \module Foo \where {
               \func lol => 0
-
-              \open FooBar (foo)
             }
 
             \module Bar \where {
@@ -593,12 +574,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \data D2
                  | A
                  | B
+                 
+               \func lol (d : D1) (d2 : D2) => 1   
 
                --! Main.ard
                -- Empty File
 
             """, """
                \import Main (D1, D2)
+               
+               \func lol (d : D1) (d2 : D2) => 1
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove4() =
@@ -646,7 +631,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \open Nat
 
                \module Foo \where {
-                 \open Bar (foo)
                }
 
                \module Bar \where {
@@ -744,7 +728,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 \module FooBar \where {}
             """, """
                \open Nat
-               \open FooBar (C, foo, D, c1, c2)
+               \open FooBar (C, D, c1)
 
                \func f => D.lol + C.bar2
 
@@ -866,8 +850,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \module Bar \where {}
             """, """
-               \open Bar (Foo)
-
                \module Bar \where {
                  \class Foo (U : Nat) {
                    \func foo => U
@@ -889,8 +871,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func bar : Nat -> Nat => (1 Bar.`foo` 1) Bar.`foo
             """, """
                \module Bar \where {
-                 \open FooBar (foo)
-
                  \module FooBar \where {
                    \func foo (a b : Nat) => 101
                  }
@@ -929,8 +909,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C {
                   | foo : Nat 
-                } \where {
-                  \open M (D)
                 }
                 
                 \module M \where {
@@ -952,9 +930,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \class C1 (E : \Type)
 
-                \class C2 \extends C1 {} \where {
-                  \open M (foo)
-                }
+                \class C2 \extends C1 {}
 
                 \module M \where {
                   \func foo {this : C2} (e : this) => {?}
@@ -1000,8 +976,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                \record R {
                  \func F => 101
-               } \where {
-                 \open M (lol)
                }
 
                \module M \where {
@@ -1027,8 +1001,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                \record C2 \extends C1 {
                  | bar : Nat 
-               } \where {
-                 \open M (foo)
                }
 
                \module M \where {
@@ -1065,9 +1037,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     | field2 : C1
                   }
 
-                  \record R \extends C2 {} \where {
-                    \open M2 (foo)
-                  }
+                  \record R \extends C2 {}
                 }
 
                 \module M2 \where {
@@ -1114,8 +1084,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                  \record S \extends C2 {
                    \func fubar3 (n m : Nat) => 101
-                 } \where { 
-                   \open M2 (foo2)
                  }
                }
                
@@ -1163,8 +1131,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
                  \class S \extends C2 {
                    \func fubar3 (n : Nat) => 101
-                 } \where { 
-                   \open M2 (foo2)
                  }
                }
 
@@ -1320,8 +1286,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, """
                 \record R {
                   \data D
-                } \where {
-                  \open M (foo)
                 }
 
                 \module M \where {
@@ -1342,8 +1306,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                  \func foo => 1
                }
-               
-               \open C1 (foo)
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic2() =
@@ -1365,8 +1327,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  
                  \func goo => 2
                }
-               
-               \open C1 (foo, goo)
             """, "Main", "C1", "Main", "foo", "goo", targetIsDynamic = true)
 
     fun testMoveIntoDynamic3() =
@@ -1380,9 +1340,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                  | carrier : \Type
                  
                  \func foo => 1
-               }
-               
-               \open C1 (foo)
+               } 
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic4() =
@@ -1394,8 +1352,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \class C1 {
                  \func foo => 1
                }
-               
-               \open C1 (foo)
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic5() =
@@ -1410,8 +1366,6 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   
                   \func fubar => 101
                 }
-                
-                \open C1 (fubar)
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveBetweenDynamics1() =
@@ -1538,4 +1492,15 @@ $testMOR8Header
                            suc (P.a {C2.f {D.bar3 {this}}}),
                            (C3.f {D.bar4 {this}}).1,
                            suc (C3.f {D.bar4 {this}}).1)""", "Main", "")
+
+    fun testInstances() = testMoveRefactoring("""
+               \module Foo
+               \instance foo{-caret-} => 1 
+            """, """ 
+               \module Foo \where {
+                 \instance foo => 1
+               }
+               
+               \open Foo (foo) 
+            """, "Main", "Foo")
 }
