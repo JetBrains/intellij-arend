@@ -11,6 +11,7 @@ import org.arend.ext.ui.ArendUI
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
+import org.arend.library.classLoader.FileClassLoaderDelegate
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.EmptyGlobalReferable
@@ -46,7 +47,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     override fun getUI(): ArendUI? = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
+        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath?.let { FileClassLoaderDelegate(it) }, config.extensionMainClass)
 
     fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
         val builder = StringBuilder()
