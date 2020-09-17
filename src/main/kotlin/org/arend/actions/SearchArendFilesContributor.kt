@@ -11,12 +11,17 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.ArendFileType
+import org.arend.util.arendModules
 import java.util.Collections.singletonList
 
-class SearchArendFilesContributor(event: AnActionEvent) : AbstractGotoSEContributor(event) {
+class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSEContributor(event) {
     override fun getGroupName(): String = "Arend files"
 
     override fun getSortWeight(): Int = 201
+
+    override fun isShownInSeparateTab(): Boolean {
+        return (event.project?.arendModules?.size ?: 0) > 0
+    }
 
     override fun createModel(project: Project): FilteringGotoByModel<*> {
         val model = object : GotoFileModel(project) {
