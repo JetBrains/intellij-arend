@@ -73,8 +73,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun dropTypechecked() {
         val service = project.service<TypeCheckingService>()
         val tcRef = tcReferableCache ?: run {
-            val file = containingFile as? ArendFile ?: return
-            service.tcRefMaps[file.moduleLocation]?.get(refLongName)
+            val location = (containingFile as? ArendFile)?.moduleLocation ?: return
+            service.tcRefMaps[location]?.get(refLongName)
         } ?: return
         tcRef.typechecked = null
         service.dependencyListener.update(tcRef)
