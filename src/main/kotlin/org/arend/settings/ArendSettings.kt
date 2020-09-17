@@ -4,6 +4,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import org.arend.util.FileUtils
 
 
 @State(
@@ -37,7 +38,7 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
 
     var pathToArendJar = ""
 
-    var librariesRoot = ""
+    var librariesRoot = FileUtils.defaultLibrariesRoot().toString()
 
     val clauseActualLimit: Int?
         get() = if (withClauseLimit) clauseLimit else null

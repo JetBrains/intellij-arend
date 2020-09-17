@@ -132,13 +132,15 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
     private val librariesList: List<LibraryDependency>
         get() {
-            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return emptyList()
+            val arendLib = LibraryDependency("arend-lib")
+            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return listOf(arendLib)
             VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
-            return libRoot.children.mapNotNull { file ->
+            val list = libRoot.children.mapNotNull { file ->
                 if (file.configFile != null && file.name != FileUtils.LIBRARY_CONFIG_FILE) {
                     file.libraryName?.let { LibraryDependency(it) }
                 } else null
             }
+            return if (list.contains(arendLib)) list else list + arendLib
         }
 
     fun createComponent() = panel {
