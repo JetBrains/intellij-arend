@@ -16,5 +16,5 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val dependencies = yaml.dependencies
     override val langVersion: Range<Version> = yaml.langVersion?.let { Range.parseVersionRange(it) } ?: Range.unbound()
 
-    override val rootDir = yaml.virtualFile?.parent?.path
+    override val root = yaml.virtualFile?.parent
 }

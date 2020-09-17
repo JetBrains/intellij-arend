@@ -23,7 +23,7 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
     override fun beforeDocumentSaving(document: Document) {
         val file = FileDocumentManager.getInstance().getFile(document) ?: return
         if (file.name == FileUtils.LIBRARY_CONFIG_FILE) {
-            ArendModuleConfigService.getInstance(ModuleUtilCore.findModuleForFile(file, project))?.copyFromYAML()
+            ArendModuleConfigService.getInstance(ModuleUtilCore.findModuleForFile(file, project))?.copyFromYAML(true)
         }
     }
 
@@ -58,7 +58,7 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
             val service = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(file, project)) ?: return
             val root = service.root ?: return
             if (root == oldParent || root == newParent) {
-                service.copyFromYAML()
+                service.copyFromYAML(true)
             }
         }
     }

@@ -111,14 +111,4 @@ fun YAMLFile.write(block: YAMLFile.() -> Unit) {
 }
 
 val PsiFile.isYAMLConfig: Boolean
-    get() {
-        if (this !is YAMLFile) {
-            return false
-        }
-        if (name != FileUtils.LIBRARY_CONFIG_FILE) {
-            return false
-        }
-
-        val rootPath = libraryConfig?.rootPath ?: return false
-        return virtualFile.parent.path == FileUtil.toSystemIndependentName(rootPath.toString())
-    }
+    get() = this is YAMLFile && name == FileUtils.LIBRARY_CONFIG_FILE && virtualFile.parent == libraryConfig?.root

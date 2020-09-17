@@ -6,7 +6,7 @@ import com.intellij.openapi.roots.libraries.ui.AttachRootButtonDescriptor
 import com.intellij.openapi.roots.libraries.ui.DescendentBasedRootFilter
 import com.intellij.openapi.roots.libraries.ui.LibraryRootsComponentDescriptor
 import com.intellij.openapi.roots.libraries.ui.OrderRootTypePresentation
-import org.arend.util.FileTypeChooserDescriptor
+import org.arend.util.ArendLibraryChooserDescriptor
 import org.arend.util.FileUtils
 
 
@@ -25,7 +25,7 @@ object ArendLibraryRootsComponentDescriptor : LibraryRootsComponentDescriptor() 
     override fun getRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES)
 
     override fun createAttachFilesChooserDescriptor(libraryName: String?) =
-        FileTypeChooserDescriptor(listOf(".yaml"), true).apply {
+        ArendLibraryChooserDescriptor(chooseYamlConfig = true, chooseZipLibrary = false, chooseLibraryDirectory = false, chooseDirectories = true).apply {
             title =
                 if (libraryName == null || libraryName.isEmpty()) {
                     ProjectBundle.message("library.attach.files.action")

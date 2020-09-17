@@ -2,7 +2,6 @@ package org.arend.refactoring
 
 import com.intellij.find.findUsages.DefaultFindUsagesHandlerFactory
 import com.intellij.find.findUsages.FindUsagesOptions
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -10,28 +9,25 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.move.moveFilesOrDirectories.MoveFileHandler
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
-import org.arend.ArendFileType
 import org.arend.module.ArendModuleType
 import org.arend.psi.*
+import org.arend.util.FileUtils
+import org.arend.util.getRelativePath
 
 class ArendMoveFileHandler: MoveFileHandler() {
     private val replaceMap = mutableMapOf<PsiElement, PsiElement>()
-    private val usages = mutableMapOf<PsiFile, MutableList<UsageInfo>>()
+    private val usages = mutableMapOf<PsiFile, List<UsageInfo>>()
 
     override fun updateMovedFile(file: PsiFile?) {
 
     }
 
-    override fun prepareMovedFile(file: PsiFile?, moveDestination: PsiDirectory?, oldToNewMap: MutableMap<PsiElement, PsiElement>?) {
-        if (file == null || moveDestination == null) return
-
-        val fileName = file.virtualFile?.name?.removeSuffix('.' + ArendFileType.defaultExtension) ?: return
-        val newDirPath = moveDestination.virtualFile.path
-        val srcDir = file.arendLibrary?.config?.sourcesPath?.let { FileUtil.toSystemIndependentName(it.toString()) }
-        val newRelativePath = if (srcDir == null || !newDirPath.startsWith(srcDir)) return else newDirPath.removePrefix(srcDir)
-        val newModulePath = if (newRelativePath.isEmpty()) fileName else
-            newRelativePath.removePrefix("/").replace('/', '.') + "." + fileName
-        for (usage in (usages[file] ?: mutableListOf())) {
+    override fun prepareMovedFile(file: PsiFile, moveDestination: PsiDirectory, oldToNewMap: MutableMap<PsiElement, PsiElement>) {
+        val fileUsages = usages[file] ?: return
+        val destinationPath = file.arendLibrary?.config?.sourcesDirFile?.getRelativePath(moveDestination.virtualFile) ?: return
+        destinationPath.add(file.virtualFile?.name?.removeSuffix(FileUtils.EXTENSION) ?: return)
+        val newModulePath = destinationPath.joinToString(".")
+        for (usage in fileUsages) {
             if (usage.element is ArendRefIdentifier && usage.element != null) {
                 val ref = usage.element as ArendRefIdentifier
                 val longName = ref.parentOfType<ArendLongName>() ?: continue
@@ -43,12 +39,9 @@ class ArendMoveFileHandler: MoveFileHandler() {
                 longName.replace(ArendPsiFactory(file.project).createLongName(newModulePath + suffix))
             }
         }
-        return
     }
 
-    override fun findUsages(psiFile: PsiFile?, newParent: PsiDirectory?, searchInComments: Boolean, searchInNonJavaFiles: Boolean): MutableList<UsageInfo> {
-        if (psiFile == null || newParent == null) return mutableListOf()
-
+    override fun findUsages(psiFile: PsiFile, newParent: PsiDirectory, searchInComments: Boolean, searchInNonJavaFiles: Boolean): ArrayList<UsageInfo> {
         val finder = DefaultFindUsagesHandlerFactory().createFindUsagesHandler(psiFile, false)
         val processor = CommonProcessors.CollectProcessor<UsageInfo>()
         val options = FindUsagesOptions(psiFile.project)
@@ -56,9 +49,9 @@ class ArendMoveFileHandler: MoveFileHandler() {
         options.isSearchForTextOccurrences = false
         finder?.processElementUsages(psiFile, processor, options)
 
-        usages[psiFile] = processor.results.mapTo(mutableListOf()) { x -> x }
-
-        return processor.results.mapTo(mutableListOf()) { x -> x }
+        val list = ArrayList(processor.results)
+        usages[psiFile] = list
+        return list
     }
 
     override fun retargetUsages(usageInfos: MutableList<UsageInfo>?, oldToNewMap: MutableMap<PsiElement, PsiElement>?) {

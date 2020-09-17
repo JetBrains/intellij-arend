@@ -20,14 +20,11 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.scope.LexicalScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.doc.ArendDocComment
-import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.typechecking.TypeCheckingService
-import org.arend.util.FileUtils
+import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
-import org.jetbrains.yaml.psi.YAMLFile
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -106,12 +103,8 @@ val PsiFile.arendLibrary: ArendRawLibrary?
         for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
             if (orderEntry is LibraryOrderEntry) {
                 for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
-                    val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: continue
-                    if (yaml.name != FileUtils.LIBRARY_CONFIG_FILE) {
-                        continue
-                    }
-                    val name = yaml.virtualFile?.parent?.name ?: continue
-                    return ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, name)
+                    val libName = file.libraryName ?: continue
+                    return ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, libName)
                 }
             }
         }

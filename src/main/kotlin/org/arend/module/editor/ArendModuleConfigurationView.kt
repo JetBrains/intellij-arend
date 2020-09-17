@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextComponentAccessor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.panel
@@ -15,16 +16,10 @@ import org.arend.module.config.ArendModuleConfiguration
 import org.arend.ui.DualList
 import org.arend.ui.addBrowseAndChangeListener
 import org.arend.ui.content
-import org.arend.util.FileUtils
-import org.arend.util.cellRow
-import org.arend.util.checked
-import org.arend.util.labeled
-import java.io.IOException
-import java.nio.file.Files
+import org.arend.util.*
 import java.nio.file.Paths
 import javax.swing.BorderFactory
 import javax.swing.JTextField
-import kotlin.streams.toList
 
 
 class ArendModuleConfigurationView(project: Project?, root: String?, name: String? = null) : ArendModuleConfiguration {
@@ -57,7 +52,10 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     private val langVersionField = JTextField()
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
-        override fun isAvailable(t: LibraryDependency) = Files.isRegularFile(Paths.get(librariesRoot, t.name, FileUtils.LIBRARY_CONFIG_FILE))
+        override fun isAvailable(t: LibraryDependency): Boolean {
+            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return false
+            return libRoot.findChild(t.name)?.configFile != null || libRoot.findChild(t.name + FileUtils.ZIP_EXTENSION)?.configFile != null
+        }
 
         override fun getIcon(t: LibraryDependency) = ArendIcons.LIBRARY_ICON
     }.apply {
@@ -133,14 +131,14 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         }
 
     private val librariesList: List<LibraryDependency>
-        get() = try {
-            Files.list(Paths.get(librariesRoot)).toList().mapNotNull {
-                if (Files.isDirectory(it) && Files.isRegularFile(it.resolve(FileUtils.LIBRARY_CONFIG_FILE))) {
-                    LibraryDependency(it.fileName.toString())
+        get() {
+            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return emptyList()
+            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
+            return libRoot.children.mapNotNull { file ->
+                if (file.configFile != null && file.name != FileUtils.LIBRARY_CONFIG_FILE) {
+                    file.libraryName?.let { LibraryDependency(it) }
                 } else null
             }
-        } catch (e: IOException) {
-            emptyList()
         }
 
     fun createComponent() = panel {

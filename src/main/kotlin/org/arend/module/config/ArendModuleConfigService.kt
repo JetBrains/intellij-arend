@@ -9,6 +9,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.ArendModuleType
@@ -64,11 +65,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override val langVersion: Range<Version>
         get() = Range.parseVersionRange(langVersionString) ?: Range.unbound()
 
-    val root
+    override val root: VirtualFile?
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
-
-    override val rootDir
-        get() = root?.path
 
     override val name
         get() = module.name
@@ -90,7 +88,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
 
     private val yamlFile
-        get() = rootPath?.resolve(FileUtils.LIBRARY_CONFIG_FILE)?.let { project.findPsiFileByPath(it) as? YAMLFile }
+        get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
 
     val librariesRootDef: String?
         get() {
@@ -160,8 +158,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         langVersionString = yaml.langVersion ?: ""
     }
 
-    fun copyFromYAML() {
-        copyFromYAML(yamlFile ?: return, true)
+    fun copyFromYAML(update: Boolean) {
+        copyFromYAML(yamlFile ?: return, update)
     }
 
     fun updateFromIDEA(config: ArendModuleConfiguration) {

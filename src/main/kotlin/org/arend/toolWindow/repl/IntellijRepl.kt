@@ -2,6 +2,7 @@ package org.arend.toolWindow.repl
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
@@ -88,7 +89,7 @@ abstract class IntellijRepl private constructor(
 
     private val myLibraryConfig = object : LibraryConfig(service.project) {
         override val name: String get() = replModulePath.libraryName
-        override val rootDir: String? get() = null
+        override val root: VirtualFile? get() = null
         override val dependencies: List<LibraryDependency>
             get() = myLibraryManager.registeredLibraries.map { LibraryDependency(it.name) }
         override val modules: List<ModulePath>

@@ -28,12 +28,12 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
         }
 
         val config = library.config
-        val root = if (config is ArendModuleConfigService) {
-            config.librariesRootDef?.let { Paths.get(it) }
+        return if (config is ArendModuleConfigService) {
+            val root = config.librariesRootDef?.let { Paths.get(it) } ?: return null
+            project.findExternalLibrary(root, name)?.let { ArendRawLibrary(it) }
         } else {
-            library.config.rootPath?.parent
-        } ?: return null
-
-        return project.findExternalLibrary(root, name)?.let { ArendRawLibrary(it) }
+            val root = library.config.localFSRoot ?: return null
+            project.findExternalLibrary(root, name)?.let { ArendRawLibrary(it) }
+        }
     }
 }

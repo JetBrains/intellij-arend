@@ -21,7 +21,7 @@ class ArendModuleConfigurationEditor(private val moduleConfig: ArendModuleConfig
     }
 
     override fun createComponent(): JComponent? {
-        view = ArendModuleConfigurationView(moduleConfig.project, moduleConfig.rootDir, moduleConfig.name)
+        view = ArendModuleConfigurationView(moduleConfig.project, moduleConfig.root?.let { if (it.isDirectory) it.path else null }, moduleConfig.name)
         view?.copyFrom(moduleConfig)
         return view?.createComponent()
     }
