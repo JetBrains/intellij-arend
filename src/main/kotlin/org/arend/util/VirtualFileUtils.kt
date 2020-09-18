@@ -1,7 +1,10 @@
 package org.arend.util
 
 import com.intellij.openapi.vfs.JarFileSystem
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import java.nio.file.Path
+import java.nio.file.Paths
 
 fun VirtualFile.getRelativePath(file: VirtualFile, ext: String = ""): ArrayList<String>? {
     val result = ArrayList<String>()
@@ -48,3 +51,23 @@ val VirtualFile.libraryName: String?
         }
         else -> name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
     }
+
+val VirtualFile.refreshed: VirtualFile
+    get() {
+        VfsUtil.markDirtyAndRefresh(false, false, false, this)
+        val file = JarFileSystem.getInstance().getJarRootForLocalFile(this) ?: return this
+        VfsUtil.markDirtyAndRefresh(false, false, false, file)
+        return this
+    }
+
+fun refreshLibrariesDirectory(libRoot: Path): VirtualFile? {
+    val file = VfsUtil.findFile(libRoot, true) ?: return null
+    VfsUtil.markDirtyAndRefresh(false, false, false, file)
+    for (child in file.children) {
+        child.refreshed
+    }
+    return file
+}
+
+fun refreshLibrariesDirectory(dir: String): VirtualFile? =
+    if (dir.isEmpty()) null else refreshLibrariesDirectory(Paths.get(dir))

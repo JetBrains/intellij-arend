@@ -53,7 +53,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
         override fun isAvailable(t: LibraryDependency): Boolean {
-            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return false
+            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), false) ?: return false
             return libRoot.findChild(t.name)?.configFile != null || libRoot.findChild(t.name + FileUtils.ZIP_EXTENSION)?.configFile != null
         }
 
@@ -134,9 +134,9 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         get() {
             val arendLib = LibraryDependency("arend-lib")
             val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return listOf(arendLib)
-            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
+            VfsUtil.markDirtyAndRefresh(false, false, false, libRoot)
             val list = libRoot.children.mapNotNull { file ->
-                if (file.configFile != null && file.name != FileUtils.LIBRARY_CONFIG_FILE) {
+                if (file.name != FileUtils.LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
                     file.libraryName?.let { LibraryDependency(it) }
                 } else null
             }

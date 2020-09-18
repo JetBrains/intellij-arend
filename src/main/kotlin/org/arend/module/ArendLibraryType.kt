@@ -41,9 +41,9 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
             description = "Select an Arend library"
         }, project, null) ?: return null
 
+        val configFile = file.refreshed.configFile ?: return null
         val libName = file.libraryName ?: return null
         if (!FileUtils.isLibraryName(libName)) return null
-        val configFile = file.configFile ?: return null
         val yaml = PsiManager.getInstance(project).findFile(configFile) as? YAMLFile ?: return null
         val library = ExternalLibraryConfig(libName, yaml)
 

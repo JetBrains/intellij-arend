@@ -1,9 +1,13 @@
 package org.arend.module.config
 
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -12,9 +16,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
-import org.arend.module.ArendModuleType
-import org.arend.module.ArendRawLibrary
-import org.arend.module.ModuleSynchronizer
+import org.arend.module.*
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
@@ -100,7 +102,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     val library = ArendRawLibrary(this)
 
-    private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean) {
+    private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean, callback: () -> Unit) {
         val oldDependencies = dependencies
         dependencies = ArrayList(newDependencies)
         synchronized = false
@@ -117,29 +119,38 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             }
         }
 
-        val typechecking = ArendTypechecking.create(project)
         if (reloadLib) {
-            libraryManager.reloadInternalLibraries { typechecking }
-        } else {
-            for (dependency in newDependencies) {
-                if (!oldDependencies.contains(dependency)) {
-                    var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
-                    if (depLibrary == null) {
-                        depLibrary = libraryManager.loadDependency(library, dependency.name, typechecking)
-                    }
-                    if (depLibrary != null) {
-                        libraryManager.registerDependency(library, depLibrary)
+            refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+            project.service<TypeCheckingService>().reload(true)
+            callback()
+        } else ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading Arend Libraries", false) {
+            override fun run(indicator: ProgressIndicator) {
+                refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+                runReadAction {
+                    val typechecking = ArendTypechecking.create(project)
+                    for (dependency in newDependencies) {
+                        if (!oldDependencies.contains(dependency)) {
+                            var depLibrary = libraryManager.getRegisteredLibrary(dependency.name)
+                            if (depLibrary == null) {
+                                depLibrary = libraryManager.loadDependency(library, dependency.name, typechecking)
+                            }
+                            if (depLibrary != null) {
+                                libraryManager.registerDependency(library, depLibrary)
+                            }
+                        }
                     }
                 }
+                callback()
             }
-        }
+        })
     }
 
     fun copyFromYAML(yaml: YAMLFile, update: Boolean) {
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
-            updateDependencies(newDependencies, update)
-            ModuleSynchronizer.synchronizeModule(this)
+            updateDependencies(newDependencies, update) {
+                ModuleSynchronizer.synchronizeModule(this)
+            }
         }
 
         modules = yaml.modules
@@ -169,7 +180,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         val newDependencies = config.dependencies
         if (dependencies != newDependencies) {
-            updateDependencies(newDependencies, !reload)
+            updateDependencies(newDependencies, !reload) {}
             updateYAML = true
         }
 
@@ -223,7 +234,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         if (reload) {
             librariesRoot = newLibrariesRoot
-            project.service<TypeCheckingService>().reload()
+            project.service<TypeCheckingService>().reload(false)
         }
     }
 

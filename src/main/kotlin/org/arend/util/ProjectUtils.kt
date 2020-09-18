@@ -6,12 +6,13 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.JarFileSystem
-import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
+import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
@@ -21,13 +22,13 @@ import java.nio.file.Path
 val Project.arendModules: List<Module>
     get() = runReadAction { ModuleManager.getInstance(this).modules.filter { ArendModuleType.has(it) } }
 
-fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
+private fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
     val zipRoot = JarFileSystem.getInstance().getJarRootForLocalFile(zipFile) ?: return null
     val configFile = zipRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE) ?: return null
     return PsiManager.getInstance(this).findFile(configFile) as? YAMLFile ?: return null
 }
 
-fun Project.findExternalLibrary(root: VirtualFile, libName: String): ExternalLibraryConfig? {
+private fun Project.findExternalLibrary(root: VirtualFile, libName: String): ExternalLibraryConfig? {
     root.findChild(libName + FileUtils.ZIP_EXTENSION)?.let { zip ->
         findConfigInZip(zip)?.let { return ExternalLibraryConfig(libName, it) }
     }
@@ -38,8 +39,8 @@ fun Project.findExternalLibrary(root: VirtualFile, libName: String): ExternalLib
 }
 
 fun Project.findExternalLibrary(root: Path, libName: String): ExternalLibraryConfig? {
-    val dir = LocalFileSystem.getInstance().findFileByPath(root.toString()) ?: return null
-    return findExternalLibrary(dir, libName)
+    val dir = VfsUtil.findFile(root, true) ?: return null
+    return runReadAction { findExternalLibrary(dir, libName) }
 }
 
 fun Module.register() {
@@ -47,6 +48,9 @@ fun Module.register() {
     service.initialize()
     val config = ArendModuleConfigService.getInstance(this) ?: return
     config.copyFromYAML(false)
-    service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
+    refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+    runReadAction {
+        service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
+    }
     service<ArendExtensionChangeListener>().initializeModule(config)
 }
