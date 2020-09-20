@@ -35,9 +35,12 @@
 
         <postStartupActivity implementation="org.arend.ArendStartupActivity"/>
 
-        <!-- Typed Handler -->
+        <!-- Typed/Quote Handler -->
 
         <typedHandler implementation="org.arend.codeInsight.ArendTypedHandler"/>
+        <lang.quoteHandler language="Arend" implementationClass="org.arend.codeInsight.ArendStringQuoteHandler"/>
+        <lang.quoteHandler language="INJECTION_TEXT" implementationClass="org.arend.codeInsight.ArendStringQuoteHandler"/>
+        <quoteHandler className="org.arend.codeInsight.ArendStringQuoteHandler" fileType="Arend"/>
 
         <!-- File Type -->
 
