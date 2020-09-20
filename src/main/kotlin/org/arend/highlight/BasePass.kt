@@ -169,6 +169,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is MissingClausesError -> if (cause is ArendCompositeElement)
                     annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
 
+                is ExpectedConstructorError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ExpectedConstructorQuickFix(error, SmartPointerManager.createPointer(cause)))
+
+                is ImpossibleEliminationError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ImpossibleEliminationQuickFix(error, SmartPointerManager.createPointer(cause)))
+
                 is DataTypeNotEmptyError -> if (cause is ArendCompositeElement)
                     annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
