@@ -364,11 +364,19 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
         </action>
 
-        <action class="org.arend.toolWindow.repl.ArendShowReplAction"
-                id="Arend.ShowRepl"
+        <action id="Arend.Repl.Show"
+                class="org.arend.toolWindow.repl.ArendShowReplAction"
                 text="Show Arend REPL"
                 description="Display the Arend REPL as a tool window">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
+        <action id="Arend.Repl.SendFile"
+                class="org.arend.actions.ArendOpenInReplAction"
+                text="Send Current File to Arend REPL"
+                description="Open the Arend REPL and \import the current file if not loaded">
+            <add-to-group group-id="ViewMenu" anchor="after" relative-to-action="ViewSource"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
         <action id="Arend.Config.ToggleNormalize"
