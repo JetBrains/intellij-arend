@@ -7,9 +7,9 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendConstructorStub
 import org.arend.term.abs.Abstract
-import org.arend.typing.ParameterImpl
-import org.arend.typing.ReferenceImpl
-import org.arend.typing.getTypeOf
+import org.arend.resolving.util.ParameterImpl
+import org.arend.resolving.util.ReferenceImpl
+import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, ArendConstructor {

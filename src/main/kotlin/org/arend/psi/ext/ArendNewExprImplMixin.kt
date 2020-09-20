@@ -7,7 +7,7 @@ import org.arend.naming.reference.TypedReferable
 import org.arend.psi.*
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.typing.ReferableExtractVisitor
+import org.arend.resolving.util.ReferableExtractVisitor
 
 abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ClassReferenceHolder {
     abstract val appPrefix: ArendAppPrefix?

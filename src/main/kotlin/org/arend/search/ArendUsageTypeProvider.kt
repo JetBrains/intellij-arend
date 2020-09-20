@@ -6,7 +6,7 @@ import com.intellij.usages.impl.rules.UsageType
 import com.intellij.usages.impl.rules.UsageTypeProviderEx
 import org.arend.psi.*
 import org.arend.term.concrete.Concrete
-import org.arend.typing.parseBinOp
+import org.arend.resolving.util.parseBinOp
 
 class ArendUsageTypeProvider: UsageTypeProviderEx {
     override fun getUsageType(element: PsiElement?, targets: Array<out UsageTarget>): UsageType? = getUsageType(element)

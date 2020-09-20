@@ -18,8 +18,8 @@ import org.arend.resolving.ArendPatternDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.term.abs.Abstract
-import org.arend.typing.ReferableExtractVisitor
-import org.arend.typing.getTypeOf
+import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.resolving.util.getTypeOf
 import org.arend.util.mapUntilNotNull
 
 abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), ArendReferenceElement {

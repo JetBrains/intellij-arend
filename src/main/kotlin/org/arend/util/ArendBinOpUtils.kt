@@ -14,8 +14,8 @@ import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.typing.parseBinOp
-import org.arend.typing.resolveReference
+import org.arend.resolving.util.parseBinOp
+import org.arend.resolving.util.resolveReference
 
 fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =

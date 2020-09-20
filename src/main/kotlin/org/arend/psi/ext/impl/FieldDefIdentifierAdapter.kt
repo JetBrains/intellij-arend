@@ -15,7 +15,7 @@ import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.term.ClassFieldKind
 import org.arend.term.abs.Abstract
-import org.arend.typing.ReferableExtractVisitor
+import org.arend.resolving.util.ReferableExtractVisitor
 
 abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParamStub>, ArendFieldDefIdentifier {
     constructor(node: ASTNode) : super(node)
