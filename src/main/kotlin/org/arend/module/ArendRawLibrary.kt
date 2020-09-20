@@ -23,7 +23,6 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
-import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
@@ -47,7 +46,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     override fun getUI(): ArendUI? = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.extensionsPath, config.extensionMainClass)
+        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.classLoaderDelegate, config.extensionMainClass)
 
     fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
         val builder = StringBuilder()
@@ -85,16 +84,18 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         config.findArendFile(modulePath, true)?.let { ArendRawSource(it) } ?: ArendFakeRawSource(modulePath)
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? =
-        config.binariesPath?.let { GZIPStreamBinarySource(FileBinarySource(it, modulePath)) }
+        config.binariesDirFile?.let { GZIPStreamBinarySource(IntellijBinarySource(it, modulePath)) }
 
     override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)
 
     override fun resetGroup(group: Group) {
         super.resetGroup(group)
-        (group as? ArendFile)?.let {
-            it.concreteProvider = EmptyConcreteProvider.INSTANCE
-            it.dropTCRefMapCache()
-            config.project.service<TypeCheckingService>().tcRefMaps.remove(it.moduleLocation)
+        (group as? ArendFile)?.apply {
+            concreteProvider = EmptyConcreteProvider.INSTANCE
+            dropTCRefMapCache()
+            moduleLocation?.let {
+                config.project.service<TypeCheckingService>().tcRefMaps.remove(it)
+            }
         }
     }
 

@@ -58,9 +58,9 @@ class TypeCheckConfiguration(
         if (environment.runnerSettings is DebuggingRunnerData) {
             val libraryManager = project.service<TypeCheckingService>().libraryManager
             val libPaths = if (arendTypeCheckCommand.library.isEmpty()) {
-                libraryManager.registeredLibraries.filterIsInstance<ArendRawLibrary>().mapNotNull { it.config.rootDir }
+                libraryManager.registeredLibraries.filterIsInstance<ArendRawLibrary>().mapNotNull { it.config.localFSRoot?.path }
             } else {
-                (libraryManager.getRegisteredLibrary(arendTypeCheckCommand.library) as? ArendRawLibrary)?.config?.rootDir?.let { listOf(it) } ?: emptyList()
+                (libraryManager.getRegisteredLibrary(arendTypeCheckCommand.library) as? ArendRawLibrary)?.config?.localFSRoot?.let { listOf(it.path) } ?: emptyList()
             }
             val projectPath = if (libPaths.isEmpty()) project.basePath else libPaths.joinToString(" ")
 

@@ -10,9 +10,6 @@ import com.intellij.openapi.project.ProjectManager
 import org.arend.module.ReloadLibrariesAction
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.util.arendModules
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.attribute.FileTime
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -22,7 +19,7 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
         val NOTIFICATIONS = NotificationGroup("Arend Reload", NotificationDisplayType.STICKY_BALLOON, false)
     }
 
-    private val modificationStamps = HashMap<Module, FileTime>()
+    private val modificationStamps = HashMap<Module, Long>()
     private val notifications = HashMap<Project, Notification>()
 
     override fun onSuccess(id: ExternalSystemTaskId) {
@@ -66,16 +63,9 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
         }
 
     private fun updateModificationStamps(project: Project): Boolean {
-        val newStamps = ArrayList<Pair<Module, FileTime>>()
+        val newStamps = ArrayList<Pair<Module, Long>>()
         for (module in project.arendModules) {
-            val path = ArendModuleConfigService.getInstance(module)?.extensionClassPath ?: continue
-            try {
-                newStamps.add(Pair(module, Files.getLastModifiedTime(path)))
-            } catch (e: IOException) {
-                modificationStamps[module]?.let {
-                    newStamps.add(Pair(module, it))
-                }
-            }
+            newStamps.add(Pair(module, ArendModuleConfigService.getInstance(module)?.extensionMainClassFile?.timeStamp ?: continue))
         }
 
         var found = false
@@ -94,9 +84,6 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
     }
 
     fun initializeModule(config: ArendModuleConfigService) {
-        val path = config.extensionClassPath ?: return
-        try {
-            modificationStamps[config.module] = Files.getLastModifiedTime(path)
-        } catch (e: IOException) {}
+        modificationStamps[config.module] = config.extensionMainClassFile?.timeStamp ?: return
     }
 }

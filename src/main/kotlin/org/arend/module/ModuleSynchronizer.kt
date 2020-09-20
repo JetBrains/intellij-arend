@@ -12,14 +12,11 @@ import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTable
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.VfsUtil
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.orderRoot.ArendConfigOrderRootType
-import org.arend.util.FileUtils
-import org.arend.util.arendModules
-import org.arend.util.findExternalLibrary
+import org.arend.util.*
 import java.nio.file.Paths
+import kotlin.Pair
 
 class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
     fun install() {
@@ -73,7 +70,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                         if (library == null) {
                             val librariesRoot = service.librariesRootDef
                             val externalLibrary = if (librariesRoot == null) null else service.project.findExternalLibrary(Paths.get(librariesRoot), dependency.name)
-                            if (externalLibrary != null) {
+                            if (librariesRoot != null && externalLibrary != null) {
                                 val tableModel = projectTable.modifiableModel
                                 library = tableModel.createLibrary(pair.second)
 
@@ -82,9 +79,11 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                                     libModel.kind = ArendLibraryKind
                                 }
 
-                                libModel.addRoot(VfsUtil.pathToUrl(FileUtil.join(librariesRoot, dependency.name, FileUtils.LIBRARY_CONFIG_FILE)), ArendConfigOrderRootType)
-                                externalLibrary.sourcesPath?.let {
-                                    libModel.addRoot(VfsUtil.pathToUrl(it.toString()), OrderRootType.SOURCES)
+                                externalLibrary.root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
+                                    libModel.addRoot(it, ArendConfigOrderRootType)
+                                }
+                                if (externalLibrary.sourcesDir.isNotEmpty()) externalLibrary.sourcesDirFile?.let {
+                                    libModel.addRoot(it, OrderRootType.SOURCES)
                                 }
                                 ApplicationManager.getApplication()?.invokeAndWait { runWriteAction {
                                     libModel.commit()
@@ -114,7 +113,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                     for (entry in rootModel.orderEntries) {
                         val ideaDependency = (entry as? LibraryOrderEntry)?.library
                             ?: (entry as? ModuleOrderEntry)?.module
-                        if (ideaDependency != null && !ideaDependencies.remove(ideaDependency)) {
+                        if (ideaDependency == null && (entry is LibraryOrderEntry || entry is ModuleOrderEntry) || ideaDependency != null && !ideaDependencies.remove(ideaDependency)) {
                             rootModel.removeOrderEntry(entry)
                         }
                     }
@@ -145,7 +144,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
             while (true) {
                 val name = if (index == 0) startName else startName + "_" + index
                 val library = projectTable.getLibraryByName(name) ?: return Pair(null, name)
-                if ((library as? LibraryEx)?.kind is ArendLibraryKind && (library as? LibraryEx)?.isDisposed == false && library.getFiles(ArendConfigOrderRootType).firstOrNull()?.parent?.name == startName) {
+                if ((library as? LibraryEx)?.kind is ArendLibraryKind && (library as? LibraryEx)?.isDisposed == false && library.getFiles(ArendConfigOrderRootType).firstOrNull()?.libraryName == startName) {
                     return Pair(library, name)
                 }
                 index++

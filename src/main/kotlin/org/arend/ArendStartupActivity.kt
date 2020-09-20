@@ -1,6 +1,7 @@
 package org.arend
 
 import com.intellij.ProjectTopics
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.ModuleListener
@@ -26,7 +27,9 @@ class ArendStartupActivity : StartupActivity {
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 ArendModuleConfigService.getInstance(module)?.library?.let {
-                    libraryManager.unloadLibrary(it)
+                    runReadAction {
+                        libraryManager.unloadLibrary(it)
+                    }
                 }
             }
         })

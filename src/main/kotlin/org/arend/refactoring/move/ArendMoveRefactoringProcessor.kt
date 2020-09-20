@@ -157,6 +157,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         val bodiesClassFieldUsages = HashSet<LocationDescriptor>() //We don't need to keep a link to class field as we replace its usages by "this.field" anyway
         val recordOtherDynamicMembers = (mySourceContainer as? ArendDefClass)?.let { determineDynamicClassElements(it) }
                 ?: emptySet()
+        val memberReferences = HashSet<ArendReferenceElement>()
 
         run {
             val usagesInMovedBodies = HashMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>()
@@ -166,7 +167,7 @@ class ArendMoveRefactoringProcessor(project: Project,
             else emptySet<PsiLocatedReferable>()
 
             for ((mIndex, m) in myMembers.withIndex())
-                collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers)
+                collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers, memberReferences)
 
             for (referable in usagesInMovedBodies.keys.minus(recordFields))
                 targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) }
@@ -177,6 +178,23 @@ class ArendMoveRefactoringProcessor(project: Project,
                 if (recordFields.contains(referable))
                     bodiesClassFieldUsages.add(usage) else {
                     targetReferences[referable]?.let { bodiesRefsFixData[usage] = it }
+                }
+            }
+        }
+
+        // Determine which moved members should be added to the "remainder" namespace command
+        val remainderReferables = HashSet<LocationDescriptor>()
+        for (usage in usages) if (usage is ArendUsageInfo) {
+            val referenceElement = usage.reference?.element
+            if (referenceElement is ArendReferenceElement &&
+                    mySourceContainer.textRange.contains(referenceElement.textOffset) && !memberReferences.contains(referenceElement)) { // Normal usage inside source container
+                val member = referenceElement.reference?.resolve()
+                val descriptor = (member as? PsiLocatedReferable)?.let{ descriptorsOfAllMovedMembers[it] }
+                if (descriptor != null) remainderReferables.add(descriptor)
+                if (member is ArendConstructor) {
+                    val containingDataType = member.parentOfType<ArendDefData>()
+                    val dataTypeDescriptor = containingDataType?.let { descriptorsOfAllMovedMembers[it] }
+                    if (dataTypeDescriptor != null) remainderReferables.add(dataTypeDescriptor)
                 }
             }
         }
@@ -253,59 +271,59 @@ class ArendMoveRefactoringProcessor(project: Project,
         //Create map from descriptors to actual psi elements of myMembers
         val movedReferablesMap = LinkedHashMap<LocationDescriptor, PsiLocatedReferable>()
         for (descriptor in myReferableDescriptors) (locateChild(descriptor) as? PsiLocatedReferable)?.let { movedReferablesMap[descriptor] = it }
-        val movedReferablesNamesList = movedReferablesMap.values.mapNotNull { it.name }.toList()
-        val movedReferablesNamesSet = movedReferablesNamesList.toSet()
-        val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> movedReferablesNamesList.filter { it == name }.size == 1 }
-        val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
-        for (entry in movedReferablesMap) {
-            val name = entry.value.name
-            if (name != null && movedReferablesUniqueNames.contains(name)) referablesWithUniqueNames[name] = entry.value
-        }
-
-        //Prepare the "remainder" namespace command (the one which is inserted in the place where one of the moved definitions was)
-        if (holes.isNotEmpty()) {
-            val uppermostHole = holes.asSequence().sorted().first()
-            var remainderAnchor: PsiElement? = uppermostHole.anchor
-
-            if (uppermostHole.kind != PositionKind.INSIDE_EMPTY_ANCHOR) {
-                val next = remainderAnchor?.rightSibling<ArendCompositeElement>()
-                val prev = remainderAnchor?.leftSibling<ArendCompositeElement>()
-                if (next != null) remainderAnchor = next else
-                    if (prev != null) remainderAnchor = prev
+        val movedReferablesNamesSet = movedReferablesMap.values.mapNotNull { it.name }.toSet()
+        run {
+            val referablesWithUsagesInSourceContainer = movedReferablesMap.values.intersect(remainderReferables.map { movedReferablesMap[it] }).
+                union(movedReferablesMap.values.filterIsInstance<ArendDefInstance>()).mapNotNull { it?.name }.toList()
+            val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> referablesWithUsagesInSourceContainer.filter { it == name }.size == 1 }
+            val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
+            for (entry in movedReferablesMap) {
+                val name = entry.value.name
+                if (name != null && movedReferablesUniqueNames.contains(name)) referablesWithUniqueNames[name] = entry.value
             }
 
-            while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
+            //Prepare the "remainder" namespace command (the one which is inserted in the place where one of the moved definitions was)
+            if (holes.isNotEmpty()) {
+                val uppermostHole = holes.asSequence().sorted().first()
+                var remainderAnchor: PsiElement? = uppermostHole.anchor
 
-            if (remainderAnchor is ArendCompositeElement) {
-                val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
-                val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
-                val importData = calculateReferenceName(targetLocation, sourceContainerFile, remainderAnchor)
+                if (uppermostHole.kind != PositionKind.INSIDE_EMPTY_ANCHOR) {
+                    val next = remainderAnchor?.rightSibling<ArendCompositeElement>()
+                    val prev = remainderAnchor?.leftSibling<ArendCompositeElement>()
+                    if (next != null) remainderAnchor = next else
+                        if (prev != null) remainderAnchor = prev
+                }
 
-                if (importData != null) {
-                    val importAction: NsCmdRefactoringAction? = importData.first
-                    val openedName: List<String> = importData.second
+                while (remainderAnchor !is ArendCompositeElement && remainderAnchor != null) remainderAnchor = remainderAnchor.parent
 
-                    importAction?.execute()
-                    val renamings = movedReferablesUniqueNames.map { Pair(it, null as String?) }
-                    val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) {
-                        if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
-                    } else remainderAnchor
+                if (remainderAnchor is ArendCompositeElement) {
+                    val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
+                    val targetLocation = LocationData(myTargetContainer as PsiLocatedReferable)
+                    val importData = calculateReferenceName(targetLocation, sourceContainerFile, remainderAnchor)
 
-                    val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
-                    for (nsId in nsIds) {
-                        val target = nsId.refIdentifier.reference?.resolve()
-                        val name = nsId.refIdentifier.referenceName
-                        if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
-                            doRemoveRefFromStatCmd(nsId.refIdentifier)
+                    if (importData != null && movedReferablesUniqueNames.isNotEmpty()) {
+                        val importAction: NsCmdRefactoringAction? = importData.first
+                        val openedName: List<String> = importData.second
+
+                        importAction?.execute()
+                        val renamings = movedReferablesUniqueNames.map { Pair(it, null as String?) } // filter this list
+                        val groupMember = if (uppermostHole.kind == PositionKind.INSIDE_EMPTY_ANCHOR) {
+                            if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
+                        } else remainderAnchor
+
+                        val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
+                        for (nsId in nsIds) {
+                            val target = nsId.refIdentifier.reference?.resolve()
+                            val name = nsId.refIdentifier.referenceName
+                            if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
+                                doRemoveRefFromStatCmd(nsId.refIdentifier)
+                        }
                     }
                 }
             }
-        }
 
-        if (sourceContainerWhereBlockFreshlyCreated) {
             val where = mySourceContainer.where
-            if (where != null && where.statementList.isEmpty())
-                where.deleteWithNotification()
+            if (where != null && where.statementList.isEmpty() && (sourceContainerWhereBlockFreshlyCreated || where.lbrace == null))  where.deleteWithNotification()
         }
 
         //Fix usages of namespace commands
@@ -564,12 +582,13 @@ class ArendMoveRefactoringProcessor(project: Project,
     private fun collectUsagesAndMembers(prefix: List<Int>, element: PsiElement, groupNumber: Int,
                                         recordFields: Set<PsiLocatedReferable>,
                                         usagesData: MutableMap<PsiLocatedReferable, MutableSet<LocationDescriptor>>,
-                                        memberData: MutableMap<PsiLocatedReferable, LocationDescriptor>) {
+                                        memberData: MutableMap<PsiLocatedReferable, LocationDescriptor>,
+                                        memberReferences: MutableSet<ArendReferenceElement>) {
         when (element) {
             is ArendFieldDefIdentifier -> memberData[element] = LocationDescriptor(groupNumber, prefix)
             is ArendLongName -> {
                 val reference = computeReferenceToBeFixed(element, recordFields)
-                if (reference != null) collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, recordFields, usagesData, memberData)
+                if (reference != null) collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, recordFields, usagesData, memberData, memberReferences)
             }
             is ArendReferenceElement ->
                 if (element !is ArendDefIdentifier) element.reference?.resolve().let {
@@ -580,11 +599,12 @@ class ArendMoveRefactoringProcessor(project: Project,
                             usagesData[it] = set
                         }
                         set.add(LocationDescriptor(groupNumber, prefix))
+                        memberReferences.add(element)
                     }
                 }
             else -> {
                 if (element is PsiLocatedReferable) memberData[element] = LocationDescriptor(groupNumber, prefix)
-                element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, recordFields, usagesData, memberData) }
+                element.children.mapIndexed { i, e -> collectUsagesAndMembers(prefix + singletonList(i), e, groupNumber, recordFields, usagesData, memberData, memberReferences) }
             }
         }
     }

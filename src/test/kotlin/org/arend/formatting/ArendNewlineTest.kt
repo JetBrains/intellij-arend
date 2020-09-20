@@ -139,7 +139,7 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testArgAppExpr() = checkNewLine(
             "\\func lol => (=) 1{-caret-} 2",
-            "\\func lol => (=) 1\n                 {-caret-}2")
+            "\\func lol => (=) 1\n    {-caret-}2")
 
     fun testArgAppExpr2() = checkNewLine(
             "\\func foobar (A : \\Type) => (=) A 101{-caret-}",
@@ -155,7 +155,7 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testArgAppExpr5() = checkNewLine(
             "\\class C\n  | f : Nat -> Nat -> Nat\n\n\\func foo (c : C) => c.f 1 {-caret-}2",
-            "\\class C\n  | f : Nat -> Nat -> Nat\n\n\\func foo (c : C) => c.f 1 \n                         2")
+            "\\class C\n  | f : Nat -> Nat -> Nat\n\n\\func foo (c : C) => c.f 1 \n    2")
 
     fun testPi1() = checkNewLine(
             "\\func foo => \\Pi (A : Nat) ->{-caret-}",

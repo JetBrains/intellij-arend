@@ -1,6 +1,7 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -64,11 +65,13 @@ class BinaryFileSaver(private val project: Project) {
     }
 
     fun saveAll() {
-        synchronized(project) {
-            for (entry in typecheckedModules) {
-                saveFile(entry.key, entry.value)
+        runWriteAction {
+            synchronized(project) {
+                for (entry in typecheckedModules) {
+                    saveFile(entry.key, entry.value)
+                }
+                typecheckedModules.clear()
             }
-            typecheckedModules.clear()
         }
     }
 }

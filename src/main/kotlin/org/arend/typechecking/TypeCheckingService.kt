@@ -1,7 +1,11 @@
 package org.arend.typechecking
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
@@ -10,9 +14,7 @@ import org.arend.ext.module.LongName
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
-import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ModuleLocation
-import org.arend.module.ModuleSynchronizer
+import org.arend.module.*
 import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
@@ -34,6 +36,7 @@ import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.settings.ArendSettings
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -41,12 +44,31 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
+import org.arend.util.Range
+import org.arend.util.Version
+import org.arend.util.refreshLibrariesDirectory
 import java.util.concurrent.ConcurrentHashMap
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
     val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
-    val libraryManager = LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this)
+    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this) {
+        override fun showLibraryNotFoundError(libraryName: String) {
+            if (libraryName == AREND_LIB) {
+                showDownloadNotification(project, false)
+            } else {
+                super.showLibraryNotFoundError(libraryName)
+            }
+        }
+
+        override fun showIncorrectLanguageVersionError(libraryName: String?, range: Range<Version>?) {
+            if (libraryName == AREND_LIB) {
+                showDownloadNotification(project, true)
+            } else {
+                super.showIncorrectLanguageVersionError(libraryName, range)
+            }
+        }
+    }
 
     private val extensionDefinitions = HashMap<TCDefReferable, Boolean>()
 
@@ -125,41 +147,47 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
-    fun reload() {
-        isLoaded = false
-        libraryManager.reload {
-            project.service<ArendResolveCache>().clear()
-            externalAdditionalNamesIndex.clear()
-            internalAdditionalNamesIndex.clear()
-            extensionDefinitions.clear()
-
-            ArendTypechecking.create(project)
-        }
-
-        isLoaded = true
-        DaemonCodeAnalyzer.getInstance(project).restart()
-    }
-
-    fun reloadInternal() {
-        isLoaded = false
-        libraryManager.reloadInternalLibraries {
-            internalAdditionalNamesIndex.clear()
-
-            val it = extensionDefinitions.iterator()
-            while (it.hasNext()) {
-                if (it.next().value) {
-                    it.remove()
+    fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
+            override fun run(indicator: ProgressIndicator) {
+                if (refresh) {
+                    refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
                 }
+
+                runReadAction {
+                    isLoaded = false
+                    if (onlyInternal) {
+                        libraryManager.reloadInternalLibraries {
+                            internalAdditionalNamesIndex.clear()
+
+                            val it = extensionDefinitions.iterator()
+                            while (it.hasNext()) {
+                                if (it.next().value) {
+                                    it.remove()
+                                }
+                            }
+
+                            project.service<ErrorService>().clearAllErrors()
+                            project.service<ArendDefinitionChangeService>().incModificationCount()
+
+                            ArendTypechecking.create(project)
+                        }
+                    } else {
+                        libraryManager.reload {
+                            project.service<ArendResolveCache>().clear()
+                            externalAdditionalNamesIndex.clear()
+                            internalAdditionalNamesIndex.clear()
+                            extensionDefinitions.clear()
+
+                            ArendTypechecking.create(project)
+                        }
+                    }
+                }
+
+                isLoaded = true
+                DaemonCodeAnalyzer.getInstance(project).restart()
             }
-
-            project.service<ErrorService>().clearAllErrors()
-            project.service<ArendDefinitionChangeService>().incModificationCount()
-
-            ArendTypechecking.create(project)
-        }
-
-        isLoaded = true
-        DaemonCodeAnalyzer.getInstance(project).restart()
+        })
     }
 
     override fun request(definition: Definition, library: Library) {

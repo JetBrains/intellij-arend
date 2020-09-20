@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import org.arend.library.Library
@@ -7,6 +8,7 @@ import org.arend.library.resolver.LibraryResolver
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.settings.ArendSettings
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
 import java.nio.file.Paths
@@ -27,13 +29,9 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
             return null
         }
 
-        val config = library.config
-        val root = if (config is ArendModuleConfigService) {
-            config.librariesRootDef?.let { Paths.get(it) }
-        } else {
-            library.config.rootPath?.parent
-        } ?: return null
-
-        return project.findExternalLibrary(root, name)?.let { ArendRawLibrary(it) }
+        val libRoot = (library.config as? ArendModuleConfigService)?.librariesRootDef ?: service<ArendSettings>().librariesRoot
+        return if (libRoot.isNotEmpty()) {
+            project.findExternalLibrary(Paths.get(libRoot), name)?.let { ArendRawLibrary(it) }
+        } else null
     }
 }

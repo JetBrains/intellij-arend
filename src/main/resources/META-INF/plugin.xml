@@ -3,7 +3,7 @@
     <vendor>JetBrains</vendor>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="201.6668"/>
+    <idea-version since-build="202.5958.24"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -307,6 +307,9 @@
         <!-- Tool Windows -->
 
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
+
+        <!-- Search everywhere contributor-->
+        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
     </extensions>
 
     <actions>
@@ -369,6 +372,12 @@
                 text="Toggle Normalization"
                 description="Toggle normalization in popup actions"
                 class="org.arend.actions.ArendNormalizeToggleAction"/>
+
+        <action class="org.arend.actions.GotoArendFileAction"
+                text="Goto Arend File"
+                description="Go to Arend file">
+            <add-to-group group-id="GoToTargetEx" anchor="last" />
+        </action>
 
         <group id="ToolbarArendGroup"
                class="org.arend.actions.ArendToolbarGroup"

@@ -12,14 +12,13 @@ import com.intellij.openapi.roots.libraries.ui.LibraryEditorComponent
 import com.intellij.openapi.roots.libraries.ui.LibraryPropertiesEditor
 import com.intellij.openapi.roots.ui.configuration.FacetsProvider
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.LibraryEditor
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import org.arend.ArendIcons
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.orderRoot.ArendLibraryRootsComponentDescriptor
-import org.arend.util.FileTypeChooserDescriptor
+import org.arend.util.*
 import org.jetbrains.yaml.psi.YAMLFile
 import javax.swing.JComponent
 
@@ -37,27 +36,29 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
     override fun createLibraryRootsComponentDescriptor() = ArendLibraryRootsComponentDescriptor
 
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
-        val file = FileChooser.chooseFile(FileTypeChooserDescriptor(listOf(".yaml")).apply {
-            title = "Choose config file"
-            description = "Select the yaml config file of an Arend library"
+        val file = FileChooser.chooseFile(ArendLibraryChooserDescriptor(chooseYamlConfig = true, chooseZipLibrary = true, chooseLibraryDirectory = true).apply {
+            title = "Choose library"
+            description = "Select an Arend library"
         }, project, null) ?: return null
 
-        val libName = file.parent?.name ?: return null
-        val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: return null
+        val configFile = file.refreshed.configFile ?: return null
+        val libName = file.libraryName ?: return null
+        if (!FileUtils.isLibraryName(libName)) return null
+        val yaml = PsiManager.getInstance(project).findFile(configFile) as? YAMLFile ?: return null
         val library = ExternalLibraryConfig(libName, yaml)
 
         return object : NewLibraryConfiguration(libName, this, kind.createDefaultProperties()) {
             override fun addRoots(editor: LibraryEditor) {
-                editor.addRoot(VfsUtil.pathToUrl(yaml.virtualFile.path), ArendConfigOrderRootType)
-                val srcDir = if (library.sourcesDir.isNotEmpty()) library.sourcesPath else null
+                editor.addRoot(configFile, ArendConfigOrderRootType)
+                val srcDir = if (library.sourcesDir.isNotEmpty()) library.sourcesDirFile else null
                 if (srcDir != null) {
-                    editor.addRoot(VfsUtil.pathToUrl(srcDir.toString()), OrderRootType.SOURCES)
+                    editor.addRoot(srcDir, OrderRootType.SOURCES)
                 }
             }
         }
     }
 
-    override fun getExternalRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES)
+    override fun getExternalRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES, OrderRootType.CLASSES)
 
     override fun getIcon(properties: DummyLibraryProperties?) = ArendIcons.LIBRARY_ICON
 
