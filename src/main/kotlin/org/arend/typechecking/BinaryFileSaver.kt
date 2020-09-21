@@ -68,6 +68,10 @@ class BinaryFileSaver(private val project: Project) {
     }
 
     fun saveAll() {
+        if (typecheckedModules.isEmpty()) {
+            return
+        }
+
         val errorReporter = ListErrorReporter()
         runInEdt { runWriteAction {
             synchronized(project) {

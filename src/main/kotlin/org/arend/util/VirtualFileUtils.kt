@@ -20,11 +20,15 @@ fun VirtualFile.getRelativePath(file: VirtualFile, ext: String = ""): ArrayList<
     return null
 }
 
-fun VirtualFile.getRelativeFile(path: Collection<String>, ext: String = ""): VirtualFile? {
+fun VirtualFile.getRelativeFile(path: Collection<String>, ext: String = "", create: Boolean = false): VirtualFile? {
     var cur = this
-    var i = 0
-    for (name in path) {
-        cur = cur.findChild(if (++i == path.size) name + ext else name) ?: return null
+    for ((i, name) in path.withIndex()) {
+        val eName = if (i == path.size - 1) name + ext else name
+        val child = cur.findChild(eName)
+        if (child == null && !create) {
+            return null
+        }
+        cur = child ?: if (i == path.size - 1) cur.createChildData(this, eName) else cur.createChildDirectory(this, eName)
     }
     return cur
 }
