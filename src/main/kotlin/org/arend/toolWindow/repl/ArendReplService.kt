@@ -18,16 +18,21 @@ class ArendReplService(private val project: Project) {
     }
 
     private var myToolWindow: ToolWindow? = null
-    private var handler: ArendReplExecutionHandler? = null
+    private var myHandler: ArendReplExecutionHandler? = null
 
-    fun show() {
+    fun show(): ArendReplExecutionHandler {
         val manager = ToolWindowManager.getInstance(project)
         val rawToolWindow = myToolWindow
-        if (rawToolWindow != null) return activate(rawToolWindow, manager)
+        val rawHandler = myHandler
+        // In fact, `rawToolWindow != null` should imply `rawHandler != null`
+        if (rawToolWindow != null && rawHandler != null) {
+            activate(rawToolWindow, manager)
+            return rawHandler
+        }
         val toolWindow = manager.registerToolWindow(RegisterToolWindowTask(TITLE, ToolWindowAnchor.BOTTOM, canWorkInDumbMode = false))
-        myToolWindow = toolWindow
         val handler = ArendReplExecutionHandler(project, toolWindow)
-        this.handler = handler
+        myToolWindow = toolWindow
+        myHandler = handler
         Disposer.register(toolWindow.disposable, handler.consoleView)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)
         toolWindowPanel.setContent(handler.consoleView.component)
@@ -38,6 +43,7 @@ class ArendReplService(private val project: Project) {
         toolWindow.contentManager.addContent(content)
         content.preferredFocusableComponent = toolWindowPanel.content
         activate(toolWindow, manager)
+        return handler
     }
 
     private fun activate(toolWindow: ToolWindow, manager: ToolWindowManager) =

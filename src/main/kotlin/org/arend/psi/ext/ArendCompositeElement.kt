@@ -17,7 +17,7 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.ArendReference
 import org.arend.term.abs.Abstract
-import org.arend.typing.ModifiedClassFieldImplScope
+import org.arend.resolving.util.ModifiedClassFieldImplScope
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
     val scope: Scope

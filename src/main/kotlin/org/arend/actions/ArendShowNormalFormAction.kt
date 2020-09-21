@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import org.arend.codeInsight.ArendPopupHandler
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings

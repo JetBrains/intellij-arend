@@ -1,4 +1,4 @@
-package org.arend.actions
+package org.arend.codeInsight
 
 import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.hint.HintManager

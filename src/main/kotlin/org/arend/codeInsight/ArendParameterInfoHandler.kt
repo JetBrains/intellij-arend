@@ -18,7 +18,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
-import org.arend.typing.parseBinOp
+import org.arend.resolving.util.parseBinOp
 import org.arend.util.checkConcreteExprIsArendExpr
 
 class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, List<Abstract.Parameter>> {

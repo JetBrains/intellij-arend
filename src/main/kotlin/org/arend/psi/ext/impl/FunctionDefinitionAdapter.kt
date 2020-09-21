@@ -16,9 +16,9 @@ import org.arend.psi.stubs.ArendDefFunctionStub
 import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ParameterImpl
-import org.arend.typing.ReferableExtractVisitor
-import org.arend.typing.getTypeOf
+import org.arend.resolving.util.ParameterImpl
+import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStub>, ArendDefFunction, ArendFunctionalDefinition {

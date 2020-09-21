@@ -13,8 +13,8 @@ import org.arend.psi.ArendTypeTele
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.term.ClassFieldKind
 import org.arend.term.abs.Abstract
-import org.arend.typing.ReferableExtractVisitor
-import org.arend.typing.getTypeOf
+import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendClassField {

@@ -1,4 +1,4 @@
-package org.arend.typing
+package org.arend.resolving.util
 
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser

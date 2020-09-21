@@ -1,4 +1,4 @@
-package org.arend.typing
+package org.arend.resolving.util
 
 import org.arend.naming.reference.Referable
 import org.arend.term.abs.Abstract

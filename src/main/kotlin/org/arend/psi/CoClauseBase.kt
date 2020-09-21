@@ -7,7 +7,7 @@ import org.arend.naming.reference.TypedReferable
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
 import org.arend.term.abs.Abstract
-import org.arend.typing.ReferableExtractVisitor
+import org.arend.resolving.util.ReferableExtractVisitor
 
 
 interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCompositeElement {
