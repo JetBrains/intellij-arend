@@ -40,6 +40,9 @@ class ArendProjectSettingsState {
 
     // Repl options
     var replNormalizationMode = NormalizationMode.ENF.toString()
+
+    // Libraries
+    var librariesRoot: String? = null
 }
 
 class ArendPrintingOptions {
