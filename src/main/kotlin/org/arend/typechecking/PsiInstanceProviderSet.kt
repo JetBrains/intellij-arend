@@ -8,7 +8,6 @@ import org.arend.typechecking.instance.provider.InstanceProvider
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.moduleScopeProvider
 import org.arend.resolving.ArendReferableConverter
 
 
