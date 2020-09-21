@@ -12,6 +12,8 @@ import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiManager
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.ListErrorReporter
 import org.arend.library.SourceLibrary
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.converter.ReferableConverter
@@ -33,7 +35,7 @@ class BinaryFileSaver(private val project: Project) {
                 for (event in events) {
                     val file = (if (event is VFileContentChangeEvent && event.isFromSave) PsiManager.getInstance(project).findFile(event.file) as? ArendFile else null) ?: continue
                     synchronized(project) {
-                        saveFile(file, typecheckedModules.remove(file) ?: return@synchronized)
+                        saveFile(file, typecheckedModules.remove(file) ?: return@synchronized, typeCheckingService.libraryManager.libraryErrorReporter)
                     }
                 }
             }
@@ -48,14 +50,14 @@ class BinaryFileSaver(private val project: Project) {
         })
     }
 
-    fun saveFile(file: ArendFile, referableConverter: ReferableConverter) {
+    fun saveFile(file: ArendFile, referableConverter: ReferableConverter, errorReporter: ErrorReporter) {
         val moduleLocation = file.moduleLocation ?: return
         if (moduleLocation.locationKind != ModuleLocation.LocationKind.SOURCE) {
             return
         }
         val library = typeCheckingService.libraryManager.getRegisteredLibrary(moduleLocation.libraryName) as? SourceLibrary ?: return
         if (library.supportsPersisting()) {
-            runReadAction { library.persistModule(moduleLocation.modulePath, referableConverter, typeCheckingService.libraryManager.libraryErrorReporter) }
+            runReadAction { library.persistModule(moduleLocation.modulePath, referableConverter, errorReporter) }
         }
     }
 
@@ -66,13 +68,19 @@ class BinaryFileSaver(private val project: Project) {
     }
 
     fun saveAll() {
+        if (typecheckedModules.isEmpty()) {
+            return
+        }
+
+        val errorReporter = ListErrorReporter()
         runInEdt { runWriteAction {
             synchronized(project) {
                 for (entry in typecheckedModules) {
-                    saveFile(entry.key, entry.value)
+                    saveFile(entry.key, entry.value, errorReporter)
                 }
                 typecheckedModules.clear()
             }
         } }
+        errorReporter.reportTo(typeCheckingService.libraryManager.libraryErrorReporter)
     }
 }

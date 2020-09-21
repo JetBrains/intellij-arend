@@ -12,6 +12,7 @@ import com.intellij.ui.layout.panel
 import com.intellij.ui.layout.selected
 import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
+import org.arend.module.AREND_LIB
 import org.arend.module.config.ArendModuleConfiguration
 import org.arend.ui.DualList
 import org.arend.ui.addBrowseAndChangeListener
@@ -132,7 +133,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
     private val librariesList: List<LibraryDependency>
         get() {
-            val arendLib = LibraryDependency("arend-lib")
+            val arendLib = LibraryDependency(AREND_LIB)
             val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return listOf(arendLib)
             VfsUtil.markDirtyAndRefresh(false, false, false, libRoot)
             val list = libRoot.children.mapNotNull { file ->

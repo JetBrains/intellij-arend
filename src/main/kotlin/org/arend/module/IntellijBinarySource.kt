@@ -11,8 +11,16 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-class IntellijBinarySource(root: VirtualFile, private val modulePath: ModulePath) : StreamBinarySource() {
-    private val file = root.getRelativeFile(modulePath.toList(), FileUtils.SERIALIZED_EXTENSION)
+class IntellijBinarySource(private val root: VirtualFile, private val binDir: String, private val modulePath: ModulePath) : StreamBinarySource() {
+    private var isFileComputed = false
+    private var file: VirtualFile? = null
+        get() {
+            if (!isFileComputed) {
+                field = root.getRelativeFile(listOf(binDir) + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION)
+                isFileComputed = true
+            }
+            return field
+        }
 
     override fun getModulePath() = modulePath
 
@@ -22,7 +30,7 @@ class IntellijBinarySource(root: VirtualFile, private val modulePath: ModulePath
 
     override fun delete(library: SourceLibrary?) = if (file != null) runWriteAction {
         try {
-            file.delete(library)
+            file!!.delete(library)
         } catch (e: IOException) {
             return@runWriteAction false
         }
@@ -31,5 +39,11 @@ class IntellijBinarySource(root: VirtualFile, private val modulePath: ModulePath
 
     override fun getInputStream(): InputStream? = file?.inputStream
 
-    override fun getOutputStream(): OutputStream? = file?.getOutputStream(this)
+    override fun getOutputStream(): OutputStream? {
+        if (file == null) {
+            file = root.getRelativeFile(listOf(binDir) + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION, true)
+            isFileComputed = true
+        }
+        return file?.getOutputStream(this)
+    }
 }
