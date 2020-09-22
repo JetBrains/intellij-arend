@@ -18,22 +18,26 @@ abstract class TextFieldChangeListener(private val textField: JTextField) {
 
     init {
         textField.addActionListener {
-            fireEvent()
+            updateText()
         }
         textField.addFocusListener(object : FocusListener {
             override fun focusLost(e: FocusEvent?) {
-                fireEvent()
+                updateText()
             }
 
             override fun focusGained(e: FocusEvent?) {}
         })
     }
 
+    private fun updateText() {
+        textChanged()
+        previousText = textField.text
+    }
+
     fun fireEvent() {
         val newText = textField.text
         if (newText != previousText) {
-            textChanged()
-            previousText = newText
+            updateText()
         }
     }
 
