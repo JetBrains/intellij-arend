@@ -9,7 +9,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import org.arend.prelude.Prelude
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.FileUtils
@@ -66,7 +66,7 @@ private fun downloadArendLib(project: Project, indicator: ProgressIndicator, pat
     }
 
 fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
-    val libRoot = service<ArendSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
+    val libRoot = project.service<ArendProjectSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
     val notification = NOTIFICATION.createNotification(if (isNewVersion) "$AREND_LIB has a wrong version" else "$AREND_LIB is missing", "", NotificationType.ERROR, null)
 
     notification.addAction(object : NotificationAction("Download $AREND_LIB") {
@@ -78,7 +78,7 @@ fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
                     ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Downloading $AREND_LIB", true) {
                         override fun run(indicator: ProgressIndicator) {
                             if (downloadArendLib(project, indicator, zipFile)) {
-                                refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+                                refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                                 project.findExternalLibrary(libRoot, AREND_LIB)?.root?.let {
                                     VfsUtil.markDirtyAndRefresh(false, true, false, it)
                                     project.service<TypeCheckingService>().reload(onlyInternal = true, refresh = false)

@@ -1,8 +1,6 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -13,7 +11,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiManager
 import org.arend.ext.error.ErrorReporter
-import org.arend.ext.error.ListErrorReporter
 import org.arend.library.SourceLibrary
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.converter.ReferableConverter
@@ -72,15 +69,11 @@ class BinaryFileSaver(private val project: Project) {
             return
         }
 
-        val errorReporter = ListErrorReporter()
-        runInEdt { runWriteAction {
-            synchronized(project) {
-                for (entry in typecheckedModules) {
-                    saveFile(entry.key, entry.value, errorReporter)
-                }
-                typecheckedModules.clear()
+        synchronized(project) {
+            for (entry in typecheckedModules) {
+                saveFile(entry.key, entry.value, typeCheckingService.libraryManager.libraryErrorReporter)
             }
-        } }
-        errorReporter.reportTo(typeCheckingService.libraryManager.libraryErrorReporter)
+            typecheckedModules.clear()
+        }
     }
 }

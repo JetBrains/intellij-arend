@@ -23,7 +23,9 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ModuleAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
+import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
+import org.arend.source.PersistableBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.provider.EmptyConcreteProvider
@@ -86,6 +88,14 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         val root = config.root ?: return null
         val binDir = config.binariesDir ?: return null
         return GZIPStreamBinarySource(IntellijBinarySource(root, binDir, modulePath))
+    }
+
+    override fun getPersistableBinarySource(modulePath: ModulePath?): PersistableBinarySource? {
+        // We do not persists binary files with VirtualFiles because it takes forever for some reason
+        val root = config.root ?: return null
+        val binDir = config.binariesDir ?: return null
+        val path = root.fileSystem.getNioPath(root) ?: return null
+        return GZIPStreamBinarySource(FileBinarySource(path.resolve(binDir), modulePath))
     }
 
     override fun containsModule(modulePath: ModulePath) = config.containsModule(modulePath)

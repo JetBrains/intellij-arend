@@ -6,11 +6,12 @@ import com.intellij.openapi.project.Project
 import org.arend.module.ArendModuleBuilder
 import org.arend.module.config.ArendModuleConfigurationUpdater
 import org.arend.prelude.Prelude
+import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 
 class ArendModuleWizardStep(project: Project?, private val builder: ArendModuleBuilder) : ModuleWizardStep() {
     private val view = ArendModuleConfigurationView(project, builder.moduleFileDirectory).apply {
-        librariesRoot = service<ArendSettings>().librariesRoot
+        librariesRoot = project?.service<ArendProjectSettings>()?.librariesRoot ?: service<ArendSettings>().librariesRoot
         sourcesDir = "src"
         withBinaries = true
         binariesDirectory = ".bin"

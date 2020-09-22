@@ -16,13 +16,14 @@ import org.arend.util.getRelativePath
 
 class ArendMoveFileHandler: MoveFileHandler() {
     private val replaceMap = mutableMapOf<PsiElement, PsiElement>()
-    private val usages = mutableMapOf<PsiFile, List<UsageInfo>>()
+    private val usages = mutableMapOf<ArendFile, List<UsageInfo>>()
 
     override fun updateMovedFile(file: PsiFile?) {
 
     }
 
     override fun prepareMovedFile(file: PsiFile, moveDestination: PsiDirectory, oldToNewMap: MutableMap<PsiElement, PsiElement>) {
+        if (file !is ArendFile) return
         val fileUsages = usages[file] ?: return
         val destinationPath = file.arendLibrary?.config?.sourcesDirFile?.getRelativePath(moveDestination.virtualFile) ?: return
         destinationPath.add(file.virtualFile?.name?.removeSuffix(FileUtils.EXTENSION) ?: return)
@@ -42,6 +43,7 @@ class ArendMoveFileHandler: MoveFileHandler() {
     }
 
     override fun findUsages(psiFile: PsiFile, newParent: PsiDirectory, searchInComments: Boolean, searchInNonJavaFiles: Boolean): ArrayList<UsageInfo> {
+        if (psiFile !is ArendFile) return ArrayList()
         val finder = DefaultFindUsagesHandlerFactory().createFindUsagesHandler(psiFile, false)
         val processor = CommonProcessors.CollectProcessor<UsageInfo>()
         val options = FindUsagesOptions(psiFile.project)
