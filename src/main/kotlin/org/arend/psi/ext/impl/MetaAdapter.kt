@@ -27,15 +27,14 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
             tcReferableCache = value
         }
 
+    private fun prepareTCRef(parent: LocatedReferable?) =
+        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent)
+
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
-            underlyingReferable = Supplier { data.element }
-        }
+        prepareTCRef(parent).apply { underlyingReferable = Supplier { data.element } }
 
     fun makeTCReferable(parent: LocatedReferable?) =
-        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
-            underlyingReferable = Supplier { this }
-        }
+        prepareTCRef(parent).apply { underlyingReferable = Supplier { this } }
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 
