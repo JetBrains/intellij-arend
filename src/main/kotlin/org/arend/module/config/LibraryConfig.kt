@@ -58,6 +58,9 @@ abstract class LibraryConfig(val project: Project) {
     val binariesDirFile: VirtualFile?
         get() = binariesDir?.let { root?.findChild(it) }
 
+    open val isExternal: Boolean
+        get() = false
+
     // Extensions
 
     val extensionDirFile: VirtualFile?
@@ -188,7 +191,7 @@ abstract class LibraryConfig(val project: Project) {
             path = testsDirFile?.getRelativePath(vFile, FileUtils.EXTENSION) ?: return null
             ModuleLocation.LocationKind.TEST
         }
-        return ModuleLocation(name, locationKind, ModulePath(path))
+        return ModuleLocation(name, isExternal, locationKind, ModulePath(path))
     }
 
     fun getFileLocationKind(file: ArendFile): ModuleLocation.LocationKind? = getFileModulePath(file)?.locationKind

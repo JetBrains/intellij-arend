@@ -34,7 +34,7 @@ import java.util.function.Supplier
 
 class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
-    override fun isExternal() = config is ExternalLibraryConfig
+    override fun isExternal() = config.isExternal
 
     override fun getName() = config.name
 
@@ -53,7 +53,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         scopeToText(scope, "", builder)
         val file = PsiFileFactory.getInstance(config.project).createFileFromText(modulePath.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return
         file.virtualFile.isWritable = false
-        file.generatedModuleLocation = ModuleLocation(name, ModuleLocation.LocationKind.GENERATED, modulePath)
+        file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)
         config.project.service<TypeCheckingService>().fillAdditionalNames(file, isExternal)
         config.addAdditionalModule(modulePath, file)
