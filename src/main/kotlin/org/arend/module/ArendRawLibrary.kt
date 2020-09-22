@@ -13,7 +13,7 @@ import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
-import org.arend.naming.reference.EmptyGlobalReferable
+import org.arend.naming.reference.EmptyLocatedReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
@@ -126,13 +126,13 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
             var first = true
 
             for (element in scope.elements) {
-                if (!(element is MetaReferable || element is EmptyGlobalReferable)) {
+                if (!(element is MetaReferable || element is EmptyLocatedReferable)) {
                     continue
                 }
 
                 val name = element.refName
                 val subscope = scope.resolveNamespace(name, false)
-                if (subscope == null && element is EmptyGlobalReferable) {
+                if (subscope == null && element is EmptyLocatedReferable) {
                     continue
                 }
 

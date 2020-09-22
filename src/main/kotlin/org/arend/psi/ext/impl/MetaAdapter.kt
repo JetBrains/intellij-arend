@@ -28,7 +28,7 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
         }
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        MetaReferable(precedence, refName, location, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
+        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
             underlyingReferable = Supplier { data.element }
         }
 
