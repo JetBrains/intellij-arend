@@ -100,11 +100,13 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
 
                 (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
-                    ref.nameIdentifier?.let {
-                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
-                    }
-                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
-                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    if (ref.containingFile == myFile) {
+                        ref.nameIdentifier?.let {
+                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                        }
+                        (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                        }
                     }
                 }
 

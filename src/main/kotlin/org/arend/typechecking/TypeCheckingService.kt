@@ -221,7 +221,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    private fun removeDefinition(referable: LocatedReferable, removeTCRef: Boolean): TCDefReferable? {
+    private fun removeDefinition(referable: LocatedReferable, removeTCRef: Boolean): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
         }
@@ -232,7 +232,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable !is TCDefReferable) {
             resetErrors(curRef, removeTCRef)
-            return null
+            return tcReferable
         }
 
         if (ComputationRunner.isCancellationIndicatorSet()) {
