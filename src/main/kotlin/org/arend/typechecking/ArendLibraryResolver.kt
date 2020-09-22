@@ -8,7 +8,7 @@ import org.arend.library.resolver.LibraryResolver
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
 import java.nio.file.Paths
@@ -29,7 +29,7 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
             return null
         }
 
-        val libRoot = (library.config as? ArendModuleConfigService)?.librariesRootDef ?: service<ArendSettings>().librariesRoot
+        val libRoot = (library.config as? ArendModuleConfigService)?.librariesRootDef ?: project.service<ArendProjectSettings>().librariesRoot
         return if (libRoot.isNotEmpty()) {
             project.findExternalLibrary(Paths.get(libRoot), name)?.let { ArendRawLibrary(it) }
         } else null

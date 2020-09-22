@@ -1,4 +1,4 @@
-package org.arend.typing
+package org.arend.resolving.util
 
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*

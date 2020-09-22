@@ -1,4 +1,4 @@
-package org.arend.typing
+package org.arend.resolving.util
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil

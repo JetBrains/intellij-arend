@@ -36,7 +36,7 @@ import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -151,7 +151,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
                 if (refresh) {
-                    refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+                    refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                 }
 
                 runReadAction {

@@ -8,7 +8,7 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.Universe
+import org.arend.resolving.util.Universe
 import javax.swing.Icon
 
 abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, ArendDefClass, Abstract.ClassDefinition, ClassReferenceHolder {

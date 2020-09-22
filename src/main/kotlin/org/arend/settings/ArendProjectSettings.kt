@@ -2,6 +2,7 @@ package org.arend.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
+import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
@@ -20,6 +21,13 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
 
     // for show-type and show-normalized
     var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+
+    var librariesRoot: String
+        get() = data.librariesRoot ?: service<ArendSettings>().librariesRoot
+        set(value) {
+            data.librariesRoot = value
+            service<ArendSettings>().librariesRoot = value
+        }
 
     fun setAutoScrollFromSource(type: MessageType, enabled: Boolean) {
         if (enabled) {

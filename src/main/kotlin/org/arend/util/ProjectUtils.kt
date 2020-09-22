@@ -12,7 +12,7 @@ import com.intellij.psi.PsiManager
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
@@ -48,7 +48,7 @@ fun Module.register() {
     service.initialize()
     val config = ArendModuleConfigService.getInstance(this) ?: return
     config.copyFromYAML(false)
-    refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+    refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
     runReadAction {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
     }

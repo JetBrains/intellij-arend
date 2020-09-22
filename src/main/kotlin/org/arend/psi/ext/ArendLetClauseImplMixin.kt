@@ -8,7 +8,7 @@ import org.arend.psi.ArendLetClause
 import org.arend.psi.ArendNameTele
 import org.arend.psi.ArendNewExpr
 import org.arend.term.abs.Abstract
-import org.arend.typing.ReferableExtractVisitor
+import org.arend.resolving.util.ReferableExtractVisitor
 
 
 abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), ArendLetClause {

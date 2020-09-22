@@ -11,9 +11,9 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ParameterImpl
-import org.arend.typing.Universe
-import org.arend.typing.getTypeOf
+import org.arend.resolving.util.ParameterImpl
+import org.arend.resolving.util.Universe
+import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, ArendDefData, Abstract.DataDefinition {

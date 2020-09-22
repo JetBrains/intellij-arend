@@ -17,7 +17,7 @@ import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.*
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
@@ -38,10 +38,10 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     private val libraryManager = project.service<TypeCheckingService>().libraryManager
 
-    override var librariesRoot = service<ArendSettings>().librariesRoot
+    override var librariesRoot = project.service<ArendProjectSettings>().librariesRoot
         set(value) {
             field = value
-            service<ArendSettings>().librariesRoot = value
+            project.service<ArendProjectSettings>().librariesRoot = value
         }
 
     override var sourcesDir = ""
@@ -120,12 +120,12 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
 
         if (reloadLib) {
-            refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+            refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
             project.service<TypeCheckingService>().reload(true)
             callback()
         } else ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading Arend Libraries", false) {
             override fun run(indicator: ProgressIndicator) {
-                refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+                refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                 runReadAction {
                     val typechecking = ArendTypechecking.create(project)
                     for (dependency in newDependencies) {

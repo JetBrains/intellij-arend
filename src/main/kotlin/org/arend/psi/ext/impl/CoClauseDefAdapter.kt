@@ -13,7 +13,7 @@ import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.typing.ReferableExtractVisitor
+import org.arend.resolving.util.ReferableExtractVisitor
 import javax.swing.Icon
 
 abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, ArendCoClauseDef {

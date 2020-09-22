@@ -9,7 +9,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import org.arend.prelude.Prelude
-import org.arend.settings.ArendSettings
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.FileUtils
@@ -28,28 +28,45 @@ const val AREND_LIB = "arend-lib"
 
 private val NOTIFICATION = NotificationGroup("Arend Library Update", NotificationDisplayType.STICKY_BALLOON, true)
 
-private fun downloadArendLib(project: Project, file: Path): Boolean {
+private fun downloadArendLib(project: Project, indicator: ProgressIndicator, path: Path): Boolean =
     try {
-        BufferedInputStream(URL("https://github.com/JetBrains/arend-lib/releases/download/v${Prelude.VERSION.longString}/arend-lib.zip").openStream()).use { input ->
-            val output = FileOutputStream(file.toFile())
+        val conn = URL("https://github.com/JetBrains/$AREND_LIB/releases/download/v${Prelude.VERSION.longString}/$AREND_LIB.zip").openConnection()
+        BufferedInputStream(conn.getInputStream()).use { input ->
+            val size = conn.contentLengthLong
+            if (size < 0) {
+                indicator.isIndeterminate = true
+            }
+
+            val file = path.toFile()
+            val output = FileOutputStream(file)
             val buffer = ByteArray(8 * 1024)
+            var totalRead: Long = 0
             while (true) {
+                if (indicator.isCanceled) {
+                    file.delete()
+                    return@use false
+                }
+
                 val s = input.read(buffer, 0, buffer.size)
                 if (s < 0) {
                     break
                 }
                 output.write(buffer, 0, s)
+
+                if (size >= 0) {
+                    totalRead += s
+                    indicator.fraction = totalRead.toDouble() / size
+                }
             }
         }
-        return true
+        true
     } catch (e: IOException) {
         NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("An exception happened during downloading of $AREND_LIB", null, e.toString(), NotificationType.ERROR, null).notify(project)
-        return false
+        false
     }
-}
 
 fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
-    val libRoot = service<ArendSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
+    val libRoot = project.service<ArendProjectSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
     val notification = NOTIFICATION.createNotification(if (isNewVersion) "$AREND_LIB has a wrong version" else "$AREND_LIB is missing", "", NotificationType.ERROR, null)
 
     notification.addAction(object : NotificationAction("Download $AREND_LIB") {
@@ -58,10 +75,10 @@ fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
             if (Files.exists(libRoot) || libRoot.toFile().mkdirs()) {
                 val zipFile = libRoot.resolve(AREND_LIB + FileUtils.ZIP_EXTENSION)
                 if (!Files.exists(zipFile) || Files.isRegularFile(zipFile)) {
-                    ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Downloading $AREND_LIB", false) {
+                    ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Downloading $AREND_LIB", true) {
                         override fun run(indicator: ProgressIndicator) {
-                            if (downloadArendLib(project, zipFile)) {
-                                refreshLibrariesDirectory(service<ArendSettings>().librariesRoot)
+                            if (downloadArendLib(project, indicator, zipFile)) {
+                                refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                                 project.findExternalLibrary(libRoot, AREND_LIB)?.root?.let {
                                     VfsUtil.markDirtyAndRefresh(false, true, false, it)
                                     project.service<TypeCheckingService>().reload(onlyInternal = true, refresh = false)

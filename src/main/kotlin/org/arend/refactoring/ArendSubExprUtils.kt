@@ -43,7 +43,7 @@ import org.arend.typechecking.subexpr.CorrespondedSubExprVisitor
 import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
-import org.arend.typing.parseBinOp
+import org.arend.resolving.util.parseBinOp
 
 /**
  * @param def for storing function-level elim/clauses bodies

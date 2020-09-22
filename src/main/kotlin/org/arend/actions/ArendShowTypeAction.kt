@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import org.arend.codeInsight.ArendPopupHandler
 import org.arend.core.definition.Function
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.Expression

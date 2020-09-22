@@ -147,7 +147,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 if (ref.path == Prelude.MODULE_PATH) {
                     element.project.service<TypeCheckingService>().prelude
                 } else {
-                    element.containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                    (element.containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                 }
             }
             else -> null
@@ -182,7 +182,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val module = if (ref is PsiModuleReferable) {
                         ref.modules.firstOrNull()
                     } else {
-                        containingFile?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                        (containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                     }
                     when (module) {
                         null -> LookupElementBuilder.create(ref, ref.path.lastName).withIcon(ArendIcons.DIRECTORY)
