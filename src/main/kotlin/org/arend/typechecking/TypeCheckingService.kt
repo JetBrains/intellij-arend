@@ -150,6 +150,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
+                project.service<BinaryFileSaver>().saveAll()
                 if (refresh) {
                     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                 }

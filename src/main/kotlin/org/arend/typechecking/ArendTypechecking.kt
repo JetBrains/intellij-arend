@@ -29,11 +29,9 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
     }
 
     protected open fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
-        if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
-            runReadAction {
-                val file = ref.containingFile as? ArendFile ?: return@runReadAction
-                file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
-            }
+        runReadAction {
+            val file = ref.containingFile as? ArendFile ?: return@runReadAction
+            file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
         }
     }
 
