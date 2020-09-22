@@ -10,6 +10,7 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
+import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -17,6 +18,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
@@ -45,6 +47,18 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiRef
 
 open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
     override fun resolve() = resolve(true)
+}
+
+private object ArendIdReferableConverter : ReferableConverter {
+    override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
+        null -> null
+        is TCReferable -> referable
+        is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
+        is MetaAdapter -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
+        else -> LocatedReferableImpl(referable.precedence, referable.refName, TCDefReferable.NULL_REFERABLE, referable.kind)
+    }
+
+    override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable
 }
 
 open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
@@ -89,8 +103,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
             }
         when {
-            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendReferableConverter).getConcrete(def)
-            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
+            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
+            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
             else -> {}
         }
 

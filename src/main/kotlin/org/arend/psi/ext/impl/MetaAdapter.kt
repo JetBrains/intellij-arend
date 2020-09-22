@@ -32,6 +32,11 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
             underlyingReferable = Supplier { data.element }
         }
 
+    fun makeTCReferable(parent: LocatedReferable?) =
+        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent).apply {
+            underlyingReferable = Supplier { this }
+        }
+
     override fun getKind() = GlobalReferable.Kind.OTHER
 
     override fun getIcon(flags: Int) = ArendIcons.META_DEFINITION
