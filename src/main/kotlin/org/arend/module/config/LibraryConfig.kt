@@ -70,7 +70,7 @@ abstract class LibraryConfig(val project: Project) {
     // Extensions
 
     val extensionDirFile: VirtualFile?
-        get() = extensionsDir?.let { root?.findChild(it) }
+        get() = extensionsDir?.let(::findDir)
 
     val extensionMainClassFile: VirtualFile?
         get() {
