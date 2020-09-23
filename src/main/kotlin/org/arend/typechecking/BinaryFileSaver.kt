@@ -56,7 +56,8 @@ class BinaryFileSaver(private val project: Project) {
 
     private fun updateFiles(savedFiles: Set<VirtualFile>) {
         // We need to update them because we save files using Java API and not the VFS because the latter is very slow for some reason
-        VfsUtil.markDirtyAndRefresh(false, false, false, *savedFiles.toTypedArray())
+        // TODO: Probably a better way is to save files using VFS immediately after typechecking
+        VfsUtil.markDirtyAndRefresh(true, false, false, *savedFiles.toTypedArray())
     }
 
     private fun saveFile(file: ArendFile, referableConverter: ReferableConverter, errorReporter: ErrorReporter, savedFiles: HashSet<VirtualFile>) {
