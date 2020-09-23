@@ -21,15 +21,13 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendFieldDefIdentifier
-import org.arend.psi.ArendIPName
-import org.arend.psi.ArendPattern
+import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.typechecking.TypeCheckingService
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
@@ -141,7 +139,9 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement): List<PsiLocatedReferable> {
             val name = refElement.referenceName
             val service = project.service<TypeCheckingService>()
-            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + service.getAdditionalReferables(name)
+            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
+                   StubIndex.getElements(ArendFileIndex.KEY, "$name.ard", project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
+                   service.getAdditionalReferables(name)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {

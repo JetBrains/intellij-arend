@@ -240,6 +240,7 @@
         <stubIndex implementation="org.arend.psi.stubs.index.ArendNamedElementIndex"/>
         <stubIndex implementation="org.arend.psi.stubs.index.ArendDefinitionIndex"/>
         <stubIndex implementation="org.arend.psi.stubs.index.ArendGotoClassIndex"/>
+        <stubIndex implementation="org.arend.psi.stubs.index.ArendFileIndex"/>
 
         <stubElementTypeHolder class="org.arend.psi.ArendElementTypes"/>
 
