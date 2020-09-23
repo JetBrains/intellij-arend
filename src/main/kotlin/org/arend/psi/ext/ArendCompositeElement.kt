@@ -92,7 +92,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
 }
 
 fun getParentSourceNode(sourceNode: ArendSourceNode) =
-    sourceNode.topmostEquivalentSourceNode.parent.ancestor<ArendSourceNode>()
+    sourceNode.topmostEquivalentSourceNode.parent?.ancestor<ArendSourceNode>()
 
 abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement  {
     override val scope
