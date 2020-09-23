@@ -87,7 +87,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? {
         val root = config.root ?: return null
-        val binDir = config.binariesDir ?: return null
+        val binDir = config.binariesDirList ?: return null
         return GZIPStreamBinarySource(IntellijBinarySource(root, binDir, modulePath))
     }
 

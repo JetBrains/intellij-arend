@@ -24,11 +24,18 @@ fun VirtualFile.getRelativeFile(path: Collection<String>, ext: String = "", crea
     var cur = this
     for ((i, name) in path.withIndex()) {
         val eName = if (i == path.size - 1) name + ext else name
-        val child = cur.findChild(eName)
-        if (child == null && !create) {
-            return null
+        if (eName == ".") {
+            continue
         }
-        cur = child ?: if (i == path.size - 1) cur.createChildData(this, eName) else cur.createChildDirectory(this, eName)
+        cur = if (eName == "..") {
+            cur.parent ?: return null
+        } else {
+            val child = cur.findChild(eName)
+            if (child == null && !create) {
+                return null
+            }
+            child ?: if (i == path.size - 1) cur.createChildData(this, eName) else cur.createChildDirectory(this, eName)
+        }
     }
     return cur
 }

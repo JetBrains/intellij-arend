@@ -69,8 +69,8 @@ class BinaryFileSaver(private val project: Project) {
             if (runReadAction { library.persistModule(moduleLocation.modulePath, referableConverter, errorReporter) }) {
                 val config = (library as? ArendRawLibrary)?.config ?: return
                 val root = config.root ?: return
-                val binDir = config.binariesDir ?: return
-                val vFile = root.getRelativeFile(listOf(binDir) + moduleLocation.modulePath.toList(), FileUtils.SERIALIZED_EXTENSION) ?: return
+                val binDir = config.binariesDirList ?: return
+                val vFile = root.getRelativeFile(binDir + moduleLocation.modulePath.toList(), FileUtils.SERIALIZED_EXTENSION) ?: return
                 savedFiles.add(vFile)
             }
         }
