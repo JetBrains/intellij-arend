@@ -110,8 +110,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 InjectedArendEditor(project, "Arend Messages", treeElement)
             }
 
-            if (activeEditor?.treeElement?.let { errorEditors.containsKey(it.sampleError.error) } == false) {
-                activeEditor?.release()
+            activeEditor?.let {
+                if (!errorEditors.values.contains(it)) {
+                    it.release()
+                }
             }
 
             activeEditor = arendEditor
