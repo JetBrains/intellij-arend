@@ -21,9 +21,9 @@ class ArendRainbowVisitor : RainbowVisitor() {
         }
 
         val bindingToUniqueName: Map<ArendDefIdentifier, String> = run {
-            val allBindings = function.collectDescendantsOfType<ArendDefIdentifier>(canGoInside = {
-                it !is ArendWhere
-            }).asSequence()
+            val allBindings = function.collectDescendantsOfType<ArendDefIdentifier>(
+                canGoInside = { it !is ArendWhere }
+            ).asSequence()
                 .filter { it.name != null && it != defIdentifier }
                 .filter {
                     val parent = it.parent ?: return@filter true
@@ -45,9 +45,9 @@ class ArendRainbowVisitor : RainbowVisitor() {
             addInfo(binding.referenceNameElement, name)
         }
 
-        for (path in function.collectDescendantsOfType<ArendRefIdentifier>(canGoInside = {
-            it !is ArendWhere
-        })) {
+        for (path in function.collectDescendantsOfType<ArendRefIdentifier>(
+            canGoInside = { it !is ArendWhere }
+        )) {
             val reference = path.reference ?: continue
             val target = reference.resolve() as? ArendDefIdentifier ?: continue
             val colorTag = bindingToUniqueName[target] ?: return
