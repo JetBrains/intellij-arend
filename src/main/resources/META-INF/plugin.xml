@@ -66,6 +66,8 @@
         <lang.syntaxHighlighterFactory language="Arend"
                                        implementationClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
 
+        <highlightVisitor implementation="org.arend.highlight.ArendRainbowVisitor"/>
+
         <!-- Commenter -->
 
         <lang.commenter language="Arend" implementationClass="org.arend.commenter.ArendCommenter"/>
