@@ -45,7 +45,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
 
             val consumer = { name: String ->
                 if (result.prefixMatcher.prefixMatches(name)) {
-                    val locatedReferables = StubIndex.getElements<String, PsiReferable>(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
+                    val locatedReferables = StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
                     locatedReferables.forEach {
                         if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, true)?.let {
                             result.addElement(

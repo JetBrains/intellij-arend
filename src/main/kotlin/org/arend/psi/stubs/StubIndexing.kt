@@ -3,6 +3,7 @@ package org.arend.psi.stubs
 import com.intellij.psi.stubs.IndexSink
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.psi.stubs.index.ArendNamedElementIndex
 
@@ -71,7 +72,7 @@ private fun IndexSink.indexDefinitionStub(stub: ArendStub<out PsiLocatedReferabl
 }
 
 private fun IndexSink.indexFileStub(stub: ArendFileStub) {
-    stub.name?.let { occurrence(ArendDefinitionIndex.KEY, it) }
+    stub.name?.let { occurrence(ArendFileIndex.KEY, it) }
 }
 
 private fun IndexSink.indexGotoClass(stub: ArendNamedStub) {

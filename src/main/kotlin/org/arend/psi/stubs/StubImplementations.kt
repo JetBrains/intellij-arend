@@ -11,7 +11,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.impl.*
 
 class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubImpl<ArendFile>(file), ArendNamedStub {
-    constructor (file: ArendFile?) : this(file, file?.name?.removeSuffix('.' + ArendFileType.defaultExtension))
+    constructor (file: ArendFile?) : this(file, file?.name)//?.removeSuffix('.' + ArendFileType.defaultExtension))
 
     override val precedence: Precedence
         get() = Precedence.DEFAULT
@@ -19,7 +19,7 @@ class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubI
     override fun getType(): Type = Type
 
     object Type : IStubFileElementType<ArendFileStub>(ArendLanguage.INSTANCE) {
-        override fun getStubVersion() = 4
+        override fun getStubVersion() = 5
 
         override fun getBuilder() = object : DefaultStubBuilder() {
             override fun createStubForFile(file: PsiFile): StubElement<*> =
