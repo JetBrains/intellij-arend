@@ -3,10 +3,7 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
@@ -77,4 +74,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
     override fun getIcon(flags: Int): Icon = if (recordKw != null) ArendIcons.RECORD_DEFINITION else ArendIcons.CLASS_DEFINITION
+
+    override val tcReferable: TCDefReferable?
+        get() = super.tcReferable as TCDefReferable?
 }

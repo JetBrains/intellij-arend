@@ -1,12 +1,16 @@
 package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendClassImplementStub
+import org.arend.resolving.DataLocatedReferable
 
 abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>, ArendClassImplement, CoClauseBase {
     constructor(node: ASTNode) : super(node)
@@ -48,4 +52,7 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
     override fun getIcon(flags: Int) = ArendIcons.IMPLEMENTATION
 
     override fun getKind() = GlobalReferable.Kind.OTHER
+
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
+        DataLocatedReferable(data, this, parent)
 }

@@ -3,7 +3,7 @@ package org.arend.typechecking
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import org.arend.core.definition.Definition
-import org.arend.naming.reference.TCReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
@@ -35,11 +35,11 @@ class TestBasedTypechecking(
         eventsProcessor.startTimer(definition)
     }
 
-    private fun stopTimer(definition: TCReferable) {
+    private fun stopTimer(definition: TCDefReferable) {
         PsiLocatedReferable.fromReferable(definition)?.let { eventsProcessor.stopTimer(it) }
     }
 
-    override fun typecheckingUnitStarted(definition: TCReferable) {
+    override fun typecheckingUnitStarted(definition: TCDefReferable) {
         startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
@@ -64,19 +64,19 @@ class TestBasedTypechecking(
         eventsProcessor.onTestFinished(ref)
     }
 
-    override fun typecheckingHeaderStarted(definition: TCReferable) {
+    override fun typecheckingHeaderStarted(definition: TCDefReferable) {
         startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
-    override fun typecheckingHeaderFinished(referable: TCReferable, definition: Definition?) {
+    override fun typecheckingHeaderFinished(referable: TCDefReferable, definition: Definition?) {
         stopTimer(referable)
     }
 
-    override fun typecheckingBodyStarted(definition: TCReferable) {
+    override fun typecheckingBodyStarted(definition: TCDefReferable) {
         startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, false)
     }
 
-    override fun typecheckingInterrupted(definition: TCReferable, typechecked: Definition?) {
+    override fun typecheckingInterrupted(definition: TCDefReferable, typechecked: Definition?) {
         val ref = PsiLocatedReferable.fromReferable(definition) ?: return
         eventsProcessor.stopTimer(ref)
         eventsProcessor.onTestFailure(ref, true)

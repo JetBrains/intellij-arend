@@ -53,10 +53,12 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     private val langVersionField = JTextField()
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
-        override fun isAvailable(t: LibraryDependency): Boolean {
+        override fun isOK(t: LibraryDependency): Boolean {
             val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), false) ?: return false
             return libRoot.findChild(t.name)?.configFile != null || libRoot.findChild(t.name + FileUtils.ZIP_EXTENSION)?.configFile != null
         }
+
+        override fun isAvailable(t: LibraryDependency) = t.name == AREND_LIB || isOK(t)
 
         override fun getIcon(t: LibraryDependency) = ArendIcons.LIBRARY_ICON
     }.apply {

@@ -27,7 +27,7 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
@@ -116,7 +116,7 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
                 }
                 val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
                 val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
-                val doc = if ((ref as? ModuleAdapter)?.metaReferable?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+                val doc = if ((ref as? MetaAdapter)?.metaRef?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
                     error.getDoc(ppConfig)
                 else
                     DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))

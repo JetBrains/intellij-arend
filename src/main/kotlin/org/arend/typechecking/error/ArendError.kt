@@ -7,18 +7,18 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.GeneralError
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiConcreteReferable
 
 
 class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPointer<*>) : Comparable<ArendError> {
     private val definitionPointer = runReadAction {
-        cause?.ancestor<TCDefinition>()?.let { SmartPointerManager.createPointer(it) }
+        cause?.ancestor<PsiConcreteReferable>()?.let { SmartPointerManager.createPointer(it) }
     }
 
     val cause: PsiElement?
         get() = pointer.element
 
-    val definition: TCDefinition?
+    val definition: PsiConcreteReferable?
         get() = definitionPointer?.element
 
     val inDefinition: Boolean

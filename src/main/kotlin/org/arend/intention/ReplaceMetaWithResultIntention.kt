@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement
 import org.arend.core.expr.ErrorWithConcreteExpression
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.psi.*
-import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.refactoring.*
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
 
@@ -16,7 +16,7 @@ class ReplaceMetaWithResultIntention : BaseArendIntention("Replace meta with res
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val expr = element.ancestor<ArendExpr>()
         val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false
-        return (refElement.resolve as? ModuleAdapter)?.metaReferable.let { it?.definition != null || it?.resolver != null }
+        return (refElement.resolve as? MetaAdapter)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {

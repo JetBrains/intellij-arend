@@ -2,6 +2,7 @@ package org.arend.module.config
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.*
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileSystemItem
@@ -49,19 +50,27 @@ abstract class LibraryConfig(val project: Project) {
 
     private val additionalModules = HashMap<ModulePath, ArendFile>()
 
+    private fun findDir(dir: String) = root?.findFileByRelativePath(FileUtil.toSystemIndependentName(dir).removeSuffix("/"))
+
     open val sourcesDirFile: VirtualFile?
-        get() = sourcesDir.let { if (it.isEmpty()) root else root?.findChild(it) }
+        get() = sourcesDir.let { if (it.isEmpty()) root else findDir(it) }
 
     open val testsDirFile: VirtualFile?
-        get() = testsDir.let { if (it.isEmpty()) null else root?.findChild(it) }
+        get() = testsDir.let { if (it.isEmpty()) null else findDir(it) }
 
     val binariesDirFile: VirtualFile?
-        get() = binariesDir?.let { root?.findChild(it) }
+        get() = binariesDir?.let { findDir(it) }
+
+    val binariesDirList: List<String>?
+        get() = binariesDir?.let { FileUtil.toSystemIndependentName(it).removeSuffix("/").split('/') }
+
+    open val isExternal: Boolean
+        get() = false
 
     // Extensions
 
     val extensionDirFile: VirtualFile?
-        get() = extensionsDir?.let { root?.findChild(it) }
+        get() = extensionsDir?.let(::findDir)
 
     val extensionMainClassFile: VirtualFile?
         get() {
@@ -188,7 +197,7 @@ abstract class LibraryConfig(val project: Project) {
             path = testsDirFile?.getRelativePath(vFile, FileUtils.EXTENSION) ?: return null
             ModuleLocation.LocationKind.TEST
         }
-        return ModuleLocation(name, locationKind, ModulePath(path))
+        return ModuleLocation(name, isExternal, locationKind, ModulePath(path))
     }
 
     fun getFileLocationKind(file: ArendFile): ModuleLocation.LocationKind? = getFileModulePath(file)?.locationKind

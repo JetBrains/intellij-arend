@@ -5,7 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
 import org.arend.ext.error.ErrorReporter
-import org.arend.naming.reference.TCReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.ArendReferableConverter
@@ -29,19 +29,17 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
     }
 
     protected open fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
-        if (definition.status() == Definition.TypeCheckingStatus.NO_ERRORS) {
-            runReadAction {
-                val file = ref.containingFile as? ArendFile ?: return@runReadAction
-                file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
-            }
+        runReadAction {
+            val file = ref.containingFile as? ArendFile ?: return@runReadAction
+            file.project.service<BinaryFileSaver>().addToQueue(file, referableConverter)
         }
     }
 
-    override fun typecheckingUnitFinished(referable: TCReferable, definition: Definition) {
+    override fun typecheckingUnitFinished(referable: TCDefReferable, definition: Definition) {
         typecheckingFinished(PsiLocatedReferable.fromReferable(referable) ?: return, definition)
     }
 
-    override fun typecheckingBodyFinished(referable: TCReferable, definition: Definition) {
+    override fun typecheckingBodyFinished(referable: TCDefReferable, definition: Definition) {
         typecheckingFinished(PsiLocatedReferable.fromReferable(referable) ?: return, definition)
     }
 }

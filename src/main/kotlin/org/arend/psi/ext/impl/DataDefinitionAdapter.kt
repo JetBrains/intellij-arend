@@ -6,6 +6,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.abs.Abstract
@@ -59,4 +60,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
 
     override val psiElementType: PsiElement?
         get() = universe
+
+    override val tcReferable: TCDefReferable?
+        get() = super.tcReferable as TCDefReferable?
 }

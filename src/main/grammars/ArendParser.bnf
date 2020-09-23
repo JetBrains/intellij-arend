@@ -97,7 +97,7 @@
         BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
-    extends("def(Function|Data|Class|Instance)") = definition
+    extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
@@ -234,18 +234,26 @@ private coClauseBody_recover ::= !PIPE & statement_recover
 definition ::= defFunction
     | defData
     | defClass
+    | defMeta
     | defInstance {
     implements = [ "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ext.impl.ArendGroup" ]
     mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
 }
 
-defModule ::= (MODULE_KW | META_KW) prec? defIdentifier_module alias? where? {
-    pin(".*") = 1
+defModule ::= MODULE_KW defIdentifier_module where? {
+    pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.ModuleAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
+defMeta ::= META_KW prec? defIdentifier_func alias? [nameTeleUntyped* functionTermBody] where? {
+    pin = 1
+    implements = "org.arend.psi.ext.impl.ArendGroup"
+    mixin = "org.arend.psi.ext.impl.MetaAdapter"
+    stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -259,6 +267,7 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
@@ -288,6 +297,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functio
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
+                   "org.arend.psi.ext.TCDefinition"
                    "org.arend.psi.ClassReferenceHolder" ]
     mixin = "org.arend.psi.ext.impl.InstanceAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
@@ -298,6 +308,7 @@ instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_typeTele alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
+    implements = "org.arend.psi.ext.TCDefinition"
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefDataStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -319,7 +330,8 @@ private truncatedKW ::= TRUNCATED_KW {
 }
 
 defClass ::= (defClassClass | defClassRecord) where? {
-    implements = "org.arend.naming.reference.ClassReferable"
+    implements = [ "org.arend.naming.reference.ClassReferable"
+                   "org.arend.psi.ext.TCDefinition" ]
     mixin = "org.arend.psi.ext.impl.ClassDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefClassStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
@@ -890,11 +902,20 @@ universeAtom ::= SET
 nameTele ::= identifierOrUnknown
     | nameTeleExplicit
     | nameTeleImplicit {
-        implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.Parameter" ]
-        mixin = "org.arend.psi.ext.ArendNameTeleImplMixin"
-        recoverWhile = nameTele_recover
-    }
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Parameter" ]
+    mixin = "org.arend.psi.ext.ArendNameTeleImplMixin"
+    recoverWhile = nameTele_recover
+}
+
+nameTeleUntyped ::= defIdentifier {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Parameter" ]
+    mixin = "org.arend.psi.ext.ArendNameTeleUntypedImplMixin"
+    recoverWhile = nameTeleUntyped_recover
+}
+
+private nameTeleUntyped_recover ::= !(ID | FAT_ARROW) & statement_recover
 
 private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1}
 
