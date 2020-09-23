@@ -1,6 +1,7 @@
 package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
@@ -31,7 +32,7 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
         MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent)
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        prepareTCRef(parent).apply { underlyingReferable = Supplier { data.element } }
+        prepareTCRef(parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
 
     fun makeTCReferable(parent: LocatedReferable?) =
         prepareTCRef(parent).apply { underlyingReferable = Supplier { this } }
