@@ -58,9 +58,21 @@ val VirtualFile.libraryName: String?
             JarFileSystem.getInstance().getVirtualFileForJar(parent)?.let {
                 return it.name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
             }
-            parent.name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
+            parent?.name
         }
         else -> name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
+    }
+
+val VirtualFile.libraryRootParent: VirtualFile?
+    get() = when {
+        isDirectory -> parent
+        name == FileUtils.LIBRARY_CONFIG_FILE -> {
+            JarFileSystem.getInstance().getVirtualFileForJar(parent)?.let {
+                return it.parent
+            }
+            parent?.parent
+        }
+        else -> parent
     }
 
 val VirtualFile.refreshed: VirtualFile

@@ -1,6 +1,7 @@
 package org.arend.psi
 
 import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.roots.LibraryOrderEntry
@@ -128,7 +129,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             }
             val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
-            val module = fileIndex.getModuleForFile(virtualFile)
+            val module = runReadAction { fileIndex.getModuleForFile(virtualFile) }
             if (module != null) {
                 return@getCachedValue cachedValue(ArendModuleConfigService.getInstance(module)?.library)
             }

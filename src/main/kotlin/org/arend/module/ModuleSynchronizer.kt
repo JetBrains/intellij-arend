@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.*
@@ -12,8 +13,11 @@ import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTable
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.orderRoot.ArendConfigOrderRootType
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.*
 import java.nio.file.Paths
 import kotlin.Pair
@@ -37,20 +41,20 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
 
         val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
         for (module in moduleList) {
-            synchronizeModule(ArendModuleConfigService.getInstance(module) ?: continue, arendModules, projectTable)
+            synchronizeModule(ArendModuleConfigService.getInstance(module) ?: continue, arendModules, projectTable, false)
         }
     }
 
     companion object {
-        fun synchronizeModule(service: ArendModuleConfigService) {
+        fun synchronizeModule(service: ArendModuleConfigService, reload: Boolean) {
             val arendModules = HashMap<String, Module>()
             for (module in service.project.arendModules) {
                 arendModules[module.name] = module
             }
-            synchronizeModule(service, arendModules, LibraryTablesRegistrar.getInstance().getLibraryTable(service.project))
+            synchronizeModule(service, arendModules, LibraryTablesRegistrar.getInstance().getLibraryTable(service.project), reload)
         }
 
-        private fun synchronizeModule(service: ArendModuleConfigService, arendModules: Map<String, Module>, projectTable: LibraryTable) {
+        private fun synchronizeModule(service: ArendModuleConfigService, arendModules: Map<String, Module>, projectTable: LibraryTable, reload: Boolean) {
             if (!service.synchronize() || service.module.isDisposed) {
                 return
             }
@@ -65,11 +69,11 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
 
                 if (depModule == null) {
                     val library = runReadAction {
-                        val pair = findLibraryName(projectTable, dependency.name)
+                        val librariesRoot = service.librariesRootDef?.let { VfsUtil.findFile(Paths.get(it), true) }
+                        val pair = findLibraryName(projectTable, dependency.name, librariesRoot)
                         var library = pair.first
                         if (library == null) {
-                            val librariesRoot = service.librariesRootDef
-                            val externalLibrary = if (librariesRoot == null) null else service.project.findExternalLibrary(Paths.get(librariesRoot), dependency.name)
+                            val externalLibrary = if (librariesRoot == null) null else service.project.findExternalLibrary(librariesRoot, dependency.name)
                             if (librariesRoot != null && externalLibrary != null) {
                                 val tableModel = projectTable.modifiableModel
                                 library = tableModel.createLibrary(pair.second)
@@ -136,16 +140,23 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                         rootModel.dispose()
                     }
                 }
+
+                if (reload) {
+                    service.project.service<TypeCheckingService>().reload(true)
+                }
             }
         }
 
-        private fun findLibraryName(projectTable: LibraryTable, startName: String): Pair<Library?, String> {
+        private fun findLibraryName(projectTable: LibraryTable, startName: String, librariesRoot: VirtualFile?): Pair<Library?, String> {
             var index = 0
             while (true) {
                 val name = if (index == 0) startName else startName + "_" + index
                 val library = projectTable.getLibraryByName(name) ?: return Pair(null, name)
-                if ((library as? LibraryEx)?.kind is ArendLibraryKind && (library as? LibraryEx)?.isDisposed == false && library.getFiles(ArendConfigOrderRootType).firstOrNull()?.libraryName == startName) {
-                    return Pair(library, name)
+                if (librariesRoot != null && (library as? LibraryEx)?.kind is ArendLibraryKind && (library as? LibraryEx)?.isDisposed == false) {
+                    val configFile = library.getFiles(ArendConfigOrderRootType).firstOrNull()
+                    if (configFile != null && configFile.libraryName == startName && configFile.libraryRootParent == librariesRoot) {
+                        return Pair(library, name)
+                    }
                 }
                 index++
             }

@@ -130,7 +130,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies, update) {
-                ModuleSynchronizer.synchronizeModule(this)
+                ModuleSynchronizer.synchronizeModule(this, false)
             }
         }
 
@@ -214,8 +214,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
 
         if (reload) {
+            synchronized = false
             librariesRoot = newLibrariesRoot
-            project.service<TypeCheckingService>().reload(false)
+            ModuleSynchronizer.synchronizeModule(this, true)
         }
     }
 
