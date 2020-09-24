@@ -179,6 +179,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             externalAdditionalNamesIndex.clear()
                             internalAdditionalNamesIndex.clear()
                             extensionDefinitions.clear()
+                            tcRefMaps.clear()
+                            project.service<ErrorService>().clearAllErrors()
+                            project.service<ArendDefinitionChangeService>().incModificationCount()
 
                             ArendTypechecking.create(project)
                         }

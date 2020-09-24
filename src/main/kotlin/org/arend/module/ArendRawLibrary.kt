@@ -105,7 +105,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         super.resetGroup(group)
         (group as? ArendFile)?.apply {
             concreteProvider = EmptyConcreteProvider.INSTANCE
-            dropTCRefMapCache()
             moduleLocation?.let {
                 config.project.service<TypeCheckingService>().tcRefMaps.remove(it)
             }

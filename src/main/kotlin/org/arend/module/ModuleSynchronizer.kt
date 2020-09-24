@@ -142,7 +142,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                 }
 
                 if (reload) {
-                    service.project.service<TypeCheckingService>().reload(true)
+                    service.project.service<TypeCheckingService>().reload(false)
                 }
             }
         }

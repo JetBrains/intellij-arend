@@ -57,7 +57,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 tcReferableCache ?: run {
                     val file = (if (isValid) containingFile as? ArendFile else null) ?: return@run null
                     val longName = refLongName
-                    file.tcRefMap[longName]?.let { return@run it }
+                    file.tcRefMap[longName]?.let {
+                        tcReferableCache = it
+                        return@run it
+                    }
                     val locatedParent = locatedReferableParent
                     val parent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
                     val pointer = SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(this, file)
