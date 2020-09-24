@@ -89,6 +89,12 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                                 if (externalLibrary.sourcesDir.isNotEmpty()) externalLibrary.sourcesDirFile?.let {
                                     libModel.addRoot(it, OrderRootType.SOURCES)
                                 }
+                                externalLibrary.binariesDirFile?.let {
+                                    libModel.addRoot(it, OrderRootType.CLASSES)
+                                }
+                                externalLibrary.extensionDirFile?.let {
+                                    libModel.addRoot(it, OrderRootType.CLASSES)
+                                }
                                 ApplicationManager.getApplication()?.invokeAndWait { runWriteAction {
                                     libModel.commit()
                                     tableModel.commit()
