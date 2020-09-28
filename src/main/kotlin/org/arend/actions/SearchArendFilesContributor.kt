@@ -20,7 +20,7 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
     override fun getSortWeight(): Int = 201
 
     override fun isShownInSeparateTab(): Boolean {
-        return (event.project?.arendModules?.size ?: 0) > 0
+        return event.project?.arendModules?.isNotEmpty() ?: false
     }
 
     override fun createModel(project: Project): FilteringGotoByModel<*> {

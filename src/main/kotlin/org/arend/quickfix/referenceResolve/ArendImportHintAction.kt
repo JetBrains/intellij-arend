@@ -29,6 +29,7 @@ import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
@@ -140,7 +141,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             val name = refElement.referenceName
             val service = project.service<TypeCheckingService>()
             return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
-                   StubIndex.getElements(ArendFileIndex.KEY, "$name.ard", project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
+                   StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
                    service.getAdditionalReferables(name)
         }
 

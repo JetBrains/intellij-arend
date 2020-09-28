@@ -15,6 +15,6 @@ class GotoArendFileAction : GotoFileAction(){
     override fun hasContributors(context: DataContext?): Boolean =
         if (context != null) {
             val project: Project? = CommonDataKeys.PROJECT.getData(context)
-            (project?.arendModules?.size ?: 0) > 0
+            project?.arendModules?.isNotEmpty() ?: false
         } else false
 }
