@@ -11,7 +11,7 @@ import org.arend.ext.prettyprinting.doc.DocStringBuilder
 import org.arend.highlight.BasePass
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.navigate
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -104,7 +104,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             else -> obj?.toString() ?: ""
         }
 
-    fun containsNode(definition: TCDefinition): Boolean {
+    fun containsNode(definition: PsiConcreteReferable): Boolean {
         val file = definition.containingFile as? ArendFile ?: return false
         val root = treeModel.root as? DefaultMutableTreeNode ?: return false
         for (child in root.children()) {
@@ -192,7 +192,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             return when {
                 obj1 == obj2 -> 0
                 obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.moduleLocation?.toString() ?: obj1.name).compareTo(obj2.moduleLocation?.toString() ?: obj2.name))
-                obj1 is TCDefinition && obj2 is TCDefinition -> fix(obj1.textOffset.compareTo(obj2.textOffset))
+                obj1 is PsiConcreteReferable && obj2 is PsiConcreteReferable -> fix(obj1.textOffset.compareTo(obj2.textOffset))
                 obj1 is ArendErrorTreeElement && obj2 is ArendErrorTreeElement -> fix(obj1.highestError.error.level.compareTo(obj2.highestError.error.level) * -1)
                 obj1 is ArendErrorTreeElement -> 1
                 obj2 is ArendErrorTreeElement -> -1

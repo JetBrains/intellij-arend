@@ -1,6 +1,7 @@
 package org.arend.psi
 
 import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.roots.LibraryOrderEntry
@@ -75,20 +76,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             return field
         }
 
-    private var tcRefMapCache: HashMap<LongName, TCReferable>? = null
-
     val tcRefMap: HashMap<LongName, TCReferable>
         get() {
-            tcRefMapCache?.let { return it }
             val location = moduleLocation ?: return HashMap()
-            return synchronized(this) {
-                tcRefMapCache ?: project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { HashMap() }.also { tcRefMapCache = it }
-            }
+            return project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { HashMap() }
         }
-
-    fun dropTCRefMapCache() {
-        tcRefMapCache = null
-    }
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
@@ -128,7 +120,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             }
             val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
-            val module = fileIndex.getModuleForFile(virtualFile)
+            val module = runReadAction { fileIndex.getModuleForFile(virtualFile) }
             if (module != null) {
                 return@getCachedValue cachedValue(ArendModuleConfigService.getInstance(module)?.library)
             }

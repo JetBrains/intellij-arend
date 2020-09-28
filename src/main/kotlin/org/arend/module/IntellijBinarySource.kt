@@ -1,6 +1,7 @@
 package org.arend.module
 
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ext.module.ModulePath
 import org.arend.library.SourceLibrary
@@ -11,12 +12,13 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-class IntellijBinarySource(private val root: VirtualFile, private val binDir: String, private val modulePath: ModulePath) : StreamBinarySource() {
+class IntellijBinarySource(private val root: VirtualFile, private val binDirList: List<String>, private val modulePath: ModulePath) : StreamBinarySource() {
     private var isFileComputed = false
+
     private var file: VirtualFile? = null
         get() {
             if (!isFileComputed) {
-                field = root.getRelativeFile(listOf(binDir) + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION)
+                field = root.getRelativeFile(binDirList + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION)
                 isFileComputed = true
             }
             return field
@@ -41,7 +43,7 @@ class IntellijBinarySource(private val root: VirtualFile, private val binDir: St
 
     override fun getOutputStream(): OutputStream? {
         if (file == null) {
-            file = root.getRelativeFile(listOf(binDir) + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION, true)
+            file = root.getRelativeFile(binDirList + modulePath.toList(), FileUtils.SERIALIZED_EXTENSION, true)
             isFileComputed = true
         }
         return file?.getOutputStream(this)

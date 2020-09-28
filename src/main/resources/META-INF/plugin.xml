@@ -66,6 +66,8 @@
         <lang.syntaxHighlighterFactory language="Arend"
                                        implementationClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
 
+        <highlightVisitor implementation="org.arend.highlight.ArendRainbowVisitor"/>
+
         <!-- Commenter -->
 
         <lang.commenter language="Arend" implementationClass="org.arend.commenter.ArendCommenter"/>
@@ -372,12 +374,12 @@
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
 
-        <action id="Arend.Repl.SendFile"
+        <action id="Arend.Repl.OpenFile"
                 class="org.arend.actions.ArendOpenInReplAction"
-                text="Send Current File to Arend REPL"
+                text="Open in REPL"
                 description="Open the Arend REPL and \import the current file if not loaded">
-            <add-to-group group-id="ViewMenu" anchor="after" relative-to-action="ViewSource"/>
-            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
+            <add-to-group group-id="RevealGroup" anchor="last"/>
+            <add-to-group group-id="TouchBarDefault_alt" anchor="last"/>
         </action>
 
         <action id="Arend.Config.ToggleNormalize"

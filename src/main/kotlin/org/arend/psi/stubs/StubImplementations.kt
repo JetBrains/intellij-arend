@@ -49,6 +49,7 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "CONSTRUCTOR" -> ArendConstructorStub.Type
     "DEF_DATA" -> ArendDefDataStub.Type
     "DEF_FUNCTION" -> ArendDefFunctionStub.Type
+    "DEF_META" -> ArendDefMetaStub.Type
     "DEF_MODULE" -> ArendDefModuleStub.Type
     else -> error("Unknown anchor $name")
 }
@@ -171,6 +172,19 @@ class ArendDefFunctionStub(parent: StubElement<*>?, elementType: IStubElementTyp
         override fun createPsi(stub: ArendDefFunctionStub) = ArendDefFunctionImpl(stub, this)
 
         override fun indexStub(stub: ArendDefFunctionStub, sink: IndexSink) = sink.indexFunction(stub)
+    }
+}
+
+class ArendDefMetaStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?, override val precedence: Precedence?, aliasName: String?)
+    : ArendStub<ArendDefMeta>(parent, elementType, name, aliasName) {
+
+    object Type : ArendStubElementType<ArendDefMetaStub, ArendDefMeta>("DEF_META") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
+            ArendDefMetaStub(parentStub, this, name, prec, aliasName)
+
+        override fun createPsi(stub: ArendDefMetaStub) = ArendDefMetaImpl(stub, this)
+
+        override fun indexStub(stub: ArendDefMetaStub, sink: IndexSink) = sink.indexMeta(stub)
     }
 }
 

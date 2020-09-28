@@ -13,14 +13,14 @@ import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
-import org.arend.naming.reference.EmptyGlobalReferable
+import org.arend.naming.reference.EmptyLocatedReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.ModuleAdapter
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -32,10 +32,11 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
+import java.util.function.Supplier
 
 class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
-    override fun isExternal() = config is ExternalLibraryConfig
+    override fun isExternal() = config.isExternal
 
     override fun getName() = config.name
 
@@ -54,7 +55,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         scopeToText(scope, "", builder)
         val file = PsiFileFactory.getInstance(config.project).createFileFromText(modulePath.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return
         file.virtualFile.isWritable = false
-        file.generatedModuleLocation = ModuleLocation(name, ModuleLocation.LocationKind.GENERATED, modulePath)
+        file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)
         config.project.service<TypeCheckingService>().fillAdditionalNames(file, isExternal)
         config.addAdditionalModule(modulePath, file)
@@ -86,7 +87,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun getBinarySource(modulePath: ModulePath): BinarySource? {
         val root = config.root ?: return null
-        val binDir = config.binariesDir ?: return null
+        val binDir = config.binariesDirList ?: return null
         return GZIPStreamBinarySource(IntellijBinarySource(root, binDir, modulePath))
     }
 
@@ -104,7 +105,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         super.resetGroup(group)
         (group as? ArendFile)?.apply {
             concreteProvider = EmptyConcreteProvider.INSTANCE
-            dropTCRefMapCache()
             moduleLocation?.let {
                 config.project.service<TypeCheckingService>().tcRefMaps.remove(it)
             }
@@ -138,13 +138,13 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
             var first = true
 
             for (element in scope.elements) {
-                if (!(element is MetaReferable || element is EmptyGlobalReferable)) {
+                if (!(element is MetaReferable || element is EmptyLocatedReferable)) {
                     continue
                 }
 
                 val name = element.refName
                 val subscope = scope.resolveNamespace(name, false)
-                if (subscope == null && element is EmptyGlobalReferable) {
+                if (subscope == null && element is EmptyLocatedReferable) {
                     continue
                 }
 
@@ -213,9 +213,9 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 val name = subgroup.referable.refName
                 val meta = scope.resolveName(name)
                 if (meta is MetaReferable) {
-                    (subgroup.referable as? ModuleAdapter)?.let { module ->
-                        module.metaReferable = meta
-                        meta.underlyingReferable = module
+                    (subgroup as? MetaAdapter)?.let { module ->
+                        module.metaRef = meta
+                        meta.underlyingReferable = Supplier { module }
                     }
                 }
                 scope.resolveNamespace(name, false)?.let {

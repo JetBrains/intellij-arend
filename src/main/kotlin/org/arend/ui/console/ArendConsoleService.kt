@@ -1,6 +1,6 @@
 package org.arend.ui.console
 
-import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.naming.scope.Scope
@@ -12,10 +12,11 @@ class ArendConsoleService(private val project: Project) {
         myView?.let {
             return runnable(it)
         }
-        runInEdt {
+        invokeLater {
             synchronized(this) {
                 val view = myView ?: ArendConsoleView(project)
                 myView = view
+                view.toolWindow.show()
                 runnable(view)
             }
         }
@@ -23,9 +24,6 @@ class ArendConsoleService(private val project: Project) {
 
     fun print(doc: Doc, scope: Scope) {
         withView {
-            runInEdt {
-                toolWindow.show()
-            }
             editor.addDoc(doc, scope)
         }
     }

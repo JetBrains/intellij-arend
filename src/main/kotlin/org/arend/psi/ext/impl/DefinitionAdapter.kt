@@ -3,15 +3,20 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendNamedStub
+import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.abs.IncompleteExpressionError
@@ -29,7 +34,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val statements: List<ArendStatement>
         get() = where?.statementList ?: emptyList()
 
-    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.Definition {
+    override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
         if (def.status == Concrete.Status.HAS_ERRORS) {
             accept(object : PsiRecursiveElementVisitor() {
@@ -43,7 +48,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getParentGroup() = parent?.ancestor<ArendGroup>()
 
-    override fun getReferable() = this
+    override fun getReferable(): LocatedReferable = this
 
     override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
 
@@ -70,4 +75,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         }
         return null
     }
+
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable =
+        DataLocatedReferable(data, this, parent)
 }

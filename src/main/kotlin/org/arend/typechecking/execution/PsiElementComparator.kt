@@ -2,12 +2,12 @@ package org.arend.typechecking.execution
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.naming.reference.TCReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.typechecking.order.PartialComparator
 
-object PsiElementComparator : PartialComparator<TCReferable> {
-    override fun compare(t1: TCReferable?, t2: TCReferable?): PartialComparator.Result {
+object PsiElementComparator : PartialComparator<TCDefReferable> {
+    override fun compare(t1: TCDefReferable?, t2: TCDefReferable?): PartialComparator.Result {
         if (t1 === t2) {
             return PartialComparator.Result.EQUALS
         }

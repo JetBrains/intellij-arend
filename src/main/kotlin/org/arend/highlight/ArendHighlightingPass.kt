@@ -74,7 +74,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
-            private fun highlightParameters(definition: Concrete.ReferableDefinition) {
+            private fun highlightParameters(definition: Concrete.GeneralDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
                     if (((parameter.type?.underlyingReferable as? GlobalReferable)?.underlyingReferable as? ArendDefClass)?.isRecord == false) {
                         val list = when (val param = parameter.data) {
@@ -90,7 +90,7 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
             }
 
-            override fun definitionResolved(definition: Concrete.Definition) {
+            override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
                 progress.checkCanceled()
 
                 if (resetDefinition) {
@@ -100,11 +100,13 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
 
                 (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
-                    ref.nameIdentifier?.let {
-                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
-                    }
-                    (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
-                        holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                    if (ref.containingFile == myFile) {
+                        ref.nameIdentifier?.let {
+                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                        }
+                        (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                        }
                     }
                 }
 

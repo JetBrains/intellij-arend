@@ -9,9 +9,9 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.DataContainer
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
 import org.arend.ext.error.LocalError
+import org.arend.psi.ext.PsiConcreteReferable
 import java.util.*
 
 
@@ -130,7 +130,7 @@ class ErrorService : ErrorReporter {
             while (it.hasNext()) {
                 val arendError = it.next()
                 val errorCause = arendError.cause
-                if (errorCause == null || errorCause.ancestor<TCDefinition>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
+                if (errorCause == null || errorCause.ancestor<PsiConcreteReferable>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
                     it.remove()
                 }
             }

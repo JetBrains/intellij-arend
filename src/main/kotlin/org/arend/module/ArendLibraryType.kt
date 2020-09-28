@@ -54,6 +54,14 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
                 if (srcDir != null) {
                     editor.addRoot(srcDir, OrderRootType.SOURCES)
                 }
+                val binDir = library.binariesDirFile
+                if (binDir != null) {
+                    editor.addRoot(binDir, OrderRootType.CLASSES)
+                }
+                val extDir = library.extensionDirFile
+                if (extDir != null) {
+                    editor.addRoot(extDir, OrderRootType.CLASSES)
+                }
             }
         }
     }

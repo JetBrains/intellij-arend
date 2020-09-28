@@ -28,7 +28,7 @@ private fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
     return PsiManager.getInstance(this).findFile(configFile) as? YAMLFile ?: return null
 }
 
-private fun Project.findExternalLibrary(root: VirtualFile, libName: String): ExternalLibraryConfig? {
+fun Project.findExternalLibrary(root: VirtualFile, libName: String): ExternalLibraryConfig? {
     root.findChild(libName + FileUtils.ZIP_EXTENSION)?.let { zip ->
         findConfigInZip(zip)?.let { return ExternalLibraryConfig(libName, it) }
     }

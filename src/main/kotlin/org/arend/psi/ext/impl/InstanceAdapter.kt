@@ -4,10 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
@@ -96,4 +93,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override val psiElementType: PsiElement?
         get() = resultType
+
+    override val tcReferable: TCDefReferable?
+        get() = super.tcReferable as TCDefReferable?
 }

@@ -10,9 +10,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
@@ -24,7 +22,6 @@ import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.*
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
-import java.nio.file.Paths
 
 
 class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project), ArendModuleConfiguration {
@@ -72,22 +69,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     override val name
         get() = module.name
-
-    override val sourcesDirFile: VirtualFile?
-        get() {
-            val dir = sourcesDir
-            if (dir.isEmpty()) {
-                return root
-            }
-
-            val root = root
-            val path = when {
-                root != null -> Paths.get(root.path).resolve(dir).toString()
-                Paths.get(dir).isAbsolute -> dir
-                else -> return null
-            }
-            return VirtualFileManager.getInstance().getFileSystem(LocalFileSystem.PROTOCOL).findFileByPath(path)
-        }
 
     private val yamlFile
         get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
@@ -149,7 +130,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies, update) {
-                ModuleSynchronizer.synchronizeModule(this)
+                ModuleSynchronizer.synchronizeModule(this, false)
             }
         }
 
@@ -233,8 +214,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
 
         if (reload) {
+            synchronized = false
             librariesRoot = newLibrariesRoot
-            project.service<TypeCheckingService>().reload(false)
+            ModuleSynchronizer.synchronizeModule(this, true)
         }
     }
 

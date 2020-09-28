@@ -202,7 +202,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         //Do move myMembers
         val holes = ArrayList<RelativePosition>()
         val newMemberList = ArrayList<ArendGroup>()
-        val definitionsThatNeedThisParameter = ArrayList<TCDefinition>()
+        val definitionsThatNeedThisParameter = ArrayList<PsiConcreteReferable>()
         val containingClass: ArendDefClass? = mySourceContainer.ancestors.filterIsInstance<ArendDefClass>().firstOrNull()
 
         for (member in myMembers) {
@@ -232,7 +232,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                     }
 
             fun markGroupAsTheOneThatNeedsLeadingThisParameter(group: ArendGroup) {
-                if (group is TCDefinition) definitionsThatNeedThisParameter.add(group)
+                if (group is PsiConcreteReferable) definitionsThatNeedThisParameter.add(group)
                 for (sg in group.subgroups) markGroupAsTheOneThatNeedsLeadingThisParameter(sg)
             }
 
@@ -376,11 +376,11 @@ class ArendMoveRefactoringProcessor(project: Project,
         for ((mIndex, m) in myMembers.withIndex()) restoreReferences(emptyList(), m, mIndex, bodiesRefsFixData)
 
         //Prepare a map which would allow us to fix class field usages on the next step (this step is needed only when we are moving definitions out of a record)
-        val fieldsUsagesFixMap = HashMap<TCDefinition, HashSet<ArendReferenceElement>>()
+        val fieldsUsagesFixMap = HashMap<PsiConcreteReferable, HashSet<ArendReferenceElement>>()
         for (usage in bodiesClassFieldUsages) {
             val element = locateChild(usage)
             if (element is ArendReferenceElement) {
-                val ancestor = element.ancestor<TCDefinition>()
+                val ancestor = element.ancestor<PsiConcreteReferable>()
                 if (ancestor != null && definitionsThatNeedThisParameter.contains(ancestor)) {
                     val set = fieldsUsagesFixMap[ancestor] ?: HashSet()
                     fieldsUsagesFixMap[ancestor] = set

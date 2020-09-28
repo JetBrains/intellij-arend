@@ -15,7 +15,7 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
         override fun customizeCellRenderer(list: JList<out T>, value: T?, index: Int, selected: Boolean, hasFocus: Boolean) {
             if (value != null) {
                 icon = getIcon(value)
-                append(value.toString(), if (isAvailable(value)) SimpleTextAttributes.REGULAR_ATTRIBUTES else SimpleTextAttributes.ERROR_ATTRIBUTES, true)
+                append(value.toString(), if (isOK(value)) SimpleTextAttributes.REGULAR_ATTRIBUTES else SimpleTextAttributes.ERROR_ATTRIBUTES, true)
             }
         }
     }
@@ -74,9 +74,11 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
         super.add(component, constraints)
     }
 
-    open fun isAvailable(t : T) = true
+    open fun isOK(t: T) = true
 
-    open fun getIcon(t : T): Icon? = null
+    open fun isAvailable(t: T) = isOK(t)
+
+    open fun getIcon(t: T): Icon? = null
 
     private fun moveSelected(from: JBList<T>, to: JBList<T>) {
         val fromModel = from.model

@@ -2,15 +2,19 @@ package org.arend.psi.ext.impl
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.ArendClassField
 import org.arend.psi.ArendClassStat
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendTypeTele
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendClassFieldStub
+import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.term.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
@@ -59,4 +63,7 @@ abstract class ClassFieldAdapter : ReferableAdapter<ArendClassFieldStub>, ArendC
 
     override val psiElementType: PsiElement?
         get() = resultType
+
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
+        FieldDataLocatedReferable(data, this, parent)
 }

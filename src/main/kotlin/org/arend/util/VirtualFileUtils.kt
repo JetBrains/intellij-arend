@@ -24,11 +24,18 @@ fun VirtualFile.getRelativeFile(path: Collection<String>, ext: String = "", crea
     var cur = this
     for ((i, name) in path.withIndex()) {
         val eName = if (i == path.size - 1) name + ext else name
-        val child = cur.findChild(eName)
-        if (child == null && !create) {
-            return null
+        if (eName == ".") {
+            continue
         }
-        cur = child ?: if (i == path.size - 1) cur.createChildData(this, eName) else cur.createChildDirectory(this, eName)
+        cur = if (eName == "..") {
+            cur.parent ?: return null
+        } else {
+            val child = cur.findChild(eName)
+            if (child == null && !create) {
+                return null
+            }
+            child ?: if (i == path.size - 1) cur.createChildData(this, eName) else cur.createChildDirectory(this, eName)
+        }
     }
     return cur
 }
@@ -51,9 +58,21 @@ val VirtualFile.libraryName: String?
             JarFileSystem.getInstance().getVirtualFileForJar(parent)?.let {
                 return it.name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
             }
-            parent.name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
+            parent?.name
         }
         else -> name.removeSuffixOrNull(FileUtils.ZIP_EXTENSION)
+    }
+
+val VirtualFile.libraryRootParent: VirtualFile?
+    get() = when {
+        isDirectory -> parent
+        name == FileUtils.LIBRARY_CONFIG_FILE -> {
+            JarFileSystem.getInstance().getVirtualFileForJar(parent)?.let {
+                return it.parent
+            }
+            parent?.parent
+        }
+        else -> parent
     }
 
 val VirtualFile.refreshed: VirtualFile
