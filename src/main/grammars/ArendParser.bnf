@@ -21,7 +21,6 @@
     tokens = [
         LBRACE              = '{'
         RBRACE              = '}'
-        TGOAL               = '{?}'
         LGOAL               = '{?'
         LPAREN              = '('
         RPAREN              = ')'
@@ -457,7 +456,7 @@ private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
 }
 
-private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
+private defIdentifier_constructor_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | PROP_KW | UNDERSCORE | APPLY_HOLE | LGOAL | SET | UNIVERSE | TRUNCATED_UNIVERSE | COLON | WITH_KW | ELIM_KW | PIPE | RBRACE) & statement_recover
 
 private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW | INFIX_LEFT_KW | INFIX_RIGHT_KW
 
@@ -879,12 +878,11 @@ literal ::= longNameIP
     mixin = "org.arend.psi.ext.ArendLiteralImplMixin"
 }
 
-goal ::= TGOAL | lGoal {
+goal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE {
     implements = "org.arend.psi.ext.PsiReferable"
     mixin = "org.arend.psi.ext.PsiReferableImpl"
+    pin = 1
 }
-
-private lGoal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE { pin = 1 }
 
 private defIdentifier_goal ::= defIdentifier {
     recoverWhile = defIdentifier_goal_recover
@@ -955,7 +953,7 @@ private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | LGOAL | LEVEL_KW) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 

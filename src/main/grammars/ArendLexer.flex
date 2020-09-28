@@ -70,7 +70,6 @@ OCT_DIGIT           = [0-8]
 
     "{"                     { return LBRACE; }
     "}"                     { return RBRACE; }
-    "{?}"                   { return TGOAL; }
     "{?"                    { return LGOAL; }
     "("                     { return LPAREN; }
     ")"                     { return RPAREN; }
