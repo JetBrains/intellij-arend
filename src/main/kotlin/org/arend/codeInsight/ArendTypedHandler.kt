@@ -26,9 +26,8 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         val document = editor.document
         val text = document.charsSequence
 
-        // println("text[offset]=${text[offset]}, text[offset - 1]=${text[offset - 1]}")
         val atRBrace = offset < text.length && text[offset] == '}'
-        if (atRBrace && c == '}' && text[offset - 1] == '}') {
+        if (atRBrace && c == '}' && offset > 2 && text[offset - 3] == '{' && text[offset - 2] == '?') {
             PsiDocumentManager.getInstance(project).commitDocument(document)
             document.deleteString(offset, offset + 1)
             return Result.STOP
