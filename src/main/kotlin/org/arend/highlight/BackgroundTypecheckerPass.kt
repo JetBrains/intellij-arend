@@ -1,9 +1,7 @@
 package org.arend.highlight
 
-import com.intellij.codeHighlighting.Pass
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
-import com.intellij.codeInsight.daemon.impl.LineMarkersPass
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -22,6 +20,7 @@ import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
+import kotlin.concurrent.thread
 
 class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BaseGroupPass(file, group, editor, "Arend background typechecker annotator", textRange, highlightInfoProcessor) {
@@ -29,7 +28,7 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val arendSettings = service<ArendSettings>()
     private val definitionsToTypecheck = ArrayList<TCDefinition>()
-    private var lineMarkersPass: LineMarkersPass? = null
+    var lastModification: Long = 0
 
     override fun visitDefinition(definition: Concrete.Definition, progress: ProgressIndicator) {
         DesugarVisitor.desugar(definition, this)
@@ -84,13 +83,6 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
                         typecheckDefinition(typechecking, definition)
                     }
                 }
-
-                val constructor = LineMarkersPass::class.java.declaredConstructors[0]
-                constructor.isAccessible = true
-                val pass = constructor.newInstance(file.project, file, document, textRange, textRange) as LineMarkersPass
-                pass.id = Pass.LINE_MARKERS
-                pass.collectInformation(progress)
-                lineMarkersPass = pass
             }
             ArendSettings.TypecheckingMode.DUMB ->
                 for (definition in definitionsToTypecheck) {
@@ -103,8 +95,13 @@ class BackgroundTypecheckerPass(file: ArendFile, group: ArendGroup, editor: Edit
     }
 
     override fun applyInformationWithProgress() {
+        synchronized(BackgroundTypecheckerPass::class.java) {
+            if (file.lastDefinitionModification < lastModification) {
+                file.lastDefinitionModification = lastModification
+            }
+        }
         super.applyInformationWithProgress()
-        lineMarkersPass?.applyInformationToEditor()
+        thread { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
     }
 
     override fun countDefinition(def: TCDefinition) =

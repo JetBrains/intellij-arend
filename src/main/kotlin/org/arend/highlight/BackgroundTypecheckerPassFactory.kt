@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendFile
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.settings.ArendSettings
 
 class BackgroundTypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
@@ -21,12 +22,20 @@ class BackgroundTypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::c
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): BackgroundTypecheckerPass {
         val isSmart = service<ArendSettings>().typecheckingMode == ArendSettings.TypecheckingMode.SMART
-        val group = file
-        return BackgroundTypecheckerPass(file, if (isSmart) file else group, editor, if (isSmart) TextRange(0, editor.document.textLength) else textRange, DefaultHighlightInfoProcessor())
+        return BackgroundTypecheckerPass(file, if (isSmart) file else file, editor, if (isSmart) TextRange(0, editor.document.textLength) else textRange, DefaultHighlightInfoProcessor())
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
-        if (service<ArendSettings>().typecheckingMode != ArendSettings.TypecheckingMode.OFF) super.createHighlightingPass(file, editor) else null
+        if (file is ArendFile && service<ArendSettings>().typecheckingMode != ArendSettings.TypecheckingMode.OFF) {
+            val modCount = file.project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
+            if (file.lastDefinitionModification < modCount) {
+                val pass = super.createHighlightingPass(file, editor)
+                if (pass is BackgroundTypecheckerPass) {
+                    pass.lastModification = modCount
+                }
+                pass
+            } else null
+        } else null
 
     override fun getPassId() = myPassId
 }

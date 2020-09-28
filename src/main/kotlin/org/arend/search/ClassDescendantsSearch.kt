@@ -10,7 +10,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.impl.InstanceAdapter
 import org.arend.psi.listener.ArendDefinitionChangeListener
-import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.psi.listener.ArendPsiChangeService
 import java.util.concurrent.ConcurrentHashMap
 
 class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListener {
@@ -33,7 +33,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         }
 
     init {
-        project.service<ArendDefinitionChangeService>().addListener(this)
+        project.service<ArendPsiChangeService>().addListener(this)
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefinition> {

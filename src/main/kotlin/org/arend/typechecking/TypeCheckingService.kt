@@ -32,7 +32,7 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeListener
-import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
@@ -118,7 +118,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
 
             // Set the listener that updates typechecked definitions
-            project.service<ArendDefinitionChangeService>().addListener(this)
+            project.service<ArendPsiChangeService>().addListener(this)
 
             // Listen for YAML files changes
             YAMLFileListener(project).register()
@@ -169,7 +169,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             }
 
                             project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendDefinitionChangeService>().incModificationCount()
+                            project.service<ArendPsiChangeService>().incModificationCount()
 
                             ArendTypechecking.create(project)
                         }
@@ -181,7 +181,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             extensionDefinitions.clear()
                             tcRefMaps.clear()
                             project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendDefinitionChangeService>().incModificationCount()
+                            project.service<ArendPsiChangeService>().incModificationCount()
 
                             ArendTypechecking.create(project)
                         }
