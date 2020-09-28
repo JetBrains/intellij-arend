@@ -136,11 +136,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     inner class InlineFile(@Language("Arend") private val code: String, name: String = "Main.ard") {
         private val hasCaretMarker = CARET_MARKER in code
-        val psiFile : PsiFile
-
-        init {
-            psiFile = myFixture.configureByText(name, replaceCaretMarker(code))
-        }
+        val psiFile : PsiFile = myFixture.configureByText(name, replaceCaretMarker(code))
 
         fun withCaret(): PsiFile {
             check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
