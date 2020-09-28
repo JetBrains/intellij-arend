@@ -24,7 +24,7 @@ class ArendRenamePsiElementProcessor: RenamePsiElementProcessor() {
             return arrayOf(UsageViewUtil.getShortName(psiElement).substringBefore("."))
         }
 
-        override fun getNewName(): String = patchedGetNewName() + ".ard"
+        override fun getNewName(): String = patchedGetNewName() + FileUtils.EXTENSION
 
         private fun patchedGetNewName(): String = nameSuggestionsField.enteredName.trim()
 

@@ -21,23 +21,34 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (c == '{' || c == '(') {
             return Result.STOP // To prevent auto-formatting
         }
+
+        val offset = editor.caretModel.offset
+        val document = editor.document
+        val text = document.charsSequence
+
+        val atRBrace = offset < text.length && text[offset] == '}'
+        if (atRBrace && c == '}' && offset > 2 && text[offset - 3] == '{' && text[offset - 2] == '?') {
+            PsiDocumentManager.getInstance(project).commitDocument(document)
+            document.deleteString(offset, offset + 1)
+            return Result.STOP
+        }
+
         if (c != '-') {
             return Result.CONTINUE
         }
+
         val style = service<ArendSettings>().matchingCommentStyle
         if (style == ArendSettings.MatchingCommentStyle.DO_NOTHING || style == ArendSettings.MatchingCommentStyle.INSERT_MINUS && !CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
             return Result.CONTINUE
         }
 
-        PsiDocumentManager.getInstance(project).commitDocument(editor.document)
+        PsiDocumentManager.getInstance(project).commitDocument(document)
 
-        val offset = editor.caretModel.offset
-        val text = editor.document.charsSequence
-        if (offset > 1 && text[offset - 2] == '{' && offset < text.length && text[offset] == '}') {
+        if (atRBrace && offset > 1 && text[offset - 2] == '{') {
             if (style == ArendSettings.MatchingCommentStyle.INSERT_MINUS) {
-                editor.document.insertString(offset, CharArrayCharSequence('-'))
+                document.insertString(offset, CharArrayCharSequence('-'))
             } else {
-                editor.document.deleteString(offset, offset + 1)
+                document.deleteString(offset, offset + 1)
             }
         }
 
