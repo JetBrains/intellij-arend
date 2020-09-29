@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.psi.*
+import com.intellij.psi.impl.PsiTreeChangeEventImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -58,7 +59,9 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
         } else false
 
     override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
-        incModificationCount(event.file)
+        if (event !is PsiTreeChangeEventImpl || !event.isGenericChange) {
+            incModificationCount(event.file)
+        }
     }
 
     override fun beforePropertyChange(event: PsiTreeChangeEvent) {

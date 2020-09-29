@@ -2,7 +2,8 @@ package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
-import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -26,7 +27,6 @@ import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
-import kotlin.concurrent.thread
 
 class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -166,9 +166,14 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
 
-        if (definitions.isNotEmpty()) thread {
+        if (ApplicationManager.getApplication().isUnitTestMode) {
+            // DaemonCodeAnalyzer.restart does not work in tests
             BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
-            DaemonCodeAnalyzer.getInstance(myProject).restart(file)
+        } else {
+            if (definitions.isNotEmpty()) ApplicationManager.getApplication().executeOnPooledThread {
+                BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
+                runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
+            }
         }
     }
 }

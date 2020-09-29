@@ -29,6 +29,12 @@ class ArendHighlightingPassFactory : BasePassFactory<ArendFile>(ArendFile::class
                 val pass = super.createHighlightingPass(file, editor)
                 if (pass is ArendHighlightingPass) {
                     pass.lastModification = modCount
+                } else {
+                    synchronized(ArendHighlightingPass::class.java) {
+                        if (file.lastModification < modCount) {
+                            file.lastModification = modCount
+                        }
+                    }
                 }
                 pass
             } else null

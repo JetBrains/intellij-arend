@@ -67,7 +67,11 @@ class BackgroundTypechecker(private val project: Project) {
             }
         }
 
-        file.lastDefinitionModification = modCount
+        synchronized(BackgroundTypechecker::class.java) {
+            if (file.lastDefinitionModification < modCount) {
+                file.lastDefinitionModification = modCount
+            }
+        }
     }
 
     private fun typecheckDefinition(typechecking: ArendTypechecking, def: Concrete.Definition): Concrete.Definition? {
