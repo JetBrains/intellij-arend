@@ -37,8 +37,6 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.provider.ConcreteProvider
-import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
 
@@ -67,8 +65,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
-
-    var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 
     var lastModifiedDefinition: TCDefinition? = null
         get() {

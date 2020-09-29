@@ -1,6 +1,8 @@
 package org.arend.highlight
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -20,22 +22,45 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
+import org.arend.term.group.Group
+import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
+import kotlin.concurrent.thread
 
-class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BaseGroupPass(file, group, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
+class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+    : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
+    private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
+    private val definitions = ArrayList<Concrete.Definition>()
     var lastModification: Long = 0
 
     init {
         myProject.service<TypeCheckingService>().initialize()
     }
 
-    override fun collectInfo(progress: ProgressIndicator) {
-        val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
-        file.concreteProvider = concreteProvider
+    override fun collectInformationWithProgress(progress: ProgressIndicator) {
+        if (myProject.service<TypeCheckingService>().isLoaded) {
+            setProgressLimit(numberOfDefinitions(group).toLong())
+            collectInfo(progress)
+        }
+    }
+
+    private fun numberOfDefinitions(group: Group): Int {
+        val def = group.referable
+        var res = if (def is TCDefinition) 1 else 0
+
+        for (subgroup in group.subgroups) {
+            res += numberOfDefinitions(subgroup)
+        }
+        for (subgroup in group.dynamicSubgroups) {
+            res += numberOfDefinitions(subgroup)
+        }
+        return res
+    }
+
+    private fun collectInfo(progress: ProgressIndicator) {
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -121,6 +146,9 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
                 }
 
                 definition.accept(IntentionBackEndVisitor(holder), null)
+                if (definition is Concrete.Definition) {
+                    definitions.add(definition)
+                }
 
                 advanceProgress(1)
             }
@@ -137,5 +165,10 @@ class ArendHighlightingPass(file: ArendFile, group: ArendGroup, editor: Editor, 
         }
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
+
+        if (definitions.isNotEmpty()) thread {
+            BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
+            DaemonCodeAnalyzer.getInstance(myProject).restart(file)
+        }
     }
 }

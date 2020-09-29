@@ -153,7 +153,7 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()
-        val file = PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile
+        val file = runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(document) } as? PsiInjectionTextFile
 
         ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
             val length = document.textLength
