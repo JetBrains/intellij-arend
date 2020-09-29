@@ -3,11 +3,13 @@ package org.arend.highlight
 import com.intellij.codeHighlighting.TextEditorHighlightingPassFactoryRegistrar
 import com.intellij.codeHighlighting.TextEditorHighlightingPassRegistrar
 import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
+import org.arend.psi.listener.ArendPsiChangeService
 
 class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
@@ -20,7 +22,9 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun allowWhiteSpaces() = true
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
-        TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
+        if (file.lastDefinitionModification >= file.project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount || ApplicationManager.getApplication().isUnitTestMode) {
+            TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
+        } else null
 
     override fun getPassId() = myPassId
 }
