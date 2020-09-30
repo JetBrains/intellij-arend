@@ -1,9 +1,7 @@
 package org.arend.highlight
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -39,7 +37,9 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
     private val instanceProviderSet = PsiInstanceProviderSet()
-    private val collector = CollectingOrderingListener()
+    private val collector1 = CollectingOrderingListener()
+    private val collector2 = CollectingOrderingListener()
+    private var lastModifiedDefinition: TCDefReferable? = null
     private val lastDefinitionModification = psiListenerService.definitionModificationTracker.modificationCount
     var lastModification: Long = 0
 
@@ -165,11 +165,13 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
         concreteProvider.resolve = true
 
         val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
-        val ordering = Ordering(instanceProviderSet, concreteProvider, collector, dependencyListener, ArendReferableConverter, PsiElementComparator)
+        val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
         val lastModified = file.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
         if (lastModified != null) {
+            lastModifiedDefinition = lastModified.data
             ordering.order(lastModified)
         }
+        ordering.listener = collector2
         for (definition in definitions) {
             if (definition.data != lastModified?.data) {
                 ordering.order(definition)
@@ -186,14 +188,17 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
 
+        if (collector1.isEmpty && collector2.isEmpty) {
+            return
+        }
+
+        val typechecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider, lastDefinitionModification)
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
-            BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(instanceProviderSet, concreteProvider, file, collector)
+            typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2)
         } else {
-            if (!collector.isEmpty) myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
-                if (BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(instanceProviderSet, concreteProvider, file, collector)) {
-                    runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
-                }
+            myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+                typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2)
             }
         }
     }

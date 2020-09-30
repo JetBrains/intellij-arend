@@ -1,7 +1,10 @@
 package org.arend.typechecking
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.settings.ArendSettings
@@ -14,13 +17,13 @@ import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
 
-class BackgroundTypechecker(private val project: Project, private val modificationCount: Long) {
+class BackgroundTypechecker(private val project: Project, private val instanceProviderSet: PsiInstanceProviderSet, private val concreteProvider: ConcreteProvider, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
 
-    fun runTypechecker(instanceProviderSet: PsiInstanceProviderSet, concreteProvider: ConcreteProvider, file: ArendFile, collector: CollectingOrderingListener): Boolean {
-        if (collector.isEmpty) {
+    fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener): Boolean {
+        if (collector1.isEmpty && collector2.isEmpty) {
             return true
         }
 
@@ -30,9 +33,10 @@ class BackgroundTypechecker(private val project: Project, private val modificati
         }
 
         if (mode == ArendSettings.TypecheckingMode.DUMB) {
-            for (def in collector.allDefinitions) {
+            for (def in collector1.allDefinitions + collector2.allDefinitions) {
                 runDumbTypechecker(def)
             }
+            runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             return true
         }
 
@@ -42,9 +46,25 @@ class BackgroundTypechecker(private val project: Project, private val modificati
 
         val tcService = project.service<TypeCheckingService>()
         val typechecking = ArendTypechecking(instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
-        for (element in collector.elements) {
-            if (!typecheckDefinition(typechecking, element)) {
-                return false
+
+        if (!collector1.isEmpty) {
+            for (element in collector1.elements) {
+                if (!typecheckDefinition(typechecking, element)) {
+                    return false
+                }
+            }
+            runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
+        }
+
+        if (lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
+            file.lastModifiedDefinition = null
+            if (!collector2.isEmpty) {
+                for (element in collector2.elements) {
+                    if (!typecheckDefinition(typechecking, element)) {
+                        return false
+                    }
+                }
+                runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             }
         }
 
