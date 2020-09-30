@@ -27,7 +27,8 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             return true
         }
 
-        val mode = service<ArendSettings>().typecheckingMode
+        val settings = service<ArendSettings>()
+        val mode = settings.typecheckingMode
         if (mode == ArendSettings.TypecheckingMode.OFF) {
             return true
         }
@@ -56,7 +57,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
         }
 
-        if (lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
+        if (!settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
             file.lastModifiedDefinition = null
             if (!collector2.isEmpty) {
                 for (element in collector2.elements) {
