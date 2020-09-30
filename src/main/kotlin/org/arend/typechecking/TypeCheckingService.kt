@@ -37,6 +37,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
@@ -147,6 +148,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
+        ComputationRunner.getCancellationIndicator().cancel()
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
                 project.service<BinaryFileSaver>().saveAll()
@@ -167,10 +169,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                                 }
                             }
 
-                            project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendPsiChangeService>().incModificationCount()
-
-                            ArendTypechecking.create(project)
+                            prepareReload()
                         }
                     } else {
                         libraryManager.reload {
@@ -179,10 +178,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             internalAdditionalNamesIndex.clear()
                             extensionDefinitions.clear()
                             tcRefMaps.clear()
-                            project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendPsiChangeService>().incModificationCount()
 
-                            ArendTypechecking.create(project)
+                            prepareReload()
                         }
                     }
                 }
@@ -191,6 +188,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
+    }
+
+    private fun prepareReload(): ArendTypechecking {
+        project.service<ErrorService>().clearAllErrors()
+        project.service<ArendPsiChangeService>().incModificationCount()
+        project.service<TypecheckingTaskQueue>().clearQueue()
+        return ArendTypechecking.create(project)
     }
 
     override fun request(definition: Definition, library: Library) {

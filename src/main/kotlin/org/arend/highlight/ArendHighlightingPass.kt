@@ -26,6 +26,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.TypecheckingTaskQueue
 import org.arend.typechecking.error.ErrorService
 
 class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
@@ -34,6 +35,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
     private val definitions = ArrayList<Concrete.Definition>()
+    private val lastDefinitionModification = psiListenerService.definitionModificationTracker.modificationCount
     var lastModification: Long = 0
 
     init {
@@ -168,10 +170,10 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
 
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
-            BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
+            BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(concreteProvider, file, definitions)
         } else {
-            if (definitions.isNotEmpty()) ApplicationManager.getApplication().executeOnPooledThread {
-                if (BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)) {
+            if (definitions.isNotEmpty()) myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+                if (BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(concreteProvider, file, definitions)) {
                     runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
                 }
             }

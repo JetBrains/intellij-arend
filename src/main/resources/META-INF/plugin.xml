@@ -291,6 +291,8 @@
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
 
+        <projectService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
+
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>

@@ -14,7 +14,7 @@ import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
 
-class BackgroundTypechecker(private val project: Project) {
+class BackgroundTypechecker(private val project: Project, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
     private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
@@ -36,8 +36,7 @@ class BackgroundTypechecker(private val project: Project) {
             return true
         }
 
-        val modCount = modificationTracker.modificationCount
-        if (file.lastDefinitionModification >= modCount) {
+        if (file.lastDefinitionModification >= modificationCount) {
             return false
         }
 
@@ -74,8 +73,8 @@ class BackgroundTypechecker(private val project: Project) {
         }
 
         synchronized(BackgroundTypechecker::class.java) {
-            if (file.lastDefinitionModification < modCount) {
-                file.lastDefinitionModification = modCount
+            if (file.lastDefinitionModification < modificationCount) {
+                file.lastDefinitionModification = modificationCount
             }
         }
 
@@ -83,7 +82,7 @@ class BackgroundTypechecker(private val project: Project) {
     }
 
     private fun typecheckDefinition(typechecking: ArendTypechecking, def: Concrete.Definition): Boolean {
-        val indicator = ModificationCancellationIndicator(modificationTracker)
+        val indicator = ModificationCancellationIndicator(modificationTracker, modificationCount)
         try {
             val ok = definitionBlackListService.runTimed(def.data, indicator) {
                 typechecking.typecheckDefinitions(listOf(def), indicator)
