@@ -25,16 +25,21 @@ import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
+import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.TypecheckingTaskQueue
 import org.arend.typechecking.error.ErrorService
+import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.order.Ordering
+import org.arend.typechecking.order.listener.CollectingOrderingListener
 
 class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
-    private val definitions = ArrayList<Concrete.Definition>()
+    private val instanceProviderSet = PsiInstanceProviderSet()
+    private val collector = CollectingOrderingListener()
     private val lastDefinitionModification = psiListenerService.definitionModificationTracker.modificationCount
     var lastModification: Long = 0
 
@@ -63,6 +68,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
     }
 
     private fun collectInfo(progress: ProgressIndicator) {
+        val definitions = ArrayList<Concrete.Definition>()
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -157,6 +163,18 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
         }).resolveGroup(group, group.scope)
 
         concreteProvider.resolve = true
+
+        val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
+        val ordering = Ordering(instanceProviderSet, concreteProvider, collector, dependencyListener, ArendReferableConverter, PsiElementComparator)
+        val lastModified = file.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
+        if (lastModified != null) {
+            ordering.order(lastModified)
+        }
+        for (definition in definitions) {
+            if (definition.data != lastModified?.data) {
+                ordering.order(definition)
+            }
+        }
     }
 
     override fun applyInformationWithProgress() {
@@ -170,10 +188,10 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
 
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
-            BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(concreteProvider, file, definitions)
+            BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(instanceProviderSet, concreteProvider, file, collector)
         } else {
-            if (definitions.isNotEmpty()) myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
-                if (BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(concreteProvider, file, definitions)) {
+            if (!collector.isEmpty) myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+                if (BackgroundTypechecker(myProject, lastDefinitionModification).runTypechecker(instanceProviderSet, concreteProvider, file, collector)) {
                     runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
                 }
             }

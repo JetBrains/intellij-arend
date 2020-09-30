@@ -1,6 +1,5 @@
 package org.arend.typechecking
 
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.psi.ArendFile
@@ -9,6 +8,7 @@ import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
+import org.arend.typechecking.order.listener.CollectingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
@@ -19,8 +19,8 @@ class BackgroundTypechecker(private val project: Project, private val modificati
     private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
 
-    fun runTypechecker(concreteProvider: ConcreteProvider, file: ArendFile, defs: List<Concrete.Definition>): Boolean {
-        if (defs.isEmpty()) {
+    fun runTypechecker(instanceProviderSet: PsiInstanceProviderSet, concreteProvider: ConcreteProvider, file: ArendFile, collector: CollectingOrderingListener): Boolean {
+        if (collector.isEmpty) {
             return true
         }
 
@@ -30,7 +30,7 @@ class BackgroundTypechecker(private val project: Project, private val modificati
         }
 
         if (mode == ArendSettings.TypecheckingMode.DUMB) {
-            for (def in defs) {
+            for (def in collector.allDefinitions) {
                 runDumbTypechecker(def)
             }
             return true
@@ -40,35 +40,11 @@ class BackgroundTypechecker(private val project: Project, private val modificati
             return false
         }
 
-        val typechecking = ArendTypechecking.create(project, concreteProvider)
-        val lastModified = runReadAction { file.lastModifiedDefinition }?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
-        if (lastModified != null) {
-            if (defs.contains(lastModified)) {
-                if (!typecheckDefinition(typechecking, lastModified)) {
-                    return false
-                }
-            }
-            if (lastModified.data.typechecked?.status()?.withoutErrors() == true) {
-                file.lastModifiedDefinition = null
-                for (def in defs) {
-                    if (def.data != lastModified) {
-                        if (!typecheckDefinition(typechecking, def)) {
-                            return false
-                        }
-                    }
-                }
-            } else {
-                for (def in defs) {
-                    if (def.data != lastModified) {
-                        runDumbTypechecker(def)
-                    }
-                }
-            }
-        } else {
-            for (definition in defs) {
-                if (!typecheckDefinition(typechecking, definition)) {
-                    return false
-                }
+        val tcService = project.service<TypeCheckingService>()
+        val typechecking = ArendTypechecking(instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
+        for (element in collector.elements) {
+            if (!typecheckDefinition(typechecking, element)) {
+                return false
             }
         }
 
@@ -81,26 +57,24 @@ class BackgroundTypechecker(private val project: Project, private val modificati
         return true
     }
 
-    private fun typecheckDefinition(typechecking: ArendTypechecking, def: Concrete.Definition): Boolean {
+    private fun typecheckDefinition(typechecking: ArendTypechecking, element: CollectingOrderingListener.Element): Boolean {
         val indicator = ModificationCancellationIndicator(modificationTracker, modificationCount)
-        try {
-            val ok = definitionBlackListService.runTimed(def.data, indicator) {
-                typechecking.typecheckDefinitions(listOf(def), indicator)
-            }
-
-            if (ok == null) {
-                NotificationErrorReporter(project).warn("Typechecking of ${FullName(def.data)} was interrupted after ${service<ArendSettings>().typecheckingTimeLimit} second(s)")
-            }
-
-            return ok == true
-        } finally {
-            if (indicator.isCanceled) {
-                def.data.typechecked = null
+        val def = element.anyDefinition.data
+        val ok = definitionBlackListService.runTimed(def, indicator) {
+            typechecking.run(indicator) {
+                element.feedTo(typechecking)
+                true
             }
         }
+
+        if (ok == null) {
+            NotificationErrorReporter(project).warn("Typechecking of ${FullName(def)} was interrupted after ${service<ArendSettings>().typecheckingTimeLimit} second(s)")
+        }
+
+        return ok == true
     }
 
-    private fun runDumbTypechecker(def: Concrete.Definition) {
+    private fun runDumbTypechecker(def: Concrete.ResolvableDefinition) {
         DesugarVisitor.desugar(def, errorService)
         def.accept(DumbTypechecker(errorService), null)
     }
