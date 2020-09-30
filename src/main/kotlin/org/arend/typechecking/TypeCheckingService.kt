@@ -37,7 +37,6 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
-import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
@@ -239,13 +238,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return tcReferable
         }
 
-        if (ComputationRunner.isCancellationIndicatorSet()) {
-            synchronized(SyncObject) {
-                ComputationRunner.getCancellationIndicator().cancel(tcReferable)
-                ComputationRunner.resetCancellationIndicator()
-            }
-        }
-
         if (extensionDefinitions.containsKey(tcReferable)) {
             service<ArendExtensionChangeListener>().notifyIfNeeded(project)
         }
@@ -299,6 +291,4 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
     }
-
-    object SyncObject
 }
