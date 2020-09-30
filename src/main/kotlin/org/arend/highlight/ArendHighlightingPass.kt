@@ -171,8 +171,9 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
             BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
         } else {
             if (definitions.isNotEmpty()) ApplicationManager.getApplication().executeOnPooledThread {
-                BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)
-                runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
+                if (BackgroundTypechecker(myProject).runTypechecker(concreteProvider, file, definitions)) {
+                    runReadAction { DaemonCodeAnalyzer.getInstance(myProject).restart(file) }
+                }
             }
         }
     }
