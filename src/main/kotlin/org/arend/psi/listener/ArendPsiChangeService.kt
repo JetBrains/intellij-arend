@@ -46,7 +46,9 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
     }
 
     fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        definitionModificationTracker.incModificationCount()
+        if (!isExternalUpdate) {
+            definitionModificationTracker.incModificationCount()
+        }
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
