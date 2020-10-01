@@ -30,6 +30,17 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n, cons a xs => {?} 
     """)
 
+    fun test68_1b() = simpleQuickFixTest("Do", data1 + """
+       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n, xs \with {
+         | n, (){-caret-} => 101
+       } 
+    """, data1 + """
+       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n, xs \with {
+         | 0, nil => 101
+         | suc n, cons x xs => 101
+       } 
+    """)
+
     fun test69_2() = simpleQuickFixTest("Do", data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat
         | nil{-caret-} => 0

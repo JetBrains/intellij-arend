@@ -18,6 +18,6 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-
+        System.out.println("Lol")
     }
 }
