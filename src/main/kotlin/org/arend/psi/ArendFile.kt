@@ -169,7 +169,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun dropTypechecked() {}
 
-    override fun checkTCReferable() {}
+    override fun dropTCReferable() {}
+
+    override fun checkTCReferable() = true
+
+    override fun checkTCReferableName() {}
 
     override fun getLocation() = moduleLocation
 

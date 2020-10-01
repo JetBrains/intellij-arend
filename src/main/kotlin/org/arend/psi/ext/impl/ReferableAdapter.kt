@@ -83,37 +83,48 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         tcReferableCache = null
     }
 
-    override fun checkTCReferable() {
+    override fun checkTCReferable(): Boolean {
+        val tcRef = tcReferableCache ?: return true
+        return if (tcRef.underlyingReferable != this) {
+            dropTCReferable()
+            true
+        } else false
+    }
+
+    override fun checkTCReferableName() {
         val tcRef = tcReferableCache ?: return
         val refName = refName
         if (tcRef.refName != refName) synchronized(this) {
             val tcRef2 = tcReferableCache ?: return
             if (tcRef2.refName != refName) {
-                dropTCRefCaches()
+                dropTCRefCachesRecursively()
                 return
             }
         }
+        dropTCReferable()
+    }
 
+    override fun dropTCReferable() {
         tcReferableCache = null
         if (this is ArendGroup) {
             for (referable in internalReferables) {
-                (referable as? ReferableAdapter<*>)?.dropTCRefCaches()
+                (referable as? ReferableAdapter<*>)?.tcReferableCache = null
             }
         }
     }
 
-    private fun dropTCRefCaches() {
+    private fun dropTCRefCachesRecursively() {
         tcReferableCache = null
         if (this !is ArendGroup) return
 
         for (referable in internalReferables) {
-            (referable as? ReferableAdapter<*>)?.dropTCRefCaches()
+            (referable as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
         for (subgroup in subgroups) {
-            (subgroup as? ReferableAdapter<*>)?.dropTCRefCaches()
+            (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
         for (subgroup in dynamicSubgroups) {
-            (subgroup as? ReferableAdapter<*>)?.dropTCRefCaches()
+            (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
     }
 

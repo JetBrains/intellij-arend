@@ -20,7 +20,11 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     fun dropTypechecked()
 
-    fun checkTCReferable()
+    fun dropTCReferable()
+
+    fun checkTCReferable(): Boolean
+
+    fun checkTCReferableName()
 
     companion object {
         fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable

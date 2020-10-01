@@ -53,5 +53,9 @@ abstract class ModuleAdapter : PsiStubbedReferableImpl<ArendDefModuleStub>, Aren
 
     override fun dropTypechecked() {}
 
-    override fun checkTCReferable() {}
+    override fun dropTCReferable() {}
+
+    override fun checkTCReferable() = true
+
+    override fun checkTCReferableName() {}
 }

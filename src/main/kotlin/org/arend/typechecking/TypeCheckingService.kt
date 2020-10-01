@@ -291,7 +291,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (file.isReplFile) return
 
         if (!isExternalUpdate) {
-            def.checkTCReferable()
+            def.checkTCReferableName()
         }
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
     }

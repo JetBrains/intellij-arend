@@ -60,9 +60,26 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             true
         } else false
 
+    private fun checkGroup(group: ArendGroup, file: ArendFile) {
+        if (!group.checkTCReferable()) {
+            if (group is PsiConcreteReferable) updateDefinition(group, file, false)
+            group.dropTCReferable()
+        }
+
+        for (subgroup in group.subgroups) {
+            checkGroup(subgroup, file)
+        }
+        for (subgroup in group.dynamicSubgroups) {
+            checkGroup(subgroup, file)
+        }
+    }
+
     override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
         if (event !is PsiTreeChangeEventImpl || !event.isGenericChange) {
-            incModificationCount(event.file)
+            val file = event.parent as? ArendFile ?: return
+            if (!file.isWritable) return
+            checkGroup(file, file)
+            modificationTracker.incModificationCount()
         }
     }
 
