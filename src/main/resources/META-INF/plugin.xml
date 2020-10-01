@@ -273,7 +273,7 @@
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 
-        <projectService serviceImplementation="org.arend.psi.listener.ArendDefinitionChangeService"/>
+        <projectService serviceImplementation="org.arend.psi.listener.ArendPsiChangeService"/>
 
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
@@ -291,6 +291,8 @@
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
 
+        <projectService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
+
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
@@ -306,7 +308,6 @@
         <!-- Highlighting Pass Factories -->
 
         <highlightingPassFactory implementation="org.arend.highlight.ArendHighlightingPassFactory"/>
-        <highlightingPassFactory implementation="org.arend.highlight.BackgroundTypecheckerPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
 

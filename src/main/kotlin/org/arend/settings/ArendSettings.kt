@@ -31,6 +31,7 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
     var typecheckingMode = TypecheckingMode.SMART
     var withTimeLimit = true
     var typecheckingTimeLimit = 5
+    var typecheckOnlyLast = true
 
     // Other settings
     var withClauseLimit = true

@@ -32,7 +32,7 @@ import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendDefinitionChangeListener
-import org.arend.psi.listener.ArendDefinitionChangeService
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
@@ -118,7 +118,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
 
             // Set the listener that updates typechecked definitions
-            project.service<ArendDefinitionChangeService>().addListener(this)
+            project.service<ArendPsiChangeService>().addListener(this)
 
             // Listen for YAML files changes
             YAMLFileListener(project).register()
@@ -148,6 +148,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
+        ComputationRunner.getCancellationIndicator().cancel()
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
                 project.service<BinaryFileSaver>().saveAll()
@@ -168,10 +169,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                                 }
                             }
 
-                            project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendDefinitionChangeService>().incModificationCount()
-
-                            ArendTypechecking.create(project)
+                            prepareReload()
                         }
                     } else {
                         libraryManager.reload {
@@ -180,10 +178,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             internalAdditionalNamesIndex.clear()
                             extensionDefinitions.clear()
                             tcRefMaps.clear()
-                            project.service<ErrorService>().clearAllErrors()
-                            project.service<ArendDefinitionChangeService>().incModificationCount()
 
-                            ArendTypechecking.create(project)
+                            prepareReload()
                         }
                     }
                 }
@@ -192,6 +188,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
+    }
+
+    private fun prepareReload(): ArendTypechecking {
+        project.service<ErrorService>().clearAllErrors()
+        project.service<ArendPsiChangeService>().incModificationCount()
+        project.service<TypecheckingTaskQueue>().clearQueue()
+        return ArendTypechecking.create(project)
     }
 
     override fun request(definition: Definition, library: Library) {
@@ -237,13 +240,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (tcReferable !is TCDefReferable) {
             resetErrors(curRef, removeTCRef)
             return tcReferable
-        }
-
-        if (ComputationRunner.isCancellationIndicatorSet()) {
-            synchronized(SyncObject) {
-                ComputationRunner.getCancellationIndicator().cancel(tcReferable)
-                ComputationRunner.resetCancellationIndicator()
-            }
         }
 
         if (extensionDefinitions.containsKey(tcReferable)) {
@@ -299,6 +295,4 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
     }
-
-    object SyncObject
 }

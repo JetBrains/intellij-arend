@@ -2,8 +2,9 @@ package org.arend.psi.listener
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.psi.*
+import com.intellij.psi.impl.PsiTreeChangeEventImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -13,19 +14,21 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendResolveCache
 
 
-class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), ModificationTracker {
+class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
     private val resolveCache = project.service<ArendResolveCache>()
     private val listeners = HashSet<ArendDefinitionChangeListener>()
-    private var modificationCount: Long = 0
+    val modificationTracker = SimpleModificationTracker()
+    val definitionModificationTracker = SimpleModificationTracker()
 
     init {
         PsiManager.getInstance(project).addPsiTreeChangeListener(this, project)
     }
 
-    override fun getModificationCount() = modificationCount
-
-    fun incModificationCount() {
-        modificationCount++
+    fun incModificationCount(withDef: Boolean = true) {
+         modificationTracker.incModificationCount()
+        if (withDef) {
+            definitionModificationTracker.incModificationCount()
+        }
     }
 
     fun addListener(listener: ArendDefinitionChangeListener) {
@@ -43,9 +46,28 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     }
 
     fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
+        if (!isExternalUpdate) {
+            definitionModificationTracker.incModificationCount()
+        }
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
+    }
+
+    private fun incModificationCount(file: PsiFile?): Boolean =
+        if (file is ArendFile && file.isWritable) {
+            modificationTracker.incModificationCount()
+            true
+        } else false
+
+    override fun beforeChildrenChange(event: PsiTreeChangeEvent) {
+        if (event !is PsiTreeChangeEventImpl || !event.isGenericChange) {
+            incModificationCount(event.file)
+        }
+    }
+
+    override fun beforePropertyChange(event: PsiTreeChangeEvent) {
+        incModificationCount(event.file)
     }
 
     override fun beforeChildAddition(event: PsiTreeChangeEvent) {
@@ -74,11 +96,10 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
     private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
-        (event.file as? ArendFile)?.let {
-            processChildren(event.child, it)
-            processChildren(event.oldChild, it)
-            processParent(it, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
-        }
+        val file = event.file as? ArendFile ?: return
+        processChildren(event.child, file)
+        processChildren(event.oldChild, file)
+        processParent(file, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
     }
 
     private fun processParent(file: ArendFile, child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, checkCommentStart: Boolean) {
@@ -96,6 +117,10 @@ class ArendDefinitionChangeService(project: Project) : PsiTreeChangeAdapter(), M
         if (oldChild is PsiWhiteSpace && newChild is PsiWhiteSpace ||
             (oldChild is ArendWhere || oldChild is PsiErrorElement || isDynamicDef(oldChild)) && (newChild is ArendWhere || newChild is PsiErrorElement || isDynamicDef(newChild)) ||
             oldChild is LeafPsiElement && AREND_COMMENTS.contains(oldChild.node.elementType) && newChild is LeafPsiElement && AREND_COMMENTS.contains(newChild.node.elementType)) {
+            return
+        }
+
+        if (!incModificationCount(file)) {
             return
         }
 

@@ -4,7 +4,6 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.core.definition.Definition
 import org.arend.ext.error.SourceInfo
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
@@ -13,7 +12,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.computation.ComputationRunner
 
 
 private data class Alias(val name: String, val precedence: Precedence)
@@ -40,22 +38,6 @@ open class DataLocatedReferable(
 
     override fun positionTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
-
-    override fun setTypechecked(definition: Definition?) {
-        if (definition == null) {
-            super.setTypechecked(null)
-        } else synchronized(TypeCheckingService.SyncObject) {
-            ComputationRunner.checkCanceled()
-            super.setTypechecked(definition)
-        }
-    }
-
-    override fun setTypecheckedIfAbsent(definition: Definition) {
-        synchronized(TypeCheckingService.SyncObject) {
-            ComputationRunner.checkCanceled()
-            super.setTypecheckedIfAbsent(definition)
-        }
-    }
 
     fun fixPointer(project: Project) =
         if (psiElementPointer == null) {

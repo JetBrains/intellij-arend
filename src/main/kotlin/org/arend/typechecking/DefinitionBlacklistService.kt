@@ -13,7 +13,7 @@ class DefinitionBlacklistService {
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
     private val blackList = Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
 
-    fun runTimed(any: Any, cancellationIndicator: CancellationIndicator, action: () -> Unit): Boolean {
+    fun <T> runTimed(any: Any, cancellationIndicator: CancellationIndicator, action: () -> T): T? {
         var timedOut = false
         val arendSettings = service<ArendSettings>()
         val handler = if (arendSettings.withTimeLimit) {
@@ -22,12 +22,12 @@ class DefinitionBlacklistService {
                 timedOut = true
             }, arendSettings.typecheckingTimeLimit.toLong(), TimeUnit.SECONDS)
         } else null
-        action()
+        val result = action()
         handler?.cancel(true)
         if (timedOut) {
             blackList.add(any)
         }
-        return !timedOut
+        return if (timedOut) null else result
     }
 
     fun isBlacklisted(any: Any) = blackList.contains(any)

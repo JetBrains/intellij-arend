@@ -34,12 +34,9 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ArendInternalReferable
-import org.arend.psi.listener.ArendDefinitionChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.provider.ConcreteProvider
-import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
 
@@ -55,6 +52,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
+    var lastModification: Long = -1
+    var lastDefinitionModification: Long = -1
+
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: CachedValuesManager.getCachedValue(this) {
             cachedValue(arendLibrary?.config?.getFileModulePath(this))
@@ -65,8 +65,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
-
-    var concreteProvider: ConcreteProvider = EmptyConcreteProvider.INSTANCE
 
     var lastModifiedDefinition: TCDefinition? = null
         get() {
@@ -109,7 +107,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         }
 
     private fun <T> cachedValue(value: T) =
-        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT, project.service<ArendDefinitionChangeService>())
+        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT)
 
     val arendLibrary: ArendRawLibrary?
         get() = CachedValuesManager.getCachedValue(this) {

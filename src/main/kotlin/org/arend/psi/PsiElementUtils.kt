@@ -4,21 +4,16 @@ import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
-import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.module.ArendRawLibrary
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
-import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.listener.ArendDefinitionChangeService
-import org.arend.typechecking.TypeCheckingService
-import org.arend.util.libraryName
+import org.arend.psi.listener.ArendPsiChangeService
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -255,12 +250,12 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
 
 private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
-    file.project.service<ArendDefinitionChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
+    file.project.service<ArendPsiChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
     val file = parent.containingFile as? ArendFile ?: return
-    val service = file.project.service<ArendDefinitionChangeService>()
+    val service = file.project.service<ArendPsiChangeService>()
 
     var child: PsiElement? = firstChild
     while (child != lastChild && child != null) {

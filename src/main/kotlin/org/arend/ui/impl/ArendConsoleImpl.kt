@@ -1,5 +1,6 @@
 package org.arend.ui.impl
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
@@ -12,7 +13,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.ui.console.ArendConsoleService
 
 class ArendConsoleImpl(private val project: Project, marker: Any?) : ArendConsole {
-    private val scope = (marker as? ArendCompositeElement)?.scope?.let { CachingScope.make(it) } ?: EmptyScope.INSTANCE
+    private val scope = if (marker is ArendCompositeElement) runReadAction { CachingScope.make(marker.scope) } else EmptyScope.INSTANCE
 
     override fun println(doc: Doc) {
         project.service<ArendConsoleService>().print(doc, scope)

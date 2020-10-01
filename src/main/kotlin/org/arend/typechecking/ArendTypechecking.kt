@@ -21,9 +21,8 @@ open class ArendTypechecking(instanceProviderSet: PsiInstanceProviderSet, concre
     : TypecheckingOrderingListener(instanceProviderSet, concreteProvider, ArendReferableConverter, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
 
     companion object {
-        fun create(project: Project, concreteProvider: ConcreteProvider? = null): ArendTypechecking {
+        fun create(project: Project, concreteProvider: ConcreteProvider? = null, errorReporter: ErrorReporter = project.service<ErrorService>()): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
-            val errorReporter = project.service<ErrorService>()
             return ArendTypechecking(PsiInstanceProviderSet(), concreteProvider ?: PsiConcreteProvider(project, errorReporter, null, true), errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }

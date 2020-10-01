@@ -12,6 +12,7 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.TCDefinition
 import org.arend.ext.error.LocalError
 import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.typechecking.computation.ComputationRunner
 import java.util.*
 
 
@@ -39,6 +40,7 @@ class ErrorService : ErrorReporter {
             return
         }
 
+        ComputationRunner.checkCanceled()
         val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
         runReadAction {
             loop@ for (data in list) {
@@ -46,6 +48,7 @@ class ErrorService : ErrorReporter {
                 val pointer: SmartPsiElementPointer<*>
                 when (val cause = (data as? DataContainer)?.data ?: data) {
                     is PsiElement -> {
+                        if (!cause.isValid) continue@loop
                         element = cause
                         pointer = SmartPointerManager.createPointer(cause)
                     }
