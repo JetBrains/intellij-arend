@@ -195,10 +195,10 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
         val typechecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider, lastDefinitionModification)
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
-            typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2)
+            typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
         } else {
             myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
-                typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2)
+                typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
             }
         }
     }

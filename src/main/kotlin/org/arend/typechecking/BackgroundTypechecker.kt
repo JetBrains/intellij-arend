@@ -22,7 +22,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
     private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
 
-    fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener): Boolean {
+    fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean): Boolean {
         if (collector1.isEmpty && collector2.isEmpty) {
             return true
         }
@@ -37,7 +37,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             for (def in collector1.allDefinitions + collector2.allDefinitions) {
                 runDumbTypechecker(def)
             }
-            runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
+            if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             return true
         }
 
@@ -54,7 +54,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                     return false
                 }
             }
-            runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
+            if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
         }
 
         if (!settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
@@ -65,7 +65,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                         return false
                     }
                 }
-                runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
+                if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             }
         }
 
