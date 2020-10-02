@@ -100,8 +100,6 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
     }
 
     override fun beforeChildRemoval(event: PsiTreeChangeEvent) {
-        val file = event.file
-        if (file is ArendFile && file.isReplFile) return
         val child = event.child
         if (child is ArendFile) { // whole file has been removed
             invalidateChildren(child, child)

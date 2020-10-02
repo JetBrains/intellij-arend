@@ -288,8 +288,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        if (file.isReplFile) return
-
         if (!isExternalUpdate) {
             def.checkTCReferableName()
         }
