@@ -123,4 +123,31 @@ class SubExprTest : ArendTestBase() {
         assertEquals("a", subConcrete.toString())
         assertEquals("a", subCore.toString())
     }
+
+    fun `test #231`() {
+        subexpr("""
+            \record Tony
+              | beta (lam : {-caret-}\Set0) (b : \Prop) (d : lam) (a : b) : b""").apply {
+            assertEquals("\\Set0", subConcrete.toString())
+            assertEquals("\\Set0", subCore.toString())
+        }
+        subexpr("""
+            \record Tony
+              | beta (lam : \Set0) (b : {-caret-}\Prop) (d : lam) (a : b) : b""").apply {
+            assertEquals("\\Prop", subConcrete.toString())
+            assertEquals("\\Prop", subCore.toString())
+        }
+        subexpr("""
+            \record Tony
+              | beta (lam : \Set0) (b : \Prop) (d : {-caret-}lam) (a : b) : b""").apply {
+            assertEquals("lam", subConcrete.toString())
+            assertEquals("lam", subCore.toString())
+        }
+        subexpr("""
+            \record Tony
+              | beta (lam : \Set0) (b : \Prop) (d : lam) (a : {-caret-}b) : b""").apply {
+            assertEquals("b", subConcrete.toString())
+            assertEquals("b", subCore.toString())
+        }
+    }
 }
