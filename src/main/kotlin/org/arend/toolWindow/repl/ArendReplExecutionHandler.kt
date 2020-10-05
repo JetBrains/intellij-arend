@@ -21,6 +21,8 @@ import org.arend.psi.ArendFile
 import org.arend.repl.CommandHandler
 import org.arend.repl.action.NormalizeCommand
 import org.arend.settings.ArendProjectSettings
+import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
+import org.arend.toolWindow.errors.PrintOptionKind
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -54,7 +56,7 @@ class ArendReplExecutionHandler(
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
-        repl.loadPpSettings()
+        repl.prettyPrinterFlags = settings().replPrintingOptionsFilterSet
         if (repl.repl(text) { "" }) {
             closeRepl()
         }
@@ -64,17 +66,18 @@ class ArendReplExecutionHandler(
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
         Disposer.register(consoleView, Disposable(::saveSettings))
-        val normalization = consoleView.project.service<ArendProjectSettings>().data
-            .replNormalizationMode
+        val normalization = settings().data.replNormalizationMode
         NormalizeCommand.INSTANCE.loadNormalize(normalization, repl, false)
         repl.initialize()
         resetRepl()
     }
 
     private fun saveSettings() {
-        consoleView.project.service<ArendProjectSettings>().data
-            .replNormalizationMode = repl.normalizationMode.toString()
+        settings().data.replNormalizationMode = repl.normalizationMode.toString()
     }
+
+    private fun settings() =
+        consoleView.project.service<ArendProjectSettings>()
 
     private fun closeRepl() {
         toolWindow.hide()
@@ -120,6 +123,7 @@ class ArendReplExecutionHandler(
             }
         }.apply {
             registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK)), consoleView.preferredFocusableComponent)
-        }
+        },
+        ArendPrintOptionsActionGroup(consoleView.project, PrintOptionKind.REPL_PRINT_OPTIONS),
     )
 }
