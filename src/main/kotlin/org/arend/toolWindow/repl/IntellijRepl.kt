@@ -15,6 +15,7 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.repl.Repl
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.action.SetPromptCommand
@@ -27,6 +28,7 @@ import org.arend.typechecking.order.dependency.DummyDependencyListener
 abstract class IntellijRepl private constructor(
     val handler: ArendReplExecutionHandler,
     private val service: TypeCheckingService,
+    private val settings: ArendProjectSettings,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
     psiConcreteProvider: PsiConcreteProvider,
@@ -38,15 +40,17 @@ abstract class IntellijRepl private constructor(
     constructor(
         handler: ArendReplExecutionHandler,
         project: Project,
-    ) : this(handler, project.service(), ListErrorReporter())
+    ) : this(handler, project.service(), project.service(), ListErrorReporter())
 
     private constructor(
         handler: ArendReplExecutionHandler,
         service: TypeCheckingService,
+        settings: ArendProjectSettings,
         errorReporter: ListErrorReporter,
     ) : this(
         handler,
         service,
+        settings,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
         PsiConcreteProvider(service.project, errorReporter, null, true),
@@ -64,6 +68,10 @@ abstract class IntellijRepl private constructor(
 
     fun clearScope() {
         myMergedScopes.clear()
+    }
+
+    fun loadPpSettings() {
+        myPpFlags = settings.replPrintingOptionsFilterSet
     }
 
     override fun loadCommands() {

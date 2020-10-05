@@ -34,6 +34,7 @@ class ArendProjectSettingsState {
     var errorPrintingOptions = ArendPrintingOptions()
     var goalPrintingOptions = ArendPrintingOptions()
     var popupPrintingOptions = ArendPrintingOptions()
+    var replPrintingOptions = ArendPrintingOptions()
 
     var popupNormalize = false
     var popupFontSize = 12

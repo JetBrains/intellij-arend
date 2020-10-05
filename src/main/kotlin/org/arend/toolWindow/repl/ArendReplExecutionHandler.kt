@@ -54,6 +54,7 @@ class ArendReplExecutionHandler(
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
+        repl.loadPpSettings()
         if (repl.repl(text) { "" }) {
             closeRepl()
         }
