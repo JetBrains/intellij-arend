@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TypedReferable
+import org.arend.naming.scope.LazyScope
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
 import org.arend.term.abs.Abstract
@@ -37,8 +38,9 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
                 return ClassReferenceData(resolved, emptyList(), emptySet(), false)
             }
 
+            val psiRef = resolved as? PsiReferable ?: return null
             val visitor = ReferableExtractVisitor(true)
-            val classRef = visitor.findReferable((resolved as? PsiReferable)?.typeOf) as? ClassReferable ?: return null
+            val classRef = visitor.findClassReference(visitor.findReferable(psiRef.typeOf), LazyScope { (psiRef.psiElementType as? ArendCompositeElement)?.scope ?: coClauseBase.scope }) ?: return null
             return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
         }
     }
