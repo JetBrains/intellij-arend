@@ -17,9 +17,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.psi.ArendFile
 import org.arend.repl.CommandHandler
-import org.arend.repl.action.NormalizeCommand
 import org.arend.settings.ArendProjectSettings
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.PrintOptionKind
@@ -56,7 +56,6 @@ class ArendReplExecutionHandler(
 
     override fun execute(text: String, console: LanguageConsoleView) {
         super.execute(text, console)
-        repl.prettyPrinterFlags = settings().replPrintingOptionsFilterSet
         if (repl.repl(text) { "" }) {
             closeRepl()
         }
@@ -66,8 +65,19 @@ class ArendReplExecutionHandler(
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
         Disposer.register(consoleView, Disposable(::saveSettings))
-        val normalization = settings().data.replNormalizationMode
-        NormalizeCommand.INSTANCE.loadNormalize(normalization, repl, false)
+        val settings = settings()
+        if (settings.replPrintingOptionsFilterSet != repl.prettyPrinterFlags) {
+            // Bind the settings with the repl config
+            repl.prettyPrinterFlags.clear()
+            repl.prettyPrinterFlags.addAll(settings.replPrintingOptionsFilterSet)
+            settings.replPrintingOptionsFilterSet = repl.prettyPrinterFlags
+        }
+        val normalization = settings.data.replNormalizationMode.toUpperCase()
+        try {
+            repl.normalizationMode = NormalizationMode.valueOf(normalization)
+        } catch (e: IllegalArgumentException) {
+            repl.normalizationMode = null
+        }
         repl.initialize()
         resetRepl()
     }
