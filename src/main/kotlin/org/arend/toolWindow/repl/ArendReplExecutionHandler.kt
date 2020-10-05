@@ -66,7 +66,7 @@ class ArendReplExecutionHandler(
         consoleView.isConsoleEditorEnabled = true
         Disposer.register(consoleView, Disposable(::saveSettings))
         val settings = settings()
-        if (settings.replPrintingOptionsFilterSet != repl.prettyPrinterFlags) {
+        if (settings.replPrintingOptionsFilterSet !== repl.prettyPrinterFlags) {
             // Bind the settings with the repl config
             repl.prettyPrinterFlags.clear()
             repl.prettyPrinterFlags.addAll(settings.replPrintingOptionsFilterSet)
