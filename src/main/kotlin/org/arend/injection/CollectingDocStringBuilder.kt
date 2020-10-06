@@ -11,7 +11,7 @@ import org.arend.typechecking.error.createHyperlinkInfo
 class CollectingDocStringBuilder(private val builder: StringBuilder, private val error: GeneralError?) : DocStringBuilder(builder) {
     val textRanges = ArrayList<List<TextRange>>()
     val hyperlinks = ArrayList<Pair<TextRange,HyperlinkInfo>>()
-    val expressions = ArrayList<Expression>()
+    val expressions = ArrayList<Expression?>()
     private var last: ArrayList<TextRange>? = null
 
     override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
@@ -26,9 +26,18 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
     }
 
     override fun visitTermLine(doc: TermLineDoc, newLine: Boolean): Void? {
-        (doc.term as? Expression)?.let { expressions.add(it) }
+        expressions.add(doc.term as? Expression)
         val start = builder.length
         super.visitTermLine(doc, newLine)
+        textRanges.add(listOf(TextRange(start, builder.length)))
+        last = null
+        return null
+    }
+
+    override fun visitPattern(doc: PatternDoc, newLine: Boolean): Void? {
+        expressions.add(null)
+        val start = builder.length
+        super.visitPattern(doc, newLine)
         textRanges.add(listOf(TextRange(start, builder.length)))
         last = null
         return null

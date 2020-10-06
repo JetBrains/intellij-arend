@@ -1,7 +1,7 @@
 # Arend plugin for IntelliJ IDEA
 
 [![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
-[![Build Status][travis-build-status-svg]][travis-build-status] 
+[![Build Status][travis-build-status-svg]][travis-build-status]
 [![Downloads][d-svg]][jb-url]
 [![Version][v-svg]][jb-url]
 
@@ -9,8 +9,8 @@
  [v-svg]: https://img.shields.io/jetbrains/plugin/v/11162.svg
  [jb-url]: https://plugins.jetbrains.com/plugin/11162
 
-Plugin that implements [Arend](https://github.com/JetBrains/Arend) support 
-in [IntelliJ IDEA](http://www.jetbrains.com/idea/) and other IntelliJ-based products.
+Plugin that implements [Arend](https://github.com/JetBrains/Arend) support
+in [IntelliJ IDEA](https://www.jetbrains.com/idea/) and other IntelliJ-based products.
 Arend is a theorem prover based on [Homotopy Type Theory](https://ncatlab.org/nlab/show/homotopy+type+theory).
 Visit [arend-lang.github.io](https://arend-lang.github.io/) for more information about the Arend language.
 
@@ -40,7 +40,7 @@ Common tasks are
 
 ## Developing
 
-You can get the latest Intellij IDEA Community Edition
+You can get the latest IntelliJ IDEA Community Edition
 [here](https://www.jetbrains.com/idea/download/).
 
 To import this project in IntelliJ, use **File | New | Project from Existing Sources**
@@ -48,9 +48,9 @@ and select the root directory of the plugin source code.
 
 When hacking on the plugin, you may need the following plugins -
 
-* **[Grammar-Kit](https://plugins.jetbrains.com/plugin/6606-grammar-kit)** - 
+* **[Grammar-Kit](https://plugins.jetbrains.com/plugin/6606-grammar-kit)** -
 BNF Grammars and JFlex lexers editor. Readable parser/PSI code generator.
-* **[PsiViewer](https://plugins.jetbrains.com/plugin/227-psiviewer)** - 
+* **[PsiViewer](https://plugins.jetbrains.com/plugin/227-psiviewer)** -
 A Program Structure Interface (PSI) tree viewer.
 
 ## Travis CI

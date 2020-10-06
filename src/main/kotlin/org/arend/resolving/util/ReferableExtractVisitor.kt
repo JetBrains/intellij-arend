@@ -25,7 +25,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     var implementedFields: MutableSet<FieldReferable> = HashSet()
         private set
 
-    private fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
+    fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
         mode = Mode.EXPRESSION
         var ref: Referable? = referent
         var visited: MutableSet<ArendDefFunction>? = null

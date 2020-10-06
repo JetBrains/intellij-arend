@@ -29,27 +29,27 @@ abstract class IntellijRepl private constructor(
     private val service: TypeCheckingService,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
-    psiConcreteProvider: PsiConcreteProvider
+    psiConcreteProvider: PsiConcreteProvider,
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider)
+    ArendTypechecking(PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
 ) {
     constructor(
         handler: ArendReplExecutionHandler,
-        project: Project
+        project: Project,
     ) : this(handler, project.service(), ListErrorReporter())
 
     private constructor(
         handler: ArendReplExecutionHandler,
         service: TypeCheckingService,
-        errorReporter: ListErrorReporter
+        errorReporter: ListErrorReporter,
     ) : this(
         handler,
         service,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
-        PsiConcreteProvider(service.project, errorReporter, null, true)
+        PsiConcreteProvider(service.project, errorReporter, null, true),
     )
 
     init {
@@ -77,7 +77,7 @@ abstract class IntellijRepl private constructor(
 
     final override fun loadLibraries() {
         if (service.initialize()) println("[INFO] Initialized prelude.")
-        val prelude = service.preludeScope.also { myReplScope.addPreludeScope(it) }
+        val prelude = service.preludeScope.also(myReplScope::addPreludeScope)
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
     }
 

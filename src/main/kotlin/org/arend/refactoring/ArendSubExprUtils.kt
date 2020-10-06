@@ -141,14 +141,15 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             1 -> 0
             else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
         }
+        val injectedExpr = if (index != null) injectionHost.injectedExpressions[index] else null
         val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(it) }
-        if (cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
+        if (injectedExpr != null && cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
             cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
                 .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-                .accept(subExprVisitor, injectionHost.injectedExpressions[index])
+                .accept(subExprVisitor, injectedExpr)
         } else {
             errors = emptyList()
             null

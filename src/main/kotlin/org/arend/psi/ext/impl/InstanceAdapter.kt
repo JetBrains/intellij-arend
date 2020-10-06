@@ -6,6 +6,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
+import org.arend.naming.scope.LazyScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -66,7 +67,7 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? {
         val expr = instanceBody?.expr ?: return null
-        return if (visitor.decrease(parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 })) ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr) else null
+        return ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)
     }
 
     private val allParameters
@@ -77,7 +78,8 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getClassReference(): ClassReferable? {
         val type = resultType ?: return null
-        return if (isCowith) ReferableExtractVisitor().findReferableInType(type) as? ClassReferable else ReferableExtractVisitor().findClassReferable(type)
+        val visitor = ReferableExtractVisitor()
+        return if (isCowith) visitor.findClassReference(visitor.findReferableInType(type), LazyScope { type.scope }) else visitor.findClassReferable(type)
     }
 
     override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {

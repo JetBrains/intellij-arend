@@ -2,8 +2,8 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.TypedReferable
+import org.arend.naming.scope.LazyScope
 import org.arend.psi.*
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
@@ -53,8 +53,9 @@ abstract class ArendNewExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), 
         }
 
         val visitor = ReferableExtractVisitor(withAdditionalInfo)
-        val ref = visitor.findReferable(appExpr as? ArendArgumentAppExpr ?: argumentAppExpr)
-        val classRef = ref as? ClassReferable ?: (if (!onlyClassRef && appPrefix?.newKw != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
+        val expr = appExpr as? ArendArgumentAppExpr ?: argumentAppExpr
+        val ref = visitor.findReferable(expr)
+        val classRef = (if (expr != null) visitor.findClassReference(ref, LazyScope { expr.scope }) else null) ?: (if (!onlyClassRef && appPrefix?.newKw != null && ref is TypedReferable) ref.typeClassReference else null) ?: return null
         return ClassReferenceData(classRef, visitor.argumentsExplicitness, emptySet(), false)
     }
 

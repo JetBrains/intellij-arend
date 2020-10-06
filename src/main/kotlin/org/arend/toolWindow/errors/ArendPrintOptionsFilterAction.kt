@@ -45,6 +45,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
                 PrintOptionKind.CONSOLE_PRINT_OPTIONS -> it.consolePrintingOptionsFilterSet
                 PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
                 PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
+                PrintOptionKind.REPL_PRINT_OPTIONS -> it.replPrintingOptionsFilterSet
                 PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
             }
         }
@@ -68,5 +69,6 @@ enum class PrintOptionKind(val kindName: String) {
     CONSOLE_PRINT_OPTIONS("Console"),
     GOAL_PRINT_OPTIONS("Goal"),
     POPUP_PRINT_OPTIONS("Pop-up"),
+    REPL_PRINT_OPTIONS("REPL"),
     ERROR_PRINT_OPTIONS("Error")
 }

@@ -46,9 +46,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     /**
      * You can enforce the scope of a file to be something else.
      */
-    var enforcedScope: (() -> Scope)? = null
-
-    val isReplFile get() = enforcedScope != null
+    var enforcedScope: () -> Scope? = { null }
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
@@ -95,8 +93,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            val scopeSupplier = (originalFile as? ArendFile ?: this).enforcedScope
-            if (scopeSupplier != null) return@getCachedValue cachedValue(scopeSupplier())
+            val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScope()
+            if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope)
             val injectedIn = injectionContext
             cachedValue(if (injectedIn != null) {
                 (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
@@ -169,7 +167,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun dropTypechecked() {}
 
-    override fun checkTCReferable() {}
+    override fun dropTCReferable() {}
+
+    override fun checkTCReferable() = true
+
+    override fun checkTCReferableName() {}
 
     override fun getLocation() = moduleLocation
 

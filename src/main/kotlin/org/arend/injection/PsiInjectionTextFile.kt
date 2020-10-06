@@ -11,7 +11,7 @@ import org.arend.naming.scope.Scope
 
 class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTextFileElementType, InjectionTextFileElementType, provider) {
     var injectionRanges = ArrayList<List<TextRange>>()
-    var injectedExpressions = ArrayList<Expression>()
+    var injectedExpressions = ArrayList<Expression?>()
     var scope: Scope = EmptyScope.INSTANCE
 
     val hasInjection: Boolean

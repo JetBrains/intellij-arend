@@ -83,4 +83,12 @@ class JDocBuilder(private val project: Project) : DocVisitor<Void?, JComponent> 
         textField.alignmentY = JLabel.TOP_ALIGNMENT
         return textField
     }
+
+    override fun visitPattern(doc: PatternDoc, params: Void?): JComponent {
+        val textField = LanguageTextField(PlainTextLanguage.INSTANCE, project, doc.text, true)
+        textField.document.setReadOnly(true)
+        textField.alignmentX = JLabel.LEFT_ALIGNMENT
+        textField.alignmentY = JLabel.TOP_ALIGNMENT
+        return textField
+    }
 }

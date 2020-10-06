@@ -17,10 +17,12 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.psi.ArendFile
 import org.arend.repl.CommandHandler
-import org.arend.repl.action.NormalizeCommand
 import org.arend.settings.ArendProjectSettings
+import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
+import org.arend.toolWindow.errors.PrintOptionKind
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -63,17 +65,29 @@ class ArendReplExecutionHandler(
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
         Disposer.register(consoleView, Disposable(::saveSettings))
-        val normalization = consoleView.project.service<ArendProjectSettings>().data
-            .replNormalizationMode
-        NormalizeCommand.INSTANCE.loadNormalize(normalization, repl, false)
+        val settings = settings()
+        if (settings.replPrintingOptionsFilterSet !== repl.prettyPrinterFlags) {
+            // Bind the settings with the repl config
+            repl.prettyPrinterFlags.clear()
+            repl.prettyPrinterFlags.addAll(settings.replPrintingOptionsFilterSet)
+            settings.replPrintingOptionsFilterSet = repl.prettyPrinterFlags
+        }
+        val normalization = settings.data.replNormalizationMode.toUpperCase()
+        try {
+            repl.normalizationMode = NormalizationMode.valueOf(normalization)
+        } catch (e: IllegalArgumentException) {
+            repl.normalizationMode = null
+        }
         repl.initialize()
         resetRepl()
     }
 
     private fun saveSettings() {
-        consoleView.project.service<ArendProjectSettings>().data
-            .replNormalizationMode = repl.normalizationMode.toString()
+        settings().data.replNormalizationMode = repl.normalizationMode.toString()
     }
+
+    private fun settings() =
+        consoleView.project.service<ArendProjectSettings>()
 
     private fun closeRepl() {
         toolWindow.hide()
@@ -119,6 +133,7 @@ class ArendReplExecutionHandler(
             }
         }.apply {
             registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK)), consoleView.preferredFocusableComponent)
-        }
+        },
+        ArendPrintOptionsActionGroup(consoleView.project, PrintOptionKind.REPL_PRINT_OPTIONS),
     )
 }

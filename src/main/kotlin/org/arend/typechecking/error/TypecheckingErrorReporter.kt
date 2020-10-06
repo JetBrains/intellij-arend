@@ -106,6 +106,12 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
             return null
         }
 
+        override fun visitPattern(doc: PatternDoc, newLine: Boolean): Void? {
+            printText(doc.text)
+            if (newLine) printNewLine()
+            return null
+        }
+
         override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
             val (hyperlink, reference) = createHyperlinkInfo(doc.reference, error)
             if (hyperlink == null) {

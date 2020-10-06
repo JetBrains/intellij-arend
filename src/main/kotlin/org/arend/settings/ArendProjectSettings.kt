@@ -17,10 +17,11 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
     var consolePrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
-    var goalPrintingOptionsFilterSet = EnumSet.of<PrettyPrinterFlag>(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+    var goalPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
 
     // for show-type and show-normalized
     var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+    var replPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
 
     var librariesRoot: String
         get() = data.librariesRoot ?: service<ArendSettings>().librariesRoot
@@ -73,11 +74,13 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         data.consolePrintingOptions = ArendPrintingOptions()
         data.errorPrintingOptions = ArendPrintingOptions()
         data.goalPrintingOptions = ArendPrintingOptions()
+        data.replPrintingOptions = ArendPrintingOptions()
 
         getPrintingOptions(consolePrintingOptionsFilterSet, data.consolePrintingOptions)
         getPrintingOptions(errorPrintingOptionsFilterSet, data.errorPrintingOptions)
         getPrintingOptions(goalPrintingOptionsFilterSet, data.goalPrintingOptions)
         getPrintingOptions(popupPrintingOptionsFilterSet, data.popupPrintingOptions)
+        getPrintingOptions(replPrintingOptionsFilterSet, data.replPrintingOptions)
 
         return data
     }
@@ -118,6 +121,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintingOptions(errorPrintingOptionsFilterSet, state.errorPrintingOptions)
         setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
         setPrintingOptions(popupPrintingOptionsFilterSet, state.popupPrintingOptions)
+        setPrintingOptions(replPrintingOptionsFilterSet, state.replPrintingOptions)
     }
 
     private fun setPrintingOptions(filterSet: EnumSet<PrettyPrinterFlag>, printingOptions: ArendPrintingOptions) {
