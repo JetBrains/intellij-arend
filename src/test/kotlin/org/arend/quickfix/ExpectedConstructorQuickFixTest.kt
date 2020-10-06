@@ -7,6 +7,12 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n => cons A (Vec A n)
     """
 
+    private val data1S = """
+      \data Vec' (b : \Sigma \Type Nat) \elim b
+       | (A, 0) => nil2
+       | (A, suc n) => cons2 A (Vec' (A, n)) 
+    """
+
     private val data2 = """
       \data D (n : Nat) \with | 1 => con1 | 2 => con2 | 3 => con3 
     """
@@ -49,6 +55,16 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat
         | {_}, {0}, nil => 0
         | {_}, {suc n}, cons x xs => 1 
+    """)
+
+    fun test69_2b() = simpleQuickFixTest("Do", data1S + """
+      \func foo' (A : \Type) (n : Nat) (xs : Vec' (A, n)) \elim xs
+        | nil2{-caret-} => 0
+        | cons2 x xs => 1 
+    """, data1S + """
+      \func foo' (A : \Type) (n : Nat) (xs : Vec' (A, n)) \elim xs
+        | (A, 0), nil2 => 0
+        | (A, suc n), cons2 x xs => 1  
     """)
 
     fun test68_2() = simpleQuickFixTest("Do", data1 + """

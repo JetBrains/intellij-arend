@@ -9,6 +9,7 @@ import org.arend.core.context.binding.Binding
 import org.arend.core.expr.ConCallExpression
 import org.arend.core.expr.Expression
 import org.arend.core.expr.ReferenceExpression
+import org.arend.core.expr.TupleExpression
 import org.arend.core.pattern.*
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.variable.Variable
@@ -46,10 +47,15 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
             }
 
-            if (pattern is ConstructorExpressionPattern && normalizedExpression is ConCallExpression) {
+            val ccArguments = when (normalizedExpression) {
+                is ConCallExpression -> normalizedExpression.conCallArguments
+                is TupleExpression -> normalizedExpression.fields
+                else -> null
+            }
+
+            if (pattern is ConstructorExpressionPattern && ccArguments != null) {
                 val subpatterns: List<Pattern> = pattern.subPatterns
-                val ccArguments = normalizedExpression.conCallArguments
-                if (normalizedExpression.definition != pattern.definition) return false
+                if (normalizedExpression is ConCallExpression && normalizedExpression.definition != pattern.definition) return false
                 for ((cPattern, cArgument) in subpatterns.zip(ccArguments))
                     if (!inverseMatch(cPattern, cArgument, substs)) return false
                 return true
@@ -57,13 +63,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             return false
         }
         for (cons in dataDef.constructors) {
+            var canMatch = true
+            val substs = HashMap<Variable, ExpressionPattern>()
             for ((pattern, argument) in cons.patterns.zip(dataCallArgs)) {
-                val substs = HashMap<Variable, ExpressionPattern>()
-                val mr = inverseMatch(pattern, argument, substs)
-                print("cons: ${cons.name}; mr: $mr; ")
-                for (s in substs.entries) print("${s.key.name}->${s.value.toExpression()}")
-                println()
+                canMatch = canMatch && inverseMatch(pattern, argument, substs)
             }
+            print("cons: ${cons.name}; canMatch: $canMatch; ")
+            for (s in substs.entries) print("${s.key.name}->${s.value.toExpression()}; ")
+            println()
         }
     }
 }
