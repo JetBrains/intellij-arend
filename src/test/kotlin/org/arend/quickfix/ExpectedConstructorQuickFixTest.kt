@@ -62,9 +62,21 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | nil2{-caret-} => 0
         | cons2 x xs => 1 
     """, data1S + """
-      \func foo' (A : \Type) (n : Nat) (xs : Vec' (A, n)) \elim xs
-        | (A, 0), nil2 => 0
-        | (A, suc n), cons2 x xs => 1  
+      \func foo' (A : \Type) (n : Nat) (xs : Vec' (A, n)) \elim n, xs
+        | 0, nil2 => 0
+        | suc n, cons2 x xs => 1  
+    """)
+
+    fun test69_2c() = simpleQuickFixTest("Do", data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => \case xs \with {
+        | nil{-caret-} => 0
+        | cons x xs => 1  
+      }
+    """, data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => \case n, xs \with { 
+        | 0, nil => 0
+        | suc n, cons x xs => 1
+      }
     """)
 
     fun test68_2() = simpleQuickFixTest("Do", data1 + """
