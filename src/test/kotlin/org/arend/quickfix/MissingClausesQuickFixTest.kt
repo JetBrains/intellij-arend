@@ -544,6 +544,17 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | 0, p => {?} 
     """)
 
+    fun test_instance() = typedQuickFixTest("Implement", """
+       \class C (foo : Nat)
+       \instance f{-caret-} (n : Nat) : C \with 
+    """, """
+       \class C (foo : Nat)
+       \instance f (n : Nat) : C \with
+         | 0 => {?}
+         | suc n => {?}
+    """)
+
+
     fun `test shadowed names from parent case`() = typedQuickFixTest("Implement", """
         $listDefinition
         
