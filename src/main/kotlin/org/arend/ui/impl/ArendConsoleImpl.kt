@@ -3,6 +3,7 @@ package org.arend.ui.impl
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.ui.ArendConsole
@@ -22,5 +23,7 @@ class ArendConsoleImpl(private val project: Project, marker: Any?) : ArendConsol
     override fun getPrettyPrinterConfig() =
         object : PrettyPrinterConfig {
             override fun getExpressionFlags() = project.service<ArendProjectSettings>().consolePrintingOptionsFilterSet
+
+            override fun getNormalizationMode(): NormalizationMode? = NormalizationMode.ENF
         }
 }

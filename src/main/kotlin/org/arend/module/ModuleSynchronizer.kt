@@ -2,7 +2,6 @@ package org.arend.module
 
 import com.intellij.ProjectTopics
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
@@ -61,6 +60,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
             val ideaDependencies = ArrayList<Any>()
 
             // Locate dependencies and create libraries in the project-level table if necessary
+            val actions = ArrayList<() -> Unit>()
             for (dependency in service.dependencies) {
                 val depModule = arendModules[dependency.name]
                 if (depModule == service.module) {
@@ -95,10 +95,10 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                                 externalLibrary.extensionDirFile?.let {
                                     libModel.addRoot(it, OrderRootType.CLASSES)
                                 }
-                                ApplicationManager.getApplication()?.invokeAndWait { runWriteAction {
+                                actions.add {
                                     libModel.commit()
                                     tableModel.commit()
-                                } }
+                                }
                             }
                         }
                         library
@@ -116,6 +116,12 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
             ApplicationManager.getApplication()?.invokeLater {
                 if (service.module.isDisposed) {
                     return@invokeLater
+                }
+
+                if (actions.isNotEmpty()) runWriteAction {
+                    for (action in actions) {
+                        action()
+                    }
                 }
 
                 val rootModel = runReadAction { ModuleRootManager.getInstance(service.module).modifiableModel }
@@ -136,11 +142,11 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                         }
                     }
 
-                    runInEdt { runWriteAction {
+                    runWriteAction {
                         if (!rootModel.isDisposed) {
                             rootModel.commit()
                         }
-                    } }
+                    }
                 } finally {
                     if (!rootModel.isDisposed) {
                         rootModel.dispose()

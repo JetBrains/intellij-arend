@@ -8,13 +8,14 @@ import org.arend.module.config.ArendModuleConfigurationUpdater
 import org.arend.prelude.Prelude
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
+import org.arend.util.FileUtils
 
 class ArendModuleWizardStep(project: Project?, private val builder: ArendModuleBuilder) : ModuleWizardStep() {
     private val view = ArendModuleConfigurationView(project, builder.moduleFileDirectory).apply {
         librariesRoot = project?.service<ArendProjectSettings>()?.librariesRoot ?: service<ArendSettings>().librariesRoot
-        sourcesDir = "src"
+        sourcesDir = FileUtils.DEFAULT_SOURCES_DIR
         withBinaries = true
-        binariesDirectory = ".bin"
+        binariesDirectory = FileUtils.DEFAULT_BINARIES_DIR
         langVersionString = Prelude.VERSION.toString()
     }
 

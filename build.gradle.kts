@@ -7,7 +7,7 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.4.1"
+version = "1.5.1"
 
 plugins {
     idea
@@ -22,7 +22,8 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    implementation(kotlin("reflect"))
+    testImplementation(kotlin("reflect"))
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 configure<JavaPluginConvention> {

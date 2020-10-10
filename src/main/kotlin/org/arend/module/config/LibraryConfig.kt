@@ -14,6 +14,9 @@ import org.arend.module.ArendRawLibrary
 import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.util.getRelativeFile
 import org.arend.util.getRelativePath
 import org.arend.typechecking.TypeCheckingService
@@ -49,6 +52,7 @@ abstract class LibraryConfig(val project: Project) {
         get() = root?.let { if (it.isInLocalFileSystem) it else JarFileSystem.getInstance().getVirtualFileForJar(it) }
 
     private val additionalModules = HashMap<ModulePath, ArendFile>()
+    val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
     private fun findDir(dir: String) = root?.findFileByRelativePath(FileUtil.toSystemIndependentName(dir).removeSuffix("/"))
 
@@ -116,6 +120,7 @@ abstract class LibraryConfig(val project: Project) {
             maps.remove(file.moduleLocation)
         }
         additionalModules.clear()
+        additionalNames.clear()
     }
 
     private fun findParentDirectory(modulePath: ModulePath, inTests: Boolean): VirtualFile? {

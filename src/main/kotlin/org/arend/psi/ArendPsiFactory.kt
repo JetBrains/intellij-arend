@@ -80,8 +80,8 @@ class ArendPsiFactory(
     fun createWithBody(): ArendWithBody =
         (createExpression("\\case _ \\with {}") as? ArendCaseExpr)?.withBody ?: error("Failed to create withBody")
 
-    fun createFunctionClauses(): ArendFunctionClauses {
-        val code = "\\func foo (a : Nat) : Nat\n  | 0 => {?}"
+    fun createFunctionClauses(instance: Boolean = false): ArendFunctionClauses {
+        val code = "\\${if (instance) "instance" else "func"} foo (a : Nat) : Nat\n  | 0 => {?}"
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 

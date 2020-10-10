@@ -111,70 +111,65 @@ class TypeCheckProcessHandler(
             val ordering = Ordering(instanceProviderSet, concreteProvider, collector, typeCheckerService.dependencyListener, ArendReferableConverter, PsiElementComparator)
 
             try {
-                for (library in libraries) {
-                    if (indicator.isCanceled) {
-                        break
-                    }
-
-                    val modulePaths = if (modulePath == null) runReadAction { library.loadedModules } else listOf(modulePath)
-                    val modules = modulePaths.mapNotNull {
-                        val module = runReadAction { library.config.findArendFile(it, withAdditional = false, withTests = true) }
-                        if (module == null) {
-                            runReadAction { typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name)) }
-                        } else if (command.definitionFullName == "") {
-                            val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
-                            val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
-                                val testsModuleScopeProvider = library.testsModuleScopeProvider
-                                ModuleScopeProvider {
-                                    sourcesModuleScopeProvider.forModule(it) ?: testsModuleScopeProvider.forModule(it)
-                                }
-                            } else sourcesModuleScopeProvider
-                            runReadAction { DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider)) }
+                runReadAction {
+                    for (library in libraries) {
+                        if (indicator.isCanceled) {
+                            break
                         }
-                        module
-                    }
 
-                    if (command.definitionFullName == "") {
-                        runReadAction {
+                        val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
+                        val modules = modulePaths.mapNotNull {
+                            val module = library.config.findArendFile(it, withAdditional = false, withTests = true)
+                            if (module == null) {
+                                typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
+                            } else if (command.definitionFullName == "") {
+                                val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
+                                val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
+                                    val testsModuleScopeProvider = library.testsModuleScopeProvider
+                                    ModuleScopeProvider {
+                                        sourcesModuleScopeProvider.forModule(it)
+                                            ?: testsModuleScopeProvider.forModule(it)
+                                    }
+                                } else sourcesModuleScopeProvider
+                                DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
+                            }
+                            module
+                        }
+
+                        if (command.definitionFullName == "") {
                             for (module in modules) {
                                 reportParserErrors(module, module, typecheckingErrorReporter)
                                 resetGroup(module)
                             }
-                        }
-                        for (module in modules) {
-                            orderGroup(module, ordering)
-                            module.lastModifiedDefinition = null
-                        }
-                    } else {
-                        val ref = runReadAction {
-                            modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable
-                        }
-                        if (ref == null) {
-                            if (modules.isNotEmpty()) {
-                                runReadAction { typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath)) }
+                            for (module in modules) {
+                                orderGroup(module, ordering)
+                                module.lastModifiedDefinition = null
                             }
                         } else {
-                            val tcReferable = runReadAction { ArendReferableConverter.toDataLocatedReferable(ref) }
-                            val typechecked =
-                                if (tcReferable is TCDefReferable) {
-                                    if (PsiLocatedReferable.isValid(tcReferable)) {
-                                        tcReferable.typechecked
-                                    } else {
-                                        typeCheckerService.dependencyListener.update(tcReferable)
-                                        null
-                                    }
-                                } else {
-                                    null
+                            val ref = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable
+                            if (ref == null) {
+                                if (modules.isNotEmpty()) {
+                                    typecheckingErrorReporter.report(DefinitionNotFoundError(command.definitionFullName, modulePath))
                                 }
-                            if (typechecked == null || !typechecked.status().isOK) {
-                                val definition = concreteProvider.getConcrete(ref)
-                                if (definition is Concrete.Definition) {
-                                    typeCheckerService.dependencyListener.update(definition.data)
-                                    ordering.order(definition)
-                                } else if (definition != null) error(command.definitionFullName + " is not a definition")
                             } else {
-                                if (ref is PsiLocatedReferable) {
-                                    runReadAction {
+                                val tcReferable = ArendReferableConverter.toDataLocatedReferable(ref)
+                                val typechecked =
+                                    if (tcReferable is TCDefReferable) {
+                                        if (PsiLocatedReferable.isValid(tcReferable)) {
+                                            tcReferable.typechecked
+                                        } else {
+                                            typeCheckerService.dependencyListener.update(tcReferable)
+                                            null
+                                        }
+                                    } else null
+                                if (typechecked == null || !typechecked.status().isOK) {
+                                    val definition = concreteProvider.getConcrete(ref)
+                                    if (definition is Concrete.Definition) {
+                                        typeCheckerService.dependencyListener.update(definition.data)
+                                        ordering.order(definition)
+                                    } else if (definition != null) error(command.definitionFullName + " is not a definition")
+                                } else {
+                                    if (ref is PsiLocatedReferable) {
                                         typecheckingErrorReporter.eventsProcessor.onTestStarted(ref)
                                         typecheckingErrorReporter.eventsProcessor.onTestFinished(ref)
                                     }
@@ -238,10 +233,10 @@ class TypeCheckProcessHandler(
 
         (ordering.concreteProvider.getConcrete(group) as? Concrete.Definition)?.let { ordering.order(it) }
 
-        for (subgroup in runReadAction { group.subgroups }) {
+        for (subgroup in group.subgroups) {
             orderGroup(subgroup, ordering)
         }
-        for (subgroup in runReadAction { group.dynamicSubgroups }) {
+        for (subgroup in group.dynamicSubgroups) {
             orderGroup(subgroup, ordering)
         }
     }

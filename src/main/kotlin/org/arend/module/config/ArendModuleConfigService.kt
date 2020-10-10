@@ -126,6 +126,11 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         })
     }
 
+    fun synchronizeDependencies(reload: Boolean) {
+        synchronized = false
+        ModuleSynchronizer.synchronizeModule(this, reload)
+    }
+
     fun copyFromYAML(yaml: YAMLFile, update: Boolean) {
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {

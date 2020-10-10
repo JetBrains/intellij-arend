@@ -31,7 +31,8 @@ class ArendNoVariantsDelegator : CompletionContributor() {
             }
         }
         result.runRemainingContributors(parameters, tracker)
-        val refElementAtCaret = parameters.originalFile.findElementAt(parameters.offset - 1)?.parent
+        val file = parameters.originalFile
+        val refElementAtCaret = file.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
         val allowedPosition = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null && isGlobalScopeVisible(refElementAtCaret)
         val classExtension = parent?.parent is ArendDefClass
@@ -43,9 +44,9 @@ class ArendNoVariantsDelegator : CompletionContributor() {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
-            val consumer = { name: String ->
+            val consumer = { name: String, refs: List<PsiLocatedReferable>? ->
                 if (result.prefixMatcher.prefixMatches(name)) {
-                    val locatedReferables = StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() + tcService.getAdditionalReferables(name)
+                    val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
                         if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, true)?.let {
                             result.addElement(
@@ -63,12 +64,19 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 }
             }
 
-            tcService.getAdditionalNames().map {
-                consumer.invoke(it)
+            (file as? ArendFile)?.libraryConfig?.forAvailableConfigs {
+                for (entry in it.additionalNames.entries) {
+                    consumer.invoke(entry.key, entry.value)
+                }
+                null
+            }
+
+            for (entry in tcService.additionalReferables.entries) {
+                consumer.invoke(entry.key, entry.value)
             }
 
             StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
-                consumer.invoke(name)
+                consumer.invoke(name, null)
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }
         } else {

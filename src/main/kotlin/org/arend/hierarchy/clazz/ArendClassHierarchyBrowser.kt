@@ -10,6 +10,8 @@ import com.intellij.ide.util.treeView.SourceComparator
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -91,9 +93,13 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         for (node in children) {
             node.update()
             if (ArendSuperClassTreeStructure.getChildren(node, myProject).isEmpty() || pathsToExpand.contains(ArendHierarchyNodeDescriptor.nodePath(node))) {
-                val tree = getJTree(treeType)
-                if (tree != null) {
-                    getTreeModel(treeType).expand(node, tree) { }
+                ApplicationManager.getApplication().invokeLater {
+                    runWriteAction {
+                        val tree = getJTree(treeType)
+                        if (tree != null) {
+                            getTreeModel(treeType).expand(node, tree) { }
+                        }
+                    }
                 }
             }
         }
