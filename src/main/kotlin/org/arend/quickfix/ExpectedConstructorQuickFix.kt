@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Binding
+import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Constructor
 import org.arend.core.expr.ConCallExpression
 import org.arend.core.expr.Expression
@@ -14,11 +15,17 @@ import org.arend.core.expr.TupleExpression
 import org.arend.core.pattern.*
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.variable.Variable
+import org.arend.psi.ArendCaseExpr
+import org.arend.psi.ArendFunctionBody
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.ExpectedConstructorError
 
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
+    private enum class MatchResult { MATCH_OK, DONT_MATCH, UNKNOWN }
+    private data class MatchResultPair(val canMatch: Boolean, val substs: HashMap<Variable, ConstructorExpressionPattern>)
+
+    private val matchResults = HashMap<Constructor, MatchResultPair>()
 
     override fun startInWriteAction(): Boolean = true
 
@@ -26,10 +33,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
     override fun getText(): String = "Do patternmatching on the 'stuck' variable"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
-
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        if (error.dataCall == null || error.substitution == null) return
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
+        if (error.dataCall == null || error.substitution == null) return false
 
         val dataDef = error.dataCall.definition
         val dataCallArgs = error.dataCall.defCallArguments
@@ -38,14 +43,15 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             reverseMap[it.binding] = entry.key
         }
 
-        fun inverseMatch(pattern: Pattern, expression: Expression, substs: MutableMap<Variable, ExpressionPattern>): Boolean {
+
+        fun inverseMatch(pattern: Pattern, expression: Expression, substs: MutableMap<Variable, ConstructorExpressionPattern>): MatchResult {
             val normalizedExpression = expression.normalize(NormalizationMode.WHNF)
-            if (pattern is EmptyPattern) return false
+            if (pattern is EmptyPattern) return MatchResult.DONT_MATCH
             if (normalizedExpression is ReferenceExpression) {
-                val correctBinding = reverseMap[normalizedExpression.binding]
-                if (correctBinding != null && pattern is ExpressionPattern) {
-                    substs[correctBinding] = pattern
-                    return true
+                val correctBinding = reverseMap[normalizedExpression.binding] ?: normalizedExpression.binding
+                if (pattern is ExpressionPattern) {
+                    if (pattern is ConstructorExpressionPattern) substs[correctBinding] = pattern
+                    return MatchResult.MATCH_OK
                 }
             }
 
@@ -57,31 +63,56 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
             if (pattern is ConstructorExpressionPattern && ccArguments != null) {
                 val subpatterns: List<Pattern> = pattern.subPatterns
-                if (normalizedExpression is ConCallExpression && normalizedExpression.definition != pattern.definition) return false
-                for ((cPattern, cArgument) in subpatterns.zip(ccArguments))
-                    if (!inverseMatch(cPattern, cArgument, substs)) return false
-                return true
+                if (normalizedExpression is ConCallExpression && normalizedExpression.definition != pattern.definition) return MatchResult.DONT_MATCH
+                for ((cPattern, cArgument) in subpatterns.zip(ccArguments)) {
+                    when (inverseMatch(cPattern, cArgument, substs)) {
+                        MatchResult.DONT_MATCH -> return MatchResult.DONT_MATCH
+                        MatchResult.UNKNOWN -> return MatchResult.UNKNOWN
+                        else -> {}
+                    }
+                }
+                return MatchResult.MATCH_OK
             }
-            return false
+            return MatchResult.UNKNOWN
         }
 
-        data class MatchResult(val canMatch: Boolean, val substs: HashMap<Variable, ExpressionPattern>)
-        val matchResults = HashMap<Constructor, MatchResult>()
+        matchResults.clear()
 
         for (cons in dataDef.constructors) {
             var canMatch = true
-            val substs = HashMap<Variable, ExpressionPattern>()
-            for ((pattern, argument) in cons.patterns.zip(dataCallArgs)) canMatch = canMatch && inverseMatch(pattern, argument, substs)
-            matchResults[cons] = MatchResult(canMatch, substs)
+            val substs = HashMap<Variable, ConstructorExpressionPattern>()
+            for ((pattern, argument) in cons.patterns.zip(dataCallArgs)) {
+                val mr = inverseMatch(pattern, argument, substs)
+                if (mr == MatchResult.UNKNOWN) return false
+                if (mr == MatchResult.DONT_MATCH) canMatch = false
+            }
+            matchResults[cons] = MatchResultPair(canMatch, substs)
         }
 
+        return true
+    }
+
+    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val varsToEliminate = HashSet<Variable>()
         val dlr = (this.error.definition as? DataLocatedReferable)?.data?.element
         System.out.println("data: ${dlr?.text}")
-        //for (mr in matchResults.values) for (v in mr.substs.keys) { }
+        System.out.println("elimParams: ${error.elimParams}")
+        System.out.println("caseExpressions: ${error.caseExpressions}")
 
-        /* print("cons: ${cons.name}; canMatch: $canMatch; ")
-        for (s in substs.entries) print("${s.key.name}->${s.value.toExpression()}; ")
-        println() */
+        // Add eliminated variables
+        if (error.caseExpressions == null) {
+            if (error.elimParams.isNotEmpty()) { //elim
+                
+            }
+        } else { // case
+
+        }
+
+        for (mr in matchResults) {
+            print("cons: ${mr.key.name}; canMatch: ${mr.value.canMatch}; ")
+            for (s in mr.value.substs.entries) print("${s.key.name}->${s.value.toExpression()}; ")
+            println()
+        }
+
     }
 }
