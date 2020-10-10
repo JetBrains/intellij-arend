@@ -21,6 +21,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.MetaAdapter
+import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -28,7 +29,6 @@ import org.arend.source.GZIPStreamBinarySource
 import org.arend.source.PersistableBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.provider.EmptyConcreteProvider
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import java.lang.StringBuilder
@@ -57,7 +57,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         file.virtualFile.isWritable = false
         file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)
-        config.project.service<TypeCheckingService>().fillAdditionalNames(file, isExternal)
+        fillAdditionalNames(file, config.additionalNames)
         config.addAdditionalModule(modulePath, file)
     }
 

@@ -29,8 +29,8 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
@@ -72,8 +72,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val extensionDefinitions = HashMap<TCDefReferable, Boolean>()
 
-    private val externalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
-    private val internalAdditionalNamesIndex = HashMap<String, ArrayList<PsiLocatedReferable>>()
+    private val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
     val tcRefMaps = ConcurrentHashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
 
@@ -114,7 +113,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
             Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, ArendReferableConverter, PsiElementComparator).typecheckLibrary(preludeLibrary)
             preludeLibrary.prelude?.let {
-                fillAdditionalNames(it, true)
+                fillAdditionalNames(it, additionalNames)
             }
 
             // Set the listener that updates typechecked definitions
@@ -160,8 +159,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                     isLoaded = false
                     if (onlyInternal) {
                         libraryManager.reloadInternalLibraries {
-                            internalAdditionalNamesIndex.clear()
-
                             val it = extensionDefinitions.iterator()
                             while (it.hasNext()) {
                                 if (it.next().value) {
@@ -174,8 +171,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                     } else {
                         libraryManager.reload {
                             project.service<ArendResolveCache>().clear()
-                            externalAdditionalNamesIndex.clear()
-                            internalAdditionalNamesIndex.clear()
                             extensionDefinitions.clear()
                             tcRefMaps.clear()
 
@@ -201,23 +196,10 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         extensionDefinitions[definition.referable] = !library.isExternal
     }
 
-    fun fillAdditionalNames(group: ArendGroup, isExternal: Boolean) {
-        for (subgroup in group.subgroups) {
-            addAdditionalName(subgroup, isExternal)
-            fillAdditionalNames(subgroup, isExternal)
-        }
-        for (referable in group.internalReferables) {
-            addAdditionalName(referable, isExternal)
-        }
-    }
+    fun getAdditionalReferables(name: String) = additionalNames[name] ?: emptyList()
 
-    private fun addAdditionalName(ref: PsiLocatedReferable, isExternal: Boolean) {
-        (if (isExternal) externalAdditionalNamesIndex else internalAdditionalNamesIndex).computeIfAbsent(ref.refName) { ArrayList() }.add(ref)
-    }
-
-    fun getAdditionalReferables(name: String) = (internalAdditionalNamesIndex[name] ?: emptyList()) + (externalAdditionalNamesIndex[name] ?: emptyList())
-
-    fun getAdditionalNames() = internalAdditionalNamesIndex.keys.union(externalAdditionalNamesIndex.keys)
+    val additionalReferables: Map<String, List<PsiLocatedReferable>>
+        get() = additionalNames
 
     private fun resetErrors(def: Referable, removeTCRef: Boolean) {
         if (removeTCRef) {
