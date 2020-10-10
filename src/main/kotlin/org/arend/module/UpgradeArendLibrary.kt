@@ -8,11 +8,13 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.FileUtils
+import org.arend.util.arendModules
 import org.arend.util.findExternalLibrary
 import org.arend.util.refreshLibrariesDirectory
 import java.io.BufferedInputStream
@@ -81,7 +83,10 @@ fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
                                 refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                                 project.findExternalLibrary(libRoot, AREND_LIB)?.root?.let {
                                     VfsUtil.markDirtyAndRefresh(false, true, false, it)
-                                    project.service<TypeCheckingService>().reload(onlyInternal = true, refresh = false)
+                                    for (module in project.arendModules) {
+                                        ArendModuleConfigService.getInstance(module)?.synchronizeDependencies(false)
+                                    }
+                                    project.service<TypeCheckingService>().reload(onlyInternal = false, refresh = false)
                                 }
                             }
                         }
