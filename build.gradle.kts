@@ -23,10 +23,7 @@ repositories {
 dependencies {
     implementation("org.arend:base")
     testImplementation(kotlin("reflect"))
-    compileOnly(kotlin("stdlib"))
-    implementation(kotlin("stdlib-jdk8").toString()) {
-		exclude(module = "kotlin-stdlib")
-    }
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 configure<JavaPluginConvention> {
