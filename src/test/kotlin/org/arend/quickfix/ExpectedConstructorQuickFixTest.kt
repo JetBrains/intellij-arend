@@ -17,6 +17,14 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       \data D (n : Nat) \with | 1 => con1 | 2 => con2 | 3 => con3 
     """
 
+    private val data3 = """
+      \data D (n m : Nat) \with
+        | 0, 0 => con1
+        | suc _, suc _ => con2
+        | suc (suc _), suc (suc _) => con3
+        | _, _ => con4
+    """
+
     fun test69_1() = simpleQuickFixTest("Do", data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | nil{-caret-} => 0
@@ -109,5 +117,22 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data2 + """
       \func foo (n : Nat) (d : D (suc (suc n))) : Nat \elim n, d
         | 0, con2 => 101
+    """)
+
+    fun test68_3() = simpleQuickFixTest("Do", data3 + """
+        \func foo (n m : Nat) (d : D n m) : Nat
+          | 0, 0, con1 => 0
+          | suc (suc n), 1, con2 => 1
+          | suc (suc n), suc (suc m), con2 => 2
+          | suc (suc n), suc (suc m), con3 => 3
+          | {-caret-}n, m, con4 => 4
+    """, data3 + """
+        \func foo (n m : Nat) (d : D n m) : Nat
+          | 0, 0, con1 => 0
+          | suc (suc n), 1, con2 => 1
+          | suc (suc n), suc (suc m), con2 => 2
+          | suc (suc n), suc (suc m), con3 => 3
+          | n, 0, con4 => 4
+          | n, suc m, con4 => 4
     """)
 }
