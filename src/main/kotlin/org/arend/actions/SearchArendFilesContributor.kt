@@ -1,12 +1,14 @@
 package org.arend.actions
 
 import com.intellij.ide.actions.searcheverywhere.AbstractGotoSEContributor
+import com.intellij.ide.actions.searcheverywhere.FileSearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory
 import com.intellij.ide.util.gotoByName.FileTypeRef
 import com.intellij.ide.util.gotoByName.FilteringGotoByModel
 import com.intellij.ide.util.gotoByName.GotoFileModel
 import com.intellij.navigation.NavigationItem
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -32,6 +34,10 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
         }
         model.setFilterItems(singletonList(FileTypeRef.forFileType(ArendFileType)))
         return model
+    }
+
+    override fun getActions(onChanged: Runnable): MutableList<AnAction> {
+        return singletonList(doGetActions("Lol", FileSearchEverywhereContributor.createFileTypeFilter(this.myProject), onChanged).first())
     }
 }
 
