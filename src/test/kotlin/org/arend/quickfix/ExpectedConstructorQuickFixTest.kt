@@ -135,4 +135,10 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
           | n, 0, con4 => 4
           | n, suc m, con4 => 4
     """)
+
+    fun test68_4() = simpleQuickFixTest("Do", data2 + """
+        {-caret-}\func f (n : Nat) (d : D n) : Nat \elim d
+    """, data2 + """
+        \func f (n : Nat) (d : D n) : Nat \elim n, d
+    """)
 }
