@@ -58,7 +58,7 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = true
-    setPlugins("yaml", "java", "IdeaVIM:0.57")
+    setPlugins("yaml", "java", "IdeaVIM:0.60")
 }
 
 tasks.named<JavaExec>("runIde") {
