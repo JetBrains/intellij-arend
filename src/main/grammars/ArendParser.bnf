@@ -46,6 +46,7 @@
         LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
         OVERRIDE_KW         = '\override'
+        DEFAULT_KW          = '\default'
         PROPERTY_KW         = '\property'
         CLASSIFYING_KW      = '\classifying'
         NO_CLASSIFYING_KW   = '\noclassifying'
@@ -113,7 +114,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -170,11 +171,13 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
     recoverWhile = statement_recover
 }
 
-classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
 
 private classStatRecovery ::= {
   recoverWhile = classStat_recover
 }
+
+private defaultField ::= DEFAULT_KW classImplement { pin = 1 }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
