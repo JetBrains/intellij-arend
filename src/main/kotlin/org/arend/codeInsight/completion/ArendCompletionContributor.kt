@@ -489,9 +489,10 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
-                and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
+                and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
                 and(afterLeaf(COERCE_KW), or(withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
-                        withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))))
+                        withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
+                and(afterLeaves(CLASSIFYING_KW, COERCE_KW), withParentOrGrandParent(ArendDefClass::class.java)))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 

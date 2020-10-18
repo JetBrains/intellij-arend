@@ -14,7 +14,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\import B (lol \\as {-caret-}+)",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\data MyNat | \\coerce {-caret-} myzero")
+                    "\\data MyNat | \\coerce {-caret-} myzero",
+                    "\\class R (foo : Nat)\n  | \\coerce {-caret-}",
+                    "\\class R (foo : Nat)\n  | \\classifying {-caret-}")
 
     fun `test fixity + coerce completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
