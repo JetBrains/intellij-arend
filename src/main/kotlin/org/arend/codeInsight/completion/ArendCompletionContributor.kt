@@ -492,7 +492,12 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
                 and(afterLeaf(COERCE_KW), or(withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
                         withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
-                and(afterLeaves(CLASSIFYING_KW, COERCE_KW), withParentOrGrandParent(ArendDefClass::class.java)))
+                and(afterLeaves(CLASSIFYING_KW, COERCE_KW), or(
+                    withAncestors(ArendDefClass::class.java),
+                    withAncestors(ArendClassStat::class.java),
+                    withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+                    withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)
+                )))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 
@@ -530,7 +535,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
                         and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
                         TELE_CONTEXT),
-                not(afterLeaves(PIPE, COWITH_KW))) // no expression keywords after pipe
+                not(afterLeaves(PIPE, COWITH_KW, COERCE_KW, CLASSIFYING_KW))) // no expression keywords after pipe
 
 
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
@@ -558,8 +563,11 @@ class ArendCompletionContributor : CompletionContributor() {
         private val CLASSIFYING_CONTEXT = or(and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java))),
-        and(afterLeaf(PIPE), or(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+        and(afterLeaf(PIPE), or(
+                withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java, ArendDefClass::class.java),
+                withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
+                withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java,  ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
 
         private val NO_CLASSIFYING_CONTEXT = and(afterLeaf(ID),

@@ -13,19 +13,22 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data {-caret-}",
                     "\\import B (lol \\as {-caret-}+)",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
-                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
                     "\\data MyNat | \\coerce {-caret-} myzero",
                     "\\class R (foo : Nat)\n  | \\coerce {-caret-}",
-                    "\\class R (foo : Nat)\n  | \\classifying {-caret-}")
+                    "\\class R (foo : Nat)\n  | \\classifying {-caret-}",
+                    "\\class R (foo : Nat) {\n  | \\coerce {-caret-}\n}",
+                    "\\class R (foo : Nat) {\n  | \\classifying {-caret-}\n}")
 
     fun `test fixity + coerce completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\data MyNat | {-caret-}myzero",
-                    "\\record R\n  | {-caret-} foo : Nat")
+                    "\\record R\n  | {-caret-} foo : Nat",
+                    "\\record R{\n  | {-caret-} foo : Nat\n}")
 
     fun `test fixity + coerce + classifying completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
-                    "\\class C\n  | {-caret-} foo : Nat")
+                    "\\class C\n  | {-caret-} foo : Nat",
+                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
