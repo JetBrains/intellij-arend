@@ -57,4 +57,6 @@ abstract class ArendFieldTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node)
     override fun isStrict() = false
 
     override fun isClassifying() = classifyingKw != null
+
+    override fun isCoerce() = coerceKw != null
 }

@@ -192,8 +192,8 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     mixin = "org.arend.psi.ext.ArendOverriddenFieldImplMixin"
 }
 
-classField ::= prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
-    pin = 5
+classField ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 6
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.naming.reference.FieldReferable"
@@ -382,7 +382,7 @@ private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | LPAREN | assoc) & statement_recover
+private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
@@ -445,8 +445,8 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
-    pin = 2
+constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
+    pin = 3
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.term.abs.Abstract.Constructor"
@@ -934,9 +934,9 @@ fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
     }
 
-private fieldTeleExplicit ::= LPAREN CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
+private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover

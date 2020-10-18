@@ -41,6 +41,8 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
 
     override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
 
+    override fun isCoerce() = coerceKw != null
+
     private val allParameters
         get() = (ancestor<DataDefinitionAdapter>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 

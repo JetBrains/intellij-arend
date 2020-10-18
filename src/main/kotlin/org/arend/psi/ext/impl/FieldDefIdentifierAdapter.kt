@@ -13,7 +13,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
-import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.term.ClassFieldKind
 import org.arend.term.abs.Abstract
@@ -56,6 +55,10 @@ abstract class FieldDefIdentifierAdapter : ReferableAdapter<ArendClassFieldParam
     override fun isExplicitField() = (parent as? ArendFieldTele)?.isExplicit ?: true
 
     override fun isParameterField() = true
+
+    override fun isClassifying() = (parent as? ArendFieldTele)?.classifyingKw != null
+
+    override fun isCoerce() = (parent as? ArendFieldTele)?.coerceKw != null
 
     override fun getTypeClassReference(): ClassReferable? =
         resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
