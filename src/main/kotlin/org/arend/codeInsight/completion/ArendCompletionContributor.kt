@@ -425,10 +425,13 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(CLASSIFYING_CONTEXT, CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestor<ArendDefClass>().let { defClass ->
-                defClass != null && defClass.noClassifyingKw == null && !defClass.fieldTeleList.any { it.isClassifying }
+                defClass != null && !defClass.isRecord && defClass.noClassifyingKw == null && !defClass.fieldTeleList.any { it.isClassifying }
             }
         }
 
+        basic(or(CLASSIFYING_CONTEXT, and(afterLeaf(PIPE),
+                or(withAncestors(PsiErrorElement::class.java, ArendDataBody::class.java),
+                        withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java)))), COERCE_KW_LIST)
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
 
@@ -486,7 +489,9 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
-                and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java))) //class field
+                and(afterLeaf(PIPE), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
+                and(afterLeaf(COERCE_KW), or(withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
+                        withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 
@@ -549,9 +554,12 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ARGUMENT_EXPRESSION_IN_BRACKETS = withAncestors(*(NEW_EXPR_PREFIX +
                 arrayOf<Class<out PsiElement>>(ArendTupleExpr::class.java, ArendTuple::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java)))
 
-        private val CLASSIFYING_CONTEXT = and(afterLeaf(LPAREN),
+        private val CLASSIFYING_CONTEXT = or(and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
-                        withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java)))
+                        withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java))),
+        and(afterLeaf(PIPE), or(withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+                withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java, ArendDefClass::class.java),
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
 
         private val NO_CLASSIFYING_CONTEXT = and(afterLeaf(ID),
                 or(withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java),
