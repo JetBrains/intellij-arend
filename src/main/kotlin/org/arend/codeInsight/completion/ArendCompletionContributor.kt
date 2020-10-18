@@ -430,7 +430,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(or(CLASSIFYING_CONTEXT, and(afterLeaf(PIPE),
-                or(withAncestors(PsiErrorElement::class.java, ArendDataBody::class.java),
+                or(withAncestors(ArendDefData::class.java), withAncestors(PsiErrorElement::class.java, ArendDataBody::class.java),
                         withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java)))), COERCE_KW_LIST)
 
         basic(and(LEVEL_CONTEXT, allowedInReturnPattern), LEVEL_KW_LIST)
@@ -487,14 +487,16 @@ class ArendCompletionContributor : CompletionContributor() {
         private val PREC_CONTEXT = or(
                 afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
-                and(afterLeaf(PIPE), withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java)), //simple data type constructor
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
+                and(afterLeaf(PIPE),
+                        or(withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java),
+                           withParents(ArendDefData::class.java))), //simple data type constructor
                 and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
-                and(afterLeaf(COERCE_KW), or(withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
-                        withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
+                and(afterLeaf(COERCE_KW),
+                         or(withAncestors(ArendDefData::class.java), withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
+                            withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
                 and(afterLeaves(CLASSIFYING_KW, COERCE_KW), or(
-                    withAncestors(ArendDefClass::class.java),
-                    withAncestors(ArendClassStat::class.java),
+                    withParents(ArendDefClass::class.java, ArendClassStat::class.java),
                     withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
                     withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)
                 )))
@@ -535,7 +537,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
                         and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
                         TELE_CONTEXT),
-                not(afterLeaves(PIPE, COWITH_KW, COERCE_KW, CLASSIFYING_KW))) // no expression keywords after pipe
+                not(afterLeaves(PIPE, COWITH_KW, COERCE_KW, CLASSIFYING_KW, FIELD_KW, PROPERTY_KW))) // no expression keywords after pipe
 
 
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
@@ -563,8 +565,9 @@ class ArendCompletionContributor : CompletionContributor() {
         private val CLASSIFYING_CONTEXT = or(and(afterLeaf(LPAREN),
                 or(withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java, ArendDefClass::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java, ArendDefClass::class.java))),
-        and(afterLeaf(PIPE), or(
+        and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW), or(
                 withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+                withAncestors(ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java, ArendDefClass::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java,  ArendClassStat::class.java, ArendDefClass::class.java),

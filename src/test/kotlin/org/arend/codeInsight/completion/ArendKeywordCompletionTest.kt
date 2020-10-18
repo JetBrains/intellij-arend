@@ -22,13 +22,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test fixity + coerce completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\data MyNat | {-caret-}myzero",
+                    "\\data MyNat | {-caret-}",
                     "\\record R\n  | {-caret-} foo : Nat",
                     "\\record R{\n  | {-caret-} foo : Nat\n}")
 
     fun `test fixity + coerce + classifying completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\class C\n  | {-caret-} foo : Nat",
-                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}")
+                    "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
+                    "\\class Monoid (El : \\Set) { \\field {-caret-} }")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
