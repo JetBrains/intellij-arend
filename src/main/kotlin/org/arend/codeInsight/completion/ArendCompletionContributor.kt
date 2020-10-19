@@ -500,7 +500,8 @@ class ArendCompletionContributor : CompletionContributor() {
                     withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
                     withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)
                 )),
-                and(afterLeaf(PIPE), withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)))
+                and(afterLeaf(PIPE), or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
+                           withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 
