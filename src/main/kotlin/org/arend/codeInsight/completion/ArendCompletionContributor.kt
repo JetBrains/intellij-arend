@@ -488,20 +488,18 @@ class ArendCompletionContributor : CompletionContributor() {
                 afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
-                and(afterLeaf(PIPE),
-                        or(withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java),
-                           withParents(ArendDefData::class.java))), //simple data type constructor
-                and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW), withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
-                and(afterLeaf(COERCE_KW),
-                         or(withAncestors(ArendDefData::class.java), withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
-                            withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
+                and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW, COERCE_KW, CLASSIFYING_KW),
+                        withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
+                and(afterLeaf(COERCE_KW), or(withAncestors(ArendDefData::class.java), withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
+                                withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
+                and(afterLeaf(PIPE), or(withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java),
+                                withParents(ArendDefData::class.java))), //simple data type constructor
                 and(afterLeaves(CLASSIFYING_KW, COERCE_KW), or(
-                    withParents(ArendDefClass::class.java, ArendClassStat::class.java),
-                    withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
-                    withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)
-                )),
+                        withParents(ArendDefClass::class.java, ArendClassStat::class.java),
+                        withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
+                        withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java))),
                 and(afterLeaf(PIPE), or(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
-                           withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
+                        withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 

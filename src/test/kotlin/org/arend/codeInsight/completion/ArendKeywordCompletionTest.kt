@@ -14,10 +14,13 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\import B (lol \\as {-caret-}+)",
                     "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\data MyNat | \\coerce {-caret-} myzero",
-                    "\\class R (foo : Nat)\n  | \\coerce {-caret-}",
-                    "\\class R (foo : Nat)\n  | \\classifying {-caret-}",
-                    "\\class R (foo : Nat) {\n  | \\coerce {-caret-}\n}",
-                    "\\class R (foo : Nat) {\n  | \\classifying {-caret-}\n}")
+                    "\\class C (foo : Nat)\n  | \\coerce {-caret-}",
+                    "\\class C {\n  | \\coerce {-caret-} bar : Nat }",
+                    "\\class C {\n  \\field \\coerce {-caret-} bar : Nat\n}",
+                    "\\class C (foo : Nat)\n  | \\classifying {-caret-}",
+                    "\\class C (foo : Nat) {\n  | \\coerce {-caret-}\n}",
+                    "\\class C (foo : Nat) {\n  | \\classifying {-caret-}\n}",
+                    "\\class C (foo : Nat)\n   | \\coerce {-caret-} bar : Nat")
 
     fun `test fixity + coerce completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
