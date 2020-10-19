@@ -499,7 +499,8 @@ class ArendCompletionContributor : CompletionContributor() {
                     withParents(ArendDefClass::class.java, ArendClassStat::class.java),
                     withAncestors(PsiErrorElement::class.java, ArendDefClass::class.java),
                     withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)
-                )))
+                )),
+                and(afterLeaf(PIPE), withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java)))
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 
@@ -571,7 +572,8 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java, ArendDefClass::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java,  ArendClassStat::class.java, ArendDefClass::class.java),
-                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java))))
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java),
+                withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java))))
 
         private val NO_CLASSIFYING_CONTEXT = and(afterLeaf(ID),
                 or(withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java),

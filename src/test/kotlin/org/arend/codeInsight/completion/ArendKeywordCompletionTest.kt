@@ -30,7 +30,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\class C\n  | {-caret-} foo : Nat",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class Monoid (El : \\Set) { \\field {-caret-} }")
+                    "\\class Monoid (El : \\Set) { \\field {-caret-} }",
+                    "\\class Monoid { | {-caret-} }")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
