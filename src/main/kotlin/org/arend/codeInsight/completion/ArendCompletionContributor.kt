@@ -630,10 +630,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         open fun insertHandler(keyword: String): InsertHandler<LookupElement> = InsertHandler { insertContext, _ ->
             val document = insertContext.document
-            when (completionBehavior) {
-                KeywordCompletionBehavior.ADD_WHITESPACE -> document.insertString(insertContext.tailOffset, " ")
-                KeywordCompletionBehavior.ADD_BRACES -> document.insertString(insertContext.tailOffset, " {}")
-                else -> {}
+            if (completionBehavior == KeywordCompletionBehavior.ADD_WHITESPACE ) {
+                document.insertString(insertContext.tailOffset, " ")
             }
             insertContext.commitDocument()
             when (completionBehavior) {
@@ -642,7 +640,10 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        open fun lookupElement(keyword: String): LookupElementBuilder = LookupElementBuilder.create(keyword)
+        open fun lookupElement(keyword: String): LookupElementBuilder {
+            val element = LookupElementBuilder.create(if (completionBehavior == KeywordCompletionBehavior.ADD_BRACES) "$keyword {}" else keyword)
+            return if (completionBehavior == KeywordCompletionBehavior.ADD_BRACES) element.withPresentableText(keyword) else element
+        }
 
         open fun computePrefix(parameters: CompletionParameters, resultSet: CompletionResultSet): String {
             var prefix = resultSet.prefixMatcher.prefix
