@@ -451,7 +451,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) => \\let b => \\let a => (1 + 2) \\in {-caret-}",
             "\\func lol (a : Nat) => \\let a => (1 + {-caret-})")
 
-    fun `test with keyword completion`() = checkKeywordCompletionVariants(listOf("\\with {}"), CompletionCondition.CONTAINS,
+    fun `test with keyword completion`() = checkKeywordCompletionVariants(WITH_KW_FULL, CompletionCondition.CONTAINS,
             "\\func lol (a : Nat) => \\case a {-caret-}",
             "\\func lol (a : Nat) => \\case a + 2 {-caret-}",
             "\\func lol (a : Nat) => \\case (a + 2) {-caret-}",
