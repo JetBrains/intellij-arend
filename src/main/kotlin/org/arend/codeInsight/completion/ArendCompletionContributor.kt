@@ -301,7 +301,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
                 not(afterLeaves(WITH_KW, CASE_KW, SCASE_KW, COLON)))
 
-        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, completionBehavior = KeywordCompletionBehavior.DEFAULT))
+        basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
 
         basic(and(caseContext, argEndPattern), AS_KW_LIST)
 
