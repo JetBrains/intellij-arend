@@ -26,7 +26,8 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 }
 
-configure<JavaPluginConvention> {
+java {
+    // toolchain.languageVersion.set(JavaLanguageVersion.of(11))
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
@@ -58,21 +59,21 @@ intellij {
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = true
-    setPlugins("yaml", "java", "IdeaVIM:0.57")
+    setPlugins("yaml", "java", "IdeaVIM:0.60")
 }
 
 tasks.named<JavaExec>("runIde") {
     jvmArgs = listOf("-Xmx1g")
 }
 
-tasks.withType<PatchPluginXmlTask> {
+tasks.withType<PatchPluginXmlTask>().configureEach {
     version(project.version)
     pluginId(project.group)
     changeNotes(file("src/main/html/change-notes.html").readText())
     pluginDescription(file("src/main/html/description.html").readText())
 }
 
-val generateArendLexer = task<GenerateLexer>("genArendLexer") {
+val generateArendLexer = tasks.register<GenerateLexer>("genArendLexer") {
     description = "Generates lexer"
     group = "build setup"
     source = "src/main/grammars/ArendLexer.flex"
@@ -81,7 +82,7 @@ val generateArendLexer = task<GenerateLexer>("genArendLexer") {
     purgeOldFiles = true
 }
 
-val generateArendParser = task<GenerateParser>("genArendParser") {
+val generateArendParser = tasks.register<GenerateParser>("genArendParser") {
     description = "Generates parser"
     group = "build setup"
     source = "src/main/grammars/ArendParser.bnf"
@@ -91,7 +92,7 @@ val generateArendParser = task<GenerateParser>("genArendParser") {
     purgeOldFiles = true
 }
 
-val generateArendDocLexer = task<GenerateLexer>("genArendDocLexer") {
+val generateArendDocLexer = tasks.register<GenerateLexer>("genArendDocLexer") {
     description = "Generates doc lexer"
     group = "build setup"
     source = "src/main/grammars/ArendDocLexer.flex"
@@ -100,34 +101,26 @@ val generateArendDocLexer = task<GenerateLexer>("genArendDocLexer") {
     purgeOldFiles = true
 }
 
-tasks.withType<KotlinCompile> {
+tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
         jvmTarget = "11"
         languageVersion = "1.4"
         apiVersion = "1.4"
-        freeCompilerArgs = listOf("-Xjvm-default=enable")
+        freeCompilerArgs = listOf("-Xjvm-default=enable", "-Xstring-concat")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
     testLogging {
+        if (prop("showTestStatus") == "true") {
+            events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
+        }
         exceptionFormat = TestExceptionFormat.FULL
     }
 }
 
-afterEvaluate {
-    tasks.withType<Test> {
-        testLogging {
-            if (prop("showTestStatus") == "true") {
-                events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
-                exceptionFormat = TestExceptionFormat.FULL
-            }
-        }
-    }
-}
-
-task<Copy>("prelude") {
+tasks.register<Copy>("prelude") {
     val dir = projectArend.projectDir
     from(dir.resolve("lib/Prelude.ard"))
     into("src/main/resources/lib")
@@ -135,7 +128,7 @@ task<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "6.5"
+    gradleVersion = "6.7"
 }
 
 // Utils

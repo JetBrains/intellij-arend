@@ -8,6 +8,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
+import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
@@ -49,13 +50,23 @@ open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : Ar
     override fun resolve() = resolve(true)
 }
 
+class TemporaryLocatedReferable(private val referable: LocatedReferable) : LocatedReferable by referable, TCDefReferable {
+    override fun getData() = referable
+
+    override fun setTypechecked(definition: Definition?) {}
+
+    override fun getTypechecked(): Definition? = null
+
+    override fun getUnderlyingReferable() = referable
+}
+
 private object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
         is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
         is MetaAdapter -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
-        else -> LocatedReferableImpl(referable.precedence, referable.refName, TCDefReferable.NULL_REFERABLE, referable.kind)
+        else -> TemporaryLocatedReferable(referable)
     }
 
     override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable

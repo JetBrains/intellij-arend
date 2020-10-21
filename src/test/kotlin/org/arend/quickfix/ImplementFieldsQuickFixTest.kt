@@ -66,19 +66,13 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                 }
             """)
 
-    fun `test removing implicitly implemented field`() = simpleQuickFixTest("Remove",
+    fun `test removing implicitly implemented field`() = checkNoQuickFixes("Remove",
             """
                 --! A.ard
                 \class Foo (A B : Nat)
                 \class Bar {f : Foo}
                 \instance FooBar : Bar
                   | f => {?}{-caret-}
-            """,
-            """
-                \class Foo (A B : Nat)
-                \class Bar {f : Foo}
-                \instance FooBar : Bar
-
             """)
 
     fun `test adding implementation of a new expression`() = simpleQuickFixTest("Implement",

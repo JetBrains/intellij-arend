@@ -137,7 +137,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         get() {
             val arendLib = LibraryDependency(AREND_LIB)
             val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return listOf(arendLib)
-            VfsUtil.markDirtyAndRefresh(false, false, false, libRoot)
+            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
             val list = libRoot.children.mapNotNull { file ->
                 if (file.name != FileUtils.LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
                     file.libraryName?.let { LibraryDependency(it) }

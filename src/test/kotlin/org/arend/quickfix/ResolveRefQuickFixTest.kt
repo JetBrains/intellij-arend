@@ -590,36 +590,36 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
     fun `test importing nontop-level items from prelude`() = simpleImportFixTest(
             """
                --! A.ard
-               \func lol => fromNat{-caret-}
+               \func lol => div{-caret-}
             """,
             """
-               \func lol => Int.fromNat
+               \func lol => Nat.div
             """)
 
     fun `test importing nontop-level items from prelude with obstructed scopes`() = simpleImportFixTest(
             """
                 --! A.ard
-                \func Int => 0
-                \func lol => fromNat{-caret-}
+                \func Nat => 0
+                \func lol => div{-caret-}
             """,
             """
                 \import Prelude
 
-                \func Int => 0
-                \func lol => Prelude.Int.fromNat
+                \func Nat => 0
+                \func lol => Prelude.Nat.div
             """)
 
     fun `test importing nontop-level items from partially imported prelude`() = simpleImportFixTest(
             """
                 --! A.ard
                 \import Prelude(I)
-                \func Int => 0
-                \func lol => fromNat{-caret-}
+                \func Nat => 0
+                \func lol => div{-caret-}
             """,
             """
                 \import Prelude(I)
-                \func Int => 0
-                \func lol => Prelude.Int.fromNat
+                \func Nat => 0
+                \func lol => Prelude.Nat.div
             """
     )
 

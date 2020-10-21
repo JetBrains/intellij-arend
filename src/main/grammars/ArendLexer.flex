@@ -97,6 +97,7 @@ OCT_DIGIT           = [0-8]
     "\\use"                 { return USE_KW; }
     "\\field"               { return FIELD_KW; }
     "\\override"            { return OVERRIDE_KW; }
+    "\\default"             { return DEFAULT_KW; }
     "\\property"            { return PROPERTY_KW; }
     "\\classifying"         { return CLASSIFYING_KW; }
     "\\noclassifying"       { return NO_CLASSIFYING_KW; }

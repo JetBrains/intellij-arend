@@ -46,6 +46,7 @@
         LEMMA_KW            = '\lemma'
         FIELD_KW            = '\field'
         OVERRIDE_KW         = '\override'
+        DEFAULT_KW          = '\default'
         PROPERTY_KW         = '\property'
         CLASSIFYING_KW      = '\classifying'
         NO_CLASSIFYING_KW   = '\noclassifying'
@@ -113,7 +114,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -170,11 +171,13 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
     recoverWhile = statement_recover
 }
 
-classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
 
 private classStatRecovery ::= {
   recoverWhile = classStat_recover
 }
+
+private defaultField ::= DEFAULT_KW classImplement { pin = 1 }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
@@ -189,8 +192,8 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     mixin = "org.arend.psi.ext.ArendOverriddenFieldImplMixin"
 }
 
-classField ::= prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
-    pin = 5
+classField ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 6
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.naming.reference.FieldReferable"
@@ -379,7 +382,7 @@ private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | LPAREN | assoc) & statement_recover
+private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
@@ -442,8 +445,8 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | NEGATIVE_NUMBER
     | UNDERSCORE
 
-constructor ::= prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
-    pin = 2
+constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
+    pin = 3
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
                    "org.arend.term.abs.Abstract.Constructor"
@@ -931,9 +934,9 @@ fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
         mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
     }
 
-private fieldTeleExplicit ::= LPAREN CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE CLASSIFYING_KW? fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
+private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover

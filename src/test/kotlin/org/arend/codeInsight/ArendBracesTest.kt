@@ -5,8 +5,9 @@ import org.arend.ArendTestBase
 class ArendBracesTest : ArendTestBase() {
     private fun checkDoNothing(code: String, type: Char) {
         val file = InlineFile(code).withCaret()
+        val text = file.text
         myFixture.type(type)
-        myFixture.checkResult(file.text)
+        myFixture.checkResult(text)
     }
 
     fun `test goal braces`() = checkDoNothing("""\func tony => {?{-caret-}}""", '}')

@@ -55,4 +55,6 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         DataLocatedReferable(data, this, parent)
+
+    override fun isDefault(): Boolean = (parent as? ArendClassStat)?.defaultKw != null
 }

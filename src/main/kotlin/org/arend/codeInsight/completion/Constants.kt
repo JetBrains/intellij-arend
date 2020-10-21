@@ -5,7 +5,7 @@ import org.arend.psi.ArendElementTypes.*
 
 val FIXITY_KWS = listOf(INFIX_LEFT_KW, INFIX_RIGHT_KW, INFIX_NON_KW, NON_ASSOC_KW, LEFT_ASSOC_KW, RIGHT_ASSOC_KW).map { it.toString() }
 val STATEMENT_WT_KWS = listOf(FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW, INSTANCE_KW, OPEN_KW, MODULE_KW, META_KW).map { it.toString() }
-val CLASS_MEMBER_KWS = listOf(FIELD_KW, PROPERTY_KW, OVERRIDE_KW).map { it.toString() }
+val CLASS_MEMBER_KWS = listOf(FIELD_KW, PROPERTY_KW, OVERRIDE_KW, DEFAULT_KW).map { it.toString() }
 val DATA_UNIVERSE_KW = listOf("\\Type", "\\Set", PROP_KW.toString(), "\\oo-Type", "\\hType")
 val BASIC_EXPRESSION_KW = listOf(PI_KW, SIGMA_KW, LAM_KW, LET_KW, LETS_KW, CASE_KW, SCASE_KW).map { it.toString() }
 val LEVEL_KWS = listOf(MAX_KW, SUC_KW).map { it.toString() }
@@ -22,9 +22,11 @@ val EXTENDS_KW_LIST = listOf(EXTENDS_KW.toString())
 val DATA_KW_LIST = listOf(DATA_KW.toString())
 val IMPORT_KW_LIST = listOf(IMPORT_KW.toString())
 val WHERE_KW_LIST = listOf(WHERE_KW.toString())
+val WHERE_KW_FULL = WHERE_KW_LIST.map { "$it {}" }
 val FAKE_NTYPE_LIST = listOf("\\n-Type")
 val IN_KW_LIST = listOf(IN_KW.toString())
 val WITH_KW_LIST = listOf(WITH_KW.toString())
+val WITH_KW_FULL = WITH_KW_LIST.map { "$it {}" }
 val LEVEL_KW_LIST = listOf(LEVEL_KW.toString())
 val COERCE_KW_LIST = listOf(COERCE_KW.toString())
 val PROP_KW_LIST = listOf(PROP_KW.toString())
