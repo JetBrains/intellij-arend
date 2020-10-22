@@ -8,12 +8,12 @@ import org.arend.ext.error.GeneralError
 import javax.swing.Icon
 
 object ArendIcons {
-    val AREND: Icon = AllIcons.Nodes.AnonymousClass
+    val AREND: Icon = IconLoader.getIcon("/icons/arend.svg")
     val AREND_MODULE: Icon = AllIcons.Nodes.AnonymousClass
-    val AREND_FILE: Icon = IconLoader.getIcon("/icons/arend.svg")
+    val AREND_FILE: Icon = IconLoader.getIcon("/icons/arend_file.svg")
     val DIRECTORY: Icon = AllIcons.Nodes.Package
-    val LIBRARY_ICON: Icon? = AllIcons.Nodes.PpLib
-    val YAML_KEY: Icon? = AllIcons.Nodes.FieldPK
+    val LIBRARY_ICON: Icon = AllIcons.Nodes.PpLib
+    val YAML_KEY: Icon = AllIcons.Nodes.FieldPK
 
     val RUN_CONFIGURATION: Icon = AllIcons.RunConfigurations.Application
     val LIBRARY_CONFIG: Icon = AllIcons.General.GearPlain
