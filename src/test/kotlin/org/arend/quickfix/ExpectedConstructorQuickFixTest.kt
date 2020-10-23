@@ -119,6 +119,11 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | 0, con2 => 101
     """)
 
+    fun test69_6() = checkNoQuickFixes("Do", data2 + """
+       \func foo (n : Nat) (d : D (suc (n Nat.+ n))) : Nat \elim d
+         | con2{-caret-} => 101  
+    """)
+
     fun test68_3() = simpleQuickFixTest("Do", data3 + """
         \func foo (n m : Nat) (d : D n m) : Nat
           | 0, 0, con1 => 0

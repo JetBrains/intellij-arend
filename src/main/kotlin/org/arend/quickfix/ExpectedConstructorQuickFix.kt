@@ -3,27 +3,24 @@ package org.arend.quickfix
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Constructor
-import org.arend.core.expr.ConCallExpression
-import org.arend.core.expr.Expression
 import org.arend.core.expr.ReferenceExpression
-import org.arend.core.expr.TupleExpression
 import org.arend.core.pattern.*
-import org.arend.ext.core.ops.NormalizationMode
+import org.arend.core.subst.ExprSubstitution
 import org.arend.ext.variable.Variable
-import org.arend.psi.ArendCaseExpr
-import org.arend.psi.ArendFunctionBody
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.ExpectedConstructorError
+import org.arend.typechecking.patternmatching.ExpressionMatcher
 
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
-    private enum class MatchResult { MATCH_OK, DONT_MATCH, UNKNOWN }
-    private data class MatchResultPair(val canMatch: Boolean, val substs: HashMap<Variable, ConstructorExpressionPattern>)
+    private data class MatchResultPair(val canMatch: Boolean, val substs: HashMap<Binding, ExpressionPattern>)
 
     private val matchResults = HashMap<Constructor, MatchResultPair>()
 
@@ -35,81 +32,75 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         if (error.dataCall == null || error.substitution == null) return false
+        if (this.error.definition !is DataLocatedReferable) return false
 
         val dataDef = error.dataCall.definition
-        val dataCallArgs = error.dataCall.defCallArguments
-        val reverseMap = HashMap<Binding, Variable>()
-        for (entry in error.substitution.entries) entry.value.let {if (it is ReferenceExpression)
-            reverseMap[it.binding] = entry.key
-        }
-
-
-        fun inverseMatch(pattern: Pattern, expression: Expression, substs: MutableMap<Variable, ConstructorExpressionPattern>): MatchResult {
-            val normalizedExpression = expression.normalize(NormalizationMode.WHNF)
-            if (pattern is EmptyPattern) return MatchResult.DONT_MATCH
-            if (normalizedExpression is ReferenceExpression) {
-                val correctBinding = reverseMap[normalizedExpression.binding] ?: normalizedExpression.binding
-                if (pattern is ExpressionPattern) {
-                    if (pattern is ConstructorExpressionPattern) substs[correctBinding] = pattern
-                    return MatchResult.MATCH_OK
-                }
+        val reverseSubstitution = ExprSubstitution()
+        for (variable in error.substitution.keys) {
+            val expr = error.substitution.get(variable)
+            if (expr is ReferenceExpression && variable is Binding) {
+                reverseSubstitution.add(expr.binding, ReferenceExpression(variable))
             }
-
-            val ccArguments = when (normalizedExpression) {
-                is ConCallExpression -> normalizedExpression.conCallArguments
-                is TupleExpression -> normalizedExpression.fields
-                else -> null
-            }
-
-            if (pattern is ConstructorExpressionPattern && ccArguments != null) {
-                val subpatterns: List<Pattern> = pattern.subPatterns
-                if (normalizedExpression is ConCallExpression && normalizedExpression.definition != pattern.definition) return MatchResult.DONT_MATCH
-                for ((cPattern, cArgument) in subpatterns.zip(ccArguments)) {
-                    when (inverseMatch(cPattern, cArgument, substs)) {
-                        MatchResult.DONT_MATCH -> return MatchResult.DONT_MATCH
-                        MatchResult.UNKNOWN -> return MatchResult.UNKNOWN
-                        else -> {}
-                    }
-                }
-                return MatchResult.MATCH_OK
-            }
-            return MatchResult.UNKNOWN
         }
 
         matchResults.clear()
 
         for (cons in dataDef.constructors) {
-            var canMatch = true
-            val substs = HashMap<Variable, ConstructorExpressionPattern>()
-            for ((pattern, argument) in cons.patterns.zip(dataCallArgs)) {
-                val mr = inverseMatch(pattern, argument, substs)
-                if (mr == MatchResult.UNKNOWN) return false
-                if (mr == MatchResult.DONT_MATCH) canMatch = false
-            }
-            matchResults[cons] = MatchResultPair(canMatch, substs)
+            val substs = HashMap<Binding, ExpressionPattern>()
+            matchResults[cons] = MatchResultPair(ExpressionMatcher.computeMatchingPatterns(error.dataCall, cons, /*error.substitution*/ reverseSubstitution, substs) != null, substs)
         }
 
-        return true
+        return matchResults.values.any { it.canMatch }
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val varsToEliminate = HashSet<Variable>()
-        val dlr = (this.error.definition as? DataLocatedReferable)?.data?.element
+        val definition = this.error.definition as DataLocatedReferable //safe cast
+        val dlr = definition.data?.element
+
         System.out.println("data: ${dlr?.text}")
         System.out.println("elimParams: ${error.elimParams}")
         System.out.println("caseExpressions: ${error.caseExpressions}")
 
         // Add eliminated variables
+        val varsToEliminate = HashSet<Variable>()
         if (error.caseExpressions == null) {
             if (error.elimParams.isNotEmpty()) { //elim
-                
+                for (entry in matchResults) if (entry.value.canMatch) for (subst in entry.value.substs)
+                    if (!error.elimParams.contains(subst.key) && subst.value !is BindingPattern) varsToEliminate.add(subst.key)
+                val typecheckedParams = DependentLink.Helper.toList(definition.typechecked.parameters)
+                val elimParamIndices = error.elimParams.map { typecheckedParams.indexOf(it) }
+                val elimPsi = (dlr as? ArendDefFunction)?.functionBody?.elim!! //safe since elimParams is nonempty
+                val paramsMap = HashMap<DependentLink, ArendRefIdentifier>() //TODO: wrong
+                for (e in error.elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
+                val psiFactory = ArendPsiFactory(project)
+                var anchor: PsiElement? = null
+                for (param in typecheckedParams) {
+                    if (varsToEliminate.contains(param)) {
+                        val template = psiFactory.createRefIdentifier("${param.name}, dummy")
+                        val comma = template.nextSibling
+                        var commaInserted = false
+                        if (anchor != null)  {
+                            anchor = elimPsi.addAfter(comma, anchor)
+                            commaInserted = true
+                        }
+                        anchor = elimPsi.addAfterWithNotification(template, anchor ?: elimPsi.elimKw)
+                        elimPsi.addBefore(psiFactory.createWhitespace(" "), anchor)
+                        if (!commaInserted) {
+                            anchor = elimPsi.addAfter(comma, anchor)
+                        }
+                    } else {
+                        anchor = paramsMap[param]
+                    }
+                }
+                System.out.println("indices of original elimParams: $elimParamIndices elimPsiText: ${elimPsi.text}")
+                System.out.println("vars to eliminate: $varsToEliminate")
             }
         } else { // case
 
         }
 
         for (mr in matchResults) {
-            print("cons: ${mr.key.name}; canMatch: ${mr.value.canMatch}; ")
+            print("cons: ${mr.key.name}; conCall: ${mr.value.canMatch}; ")
             for (s in mr.value.substs.entries) print("${s.key.name}->${s.value.toExpression()}; ")
             println()
         }
