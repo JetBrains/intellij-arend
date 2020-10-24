@@ -124,6 +124,18 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | con2{-caret-} => 101  
     """)
 
+    fun test69_7() = simpleQuickFixTest("Do", data3 + """
+        \func foo (a b : Nat) (d : D a b) : Nat \elim a, d
+         | 0, con1{-caret-} => 1
+         | suc a', con2 => 2 
+    """, data3 + """
+       \func foo (a b c : Nat) (t : TD a b c) : Nat \elim a, b, d
+         | 0, 0, con1{-caret-} => 1
+         | suc a, suc b, con2 => 2
+         | suc (suc a), suc (suc b), con3 => {?}
+         | a, b, con4 => {?}
+    """)
+
     fun test68_3() = simpleQuickFixTest("Do", data3 + """
         \func foo (n m : Nat) (d : D n m) : Nat
           | 0, 0, con1 => 0

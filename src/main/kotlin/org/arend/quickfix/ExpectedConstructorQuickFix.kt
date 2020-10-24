@@ -9,9 +9,8 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Constructor
-import org.arend.core.expr.ReferenceExpression
+import org.arend.core.expr.DataCallExpression
 import org.arend.core.pattern.*
-import org.arend.core.subst.ExprSubstitution
 import org.arend.ext.variable.Variable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -19,7 +18,7 @@ import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.ExpectedConstructorError
 import org.arend.typechecking.patternmatching.ExpressionMatcher
 
-class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
+ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
     private data class MatchResultPair(val canMatch: Boolean, val substs: HashMap<Binding, ExpressionPattern>)
 
     private val matchResults = HashMap<Constructor, MatchResultPair>()
@@ -31,23 +30,18 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
     override fun getText(): String = "Do patternmatching on the 'stuck' variable"
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        if (error.dataCall == null || error.substitution == null) return false
+        if (error.parameter == null || error.substitution == null) return false
+        val parameterType = error.parameter.type
+        if (parameterType !is DataCallExpression) return false
         if (this.error.definition !is DataLocatedReferable) return false
 
         val dataDef = error.dataCall.definition
-        val reverseSubstitution = ExprSubstitution()
-        for (variable in error.substitution.keys) {
-            val expr = error.substitution.get(variable)
-            if (expr is ReferenceExpression && variable is Binding) {
-                reverseSubstitution.add(expr.binding, ReferenceExpression(variable))
-            }
-        }
 
         matchResults.clear()
 
         for (cons in dataDef.constructors) {
             val substs = HashMap<Binding, ExpressionPattern>()
-            matchResults[cons] = MatchResultPair(ExpressionMatcher.computeMatchingPatterns(error.dataCall, cons, /*error.substitution*/ reverseSubstitution, substs) != null, substs)
+            matchResults[cons] = MatchResultPair(ExpressionMatcher.computeMatchingPatterns(parameterType, cons, null, substs) != null, substs)
         }
 
         return matchResults.values.any { it.canMatch }
@@ -70,7 +64,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val typecheckedParams = DependentLink.Helper.toList(definition.typechecked.parameters)
                 val elimParamIndices = error.elimParams.map { typecheckedParams.indexOf(it) }
                 val elimPsi = (dlr as? ArendDefFunction)?.functionBody?.elim!! //safe since elimParams is nonempty
-                val paramsMap = HashMap<DependentLink, ArendRefIdentifier>() //TODO: wrong
+                val paramsMap = HashMap<DependentLink, ArendRefIdentifier>()
                 for (e in error.elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
                 val psiFactory = ArendPsiFactory(project)
                 var anchor: PsiElement? = null
