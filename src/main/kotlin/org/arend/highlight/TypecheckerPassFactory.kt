@@ -24,7 +24,10 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
         if (file.lastDefinitionModification >= file.project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount || ApplicationManager.getApplication().isUnitTestMode) {
             TypecheckerPass(file, editor, DefaultHighlightInfoProcessor())
-        } else null
+        } else {
+            TypecheckerPass.updateErrors(file)
+            null
+        }
 
     override fun getPassId() = myPassId
 }

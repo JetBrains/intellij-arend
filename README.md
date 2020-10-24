@@ -1,5 +1,7 @@
 # Arend plugin for IntelliJ IDEA
 
+![](https://arend-lang.github.io/assets/images/Logo_byJB.svg)
+
 [![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![Build Status][travis-build-status-svg]][travis-build-status]
 [![Downloads][d-svg]][jb-url]
