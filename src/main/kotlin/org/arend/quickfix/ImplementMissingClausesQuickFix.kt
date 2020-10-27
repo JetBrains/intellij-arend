@@ -165,16 +165,18 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                             } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
                 }
                 is ArendCoClauseDef -> {
-                    val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
-                    val elim = coClauseBody.elim ?:
-                        coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                    val coClauseBody = cause.coClauseBody
+                            ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
+                    val elim = coClauseBody.elim
+                            ?: coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
                     if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
                     coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
                 }
                 is ArendLongName -> {
-                    val newExpr = ((cause.parent as? ArendLongNameExpr ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
+                    val newExpr = ((cause.parent as? ArendLongNameExpr
+                            ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
                     findWithBodyAnchor(newExpr, psiFactory)
                 }
                 is ArendWithBody -> findWithBodyAnchor(cause.parent as? ArendNewExpr, psiFactory)
@@ -233,11 +235,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             }
         }
 
-        private fun previewPattern(pattern: CorePattern,
-                                   filters: MutableMap<CorePattern, List<Boolean>>,
-                                   paren: Braces,
-                                   recursiveTypeUsages: MutableSet<CorePattern>,
-                                   recursiveTypeDefinition: Definition?): PatternKind {
+        fun previewPattern(pattern: CorePattern,
+                           filters: MutableMap<CorePattern, List<Boolean>>,
+                           paren: Braces,
+                           recursiveTypeUsages: MutableSet<CorePattern>,
+                           recursiveTypeDefinition: Definition?): PatternKind {
             if (!pattern.isAbsurd) {
                 val binding = pattern.binding
                 if (binding != null) {
@@ -256,7 +258,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
                         previewResults.add(previewPattern(argumentPattern, filters,
-                            if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
+                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
 
@@ -348,7 +350,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val arguments = concat(argumentPatterns, filter, if (tupleMode) "," else " ")
                         val result = buildString {
                             val defCall = if (referable != null) getTargetName(referable, cause)
-                                ?: referable.name else definition?.name
+                                    ?: referable.name else definition?.name
                             if (tupleMode) append("(") else {
                                 append(defCall)
                                 if (arguments.isNotEmpty()) append(" ")
