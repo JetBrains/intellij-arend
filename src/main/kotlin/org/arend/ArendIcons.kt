@@ -22,6 +22,7 @@ object ArendIcons {
     val RUN_CONFIGURATION = AllIcons.RunConfigurations.Application
     val LIBRARY_CONFIG = AllIcons.General.GearPlain
 
+    val REPL = AllIcons.Actions.Run_anything
     val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages
     val FILTER = AllIcons.General.Filter
     val CONSOLE = AllIcons.Nodes.Console
@@ -53,6 +54,15 @@ object ArendIcons {
     val MODULE_DEFINITION = AllIcons.Nodes.AbstractMethod
     val META_DEFINITION = AllIcons.Nodes.Method
     val COCLAUSE_DEFINITION = FUNCTION_DEFINITION
+
+    // Tracer
+
+    val TRACER = AllIcons.Actions.StartDebugger
+    val TRACER_RESUME = AllIcons.Actions.Resume
+    val TRACER_STEP = AllIcons.Debugger.SmartStepInto
+    val TRACER_STOP = AllIcons.Actions.Suspend
+    val EXPRESSION = AllIcons.Nodes.Enum
+    val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
 
     // Errors
 

@@ -351,6 +351,8 @@
 
         <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.tracer.ArendTracerService"/>
+
         <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
@@ -446,6 +448,7 @@
                 text="Show Expression Type"
                 description="Show type of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift P"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
         <action id="Arend.ShowExpr.NormalForm"
@@ -453,6 +456,14 @@
                 text="Show Elaborated Expression"
                 description="Show the elaborated form of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
+        </action>
+
+        <action id="Arend.ShowExpr.Tracer"
+                class="org.arend.toolWindow.tracer.StartTracerAction"
+                text="Trace to Cursor"
+                description="Run the tracing typechecker to the selected expression">
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
         <action id="Arend.Repl.Show"

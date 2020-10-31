@@ -2,15 +2,19 @@ package org.arend.psi
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
 import org.arend.ArendFileType
+import org.arend.InjectionTextLanguage
 
 class ArendPsiFactory(
     private val project: Project,
     private val fileName: String = "DUMMY.ard"
 ) {
     enum class StatCmdKind {OPEN, IMPORT}
+
+    fun injected(): PsiFile = psiFactory().createFileFromText(fileName, InjectionTextLanguage.INSTANCE, "")
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
         createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
@@ -169,7 +173,9 @@ class ArendPsiFactory(
     }
 
     fun createFromText(code: String): ArendFile? =
-        PsiFileFactory.getInstance(project).createFileFromText(fileName, ArendFileType, code) as? ArendFile
+        psiFactory().createFileFromText(fileName, ArendFileType, code) as? ArendFile
+
+    private fun psiFactory() = PsiFileFactory.getInstance(project)
 
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
