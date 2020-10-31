@@ -11,8 +11,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFileFactory
-import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
@@ -23,6 +21,7 @@ import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.MetaAdapter
@@ -52,7 +51,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         }
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText(name, InjectionTextLanguage.INSTANCE, "")
+        val psi = ArendPsiFactory(project, name).injected()
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->

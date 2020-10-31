@@ -4,20 +4,19 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.wm.RegisterToolWindowTask
-import com.intellij.openapi.wm.ToolWindow
-import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
+import org.arend.toolWindow.SimpleToolWindowService
 
 
-class ArendReplService(private val project: Project) {
+class ArendReplService(project: Project) : SimpleToolWindowService(project) {
     companion object Constants {
         const val TITLE = "Arend REPL"
         const val ID = "Arend.REPL"
     }
 
-    private var myToolWindow: ToolWindow? = null
+    override val title: String get() = TITLE
+
     private var myHandler: ArendReplExecutionHandler? = null
 
     fun show(): ArendReplExecutionHandler {
@@ -29,7 +28,7 @@ class ArendReplService(private val project: Project) {
             activate(rawToolWindow, manager)
             return rawHandler
         }
-        val toolWindow = manager.registerToolWindow(RegisterToolWindowTask(TITLE, ToolWindowAnchor.BOTTOM, canWorkInDumbMode = false))
+        val toolWindow = registerToolWindow(manager)
         val handler = ArendReplExecutionHandler(project, toolWindow)
         myToolWindow = toolWindow
         myHandler = handler
@@ -47,9 +46,4 @@ class ArendReplService(private val project: Project) {
     }
 
     fun getRepl() = myHandler?.repl
-
-    private fun activate(toolWindow: ToolWindow, manager: ToolWindowManager) =
-        toolWindow.activate {
-            manager.focusManager.requestFocusInProject(toolWindow.component, project)
-        }
 }
