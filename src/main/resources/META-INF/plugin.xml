@@ -287,6 +287,8 @@
 
         <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.debugExpr.ArendDebugService"/>
+
         <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
