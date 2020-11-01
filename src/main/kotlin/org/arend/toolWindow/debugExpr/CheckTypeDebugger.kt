@@ -3,8 +3,10 @@ package org.arend.toolWindow.debugExpr
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
+import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBList
+import com.intellij.ui.layout.panel
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
 import org.arend.ext.ArendExtension
@@ -25,24 +27,41 @@ class CheckTypeDebugger(
             isResuming = false
         }
         if (!isResuming) {
-            fillLocalVariables(expr)
+            fillLocalVariables()
             while (!isResuming) {
                 Thread.onSpinWait()
             }
         }
-        return super.checkExpr(expr, expectedType)
+        passList.add(expr)
+        val result = super.checkExpr(expr, expectedType)
+        passList.remove(passList.size - 1)
+        return result
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passList = JBList<Concrete.Expression>()
-    private val varList = JBList<Binding>()
+    private val passList = CollectionListModel<Concrete.Expression>()
+    private val varList = CollectionListModel<Binding>()
 
     init {
-        splitter.firstComponent = passList
-        splitter.secondComponent = varList
+        val passJBList = JBList(passList)
+        passJBList.installCellRenderer { expr ->
+            panel {
+            }
+        }
+        splitter.firstComponent = passJBList
+        val varJBList = JBList(varList)
+        varJBList.installCellRenderer { bind ->
+            panel {
+            }
+        }
+        splitter.secondComponent = varJBList
     }
 
-    private fun fillLocalVariables(expr: Concrete.Expression) {
+    private fun fillLocalVariables() {
+        varList.removeAll()
+        context.forEach { (_, u) ->
+            varList.add(u)
+        }
     }
 
     override fun dispose() {
