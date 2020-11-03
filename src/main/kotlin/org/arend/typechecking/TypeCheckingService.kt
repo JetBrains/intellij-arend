@@ -159,6 +159,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                     isLoaded = false
                     if (onlyInternal) {
                         libraryManager.reloadInternalLibraries {
+                            project.service<ArendResolveCache>().clear()
                             val it = extensionDefinitions.iterator()
                             while (it.hasNext()) {
                                 if (it.next().value) {
