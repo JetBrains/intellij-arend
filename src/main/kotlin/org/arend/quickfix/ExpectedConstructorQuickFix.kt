@@ -10,7 +10,9 @@ import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.Constructor
 import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.*
+import org.arend.core.subst.ExprSubstitution
 import org.arend.ext.variable.Variable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -40,9 +42,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
         matchResults.clear()
 
+        val reverseSubstitution = ExprSubstitution()
+        for (variable in error.substitution.keys) {
+            val expr = error.substitution.get(variable)
+            if (expr is ReferenceExpression && variable is Binding)
+                reverseSubstitution.add(expr.binding, ReferenceExpression(variable))
+        }
+
         for (cons in dataDef.constructors) {
             val substs = HashMap<Binding, ExpressionPattern>()
-            matchResults[cons] = MatchResultPair(ExpressionMatcher.computeMatchingPatterns(parameterType, cons, null, substs) != null, substs)
+            matchResults[cons] = MatchResultPair(ExpressionMatcher.computeMatchingPatterns(parameterType, cons, reverseSubstitution, substs) != null, substs)
         }
 
         return matchResults.values.any { it.canMatch }
