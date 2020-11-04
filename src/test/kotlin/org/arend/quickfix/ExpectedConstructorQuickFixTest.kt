@@ -202,4 +202,15 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | 0, 0, envelope con1{-caret-} => 1
          | suc a, suc b, envelope con2 => 2
     """)
+
+    //TODO: Fixme
+    fun test69_14() = simpleQuickFixTest("Do", data1 + """
+       \func foo {A : \Type} (p : \Sigma (n : Nat) (Vec A n)) : Nat \elim p
+         | (n, nil{-caret-}) => n
+         | (n, cons a v) => n 
+    """, data1 + """
+       \func foo {A : \Type} (p : \Sigma (n : Nat) (Vec A n)) : Nat \elim p
+         | (0, nil) => 0
+         | (suc n, cons a v) => suc n 
+    """)
 }
