@@ -7,11 +7,12 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.refactoring.moveCaretToEndOffset
 
-fun makeFirstCoClauseInserter(element: PsiElement?) = when (element) {
+fun makeFirstCoClauseInserter(element: PsiElement?): AbstractCoClauseInserter?  = when (element) {
             is ArendNewExprImplMixin -> element.argumentAppExpr?.let { NewExprInserter(element, it) }
             is ArendDefInstance -> ArendInstanceInserter(element)
             is ArendDefFunction -> FunctionDefinitionInserter(element)
             is CoClauseBase -> CoClauseInserter(element)
+            is ArendLongName -> element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)}
             else -> null
         }
 
