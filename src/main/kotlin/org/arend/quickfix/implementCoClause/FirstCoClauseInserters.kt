@@ -2,7 +2,9 @@ package org.arend.quickfix.implementCoClause
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.LBRACE
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.refactoring.moveCaretToEndOffset
@@ -13,6 +15,7 @@ fun makeFirstCoClauseInserter(element: PsiElement?): AbstractCoClauseInserter?  
             is ArendDefFunction -> FunctionDefinitionInserter(element)
             is CoClauseBase -> CoClauseInserter(element)
             is ArendLongName -> element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)}
+            is LeafPsiElement -> if (element.elementType == LBRACE) element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)} else null
             else -> null
         }
 
