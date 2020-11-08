@@ -21,20 +21,11 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
         const val ID = "Arend.Typecheck.Debug"
     }
 
-    private var myDebugger: CheckTypeDebugger? = null
-
     override val title: String get() = TITLE
 
     fun showFor(element: ArendExpr, at: TCDefReferable): CheckTypeDebugger {
         val manager = ToolWindowManager.getInstance(project)
-        val rawToolWindow = myToolWindow
-        val rawDebugger = myDebugger
-        // In fact, `rawToolWindow != null` should imply `rawHandler != null`
-        if (rawToolWindow != null && rawDebugger != null) {
-            activate(rawToolWindow, manager)
-            return rawDebugger
-        }
-        val toolWindow = registerToolWindow(manager)
+        val toolWindow = myToolWindow ?: registerToolWindow(manager).also { myToolWindow = it }
         val service = project.service<TypeCheckingService>()
         val debugger = CheckTypeDebugger(
             project.service<ErrorService>(),
@@ -42,8 +33,6 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
             element,
             toolWindow,
         )
-        myToolWindow = toolWindow
-        myDebugger = debugger
         debugger.instancePool = GlobalInstancePool(PsiInstanceProviderSet()[at], debugger)
         Disposer.register(toolWindow.disposable, debugger)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)

@@ -8,10 +8,14 @@ import com.intellij.psi.PsiFile
 import org.arend.ArendIcons
 import org.arend.actions.ArendPopupAction
 import org.arend.codeInsight.ArendPopupHandler
+import org.arend.error.DummyErrorReporter
 import org.arend.psi.ancestor
 import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.collectArendExprs
 import org.arend.refactoring.selectedExpr
+import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.concrete.Concrete
+import org.arend.typechecking.visitor.DefinitionTypechecker
 
 class StartDebuggerAction : ArendPopupAction() {
     init {
@@ -24,7 +28,10 @@ class StartDebuggerAction : ArendPopupAction() {
             val expr = selectedExpr(file, range) { return displayErrorHint(editor, it.capitalize()) }
             val (head, _) = collectArendExprs(expr.parent, range) ?: return displayErrorHint(editor, "Cannot find a suitable expression.")
             val def = expr.ancestor<TCDefinition>()?.tcReferable ?: return displayErrorHint(editor, "Selected expr must be inside of an expression.")
-            project.service<ArendDebugService>().showFor(head, def)
+            val debugger = project.service<ArendDebugService>().showFor(head, def)
+            val concreteDef = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true).getConcrete(def) as? Concrete.Definition
+                ?: return displayErrorHint(editor, "Cannot find concrete definition corresponding to ${def.representableName}.")
+            concreteDef.accept(DefinitionTypechecker(debugger), null)
         }
     }
 }

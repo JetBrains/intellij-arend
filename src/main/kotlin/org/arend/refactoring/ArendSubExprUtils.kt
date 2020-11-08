@@ -119,10 +119,9 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
 
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver)
     val psiDef = exprAncestor.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
-    val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
+    val concreteDef = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver).getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }
 
     val injectionContext = (file as? ArendFile)?.injectionContext
