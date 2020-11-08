@@ -24,7 +24,6 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.visitor.DefinitionTypechecker
 import org.arend.typechecking.visitor.DesugarVisitor
-import kotlin.concurrent.thread
 
 class StartDebuggerAction : ArendPopupAction() {
     init {
@@ -50,7 +49,13 @@ class StartDebuggerAction : ArendPopupAction() {
             val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true).getConcrete(def) as? Concrete.Definition
                 ?: return displayErrorHint(editor, "Cannot find concrete definition corresponding to ${def.representableName}.")
             DesugarVisitor.desugar(definition, debugger.errorReporter)
-            thread { definition.accept(DefinitionTypechecker(debugger), null) }
+            val thread = object : Thread() {
+                override fun run() {
+                    definition.accept(DefinitionTypechecker(debugger), null)
+                }
+            }
+            debugger.thread = thread
+            thread.start()
         }
     }
 }

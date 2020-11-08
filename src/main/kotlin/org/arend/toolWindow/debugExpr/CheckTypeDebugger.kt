@@ -1,9 +1,9 @@
 package org.arend.toolWindow.debugExpr
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.isAncestor
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SimpleColoredComponent
@@ -15,9 +15,11 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.*
 import org.arend.ext.ArendExtension
 import org.arend.ext.error.ErrorReporter
+import org.arend.psi.ArendArgumentAppExpr
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
+import java.util.*
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -25,9 +27,19 @@ class CheckTypeDebugger(
     private val element: PsiElement,
     val toolWindow: ToolWindow,
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
+    lateinit var thread: Thread
     private var isResuming = true
-    override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult {
-        if ((expr.data as? PsiElement).isAncestor(element, false)) {
+
+    override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
+        val matches = run {
+            val exprElement = expr.data as? PsiElement ?: return@run false
+            var range: TextRange? = null
+            if (exprElement is ArendArgumentAppExpr) {
+                exprElement.firstChild?.apply { range = textRange }
+            }
+            (range ?: exprElement.textRange) == element.textRange
+        }
+        if (matches) {
             isResuming = false
         }
         if (!isResuming) {
@@ -36,14 +48,14 @@ class CheckTypeDebugger(
                 Thread.onSpinWait()
             }
         }
-        passList.add(expr)
+        passList.add(0, expr)
         val result = super.checkExpr(expr, expectedType)
-        passList.remove(passList.size - 1)
+        passList.remove(0)
         return result
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passList = CollectionListModel<Concrete.Expression>()
+    private val passList = CollectionListModel<Concrete.Expression>(LinkedList())
     private val varList = CollectionListModel<Binding>()
 
     init {
@@ -51,7 +63,9 @@ class CheckTypeDebugger(
         passJBList.installCellRenderer { expr ->
             SimpleColoredComponent().apply {
                 icon = icon(expr)
-                append(expr.toString())
+                val text = expr.toString()
+                if (text.length > 50) append(text.take(50) + "...")
+                else append(text)
             }
         }
         splitter.firstComponent = passJBList
