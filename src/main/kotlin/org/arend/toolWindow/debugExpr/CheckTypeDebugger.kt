@@ -3,6 +3,7 @@ package org.arend.toolWindow.debugExpr
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.isAncestor
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SimpleColoredComponent
@@ -26,7 +27,7 @@ class CheckTypeDebugger(
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
     private var isResuming = true
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult {
-        if (expr.data == element) {
+        if ((expr.data as? PsiElement).isAncestor(element, false)) {
             isResuming = false
         }
         if (!isResuming) {
