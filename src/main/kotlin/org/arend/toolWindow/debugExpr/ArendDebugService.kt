@@ -23,7 +23,7 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
 
     private var myDebugger: CheckTypeDebugger? = null
 
-    fun show(element: ArendExpr, at: TCDefReferable): CheckTypeDebugger {
+    fun showFor(element: ArendExpr, at: TCDefReferable): CheckTypeDebugger {
         val manager = ToolWindowManager.getInstance(project)
         val rawToolWindow = myToolWindow
         val rawDebugger = myDebugger

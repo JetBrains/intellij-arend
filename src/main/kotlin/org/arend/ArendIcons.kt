@@ -47,6 +47,11 @@ object ArendIcons {
     val META_DEFINITION = AllIcons.Nodes.Method
     val COCLAUSE_DEFINITION = FUNCTION_DEFINITION
 
+    // Debugger
+
+    val EXPRESSION = AllIcons.Nodes.Enum
+    val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
+
     // Errors
 
     val ERROR = AllIcons.RunConfigurations.ToolbarError
