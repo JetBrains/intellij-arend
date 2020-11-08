@@ -18,6 +18,7 @@ object ArendIcons {
     val RUN_CONFIGURATION: Icon = AllIcons.RunConfigurations.Application
     val LIBRARY_CONFIG: Icon = AllIcons.General.GearPlain
 
+    val REPL = AllIcons.Actions.Run_anything
     val MESSAGES = AllIcons.Toolwindows.ToolWindowMessages
     val FILTER = AllIcons.General.Filter
     val CONSOLE = AllIcons.Nodes.Console
@@ -49,6 +50,7 @@ object ArendIcons {
 
     // Debugger
 
+    val DEBUGGER = AllIcons.Actions.StartDebugger
     val EXPRESSION = AllIcons.Nodes.Enum
     val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
 

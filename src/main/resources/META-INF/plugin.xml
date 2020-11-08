@@ -361,6 +361,7 @@
                 text="Show Expression Type"
                 description="Show type of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift P"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
         <action id="Arend.ShowExpr.NormalForm"
@@ -368,6 +369,14 @@
                 text="Show Elaborated Expression"
                 description="Show the elaborated form of the selected expression">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift O"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
+        </action>
+
+        <action id="Arend.ShowExpr.DebugTC"
+                class="org.arend.toolWindow.debugExpr.StartDebuggerAction"
+                text="Debug Type Checking"
+                description="Debug the typechecking of the selected expression">
+            <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
         <action id="Arend.Repl.Show"

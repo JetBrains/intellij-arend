@@ -15,6 +15,8 @@ class ArendReplService(project: Project) : SimpleToolWindowService(project) {
         const val ID = "Arend.REPL"
     }
 
+    override val title: String get() = TITLE
+
     private var myHandler: ArendReplExecutionHandler? = null
 
     fun show(): ArendReplExecutionHandler {

@@ -10,8 +10,10 @@ import org.arend.toolWindow.repl.ArendReplService
 abstract class SimpleToolWindowService(@JvmField protected val project: Project) {
     @JvmField protected var myToolWindow: ToolWindow? = null
 
+    abstract val title: String
+
     protected fun registerToolWindow(manager: ToolWindowManager) =
-        manager.registerToolWindow(RegisterToolWindowTask(ArendReplService.TITLE, ToolWindowAnchor.BOTTOM, canWorkInDumbMode = false))
+        manager.registerToolWindow(RegisterToolWindowTask(title, ToolWindowAnchor.BOTTOM, canWorkInDumbMode = false))
 
     protected fun activate(toolWindow: ToolWindow, manager: ToolWindowManager) =
         toolWindow.activate {

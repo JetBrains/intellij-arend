@@ -23,6 +23,8 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
 
     private var myDebugger: CheckTypeDebugger? = null
 
+    override val title: String get() = TITLE
+
     fun showFor(element: ArendExpr, at: TCDefReferable): CheckTypeDebugger {
         val manager = ToolWindowManager.getInstance(project)
         val rawToolWindow = myToolWindow
@@ -32,8 +34,8 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
             activate(rawToolWindow, manager)
             return rawDebugger
         }
-        val service = project.service<TypeCheckingService>()
         val toolWindow = registerToolWindow(manager)
+        val service = project.service<TypeCheckingService>()
         val debugger = CheckTypeDebugger(
             project.service<ErrorService>(),
             LibraryArendExtensionProvider(service.libraryManager).getArendExtension(at),

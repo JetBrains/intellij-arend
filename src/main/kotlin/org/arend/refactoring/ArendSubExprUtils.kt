@@ -109,16 +109,9 @@ private class MyResolverListener(private val data: Any) : ResolverListener {
 
 @Throws(SubExprException::class)
 fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubExprResult {
-    val startElement = file.findElementAt(range.startOffset) ?: throw SubExprException("selected expr in bad position")
-    val possibleParent = if (range.isEmpty) startElement
-    else file.findElementAt(range.endOffset - 1)?.let {
-        PsiTreeUtil.findCommonParent(startElement, it)
-    } ?: throw SubExprException("selected expr in bad position")
-    val exprAncestor = possibleParent.ancestor<ArendExpr>()
-        ?: throw SubExprException("selected text is not an arend expression")
-    val parent = exprAncestor.parent
+    val exprAncestor = selectedExpr(file, range) { throw SubExprException(it) }
 
-    val (head, tail) = collectArendExprs(parent, range)
+    val (head, tail) = collectArendExprs(exprAncestor.parent, range)
         ?: throw SubExprException("cannot find a suitable concrete expression")
     val subExpr =
         if (tail.isNotEmpty()) parseBinOp(head, tail)
@@ -127,7 +120,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
 
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver)
-    val psiDef = possibleParent.ancestor<TCDefinition>()
+    val psiDef = exprAncestor.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
     val concreteDef = concreteProvider.getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }
@@ -168,6 +161,16 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     }, body)
 
     return SubExprResult(result.proj1, resolver?.originalExpr ?: result.proj2, exprAncestor)
+}
+
+inline fun selectedExpr(file: PsiFile, range: TextRange, errorHandling: (String) -> Nothing): ArendExpr {
+    val startElement = file.findElementAt(range.startOffset)
+        ?: errorHandling("selected expr in bad position")
+    val element = if (range.isEmpty) startElement
+    else file.findElementAt(range.endOffset - 1)?.let {
+        PsiTreeUtil.findCommonParent(startElement, it)
+    } ?: errorHandling("selected expr in bad position")
+    return element.ancestor() ?: errorHandling("selected text is not an arend expression")
 }
 
 fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor, showError : Boolean = true): SubExprResult? =
@@ -211,15 +214,15 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
     )
 }
 
-private fun collectArendExprs(
+fun collectArendExprs(
         parent: PsiElement,
         range: TextRange
-): Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>? {
+): Pair<ArendExpr, List<Abstract.BinOpSequenceElem>>? {
     val head: PsiElement
     val tail: Sequence<PsiElement>
     if (range.isEmpty) {
-        when (val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()
-            ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()) {
+        when (val firstExpr = parent.linearDescendants.filterIsInstance<ArendExpr>().lastOrNull()
+            ?: parent.childrenWithLeaves.filterIsInstance<ArendExpr>().toList().takeIf { it.size == 1 }?.first()) {
             is ArendTuple -> {
                 val tupleExprList = firstExpr.tupleExprList
                 head = tupleExprList.firstOrNull() ?: return null
@@ -247,9 +250,9 @@ private fun collectArendExprs(
             val (_, tails) = subCollected
             if (tails.isNotEmpty()) return subCollected
         }
-        return if (head is Abstract.Expression) Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>(head, emptyList())
+        return if (head is ArendExpr) head to emptyList()
         else null
-    } else return when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
+    } else return when (val headExpr = head.linearDescendants.filterIsInstance<ArendExpr>().lastOrNull()) {
         null -> null
         else -> headExpr to tail.mapNotNull {
             it.linearDescendants.filterIsInstance<Abstract.BinOpSequenceElem>().firstOrNull()
