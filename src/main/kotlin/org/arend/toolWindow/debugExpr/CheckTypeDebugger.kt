@@ -64,7 +64,7 @@ class CheckTypeDebugger(
     private val varList = CollectionListModel<Binding>()
 
     private fun renderCell(expr: Any?, isExpectedType: Boolean = false): JComponent = when (expr) {
-        is DefaultMutableTreeNode -> renderCell(expr.userObject)
+        is DefaultMutableTreeNode -> renderCell(expr.userObject, isExpectedType)
         is Concrete.Expression -> SimpleColoredComponent().apply {
             icon = icon(expr)
             append("[${expr.javaClass.simpleName}] ")
@@ -84,7 +84,8 @@ class CheckTypeDebugger(
             append(" : ")
             append(expr.typeExpr.toString())
         }
-        else -> error("Bad argument: ${expr?.javaClass}")
+        null -> SimpleColoredComponent()
+        else -> error("Bad argument: ${expr.javaClass}")
     }
 
     init {
