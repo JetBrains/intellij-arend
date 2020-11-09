@@ -21,6 +21,10 @@ import org.arend.term.concrete.Concrete
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
+import javax.swing.JComponent
+import javax.swing.JTree
+import javax.swing.tree.DefaultMutableTreeNode
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -49,38 +53,54 @@ class CheckTypeDebugger(
                 Thread.onSpinWait()
             }
         }
-        passList.add(0, expr)
+        passList.add(0, expr to expectedType)
         val result = super.checkExpr(expr, expectedType)
         passList.remove(0)
         return result
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passList = CollectionListModel<Concrete.Expression>(LinkedList())
+    private val passList = CollectionListModel<Pair<Concrete.Expression, Expression?>>(ConcurrentLinkedDeque())
     private val varList = CollectionListModel<Binding>()
+
+    private fun renderCell(expr: Any?, isExpectedType: Boolean = false): JComponent = when (expr) {
+        is DefaultMutableTreeNode -> renderCell(expr.userObject)
+        is Concrete.Expression -> SimpleColoredComponent().apply {
+            icon = icon(expr)
+            append("[${expr.javaClass.simpleName}] ")
+            append(expr.toString(), SimpleTextAttributes.GRAY_ATTRIBUTES)
+        }
+        is Expression -> SimpleColoredComponent().apply {
+            icon = icon(expr)
+            if (isExpectedType) append("Expected type: ")
+            else append("[${expr.javaClass.simpleName}] ")
+            append(expr.toString(), SimpleTextAttributes.GRAY_ATTRIBUTES)
+        }
+        is Binding -> SimpleColoredComponent().apply {
+            icon = icon(expr.typeExpr)
+            append(expr.name,
+                if (expr is DependentLink && !expr.isExplicit) SimpleTextAttributes.GRAY_ATTRIBUTES
+                else SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            append(" : ")
+            append(expr.typeExpr.toString())
+        }
+        else -> error("Bad argument: ${expr?.javaClass}")
+    }
 
     init {
         val passJBList = JBList(passList)
-        passJBList.installCellRenderer { expr ->
-            SimpleColoredComponent().apply {
-                icon = icon(expr)
-                val text = expr.toString()
-                if (text.length > 50) append(text.take(50) + "...")
-                else append(text)
+        passJBList.installCellRenderer { e ->
+            val root = DefaultMutableTreeNode(e.first, true)
+            root.add(DefaultMutableTreeNode(e.second))
+            val tree = JTree(root)
+            tree.setCellRenderer { _, value, _, _, _, _, _ ->
+                renderCell(value, isExpectedType = true)
             }
+            tree
         }
         splitter.firstComponent = JBScrollPane(passJBList)
         val varJBList = JBList(varList)
-        varJBList.installCellRenderer { bind ->
-            SimpleColoredComponent().apply {
-                icon = icon(bind.typeExpr)
-                append(bind.name,
-                    if (bind is DependentLink && !bind.isExplicit) SimpleTextAttributes.GRAY_ATTRIBUTES
-                    else SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                append(" : ")
-                append(bind.typeExpr.toString())
-            }
-        }
+        varJBList.installCellRenderer(::renderCell)
         splitter.secondComponent = JBScrollPane(varJBList)
     }
 
@@ -103,9 +123,7 @@ class CheckTypeDebugger(
 
     private fun fillLocalVariables() {
         varList.removeAll()
-        context.forEach { (_, u) ->
-            varList.add(u)
-        }
+        context.forEach { (_, u) -> varList.add(u) }
     }
 
     override fun dispose() {
