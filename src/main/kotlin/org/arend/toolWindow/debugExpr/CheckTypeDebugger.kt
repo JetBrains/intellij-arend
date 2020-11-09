@@ -9,6 +9,7 @@ import com.intellij.ui.JBSplitter
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
 import org.arend.ArendIcons
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
@@ -68,19 +69,19 @@ class CheckTypeDebugger(
                 else append(text)
             }
         }
-        splitter.firstComponent = passJBList
+        splitter.firstComponent = JBScrollPane(passJBList)
         val varJBList = JBList(varList)
         varJBList.installCellRenderer { bind ->
             SimpleColoredComponent().apply {
                 icon = icon(bind.typeExpr)
-                val attributes = if (bind is DependentLink && !bind.isExplicit) SimpleTextAttributes.GRAY_ATTRIBUTES
-                else SimpleTextAttributes.REGULAR_ATTRIBUTES
-                append(bind.name, attributes)
-                append(" : ", attributes)
-                append(bind.typeExpr.toString(), attributes)
+                append(bind.name,
+                    if (bind is DependentLink && !bind.isExplicit) SimpleTextAttributes.GRAY_ATTRIBUTES
+                    else SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                append(" : ")
+                append(bind.typeExpr.toString())
             }
         }
-        splitter.secondComponent = varJBList
+        splitter.secondComponent = JBScrollPane(varJBList)
     }
 
     private fun icon(expr: Expression?) = when (expr) {
