@@ -37,21 +37,36 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         val constructor = error.referable as? DataLocatedReferable
         val constructorTypechecked = constructor?.typechecked as? Constructor
         val clause = cause.element?.ancestor<ArendClause>()
+        val patternParametersList = DependentLink.Helper.toList(error.patternParameters)
 
         if (error.parameter == null || error.substitution == null || definition == null || constructor == null || clause == null ||
                 constructorTypechecked == null || parameterType !is DataCallExpression) return // We could show a notification?
 
-        val reverseSubstitution = ExprSubstitution()
+        val errorVariableMap = HashMap<Variable, Variable>() // Map from clause pattern parameters to the parameters of the enclosing referable
+        val inverseErrorVariableMap = HashMap<Variable, Variable>()
         for (variable in error.substitution.keys) {
             val expr = error.substitution.get(variable)
-            if (expr is ReferenceExpression && variable is Binding)
-                reverseSubstitution.add(expr.binding, ReferenceExpression(variable))
+            if (expr is ReferenceExpression && variable is Binding) {
+                errorVariableMap[variable] = expr.binding
+                inverseErrorVariableMap[expr.binding] = variable
+            }
         }
 
         // Stage 1: match data type constructor with actual  parameters
-        val canMatch: Boolean = ExpressionMatcher.computeMatchingPatterns(parameterType, constructorTypechecked, reverseSubstitution, substs) != null
+        val canMatch: Boolean = ExpressionMatcher.computeMatchingPatterns(parameterType, constructorTypechecked, /*error.substitution*/ ExprSubstitution(), substs) != null
 
-        if (!canMatch) return // We could show a notification?
+        if (!canMatch) {
+            println("Pattern match failed")
+            return
+        } // We could show a notification?
+
+        println("Constructor: ${constructorTypechecked.name}; ")
+        println("Calculated substitutions (nontrivial): {")
+        for (s in substs.entries) if (s.value !is BindingPattern) print("  ${s.key.toString1()}->${s.value.toExpression()};\n")
+        println("}\nError.substitution (only bindings): {")
+        for (r in errorVariableMap) print("  ${r.key.toString1()} -> ${r.value.toString1()};\n")
+        println("}")
+
 
         val psiFactory = ArendPsiFactory(project)
 
@@ -64,13 +79,35 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         }
         val clausesListPsi = functionClausesPsi?.clauseList
 
-        println("data: ${definitionPsi?.text}")
+        println("definitionPsi:\n${definitionPsi?.text}")
 
         if (error.caseExpressions == null) {
-            val varsToEliminate = HashSet<Variable>()
-            for (subst in substs) if (subst.value !is BindingPattern) varsToEliminate.add(subst.key)
-
             val typecheckedParams = DependentLink.Helper.toList(definition.typechecked.parameters)
+            val globalVarsToEliminate = HashSet<Variable>() // Global variables that need to be eliminated
+            val localVarsToEliminate = HashSet<Variable>()
+
+            for (subst in substs) if (subst.value !is BindingPattern) {
+                val substKey2 = inverseErrorVariableMap[subst.key]
+                if (typecheckedParams.contains(subst.key)) globalVarsToEliminate.add(subst.key) else
+                    if (substKey2 != null && typecheckedParams.contains(substKey2)) globalVarsToEliminate.add(substKey2) else
+                    errorVariableMap[subst.key]?.let{ localVarsToEliminate.add(it) }
+            }
+
+
+            print("Parameters of the typechecked definition header: {")
+            for (p in typecheckedParams) print("${p.toString1()}; ")
+            println("}")
+
+            print("Free variables of the local clause patterns': {")
+            for (p in patternParametersList) print("${p.toString1()}; ")
+            println("}")
+
+            if (localVarsToEliminate.isNotEmpty()) { // TODO: Match abstract patterns in transformed Clause against error.patternParameters
+                print("Local clause variables which need to be specialized: {")
+                for (v in localVarsToEliminate) print("${v.toString1()}; ")
+                println("}")
+            }
+
             val patternPrimers = HashMap<Variable, ArendPattern>()
 
             if (error.elimParams.isNotEmpty()) { //elim
@@ -79,11 +116,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 for (e in error.elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
                 for (e in error.elimParams.zip(clause.patternList)) patternPrimers[e.first] = e.second
 
-                varsToEliminate.removeAll(error.elimParams)
+                globalVarsToEliminate.removeAll(error.elimParams)
 
                 var anchor: PsiElement? = null
                 for (param in typecheckedParams) {
-                    if (varsToEliminate.contains(param)) {
+                    if (globalVarsToEliminate.contains(param)) {
                         val template = psiFactory.createRefIdentifier("${param.name}, dummy")
                         val comma = template.nextSibling
                         var commaInserted = false
@@ -100,11 +137,17 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         anchor = paramsMap[param]
                     }
                 }
-                println("elimParams: ${error.elimParams}")
-                println("vars to eliminate: $varsToEliminate")
+
+                print("elimParams: [")
+                for (p in error.elimParams) print("${p.toString1()}; ")
+                println("]")
+
+                print("vars to eliminate: [")
+                for (p in globalVarsToEliminate) print("${p.toString1()}; ")
+                println("]")
 
                 if (clausesListPsi != null) for (transformedClause in clausesListPsi) {
-                    doInsertPrimers(psiFactory, transformedClause, typecheckedParams, error.elimParams, varsToEliminate, if (transformedClause == clause) patternPrimers else null) { p -> p.name }
+                    doInsertPrimers(psiFactory, transformedClause, typecheckedParams, error.elimParams, globalVarsToEliminate, if (transformedClause == clause) patternPrimers else null) { p -> p.name }
                 }
             } else {
                 if (clausesListPsi != null) for (transformedClause in clausesListPsi) {
@@ -122,7 +165,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         }
                     }
 
-                    val newVars = varsToEliminate.minus(patternMatchedParameters)
+                    val newVars = globalVarsToEliminate.minus(patternMatchedParameters)
                     val newVarsPlusPrecedingImplicitVars = HashSet<Variable>(newVars)
                     var implicitFlag = false
                     for (param in typecheckedParams.reversed()) {
@@ -147,10 +190,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 println("Clause: ${clause.text}")
                 println("patternPrimers: ")
                 for (pp in patternPrimers) {
-                    println("${pp.key} -> ${pp.value.text}")
+                    println("${pp.key.toString1()} -> ${pp.value.text}")
                 }
 
-                for (tp in typecheckedParams) {//Fixme: we should also search within
+                for (tp in typecheckedParams) {//Fixme: we should also search within localVarsToEliminate
                     val substitutedPattern = substs[tp]
                     val abstractPattern = patternPrimers[tp]
                     if (substitutedPattern != null && substitutedPattern !is BindingPattern && abstractPattern != null) {
@@ -162,16 +205,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     }
                 }
             }
-
-            print("cons: ${constructorTypechecked.name}; ")
-            for (s in substs.entries) print("${s.key.name}->${s.value.toExpression()}; ")
-            println()
         } else { // case
             println("caseExpressions: ${error.caseExpressions}")
         }
     }
 
     companion object {
+        fun Variable.toString1(): String = "${this}@${this.hashCode().rem(100000)}"
+
         fun unify(pattern: ExpressionPattern, abstractPattern: ArendPattern, map: HashMap<PsiElement, ExpressionPattern>): Boolean {
             println("Unify ${pattern.toExpression()}/${pattern} against ${abstractPattern.text}/${abstractPattern}")
             return false

@@ -219,6 +219,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (suc n, cons a v) => suc n 
     """)
 
+    //TODO: Fixme
     fun test69_15() = simpleQuickFixTest("Do", data5 + """
        \func foo {A : \Type} (p : Index A) : Nat \elim p
          | index nil{-caret-} => {?}
