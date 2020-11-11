@@ -31,6 +31,11 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | envelope (D a b1) 
     """
 
+    private val data5 = data1 + """
+      \data Index (A : \Type) 
+        | index {n : Nat} (v : Vec A n)  
+    """
+
     fun test68_1() = simpleQuickFixTest("Do", data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | (){-caret-} 
@@ -212,5 +217,15 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        \func foo {A : \Type} (p : \Sigma (n : Nat) (Vec A n)) : Nat \elim p
          | (0, nil) => 0
          | (suc n, cons a v) => suc n 
+    """)
+
+    fun test69_15() = simpleQuickFixTest("Do", data5 + """
+       \func foo {A : \Type} (p : Index A) : Nat \elim p
+         | index nil{-caret-} => {?}
+         | index (cons a v) => {?} 
+    """, data5 + """
+       \func foo {A : \Type} (p : Index A) : Nat \elim p
+         | index {0} nil => {?}
+         | index {suc n} (cons a v) => {?} 
     """)
 }
