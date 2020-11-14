@@ -6,13 +6,10 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
-import com.intellij.ui.SimpleColoredComponent
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import org.arend.ArendIcons
 import org.arend.core.context.binding.Binding
-import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.*
 import org.arend.ext.ArendExtension
 import org.arend.ext.error.ErrorReporter
@@ -20,11 +17,12 @@ import org.arend.psi.ArendArgumentAppExpr
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
+import java.awt.Component
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
-import javax.swing.JComponent
-import javax.swing.JTree
+import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeCellRenderer
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -63,28 +61,29 @@ class CheckTypeDebugger(
     private val passList = CollectionListModel<Pair<Concrete.Expression, Expression?>>(ConcurrentLinkedDeque())
     private val varList = CollectionListModel<Binding>()
 
-    private fun renderCell(expr: Any?, isExpectedType: Boolean = false): JComponent = when (expr) {
-        is DefaultMutableTreeNode -> renderCell(expr.userObject, isExpectedType)
-        is Concrete.Expression -> SimpleColoredComponent().apply {
+    private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
+        is DefaultMutableTreeNode -> configureCell(expr.userObject, cell, isExpectedType)
+        is Concrete.Expression -> cell.apply {
             icon = icon(expr)
-            append("[${expr.javaClass.simpleName}] ")
-            append(expr.toString(), SimpleTextAttributes.GRAY_ATTRIBUTES)
+            text = "[${expr.javaClass.simpleName}] $expr"
         }
-        is Expression -> SimpleColoredComponent().apply {
+        is Expression -> cell.apply {
             icon = icon(expr)
-            if (isExpectedType) append("Expected type: ")
-            else append("[${expr.javaClass.simpleName}] ")
-            append(expr.toString(), SimpleTextAttributes.GRAY_ATTRIBUTES)
+            text = buildString {
+                if (isExpectedType) append("Expected type: ")
+                else append("[${expr.javaClass.simpleName}] ")
+                append(expr.toString())
+            }
         }
-        is Binding -> SimpleColoredComponent().apply {
+        is Binding -> cell.apply {
             icon = icon(expr.typeExpr)
-            append(expr.name,
-                if (expr is DependentLink && !expr.isExplicit) SimpleTextAttributes.GRAY_ATTRIBUTES
-                else SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            append(" : ")
-            append(expr.typeExpr.toString())
+            text = buildString {
+                append(expr.name)
+                append(" : ")
+                append(expr.typeExpr.toString())
+            }
         }
-        null -> SimpleColoredComponent()
+        null -> cell
         else -> error("Bad argument: ${expr.javaClass}")
     }
 
@@ -94,14 +93,20 @@ class CheckTypeDebugger(
             val root = DefaultMutableTreeNode(e.first, true)
             root.add(DefaultMutableTreeNode(e.second))
             val tree = JTree(root)
-            tree.setCellRenderer { _, value, _, _, _, _, _ ->
-                renderCell(value, isExpectedType = true)
+            tree.cellRenderer = object : DefaultTreeCellRenderer() {
+                override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component {
+                    super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
+                    configureCell(value, this, isExpectedType = true)
+                    return this
+                }
             }
             tree
         }
         splitter.firstComponent = JBScrollPane(passJBList)
         val varJBList = JBList(varList)
-        varJBList.installCellRenderer(::renderCell)
+        varJBList.installCellRenderer { bind ->
+            DefaultListCellRenderer().also { configureCell(bind, it) }
+        }
         splitter.secondComponent = JBScrollPane(varJBList)
     }
 
