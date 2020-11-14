@@ -9,6 +9,7 @@ import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.render.LabelBasedRenderer
+import com.intellij.ui.treeStructure.Tree
 import org.arend.ArendIcons
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.*
@@ -23,8 +24,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
-
-typealias PassData = Pair<Concrete.Expression, Expression?>
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -60,7 +59,7 @@ class CheckTypeDebugger(
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passList = CollectionListModel<PassData>(ConcurrentLinkedDeque())
+    private val passList = CollectionListModel<Pair<Concrete.Expression, Expression?>>(ConcurrentLinkedDeque())
     private val varList = CollectionListModel<Binding>()
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
@@ -91,22 +90,18 @@ class CheckTypeDebugger(
 
     init {
         val passJBList = JBList(passList)
-        passJBList.cellRenderer = object : LabelBasedRenderer.List<PassData>() {
-            override fun getListCellRendererComponent(list: JList<out PassData>, value: PassData?, index: Int, selected: Boolean, focused: Boolean): Component {
-                super.getListCellRendererComponent(list, value, index, selected, focused)
-                if (value == null) return this
-                val root = DefaultMutableTreeNode(value.first, true)
-                root.add(DefaultMutableTreeNode(value.second))
-                val tree = JTree(root)
-                tree.cellRenderer = object : LabelBasedRenderer.Tree() {
-                    override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
-                        super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
-                        configureCell(value, this, isExpectedType = true)
-                        return this
-                    }
+        passJBList.installCellRenderer { e ->
+            val root = DefaultMutableTreeNode(e.first, true)
+            root.add(DefaultMutableTreeNode(e.second))
+            val tree = Tree(root)
+            tree.cellRenderer = object : LabelBasedRenderer.Tree() {
+                override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
+                    super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
+                    configureCell(value, this, isExpectedType = true)
+                    return this
                 }
-                return tree
             }
+            tree
         }
         splitter.firstComponent = JBScrollPane(passJBList)
         val varJBList = JBList(varList)
