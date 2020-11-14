@@ -8,6 +8,7 @@ import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.render.LabelBasedRenderer
 import org.arend.ArendIcons
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.*
@@ -22,7 +23,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeCellRenderer
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -93,9 +93,9 @@ class CheckTypeDebugger(
             val root = DefaultMutableTreeNode(e.first, true)
             root.add(DefaultMutableTreeNode(e.second))
             val tree = JTree(root)
-            tree.cellRenderer = object : DefaultTreeCellRenderer() {
-                override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component {
-                    super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
+            tree.cellRenderer = object : LabelBasedRenderer.Tree() {
+                override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
+                    super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
                     configureCell(value, this, isExpectedType = true)
                     return this
                 }
@@ -105,7 +105,7 @@ class CheckTypeDebugger(
         splitter.firstComponent = JBScrollPane(passJBList)
         val varJBList = JBList(varList)
         varJBList.installCellRenderer { bind ->
-            DefaultListCellRenderer().also { configureCell(bind, it) }
+            LabelBasedRenderer.List<Binding>().also { configureCell(bind, it) }
         }
         splitter.secondComponent = JBScrollPane(varJBList)
     }
