@@ -182,6 +182,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
 
                 isLoaded = true
+                project.service<ArendPsiChangeService>().incModificationCount()
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
