@@ -230,7 +230,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
         val prevRef = tcReferable.underlyingReferable
-        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef) {
+        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
             return null
         }
         if (removeTCRef) {
