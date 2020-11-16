@@ -20,7 +20,7 @@ class TypecheckingTaskQueue(project: Project) : ArendDefinitionChangeListener {
         project.service<ArendPsiChangeService>().addListener(this)
     }
 
-    fun addTask(modificationCount: Long, action: () -> Unit) {
+    fun addTask(modificationCount: Long = tracker.modificationCount, action: () -> Unit) {
         if (modificationCount < tracker.modificationCount) {
             return
         }

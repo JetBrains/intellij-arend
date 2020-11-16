@@ -11,11 +11,11 @@ import com.intellij.psi.PsiElement
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.LongName
+import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
 import org.arend.module.*
-import org.arend.yaml.YAMLFileListener
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
@@ -47,6 +47,7 @@ import org.arend.util.FullName
 import org.arend.util.Range
 import org.arend.util.Version
 import org.arend.util.refreshLibrariesDirectory
+import org.arend.yaml.YAMLFileListener
 import java.util.concurrent.ConcurrentHashMap
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
@@ -70,7 +71,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    private val extensionDefinitions = HashMap<TCDefReferable, Boolean>()
+    private val extensionDefinitions = HashMap<TCDefReferable, Library>()
 
     private val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
 
@@ -162,7 +163,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             project.service<ArendResolveCache>().clear()
                             val it = extensionDefinitions.iterator()
                             while (it.hasNext()) {
-                                if (it.next().value) {
+                                if (!it.next().value.isExternal) {
                                     it.remove()
                                 }
                             }
@@ -194,7 +195,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun request(definition: Definition, library: Library) {
-        extensionDefinitions[definition.referable] = !library.isExternal
+        extensionDefinitions[definition.referable] = library
     }
 
     fun getAdditionalReferables(name: String) = additionalNames[name] ?: emptyList()
@@ -225,8 +226,18 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return tcReferable
         }
 
-        if (extensionDefinitions.containsKey(tcReferable)) {
-            service<ArendExtensionChangeListener>().notifyIfNeeded(project)
+        val library = extensionDefinitions[tcReferable]
+        if (library != null) {
+            project.service<TypecheckingTaskQueue>().addTask {
+                val provider = ArendDependencyProviderImpl(ArendTypechecking.create(project), libraryManager.getAvailableModuleScopeProvider(library), libraryManager.definitionRequester, library)
+                try {
+                    runReadAction {
+                        library.arendExtension.load(provider)
+                    }
+                } finally {
+                    provider.disable()
+                }
+            }
         }
 
         val prevRef = tcReferable.underlyingReferable
