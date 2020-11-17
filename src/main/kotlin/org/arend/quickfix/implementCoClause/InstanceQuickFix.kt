@@ -3,6 +3,7 @@ package org.arend.quickfix.implementCoClause
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
+import org.arend.ext.reference.ArendRef
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.*
 import org.arend.naming.scope.CachingScope
@@ -135,11 +136,13 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
 
 private fun getTCRef(ref: Referable?) = (ref as? PsiLocatedReferable)?.tcReferable ?: ref
 
-fun makeFieldList(fields: Collection<FieldReferable>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
+fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
-    return fields.map { field ->
-        val field2 = scope.resolveName(field.textRepresentation())
-        Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
+    return fields.mapNotNull { field ->
+        if (field is LocatedReferable) {
+            val field2 = scope.resolveName(field.refName)
+            Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
+        } else null
     }
 }
 

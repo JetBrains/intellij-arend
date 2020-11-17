@@ -29,6 +29,7 @@ import org.arend.naming.error.DuplicateOpenedNameError
 import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -157,7 +158,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(errorCause)))
                         }
                     } else {
-                        val classRef = error.classReferable.underlyingReferable
+                        val ref = error.classRef
+                        val classRef = if (ref is Referable) ref.underlyingReferable else ref
                         if (classRef is ClassReferable) {
                             annotation.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
                         }
