@@ -21,7 +21,6 @@ import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import java.awt.Component
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedDeque
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 
@@ -52,14 +51,16 @@ class CheckTypeDebugger(
                 Thread.onSpinWait()
             }
         }
-        passList.add(0, expr to expectedType)
+        val node = DefaultMutableTreeNode(expr, true)
+        node.add(DefaultMutableTreeNode(expectedType, false))
+        passRoot.insert(node, 0)
         val result = super.checkExpr(expr, expectedType)
-        passList.remove(0)
+        passRoot.remove(0)
         return result
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passList = CollectionListModel<Pair<Concrete.Expression, Expression?>>(ConcurrentLinkedDeque())
+    private val passRoot = DefaultMutableTreeNode("root", true)
     private val varList = CollectionListModel<Binding>()
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
@@ -84,26 +85,21 @@ class CheckTypeDebugger(
                 append(expr.typeExpr.toString())
             }
         }
+        is String -> cell.apply { text = expr }
         null -> cell
         else -> error("Bad argument: ${expr.javaClass}")
     }
 
     init {
-        val passJBList = JBList(passList)
-        passJBList.installCellRenderer { e ->
-            val root = DefaultMutableTreeNode(e.first, true)
-            root.add(DefaultMutableTreeNode(e.second))
-            val tree = Tree(root)
-            tree.cellRenderer = object : LabelBasedRenderer.Tree() {
-                override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
-                    super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
-                    configureCell(value, this, isExpectedType = true)
-                    return this
-                }
+        val passTree = Tree(passRoot)
+        passTree.cellRenderer = object : LabelBasedRenderer.Tree() {
+            override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
+                super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
+                configureCell(value, this, isExpectedType = true)
+                return this
             }
-            tree
         }
-        splitter.firstComponent = JBScrollPane(passJBList)
+        splitter.firstComponent = JBScrollPane(passTree)
         val varJBList = JBList(varList)
         varJBList.installCellRenderer { bind ->
             LabelBasedRenderer.List<Binding>().also { configureCell(bind, it) }
