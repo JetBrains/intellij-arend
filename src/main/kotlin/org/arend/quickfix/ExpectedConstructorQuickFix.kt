@@ -3,6 +3,7 @@ package org.arend.quickfix
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.impl.createNewProjectFrame
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
@@ -13,13 +14,21 @@ import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
+import org.arend.error.DummyErrorReporter
 import org.arend.ext.variable.Variable
+import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
+import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.abs.ConcreteBuilder.convertClause
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.ExpectedConstructorError
 import org.arend.typechecking.patternmatching.ExpressionMatcher
+import java.lang.UnsupportedOperationException
 
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
@@ -95,11 +104,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
 
             print("Parameters of the typechecked definition header: {")
-            for (p in typecheckedParams) print("${p.toString1()}; ")
+            for (p in typecheckedParams) print("${p.toString1()}; Explicit:${p.isExplicit}; ")
             println("}")
 
             print("Free variables of the local clause patterns': {")
-            for (p in patternParametersList) print("${p.toString1()}; ")
+            for (p in patternParametersList) print("${p.toString1()} Explicit:${p.isExplicit}; ")
             println("}")
 
             if (localVarsToEliminate.isNotEmpty()) { // TODO: Match abstract patterns in transformed Clause against error.patternParameters
@@ -107,6 +116,56 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 for (v in localVarsToEliminate) print("${v.toString1()}; ")
                 println("}")
             }
+
+            val concreteClause = convertClause(clause, ArendReferableConverter, null, null);
+            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, definitionPsi!!.scope, ArrayList<Referable>(), null, null)
+            resolver.visitClause(concreteClause, null)
+
+            val patternParameterIterator = patternParametersList.iterator();
+
+            fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
+                    if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
+
+            fun matchConcreteWithWellTyped(enclosingNode: PsiElement, patterns: List<Concrete.Pattern>, explicitnessMask: List<Boolean>): Boolean {
+                var concretePatternIndex = 0;
+                var skippedParameters = 0;
+
+                for (spExplicit in explicitnessMask) {
+                    if (!patternParameterIterator.hasNext()) return true;
+                    val concretePattern = if (concretePatternIndex < patterns.size) patterns[concretePatternIndex] else null
+
+                    if (concretePattern != null && concretePattern.isExplicit == spExplicit) {
+                        skippedParameters = 0
+                        concretePatternIndex++
+                        val data = concretePattern.data as PsiElement
+
+                        when (concretePattern) {
+                            is Concrete.TuplePattern -> {
+                                matchConcreteWithWellTyped(data, concretePattern.patterns, List(concretePattern.patterns.size) { true } )
+                            }
+                            is Concrete.NamePattern -> {
+                                val patternParameter = patternParameterIterator.next()
+                                println("Parameter: ${patternParameter.toString1()} is matched with ${(concretePattern.data as? PsiElement)?.text}")
+                            }
+                            is Concrete.ConstructorPattern -> {
+                                val typechecked = (concretePattern.constructor as? DataLocatedReferable)?.typechecked as? Constructor ?: return false
+                                if (!matchConcreteWithWellTyped(data, concretePattern.patterns,
+                                                prepareExplicitnessMask(DependentLink.Helper.toList(typechecked.parameters), null))) return false
+                            }
+                        }
+                        continue
+                    }
+                    if (!spExplicit) {
+                        val patternParameter = patternParameterIterator.next()
+                        println("Parameter: ${patternParameter.toString1()} is matched with an implicit parameter of ${enclosingNode.text} before ${(concretePattern?.data as? PsiElement)?.text} after $skippedParameters implicit parameters")
+                        skippedParameters += 1;
+                    }
+                }
+
+                return true;
+            }
+
+            if (!matchConcreteWithWellTyped(clause, concreteClause.patterns, prepareExplicitnessMask(typecheckedParams, error.elimParams))) return
 
             val patternPrimers = HashMap<Variable, ArendPattern>()
 
