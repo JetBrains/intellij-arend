@@ -1,5 +1,6 @@
 package org.arend.toolWindow.debugExpr
 
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -18,13 +19,14 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
 
     fun createDebugger(name: String, debuggerFactory: (ToolWindow) -> CheckTypeDebugger): CheckTypeDebugger {
         val manager = ToolWindowManager.getInstance(project)
-        val toolWindow = myToolWindow ?: registerToolWindow(manager).also { myToolWindow = it }
+        val toolWindow = myToolWindow
+            ?: registerToolWindow(manager).also { myToolWindow = it }
         val debugger = debuggerFactory(toolWindow)
         Disposer.register(toolWindow.disposable, debugger)
         val toolWindowPanel = SimpleToolWindowPanel(false, false)
         toolWindowPanel.setContent(debugger.splitter)
-        // toolWindowPanel.toolbar = ActionManager.getInstance()
-        //     .createActionToolbar(TITLE, , true).component
+        toolWindowPanel.toolbar = ActionManager.getInstance()
+            .createActionToolbar(TITLE, debugger.createActionGroup(), true).component
         val content = ContentFactory.SERVICE.getInstance()
             .createContent(toolWindowPanel.component, name, false)
         toolWindow.contentManager.addContent(content)

@@ -51,6 +51,8 @@ object ArendIcons {
     // Debugger
 
     val DEBUGGER = AllIcons.Actions.StartDebugger
+    val DEBUGGER_RESUME = AllIcons.Actions.Resume
+    val DEBUGGER_STEP = AllIcons.Debugger.SmartStepInto
     val EXPRESSION = AllIcons.Nodes.Enum
     val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
 

@@ -1,6 +1,9 @@
 package org.arend.toolWindow.debugExpr
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
@@ -32,6 +35,7 @@ class CheckTypeDebugger(
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
     lateinit var thread: Thread
     private var isResuming = true
+    private var isBP = false
 
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
         val matches = run {
@@ -42,8 +46,9 @@ class CheckTypeDebugger(
             }
             (range ?: exprElement.textRange) == element.textRange
         }
-        if (matches) {
+        if (matches || isBP) {
             isResuming = false
+            isBP = true
         }
         if (!isResuming) {
             fillLocalVariables()
@@ -60,7 +65,7 @@ class CheckTypeDebugger(
     }
 
     val splitter = JBSplitter(false, 0.25f)
-    private val passRoot = DefaultMutableTreeNode("root", true)
+    private val passRoot = DefaultMutableTreeNode("Stack trace", true)
     private val varList = CollectionListModel<Binding>()
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
@@ -73,8 +78,8 @@ class CheckTypeDebugger(
             icon = icon(expr)
             text = buildString {
                 if (isExpectedType) append("Expected type: ")
-                else append("[${expr.javaClass.simpleName}] ")
-                append(expr.toString())
+                else append("[").append(expr.javaClass.simpleName).append("] ")
+                append(expr)
             }
         }
         is Binding -> cell.apply {
@@ -82,7 +87,7 @@ class CheckTypeDebugger(
             text = buildString {
                 append(expr.name)
                 append(" : ")
-                append(expr.typeExpr.toString())
+                append(expr.typeExpr)
             }
         }
         is String -> cell.apply { text = expr }
@@ -132,4 +137,27 @@ class CheckTypeDebugger(
     override fun dispose() {
         splitter.dispose()
     }
+
+    abstract inner class BreakpointAction(
+        text: String,
+        icon: Icon,
+    ) : DumbAwareAction(text, null, icon) {
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = isBP
+        }
+    }
+
+    fun createActionGroup() = DefaultActionGroup(
+        object : BreakpointAction("Resume", ArendIcons.DEBUGGER_RESUME) {
+            override fun actionPerformed(e: AnActionEvent) = synchronized(this@CheckTypeDebugger) {
+                isBP = false
+                isResuming = true
+            }
+        },
+        object : BreakpointAction("Step", ArendIcons.DEBUGGER_STEP) {
+            override fun actionPerformed(e: AnActionEvent) = synchronized(this@CheckTypeDebugger) {
+                isResuming = true
+            }
+        },
+    )
 }
