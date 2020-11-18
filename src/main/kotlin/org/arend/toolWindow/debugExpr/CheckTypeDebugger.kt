@@ -26,6 +26,8 @@ import java.awt.Component
 import java.util.*
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.MutableTreeNode
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -38,6 +40,9 @@ class CheckTypeDebugger(
     private var isBP = false
 
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
+        val node = DefaultMutableTreeNode(expr, true)
+        node.add(DefaultMutableTreeNode(expectedType, false))
+        passModel.insertNodeInto(node, passRoot, 0)
         val matches = run {
             val exprElement = expr.data as? PsiElement ?: return@run false
             var range: TextRange? = null
@@ -55,17 +60,17 @@ class CheckTypeDebugger(
             while (!isResuming) {
                 Thread.onSpinWait()
             }
+            clearLocalVariables()
         }
-        val node = DefaultMutableTreeNode(expr, true)
-        node.add(DefaultMutableTreeNode(expectedType, false))
-        passRoot.insert(node, 0)
         val result = super.checkExpr(expr, expectedType)
-        passRoot.remove(0)
+        passModel.removeNodeFromParent(passRoot.firstChild as MutableTreeNode)
         return result
     }
 
     val splitter = JBSplitter(false, 0.25f)
     private val passRoot = DefaultMutableTreeNode("Stack trace", true)
+    private val passTree = Tree(passRoot)
+    private val passModel = passTree.model as DefaultTreeModel
     private val varList = CollectionListModel<Binding>()
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
@@ -96,7 +101,6 @@ class CheckTypeDebugger(
     }
 
     init {
-        val passTree = Tree(passRoot)
         passTree.cellRenderer = object : LabelBasedRenderer.Tree() {
             override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
                 super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
@@ -129,8 +133,11 @@ class CheckTypeDebugger(
         else -> ArendIcons.EXPRESSION
     }
 
-    private fun fillLocalVariables() {
+    private fun clearLocalVariables() {
         varList.removeAll()
+    }
+
+    private fun fillLocalVariables() {
         context.forEach { (_, u) -> varList.add(u) }
     }
 
