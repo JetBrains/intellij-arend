@@ -3,7 +3,6 @@ package org.arend.quickfix
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.impl.createNewProjectFrame
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
@@ -14,6 +13,7 @@ import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
+import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.variable.Variable
 import org.arend.naming.reference.Referable
@@ -23,12 +23,15 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
-import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.abs.ConcreteBuilder.convertClause
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.ExpectedConstructorError
 import org.arend.typechecking.patternmatching.ExpressionMatcher
-import java.lang.UnsupportedOperationException
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
@@ -111,63 +114,40 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             for (p in patternParametersList) print("${p.toString1()} Explicit:${p.isExplicit}; ")
             println("}")
 
-            if (localVarsToEliminate.isNotEmpty()) { // TODO: Match abstract patterns in transformed Clause against error.patternParameters
+            if (localVarsToEliminate.isNotEmpty()) {
                 print("Local clause variables which need to be specialized: {")
                 for (v in localVarsToEliminate) print("${v.toString1()}; ")
                 println("}")
             }
 
+            val patternPrimers = HashMap<Variable, ArendPattern>()
+
             val concreteClause = convertClause(clause, ArendReferableConverter, null, null);
-            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, definitionPsi!!.scope, ArrayList<Referable>(), null, null)
+            val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
+            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, clause.scope, ArrayList<Referable>(), cer, null)
             resolver.visitClause(concreteClause, null)
+            if (cer.errorsNumber > 0) return
 
-            val patternParameterIterator = patternParametersList.iterator();
+            val deferredActions = LinkedList<Runnable>()
 
-            fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
-                    if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
+            val matchProcessor = object: MatchProcessor() {
+                override fun processNamePattern(bindingPsi: PsiElement, patternParameter: DependentLink) {
+                    if (localVarsToEliminate.contains(patternParameter)) {
 
-            fun matchConcreteWithWellTyped(enclosingNode: PsiElement, patterns: List<Concrete.Pattern>, explicitnessMask: List<Boolean>): Boolean {
-                var concretePatternIndex = 0;
-                var skippedParameters = 0;
-
-                for (spExplicit in explicitnessMask) {
-                    if (!patternParameterIterator.hasNext()) return true;
-                    val concretePattern = if (concretePatternIndex < patterns.size) patterns[concretePatternIndex] else null
-
-                    if (concretePattern != null && concretePattern.isExplicit == spExplicit) {
-                        skippedParameters = 0
-                        concretePatternIndex++
-                        val data = concretePattern.data as PsiElement
-
-                        when (concretePattern) {
-                            is Concrete.TuplePattern -> {
-                                matchConcreteWithWellTyped(data, concretePattern.patterns, List(concretePattern.patterns.size) { true } )
-                            }
-                            is Concrete.NamePattern -> {
-                                val patternParameter = patternParameterIterator.next()
-                                println("Parameter: ${patternParameter.toString1()} is matched with ${(concretePattern.data as? PsiElement)?.text}")
-                            }
-                            is Concrete.ConstructorPattern -> {
-                                val typechecked = (concretePattern.constructor as? DataLocatedReferable)?.typechecked as? Constructor ?: return false
-                                if (!matchConcreteWithWellTyped(data, concretePattern.patterns,
-                                                prepareExplicitnessMask(DependentLink.Helper.toList(typechecked.parameters), null))) return false
-                            }
-                        }
-                        continue
                     }
-                    if (!spExplicit) {
-                        val patternParameter = patternParameterIterator.next()
-                        println("Parameter: ${patternParameter.toString1()} is matched with an implicit parameter of ${enclosingNode.text} before ${(concretePattern?.data as? PsiElement)?.text} after $skippedParameters implicit parameters")
-                        skippedParameters += 1;
-                    }
+                    println("Parameter: ${patternParameter.toString1()} is matched with ${bindingPsi.javaClass.simpleName}${bindingPsi.text}")
                 }
 
-                return true;
+                override fun processConstructorImplicitNamePattern(enclosingNode: PsiElement, followingParameter: PsiElement?, implicitArgCount: Int, patternParameter: DependentLink) {
+                    if (localVarsToEliminate.contains(patternParameter)) {
+
+                    }
+                    println("Parameter: ${patternParameter.toString1()} is matched with an implicit parameter of ${enclosingNode.text} before ${followingParameter?.text} after $implicitArgCount implicit parameters")
+                    println(followingParameter?.parent == enclosingNode)
+                }
             }
 
-            if (!matchConcreteWithWellTyped(clause, concreteClause.patterns, prepareExplicitnessMask(typecheckedParams, error.elimParams))) return
-
-            val patternPrimers = HashMap<Variable, ArendPattern>()
+            if (!matchProcessor.matchConcreteWithWellTyped(clause, concreteClause.patterns, prepareExplicitnessMask(typecheckedParams, error.elimParams), patternParametersList.iterator())) return
 
             if (error.elimParams.isNotEmpty()) { //elim
                 val elimPsi = bodyPsi?.elim!! //safe since elimParams is nonempty
@@ -277,6 +257,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             return false
         }
 
+        fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
+                if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
+
         fun doInsertPrimers(psiFactory: ArendPsiFactory,
                             clause: ArendClause,
                             typecheckedParams: List<DependentLink>,
@@ -309,5 +292,49 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
             }
         }
+    }
+}
+
+abstract class MatchProcessor {
+    abstract fun processNamePattern(bindingPsi: PsiElement, patternParameter: DependentLink)
+    abstract fun processConstructorImplicitNamePattern(enclosingNode: PsiElement, followingParameter: PsiElement?, implicitArgCount: Int, patternParameter: DependentLink)
+
+    fun matchConcreteWithWellTyped(enclosingNode: PsiElement, patterns: List<Concrete.Pattern>, explicitnessMask: List<Boolean>, patternParameterIterator: MutableIterator<DependentLink>): Boolean {
+        var concretePatternIndex = 0;
+        var skippedParameters = 0;
+        println("EnclosingNode: ${enclosingNode.javaClass.simpleName}")
+
+        for (spExplicit in explicitnessMask) {
+            if (!patternParameterIterator.hasNext()) return true;
+            val concretePattern = if (concretePatternIndex < patterns.size) patterns[concretePatternIndex] else null
+            val data = concretePattern?.data as? PsiElement
+
+            if (concretePattern != null && data != null && concretePattern.isExplicit == spExplicit) {
+                skippedParameters = 0
+                concretePatternIndex++
+
+                when (concretePattern) {
+                    is Concrete.TuplePattern -> {
+                        matchConcreteWithWellTyped(data, concretePattern.patterns, List(concretePattern.patterns.size) { true }, patternParameterIterator)
+                    }
+                    is Concrete.NamePattern -> {
+                        val patternParameter = patternParameterIterator.next()
+                        processNamePattern(data, patternParameter)
+                    }
+                    is Concrete.ConstructorPattern -> {
+                        val typechecked = (concretePattern.constructor as? DataLocatedReferable)?.typechecked as? Constructor ?: return false
+                        if (!matchConcreteWithWellTyped(data, concretePattern.patterns,
+                                        ExpectedConstructorQuickFix.prepareExplicitnessMask(DependentLink.Helper.toList(typechecked.parameters), null), patternParameterIterator)) return false
+                    }
+                }
+                continue
+            }
+            if (!spExplicit) {
+                val patternParameter = patternParameterIterator.next()
+                processConstructorImplicitNamePattern(enclosingNode, data, skippedParameters, patternParameter)
+                skippedParameters += 1;
+            }
+        }
+        return true;
     }
 }
