@@ -186,7 +186,7 @@ class ArendCompletionContributor : CompletionContributor() {
             not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
                     and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
                     after(and(ofType(RBRACE), withParent(ArendWithBody::class.java))), //No keyword completion after \with or } in case expr
-                    after(ofType(LAM_KW, LET_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
+                    after(ofType(LAM_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
                     after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
                     or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
                     after(afterElimVarPattern), //No expression keywords in \elim expression
@@ -294,7 +294,7 @@ class ArendCompletionContributor : CompletionContributor() {
             }, o)
         }
 
-        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(LET_KW), afterLeaf(LETS_KW))), pairingInPattern), IN_KW_LIST)
+        basic(and(EXPRESSION_CONTEXT, not(or(afterLeaf(IN_KW), afterLeaf(HAVE_KW), afterLeaf(LET_KW), afterLeaf(HAVES_KW), afterLeaf(LETS_KW))), pairingInPattern), IN_KW_LIST)
 
         val caseContext = and(
                 or(EXPRESSION_CONTEXT,
@@ -512,7 +512,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
-                not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, LET_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
+                not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
 

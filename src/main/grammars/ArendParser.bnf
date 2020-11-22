@@ -70,6 +70,8 @@
         PI_KW               = '\Pi'
         SIGMA_KW            = '\Sigma'
         LAM_KW              = '\lam'
+        HAVE_KW             = '\have'
+        HAVES_KW            = '\have!'
         LET_KW              = '\let'
         LETS_KW             = '\let!'
         IN_KW               = '\in'
@@ -626,13 +628,13 @@ private pipe_def_un ::= PIPE {
 
 private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recover
 
-letExpr ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
+letExpr ::= (HAVE_KW | LET_KW | HAVES_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }
 
 //noinspection BnfUnusedRule
-letExprWOB ::= (LET_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW exprWOB?] {
+letExprWOB ::= (HAVE_KW | LET_KW | HAVES_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW exprWOB?] {
     pin = 1
     elementType = letExpr
 }
@@ -958,7 +960,7 @@ private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
 
-private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW) & statement_recover
+private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW | RETURN_KW) & statement_recover
 
 typedExpr ::= typedExprNamed | expr
 

@@ -118,6 +118,8 @@ OCT_DIGIT           = [0-8]
     "\\Pi"                  { return PI_KW; }
     "\\Sigma"               { return SIGMA_KW; }
     "\\lam"                 { return LAM_KW; }
+    "\\have"                { return HAVE_KW; }
+    "\\have!"               { return HAVES_KW; }
     "\\let"                 { return LET_KW; }
     "\\let!"                { return LETS_KW; }
     "\\in"                  { return IN_KW; }
