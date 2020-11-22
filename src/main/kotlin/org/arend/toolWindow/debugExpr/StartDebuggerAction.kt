@@ -43,6 +43,7 @@ class StartDebuggerAction : ArendPopupAction() {
                     LibraryArendExtensionProvider(service.libraryManager).getArendExtension(def),
                     head.linearDescendants.last { it is ArendSourceNode },
                     tw,
+                    editor,
                 )
             }
             debugger.instancePool = GlobalInstancePool(PsiInstanceProviderSet()[def], debugger)

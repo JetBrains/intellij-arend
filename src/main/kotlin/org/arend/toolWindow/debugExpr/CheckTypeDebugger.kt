@@ -1,8 +1,11 @@
 package org.arend.toolWindow.debugExpr
 
+import com.intellij.codeInsight.highlighting.HighlightManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.ToolWindow
@@ -13,6 +16,7 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.render.LabelBasedRenderer
 import com.intellij.ui.treeStructure.Tree
+import com.intellij.util.SmartList
 import org.arend.ArendIcons
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.*
@@ -35,6 +39,7 @@ class CheckTypeDebugger(
     extension: ArendExtension?,
     private val element: PsiElement,
     val toolWindow: ToolWindow,
+    private val editor: Editor,
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
     lateinit var thread: Thread
     private var isResuming = true
@@ -42,20 +47,18 @@ class CheckTypeDebugger(
 
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
         val node = DefaultMutableTreeNode(expr, true)
-        node.add(DefaultMutableTreeNode(expectedType, false))
         node.add(DefaultMutableTreeNode(expr.javaClass, false))
+        node.add(DefaultMutableTreeNode(expectedType, false))
         passModel.insertNodeInto(node, passRoot, 0)
-        val matches = run {
-            val exprElement = expr.data as? PsiElement ?: return@run false
-            var range: TextRange? = null
-            if (exprElement is ArendArgumentAppExpr) {
-                exprElement.firstChild?.apply { range = textRange }
-            }
-            (range ?: exprElement.textRange) == element.textRange
+        val exprElement = expr.data as PsiElement
+        var range: TextRange? = null
+        if (exprElement is ArendArgumentAppExpr) {
+            exprElement.firstChild?.apply { range = textRange }
         }
-        if (matches || isBP) {
+        if ((range ?: exprElement.textRange) == element.textRange || isBP) {
             isResuming = false
             isBP = true
+            focusPsi(exprElement)
         }
         if (!isResuming) {
             fillLocalVariables()
@@ -75,6 +78,9 @@ class CheckTypeDebugger(
     private val passTree = Tree(passRoot)
     private val passModel = passTree.model as DefaultTreeModel
     private val varList = CollectionListModel<Binding>()
+    private var focusedPsi: PsiElement? = null
+    private var lastRangeHighlighter: RangeHighlighter? = null
+    private val highlightManager = HighlightManager.getInstance(element.project)
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
         is DefaultMutableTreeNode -> configureCell(expr.userObject, cell, isExpectedType)
@@ -103,11 +109,20 @@ class CheckTypeDebugger(
         else -> error("Bad argument: ${expr.javaClass}")
     }
 
+    override fun finalize(result: TypecheckingResult?, sourceNode: Concrete.SourceNode?, propIfPossible: Boolean): TypecheckingResult {
+        checkAndRemoveExpressionHighlight()
+        return super.finalize(result, sourceNode, propIfPossible)
+    }
+
     init {
         passTree.cellRenderer = object : LabelBasedRenderer.Tree() {
             override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
                 super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
                 configureCell(value, this, isExpectedType = true)
+                if (selected && focused && value is DefaultMutableTreeNode) {
+                    val psi = value.userObject
+                    if (psi is PsiElement) focusPsi(psi)
+                }
                 return this
             }
         }
@@ -117,6 +132,26 @@ class CheckTypeDebugger(
             LabelBasedRenderer.List<Binding>().also { configureCell(bind, it) }
         }
         splitter.secondComponent = JBScrollPane(varJBList)
+    }
+
+    private fun focusPsi(userObject: PsiElement) {
+        if (userObject == focusedPsi) return
+        focusedPsi = userObject
+        checkAndRemoveExpressionHighlight()
+        val range = element.textRange
+        val list = SmartList<RangeHighlighter>()
+        highlightManager.addRangeHighlight(editor,
+            range.startOffset, range.endOffset,
+            ArendDebugService.DEBUGGED_EXPRESSION,
+            false, false, list)
+        lastRangeHighlighter = list[0]
+    }
+
+    private fun checkAndRemoveExpressionHighlight() {
+        val rangeHighlighter = lastRangeHighlighter
+        if (rangeHighlighter != null) {
+            highlightManager.removeSegmentHighlighter(editor, rangeHighlighter)
+        }
     }
 
     private fun icon(expr: Expression?) = when (expr) {

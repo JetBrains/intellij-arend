@@ -1,6 +1,8 @@
 package org.arend.toolWindow.debugExpr
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
+import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -13,6 +15,8 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
     companion object Constants {
         const val TITLE = "Typecheck Debug"
         const val ID = "Arend.Typecheck.Debug"
+
+        val DEBUGGED_EXPRESSION = EditorColors.TEXT_SEARCH_RESULT_ATTRIBUTES
     }
 
     override val title: String get() = TITLE
