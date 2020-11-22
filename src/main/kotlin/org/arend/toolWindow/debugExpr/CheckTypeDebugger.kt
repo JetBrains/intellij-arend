@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
@@ -40,7 +39,6 @@ class CheckTypeDebugger(
     errorReporter: ErrorReporter,
     extension: ArendExtension?,
     private val element: PsiElement,
-    val toolWindow: ToolWindow,
     private val editor: Editor,
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
     lateinit var thread: Thread
@@ -162,6 +160,7 @@ class CheckTypeDebugger(
         val rangeHighlighter = lastRangeHighlighter
         if (rangeHighlighter != null) {
             highlightManager.removeSegmentHighlighter(editor, rangeHighlighter)
+            lastRangeHighlighter = null
         }
     }
 
@@ -192,6 +191,7 @@ class CheckTypeDebugger(
 
     override fun dispose() {
         splitter.dispose()
+        checkAndRemoveExpressionHighlight()
     }
 
     abstract inner class BreakpointAction(

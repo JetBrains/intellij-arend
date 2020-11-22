@@ -38,15 +38,12 @@ class StartDebuggerAction : ArendPopupAction() {
             val (head, _) = collectArendExprs(expr.parent, range) ?: return displayErrorHint(editor, "Cannot find a suitable expression.")
             val def = expr.ancestor<TCDefinition>()?.tcReferable ?: return displayErrorHint(editor, "Selected expr must be inside of an expression.")
             val service = project.service<TypeCheckingService>()
-            val debugger = project.service<ArendDebugService>().createDebugger(def.representableName) { tw ->
-                CheckTypeDebugger(
-                    project.service<ErrorService>(),
-                    LibraryArendExtensionProvider(service.libraryManager).getArendExtension(def),
-                    head.linearDescendants.last { it is ArendSourceNode },
-                    tw,
-                    editor,
-                )
-            }
+            val debugger = project.service<ArendDebugService>().createDebugger(def.representableName, CheckTypeDebugger(
+                project.service<ErrorService>(),
+                LibraryArendExtensionProvider(service.libraryManager).getArendExtension(def),
+                head.linearDescendants.last { it is ArendSourceNode },
+                editor,
+            ))
             debugger.instancePool = GlobalInstancePool(PsiInstanceProviderSet()[def], debugger)
             val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true).getConcrete(def) as? Concrete.Definition
                 ?: return displayErrorHint(editor, "Cannot find concrete definition corresponding to ${def.representableName}.")
