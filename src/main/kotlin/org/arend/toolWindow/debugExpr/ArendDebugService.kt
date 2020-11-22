@@ -29,7 +29,9 @@ class ArendDebugService(project: Project) : SimpleToolWindowService(project) {
             .createActionToolbar(TITLE, debugger.createActionGroup(), true).component
         val content = ContentFactory.SERVICE.getInstance()
             .createContent(toolWindowPanel.component, name, false)
-        toolWindow.contentManager.addContent(content)
+        val contentManager = toolWindow.contentManager
+        contentManager.addContent(content, 0)
+        contentManager.requestFocus(content, true)
         content.preferredFocusableComponent = toolWindowPanel.content
         activate(toolWindow, manager)
         return debugger

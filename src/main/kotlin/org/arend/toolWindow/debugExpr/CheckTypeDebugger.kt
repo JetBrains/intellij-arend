@@ -28,6 +28,7 @@ import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.MutableTreeNode
+import javax.swing.tree.TreePath
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -42,6 +43,7 @@ class CheckTypeDebugger(
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
         val node = DefaultMutableTreeNode(expr, true)
         node.add(DefaultMutableTreeNode(expectedType, false))
+        node.add(DefaultMutableTreeNode(expr.javaClass, false))
         passModel.insertNodeInto(node, passRoot, 0)
         val matches = run {
             val exprElement = expr.data as? PsiElement ?: return@run false
@@ -57,6 +59,7 @@ class CheckTypeDebugger(
         }
         if (!isResuming) {
             fillLocalVariables()
+            passTree.expandPath(TreePath(passRoot))
             while (!isResuming) {
                 Thread.onSpinWait()
             }
@@ -77,13 +80,12 @@ class CheckTypeDebugger(
         is DefaultMutableTreeNode -> configureCell(expr.userObject, cell, isExpectedType)
         is Concrete.Expression -> cell.apply {
             icon = icon(expr)
-            text = "[${expr.javaClass.simpleName}] $expr"
+            text = "$expr"
         }
         is Expression -> cell.apply {
             icon = icon(expr)
             text = buildString {
                 if (isExpectedType) append("Expected type: ")
-                else append("[").append(expr.javaClass.simpleName).append("] ")
                 append(expr)
             }
         }
@@ -96,6 +98,7 @@ class CheckTypeDebugger(
             }
         }
         is String -> cell.apply { text = expr }
+        is Class<*> -> cell.apply { text = "Type: ${expr.simpleName}" }
         null -> cell
         else -> error("Bad argument: ${expr.javaClass}")
     }
