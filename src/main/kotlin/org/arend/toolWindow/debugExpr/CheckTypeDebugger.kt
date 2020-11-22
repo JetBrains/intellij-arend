@@ -4,6 +4,7 @@ import com.intellij.codeInsight.highlighting.HighlightManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.DumbAwareAction
@@ -51,18 +52,19 @@ class CheckTypeDebugger(
         node.add(DefaultMutableTreeNode(expectedType, false))
         passModel.insertNodeInto(node, passRoot, 0)
         val exprElement = expr.data as PsiElement
-        var range: TextRange? = null
+        var rangeTmp: TextRange? = null
         if (exprElement is ArendArgumentAppExpr) {
-            exprElement.firstChild?.apply { range = textRange }
+            exprElement.firstChild?.apply { rangeTmp = textRange }
         }
-        if ((range ?: exprElement.textRange) == element.textRange || isBP) {
+        val range = rangeTmp ?: exprElement.textRange
+        if (range == element.textRange || isBP) {
             isResuming = false
             isBP = true
-            focusPsi(exprElement)
+            focusPsi(range)
         }
         if (!isResuming) {
             fillLocalVariables()
-            passTree.expandPath(TreePath(passRoot))
+            passTree.expandPath(TreePath(node.path))
             while (!isResuming) {
                 Thread.onSpinWait()
             }
@@ -78,7 +80,7 @@ class CheckTypeDebugger(
     private val passTree = Tree(passRoot)
     private val passModel = passTree.model as DefaultTreeModel
     private val varList = CollectionListModel<Binding>()
-    private var focusedPsi: PsiElement? = null
+    private var focusedRange: TextRange? = null
     private var lastRangeHighlighter: RangeHighlighter? = null
     private val highlightManager = HighlightManager.getInstance(element.project)
 
@@ -110,7 +112,9 @@ class CheckTypeDebugger(
     }
 
     override fun finalize(result: TypecheckingResult?, sourceNode: Concrete.SourceNode?, propIfPossible: Boolean): TypecheckingResult {
-        checkAndRemoveExpressionHighlight()
+        runInEdt {
+            checkAndRemoveExpressionHighlight()
+        }
         return super.finalize(result, sourceNode, propIfPossible)
     }
 
@@ -119,9 +123,12 @@ class CheckTypeDebugger(
             override fun getTreeCellRendererComponent(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, focused: Boolean): Component {
                 super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
                 configureCell(value, this, isExpectedType = true)
-                if (selected && focused && value is DefaultMutableTreeNode) {
-                    val psi = value.userObject
-                    if (psi is PsiElement) focusPsi(psi)
+                if (selected && focused) {
+                    (((value
+                        as? DefaultMutableTreeNode)?.userObject
+                        as? Concrete.Expression)?.data
+                        as? PsiElement)?.textRange
+                        ?.let { focusPsi(it) }
                 }
                 return this
             }
@@ -134,20 +141,21 @@ class CheckTypeDebugger(
         splitter.secondComponent = JBScrollPane(varJBList)
     }
 
-    private fun focusPsi(userObject: PsiElement) {
-        if (userObject == focusedPsi) return
-        focusedPsi = userObject
-        checkAndRemoveExpressionHighlight()
-        val range = element.textRange
-        val list = SmartList<RangeHighlighter>()
-        highlightManager.addRangeHighlight(editor,
-            range.startOffset, range.endOffset,
-            ArendDebugService.DEBUGGED_EXPRESSION,
-            false, false, list)
-        lastRangeHighlighter = list[0]
+    private fun focusPsi(range: TextRange) {
+        if (range == focusedRange) return
+        focusedRange = range
+        runInEdt {
+            checkAndRemoveExpressionHighlight()
+            val list = SmartList<RangeHighlighter>()
+            highlightManager.addRangeHighlight(editor,
+                range.startOffset, range.endOffset,
+                ArendDebugService.DEBUGGED_EXPRESSION,
+                false, false, list)
+            lastRangeHighlighter = list[0]
+        }
     }
 
-    private fun checkAndRemoveExpressionHighlight() {
+    fun checkAndRemoveExpressionHighlight() {
         val rangeHighlighter = lastRangeHighlighter
         if (rangeHighlighter != null) {
             highlightManager.removeSegmentHighlighter(editor, rangeHighlighter)

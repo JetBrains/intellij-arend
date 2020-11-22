@@ -1,5 +1,6 @@
 package org.arend.toolWindow.debugExpr
 
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -53,6 +54,9 @@ class StartDebuggerAction : ArendPopupAction() {
             val thread = object : Thread() {
                 override fun run() {
                     definition.accept(DefinitionTypechecker(debugger), null)
+                    runInEdt {
+                        debugger.checkAndRemoveExpressionHighlight()
+                    }
                 }
             }
             debugger.thread = thread
