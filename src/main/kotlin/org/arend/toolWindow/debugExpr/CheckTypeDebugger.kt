@@ -24,6 +24,7 @@ import org.arend.core.expr.*
 import org.arend.ext.ArendExtension
 import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ArendArgumentAppExpr
+import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
@@ -51,16 +52,18 @@ class CheckTypeDebugger(
         node.add(DefaultMutableTreeNode(expr.javaClass, false))
         node.add(DefaultMutableTreeNode(expectedType, false))
         passModel.insertNodeInto(node, passRoot, 0)
-        val exprElement = expr.data as PsiElement
-        var rangeTmp: TextRange? = null
-        if (exprElement is ArendArgumentAppExpr) {
-            exprElement.firstChild?.apply { rangeTmp = textRange }
+        val matches = run {
+            val exprElement = expr.data as? PsiElement ?: return@run false
+            var range: TextRange? = null
+            if (exprElement is ArendArgumentAppExpr) {
+                exprElement.firstChild?.apply { range = textRange }
+            }
+            (range ?: exprElement.textRange) == element.textRange
         }
-        val range = rangeTmp ?: exprElement.textRange
-        if (range == element.textRange || isBP) {
+        if (matches || isBP) {
             isResuming = false
             isBP = true
-            focusPsi(range)
+            focusPsi(rangeOfConcrete(expr))
         }
         if (!isResuming) {
             fillLocalVariables()
@@ -124,11 +127,10 @@ class CheckTypeDebugger(
                 super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused)
                 configureCell(value, this, isExpectedType = true)
                 if (selected && focused) {
-                    (((value
+                    ((value
                         as? DefaultMutableTreeNode)?.userObject
-                        as? Concrete.Expression)?.data
-                        as? PsiElement)?.textRange
-                        ?.let { focusPsi(it) }
+                        as? Concrete.Expression)
+                        ?.let { focusPsi(rangeOfConcrete(it)) }
                 }
                 return this
             }
