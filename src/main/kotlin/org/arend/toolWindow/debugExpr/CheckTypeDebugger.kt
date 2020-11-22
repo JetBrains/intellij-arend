@@ -63,7 +63,7 @@ class CheckTypeDebugger(
         if (matches || isBP) {
             isResuming = false
             isBP = true
-            focusPsi(rangeOfConcrete(expr))
+            focusConcrete(expr)
         }
         if (!isResuming) {
             fillLocalVariables()
@@ -83,7 +83,7 @@ class CheckTypeDebugger(
     private val passTree = Tree(passRoot)
     private val passModel = passTree.model as DefaultTreeModel
     private val varList = CollectionListModel<Binding>()
-    private var focusedRange: TextRange? = null
+    private var focusedConcrete: Concrete.Expression? = null
     private var lastRangeHighlighter: RangeHighlighter? = null
     private val highlightManager = HighlightManager.getInstance(element.project)
 
@@ -130,7 +130,7 @@ class CheckTypeDebugger(
                     ((value
                         as? DefaultMutableTreeNode)?.userObject
                         as? Concrete.Expression)
-                        ?.let { focusPsi(rangeOfConcrete(it)) }
+                        ?.let { focusConcrete(it) }
                 }
                 return this
             }
@@ -143,12 +143,13 @@ class CheckTypeDebugger(
         splitter.secondComponent = JBScrollPane(varJBList)
     }
 
-    private fun focusPsi(range: TextRange) {
-        if (range == focusedRange) return
-        focusedRange = range
+    private fun focusConcrete(concrete: Concrete.Expression) {
+        if (concrete === focusedConcrete) return
+        focusedConcrete = concrete
         runInEdt {
             checkAndRemoveExpressionHighlight()
             val list = SmartList<RangeHighlighter>()
+            val range = rangeOfConcrete(concrete)
             highlightManager.addRangeHighlight(editor,
                 range.startOffset, range.endOffset,
                 ArendDebugService.DEBUGGED_EXPRESSION,
