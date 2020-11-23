@@ -99,12 +99,8 @@ class CheckTypeDebugger(
             }
         }
         is Binding -> cell.apply {
-            icon = icon(expr.typeExpr)
-            text = buildString {
-                append(expr.name)
-                append(" : ")
-                append(expr.typeExpr)
-            }
+            configureCell(expr.typeExpr, cell, isExpectedType)
+            text = "${expr.name} : $text"
         }
         is String -> cell.apply { text = expr }
         is Class<*> -> cell.apply { text = "Type: ${expr.simpleName}" }
