@@ -171,14 +171,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 is ExplicitNamePattern ->
                     println("${mdEntry.key.toString1()} -> existing parameter ${mdValue.bindingPsi.javaClass.simpleName}/${mdValue.bindingPsi.text}")
                 is ImplicitConstructorPattern ->
-                    println("${mdEntry.key.toString1()} -> implicit parameter of \"${mdValue.enclosingNode.text}\" before \"${mdValue.followingParameter?.text}\" after ${mdValue.implicitArgCount} implicit args")
+                    println("${mdEntry.key.toString1()} -> implicit parameter of ${mdValue.enclosingNode.javaClass.simpleName}/\"${mdValue.enclosingNode.text}\" before \"${mdValue.followingParameter?.text}\" after ${mdValue.implicitArgCount} implicit args")
             }
 
 
             println()
         }
 
-        dump()
+        //dump()
 
         // At this point we have collected enough information to actually attempt modifying PSI
         val psiFactory = ArendPsiFactory(project)
@@ -270,11 +270,31 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
             }
             for (insertDataEntry in insertData) {
-                val position = insertDataEntry.key
                 val toInsertList = insertDataEntry.value
+                val enclosingNode = insertDataEntry.key.first
+                val position = insertDataEntry.key.second
+
+                var skippedParams = 0
                 toInsertList.sortBy { it.first }
+
+                var nullAnchor: PsiElement? = null
                 for (entry in toInsertList) {
-                    //TODO: Implement insertion of primers
+                    var patternLine = ""
+                    for (i in 0 until entry.first - skippedParams) patternLine += " {_}"
+                    patternLine += " {${entry.second.name}}"
+                    val templateList = (psiFactory.createAtomPattern(patternLine).parent as ArendPattern).atomPatternOrPrefixList
+                    if (position == null) {
+                        if (enclosingNode is ArendPattern) {
+                            if (nullAnchor == null) nullAnchor = enclosingNode.defIdentifier
+                            enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), nullAnchor!!)
+                            nullAnchor = enclosingNode.atomPatternOrPrefixList.last()
+                            nullAnchor.childOfType<ArendPattern>()?.let { patternPrimers[entry.second] = it }
+                        }
+                    } else {
+                        enclosingNode.addRangeBefore(templateList.first(), templateList.last(), position)
+                        position.prevSibling.childOfType<ArendPattern>()?.let { patternPrimers[entry.second] = it }
+                    }
+                    skippedParams = entry.first + 1
                 }
             }
 

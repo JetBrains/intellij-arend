@@ -25,26 +25,6 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | _, _ => con4
     """
 
-    private val data4 = data3 + """
-      
-      \data Container (a b1 : Nat)
-        | envelope (D a b1) 
-    """
-
-    private val data5 = data1 + """
-      \data Index (A : \Type) 
-        | index {n : Nat} (v : Vec A n)  
-    """
-
-    private val data6 = """ 
-      \data Id (A : \Type)
-        | env {a : A}
-        
-      \data Vec (A : \Type) (n : Id Nat) \elim n
-        | env {0} => nil
-        | env {suc n} => cons A (Vec A (env {_} {n}))  
-    """
-
     /* fun test68_1() = simpleQuickFixTest("Do", data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | (){-caret-} 
@@ -209,6 +189,12 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | suc n, cons x xs => n 
     """)
 
+    private val data4 = data3 + """
+      
+      \data Container (a b1 : Nat)
+        | envelope (D a b1) 
+    """
+
     fun test69_12() = simpleQuickFixTest("Do", data4 + """
        \func foo (a b : Nat) (d : Container a b) : Nat \elim a, d
          | 0, envelope con1{-caret-} => 1
@@ -230,6 +216,11 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (suc n, cons a v) => suc n 
     """)
 
+    private val data5 = data1 + """
+      \data Index (A : \Type) 
+        | index {n : Nat} (v : Vec A n)  
+    """
+
     //TODO: Fixme
     fun test69_14() = simpleQuickFixTest("Do", data5 + """
        \func foo {A : \Type} (p : Index A) : Nat \elim p
@@ -241,6 +232,15 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | index {suc n} (cons a v) => {?} 
     """)
 
+    private val data6 = """ 
+      \data Id (A : \Type)
+        | env {a : A}
+        
+      \data Vec (A : \Type) (n : Id Nat) \elim n
+        | env {0} => nil
+        | env {suc n} => cons A (Vec A (env {_} {n}))  
+    """
+
     //TODO: Fixme
     fun test69_15() = simpleQuickFixTest("Do", data6 + """
        \func foo {A : \Type} {e : Id Nat} (p : Vec A e) : Nat
@@ -250,5 +250,46 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        \func foo {A : \Type} {e : Id Nat} (p : Vec A e) : Nat
          | {_}, {env {0}}, nil => {?}
          | {_}, {env {suc n}}, cons a v => {?}  
+    """)
+
+    val data7 = """
+       \data Vec (A : \Type) (m n k : Nat) \elim m, n, k
+         | 0, n, 0 => nil
+         | suc m, n, suc k => cons A (Vec A m n k)
+
+       \data Index (A : \Type)
+         | index {m n k : Nat}  (v : Vec A m n k) 
+    """
+
+    fun test69_16() = simpleQuickFixTest("Do", data7 + """
+       \func foo {A : \Type} (p : Index A) : Nat \elim p
+         | index nil{-caret-} => {?}
+         | index (cons a v) => {?} 
+    """, data7 + """
+       \func foo {A : \Type} (p : Index A) : Nat \elim p
+         | index {0} {_} {0} nil => {?}
+         | index {suc n} {_} {suc m} (cons a v) => {?} 
+    """)
+
+    val data8 = """
+       \data D1
+         | env {a b c : Nat}
+
+       \data Vec (A : \Type) (i : D1) \elim i
+         | env {0} {n} {0} => nil
+         | env {suc m} {n} {suc k} => cons A (Vec A (env {m} {n} {k}))
+
+       \data D2 (A : \Type) (i : D1)
+         | index (v : Vec A i)
+    """
+
+    fun test69_17() = simpleQuickFixTest("Do", data8 + """
+       \func foo {A : \Type} (i : D1) (p : D2 A i) : Nat \elim i, p
+         | env, index nil{-caret-} => {?}
+         | env, index (cons a v) => {?}
+    """, data8 + """
+       \func foo {A : \Type} (i : D1) (p : D2 A i) : Nat \elim i, p
+         | env {0} {_} {0}, index nil{-caret-} => {?}
+         | env {suc m} {_} {suc k}, index (cons a v) => {?}  
     """)
 }
