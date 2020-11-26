@@ -61,8 +61,12 @@
     \func mod (n m : Nat) => (divMod n m).2
 
     \lemma divModProp (n m : Nat) : m * div n m + mod n m = n
+  }
 
-    \lemma modProp (n : Nat) {m : Nat} (p : 1 <= m) : suc (mod n m) <= m
+\data Fin (n : Nat)
+  \where {
+    \use \coerce fromNat {k : Nat} (n : Nat) : Fin (suc k)
+      => n Nat.`mod` suc k
   }
 
 \data Int
