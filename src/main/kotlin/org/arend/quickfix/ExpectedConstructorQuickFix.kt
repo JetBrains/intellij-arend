@@ -16,6 +16,7 @@ import org.arend.core.subst.ExprSubstitution
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.variable.Variable
+import org.arend.intention.SplitAtomPatternIntention.Companion.locatePattern
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -24,6 +25,7 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.ConcreteBuilder.convertClause
+import org.arend.term.abs.ConcreteBuilder.convertPattern
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.local.ExpectedConstructorError
 import org.arend.typechecking.patternmatching.ExpressionMatcher
@@ -310,8 +312,20 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 for (cS in correctedSubsts) {
                     val patternPrimer = patternPrimers[cS.key]
                     if (patternPrimer != null) {
+                        val concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
+                        val primerOk: Boolean
+                        run {
+                            val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
+                            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
+                            resolver.visitPattern(concretePrimer, null)
+                            resolver.resolvePattern(concretePrimer)
+                            primerOk = cer.errorsNumber == 0
+                        }
+
+
                         val substitutions = HashMap<PsiElement, ExpressionPattern>()
-                        val unifyOk = unify(cS.value, patternPrimer, substitutions)
+                        val unifyOk = unify(cS.value, concretePrimer, substitutions)
+
                         if (unifyOk) {
                             //TODO: Perform actual substitutions; we may need to reuse SplitAtomPatternIntention code
                         }
@@ -326,8 +340,27 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
     companion object {
         fun Variable.toString1(): String = "${this}@${this.hashCode().rem(100000)}"
 
-        fun unify(pattern: ExpressionPattern, abstractPattern: ArendPattern, map: HashMap<PsiElement, ExpressionPattern>): Boolean {
-            println("Unify ${pattern.toExpression()}/${pattern} against ${abstractPattern.text}/${abstractPattern}")
+        fun unify(pattern: ExpressionPattern, concretePattern: Concrete.Pattern, map: HashMap<PsiElement, ExpressionPattern>): Boolean {
+            val data = concretePattern.data as PsiElement
+            when (concretePattern) {
+                is Concrete.NamePattern -> {
+                    map[data] = pattern
+                    return true
+                }
+                is Concrete.ConstructorPattern -> {
+
+                }
+
+                is Concrete.NumberPattern -> {
+
+                }
+
+                is Concrete.TuplePattern -> {
+
+                }
+
+            }
+            println("Unify ${pattern.toExpression()}/${pattern} against ${(concretePattern.data as? PsiElement)?.text}/${concretePattern}")
             return false
         }
 

@@ -395,7 +395,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     doFindVariablePatterns(variables, child, element)
         }
 
-        private fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
+        fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
             var pattern: PsiElement? = null
             var patternOwner: PsiElement? = element
             val indexList = ArrayList<Int>()
