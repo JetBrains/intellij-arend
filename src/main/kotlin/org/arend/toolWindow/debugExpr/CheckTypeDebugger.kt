@@ -29,11 +29,13 @@ import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import java.awt.Component
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreePath
+import kotlin.concurrent.withLock
 
 class CheckTypeDebugger(
     errorReporter: ErrorReporter,
@@ -43,6 +45,8 @@ class CheckTypeDebugger(
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
     lateinit var thread: Thread
     private var isResuming = true
+    private val lock = ReentrantLock()
+    private var condition = lock.newCondition()
     private var isBP = false
 
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?): TypecheckingResult? {
@@ -66,8 +70,10 @@ class CheckTypeDebugger(
         if (!isResuming) {
             fillLocalVariables()
             passTree.expandPath(TreePath(node.path))
-            while (!isResuming) {
-                Thread.onSpinWait()
+            lock.withLock {
+                while (!isResuming) {
+                    condition.await()
+                }
             }
             clearLocalVariables()
         }
@@ -109,6 +115,7 @@ class CheckTypeDebugger(
     }
 
     override fun finalize(result: TypecheckingResult?, sourceNode: Concrete.SourceNode?, propIfPossible: Boolean): TypecheckingResult {
+        isBP = false
         runInEdt {
             checkAndRemoveExpressionHighlight()
         }
@@ -201,14 +208,16 @@ class CheckTypeDebugger(
 
     fun createActionGroup() = DefaultActionGroup(
         object : BreakpointAction("Resume", ArendIcons.DEBUGGER_RESUME) {
-            override fun actionPerformed(e: AnActionEvent) = synchronized(this@CheckTypeDebugger) {
+            override fun actionPerformed(e: AnActionEvent) = lock.withLock {
                 isBP = false
                 isResuming = true
+                condition.signal()
             }
         },
         object : BreakpointAction("Step", ArendIcons.DEBUGGER_STEP) {
-            override fun actionPerformed(e: AnActionEvent) = synchronized(this@CheckTypeDebugger) {
+            override fun actionPerformed(e: AnActionEvent) = lock.withLock {
                 isResuming = true
+                condition.signal()
             }
         },
     )
