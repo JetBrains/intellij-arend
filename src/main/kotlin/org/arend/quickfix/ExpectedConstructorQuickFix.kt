@@ -16,7 +16,7 @@ import org.arend.core.subst.ExprSubstitution
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.variable.Variable
-import org.arend.intention.SplitAtomPatternIntention.Companion.locatePattern
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -271,6 +271,150 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     }
                 }
             }
+
+            insertPrimers(psiFactory, insertData) {a, b -> patternPrimers[a] = b }
+
+            if (clausesListPsi != null) {
+                val processedSubstitutions = HashMap<PsiElement, ExpressionPattern>()
+                val newPrimers = HashMap<ImplicitConstructorPattern, ExpressionPattern>()
+                val mismatchedPatterns = HashMap<PsiElement, Pair<ExpressionPattern, List<PsiElement>>>()
+
+                // STEP 6: Unify matched patterns with existing patterns and calculate elementary substitutions (of the form "variable" -> "expression")
+                for (cS in correctedSubsts) {
+                    val patternPrimer = patternPrimers[cS.key]
+                    if (patternPrimer != null) {
+                        var concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
+                        val primerOk: Boolean
+                        run {
+                            val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
+                            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
+                            val primerList = ArrayList<Concrete.Pattern>()
+                            primerList.add(concretePrimer)
+                            resolver.visitPatterns(primerList, null, true)
+                            concretePrimer = primerList[0]
+                            resolver.resolvePattern(concretePrimer)
+                            primerOk = cer.errorsNumber == 0
+                        }
+
+                        if (primerOk) unify(cS.value, concretePrimer, processedSubstitutions, newPrimers, mismatchedPatterns)
+                    }
+                }
+
+                // STEP 7: Insert new primers
+                val newPrimerInsertData = HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>()
+                val tempVarMatchInfo = HashMap<Variable, ExpressionPattern>()
+                for (p in newPrimers) {
+                    val descriptor = p.key
+                    val positionKey = Pair(descriptor.enclosingNode, descriptor.followingParameter)
+                    var positionList = newPrimerInsertData[positionKey]
+                    if (positionList == null) {
+                        positionList = ArrayList()
+                        newPrimerInsertData[positionKey] = positionList
+                    }
+                    val temp = VariableImpl("temp${descriptor.hashCode().rem(1000)}") // This variable name does not appear in the resulting code and is needed only for debugging
+                    positionList.add(Pair(descriptor.implicitArgCount, temp))
+                    tempVarMatchInfo[temp] = p.value
+                }
+
+                insertPrimers(psiFactory, newPrimerInsertData) {tempVar, createdPrimer -> tempVarMatchInfo[tempVar]?.let{ processedSubstitutions[createdPrimer] = it}}
+
+                // STEP 8: Perform actual substitutions (at this point all keys of substEntry should be simple NamePatterns...)
+                for (removeEntry in mismatchedPatterns) {
+                    println("mismatchedEntry: ${removeEntry.key.text} |-> ${removeEntry.value.first.toExpression()} variables:${removeEntry.value.second.map { it.text }.toList()}")
+                }
+                for (substEntry in processedSubstitutions) {
+                    println("splitEntry: ${substEntry.key.text} |-> ${substEntry.value.toExpression()}")
+                }
+            }
+        } else { // case
+            println("caseExpressions: ${error.caseExpressions}")
+        }
+    }
+
+    companion object {
+        fun Variable.toString1(): String = "${this}@${this.hashCode().rem(100000)}"
+
+        fun stripOfImplicitBraces(patternPsi: PsiElement): PsiElement {
+            if (patternPsi is ArendPattern && patternPsi.let{ it.defIdentifier == null && it.atomPatternOrPrefixList.size == 0 && it.atomPattern != null }) {
+                val atom = patternPsi.atomPattern!!
+                if (atom.lbrace != null && atom.rbrace != null && atom.patternList.size == 1)
+                    return atom.patternList[0]
+            }
+            return patternPsi
+        }
+
+        fun collectBindings(pattern: Concrete.Pattern, collectedVariables: MutableList<PsiElement>) {
+            val data = pattern.data as PsiElement
+            when (pattern) {
+                is Concrete.NamePattern ->  collectedVariables.add(if (pattern.isExplicit) data else stripOfImplicitBraces(data))
+                is Concrete.ConstructorPattern -> for (p in pattern.patterns) collectBindings(p, collectedVariables)
+                is Concrete.TuplePattern -> for (p in pattern.patterns) collectBindings(p, collectedVariables)
+                else -> {}
+            }
+        }
+
+        fun unify(pattern: ExpressionPattern, concretePattern: Concrete.Pattern,
+                  processedSubstitutions: MutableMap<PsiElement, ExpressionPattern>,
+                  newPrimers: MutableMap<ImplicitConstructorPattern, ExpressionPattern>,
+                  mismatchedPatterns: MutableMap<PsiElement, Pair<ExpressionPattern, List<PsiElement>>>) {
+            val data = concretePattern.data as PsiElement
+
+            fun yield() {
+                val key = if (concretePattern.isExplicit) data else stripOfImplicitBraces(data)
+                if (concretePattern is Concrete.NamePattern) processedSubstitutions[key] = pattern else {
+                    val bindingsToRemove = ArrayList<PsiElement>()
+                    collectBindings(concretePattern, bindingsToRemove)
+                    mismatchedPatterns[key] = Pair(pattern, bindingsToRemove)
+                }
+            }
+
+            when (concretePattern) {
+                is Concrete.NamePattern -> if (pattern !is BindingPattern) yield()
+                is Concrete.ConstructorPattern -> { //TODO: Code too similar to "matchConcreteWithWellTyped". Could we somehow isolate common pieces of code for these functions?
+                    val existingConstructor = concretePattern.constructor
+                    val substitutedConstructor = (pattern.constructor)?.referable
+                    if (pattern is ConstructorExpressionPattern && substitutedConstructor == existingConstructor) {
+                        val bindingsIterator = DependentLink.Helper.toList(substitutedConstructor.typechecked.parameters).iterator()
+                        val constructorExpressionParameters = pattern.subPatterns.iterator()
+                        val concreteSubPatternsIterator = concretePattern.patterns.iterator()
+
+                        var concreteSubPattern: Concrete.Pattern? = null
+                        var skippedParameters = 0
+                        fun nextConcretePattern() {
+                            concreteSubPattern = if (concreteSubPatternsIterator.hasNext()) concreteSubPatternsIterator.next() else null
+                            skippedParameters = 0
+                        }
+                        nextConcretePattern()
+
+                        while (bindingsIterator.hasNext() && constructorExpressionParameters.hasNext()) {
+                            val currentBinding = bindingsIterator.next()
+                            val currentSubpattern = constructorExpressionParameters.next()
+                            val concreteSubPatternVal = concreteSubPattern
+
+                            if (concreteSubPatternVal != null && concreteSubPatternVal.isExplicit == currentBinding.isExplicit) {
+                                if (currentSubpattern !is BindingPattern) unify(currentSubpattern, concreteSubPatternVal, processedSubstitutions, newPrimers, mismatchedPatterns)
+                                nextConcretePattern()
+                            } else if (concreteSubPatternVal == null || concreteSubPatternVal.isExplicit && !currentBinding.isExplicit) {
+                                val enclosingNode = (concretePattern.data as PsiElement).let{ if (concretePattern.isExplicit) it else stripOfImplicitBraces(it) }
+
+                                if (currentSubpattern !is BindingPattern) newPrimers[ImplicitConstructorPattern(enclosingNode, concreteSubPatternVal?.data as? PsiElement, skippedParameters)] = currentSubpattern
+                                skippedParameters++
+                            }
+                        }
+                    } else yield()
+
+                }
+                is Concrete.NumberPattern -> yield()
+                is Concrete.TuplePattern -> if (pattern is ConstructorExpressionPattern && pattern.constructor == null) for (pair in concretePattern.patterns.zip(pattern.subPatterns)) {
+                    unify(pair.second, pair.first, processedSubstitutions, newPrimers, mismatchedPatterns)
+                } else yield()
+            }
+        }
+
+        fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
+                if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
+
+        fun insertPrimers(psiFactory: ArendPsiFactory, insertData: HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>, callback: (Variable, ArendPattern) -> Unit) {
             for (insertDataEntry in insertData) {
                 val toInsertList = insertDataEntry.value
                 val enclosingNode = insertDataEntry.key.first
@@ -283,89 +427,23 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 for (entry in toInsertList) {
                     var patternLine = ""
                     for (i in 0 until entry.first - skippedParams) patternLine += " {_}"
-                    patternLine += " {${entry.second.name}}"
+                    patternLine +=  /*" {_}" */ " {${entry.second.name}}"
                     val templateList = (psiFactory.createAtomPattern(patternLine).parent as ArendPattern).atomPatternOrPrefixList
                     if (position == null) {
                         if (enclosingNode is ArendPattern) {
                             if (nullAnchor == null) nullAnchor = enclosingNode.defIdentifier
                             enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), nullAnchor!!)
                             nullAnchor = enclosingNode.atomPatternOrPrefixList.last()
-                            nullAnchor.childOfType<ArendPattern>()?.let { patternPrimers[entry.second] = it }
+                            nullAnchor.childOfType<ArendPattern>()?.let { callback.invoke(entry.second, it)  }
                         }
                     } else {
                         enclosingNode.addRangeBefore(templateList.first(), templateList.last(), position)
-                        position.prevSibling.childOfType<ArendPattern>()?.let { patternPrimers[entry.second] = it }
+                        position.prevSibling.childOfType<ArendPattern>()?.let { callback.invoke(entry.second, it) }
                     }
                     skippedParams = entry.first + 1
                 }
             }
-
-            // STEP 6: Unify matched patterns with existing patterns and perform the actual substitutions
-            if (clausesListPsi != null) {
-                println("patternPrimers: ")
-                for (pp in patternPrimers) {
-                    println("${pp.key.toString1()} -> ${pp.value.javaClass.simpleName}/\"${pp.value.text}\"")
-                }
-
-                println()
-
-                for (cS in correctedSubsts) {
-                    val patternPrimer = patternPrimers[cS.key]
-                    if (patternPrimer != null) {
-                        val concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
-                        val primerOk: Boolean
-                        run {
-                            val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
-                            val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
-                            resolver.visitPattern(concretePrimer, null)
-                            resolver.resolvePattern(concretePrimer)
-                            primerOk = cer.errorsNumber == 0
-                        }
-
-
-                        val substitutions = HashMap<PsiElement, ExpressionPattern>()
-                        val unifyOk = unify(cS.value, concretePrimer, substitutions)
-
-                        if (unifyOk) {
-                            //TODO: Perform actual substitutions; we may need to reuse SplitAtomPatternIntention code
-                        }
-                    }
-                }
-            }
-        } else { // case
-            println("caseExpressions: ${error.caseExpressions}")
         }
-    }
-
-    companion object {
-        fun Variable.toString1(): String = "${this}@${this.hashCode().rem(100000)}"
-
-        fun unify(pattern: ExpressionPattern, concretePattern: Concrete.Pattern, map: HashMap<PsiElement, ExpressionPattern>): Boolean {
-            val data = concretePattern.data as PsiElement
-            when (concretePattern) {
-                is Concrete.NamePattern -> {
-                    map[data] = pattern
-                    return true
-                }
-                is Concrete.ConstructorPattern -> {
-
-                }
-
-                is Concrete.NumberPattern -> {
-
-                }
-
-                is Concrete.TuplePattern -> {
-
-                }
-
-            }
-            println("Unify ${pattern.toExpression()}/${pattern} against ${(concretePattern.data as? PsiElement)?.text}/${concretePattern}")
-            return false
-        }
-
-        fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
-                if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
 
         fun doInsertPrimers(psiFactory: ArendPsiFactory,
                             clause: ArendClause,
