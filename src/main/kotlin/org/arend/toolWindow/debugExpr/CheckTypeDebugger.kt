@@ -6,11 +6,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.ui.CollectionListModel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
@@ -23,6 +23,7 @@ import org.arend.core.expr.*
 import org.arend.ext.ArendExtension
 import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ArendArgumentAppExpr
+import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.result.TypecheckingResult
@@ -68,28 +69,33 @@ class CheckTypeDebugger(
             focusConcrete(expr)
         }
         if (!isResuming) {
-            fillLocalVariables()
             passTree.expandPath(TreePath(node.path))
             lock.withLock {
                 while (!isResuming) {
                     condition.await()
                 }
             }
-            clearLocalVariables()
         }
         val result = super.checkExpr(expr, expectedType)
         passModel.removeNodeFromParent(passRoot.firstChild as MutableTreeNode)
         return result
     }
 
+    private val project get() = element.project
     val splitter = JBSplitter(false, 0.25f)
     private val passRoot = DefaultMutableTreeNode("Stack trace", true)
     private val passTree = Tree(passRoot)
     private val passModel = passTree.model as DefaultTreeModel
-    private val varList = CollectionListModel<Binding>()
+    private val editorFactory = EditorFactory.getInstance()
+    private val consoleEditor = run {
+        val psi = ArendPsiFactory(project, ArendDebugService.TITLE).injected()
+        // editorFactory.createEditor()
+        Unit
+    }
+
     private var focusedConcrete: Concrete.Expression? = null
     private var lastRangeHighlighter: RangeHighlighter? = null
-    private val highlightManager = HighlightManager.getInstance(element.project)
+    private val highlightManager = HighlightManager.getInstance(project)
 
     private fun configureCell(expr: Any?, cell: JLabel, isExpectedType: Boolean = false): JComponent = when (expr) {
         is DefaultMutableTreeNode -> configureCell(expr.userObject, cell, isExpectedType)
@@ -137,11 +143,7 @@ class CheckTypeDebugger(
             }
         }
         splitter.firstComponent = JBScrollPane(passTree)
-        val varJBList = JBList(varList)
-        varJBList.installCellRenderer { bind ->
-            LabelBasedRenderer.List<Binding>().also { configureCell(bind, it) }
-        }
-        splitter.secondComponent = JBScrollPane(varJBList)
+        // splitter.secondComponent = JBScrollPane(varJBList)
     }
 
     private fun focusConcrete(concrete: Concrete.Expression) {
@@ -182,14 +184,6 @@ class CheckTypeDebugger(
         is Concrete.LamExpression -> ArendIcons.LAMBDA_EXPRESSION
         is Concrete.ClassExtExpression -> ArendIcons.CLASS_DEFINITION
         else -> ArendIcons.EXPRESSION
-    }
-
-    private fun clearLocalVariables() {
-        varList.removeAll()
-    }
-
-    private fun fillLocalVariables() {
-        context.forEach { (_, u) -> varList.add(u) }
     }
 
     override fun dispose() {
