@@ -269,7 +269,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
         }
 
-        private fun getIntegralNumber(pattern: CorePattern): Int? {
+        fun getIntegralNumber(pattern: CorePattern): Int? {
             val definition = pattern.constructor
             val isSuc = definition == Prelude.SUC
             val isPos = definition == Prelude.POS

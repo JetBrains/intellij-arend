@@ -368,9 +368,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT
         }
 
-        private fun findAllVariablePatterns(clause: ArendClause, element: PsiElement): HashSet<ArendDefIdentifier> {
+        fun findAllVariablePatterns(clause: ArendClause, excludedPsi: PsiElement?): HashSet<ArendDefIdentifier> {
             val result = HashSet<ArendDefIdentifier>()
-            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, element)
+            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, excludedPsi)
 
             val functionClauses = clause.parent
             val functionBody = functionClauses?.parent
@@ -387,12 +387,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return result
         }
 
-        private fun doFindVariablePatterns(variables: MutableSet<ArendDefIdentifier>, node: PsiElement, element: PsiElement) {
+        private fun doFindVariablePatterns(variables: MutableSet<ArendDefIdentifier>, node: PsiElement, excludedPsi: PsiElement?) {
             if (node is ArendDefIdentifierImplMixin && node.reference.resolve() == node) {
                 variables.add(node)
-            } else if (node != element)
+            } else if (node != excludedPsi)
                 for (child in node.children)
-                    doFindVariablePatterns(variables, child, element)
+                    doFindVariablePatterns(variables, child, excludedPsi)
         }
 
         fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
@@ -454,12 +454,13 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean) {
+        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean, asExpression: String = "") {
+            val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
             val replacementPattern: PsiElement? = when (elementToReplace) {
                 is ArendPattern ->
-                    factory.createClause(if (!elementToReplace.isExplicit) "{$patternLine}" else patternLine).childOfType<ArendPattern>()
+                    factory.createClause(if (!elementToReplace.isExplicit) "{$pLine}" else pLine).childOfType<ArendPattern>()
                 is ArendAtomPatternOrPrefix ->
-                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$patternLine}" else if (requiresParentheses) "($patternLine)" else patternLine)
+                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (requiresParentheses || asExpression.isNotEmpty()) "($pLine)" else pLine)
                 else -> null
             }
 

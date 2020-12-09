@@ -185,7 +185,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | n, cons x xs => n 
     """, data1 + """
        \func test {A : \Type} (n : Nat) (xs : Vec A n) : Nat \elim n, xs
-         | zero, nil => {?n}
+         | 0, nil => {?n}
          | suc n, cons x xs => n 
     """)
 
@@ -301,11 +301,49 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
 
     fun test69_18() = simpleQuickFixTest("Do", data9 + """
        \func test {A : \Type} (n : \Sigma Nat Nat) (xs : Vec A n) : Nat \elim n, xs
-         | (n, m), nil{-caret-} => n
-         | (n, m), cons x xs => n 
+         | (n, m), nil => n
+         | (n, m), cons{-caret-} x xs => n 
     """, data9 + """
        \func test {A : \Type} (n : \Sigma Nat Nat) (xs : Vec A n) : Nat \elim n, xs
          | (0, m), nil => 0
          | (suc n, m), cons x xs => suc n 
     """)
+
+    private val data10 = """
+       \data Foo (a : \Sigma Nat Nat) \elim a
+         | (0, 0) => cons  
+    """
+    fun test69_19() = simpleQuickFixTest("Do", data10 + """
+       \func foo2 (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim f
+         | cons{-caret-} => a 
+    """, data10 + """
+       \func foo2 (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim a, f
+         | (0, 0) \as a, cons => a
+    """)
+
+    fun test69_20() = simpleQuickFixTest("Do", data10 + """
+       \func foo (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim a, f
+         | a \as b, cons{-caret-} => a
+    """, data10 + """
+       \func foo (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim a, f
+         | (0, 0) \as b, cons => b
+    """)
+
+    private val data11 = """
+       \class C {
+         | a : Nat
+         | b : Nat
+       }
+
+       \data Foo (c : C) \elim c
+         | (0, 0) => cons 
+    """
+
+    fun test69_21() = simpleQuickFixTest("Do", data11 + """
+       \func foo {c : C} (f : Foo c): Nat \elim f
+         | cons{-caret-} => c.a 
+    """, data11 + """
+       \func foo {c : C} (f : Foo c): Nat \elim c, f
+         | (0, 0) \as c, cons => c.a
+    """) // TODO: Current implementation can make code invalid!
 }
