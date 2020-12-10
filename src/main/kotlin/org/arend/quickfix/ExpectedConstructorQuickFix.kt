@@ -49,10 +49,7 @@ import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashSet
 import kotlin.math.abs
 
-class ExpectedConstructorQuickFix(
-    val error: ExpectedConstructorError,
-    val cause: SmartPsiElementPointer<ArendCompositeElement>
-) : IntentionAction {
+class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = "arend.patternmatching"
@@ -62,14 +59,8 @@ class ExpectedConstructorQuickFix(
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val parameterType = error.parameter?.type
         val definition = error.definition as? DataLocatedReferable
-        val constructor = error.referable as? DataLocatedReferable
-        val constructorTypechecked = constructor?.typechecked as? Constructor
-
-        if (error.parameter == null || definition == null ||
-            constructorTypechecked == null || parameterType !is DataCallExpression
-        ) return // TODO: Report some message
+        if (error.parameter == null || definition == null) return // TODO: Report some message
 
         val definitionPsi = definition.data?.element
         val bodyPsi = (definitionPsi as? ArendFunctionalDefinition)?.body
@@ -82,18 +73,28 @@ class ExpectedConstructorQuickFix(
         if (error.caseExpressions == null && definitionPsi is PsiElement && definitionPsi is Abstract.Definition) {
             //STEP 0: Typecheck patterns of the function definition for the 2nd time
             val elimParams: List<DependentLink>
-            data class ExpectedConstructorErrorEntry(val error: ExpectedConstructorError, val clause: Concrete.FunctionClause, val substitution: ExprSubstitution)
-            val expectedConstructorEntries = ArrayList<ExpectedConstructorErrorEntry>()
+            class ExpectedConstructorErrorEntry(val error: ExpectedConstructorError, val clause: Concrete.FunctionClause, val substitution: ExprSubstitution, val constructorTypechecked: Constructor) {
+                val matchData = HashMap<DependentLink, VariableLocationDescriptor>() // Initialized at STEP 1
+                val correctedSubsts = HashMap<Variable, ExpressionPattern>() // Initialized at STEP 2
+                val clauseParametersToSpecialize = HashSet<Variable>() // Subset of ClauseParameters; Initialized at STEP 2
+                val clauseDefinitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters (per clause); Initialized at STEP 2
+                val patternPrimers = HashMap<Variable, ArendPattern>() // Initialized at STEP 4
+                val insertData = HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>() // Initialized at STEP 5
+            }
+            val expectedConstructorErrorEntries = ArrayList<ExpectedConstructorErrorEntry>()
 
             run {
                 val cer = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                 val concreteDefinition = convert(ArendReferableConverter, definitionPsi, cer)
-                if (concreteDefinition !is Concrete.BaseFunctionDefinition) return@invoke // TODO: Report some message
+                if (concreteDefinition !is Concrete.BaseFunctionDefinition)
+                    return@invoke // TODO: Report some message
                 DefinitionResolveNameVisitor(PsiConcreteProvider(project, cer, null), ArendReferableConverter, cer).visitFunction(concreteDefinition, definitionPsi.scope)
-                if (cer.errorsNumber > 0) return@invoke // TODO: Report some message
+                if (cer.errorsNumber > 0)
+                    return@invoke // TODO: This is probably too restrictive...
                 val errorReporter = ListErrorReporter()
                 val concreteBody = concreteDefinition.body
-                if (concreteBody !is Concrete.ElimFunctionBody) return@invoke //TODO: Report some message
+                if (concreteBody !is Concrete.ElimFunctionBody)
+                    return@invoke //TODO: Report some message
 
                 val context = HashMap<Referable, Binding>()
                 for (pair in concreteDefinition.parameters.map { it.referableList }.flatten().zip(DependentLink.Helper.toList(definition.typechecked.parameters))) context[pair.first] = pair.second
@@ -110,141 +111,156 @@ class ExpectedConstructorQuickFix(
 
                     val relevantErrors = errorReporter.errorList.filterIsInstance<ExpectedConstructorError>()
                     if (relevantErrors.size == 1) {
-                        expectedConstructorEntries.add(ExpectedConstructorErrorEntry(relevantErrors[0], clause, substitution))
+                        val relevantError = relevantErrors[0]
+                        val constructorTypechecked = (relevantError.referable as? DataLocatedReferable)?.typechecked
+                        if (constructorTypechecked is Constructor) expectedConstructorErrorEntries.add(ExpectedConstructorErrorEntry(relevantError, clause, substitution, constructorTypechecked))
                     }
                 }
             }
 
             val clausesListPsi = functionClausesPsi?.clauseList
-            val currentClause = cause.element?.ancestor<ArendClause>() ?: return
-            val concreteCurrentClause = convertClause(currentClause, ArendReferableConverter, null, null) //TODO: Refactor out this method
-
-
-            // STEP 1: Compute matching patterns
-            val rawSubsts = HashMap<Binding, ExpressionPattern>()
-            val canMatch: Boolean = ExpressionMatcher.computeMatchingPatterns(parameterType, constructorTypechecked, ExprSubstitution(), rawSubsts) != null
-
-            if (!canMatch) { return } //TODO: Report some message
-
             val definitionParameters = DependentLink.Helper.toList(definition.typechecked.parameters)
-            val clauseParameters = DependentLink.Helper.toList(error.patternParameters)
+            val entriesToRemove = ArrayList<ExpectedConstructorErrorEntry>()
 
-            val definitionToClauseMap = HashMap<Variable, Variable>()
-            val clauseToDefinitionMap = HashMap<Variable, Variable>()
-            val definitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters
-            val clauseParametersToSpecialize = HashSet<Variable>() //Subset of clauseParameters
+            ecLoop@for (ecEntry in expectedConstructorErrorEntries) {
+                val currentClause = ecEntry.clause.data as ArendClause
+                val concreteCurrentClause = ecEntry.clause
+                val error = ecEntry.error
+                val rawSubsts = HashMap<Binding, ExpressionPattern>()
+                val parameterType = error.parameter?.type
 
-            //STEP 2: Calculate lists of variables which need to be eliminated or specialized
-            for (variable in error.substitution.keys) {
-                val binding = (error.substitution.get(variable) as? ReferenceExpression)?.binding
-                if (binding != null && variable is Binding && definitionParameters.contains(variable) && clauseParameters.contains(binding)) {
-                    definitionToClauseMap[variable] = binding
-                    clauseToDefinitionMap[binding] = variable
+                // STEP 1: Compute matching patterns
+                if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingPatterns(parameterType, ecEntry.constructorTypechecked, ExprSubstitution(), rawSubsts) == null) {
+                    entriesToRemove.add(ecEntry)
+                    continue@ecLoop
                 }
-            }
 
-            val correctedSubsts = HashMap<Variable, ExpressionPattern>() //This piece of code filters out trivial substitutions and also ensures that the key of each substitution is either an element of definitionParametersToEliminate or clauseParametersToSpecialize
-            for (subst in rawSubsts) if (subst.value !is BindingPattern) {
-                if (definitionParameters.contains(subst.key)) {
-                    definitionParametersToEliminate.add(subst.key)
-                    correctedSubsts[subst.key] = subst.value
-                } else {
-                    val localClauseBinding =
-                        if (clauseParameters.contains(subst.key)) subst.key else (error.substitution[subst.key] as? ReferenceExpression)?.binding
-                    if (localClauseBinding != null) {
-                        val definitionBinding = clauseToDefinitionMap[localClauseBinding]
-                        if (definitionBinding != null && definitionParameters.contains(definitionBinding)) {
-                            correctedSubsts[definitionBinding] = subst.value
-                            definitionParametersToEliminate.add(definitionBinding)
-                        } else if (clauseParameters.contains(localClauseBinding)) {
-                            correctedSubsts[localClauseBinding] = subst.value
-                            clauseParametersToSpecialize.add(localClauseBinding)
+                // STEP 2: Calculate lists of variables which need to be eliminated or specialized
+                val clauseParameters = DependentLink.Helper.toList(error.patternParameters)
+
+                val definitionToClauseMap = HashMap<Variable, Variable>()
+                val clauseToDefinitionMap = HashMap<Variable, Variable>()
+
+                for (variable in ecEntry.substitution.keys) {
+                    val binding = (ecEntry.substitution.get(variable) as? ReferenceExpression)?.binding
+                    if (binding != null && variable is Binding && definitionParameters.contains(variable) && clauseParameters.contains(binding)) {
+                        definitionToClauseMap[variable] = binding
+                        clauseToDefinitionMap[binding] = variable
+                    }
+                }
+
+                //This piece of code filters out trivial substitutions and also ensures that the key of each substitution is either an element of definitionParametersToEliminate or clauseParametersToSpecialize
+                for (subst in rawSubsts) if (subst.value !is BindingPattern) {
+                    if (definitionParameters.contains(subst.key)) {
+                        ecEntry.clauseDefinitionParametersToEliminate.add(subst.key)
+                        ecEntry.correctedSubsts[subst.key] = subst.value
+                    } else {
+                        val localClauseBinding =
+                            if (clauseParameters.contains(subst.key)) subst.key else (ecEntry.substitution[subst.key] as? ReferenceExpression)?.binding
+                        if (localClauseBinding != null) {
+                            val definitionBinding = clauseToDefinitionMap[localClauseBinding]
+                            if (definitionBinding != null && definitionParameters.contains(definitionBinding)) {
+                                ecEntry.correctedSubsts[definitionBinding] = subst.value
+                                ecEntry.clauseDefinitionParametersToEliminate.add(definitionBinding)
+                            } else if (clauseParameters.contains(localClauseBinding)) {
+                                ecEntry.correctedSubsts[localClauseBinding] = subst.value
+                                ecEntry.clauseParametersToSpecialize.add(localClauseBinding)
+                            }
                         }
                     }
                 }
-            }
 
-        //STEP 3: Match clauseParameters with currentClause PSI
-        val matchData = HashMap<DependentLink, VariableLocationDescriptor>()
-        if (!matchConcreteWithWellTyped(currentClause, concreteCurrentClause.patterns, prepareExplicitnessMask(definitionParameters, error.elimParams), clauseParameters.iterator(), matchData)) return
-        if (clauseParametersToSpecialize.any { matchData[it] == null }) return
-
-            fun dump() {
-                println("DefinitionPsi:\n${definitionPsi?.text}")
-                println("Constructor: ${constructorTypechecked.name}; ")
-                println("Clause: ${currentClause.text}")
-
-                print("\nParameters of the typechecked definition header: {")
-                for (p in definitionParameters) print("${p.toString1()}; Explicit:${p.isExplicit}; ")
-                println("}")
-
-                print("Free variables of the local clause patterns': {")
-                for (p in clauseParameters) print("${p.toString1()} Explicit:${p.isExplicit}; ")
-                println("}")
-
-                println("\nerror.substitution contents:")
-                printExprSubstitution(error.substitution)
-
-                println()
-
-                println("Calculated substitutions (corrected nontrivial): {")
-                for (s in correctedSubsts.entries) {
-                    print("  ${s.key.toString1()}->${s.value.toExpression()}")
-                    if (definitionParameters.contains(s.key)) print("[definition]") else if (clauseParameters.contains(s.key)) print(
-                        "[clause]"
-                    ) else print("[neither]")
-                    println(";")
+                //STEP 3: Match clauseParameters with currentClause PSI
+                if (!matchConcreteWithWellTyped(currentClause, concreteCurrentClause.patterns, prepareExplicitnessMask(definitionParameters, elimParams), clauseParameters.iterator(), ecEntry.matchData)) {
+                    entriesToRemove.add(ecEntry)
+                    continue
                 }
+                if (ecEntry.clauseParametersToSpecialize.any { ecEntry.matchData[it] == null })
+                    entriesToRemove.add(ecEntry)
 
-                println("}\nDefinition parameters => clause parameters {")
-                for (r in definitionToClauseMap) print("  ${r.key.toString1()} -> ${r.value.toString1()};\n")
-                println("}")
+                fun dump() {
+                    println("DefinitionPsi:\n${definitionPsi?.text}")
+                    println("Constructor: ${ecEntry.constructorTypechecked.name}; ")
+                    println("Clause: ${currentClause.text}")
 
-                if (definitionParametersToEliminate.isNotEmpty()) {
-                    print("Definition parameters which need to be eliminated: {")
-                    for (v in definitionParametersToEliminate) print("${v.toString1()}; ")
+                    print("\nParameters of the typechecked definition header: {")
+                    for (p in definitionParameters) print("${p.toString1()}; Explicit:${p.isExplicit}; ")
                     println("}")
-                } else {
-                    println("No definition parameters to eliminate")
+
+                    print("Free variables of the local clause patterns': {")
+                    for (p in clauseParameters) print("${p.toString1()} Explicit:${p.isExplicit}; ")
+                    println("}")
+
+                    println("\nerror.substitution contents:")
+                    printExprSubstitution(ecEntry.substitution)
+
+                    println()
+
+                    println("Calculated substitutions (corrected nontrivial): {")
+                    for (s in ecEntry.correctedSubsts.entries) {
+                        print("  ${s.key.toString1()}->${s.value.toExpression()}")
+                        if (definitionParameters.contains(s.key)) print("[definition]") else if (clauseParameters.contains(s.key)) print(
+                            "[clause]"
+                        ) else print("[neither]")
+                        println(";")
+                    }
+
+                    println("}\nDefinition parameters => clause parameters {")
+                    for (r in definitionToClauseMap) print("  ${r.key.toString1()} -> ${r.value.toString1()};\n")
+                    println("}")
+
+                    if (ecEntry.clauseDefinitionParametersToEliminate.isNotEmpty()) {
+                        print("Definition parameters which need to be eliminated: {")
+                        for (v in ecEntry.clauseDefinitionParametersToEliminate) print("${v.toString1()}; ")
+                        println("}")
+                    } else {
+                        println("No definition parameters to eliminate")
+                    }
+
+                    if (ecEntry.clauseParametersToSpecialize.isNotEmpty()) {
+                        print("Local clause variables which need to be specialized: {")
+                        for (v in ecEntry.clauseParametersToSpecialize) print("${v.toString1()}; ")
+                        println("}\n")
+                    } else {
+                        println("No local clause variables to specialize\n")
+                    }
+
+                    println("Result of matching local clause parameters with abstract PSI:")
+                    for (mdEntry in ecEntry.matchData) when (val mdValue = mdEntry.value) {
+                        is ExplicitNamePattern ->
+                            println("${mdEntry.key.toString1()} -> existing parameter ${mdValue.bindingPsi.javaClass.simpleName}/${mdValue.bindingPsi.text}")
+                        is ImplicitConstructorPattern ->
+                            println("${mdEntry.key.toString1()} -> implicit parameter of ${mdValue.enclosingNode.javaClass.simpleName}/\"${mdValue.enclosingNode.text}\" before \"${mdValue.followingParameter?.text}\" after ${mdValue.implicitArgCount} implicit args")
+                    }
+
+
+                    println()
                 }
+                //dump()
 
-                if (clauseParametersToSpecialize.isNotEmpty()) {
-                    print("Local clause variables which need to be specialized: {")
-                    for (v in clauseParametersToSpecialize) print("${v.toString1()}; ")
-                    println("}\n")
-                } else {
-                    println("No local clause variables to specialize\n")
-                }
-
-                println("Result of matching local clause parameters with abstract PSI:")
-                for (mdEntry in matchData) when (val mdValue = mdEntry.value) {
-                    is ExplicitNamePattern ->
-                        println("${mdEntry.key.toString1()} -> existing parameter ${mdValue.bindingPsi.javaClass.simpleName}/${mdValue.bindingPsi.text}")
-                    is ImplicitConstructorPattern ->
-                        println("${mdEntry.key.toString1()} -> implicit parameter of ${mdValue.enclosingNode.javaClass.simpleName}/\"${mdValue.enclosingNode.text}\" before \"${mdValue.followingParameter?.text}\" after ${mdValue.implicitArgCount} implicit args")
-                }
-
-
-                println()
             }
+            expectedConstructorErrorEntries.removeAll(entriesToRemove)
+            val clauseToEntryMap = HashMap<ArendClause, ExpectedConstructorErrorEntry>()
+            val definitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters (global)
 
-            dump()
+            for (entry in expectedConstructorErrorEntries) {
+                clauseToEntryMap[entry.clause.data as ArendClause] = entry
+                definitionParametersToEliminate.addAll(entry.clauseDefinitionParametersToEliminate)
+            }
 
             // At this point we have collected enough information to actually attempt modifying PSI
             val psiFactory = ArendPsiFactory(project)
 
-
-            val patternPrimers = HashMap<Variable, ArendPattern>()
-
             // STEP 4: Eliminate global variables and insert primers corresponding to definitionVariablesToEliminate
             // We may need to modify all clauses not just the one upon which this refactoring was invoked.
-            if (error.elimParams.isNotEmpty()) { //elim
+            if (elimParams.isNotEmpty()) { //elim
                 val elimPsi = bodyPsi?.elim!! //safe since elimParams is nonempty
                 val paramsMap = HashMap<DependentLink, ArendRefIdentifier>()
-                for (e in error.elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
-                for (e in error.elimParams.zip(currentClause.patternList)) patternPrimers[e.first] = e.second
+                for (e in elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
+                for (ecEntry in expectedConstructorErrorEntries) for (e in elimParams.zip((ecEntry.clause.data as ArendClause).patternList)) ecEntry.patternPrimers[e.first] =
+                    e.second
 
-                definitionParametersToEliminate.removeAll(error.elimParams)
+                definitionParametersToEliminate.removeAll(elimParams)
 
                 var anchor: PsiElement? = null
                 for (param in definitionParameters) if (definitionParametersToEliminate.contains(param)) {
@@ -264,72 +280,72 @@ class ExpectedConstructorQuickFix(
                     anchor = paramsMap[param]
                 }
 
-
                 if (clausesListPsi != null) for (transformedClause in clausesListPsi)
-                    doInsertPrimers(psiFactory, transformedClause, definitionParameters, error.elimParams, definitionParametersToEliminate,
-                            if (transformedClause == currentClause) patternPrimers else null) { p -> p.name }
+                    doInsertPrimers(psiFactory, transformedClause, definitionParameters, elimParams, definitionParametersToEliminate, clauseToEntryMap[transformedClause]?.patternPrimers) { p -> p.name }
+            } else if (clausesListPsi != null)
+                for (ecEntry in expectedConstructorErrorEntries) {
+                    val currentClause = ecEntry.clause.data as ArendClause
+                    val parameterIterator = definitionParameters.iterator()
+                    val patternIterator = currentClause.patternList.iterator()
+                    val patternMatchedParameters = LinkedHashSet<Variable>()
+                    while (parameterIterator.hasNext() && patternIterator.hasNext()) {
+                        val pattern = patternIterator.next()
+                        var parameter: DependentLink? = parameterIterator.next()
+                        if (pattern.isExplicit) while (parameter != null && !parameter.isExplicit)
+                            parameter = if (parameterIterator.hasNext()) parameterIterator.next() else null
+                        if (parameter != null && pattern.isExplicit == parameter.isExplicit) {
+                            patternMatchedParameters.add(parameter)
+                            ecEntry.patternPrimers[parameter] = pattern
+                        }
+                    }
 
-            } else if (clausesListPsi != null) for (transformedClause in clausesListPsi) {
-                val parameterIterator = definitionParameters.iterator()
-                val patternIterator = transformedClause.patternList.iterator()
-                val patternMatchedParameters = LinkedHashSet<Variable>()
-                while (parameterIterator.hasNext() && patternIterator.hasNext()) {
-                    val pattern = patternIterator.next()
-                    var parameter: DependentLink? = parameterIterator.next()
-                    if (pattern.isExplicit) while (parameter != null && !parameter.isExplicit)
-                        parameter = if (parameterIterator.hasNext()) parameterIterator.next() else null
-                    if (parameter != null && pattern.isExplicit == parameter.isExplicit) {
-                        patternMatchedParameters.add(parameter)
-                        if (transformedClause == currentClause) patternPrimers[parameter] = pattern
+                    val newVars = definitionParametersToEliminate.minus(patternMatchedParameters)
+                    val newVarsPlusPrecedingImplicitVars = HashSet<Variable>(newVars)
+                    var implicitFlag = false
+                    for (param in definitionParameters.reversed()) {
+                        if (implicitFlag && !param.isExplicit) newVarsPlusPrecedingImplicitVars.add(param)
+                        if (newVars.contains(param) && !param.isExplicit) implicitFlag = true
+                        if (param.isExplicit) implicitFlag = false
+                    }
+
+                    doInsertPrimers(psiFactory, currentClause, definitionParameters, ArrayList(patternMatchedParameters), newVarsPlusPrecedingImplicitVars, ecEntry.patternPrimers) { p ->
+                        val builder = StringBuilder()
+                        if (!p.isExplicit) builder.append("{")
+                        builder.append(if (newVars.contains(p)) p.name else "_")
+                        if (!p.isExplicit) builder.append("}")
+                        builder.toString()
                     }
                 }
-
-                val newVars = definitionParametersToEliminate.minus(patternMatchedParameters)
-                val newVarsPlusPrecedingImplicitVars = HashSet<Variable>(newVars)
-                var implicitFlag = false
-                for (param in definitionParameters.reversed()) {
-                    if (implicitFlag && !param.isExplicit) newVarsPlusPrecedingImplicitVars.add(param)
-                    if (newVars.contains(param) && !param.isExplicit) implicitFlag = true
-                    if (param.isExplicit) implicitFlag = false
-                }
-
-                doInsertPrimers(psiFactory, transformedClause, definitionParameters, ArrayList(patternMatchedParameters), newVarsPlusPrecedingImplicitVars,
-                        if (transformedClause == currentClause) patternPrimers else null) { p ->
-                    val builder = StringBuilder()
-                    if (!p.isExplicit) builder.append("{")
-                    builder.append(if (newVars.contains(p)) p.name else "_")
-                    if (!p.isExplicit) builder.append("}")
-                    builder.toString()
-                }
-            }
 
             // STEP 5: Analyze matchData and insert primers corresponding to localClauseVariablesToSpecialize
-            val insertData = HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>()
-            for (p in clauseParametersToSpecialize) {
-                when (val descriptor = matchData[p]) {
-                    is ExplicitNamePattern -> patternPrimers[p] = descriptor.bindingPsi as ArendPattern
-                    is ImplicitConstructorPattern -> {
-                        val positionKey = Pair(descriptor.enclosingNode, descriptor.followingParameter)
-                        var positionList = insertData[positionKey]
-                        if (positionList == null) {
-                            positionList = ArrayList()
-                            insertData[positionKey] = positionList
+            for (ecEntry in expectedConstructorErrorEntries) {
+                for (p in ecEntry.clauseParametersToSpecialize) {
+                    when (val descriptor = ecEntry.matchData[p]) {
+                        is ExplicitNamePattern -> ecEntry.patternPrimers[p] = descriptor.bindingPsi as ArendPattern
+                        is ImplicitConstructorPattern -> {
+                            val positionKey = Pair(descriptor.enclosingNode, descriptor.followingParameter)
+                            var positionList = ecEntry.insertData[positionKey]
+                            if (positionList == null) {
+                                positionList = ArrayList()
+                                ecEntry.insertData[positionKey] = positionList
+                            }
+                            positionList.add(Pair(descriptor.implicitArgCount, p))
                         }
-                        positionList.add(Pair(descriptor.implicitArgCount, p))
                     }
                 }
+
+                insertPrimers(psiFactory, ecEntry.insertData) { a, b -> ecEntry.patternPrimers[a] = b }
             }
 
-            insertPrimers(psiFactory, insertData) { a, b -> patternPrimers[a] = b }
-
-            if (clausesListPsi != null) {
+            for (ecEntry in expectedConstructorErrorEntries) {
+                val currentClause = ecEntry.clause.data as ArendClause
                 val processedSubstitutions = HashMap<PsiElement, ExpressionPattern>()
                 val newPrimers = HashMap<ImplicitConstructorPattern, ExpressionPattern>()
                 val mismatchedPatterns = HashMap<PsiElement, Pair<ExpressionPattern, List<PsiElement>>>()
 
                 // STEP 6: Unify matched patterns with existing patterns and calculate elementary substitutions (of the form "variable" -> "expression")
-                for (cS in correctedSubsts) {
-                    val patternPrimer = patternPrimers[cS.key]
+                for (cS in ecEntry.correctedSubsts) {
+                    val patternPrimer = ecEntry.patternPrimers[cS.key]
                     if (patternPrimer != null) {
                         var concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
                         val primerOk: Boolean
@@ -366,7 +382,7 @@ class ExpectedConstructorQuickFix(
 
                 insertPrimers(psiFactory, newPrimerInsertData) {tempVar, createdPrimer -> tempVarMatchInfo[tempVar]?.let{ processedSubstitutions[createdPrimer] = it}}
 
-                // STEP 8: Perform actual substitutions (at this point all keys of substEntry should are simple NamePatterns...)
+                // STEP 8: Perform actual substitutions (at this point all keys of substEntry should be simple NamePatterns...)
                 val clauseExpression = currentClause.expression
                 val variablePatterns = SplitAtomPatternIntention.findAllVariablePatterns(currentClause, null)
                 val newVariables = ArrayList<String>()
@@ -387,7 +403,7 @@ class ExpectedConstructorQuickFix(
                     fun computePrintData() = printPattern(substEntry.value, currentClause, variablePatterns.minus(varsNoLongerUsed).map{ VariableImpl(it.name)}.toList(), newVariables)
 
                     var printData = computePrintData()
-                    val useAsPattern = printData.complexity > 2 || printData.containsClassConstructor
+                    val useAsPattern = printData.complexity > 2 || printData.containsClassConstructor // TODO: We should also search for usages?
                     val namePatternToReplace = substEntry.key
 
                     val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.childOfType<ArendAtomPattern>()?.underscore
@@ -411,7 +427,7 @@ class ExpectedConstructorQuickFix(
                             }
                         }
 
-                        doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for the zero constructor?
+                        doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for integers?
                     }
                 }
             }
