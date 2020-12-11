@@ -34,7 +34,6 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferableConverter
