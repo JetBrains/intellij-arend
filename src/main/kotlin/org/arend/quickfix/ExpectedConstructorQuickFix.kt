@@ -323,14 +323,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             val defIdentifier = varToRemove.childOfType<ArendDefIdentifier>()
                             if (defIdentifier != null) SplitAtomPatternIntention.doSubstituteUsages(project, defIdentifier, clauseExpression, "{?${defIdentifier.name}}")
                         }
-                        val printData = printPattern(mismatchedEntry.value.first, currentClause, variablePatterns.map{ VariableImpl(it.name)}.toList(), newVariables)
+                        val printData = printPattern(mismatchedEntry.value.first, currentClause, variablePatterns.map{ VariableImpl(it.name)}.toList(), newVariables, StringRenamer())
                         doReplacePattern(psiFactory, mismatchedEntry.key, printData.patternString, printData.requiresParentheses)
                     }
 
                 val varsNoLongerUsed = HashSet<ArendDefIdentifier>()
 
                 for (substEntry in processedSubstitutions) {
-                    fun computePrintData() = printPattern(substEntry.value, currentClause, variablePatterns.minus(varsNoLongerUsed).map{ VariableImpl(it.name)}.toList(), newVariables)
+                    val renamer = StringRenamer()
+                    fun computePrintData() =
+                        printPattern(substEntry.value, currentClause, variablePatterns.minus(varsNoLongerUsed).map{ VariableImpl(it.name)}.toList(), newVariables, renamer)
 
                     var printData = computePrintData()
                     val namePatternToReplace = substEntry.key
@@ -338,6 +340,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.childOfType<ArendAtomPattern>()?.underscore
                     val asPiece = namePatternToReplace.childOfType<ArendAsPattern>()
                     val asDefIdentifier = asPiece?.defIdentifier
+
+                    if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
+
                     val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
 
                     val noOfUsages = if (target != null) {
@@ -356,6 +361,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                     if (!useAsPattern && asPiece == null && idOrUnderscore is ArendDefIdentifier) {
                         varsNoLongerUsed.add(idOrUnderscore)
+                        newVariables.clear()
                         printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the subtituted pattern (as one of its NamePatterns)
                     }
 
@@ -372,7 +378,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             }
                         }
                         (((((substEntry.value as? ConstructorExpressionPattern)?.dataExpression as? ClassCallExpression)?.definition?.referable?.data) as? SmartPsiElementPointer<*>)?.element as? PsiLocatedReferable)?.let {
-                            asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause)}"
+                            if (asName.isNotEmpty()) asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause)}"
                         }
 
                         doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for integers?
@@ -466,13 +472,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         fun printPattern(pattern: Pattern,
                          location: ArendCompositeElement,
                          occupiedVariables: List<Variable>,
-                         newVariables: MutableList<String>): PatternPrintResult {
+                         newVariables: MutableList<String>,
+                         renamer: Renamer): PatternPrintResult {
             if (pattern.isAbsurd)
                 return PatternPrintResult("()", false, 1, false)
             else {
                 val binding = pattern.binding
                 if (binding != null) {
-                    val result = StringRenamer().generateFreshName(binding, occupiedVariables + newVariables.map { VariableImpl(it) })
+                    val result = renamer.generateFreshName(binding, occupiedVariables + newVariables.map { VariableImpl(it) })
                     newVariables.add(result)
                     return PatternPrintResult(result, false, 1, false)
                 } else {
@@ -490,7 +497,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                         while (patternIterator.hasNext()) {
                             val argumentPattern = patternIterator.next()
-                            val argumentData = printPattern(argumentPattern, location, occupiedVariables, newVariables)
+                            val argumentData = printPattern(argumentPattern, location, occupiedVariables, newVariables, renamer)
                             complexity += argumentData.complexity
                             if (argumentData.containsClassConstructor) containsClassConstructor = true
 

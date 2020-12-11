@@ -261,7 +261,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data7 + """
        \func foo {A : \Type} (p : Index A) : Nat \elim p
          | index {0} {_} {0} nil => {?}
-         | index {suc n} {_} {suc m} (cons a v) => {?} 
+         | index {suc m} {_} {suc k} (cons a v) => {?} 
     """)
 
     private val data8 = """
