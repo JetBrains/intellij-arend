@@ -12,6 +12,7 @@ import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
+import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.*
@@ -332,11 +333,26 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     fun computePrintData() = printPattern(substEntry.value, currentClause, variablePatterns.minus(varsNoLongerUsed).map{ VariableImpl(it.name)}.toList(), newVariables)
 
                     var printData = computePrintData()
-                    val useAsPattern = printData.complexity > 2 || printData.containsClassConstructor // TODO: We should also search for usages?
                     val namePatternToReplace = substEntry.key
 
                     val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.childOfType<ArendAtomPattern>()?.underscore
                     val asPiece = namePatternToReplace.childOfType<ArendAsPattern>()
+                    val asDefIdentifier = asPiece?.defIdentifier
+                    val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
+
+                    val noOfUsages = if (target != null) {
+                        fun calculateNumberOfUsages(element: PsiElement): Int {
+                            return if (element is ArendRefIdentifier && (element as ArendCompositeElement).scope.resolveName(element.name) == target /* do not use cache! */ ) 1
+                            else {
+                                var result = 0
+                                for (child in element.children) result += calculateNumberOfUsages(child)
+                                result
+                            }
+                        }
+                        if (clauseExpression is PsiElement) calculateNumberOfUsages(clauseExpression) else 0
+                    } else 0
+
+                    val useAsPattern = (printData.complexity > 2 || printData.containsClassConstructor) && noOfUsages > 0
 
                     if (!useAsPattern && asPiece == null && idOrUnderscore is ArendDefIdentifier) {
                         varsNoLongerUsed.add(idOrUnderscore)
@@ -347,13 +363,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         val existingAsName = asPiece?.defIdentifier
                         if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendDefIdentifier)
                             SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString)
-                        val asName: String = if (!useAsPattern) "" else {
+                        var asName: String = if (!useAsPattern) "" else {
                             val n = (if (existingAsName != null) existingAsName.name else (idOrUnderscore as? ArendDefIdentifier)?.name)
                             if (n != null) n else {
                                 val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it.name) } + newVariables.map { VariableImpl(it) }).toList())
                                 newVariables.add(freshName)
                                 freshName
                             }
+                        }
+                        (((((substEntry.value as? ConstructorExpressionPattern)?.dataExpression as? ClassCallExpression)?.definition?.referable?.data) as? SmartPsiElementPointer<*>)?.element as? PsiLocatedReferable)?.let {
+                            asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause)}"
                         }
 
                         doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for integers?
@@ -431,7 +450,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             }
         }
 
-        fun collectBindings(pattern: Concrete.Pattern, collectedVariables: MutableList<PsiElement>) {
+        private fun collectBindings(pattern: Concrete.Pattern, collectedVariables: MutableList<PsiElement>) {
             val data = pattern.data as PsiElement
             when (pattern) {
                 is Concrete.NamePattern -> collectedVariables.add(data)

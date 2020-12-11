@@ -238,11 +238,11 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     fun test69_14() = simpleQuickFixTest("Do", data6 + """
        \func foo {A : \Type} {e : Id Nat} (p : Vec A e) : Nat
          | {_}, {env}, nil{-caret-} => {?}
-         | cons a v => {?} 
+         | cons a v => {?}
     """, data6 + """
        \func foo {A : \Type} {e : Id Nat} (p : Vec A e) : Nat
          | {_}, {env {0}}, nil => {?}
-         | {_}, {env {suc n}}, cons a v => {?}  
+         | {_}, {env {suc n}}, cons a v => {?}
     """)
 
     private val data7 = """
@@ -283,7 +283,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data8 + """
        \func foo {A : \Type} (i : D1) (p : D2 A i) : Nat \elim i, p
          | env {0} {_} {0}, index nil{-caret-} => {?}
-         | env {suc m} {_} {suc k}, index (cons a v) => {?}  
+         | env {suc m} {_} {suc k}, index (cons a v) => {?}
     """)
 
     private val data9 = """
@@ -337,6 +337,6 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | cons{-caret-} => c.a 
     """, data11 + """
        \func foo {c : C} (f : Foo c): Nat \elim c, f
-         | (0, 0) \as c, cons => c.a
-    """) // TODO: Current implementation can make code invalid!
+         | (0, 0) \as c : C, cons => c.a
+    """)
 }
