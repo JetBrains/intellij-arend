@@ -25,6 +25,7 @@ import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
+import org.arend.intention.SplitAtomPatternIntention.Companion.isSucPattern
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
@@ -33,6 +34,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferableConverter
@@ -110,7 +112,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val clausesListPsi = functionClausesPsi?.clauseList
             val definitionParameters = DependentLink.Helper.toList(definition.typechecked.parameters)
             val entriesToRemove = ArrayList<ExpectedConstructorErrorEntry>()
-
 
             ecLoop@for (ecEntry in expectedConstructorErrorEntries) {
                 val currentClause = ecEntry.clause.data as ArendClause
@@ -344,10 +345,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
                     val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
+                    val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = { (it as ArendCompositeElement).scope.resolveName(it.name) as? PsiElement }
 
                     val noOfUsages = if (target != null) {
                         fun calculateNumberOfUsages(element: PsiElement): Int {
-                            return if (element is ArendRefIdentifier && (element as ArendCompositeElement).scope.resolveName(element.name) == target /* do not use cache! */ ) 1
+                            return if (element is ArendRefIdentifier && nonCachedResolver.invoke(element) == target /* do not use cache! */ ) 1
                             else {
                                 var result = 0
                                 for (child in element.children) result += calculateNumberOfUsages(child)
@@ -368,7 +370,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     if (idOrUnderscore != null && clauseExpression is PsiElement) {
                         val existingAsName = asPiece?.defIdentifier
                         if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendDefIdentifier)
-                            SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString)
+                            SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString, nonCachedResolver)
                         var asName: String = if (!useAsPattern) "" else {
                             val n = (if (existingAsName != null) existingAsName.name else (idOrUnderscore as? ArendDefIdentifier)?.name)
                             if (n != null) n else {
@@ -381,7 +383,20 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             if (asName.isNotEmpty()) asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause)}"
                         }
 
-                        doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for integers?
+                        var result = doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName) //TODO: Special insertion for integers?
+                        var number = (result as? ArendAtomPatternOrPrefix)?.number
+                        if (number != null) {
+                            var needsReplace = false
+                            while (result != null && isSucPattern(result.parent)) {
+                                number++
+                                result = result.parent
+                                needsReplace = true
+                            }
+
+                            if (needsReplace && result != null) {
+                                doReplacePattern(psiFactory, result, number.toString(), false)
+                            }
+                        }
                     }
                 }
             }
