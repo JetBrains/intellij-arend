@@ -358,7 +358,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        private fun isSucPattern(pattern: PsiElement): Boolean {
+        fun isSucPattern(pattern: PsiElement): Boolean {
             if (pattern !is ArendPatternImplMixin || pattern.arguments.size != 1) {
                 return false
             }
@@ -368,9 +368,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT
         }
 
-        private fun findAllVariablePatterns(clause: ArendClause, element: PsiElement): HashSet<ArendDefIdentifier> {
+        fun findAllVariablePatterns(clause: ArendClause, excludedPsi: PsiElement?): HashSet<ArendDefIdentifier> {
             val result = HashSet<ArendDefIdentifier>()
-            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, element)
+            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, excludedPsi)
 
             val functionClauses = clause.parent
             val functionBody = functionClauses?.parent
@@ -387,15 +387,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return result
         }
 
-        private fun doFindVariablePatterns(variables: MutableSet<ArendDefIdentifier>, node: PsiElement, element: PsiElement) {
+        private fun doFindVariablePatterns(variables: MutableSet<ArendDefIdentifier>, node: PsiElement, excludedPsi: PsiElement?) {
             if (node is ArendDefIdentifierImplMixin && node.reference.resolve() == node) {
                 variables.add(node)
-            } else if (node != element)
+            } else if (node != excludedPsi)
                 for (child in node.children)
-                    doFindVariablePatterns(variables, child, element)
+                    doFindVariablePatterns(variables, child, excludedPsi)
         }
 
-        private fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
+        fun locatePattern(element: PsiElement): Pair<Abstract.Clause, ArrayList<Int>>? {
             var pattern: PsiElement? = null
             var patternOwner: PsiElement? = element
             val indexList = ArrayList<Int>()
@@ -454,23 +454,26 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        private fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean) {
+        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean, asExpression: String = ""): PsiElement? {
+            val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
             val replacementPattern: PsiElement? = when (elementToReplace) {
                 is ArendPattern ->
-                    factory.createClause(if (!elementToReplace.isExplicit) "{$patternLine}" else patternLine).childOfType<ArendPattern>()
+                    factory.createClause(if (!elementToReplace.isExplicit) "{$pLine}" else pLine).childOfType<ArendPattern>()
                 is ArendAtomPatternOrPrefix ->
-                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$patternLine}" else if (requiresParentheses) "($patternLine)" else patternLine)
+                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (requiresParentheses || asExpression.isNotEmpty()) "($pLine)" else pLine)
                 else -> null
             }
 
             if (replacementPattern != null) {
-                elementToReplace.replaceWithNotification(replacementPattern)
+                return elementToReplace.replaceWithNotification(replacementPattern)
             }
+
+            return null
         }
 
-        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String) {
+        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference?.resolve() }) {
             if (elementToReplace == null || element is ArendWhere) return
-            if (element is ArendRefIdentifier && element.reference?.resolve() == elementToReplace) {
+            if (element is ArendRefIdentifier && resolver(element) == elementToReplace) {
                 val longName = element.parent as? ArendLongName
                 val field = if (longName != null && longName.refIdentifierList.size > 1) longName.refIdentifierList[1] else null
                 val fieldTarget = field?.reference?.resolve()
@@ -496,7 +499,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     }
                 }
             } else for (child in element.children)
-                doSubstituteUsages(project, elementToReplace, child, expressionLine)
+                doSubstituteUsages(project, elementToReplace, child, expressionLine, resolver)
         }
 
         private fun createFieldConstructorInvocation(element: ArendRefIdentifier,
