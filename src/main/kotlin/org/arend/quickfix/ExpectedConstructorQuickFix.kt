@@ -12,6 +12,7 @@ import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
+import org.arend.core.definition.DataDefinition
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.ReferenceExpression
@@ -68,22 +69,26 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         val errorHintBuffer = StringBuffer()
         val definition = error.definition as DataLocatedReferable
         val definitionPsi = definition.data?.element
-
+        val constructorPsi = this.cause.element?.ancestor<ArendConstructor>()
         val bodyPsi = (definitionPsi as? ArendFunctionalDefinition)?.body
         val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
 
         val clausesListPsi : List<Abstract.Clause>? = when {
             bodyPsi is ArendFunctionBody -> bodyPsi.functionClauses?.clauseList as List<Abstract.Clause>
             bodyPsi is ArendInstanceBody -> bodyPsi.functionClauses?.clauseList as List<Abstract.Clause>
-            dataBodyPsi != null -> dataBodyPsi.constructorClauseList as List<Abstract.Clause>
+            constructorPsi != null -> constructorPsi.clauseList
+            dataBodyPsi != null -> dataBodyPsi.constructorClauseList
             else -> null
         }
 
         val elimPsi = when {
             bodyPsi != null -> bodyPsi.elim
+            constructorPsi != null -> constructorPsi.elim
             dataBodyPsi != null -> dataBodyPsi.elim
             else -> null
         }
+
+        var typecheckedParameters = definition.typechecked.parameters
 
         if (error.caseExpressions == null && definitionPsi is Abstract.Definition) {
             //STEP 0: Typecheck patterns of the function definition for the 2nd time
@@ -94,12 +99,32 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val cer = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                 val psiConcreteProvider = PsiConcreteProvider(project, cer, null)
                 val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, ArendReferableConverter, cer)
-
-                val concreteDefinition = convert(ArendReferableConverter, definitionPsi, cer)
+                var concreteDefinition : Concrete.GeneralDefinition = convert(ArendReferableConverter, definitionPsi, cer)
 
                 when (concreteDefinition) {
                     is Concrete.BaseFunctionDefinition -> resolveNameVisitor.visitFunction(concreteDefinition, definitionPsi.scope)
                     is Concrete.DataDefinition -> resolveNameVisitor.visitData(concreteDefinition, definitionPsi.scope)
+                }
+
+                if (constructorPsi != null) {
+                    var constructorFound = false
+                    ccLoop@for (cC in (concreteDefinition as Concrete.DataDefinition).constructorClauses) for (c in cC.constructors) {
+                        if ((c.data as? DataLocatedReferable)?.data?.element == constructorPsi) {
+                            concreteDefinition = c
+                            constructorFound = true
+                            break@ccLoop
+                        }
+                    }
+                    if (constructorFound) {
+                        constructorFound = false
+                        for (c in (definition.typechecked as DataDefinition).constructors)
+                            if ((c.referable as DataLocatedReferable).data?.element == constructorPsi) {
+                            typecheckedParameters = c.parameters
+                            constructorFound = true
+                            break
+                        }
+                    }
+                    if (!constructorFound) throw java.lang.IllegalStateException()
                 }
 
                 //if (cer.errorsNumber > 0) return@invoke
@@ -108,24 +133,27 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val eliminatedReferences = when (concreteDefinition) {
                     is Concrete.BaseFunctionDefinition -> (concreteDefinition.body as? Concrete.ElimFunctionBody)?.eliminatedReferences
                     is Concrete.DataDefinition -> concreteDefinition.eliminatedReferences
+                    is Concrete.Constructor -> concreteDefinition.eliminatedReferences
                     else -> null
                 }
 
                 val parameters = when (concreteDefinition) {
                     is Concrete.BaseFunctionDefinition -> concreteDefinition.parameters
                     is Concrete.DataDefinition -> concreteDefinition.parameters
+                    is Concrete.Constructor -> concreteDefinition.parameters
                     else -> null
                 }
 
                 val clauses = when (concreteDefinition) {
                     is Concrete.BaseFunctionDefinition -> (concreteDefinition.body as? Concrete.ElimFunctionBody)?.clauses
                     is Concrete.DataDefinition -> concreteDefinition.constructorClauses
+                    is Concrete.Constructor -> concreteDefinition.clauses
                     else -> null
                 }
 
                 val context = HashMap<Referable, Binding>()
-                if (parameters != null) for (pair in parameters.map { it.referableList }.flatten().zip(DependentLink.Helper.toList(definition.typechecked.parameters))) context[pair.first] = pair.second
-                elimParams = ElimTypechecking.getEliminatedParameters(eliminatedReferences, clauses, definition.typechecked.parameters, errorReporter, context)
+                if (parameters != null) for (pair in parameters.map { it.referableList }.flatten().zip(DependentLink.Helper.toList(typecheckedParameters))) context[pair.first] = pair.second
+                elimParams = ElimTypechecking.getEliminatedParameters(eliminatedReferences, clauses, typecheckedParameters, errorReporter, context)
 
                 val typechecker = CheckTypeVisitor(errorReporter, null, null)
 
@@ -134,7 +162,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     errorReporter.errorList.clear()
 
                     PatternTypechecking(errorReporter, PatternTypechecking.Mode.FUNCTION, typechecker, false, null, elimParams)
-                        .typecheckPatterns(clause.patterns, parameters, definition.typechecked.parameters, substitution, ExprSubstitution(), clause)
+                        .typecheckPatterns(clause.patterns, parameters, typecheckedParameters, substitution, ExprSubstitution(), clause)
 
                     val relevantErrors = errorReporter.errorList.filterIsInstance<ExpectedConstructorError>()
                     if (relevantErrors.size == 1) {
@@ -145,7 +173,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
             }
 
-            val definitionParameters = DependentLink.Helper.toList(definition.typechecked.parameters)
+            val definitionParameters = DependentLink.Helper.toList(typecheckedParameters)
             val entriesToRemove = ArrayList<ExpectedConstructorErrorEntry>()
 
             ecLoop@for (ecEntry in expectedConstructorErrorEntries) {
