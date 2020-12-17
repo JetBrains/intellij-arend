@@ -300,6 +300,11 @@ fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastEleme
     return this.addRangeAfter(firstElement, lastElement, anchor)
 }
 
+fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
+    notifyRange(firstElement, lastElement, this)
+    return this.addRangeBefore(firstElement, lastElement, anchor)
+}
+
 fun getArendNameText(element: PsiElement?): String? = when (element) {
     is LeafPsiElement -> when (element.elementType) {
         ID -> element.text
