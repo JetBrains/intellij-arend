@@ -179,7 +179,7 @@ private classStatRecovery ::= {
   recoverWhile = classStat_recover
 }
 
-private defaultField ::= DEFAULT_KW classImplement { pin = 1 }
+private defaultField ::= DEFAULT_KW coClause { pin = 1 }
 
 private classStat_recover ::= !(PIPE | RBRACE) & statement_recover
 
@@ -665,14 +665,14 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= PIPE (longName (coClauseRec | coClauseImpl) | prec? longName coClauseDef?) {
-    pin = 1
+coClause ::= (longName (coClauseRec | coClauseImpl) | prec? longName coClauseDef?) {
     implements = [ "org.arend.psi.CoClauseBase"
                    "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
 }
 
-private coClauseReg ::= coClause {
+private coClauseReg ::= PIPE coClause {
+    pin = 1
     recoverWhile = pipe_seq_recover
 }
 

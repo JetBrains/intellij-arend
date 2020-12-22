@@ -14,6 +14,7 @@ import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.term.concrete.Concrete
 import javax.swing.Icon
 
 abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, ArendCoClauseDef {
@@ -27,6 +28,11 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override fun getNameIdentifier() = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
     override fun getName() = stub?.name ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
+
+    private val isDefault: Boolean
+        get() = (parent as? ArendCoClause)?.parent is ArendClassStat
+
+    override fun textRepresentation(): String = if (isDefault) Concrete.CoClauseFunctionDefinition.makeName(super.textRepresentation(), true) else super.textRepresentation()
 
     override fun getPrec(): ArendPrec? = parentCoClause?.prec
 
@@ -63,7 +69,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun isCowith() = coClauseBody?.cowithKw != null
 
-    override fun getFunctionKind() = FunctionKind.COCLAUSE_FUNC
+    override fun getFunctionKind() = if (isDefault) FunctionKind.CLASS_COCLAUSE else FunctionKind.FUNC_COCLAUSE
 
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
