@@ -88,7 +88,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             else -> null
         }
 
-        var typecheckedParameters = definition.typechecked.parameters
+        val typecheckedParameters = if (constructorPsi == null) definition.typechecked.parameters else
+            (definition.typechecked as DataDefinition).constructors.firstOrNull { (it.referable as DataLocatedReferable).data?.element == constructorPsi }?.parameters ?:
+            throw java.lang.IllegalStateException()
+
 
         if (error.caseExpressions == null && definitionPsi is Abstract.Definition) {
             //STEP 0: Typecheck patterns of the function definition for the 2nd time
@@ -113,15 +116,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             concreteDefinition = c
                             constructorFound = true
                             break@ccLoop
-                        }
-                    }
-                    if (constructorFound) {
-                        constructorFound = false
-                        for (c in (definition.typechecked as DataDefinition).constructors)
-                            if ((c.referable as DataLocatedReferable).data?.element == constructorPsi) {
-                            typecheckedParameters = c.parameters
-                            constructorFound = true
-                            break
                         }
                     }
                     if (!constructorFound) throw java.lang.IllegalStateException()
