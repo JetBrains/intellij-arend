@@ -85,7 +85,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | cons x xs => 1  
       })
     """, data1 + """
-      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n, xs \with { 
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n \with {
         | 0, nil => 0
         | suc n, cons x xs => 1
       })
@@ -97,15 +97,40 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | n, cons x xs => 1
       }) 
     """, data1 + """
-      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n, xs \with { 
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n \with {
         | 0, nil => 0
         | suc n, cons x xs => 1
+      })
+    """)
+
+    fun test69C_03() = simpleQuickFixTest("Do", data3 + """
+      \func test3 {n m : Nat} (d : D n m) : Nat => 1 Nat.+ (\case n, d \with {
+        | n, con1{-caret-} => n
+        | suc n, con3 => n
+      })
+    """, """
+      \func test3 {n m : Nat} (d : D n m) : Nat => 1 Nat.+ (\case m \as m, n \as n, d : D n m \with {
+        | 0, 0, con1{-caret-} => 0
+        | suc (suc m), suc (suc n), con3 => suc n
+      })
+    """)
+
+    fun test69C_04() = simpleQuickFixTest("Do", data1 + """
+      \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case xs \with {
+        | nil{-caret-} => 0
+        | cons x xs => 1
+      })
+    """, """
+      \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A n1 \with {
+        | 0, nil => 0
+        | suc (suc n1), cons x xs => 1
       })  
     """)
 
+
     /* Expected Constructor Error */
 
-    fun test69_01() = simpleQuickFixTest("Do", data1 + """
+    /* fun test69_01() = simpleQuickFixTest("Do", data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | nil{-caret-} => 0
         | cons x xs => 1 
@@ -376,5 +401,5 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
            | 0, 0, con1 => cons1 0
            | suc (suc a), suc (suc b), con3 => cons1 (suc a)
          }
-    """)
+    """) */
 }

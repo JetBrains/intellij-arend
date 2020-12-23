@@ -214,20 +214,24 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val currentClause = ecEntry.clause.data as Abstract.Clause
                 val concreteCurrentClause = ecEntry.clause
                 val error = ecEntry.error
-                val rawSubsts = HashMap<Binding, ExpressionPattern>()
                 val parameterType = error.parameter?.type
 
-                // STEP 1: Compute matching patterns
-                if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingPatterns(parameterType, ecEntry.constructorTypechecked, ExprSubstitution(), rawSubsts) == null) {
+                fun reportError() {
                     entriesToRemove.add(ecEntry)
                     errorHintBuffer.append("ExpectedConstructorError quickfix was unable to compute matching patterns for the parameter ${error.parameter}\n")
                     errorHintBuffer.append("Constructor: ${ecEntry.constructorTypechecked.name}\n")
                     errorHintBuffer.append("Patterns of the constructor: ${ecEntry.constructorTypechecked.patterns.map{ it.toExpression() }.toList()}\n")
                     errorHintBuffer.append("Containing clause: ${(currentClause as PsiElement).text}\n")
-                    continue@ecLoop
                 }
 
                 if (error.caseExpressions == null) {
+                    // STEP 1: Compute matching patterns
+                    val rawSubsts = HashMap<Binding, ExpressionPattern>()
+                    if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingPatterns(parameterType, ecEntry.constructorTypechecked, ExprSubstitution(), rawSubsts) == null) {
+                        reportError()
+                        continue@ecLoop
+                    }
+
                     // STEP 2: Calculate lists of variables which need to be eliminated or specialized
                     val clauseParameters = DependentLink.Helper.toList(error.patternParameters)
                     val definitionToClauseMap = HashMap<Variable, Variable>()
@@ -267,7 +271,18 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         ecEntry.clauseParametersToSpecialize.any { ecEntry.matchData[it] == null })
                         throw IllegalStateException("ExpectedConstructorError quickfix failed to calculate the correspondence between psi and concrete name patterns")
                 } else {
-                    // TODO: Process rawSubsts for \case properly
+                    // STEP 1C: Compute matching expressions
+                    val matchResults = ArrayList<ExpressionMatcher.MatchResult>()
+                    if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingExpressions(parameterType, ecEntry.constructorTypechecked, true, matchResults) == null) {
+                        reportError()
+                        continue@ecLoop
+                    }
+
+                    println(ecEntry)
+                    for (mr in matchResults) if (mr.pattern !is BindingPattern) {
+                        println("Binding: ${mr.binding} Pattern: ${(mr.pattern as? ExpressionPattern)?.toExpression()} Expression: ${mr.expression}")
+
+                    }
                 }
             }
             expectedConstructorErrorEntries.removeAll(entriesToRemove)
@@ -537,28 +552,25 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 result.appendLine("Constructor: ${constructorTypechecked.name}; ")
                 result.appendLine("Clause: ${currentClause.text}")
 
-                result.appendLine("\nerror.substitution contents:")
-                printExprSubstitution(substitution, result)
-
-                result.appendLine()
+                if (substitution.keys.isNotEmpty()) {
+                    result.appendLine("\nerror.substitution contents:")
+                    printExprSubstitution(substitution, result)
+                    result.appendLine()
+                }
 
                 if (clauseDefinitionParametersToEliminate.isNotEmpty()) {
                     result.append("Definition parameters which need to be eliminated: {")
                     for (v in clauseDefinitionParametersToEliminate) result.append("${v.toString1()}; ")
                     result.appendLine("}")
-                } else {
-                    result.appendLine("No definition parameters to eliminate")
                 }
 
                 if (clauseParametersToSpecialize.isNotEmpty()) {
                     result.append("Local clause variables which need to be specialized: {")
                     for (v in clauseParametersToSpecialize) result.append("${v.toString1()}; ")
                     result.appendLine("}\n")
-                } else {
-                    result.appendLine("No local clause variables to specialize\n")
                 }
 
-                result.appendLine("Result of matching local clause parameters with abstract PSI:")
+                if (matchData.isNotEmpty()) result.appendLine("Result of matching local clause parameters with abstract PSI:")
                 for (mdEntry in matchData) when (val mdValue = mdEntry.value) {
                     is ExplicitNamePattern ->
                         result.appendLine("${mdEntry.key.toString1()} -> existing parameter ${mdValue.bindingPsi.javaClass.simpleName}/${mdValue.bindingPsi.text}")
