@@ -75,7 +75,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         {-caret-}\func f (n : Nat) (d : D n) : Nat \elim d
     """, data2 + """
         \func f (n : Nat) (d : D n) : Nat \elim n, d
-    """)
+    """)  */
 
     /* Expected Constructor - Case */
 
@@ -89,7 +89,19 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | 0, nil => 0
         | suc n, cons x xs => 1
       })
-    """) */
+    """)
+
+    fun test69C_02() = simpleQuickFixTest("Do", data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n, xs \with {
+        | n, nil{-caret-} => 0
+        | n, cons x xs => 1
+      }) 
+    """, data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n, xs \with { 
+        | 0, nil => 0
+        | suc n, cons x xs => 1
+      })  
+    """)
 
     /* Expected Constructor Error */
 
