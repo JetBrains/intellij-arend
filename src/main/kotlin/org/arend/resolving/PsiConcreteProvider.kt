@@ -98,6 +98,8 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
     }
 
     override fun getConcrete(referable: GlobalReferable): Concrete.GeneralDefinition? {
+        val def = referable.defaultConcrete
+        if (def != null) return def
         val psiReferable = convertReferable(referable) ?: return null
 
         if (psiReferable is PsiConcreteReferable) {
