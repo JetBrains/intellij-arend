@@ -9,6 +9,7 @@ import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
@@ -20,7 +21,7 @@ open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: LocatedReferable,
     parent: LocatedReferable?
-) : LocatedReferableImpl(referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
+) : LocatedReferableImpl(if (referable is CoClauseDefAdapter && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 

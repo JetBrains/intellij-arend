@@ -7,6 +7,8 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.scope.ClassFieldImplScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
@@ -14,7 +16,6 @@ import org.arend.term.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.ReferableExtractVisitor
-import org.arend.term.concrete.Concrete
 import javax.swing.Icon
 
 abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, ArendCoClauseDef {
@@ -32,7 +33,12 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     private val isDefault: Boolean
         get() = parentCoClause?.parent is ArendClassStat
 
-    override fun getPrec(): ArendPrec? = parentCoClause?.prec
+    override fun getPrec(): ArendPrec? {
+        val coClause = parentCoClause ?: return null
+        coClause.prec?.let { return it }
+        val classRef = (coClause.parent?.parent as? ClassReferenceHolder)?.classReference ?: return null
+        return (Scope.Utils.resolveName(ClassFieldImplScope(classRef, true), coClause.longName.refIdentifierList.map { it.refName }) as? ReferableAdapter<*>)?.getPrec()
+    }
 
     override fun getAlias(): ArendAlias? = null
 
