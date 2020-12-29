@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.core.context.LinkList
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
@@ -16,9 +15,7 @@ import org.arend.core.definition.Constructor
 import org.arend.core.definition.DataDefinition
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
-import org.arend.core.expr.ExpressionFactory
 import org.arend.core.expr.ReferenceExpression
-import org.arend.core.expr.type.Type
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
 import org.arend.error.CountingErrorReporter
@@ -39,6 +36,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.ExpectedConstructorErrorEntry.Companion.toString1
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
@@ -280,7 +278,20 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                     println(ecEntry)
                     for (mr in matchResults) if (mr.pattern !is BindingPattern) {
-                        println("Binding: ${mr.binding} Pattern: ${(mr.pattern as? ExpressionPattern)?.toExpression()} Expression: ${mr.expression}")
+                        // mr.expression is the new introduced expression;
+                        // mr.pattern is the substituted pattern;
+                        // We should search for occurrences of mr.expression in the types of "clauseParameters" and replace them with reference to the fresh variable
+                        // These types should appear in type qualifiers of the corresponding case arguments
+                        // The new caseArgument corresponding to mr should precede all the case arguments where it is used
+                        // (*)  if there is already a case argument matching with mr.expression then it should be reused
+                        // The expression of the caseArgument corresponding to mr should not contain references to other caseArguments (corresponding expressions should be substituted instead)
+                        // [optional] If mr.expression was a variable reference then there is a chance to perform variable substitutions similarly to the elim case (this is probably not possible in the general case)
+                        // Where should we store our output?
+                        // - ecEntry.clauseParametersToSpecialize and matchData should be left empty
+                        // - patternPrimers should be modified at this stage in case (*) holds
+                        // What data structures should we use?
+                        // -
+                        println("Binding: ${mr.binding.toString1()} Pattern: ${(mr.pattern as? ExpressionPattern)?.toExpression()} Expression: ${mr.expression}")
 
                     }
                 }
@@ -542,6 +553,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val correctedSubsts = HashMap<Variable, ExpressionPattern>() // Initialized at STEP 2
             val clauseParametersToSpecialize = HashSet<Variable>() // Subset of ClauseParameters; Initialized at STEP 2
             val clauseDefinitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters (per clause); Initialized at STEP 2
+
             val patternPrimers = HashMap<Variable, ArendPattern>() // Initialized at STEP 4
             val insertData = HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>() // Initialized at STEP 5
 

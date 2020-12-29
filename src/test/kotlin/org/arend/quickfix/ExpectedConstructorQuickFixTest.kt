@@ -127,6 +127,18 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })  
     """)
 
+    fun test69C_05() = simpleQuickFixTest("Do", data1 + """
+      \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A (n1 Nat.+ n) \with {
+        | 0, nil{-caret-} => 0
+        | suc n1, cons x xs => 1
+      }) 
+    """, """
+      \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, n Nat.+ n Nat.+ n \as n2, xs : Vec A n2 \with {
+        | 0, 0, nil{-caret-} => 0
+        | suc n1, suc n2, cons x xs => 1
+      })   
+    """)
+
 
     /* Expected Constructor Error */
 
