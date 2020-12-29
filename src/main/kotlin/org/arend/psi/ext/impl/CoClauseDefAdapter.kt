@@ -25,21 +25,19 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     val parentCoClause: ArendCoClause?
         get() = parent as? ArendCoClause
 
-    override fun getNameIdentifier() = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
+    override fun getNameIdentifier() = parentCoClause?.defIdentifier ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
-    override fun getName() = stub?.name ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
+    override fun getName() = stub?.name ?: parentCoClause?.defIdentifier?.id?.text ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
 
     private val isDefault: Boolean
-        get() = (parent as? ArendCoClause)?.parent is ArendClassStat
-
-    override fun textRepresentation(): String = if (isDefault) Concrete.CoClauseFunctionDefinition.makeName(super.textRepresentation(), true) else super.textRepresentation()
+        get() = parentCoClause?.parent is ArendClassStat
 
     override fun getPrec(): ArendPrec? = parentCoClause?.prec
 
     override fun getAlias(): ArendAlias? = null
 
     override val defIdentifier: ArendDefIdentifier?
-        get() = null
+        get() = parentCoClause?.defIdentifier
 
     override val where: ArendWhere?
         get() = null
