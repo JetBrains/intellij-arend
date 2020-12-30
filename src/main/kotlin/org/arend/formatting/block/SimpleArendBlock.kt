@@ -40,6 +40,12 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return super.getSpacing(child1, child2)
         }
 
+        if (nodePsi is ArendFunctionBody || nodePsi is ArendInstanceBody) {
+            if (child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
+                    child1.node.elementType == PIPE && child2.node.psi is ArendCoClause)
+                        return oneSpaceNoWrap
+        }
+
         if (nodePsi is ArendNewExpr && needsCrlfInCoClausesBlock(child1, child2)) {
             val whitespace = nodePsi.lbrace?.nextSibling as? PsiWhiteSpace
             return if (whitespace != null && !whitespace.textContains('\n')) oneSpaceWrap else oneCrlf
@@ -196,7 +202,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return ChildAttributes(Indent.getNormalIndent(), null)
 
             if (nodePsi is ArendFunctionBody) {
-                val indent = if (prevChild.node.psi is ArendExpr) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
+                val indent = if (prevChild.node.psi is ArendExpr || prevChild is GroupBlock ) return ChildAttributes.DELEGATE_TO_PREV_CHILD else
                     when (prevET) {
                         FUNCTION_CLAUSES, CO_CLAUSE -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                         else -> Indent.getNormalIndent()
@@ -315,7 +321,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
 
                 if (childET == PIPE) when (nodeET) {
-                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, WITH_BODY, CONSTRUCTOR_CLAUSE -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
+                    FUNCTION_CLAUSES, CO_CLAUSE_BODY, LET_EXPR, DATA_BODY, CONSTRUCTOR, DEF_CLASS, WITH_BODY, CONSTRUCTOR_CLAUSE, FUNCTION_BODY, INSTANCE_BODY -> if (nodeET != CONSTRUCTOR_CLAUSE || blocks.size > 0) {
                         val clauseGroup = findClauseGroup(child, null)
                         if (clauseGroup != null) {
                             child = clauseGroup.first.treeNext
@@ -344,7 +350,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         while (currChild != null) {
             if (currChild.elementType != WHITE_SPACE) groupNodes.add(createArendBlock(currChild, null, childAlignment, Indent.getNoneIndent()))
             when (currChild.elementType) {
-                CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD, CLASS_IMPLEMENT -> return Pair(currChild, groupNodes)
+                CLAUSE, LET_CLAUSE, CONSTRUCTOR, CLASS_FIELD, CLASS_IMPLEMENT, CO_CLAUSE -> return Pair(currChild, groupNodes)
             }
             currChild = currChild.treeNext
         }
@@ -410,7 +416,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
     private fun needsCrlfInCoClausesBlock(child1: Block?, child2: Block?): Boolean =
             child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
-                    (child1.node.elementType == LBRACE && isCoClauseOrLocalCoClause(child2.node.psi)
+                    (child1.node.elementType == LBRACE && (child2.node.elementType == PIPE || child2.node.psi is ArendLocalCoClause)
                             || isCoClauseOrLocalCoClause(child1.node.psi) && child2.node.elementType == RBRACE)
 
 

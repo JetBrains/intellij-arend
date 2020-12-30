@@ -10,10 +10,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendCoClause
-import org.arend.psi.ArendLocalCoClause
-import org.arend.psi.ArendPsiFactory
-import org.arend.psi.addAfterWithNotification
+import org.arend.psi.*
 import org.arend.refactoring.moveCaretToEndOffset
 
 class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
@@ -46,7 +43,12 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
             }
 
             if (coClause != null) {
-                anchor.parent.addAfterWithNotification(coClause, anchor)
+                val pipeSample = coClause.findPrevSibling()
+                val insertedCoClause = anchor.parent.addAfterWithNotification(coClause, anchor)
+                if (insertedCoClause is ArendCoClause && pipeSample != null) {
+                    anchor.parent.addBeforeWithNotification(pipeSample, insertedCoClause)
+                    anchor.parent.addBeforeWithNotification(psiFactory.createWhitespace(" "), insertedCoClause)
+                }
                 if (!caretMoved && editor != null) {
                     moveCaretToEndOffset(editor, anchor.nextSibling)
                     caretMoved = true
