@@ -65,7 +65,6 @@ abstract class ArendFunctionalInserter(private val definition: ArendFunctionalDe
             val insertedClause = if (anchor != null) body.addAfterWithNotification(sampleCoClause, anchor) else body.add(sampleCoClause)
             body.addBefore(factory.createWhitespace("\n"), insertedClause)
             body.addBefore(samplePipe, insertedClause)
-            body.addBefore(factory.createWhitespace(" "), insertedClause)
 
             if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }

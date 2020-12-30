@@ -40,12 +40,6 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             return super.getSpacing(child1, child2)
         }
 
-        if (nodePsi is ArendFunctionBody || nodePsi is ArendInstanceBody) {
-            if (child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
-                    child1.node.elementType == PIPE && child2.node.psi is ArendCoClause)
-                        return oneSpaceNoWrap
-        }
-
         if (nodePsi is ArendNewExpr && needsCrlfInCoClausesBlock(child1, child2)) {
             val whitespace = nodePsi.lbrace?.nextSibling as? PsiWhiteSpace
             return if (whitespace != null && !whitespace.textContains('\n')) oneSpaceWrap else oneCrlf

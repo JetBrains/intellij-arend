@@ -47,7 +47,6 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
                 val insertedCoClause = anchor.parent.addAfterWithNotification(coClause, anchor)
                 if (insertedCoClause is ArendCoClause && pipeSample != null) {
                     anchor.parent.addBeforeWithNotification(pipeSample, insertedCoClause)
-                    anchor.parent.addBeforeWithNotification(psiFactory.createWhitespace(" "), insertedCoClause)
                 }
                 if (!caretMoved && editor != null) {
                     moveCaretToEndOffset(editor, anchor.nextSibling)
