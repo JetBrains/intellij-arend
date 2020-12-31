@@ -368,9 +368,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT
         }
 
-        fun findAllVariablePatterns(clause: ArendClause, excludedPsi: PsiElement?): HashSet<ArendDefIdentifier> {
+        fun findAllVariablePatterns(clause: Abstract.Clause, excludedPsi: PsiElement?): HashSet<ArendDefIdentifier> {
             val result = HashSet<ArendDefIdentifier>()
-            for (pattern in clause.patternList) doFindVariablePatterns(result, pattern, excludedPsi)
+            if (clause !is PsiElement) return result
+
+            for (pattern in clause.patterns) doFindVariablePatterns(result, pattern as PsiElement, excludedPsi)
 
             val functionClauses = clause.parent
             val functionBody = functionClauses?.parent

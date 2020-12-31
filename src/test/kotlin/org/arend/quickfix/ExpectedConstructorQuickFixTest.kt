@@ -339,4 +339,30 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        \func foo {c : C} (f : Foo c): Nat \elim c, f
          | (0, 0) \as c : C, cons => c.a
     """)
+
+    fun test69_21() = simpleQuickFixTest("Do", data3 + """
+        \data D2 (a b : Nat) (d : D a b) \elim a, d
+          | 0, con1{-caret-} => cons1
+          | suc a, con3 => cons2 (Fin a)
+    """, data3 + """
+        \data D2 (a b : Nat) (d : D a b) \elim a, b, d
+          | 0, 0, con1 => cons1
+          | suc (suc a), suc (suc b), con3 => cons2 (Fin (suc a)) 
+    """)
+
+    fun test69_22() = simpleQuickFixTest("Do", data3 + """
+       \data D2
+         | cons1 (c : Nat)
+         | cons2 (a b : Nat) (d : D a b) \elim a, d {
+           | 0, con1{-caret-} => cons1 0
+           | suc a, con3 => cons1 a
+         } 
+    """, data3 + """
+       \data D2
+         | cons1 (c : Nat)
+         | cons2 (a b : Nat) (d : D a b) \elim a, b, d {
+           | 0, 0, con1 => cons1 0
+           | suc (suc a), suc (suc b), con3 => cons1 (suc a)
+         }
+    """)
 }
