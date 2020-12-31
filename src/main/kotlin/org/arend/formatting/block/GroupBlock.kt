@@ -3,7 +3,10 @@ package org.arend.formatting.block
 import com.intellij.formatting.*
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
-import org.arend.psi.ArendElementTypes.FUNCTION_CLAUSES
+import org.arend.psi.ArendCoClause
+import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ArendFunctionBody
+import org.arend.psi.ArendInstanceBody
 
 open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: MutableList<Block>, wrap: Wrap?, alignment: Alignment?, indent: Indent, parentBlock: AbstractArendBlock) :
         AbstractArendBlock(parentBlock.node, settings, wrap, alignment, indent, parentBlock) {
@@ -17,11 +20,21 @@ open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: Mu
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         printChildAttributesContext(newChildIndex)
-        val parentET = node.elementType
-        when (parentET) {
-            FUNCTION_CLAUSES -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+        when (node.elementType) {
+            FUNCTION_CLAUSES, FUNCTION_BODY, INSTANCE_BODY -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
         }
         return if (newChildIndex == blocks.size) ChildAttributes(indent, alignment) else super.getChildAttributes(newChildIndex)
+    }
+
+    override fun getSpacing(child1: Block?, child2: Block): Spacing? {
+        if (node.psi is ArendFunctionBody || node.psi is ArendInstanceBody) {
+            if (child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
+                child1.node.elementType == PIPE && child2.node.psi is ArendCoClause
+            )
+                return SimpleArendBlock.oneSpaceNoWrap
+        }
+
+        return super.getSpacing(child1, child2)
     }
 
     override fun toString(): String {
