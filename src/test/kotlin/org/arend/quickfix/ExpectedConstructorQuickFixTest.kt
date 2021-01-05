@@ -108,7 +108,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | n, con1{-caret-} => n
         | suc n, con3 => n
       })
-    """, """
+    """, data3 + """
       \func test3 {n m : Nat} (d : D n m) : Nat => 1 Nat.+ (\case m \as m, n \as n, d : D n m \with {
         | 0, 0, con1{-caret-} => 0
         | suc (suc m), suc (suc n), con3 => suc n
@@ -120,7 +120,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | nil{-caret-} => 0
         | cons x xs => 1
       })
-    """, """
+    """, data1 + """
       \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A n1 \with {
         | 0, nil => 0
         | suc (suc n1), cons x xs => 1
@@ -132,13 +132,89 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | 0, nil{-caret-} => 0
         | suc n1, cons x xs => 1
       }) 
-    """, """
+    """, data1 + """
       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, n Nat.+ n Nat.+ n \as n2, xs : Vec A n2 \with {
         | 0, 0, nil{-caret-} => 0
         | suc n1, suc n2, cons x xs => 1
       })   
     """)
 
+    fun test69C_06() = simpleQuickFixTest("Do", data1 + """
+       \func test2 {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n, ys \with {
+         | 0, nil, nil{-caret-} => 0
+         | n, cons x xs, cons y ys => 1
+       }) 
+    """, data1 + """
+       \func test2 {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n, m \as m, ys : Vec A m \with {
+         | 0, nil, 0, nil => 0
+         | suc n, cons x xs, suc m, cons y ys => 1
+       }) 
+    """)
+
+    val data12 = data1 + """
+      \data Foo {A : \Type} (n : Nat) (v : Vec A n) \elim n, v
+        | 0, nil => foo1
+        | suc n, cons x xs => foo2
+    """
+
+    fun test69C_07() = simpleQuickFixTest("Do", data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case f \with {
+         | foo1{-caret-} => 1
+         | foo2 => 2
+       }
+    """, data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v : Vec A n, f : Foo n v \with {
+         | 0, nil, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       }""")
+
+    fun test69C_08() = simpleQuickFixTest("Do", data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n, f : Foo n v \with {
+         | 0, foo1{-caret-} => 1
+         | suc n, foo2 => 2
+       }
+    """, data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo n v \with {
+         | 0, nil, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       }
+    """)
+
+    fun test69C_09() = simpleQuickFixTest("Do", data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case v, f : Foo n v \with {
+         | nil{-caret-}, foo1 => 1
+         | cons x xs, foo2 => 2
+       }
+    """, data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v : Vec A n, f : Foo n v \with {
+         | 0, nil{-caret-}, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       }
+    """)
+
+    fun test69C_10() = simpleQuickFixTest("Do", data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v : Vec A n, f : Foo n v \with {
+         | 0, nil, foo1{-caret-} => 1
+         | suc n, cons x xs, foo2 => 2
+       } 
+    """, data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v : Vec A n, f : Foo n v \with {
+         | 0, nil, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       }
+    """)
+
+    fun test69C_11() = simpleQuickFixTest("Do", data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo n v \with {
+         | 0, nil{-caret-}, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       }
+    """, data12 + """
+       \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v : Vec A n, f : Foo n v \with {
+         | 0, nil, foo1 => 1
+         | suc n, cons x xs, foo2 => 2
+       } 
+    """)
 
     /* Expected Constructor Error */
 

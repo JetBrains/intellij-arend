@@ -271,12 +271,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 } else {
                     // STEP 1C: Compute matching expressions
                     val matchResults = ArrayList<ExpressionMatcher.MatchResult>()
-                    if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingExpressions(parameterType, ecEntry.constructorTypechecked, true, matchResults) == null) {
+                    val matchResult = if (parameterType is DataCallExpression) ExpressionMatcher.computeMatchingExpressions(parameterType, ecEntry.constructorTypechecked, true, matchResults) else null
+                    if (matchResult == null) {
                         reportError()
                         continue@ecLoop
                     }
 
                     println(ecEntry)
+                    println("matchResult: $matchResult")
                     for (mr in matchResults) if (mr.pattern !is BindingPattern) {
                         // mr.expression is the new introduced expression;
                         // mr.pattern is the substituted pattern;
