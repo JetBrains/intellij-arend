@@ -15,9 +15,12 @@ import org.arend.core.definition.Constructor
 import org.arend.core.definition.DataDefinition
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.DataCallExpression
+import org.arend.core.expr.Expression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
+import org.arend.core.subst.LevelSubstitution
+import org.arend.core.subst.SubstVisitor
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
@@ -36,7 +39,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.ExpectedConstructorErrorEntry.Companion.toString1
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
@@ -76,8 +78,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
 
         val clausesListPsi : List<Abstract.Clause>? = when {
-            bodyPsi is ArendFunctionBody -> bodyPsi.functionClauses?.clauseList as? List<Abstract.Clause>
-            bodyPsi is ArendInstanceBody -> bodyPsi.functionClauses?.clauseList as? List<Abstract.Clause>
+            bodyPsi is ArendFunctionBody -> bodyPsi.functionClauses?.clauseList
+            bodyPsi is ArendInstanceBody -> bodyPsi.functionClauses?.clauseList
             constructorPsi != null -> constructorPsi.clauseList
             dataBodyPsi != null -> dataBodyPsi.constructorClauseList
             else -> null
@@ -91,6 +93,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         }
 
         var typecheckedParameters: DependentLink? = null
+
+        val caseMode = error.caseExpressions != null && caseExprPsi != null
+        val parameterToCaseArgMap = HashMap<DependentLink, ArendCaseArg>()
+        val parameterToCaseExprMap = HashMap<DependentLink, Expression>()
 
         if (definitionPsi is Abstract.Definition) {
             //STEP 0: Typecheck patterns of the function definition for the 2nd time
@@ -122,7 +128,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     if (!constructorFound) throw java.lang.IllegalStateException()
                 }
 
-                if (error.caseExpressions != null && caseExprPsi != null && concreteDefinition is Concrete.BaseFunctionDefinition) {
+                if (caseMode && concreteDefinition is Concrete.BaseFunctionDefinition) {
                     val children = ArrayList<Concrete.Expression>()
                     when (val b = concreteDefinition.body) {
                         is Concrete.ElimFunctionBody -> for (c in b.clauses) children.add(c.expression)
@@ -137,7 +143,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         }
                     }
                     for (child in children) child.accept(searcher, null)
-                    //TODO: Throw some error in case this code failed to find "concreteCaseExpr"
+                    if (concreteCaseExpr == null) throw IllegalStateException("ExpectedConstructorError quickfix failed to find \"concrete\" version of the case expression upon which it was invoked")
                 }
 
                 //if (cer.errorsNumber > 0) return@invoke
@@ -208,25 +214,25 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val definitionParameters = DependentLink.Helper.toList(typecheckedParameters)
             val entriesToRemove = ArrayList<ExpectedConstructorErrorEntry>()
 
+            fun reportError(ecEntry: ExpectedConstructorErrorEntry, currentClause: Abstract.Clause) {
+                entriesToRemove.add(ecEntry)
+                errorHintBuffer.append("Constructor: ${ecEntry.constructorTypechecked.name}\n")
+                errorHintBuffer.append("Patterns of the constructor: ${ecEntry.constructorTypechecked.patterns.map{ it.toExpression() }.toList()}\n")
+                errorHintBuffer.append("Containing clause: ${(currentClause as PsiElement).text}\n")
+            }
+
             ecLoop@for (ecEntry in expectedConstructorErrorEntries) {
                 val currentClause = ecEntry.clause.data as Abstract.Clause
                 val concreteCurrentClause = ecEntry.clause
                 val error = ecEntry.error
                 val parameterType = error.parameter?.type
 
-                fun reportError() {
-                    entriesToRemove.add(ecEntry)
-                    errorHintBuffer.append("ExpectedConstructorError quickfix was unable to compute matching patterns for the parameter ${error.parameter}\n")
-                    errorHintBuffer.append("Constructor: ${ecEntry.constructorTypechecked.name}\n")
-                    errorHintBuffer.append("Patterns of the constructor: ${ecEntry.constructorTypechecked.patterns.map{ it.toExpression() }.toList()}\n")
-                    errorHintBuffer.append("Containing clause: ${(currentClause as PsiElement).text}\n")
-                }
-
                 if (error.caseExpressions == null) {
                     // STEP 1: Compute matching patterns
                     val rawSubsts = HashMap<Binding, ExpressionPattern>()
                     if (parameterType !is DataCallExpression || ExpressionMatcher.computeMatchingPatterns(parameterType, ecEntry.constructorTypechecked, ExprSubstitution(), rawSubsts) == null) {
-                        reportError()
+                        errorHintBuffer.append("ExpectedConstructorError quickfix was unable to compute matching patterns for the parameter ${error.parameter}\n")
+                        reportError(ecEntry, currentClause)
                         continue@ecLoop
                     }
 
@@ -273,31 +279,62 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val matchResults = ArrayList<ExpressionMatcher.MatchResult>()
                     val matchResult = if (parameterType is DataCallExpression) ExpressionMatcher.computeMatchingExpressions(parameterType, ecEntry.constructorTypechecked, true, matchResults) else null
                     if (matchResult == null) {
-                        reportError()
+                        errorHintBuffer.append("ExpectedConstructorError quickfix was unable to compute matching expressions for the case parameter ${error.parameter}\n")
+                        reportError(ecEntry, currentClause)
                         continue@ecLoop
                     }
+                    ecEntry.caseMatchData = Pair(matchResult, matchResults)
 
-                    println(ecEntry)
-                    println("matchResult: $matchResult")
-                    for (mr in matchResults) if (mr.pattern !is BindingPattern) {
-                        // mr.expression is the new introduced expression;
-                        // mr.pattern is the substituted pattern;
-                        // We should search for occurrences of mr.expression in the types of "clauseParameters" and replace them with reference to the fresh variable
-                        // These types should appear in type qualifiers of the corresponding case arguments
-                        // The new caseArgument corresponding to mr should precede all the case arguments where it is used
-                        // (*)  if there is already a case argument matching with mr.expression then it should be reused
-                        // The expression of the caseArgument corresponding to mr should not contain references to other caseArguments (corresponding expressions should be substituted instead)
-                        // [optional] If mr.expression was a variable reference then there is a chance to perform variable substitutions similarly to the elim case (this is probably not possible in the general case)
-                        // Where should we store our output?
-                        // - ecEntry.clauseParametersToSpecialize and matchData should be left empty
-                        // - patternPrimers should be modified at this stage in case (*) holds
-                        // What data structures should we use?
-                        // -
-                        println("Binding: ${mr.binding.toString1()} Pattern: ${(mr.pattern as? ExpressionPattern)?.toExpression()} Expression: ${mr.expression}")
-
+                    if (error.caseExpressions != null && caseExprPsi != null) for (triple in DependentLink.Helper.toList(this.error.clauseParameters).zip(error.caseExpressions.zip(caseExprPsi.caseArgList))) {
+                        parameterToCaseArgMap[triple.first] = triple.second.second
+                        parameterToCaseExprMap[triple.first] = triple.second.first
                     }
                 }
             }
+
+            val caseBindings = LinkedHashMap<Binding, Pair</* case arg that depends on this binding */ ArendCaseArg, /* corresponding expression */ Expression>>()
+            val caseTypeQualifications = HashMap<ArendCaseArg, DataCallExpression /* case arg expression */>()
+
+            if (caseMode) run {
+                // STEP 2C: Calculate the list of expressions which need to be eliminated or specialized
+                for (ecEntry in expectedConstructorErrorEntries) {
+                    val cmd = ecEntry.caseMatchData
+                    if (cmd != null) {
+                        val stuckParameter = ecEntry.error.parameter
+                        val correspondingCaseArg = parameterToCaseArgMap[stuckParameter]!! //Safe as stuckParameter is one error.clauseParameters
+                        val sampleQualification = caseTypeQualifications[correspondingCaseArg]
+                        if (sampleQualification == null) {
+                            caseTypeQualifications[correspondingCaseArg] = cmd.first
+                            for (mr in cmd.second) {
+                                caseBindings[mr.binding] = Pair(correspondingCaseArg, mr.expression)
+                                val mrPattern = mr.pattern
+                                if (mrPattern !is BindingPattern && mrPattern is ExpressionPattern) ecEntry.correctedSubsts[mr.binding] = mrPattern
+                            }
+                        } else {
+                            val substitution = ExprSubstitution()
+                            sBELoop@for (sampleBindingEntry in caseBindings) for (mr in cmd.second) {
+                                val expr1 = mr.expression
+                                val expr2 = sampleBindingEntry.value.second
+                                if (expr1 == expr2) {
+                                    substitution.add(mr.binding, ReferenceExpression(sampleBindingEntry.key))
+                                    continue@sBELoop
+                                }
+                            }
+                            val cmdType = cmd.first.accept(SubstVisitor(substitution, LevelSubstitution.EMPTY), null)
+                            if (cmdType != sampleQualification) {
+                                errorHintBuffer.append("Calculated type expressions for the case argument do not match between the clauses")
+                                errorHintBuffer.append("Case argument: ${parameterToCaseArgMap[stuckParameter]?.text}")
+                                reportError(ecEntry, ecEntry.clause.data as Abstract.Clause)
+                            } else for (mr in cmd.second) {
+                                val matchedCaseBinding = (substitution.get(mr.binding) as? ReferenceExpression)?.binding
+                                val mrPattern = mr.pattern
+                                if (matchedCaseBinding != null && mrPattern !is BindingPattern && mrPattern is ExpressionPattern) ecEntry.correctedSubsts[matchedCaseBinding] = mrPattern
+                            }
+                        }
+                    }
+                }
+            }
+
             expectedConstructorErrorEntries.removeAll(entriesToRemove)
             val clauseToEntryMap = HashMap<Abstract.Clause, ExpectedConstructorErrorEntry>()
             val definitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters (global)
@@ -539,8 +576,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     }
                 }
             }
-        } else { // case
-            //TODO: Implement me
         }
 
         if (editor != null && errorHintBuffer.isNotEmpty()) ApplicationManager.getApplication().invokeLater {
@@ -552,6 +587,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
     companion object {
         class ExpectedConstructorErrorEntry(val error: ExpectedConstructorError, val clause: Concrete.Clause, val substitution: ExprSubstitution, val constructorTypechecked: Constructor) {
             val matchData = HashMap<DependentLink, VariableLocationDescriptor>() // Initialized at STEP 1
+            var caseMatchData : Pair<DataCallExpression, List<ExpressionMatcher.MatchResult>>? = null // Initialized at STEP 1C
+
             val correctedSubsts = HashMap<Variable, ExpressionPattern>() // Initialized at STEP 2
             val clauseParametersToSpecialize = HashSet<Variable>() // Subset of ClauseParameters; Initialized at STEP 2
             val clauseDefinitionParametersToEliminate = HashSet<Variable>() // Subset of definitionParameters (per clause); Initialized at STEP 2
@@ -566,7 +603,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 result.appendLine("Constructor: ${constructorTypechecked.name}; ")
                 result.appendLine("Clause: ${currentClause.text}")
 
-                if (substitution.keys.isNotEmpty()) {
+                val valCaseMatchData = caseMatchData
+                if (valCaseMatchData != null) {
+                    result.append("Case argument: ${error.parameter}\n")
+                    result.append("Case argument type: ${valCaseMatchData.first}\n")
+                    for (mr in valCaseMatchData.second) {
+                        result.append("Case pattern: ${(mr.pattern as? ExpressionPattern)?.toExpression()}; Binding: ${mr.binding}; Expression: ${mr.expression}@${mr.expression.hashCode() % 10000}; \n")
+                    }
+                } else if (substitution.keys.isNotEmpty()) {
                     result.appendLine("\nerror.substitution contents:")
                     printExprSubstitution(substitution, result)
                     result.appendLine()
