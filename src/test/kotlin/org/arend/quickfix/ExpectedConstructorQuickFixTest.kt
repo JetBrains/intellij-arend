@@ -131,12 +131,12 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A (n1 Nat.+ n) \with {
         | 0, nil{-caret-} => 0
         | suc n1, cons x xs => 1
-      }) 
+      })
     """, data1 + """
       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, n Nat.+ n Nat.+ n \as n2, xs : Vec A n2 \with {
         | 0, 0, nil{-caret-} => 0
         | suc n1, suc n2, cons x xs => 1
-      })   
+      })
     """)
 
     fun test69C_06() = simpleQuickFixTest("Do", data1 + """
@@ -206,19 +206,19 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
 
     fun test69C_11() = simpleQuickFixTest("Do", data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo n v \with {
-         | 0, nil{-caret-}, foo1 => 1
+         | suc m, nil{-caret-}, foo1 => m
          | suc n, cons x xs, foo2 => 2
        }
     """, data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v : Vec A n, f : Foo n v \with {
-         | 0, nil, foo1 => 1
+         | 0, nil, foo1 => {?m}
          | suc n, cons x xs, foo2 => 2
        } 
     """)
 
     /* Expected Constructor Error */
 
-    /* fun test69_01() = simpleQuickFixTest("Do", data1 + """
+    fun test69_01() = simpleQuickFixTest("Do", data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | nil{-caret-} => 0
         | cons x xs => 1 
@@ -489,5 +489,5 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
            | 0, 0, con1 => cons1 0
            | suc (suc a), suc (suc b), con3 => cons1 (suc a)
          }
-    """) */
+    """)
 }
