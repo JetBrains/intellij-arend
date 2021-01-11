@@ -158,4 +158,6 @@ class ArendPsiFactory(
     fun createCoClauseBody(): ArendCoClauseBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.childOfType() ?: error("Failed to create coClauseBody keyword")
 
     fun createClassStat(): ArendClassStat = createFromText("\\class C { \\func bar => 101 }")?.childOfType() ?: error("Failed to create classStat")
+
+    fun createCaseArg(caseArg: String): ArendCaseArg? = createFromText("\\func foo => \\case $caseArg, lol \\with {} ")?.childOfType()
 }
