@@ -164,6 +164,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         concreteDef.accept(subDefVisitor, def)
     }) ?: throw SubExprException(buildString {
         append("cannot find a suitable subexpression")
+
         if (errors.any { it.kind == SubExprError.Kind.MetaRef })
             append(" (maybe because you're using meta defs)")
     }, body)

@@ -107,4 +107,7 @@ class ArendReformatTest : ArendFormatterTestBase() {
             "\\open Nat\n\n\\func test => 1\n  + 2\n  + 3")
 
     fun testMultilineDocCommentWithSuddenEnd() = checkReformat("{- | a\n -}", "{- | a\n -}")
+
+    fun test246() = checkReformat("\\func f (n : Nat) : Nat \\elim n\n  | _ => {?} -- asda",
+        "\\func f (n : Nat) : Nat \\elim n\n  | _ => {?} -- asda")
 }

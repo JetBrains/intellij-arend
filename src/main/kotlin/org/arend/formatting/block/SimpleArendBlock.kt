@@ -10,7 +10,10 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import com.intellij.psi.tree.TokenSet
+import org.arend.parser.ParserMixin
 import org.arend.parser.ParserMixin.DOC_COMMENT
+import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.util.mapFirstNotNull
@@ -75,7 +78,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStatement || psi2 is ArendClassStat))
                 return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
-            else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (AREND_COMMENTS.contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
+            else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (TokenSet.create(BLOCK_COMMENT, DOC_COMMENT, DOC_TEXT).contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             if (myNode.psi is ArendWithBody && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
