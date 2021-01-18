@@ -44,7 +44,6 @@ import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.resolving.util.parseBinOp
-import java.lang.IllegalStateException
 
 /**
  * @param def for storing function-level elim/clauses bodies
@@ -179,8 +178,6 @@ fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, ed
         if (showError) ApplicationManager.getApplication().invokeLater {
             HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
         }
-        null
-    } catch (e : IllegalStateException) {
         null
     }
 
