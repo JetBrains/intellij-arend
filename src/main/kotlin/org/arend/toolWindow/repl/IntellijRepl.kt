@@ -1,8 +1,11 @@
 package org.arend.toolWindow.repl
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import org.arend.core.expr.Expression
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
@@ -12,17 +15,23 @@ import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendPsiFactory
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.repl.Repl
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.action.SetPromptCommand
-import org.arend.typechecking.ArendTypechecking
-import org.arend.typechecking.LibraryArendExtensionProvider
-import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.*
+import org.arend.typechecking.computation.ComputationRunner
+import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.dependency.DummyDependencyListener
+import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.typechecking.result.TypecheckingResult
+import java.lang.StringBuilder
+import java.util.function.Consumer
 
 abstract class IntellijRepl private constructor(
     val handler: ArendReplExecutionHandler,
@@ -56,6 +65,7 @@ abstract class IntellijRepl private constructor(
         myScope = ConvertingScope(ArendReferableConverter, myScope)
     }
 
+    private val definitionModificationTracker = service.project.service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
         ?.also { resetCurrentLineScope() }
@@ -95,4 +105,32 @@ abstract class IntellijRepl private constructor(
         override val modules: List<ModulePath>
             get() = service.updatedModules.map { it.modulePath }
     }
+
+    override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?, continuation: Consumer<TypecheckingResult>) {
+        definitionModificationTracker.incModificationCount()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            ComputationRunner<Unit>().run(ModificationCancellationIndicator(definitionModificationTracker)) {
+                super.checkExpr(expr, expectedType, continuation)
+            }
+        }
+    }
+
+    override fun typecheckStatements(group: Group, scope: Scope) {
+        definitionModificationTracker.incModificationCount()
+        val collector = CollectingOrderingListener()
+        Ordering(myTypechecking.instanceProviderSet, myTypechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, myTypechecking.referableConverter, PsiElementComparator).orderModule(group)
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val ok = myTypechecking.typecheckCollected(collector, ModificationCancellationIndicator(definitionModificationTracker))
+            runReadAction {
+                if (!ok) {
+                    checkErrors()
+                    removeScope(scope)
+                }
+                onScopeAdded(group)
+            }
+        }
+    }
+
+    override fun prettyExpr(builder: StringBuilder, expression: Expression): StringBuilder =
+        runReadAction { super.prettyExpr(builder, expression) }
 }
