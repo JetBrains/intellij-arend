@@ -43,6 +43,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getImplementedFields(): List<LocatedReferable> =
         coClauseElements.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
+    override fun getDynamicReferables() = dynamicSubgroups
+
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
     override fun getSuperClasses(): List<ArendLongName> = longNameList
