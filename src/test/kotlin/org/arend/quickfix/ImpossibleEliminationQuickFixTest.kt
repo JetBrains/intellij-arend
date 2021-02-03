@@ -1,30 +1,55 @@
 package org.arend.quickfix
 
 class ImpossibleEliminationQuickFixTest: QuickFixTestBase() {
-    // 0
     fun test68_Empty01() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """ 
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | (){-caret-}
     """, ExpectedConstructorQuickFixTest.data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim n, xs
+      
     """)
 
-    // 0
-    fun test68_Empty02() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """ 
-       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n, xs \with {
-         | n, (){-caret-} => 101
-       } 
-    """, ExpectedConstructorQuickFixTest.data1 + """
-       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n \as n, xs : Vec A n \with {
-       } 
+    fun test68_Empty02() = simpleQuickFixTest("Do", data2 + """ 
+      \func f (x y : Nat) (p : Geq x y) : Nat \elim x, p
+          | x, (){-caret-}      
+          | m, EqBase => zero
+          | suc _, EqSuc q => suc zero        
+    """, data2 + """
+      \func f (x y : Nat) (p : Geq x y) : Nat \elim x, y, p
+          | m, y, EqBase => zero
+          | suc _, y, EqSuc q => suc zero
     """)
 
-    // 0
     fun test68_Empty03() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat
         | (){-caret-}
     """, ExpectedConstructorQuickFixTest.data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat
+      
+    """)
+
+    fun test68_Empty04() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data3 + """
+       \data D2
+         | cons1 (c : Nat)
+         | cons2 (a b : Nat) (d : D a b) \elim a, d {
+           | 0, (){-caret-} => cons1 0
+           | suc a, con3 => cons1 a
+         } 
+    """, ExpectedConstructorQuickFixTest.data3 + """
+       \data D2
+         | cons1 (c : Nat)
+         | cons2 (a b : Nat) (d : D a b) \elim a, b, d {
+           | suc a, b, con3 => cons1 a
+         } 
+    """)
+
+    fun test68_Empty05() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data3 + """
+       \data D2 (a b : Nat) (d : D a b) \elim a, d
+         | 0, (){-caret-} => cons1
+         | suc a, con3 => cons2 (Fin a)
+    """, ExpectedConstructorQuickFixTest.data3 + """
+       \data D2 (a b : Nat) (d : D a b) \elim a, b, d
+         | suc a, b, con3 => cons2 (Fin a) 
     """)
 
     private val data2 = """
@@ -33,8 +58,16 @@ class ImpossibleEliminationQuickFixTest: QuickFixTestBase() {
         | suc n, suc m => EqSuc (p : Geq n m)
     """
 
-    //0
-    fun test68_Empty04() = simpleQuickFixTest("Do", data2 + """
+    fun test68_Empty01C() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """ 
+       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n, xs \with {
+         | n, (){-caret-} => 101
+       } 
+    """, ExpectedConstructorQuickFixTest.data1 + """
+       \func test2 {A : \Type} (n : Nat) (xs : Vec A n) : Nat => \case n \as n, xs : Vec A n \with {
+       } 
+    """)
+
+    fun test68_Empty02C() = simpleQuickFixTest("Do", data2 + """
       \func f (x y : Nat) (p : Geq x y) : Nat =>
         \case x, y, p \with {
           | m, zero, EqBase => zero
@@ -49,14 +82,46 @@ class ImpossibleEliminationQuickFixTest: QuickFixTestBase() {
         }
     """)
 
-    //2
+    fun test68_Empty03C() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case xs \with {
+        | (){-caret-} => 0
+        | cons x xs => 1  
+      })
+    """, ExpectedConstructorQuickFixTest.data1 + """
+      \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n \with {
+        | n, cons x xs => 1
+      })
+    """)
+
+    fun test68_Empty04C() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """
+      \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case xs \with {
+        | (){-caret-} => 0
+        | cons x xs => 1
+      })
+    """, ExpectedConstructorQuickFixTest.data1 + """
+      \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A n1 \with {
+        | n1, cons x xs => 1
+      })  
+    """)
+
+    fun test68_Empty05C() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data1 + """
+       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A (n1 Nat.+ n) \with {
+        | 0, (){-caret-} => 0
+        | suc n1, cons x xs => 1
+      })
+    """, ExpectedConstructorQuickFixTest.data1 + """
+       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, n Nat.+ n Nat.+ n \as n2, xs : Vec A n2 \with {       
+         | suc n1, n2, cons x xs => 1
+      }) 
+    """)
+
     fun test68_NoClauses01() = simpleQuickFixTest("Do", ExpectedConstructorQuickFixTest.data2 + """
         {-caret-}\func f (n : Nat) (d : D n) : Nat \elim d
     """, ExpectedConstructorQuickFixTest.data2 + """
         \func f (n : Nat) (d : D n) : Nat \elim n, d          
     """)
 
-    /* TODO: Implement later (1)
+    /* TODO: Implement later
 
     private val data3 = """
         \data D (n : Nat) \with
