@@ -28,8 +28,6 @@ import java.nio.file.Paths
 
 const val AREND_LIB = "arend-lib"
 
-private val NOTIFICATION = NotificationGroup("Arend Library Update", NotificationDisplayType.STICKY_BALLOON, true)
-
 private fun downloadArendLib(project: Project, indicator: ProgressIndicator, path: Path): Boolean =
     try {
         val conn = URL("https://github.com/JetBrains/$AREND_LIB/releases/download/v${Prelude.VERSION.longString}/$AREND_LIB.zip").openConnection()
@@ -63,13 +61,14 @@ private fun downloadArendLib(project: Project, indicator: ProgressIndicator, pat
         }
         true
     } catch (e: IOException) {
-        NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("An exception happened during downloading of $AREND_LIB", null, e.toString(), NotificationType.ERROR, null).notify(project)
+        NotificationErrorReporter.errorNotifications.createNotification("An exception happened during downloading of $AREND_LIB", null, e.toString(), NotificationType.ERROR, null).notify(project)
         false
     }
 
 fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
     val libRoot = project.service<ArendProjectSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
-    val notification = NOTIFICATION.createNotification(if (isNewVersion) "$AREND_LIB has a wrong version" else "$AREND_LIB is missing", "", NotificationType.ERROR, null)
+    val notification = NotificationGroupManager.getInstance().getNotificationGroup("Arend Library Update")
+        .createNotification(if (isNewVersion) "$AREND_LIB has a wrong version" else "$AREND_LIB is missing", "", NotificationType.ERROR, null)
 
     notification.addAction(object : NotificationAction("Download $AREND_LIB") {
         override fun actionPerformed(e: AnActionEvent, notification: Notification) {
@@ -92,10 +91,10 @@ fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
                         }
                     })
                 } else {
-                    NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification(null, null, "Cannot open $zipFile", NotificationType.ERROR, null).notify(project)
+                    NotificationErrorReporter.errorNotifications.createNotification(null, null, "Cannot open $zipFile", NotificationType.ERROR, null).notify(project)
                 }
             } else {
-                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification(null, null, "Cannot create directory $libRoot", NotificationType.ERROR, null).notify(project)
+                NotificationErrorReporter.errorNotifications.createNotification(null, null, "Cannot create directory $libRoot", NotificationType.ERROR, null).notify(project)
             }
         }
     })

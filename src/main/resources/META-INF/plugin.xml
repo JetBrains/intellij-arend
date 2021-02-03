@@ -3,7 +3,7 @@
     <vendor>JetBrains</vendor>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="202.5958.24"/>
+    <idea-version since-build="203.5981"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -228,6 +228,14 @@
         <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>
         <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
         <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.rename.ArendRefactoringSupportProvider"/>
+
+        <!-- Notification groups -->
+
+        <notificationGroup id="Arend Error Messages" displayType="STICKY_BALLOON" />
+        <notificationGroup id="Arend Warning Messages" displayType="BALLOON" />
+        <notificationGroup id="Arend Info Messages" displayType="NONE" />
+        <notificationGroup id="Arend Reload" displayType="STICKY_BALLOON" />
+        <notificationGroup id="Arend Library Update" displayType="STICKY_BALLOON" />
 
         <!-- Run Configurations -->
 

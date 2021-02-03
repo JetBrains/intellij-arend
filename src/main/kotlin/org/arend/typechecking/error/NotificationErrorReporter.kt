@@ -1,7 +1,7 @@
 package org.arend.typechecking.error
 
-import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
 import org.arend.ext.error.ErrorReporter
@@ -15,15 +15,18 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 
 class NotificationErrorReporter(private val project: Project, private val ppConfig: PrettyPrinterConfig = PrettyPrinterConfig.DEFAULT): ErrorReporter {
     companion object {
-        val ERROR_NOTIFICATIONS = NotificationGroup("Arend Error Messages", NotificationDisplayType.STICKY_BALLOON, true)
-        val WARNING_NOTIFICATIONS = NotificationGroup("Arend Warning Messages", NotificationDisplayType.BALLOON, true)
-        val INFO_NOTIFICATIONS = NotificationGroup("Arend Info Messages", NotificationDisplayType.NONE, true)
+        val errorNotifications: NotificationGroup
+            get() = NotificationGroupManager.getInstance().getNotificationGroup("Arend Error Messages")
+        val warningNotifications: NotificationGroup
+            get() = NotificationGroupManager.getInstance().getNotificationGroup("Arend Warning Messages")
+        val infoNotifications: NotificationGroup
+            get() = NotificationGroupManager.getInstance().getNotificationGroup("Arend Info Messages")
 
         fun notify(level: Level?, title: String?, content: String, project: Project) {
             val group = when (level) {
-                Level.ERROR -> ERROR_NOTIFICATIONS
-                Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> WARNING_NOTIFICATIONS
-                Level.INFO, null -> INFO_NOTIFICATIONS
+                Level.ERROR -> errorNotifications
+                Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> warningNotifications
+                Level.INFO, null -> infoNotifications
             }
             val type = when (level) {
                 Level.ERROR -> NotificationType.ERROR
@@ -42,10 +45,10 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
     }
 
     fun info(msg: String) {
-        INFO_NOTIFICATIONS.createNotification(msg, NotificationType.INFORMATION).notify(project)
+        infoNotifications.createNotification(msg, NotificationType.INFORMATION).notify(project)
     }
 
     fun warn(msg: String) {
-        WARNING_NOTIFICATIONS.createNotification(msg, NotificationType.WARNING).notify(project)
+        warningNotifications.createNotification(msg, NotificationType.WARNING).notify(project)
     }
 }

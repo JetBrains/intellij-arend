@@ -35,7 +35,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
                     if (clazz.project.service<ClassDescendantsSearch>().search(clazz).isNotEmpty()) {
                         result.add(LineMarkerInfo(element.id, element.textRange, AllIcons.Gutter.OverridenMethod,
                             SUPERCLASS_OF.tooltip, SUPERCLASS_OF.navigationHandler,
-                            GutterIconRenderer.Alignment.RIGHT))
+                            GutterIconRenderer.Alignment.RIGHT) { "subclasses" })
                     }
                 }
             }

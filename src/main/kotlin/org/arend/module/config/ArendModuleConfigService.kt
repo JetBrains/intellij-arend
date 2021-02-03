@@ -232,7 +232,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
                 if (service != null) {
                     return service
                 }
-                NotificationErrorReporter.ERROR_NOTIFICATIONS.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR).notify(module.project)
+                NotificationErrorReporter.errorNotifications.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR).notify(module.project)
             }
             return EmptyLibraryConfig(module.name, module.project)
         }

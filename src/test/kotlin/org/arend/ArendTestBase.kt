@@ -14,6 +14,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.util.ThrowableRunnable
 import com.maddyhome.idea.vim.VimPlugin
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
@@ -56,7 +57,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         VimPlugin.setEnabled(false)
     }
 
-    override fun runTest() {
+    override fun runTestRunnable(testRunnable: ThrowableRunnable<Throwable>) {
         val projectDescriptor = projectDescriptor
         val reason = (projectDescriptor as? ArendProjectDescriptorBase)?.skipTestReason
         if (reason != null) {
@@ -64,7 +65,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
             return
         }
 
-        super.runTest()
+        super.runTestRunnable(testRunnable)
     }
 
     protected fun addGeneratedModules(filler : DefinitionContributor.() -> Unit) {

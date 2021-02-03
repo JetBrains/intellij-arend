@@ -4,7 +4,6 @@ import com.intellij.CommonBundle
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.ui.JBColor
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.content.Content
 import com.intellij.ui.scale.JBUIScale
@@ -34,7 +33,7 @@ class ArendToolWindowSession(project: Project) : ComponentSession() {
     // This is copied from DialogWrapper.createSouthPanel
     private fun createSouthPanel(): JPanel {
         val panel = NonOpaquePanel(GridBagLayout())
-        val insets = if (SystemInfo.isMacOSLeopard && UIUtil.isUnderIntelliJLaF()) JBInsets.create(0, 8) else JBUI.emptyInsets()
+        val insets = if (SystemInfo.isMac && UIUtil.isUnderIntelliJLaF()) JBInsets.create(0, 8) else JBUI.emptyInsets()
         val bag = GridBag().setDefaultInsets(insets)
         panel.add(Box.createHorizontalGlue(), bag.next().weightx(1.0).fillCellHorizontally()) // left strut
         panel.add(createButtonsPanel(), bag.next())

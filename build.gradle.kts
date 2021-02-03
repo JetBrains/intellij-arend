@@ -11,9 +11,9 @@ version = "1.5.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.4.10"
-    id("org.jetbrains.intellij") version "0.4.21"
-    id("org.jetbrains.grammarkit") version "2020.2.1"
+    kotlin("jvm") version "1.4.21"
+    id("org.jetbrains.intellij") version "0.6.5"
+    id("org.jetbrains.grammarkit") version "2020.3.2"
 }
 
 repositories {
@@ -55,11 +55,11 @@ idea {
 }
 
 intellij {
-    version = "2020.2"
+    version = "2020.3"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = true
-    setPlugins("yaml", "java", "IdeaVIM:0.60")
+    setPlugins("yaml", "java", "IdeaVIM:0.64")
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -106,7 +106,7 @@ tasks.withType<KotlinCompile>().configureEach {
         jvmTarget = "11"
         languageVersion = "1.4"
         apiVersion = "1.4"
-        freeCompilerArgs = listOf("-Xjvm-default=enable", "-Xstring-concat")
+        freeCompilerArgs = listOf("-Xjvm-default=enable")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
 }
