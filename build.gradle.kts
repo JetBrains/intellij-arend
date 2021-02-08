@@ -11,7 +11,7 @@ version = "1.5.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.4.21"
+    kotlin("jvm") version "1.4.30"
     id("org.jetbrains.intellij") version "0.6.5"
     id("org.jetbrains.grammarkit") version "2020.3.2"
 }
