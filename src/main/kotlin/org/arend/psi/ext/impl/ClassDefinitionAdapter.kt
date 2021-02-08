@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.*
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCoClauseImplMixin
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -24,7 +25,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
-    override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: it.coClause?.coClauseDef ?: it.defModule }
+    override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: (it.coClause as? ArendCoClauseImplMixin)?.functionReference ?: it.defModule }
 
     private inline val parameterFields: List<ArendFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
 
