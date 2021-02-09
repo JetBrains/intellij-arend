@@ -300,7 +300,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test expression keywords in teles`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : {-caret-}) => 0",
-                    "\\data d (a : {-caret-})")
+                    "\\data d (a : {-caret-})",
+                    "\\class C (A : {-caret-})",
+                    //"\\class C | cons (x : {-caret-})", //TODO: Better parser recovery is needed to fix this; otherwise can't distinguish this from `test completion in resulting type`
+                    "\\func foo => \\let (x : {-caret-}) \\in ")
 
     fun `test only new & universes in application expression or after new expr`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
@@ -310,9 +313,13 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST + LPH_KW_LIST + LEVELS_KW_LIST + WHERE_KW_FULL + WITH_KW_FULL, CompletionCondition.SAME_KEYWORDS,
                     "\\func f (a : Nat) => f {-caret-}")
 
-    fun `test no basic expression kws in argument position`() =
+    fun `test no basic expression kws`() =
             checkKeywordCompletionVariants(BASIC_EXPRESSION_KW, CompletionCondition.DOES_NOT_CONTAIN,
-                    "\\func lol (a : Nat) (b : Nat) => lol 1 {-caret-}")
+                    "\\func lol (a : Nat) (b : Nat) => lol 1 {-caret-}",
+                    "\\data Test | cons (t : Test) {-caret-}",
+                    "\\data Test | cons {-caret-}",
+                    "\\data Test {-caret-}",
+                    "\\data Test (a : Nat) {-caret-}")
 
     fun `test eval after new`() =
         checkKeywordCompletionVariants(listOf(ArendElementTypes.EVAL_KW.toString()), CompletionCondition.SAME_KEYWORDS,

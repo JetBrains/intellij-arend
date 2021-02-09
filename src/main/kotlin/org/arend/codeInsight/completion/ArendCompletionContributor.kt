@@ -198,8 +198,8 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
         basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
 
-        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
-        basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(false, true)), NEW_KW_LIST)
+        basic(and(or(EXPRESSION_CONTEXT), expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
+        basic(and(or(EXPRESSION_CONTEXT, TELE_CONTEXT), expressionPattern.invoke(false, true)), NEW_KW_LIST)
 
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document
@@ -459,7 +459,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     it != null && it.withBody == null && (it.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.longName != null || it.argumentAppExpr?.longNameExpr != null)
                 }}), WITH_KW_LIST, KeywordCompletionBehavior.ADD_BRACES)
 
-        //basic(PlatformPatterns.psiElement(), Logger())
+        basic(PlatformPatterns.psiElement(), Logger())
     }
 
     private fun basic(pattern: ElementPattern<PsiElement>, provider: CompletionProvider<CompletionParameters>) {
@@ -536,9 +536,9 @@ class ArendCompletionContributor : CompletionContributor() {
                         or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
                         and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
                         and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
-                        TELE_CONTEXT),
+                        withAncestors(ArendNameTele::class.java, ArendDefFunction::class.java),
+                        withAncestors(ArendTypeTele::class.java, ArendDefData::class.java)),
                 not(afterLeaves(PIPE, COWITH_KW, COERCE_KW, CLASSIFYING_KW, FIELD_KW, PROPERTY_KW))) // no expression keywords after pipe
-
 
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
                 withGrandParents(ArendDefData::class.java, ArendClassField::class.java, ArendConstructor::class.java))
