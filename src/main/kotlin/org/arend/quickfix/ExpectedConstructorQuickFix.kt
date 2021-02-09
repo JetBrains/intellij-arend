@@ -15,10 +15,7 @@ import org.arend.core.context.param.UntypedDependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
 import org.arend.core.definition.DataDefinition
-import org.arend.core.expr.ClassCallExpression
-import org.arend.core.expr.DataCallExpression
-import org.arend.core.expr.Expression
-import org.arend.core.expr.ReferenceExpression
+import org.arend.core.expr.*
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
 import org.arend.core.subst.LevelSubstitution
@@ -58,6 +55,7 @@ import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.ExpressionMatcher
 import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.visitor.CheckTypeVisitor
+import org.arend.util.Decision
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -846,7 +844,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     } else processMismatchedPattern()
 
                 }
-                is Concrete.NumberPattern -> processMismatchedPattern()
+                is Concrete.NumberPattern ->  if (pattern.match(SmallIntegerExpression(concretePattern.number), ArrayList()) != Decision.YES) processMismatchedPattern()
                 is Concrete.TuplePattern -> if (pattern is ConstructorExpressionPattern && pattern.constructor == null) for (pair in concretePattern.patterns.zip(pattern.subPatterns)) {
                     unify(pair.second, pair.first, processedSubstitutions, newPrimers, mismatchedPatterns)
                 } else processMismatchedPattern()

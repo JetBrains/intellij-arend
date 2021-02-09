@@ -421,6 +421,16 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          }
     """)
 
+    fun test69_23() = simpleQuickFixTest("Do", data3 + """
+       \func foo (a b : Nat) (d : D a b) : Nat \elim a, d
+         | 0, con1 => b Nat.+ b
+         | 1, con2{-caret-} => b Nat.+ b 
+    """, data3 + """
+       \func foo (a b : Nat) (d : D a b) : Nat \elim a, b, d
+         | 0, 0, con1 => 0 Nat.+ 0
+         | 1, suc b, con2 => (suc b) Nat.+ (suc b) 
+    """)
+
     companion object {
         const val data1 = """
       \data Vec (A : \Type) (n : Nat) \elim n
