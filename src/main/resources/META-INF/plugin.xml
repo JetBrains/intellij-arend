@@ -385,7 +385,7 @@
 
         <action id="Arend.Repl.OpenFile"
                 class="org.arend.actions.ArendOpenInReplAction"
-                text="Open in REPL"
+                text="REPL"
                 description="Open the Arend REPL and \import the current file if not loaded">
             <add-to-group group-id="RevealGroup" anchor="last"/>
             <add-to-group group-id="TouchBarDefault_alt" anchor="last"/>
