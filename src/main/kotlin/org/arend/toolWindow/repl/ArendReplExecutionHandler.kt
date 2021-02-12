@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -33,7 +34,8 @@ class ArendReplExecutionHandler(
 ) : BaseConsoleExecuteActionHandler(true) {
     val repl = object : IntellijRepl(this, project) {
         override fun print(anything: Any?) {
-            val s = anything.toString()
+            if (anything == null) return
+            val s = runReadAction { anything.toString() }
             when {
                 s.startsWith("[INFO]") -> consoleView.print(s, ConsoleViewContentType.LOG_INFO_OUTPUT)
                 s.startsWith("[ERROR]") || s.startsWith("[FATAL]") -> consoleView.print(s, ConsoleViewContentType.ERROR_OUTPUT)
@@ -42,8 +44,11 @@ class ArendReplExecutionHandler(
             }
         }
 
-        override fun eprintln(anything: Any?) =
-            consoleView.print("$anything\n", ConsoleViewContentType.ERROR_OUTPUT)
+        override fun eprintln(anything: Any?) {
+            if (anything == null) return
+            val s = runReadAction { anything.toString() }
+            consoleView.print("$s\n", ConsoleViewContentType.ERROR_OUTPUT)
+        }
     }
 
     val consoleView = LanguageConsoleBuilder()
