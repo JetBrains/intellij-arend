@@ -49,10 +49,10 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
         val typecheckedParameters = when {
             constructorPsi != null -> {
                 (definition.typechecked as DataDefinition).constructors.firstOrNull { (it.referable as DataLocatedReferable).data?.element == constructorPsi }?.parameters
-                    ?: throw java.lang.IllegalStateException()
             }
             else -> definition.typechecked.parameters
-        }
+        } ?: return
+
         val bodyPsi = (definitionPsi as? ArendFunctionalDefinition)?.body
         val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
         val elimPsi = when {
