@@ -1,6 +1,5 @@
 package org.arend.codeInsight
 
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.lang.parameterInfo.*
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiElement
@@ -23,6 +22,9 @@ import org.arend.util.checkConcreteExprIsArendExpr
 
 class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, List<Abstract.Parameter>> {
 
+    private fun exprToString(expr: Abstract.Expression?) =
+        if (expr != null) ConcreteBuilder.convertExpression(expr).toString() else "{?error}"
+
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         if (p == null) return
         var curOffset = 0
@@ -38,9 +40,9 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             val nameTypeList = mutableListOf<Pair<String?, String>>()
             val vars = pm.referableList
             if (vars.isNotEmpty()) {
-                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", ConcreteBuilder.convertExpression(pm.type).toString()) }
+                vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", exprToString(pm.type)) }
             } else {
-                nameTypeList.add(Pair("_", ConcreteBuilder.convertExpression(pm.type).toString()))
+                nameTypeList.add(Pair("_", exprToString(pm.type)))
             }
             for (v in nameTypeList) {
                 if (text != "") {
@@ -91,7 +93,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 val defData = def.parent?.parent as? ArendDefData
                 if (defData != null) {
                     for (tele in defData.typeTeleList.reversed()) {
-                        val type = ConcreteBuilder.convertExpression(tele.type).toString()
+                        val type = exprToString(tele.type)
                         for (p in tele.referableList.reversed()) {
                             params.add(0, psiFactory.createNameTele(p.textRepresentation(), type, false))
                         }
@@ -102,7 +104,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 resType = when(resType) {
                     is ArendArrExpr -> {
                         params.add(psiFactory.createNameTele(null,
-                                ConcreteBuilder.convertExpression(resType.exprList.first()).toString(), true))
+                                exprToString(resType.exprList.first()), true))
                         resType.exprList[1]
                     }
                     is ArendPiExpr -> {
@@ -144,14 +146,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
 
     override fun showParameterInfo(element: ArendReferenceContainer, context: CreateParameterInfoContext) {
         context.showHint(element, element.textRange.startOffset, this)
-    }
-
-    override fun getParametersForLookup(item: LookupElement?, context: ParameterInfoContext?): Array<Any>? {
-        return null
-    }
-
-    override fun couldShowInLookup(): Boolean {
-        return true
     }
 
     private fun isClosingElement(element: PsiElement?) =
