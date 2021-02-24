@@ -554,7 +554,7 @@ appExpr ::= universeAppExpr
     recoverWhile = expr_recover
 }
 
-caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseExpr? withBody {
+caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseExpr? withBody? {
     pin = 2
     implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
