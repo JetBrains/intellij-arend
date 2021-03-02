@@ -19,7 +19,6 @@ import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.ArendReplService
-import org.arend.ui.console.ArendConsoleView.Companion.CONSOLE_ID
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
@@ -163,14 +162,14 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
     val importFile = defaultLocation.myContainingFile
     val modulePath = importFile.moduleLocation?.modulePath ?: return false
-    val inRepl = currentFile.name == CONSOLE_ID;
-    if (inRepl) return defaultLocation.myContainingFile.moduleLocation != null && importFile.moduleLocation?.modulePath != null
+    val locationsOk = defaultLocation.myContainingFile.moduleLocation != null && importFile.moduleLocation?.modulePath != null
+
+    if (currentFile.isRepl) return locationsOk
+
     val conf = currentFile.arendLibrary?.config ?: return false
     val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 
-    return defaultLocation.myContainingFile.moduleLocation != null &&
-            importFile.moduleLocation?.modulePath != null &&
-            (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
+    return locationsOk && (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
 }
 
 
@@ -288,7 +287,7 @@ class ImportFileAction(currentFile: ArendFile,
         val factory = ArendPsiFactory(currentFile.project)
         val statCmdStatement = createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT)
 
-        if (currentFile.name == CONSOLE_ID) {
+        if (currentFile.isRepl) {
             val replService = ServiceManager.getService(currentFile.project, ArendReplService::class.java)
             replService.getRepl()?.repl(statCmdStatement.text) {""};
             return
