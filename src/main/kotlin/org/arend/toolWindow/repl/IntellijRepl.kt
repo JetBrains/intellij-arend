@@ -115,6 +115,10 @@ abstract class IntellijRepl private constructor(
         }
     }
 
+    override fun checkErrors() = runReadAction {
+        super.checkErrors()
+    }
+
     override fun typecheckStatements(group: Group, scope: Scope) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()

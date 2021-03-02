@@ -40,7 +40,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
             }
 
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
-            if (resolve && def is Concrete.ReferableDefinition && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
+            if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
                 scope = CachingScope.make(psiReferable.scope)
                 def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter, resolverListener), scope)
             }
@@ -55,7 +55,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
             return result
         }
 
-        if (resolve && result is Concrete.ReferableDefinition && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
+        if (resolve && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
             runReadAction {
                 if (scope == null) {
                     scope = CachingScope.make(psiReferable.scope)
