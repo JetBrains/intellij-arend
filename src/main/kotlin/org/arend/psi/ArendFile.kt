@@ -50,6 +50,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
+    val isRepl: Boolean
+        get() = enforcedLibraryConfig != null
+
     var lastModification: Long = -1
     var lastDefinitionModification: Long = -1
 
