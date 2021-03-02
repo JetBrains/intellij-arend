@@ -46,6 +46,8 @@ class ArendReplService(private val project: Project) {
         return handler
     }
 
+    fun getRepl() = myHandler?.repl
+
     private fun activate(toolWindow: ToolWindow, manager: ToolWindowManager) =
         toolWindow.activate {
             manager.focusManager.requestFocusInProject(toolWindow.component, project)
