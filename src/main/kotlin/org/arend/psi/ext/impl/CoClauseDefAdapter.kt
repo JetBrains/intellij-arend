@@ -77,7 +77,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
-    override fun getKind() = GlobalReferable.Kind.FUNCTION
+    override fun getKind() = GlobalReferable.Kind.COCLAUSE_FUNCTION
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 
