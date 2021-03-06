@@ -652,7 +652,7 @@ private pipe_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMB
 
 private coClauses ::= LBRACE coClauseSequence RBRACE | coClauseReg+ {
     pin(".*") = 1
-    recoverWhile = statement_recover
+    recoverWhile = pipe_seq_recover
 }
 
 private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover

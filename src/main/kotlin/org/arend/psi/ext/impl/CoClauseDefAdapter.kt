@@ -55,7 +55,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getClassReference(): ClassReferable? = resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getCoClauseElements(): List<Abstract.ClassFieldImpl> = emptyList()
+    override fun getCoClauseElements(): List<ArendCoClause> = coClauseBody?.coClauseList ?: emptyList()
 
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
