@@ -4,6 +4,7 @@ import com.intellij.formatting.*
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import org.arend.psi.ArendCoClause
+import org.arend.psi.ArendCoClauseBody
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendFunctionBody
 import org.arend.psi.ArendInstanceBody
@@ -27,7 +28,7 @@ open class GroupBlock(settings: CommonCodeStyleSettings?, private val blocks: Mu
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        if (node.psi is ArendFunctionBody || node.psi is ArendInstanceBody) {
+        if (node.psi is ArendFunctionBody || node.psi is ArendInstanceBody || node.psi is ArendCoClauseBody) {
             if (child1 is SimpleArendBlock && child2 is SimpleArendBlock &&
                 child1.node.elementType == PIPE && child2.node.psi is ArendCoClause
             )

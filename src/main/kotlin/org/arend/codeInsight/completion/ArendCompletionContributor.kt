@@ -345,11 +345,6 @@ class ArendCompletionContributor : CompletionContributor() {
                         break
                     }
 
-                    if (pos2 is ArendCoClauseDef) {
-                        exprFound = !coWithMode && pos2.nameTeleList.isNotEmpty() || coWithMode && pos2.returnExpr != null
-                        break
-                    }
-
                     if (pos2 is ArendClause || pos2 is ArendCoClause) break
 
                     if (pos2?.nextSibling == null) pos2 = pos2?.parent else break
@@ -358,9 +353,34 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        basic(ELIM_CONTEXT, ELIM_KW_LIST, elimOrCoWithCondition.invoke(false))
+        val coClauseDefCondition = {coWithMode: Boolean ->
+            { cP: CompletionParameters ->
+                var pos3: PsiElement? = cP.position
+                var exprFound = false
+                while (pos3 != null) {
+                    if (pos3.nextSibling is PsiWhiteSpace) {
+                        val nextElement = pos3.findNextSibling()
+                        if (nextElement is ArendFunctionBody || nextElement is ArendDataBody || nextElement is ArendWhere) pos3 = nextElement.parent
+                    }
+
+                    if (pos3 is ArendCoClauseDef) {
+                        exprFound = !coWithMode && pos3.nameTeleList.isNotEmpty() || coWithMode && pos3.returnExpr != null
+                        break
+                    }
+
+                    if (pos3?.nextSibling == null) pos3 = pos3?.parent else break
+                }
+                exprFound
+            }
+        }
+
+        fun condition_or (a : (CompletionParameters)-> Boolean, b : (CompletionParameters)-> Boolean): (CompletionParameters) -> Boolean = {cp -> a.invoke(cp) || b.invoke(cp)}
+
+        basic(ELIM_CONTEXT, ELIM_KW_LIST, condition_or(elimOrCoWithCondition.invoke(false), coClauseDefCondition.invoke(false)))
+        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, condition_or(elimOrCoWithCondition.invoke(true), coClauseDefCondition.invoke(true)), completionBehavior = KeywordCompletionBehavior.DEFAULT))
+
         basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), completionBehavior = KeywordCompletionBehavior.DEFAULT))
-        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, elimOrCoWithCondition.invoke(true), completionBehavior = KeywordCompletionBehavior.DEFAULT))
+        basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, coClauseDefCondition.invoke(false), completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
 
         basic(and(
                 afterLeaves(COMMA, CASE_KW),

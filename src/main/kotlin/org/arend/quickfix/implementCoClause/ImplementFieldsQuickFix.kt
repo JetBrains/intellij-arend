@@ -23,10 +23,7 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        val instance = instanceRef.element ?: return false
-        return (instance as? ArendCoClauseDef)?.coClauseBody?.cowithKw == null
-    }
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = instanceRef.element != null
 
     override fun getText() = "Implement missing fields"
 

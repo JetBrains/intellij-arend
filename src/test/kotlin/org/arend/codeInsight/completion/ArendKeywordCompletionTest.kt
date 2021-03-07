@@ -504,7 +504,9 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\data lol (a : Nat) {-caret-}",
             "\\data lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\data lol | south (a : Nat) {-caret-}",
-            "\\data lol | south I {-caret-}",
+            "\\data lol | south I {-caret-}")
+
+    fun `test elim completion 2`() = checkKeywordCompletionVariants(WITH_KW_FULL + ELIM_KW_LIST, CompletionCondition.CONTAINS,
             "\\record R (x : Nat) \\record S (r : Nat -> R) \\func foo : S \\cowith | r n : R {-caret-}",
             "\\record R (x : Nat) \\record S (r : Nat -> R) \\func foo : S \\cowith | r n {-caret-}")
 

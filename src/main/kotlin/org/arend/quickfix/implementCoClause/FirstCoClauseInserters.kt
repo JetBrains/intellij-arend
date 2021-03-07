@@ -14,6 +14,7 @@ fun makeFirstCoClauseInserter(element: PsiElement?): AbstractCoClauseInserter?  
             is ArendDefInstance -> ArendInstanceInserter(element)
             is ArendDefFunction -> FunctionDefinitionInserter(element)
             is CoClauseBase -> CoClauseInserter(element)
+            is ArendCoClauseDef -> ArendFunctionalInserter(element)
             is ArendLongName -> element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)}
             is LeafPsiElement -> if (element.elementType == LBRACE) element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)} else null
             else -> null
@@ -48,7 +49,7 @@ class CoClauseInserter(private val coClause: CoClauseBase) : AbstractCoClauseIns
     }
 }
 
-abstract class ArendFunctionalInserter(private val definition: ArendFunctionalDefinition) : AbstractCoClauseInserter() {
+open class ArendFunctionalInserter(private val definition: ArendFunctionalDefinition) : AbstractCoClauseInserter() {
     override val coClausesList get(): List<ArendCoClause> = definition.body?.coClauseList ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
