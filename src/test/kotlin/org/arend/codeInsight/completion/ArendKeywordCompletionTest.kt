@@ -500,21 +500,21 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) {-caret-}",
             "\\func lol (a : Nat) : Nat {-caret-}",
             "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
-            "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n")
-
-    fun `test elim completion 2`() = checkKeywordCompletionVariants(ELIM_WITH_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
             "\\data lol (a : Nat) {-caret-}",
             "\\data lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\data lol | south (a : Nat) {-caret-}",
             "\\data lol | south I {-caret-}",
-            "\\func lol (a : Nat) {-caret-}")
+            "\\record R (x : Nat) \\record S (r : Nat -> R) \\func foo : S \\cowith | r n : R {-caret-}",
+            "\\record R (x : Nat) \\record S (r : Nat -> R) \\func foo : S \\cowith | r n {-caret-}")
 
     fun `test cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.CONTAINS,
-            /*"\\func lol (a : Nat) : Nat {-caret-}",
+            "\\func lol (a : Nat) : Nat {-caret-}",
             "\\func lol (a : Nat) : \\Type \\lp \\lh {-caret-}",
             "\\func f (n : Nat) : Nat {-caret-}\n -- comment\n",
-            "\\func lol : Nat {-caret-}", */
-            "\\func t : Nat {-caret-} \\where {}")
+            "\\func lol : Nat {-caret-}",
+            "\\func t : Nat {-caret-} \\where {}",
+            "\\record R (x : Nat) \\record S (r : Nat -> R) \\func foo : S \\cowith | r n : R {-caret-}")
 
     fun `test absence of cowith completion`() = checkKeywordCompletionVariants(COWITH_KW_LIST, CompletionCondition.DOES_NOT_CONTAIN,
             "\\data or (A B : \\Type) : \\Prop\n  | l A {-caret-}\n  | r B")

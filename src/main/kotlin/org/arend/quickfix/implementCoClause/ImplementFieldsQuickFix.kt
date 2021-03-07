@@ -11,6 +11,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
+import org.arend.psi.impl.ArendCoClauseDefImpl
 import org.arend.refactoring.moveCaretToEndOffset
 
 class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
@@ -22,7 +23,10 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instanceRef.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
+        val instance = instanceRef.element ?: return false
+        return (instance as? ArendCoClauseDef)?.coClauseBody?.cowithKw == null
+    }
 
     override fun getText() = "Implement missing fields"
 

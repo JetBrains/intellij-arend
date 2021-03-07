@@ -96,7 +96,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW || c1et == COMMA && c2et == PATTERN)) return oneSpaceWrap
 
-            if (myNode.psi is ArendCoClauseDef && psi1 is ArendNameTele && psi2 is ArendCoClauseBody) return oneSpaceWrap
+            if (myNode.psi is ArendCoClauseDef && (psi1 is ArendNameTele || psi1 is ArendReturnExpr) && psi2 is ArendCoClauseBody) return oneSpaceWrap
 
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == ATOM_PATTERN_OR_PREFIX) && c2et == ATOM_PATTERN_OR_PREFIX) return oneSpaceWrap
 

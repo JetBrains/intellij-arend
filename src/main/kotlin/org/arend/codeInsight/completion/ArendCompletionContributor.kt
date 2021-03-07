@@ -345,6 +345,11 @@ class ArendCompletionContributor : CompletionContributor() {
                         break
                     }
 
+                    if (pos2 is ArendCoClauseDef) {
+                        exprFound = !coWithMode && pos2.nameTeleList.isNotEmpty() || coWithMode && pos2.returnExpr != null
+                        break
+                    }
+
                     if (pos2 is ArendClause || pos2 is ArendCoClause) break
 
                     if (pos2?.nextSibling == null) pos2 = pos2?.parent else break
@@ -412,8 +417,8 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2))
 
         basic(withParent(ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS) { parameters ->
-            val argumentAppExpr: ArendArgumentAppExpr? = parameters.position.parent as ArendArgumentAppExpr
-            argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+            val argumentAppExpr: ArendArgumentAppExpr = parameters.position.parent as ArendArgumentAppExpr
+            argumentAppExpr.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }
 
 
@@ -518,9 +523,9 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
 
-        private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java)
+        private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java, ArendCoClauseDef::class.java)
         private val TELE_CONTEXT = or(
-                and(withAncestors(PsiErrorElement::class.java, ArendTypeTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
+                and(withParent(PsiErrorElement::class.java), withGrandParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
                 and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGrandParents(*TELE_CONTAINERS)),
                 withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
 
@@ -555,7 +560,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ELIM_CONTEXT = and(
                 not(afterLeaves(DATA_KW, FUNC_KW, SFUNC_KW, LEMMA_KW, CONS_KW, COERCE_KW, TRUNCATED_KW, COLON)),
                 or(EXPRESSION_CONTEXT, TELE_CONTEXT, ARGUMENT_EXPRESSION,
-                        withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
+                        withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java/*, ArendDefFunction::class.java*/),
                         withAncestors(PsiErrorElement::class.java, ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(PsiErrorElement::class.java, ArendDefData::class.java)))
 
