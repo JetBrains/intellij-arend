@@ -10,6 +10,7 @@ import org.arend.naming.reference.*
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
@@ -30,6 +31,21 @@ open class DataLocatedReferable(
     override fun getAliasPrecedence(): Precedence = alias?.precedence ?: Precedence.DEFAULT
 
     override fun getData() = psiElementPointer
+
+    override fun getPrecedence(): Precedence {
+        if (isPrecedenceSet) {
+            return super.getPrecedence()
+        } else {
+            val ref = underlyingReferable
+            if (ref == this || ref !is CoClauseDefAdapter) {
+                return super.getPrecedence()
+            }
+            val prec = ref.getPrec() ?: return super.getPrecedence()
+            val result = ReferableAdapter.calcPrecedence(prec)
+            precedence = result
+            return result
+        }
+    }
 
     override fun getUnderlyingReferable() =
         psiElementPointer?.let { runReadAction { it.element }?.underlyingReferable } ?: this
