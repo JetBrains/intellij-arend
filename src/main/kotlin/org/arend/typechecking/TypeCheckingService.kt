@@ -233,7 +233,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 val provider = ArendDependencyProviderImpl(ArendTypechecking.create(project), libraryManager.getAvailableModuleScopeProvider(library), libraryManager.definitionRequester, library)
                 try {
                     runReadAction {
-                        library.arendExtension.load(provider)
+                        service<ArendExtensionChangeListener>().notifyIfNeeded(project)
                     }
                 } finally {
                     provider.disable()
