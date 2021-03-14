@@ -182,7 +182,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getLocatedReferableParent(): LocatedReferable? = null
 
-    override fun getGroupScope() = scope
+    override fun getGroupScope(extent: LexicalScope.Extent) = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 
