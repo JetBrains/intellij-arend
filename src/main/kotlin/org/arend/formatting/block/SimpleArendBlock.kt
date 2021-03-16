@@ -11,7 +11,6 @@ import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.TokenSet
-import org.arend.parser.ParserMixin
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.*
@@ -248,7 +247,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
                 TUPLE_EXPR -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
-                LET_CLAUSE -> if (prevET == FAT_ARROW || prevET == ERROR_ELEMENT && prev2ET == FAT_ARROW) return ChildAttributes(Indent.getNormalIndent(true), null)
+                LET_CLAUSE -> if (prevET == FAT_ARROW || prevET == ERROR_ELEMENT && prev2ET == FAT_ARROW) return ChildAttributes(Indent.getNormalIndent(false), null)
             }
 
             //General case
@@ -308,7 +307,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (AREND_COMMENTS.contains(childET)) alignment
                         else when (childET) {
                             HAVE_KW, HAVES_KW, LET_KW, LETS_KW, IN_KW -> alignment2
-                            LET_CLAUSE -> alignment
+                            LET_CLAUSE -> if ((nodePsi as? ArendLetExpr)?.letClauseList?.size?.let{it > 1} == true) alignment else null
                             else -> null
                         }
                     IMPLICIT_ARGUMENT -> when (childET) {
