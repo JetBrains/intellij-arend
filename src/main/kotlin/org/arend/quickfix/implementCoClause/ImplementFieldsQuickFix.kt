@@ -14,7 +14,7 @@ import org.arend.psi.*
 import org.arend.psi.impl.ArendCoClauseDefImpl
 import org.arend.refactoring.moveCaretToEndOffset
 
-class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
+open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
                               private val needsBulb: Boolean,
                               private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>): IntentionAction, Iconable {
     private var caretMoved = false
@@ -23,7 +23,8 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = instanceRef.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
+        instanceRef.element != null
 
     override fun getText() = "Implement missing fields"
 

@@ -188,6 +188,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.isAfterEndOfLine = true
                         }
                     }
+                    val coClauseBase = cause.ancestor<CoClauseBase>()
+                    val coClauseBaseFixData = coClauseBase?.getUserData(CoClausesKey)
+                    if (coClauseBaseFixData != null) annotation.registerFix(object : ImplementFieldsQuickFix(SmartPointerManager.createPointer(coClauseBase), true, coClauseBaseFixData) {
+                        override fun getText(): String = "Replace {?} with empty implementation of the class"
+                    })
+
                     if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
                         error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
                             val expr = when (it) {

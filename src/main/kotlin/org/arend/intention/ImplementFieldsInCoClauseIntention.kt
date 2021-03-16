@@ -14,9 +14,8 @@ open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<CoClauseB
     override fun isApplicableTo(element: CoClauseBase, caretOffset: Int, editor: Editor): Boolean {
         val data = element.getUserData(CoClausesKey)
         if (data != null && data.isNotEmpty()) {
-            text = if (element.fatArrow != null) "Replace {?} with empty implementation of the class"
-                                            else "Implement fields of ${element.longName?.text}"
-            return true
+            text = "Implement fields of ${element.longName?.text}"
+            return element.fatArrow == null
         }
         return false
     }
