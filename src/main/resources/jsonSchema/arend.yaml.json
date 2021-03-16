@@ -13,8 +13,7 @@
         "string",
         "number"
       ],
-      "description": "The version of Arend toolchain.",
-      "pattern": "^(\\d+(\\.\\d+){0,2})$"
+      "description": "The version of Arend toolchain."
     },
     "sourcesDir": {
       "$id": "#/properties/sourcesDir",
