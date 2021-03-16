@@ -3,7 +3,6 @@ package org.arend.yaml
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.arend.ext.module.ModulePath
@@ -47,6 +46,16 @@ private fun YAMLFile.setProp(name: String, value: String?) {
     }
 }
 
+private fun YAMLFile.setPropIfNonEmpty(name: String, value: String) {
+    if (value.isEmpty()) {
+        if ((getProp(name) as? YAMLScalar)?.textValue?.isNotEmpty() == true) {
+            setProp(name, "")
+        }
+    } else {
+        setProp(name, value)
+    }
+}
+
 var YAMLFile.sourcesDir
     get() = (getProp(SOURCES) as? YAMLScalar)?.textValue
     set(value) {
@@ -62,13 +71,7 @@ var YAMLFile.binariesDir
 var YAMLFile.testsDir
     get() = (getProp(TESTS) as? YAMLScalar)?.textValue ?: ""
     set(value) {
-        if (value.isEmpty()) {
-            if ((getProp(TESTS) as? YAMLScalar)?.textValue?.isNotEmpty() == true) {
-                setProp(TESTS, "")
-            }
-        } else {
-            setProp(TESTS, value)
-        }
+        setPropIfNonEmpty(TESTS, value)
     }
 
 var YAMLFile.extensionsDir
@@ -101,7 +104,7 @@ var YAMLFile.dependencies
 var YAMLFile.langVersion
     get() = (getProp(LANG_VERSION) as? YAMLScalar)?.textValue
     set(value) {
-        setProp(LANG_VERSION, value)
+        setPropIfNonEmpty(LANG_VERSION, value)
     }
 
 fun YAMLFile.write(block: YAMLFile.() -> Unit) {
