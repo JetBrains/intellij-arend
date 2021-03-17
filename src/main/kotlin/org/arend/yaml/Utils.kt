@@ -102,7 +102,7 @@ var YAMLFile.dependencies
     }
 
 var YAMLFile.langVersion
-    get() = (getProp(LANG_VERSION) as? YAMLScalar)?.textValue
+    get() = (getProp(LANG_VERSION) as? YAMLScalar)?.textValue ?: ""
     set(value) {
         setPropIfNonEmpty(LANG_VERSION, value)
     }
