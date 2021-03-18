@@ -121,6 +121,15 @@ class ImpossibleEliminationQuickFixTest: QuickFixTestBase() {
         \func f (n : Nat) (d : D n) : Nat \elim n, d          
     """)
 
+    fun test_Bug0() = simpleQuickFixTest("Do", """
+       \data D (n m : Nat) \with | 0, 0 => con
+       \func foo{-caret-} {n m : Nat} (d : D n m) : Nat \elim d 
+    """, """
+       \data D (n m : Nat) \with | 0, 0 => con
+       \func foo {n m : Nat} (d : D n m) : Nat \elim n, m, d
+    """)
+
+
     /* TODO: Implement later
 
     private val data3 = """

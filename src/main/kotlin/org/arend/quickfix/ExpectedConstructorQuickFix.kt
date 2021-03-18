@@ -923,7 +923,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 anchor = elimPsi.addAfterWithNotification(template, anchor ?: elimPsi.elimKw)
                 elimPsi.addBefore(psiFactory.createWhitespace(" "), anchor)
                 if (!commaInserted) {
-                    anchor = elimPsi.addAfter(comma, anchor)
+                    elimPsi.addAfter(comma, anchor)
                 }
             } else {
                 anchor = paramsMap[param]
