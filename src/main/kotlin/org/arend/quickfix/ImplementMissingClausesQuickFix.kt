@@ -28,6 +28,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
+import java.lang.IllegalStateException
 import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError,
@@ -123,19 +124,18 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                 if (fBody != null) {
                     val lastChild = fBody.lastChild
-                    if (fClauses != null) {
-                        return fClauses.clauseList.lastOrNull() ?: fClauses.lbrace
-                        ?: fClauses.lastChild /* the last branch is meaningless */
+                    return if (fClauses != null) {
+                        fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: throw IllegalStateException()
                     } else {
                         val newClauses = psiFactory.createFunctionClauses()
                         val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
                         lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
                         primerClause = insertedClauses.lastChild as? ArendClause
-                        return primerClause
+                        primerClause
                     }
                 } else {
                     val newBody = psiFactory.createFunctionClauses(fBody is ArendInstanceBody).parent as ArendFunctionalBody
-                    val lastChild = cause.lastChild
+                    val lastChild = cause.returnExpr ?: cause.nameTeleList.lastOrNull() ?: throw IllegalStateException()
                     cause.addAfter(newBody, lastChild)
                     cause.addAfter(psiFactory.createWhitespace(" "), lastChild)
                     val newFunctionClauses = when (cause) {

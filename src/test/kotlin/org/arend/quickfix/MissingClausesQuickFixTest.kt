@@ -759,4 +759,14 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
            }
         """)
     }
+
+    fun `test where`() = typedQuickFixTest("Implement", """
+           \func foo{-caret-} (x : Nat) : Nat
+             \where {} 
+        """, """
+           \func foo (x : Nat) : Nat
+             | 0 => {?}
+             | suc x => {?}
+             \where {} 
+        """)
 }
