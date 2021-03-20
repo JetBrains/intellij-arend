@@ -17,11 +17,11 @@ import org.arend.typechecking.provider.ConcreteProvider
 class TestBasedTypechecking(
     private val eventsProcessor: TypecheckingEventsProcessor,
     instanceProviderSet: PsiInstanceProviderSet,
-    private val typeCheckingService: TypeCheckingService,
+    typeCheckingService: TypeCheckingService,
     concreteProvider: ConcreteProvider,
     private val errorReporter: TypecheckingErrorReporter,
     dependencyListener: DependencyListener)
-    : ArendTypechecking(instanceProviderSet, concreteProvider, errorReporter, dependencyListener, LibraryArendExtensionProvider(typeCheckingService.libraryManager)) {
+    : ArendTypechecking(typeCheckingService, instanceProviderSet, concreteProvider, errorReporter, dependencyListener, LibraryArendExtensionProvider(typeCheckingService.libraryManager)) {
 
     private val definitionBlacklistService = service<DefinitionBlacklistService>()
     val filesToRestart = LinkedHashSet<ArendFile>()
@@ -43,7 +43,12 @@ class TestBasedTypechecking(
         startTypechecking(PsiLocatedReferable.fromReferable(definition) ?: return, true)
     }
 
-    override fun typecheckingFinished(ref: PsiLocatedReferable, definition: Definition) {
+    override fun typecheckingFinished(ref: PsiLocatedReferable?, definition: Definition) {
+        if (ref == null) {
+            super.typecheckingFinished(ref, definition)
+            return
+        }
+
         eventsProcessor.stopTimer(ref)?.let { diff ->
             if (ref is TCDefinition && definitionBlacklistService.removeFromBlacklist(ref, (diff / 1000).toInt())) {
                 runReadAction {

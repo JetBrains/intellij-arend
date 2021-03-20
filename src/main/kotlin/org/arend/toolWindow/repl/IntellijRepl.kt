@@ -42,7 +42,7 @@ abstract class IntellijRepl private constructor(
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
+    ArendTypechecking(service, PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
 ) {
     constructor(
         handler: ArendReplExecutionHandler,

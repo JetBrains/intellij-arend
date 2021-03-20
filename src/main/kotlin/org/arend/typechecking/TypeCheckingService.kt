@@ -8,8 +8,15 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.util.containers.MultiMap
+import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
+import org.arend.core.definition.FunctionDefinition
+import org.arend.core.expr.ClassCallExpression
+import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.core.definition.CoreFunctionDefinition
+import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
 import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
@@ -37,11 +44,14 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.instance.provider.InstanceProviderSet
+import org.arend.typechecking.instance.provider.SimpleInstanceProvider
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 import org.arend.util.Range
@@ -74,6 +84,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     private val extensionDefinitions = HashMap<TCDefReferable, Library>()
 
     private val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
+
+    private val instances = MultiMap.createConcurrent<TCDefReferable, TCDefReferable>()
 
     val tcRefMaps = ConcurrentHashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
 
@@ -146,6 +158,42 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
+
+    fun addInstance(func: FunctionDefinition) {
+        if (func.kind != CoreFunctionDefinition.Kind.INSTANCE) return
+        val classCall = func.resultType as? ClassCallExpression ?: return
+        instances.putValue(classCall.definition.referable, func.referable)
+    }
+
+    // Returns the list of possible solutions. Each solution is a list of functions that are required for this instance to work.
+    fun findInstances(classRef: TCDefReferable, classifyingExpression: Expression?): List<List<FunctionDefinition>> {
+        val classDef = classRef.typechecked as? ClassDefinition ?: return emptyList()
+        val result = ArrayList<List<FunctionDefinition>>()
+        val functions = ArrayList(instances[classRef])
+        while (functions.isNotEmpty()) {
+            val expr = GlobalInstancePool(SimpleInstanceProvider(functions), null).getInstance(classifyingExpression, SubclassSearchParameters(classDef), null, null) ?: break
+            val collected = ArrayList<FunctionDefinition>()
+
+            fun collectFunctions(expr: Concrete.Expression) {
+                if (expr is Concrete.ReferenceExpression) {
+                    ((expr.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let {
+                        collected.add(it)
+                    }
+                } else if (expr is Concrete.AppExpression) {
+                    collectFunctions(expr.function)
+                    for (argument in expr.arguments) {
+                        collectFunctions(argument.expression)
+                    }
+                }
+            }
+
+            collectFunctions(expr)
+            if (collected.isEmpty()) break
+            result.add(collected)
+            if (!functions.remove(collected[0].referable)) break
+        }
+        return result
+    }
 
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
         ComputationRunner.getCancellationIndicator().cancel()
@@ -224,6 +272,15 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (tcReferable !is TCDefReferable) {
             resetErrors(curRef, removeTCRef)
             return tcReferable
+        }
+
+        instances.remove(tcReferable)
+        val funcDef = tcReferable.typechecked as? FunctionDefinition
+        if (funcDef != null) {
+            val classDef = (funcDef.resultType as? ClassCallExpression)?.definition
+            if (classDef != null) {
+                instances.remove(classDef.referable, funcDef.referable)
+            }
         }
 
         val library = extensionDefinitions[tcReferable]
