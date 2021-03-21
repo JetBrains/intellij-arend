@@ -1,6 +1,5 @@
 package org.arend.quickfix.instance
 
-import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.command.WriteCommandAction
@@ -13,15 +12,21 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.ui.popup.list.ListPopupImpl
 import org.arend.core.definition.FunctionDefinition
-import org.arend.psi.ArendLongName
+import org.arend.ext.module.LongName
+import org.arend.psi.*
 import org.arend.psi.ext.fullName
+import org.arend.psi.ext.impl.ArendGroup
+import org.arend.refactoring.*
 import org.arend.resolving.DataLocatedReferable
+import org.arend.term.NamespaceCommand
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import java.util.Collections.singletonList
 import javax.swing.Icon
 
 class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
@@ -95,7 +100,30 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     companion object {
         fun doAddImplicitArg(project: Project, longName: ArendLongName, chosenElement: List<FunctionDefinition>) {
             WriteCommandAction.runWriteCommandAction(project, "Specify Instance", null, {
-                //TODO: Implement me
+                val enclosingDefinition = longName.ancestor<ArendDefinition>()
+                val mySourceContainer = enclosingDefinition?.parentGroup
+                if (mySourceContainer != null) {
+                    val psiFactory = ArendPsiFactory(project)
+                    val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, it as PsiElement)}
+                        ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it as PsiElement) }
+                        ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
+                            getAnchorInAssociatedModule(psiFactory, mySourceContainer)?.let{RelativePosition(PositionKind.AFTER_ANCHOR, it)}
+
+                    for (element in chosenElement) {
+                        val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
+                        val elementReferable = (element.referable as? DataLocatedReferable)?.data?.element ?: continue
+                        val targetContainer = (elementReferable as ArendGroup).parentGroup
+                        val targetLocation = LocationData(elementReferable)
+                        val importData = calculateReferenceName(targetLocation, sourceContainerFile, longName)
+
+                        if (importData != null && anchor != null) {
+                            val openedName: List<String> = importData.second
+                            importData.first?.execute()
+                            if (openedName.size > 1 && targetContainer is PsiElement)
+                            addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor)
+                        }
+                    }
+                }
             }, longName.containingFile)
         }
     }

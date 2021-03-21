@@ -1,7 +1,5 @@
 package org.arend.quickfix
 
-import org.arend.ArendTestBase
-
 class InstanceInferenceQuickFixTest: QuickFixTestBase() {
 
     fun testBasic() = typedQuickFixTest("Specify", """
@@ -15,7 +13,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        
        \func f (t : M.T) => M.B{-caret-} 0 
     """, """
-       \open M
+       \open M (Nat-X)
         
        \class M \where {
          \class X (A : \Type0) {
@@ -26,5 +24,59 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        }
        
        \func f (t : M.T) => M.B 0 
+    """)
+
+    fun testBasic2() = typedQuickFixTest("Specify", """
+       \open M ()
+       
+       \class M \where {
+         \class X (A : \Type0) {
+           | B : A -> Nat
+         }
+         \instance Nat-X : X | A => Nat | B => \lam x => x
+         \func T => B 0 = 0
+       }
+       
+       \func f (t : M.T) => M.B{-caret-} 0 
+    """, """
+       \open M (Nat-X)
+        
+       \class M \where {
+         \class X (A : \Type0) {
+           | B : A -> Nat
+         }
+         \instance Nat-X : X | A => Nat | B => \lam x => x
+         \func T => B 0 = 0
+       }
+       
+       \func f (t : M.T) => M.B 0 
+    """)
+
+    fun testBasic3() = typedQuickFixTest("Specify", """
+       \class M \where {
+         \class X (A : \Type0) {
+           | B : A -> Nat
+         }
+         \instance Nat-X : X | A => Nat | B => \lam x => x
+         \func T => B 0 = 0
+       }
+
+       \class D {
+         \func f (t : M.T) => M.B{-caret-} 1
+       } 
+    """, """
+       \class M \where {
+         \class X (A : \Type0) {
+           | B : A -> Nat
+         }
+         \instance Nat-X : X | A => Nat | B => \lam x => x
+         \func T => B 0 = 0
+       }
+
+       \class D {
+         \func f (t : M.T) => M.B 1
+       } \where {
+         \open M (Nat-X)
+       }
     """)
 }
