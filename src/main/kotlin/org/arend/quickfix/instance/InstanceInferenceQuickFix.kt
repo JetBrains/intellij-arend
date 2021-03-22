@@ -21,10 +21,12 @@ import org.arend.ext.module.LongName
 import org.arend.psi.*
 import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.NamespaceCommand
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
 import java.util.Collections.singletonList
 import javax.swing.Icon
@@ -123,6 +125,18 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor)
                         }
                     }
+
+                    val tcService = project.service<TypeCheckingService>()
+                    val file = mySourceContainer.containingFile as? ArendFile ?: return@runWriteCommandAction
+                    tcService.updateDefinition(enclosingDefinition, file, true)
+                    for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
+                        if (error is InstanceInferenceError) {
+                            element.ancestor<ArendDefinition>()?.let {
+                                tcService.updateDefinition(it, file, true)
+                            }
+                        }
+                    }
+                    project.service<ArendPsiChangeService>().incModificationCount()
                 }
             }, longName.containingFile)
         }
