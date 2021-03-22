@@ -2,6 +2,11 @@ package org.arend.quickfix.instance
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.codeInsight.lookup.LookupEvent
+import com.intellij.codeInsight.lookup.LookupListener
+import com.intellij.codeInsight.lookup.LookupManager
+import com.intellij.codeInsight.lookup.impl.LookupImpl
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -9,27 +14,23 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.PopupStep
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.ui.popup.list.ListPopupImpl
 import org.arend.core.definition.FunctionDefinition
 import org.arend.ext.module.LongName
 import org.arend.psi.*
-import org.arend.psi.ext.fullName
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
+import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.NamespaceCommand
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
 import java.util.Collections.singletonList
-import javax.swing.Icon
 
 class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
     IntentionAction {
@@ -55,41 +56,21 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                 val longName = cause.element
 
                 if (instancesVal != null && instancesVal.size > 1 && longName != null) {
-                    val step = object: BaseListPopupStep<List<FunctionDefinition>>("Class Instances", instancesVal) {
-                        override fun getTextFor(value: List<FunctionDefinition>?): String {
-                            val instance = value?.firstOrNull()
-                            if (instance != null) {
-                                val element = (instance.referable as? DataLocatedReferable)?.data?.element
-                                if (element != null) return element.fullName
-                            }
-                            return super.getTextFor(value)
-                        }
-
-                        override fun getIconFor(value: List<FunctionDefinition>?): Icon? {
-                            val instance = value?.firstOrNull()
-                            if (instance != null) {
-                                val element = (instance.referable as? DataLocatedReferable)?.data?.element
-                                if (element != null) return element.getIcon(0)
-                            }
-
-                            return null
-                        }
-
-
-                        override fun onChosen(selectedValue: List<FunctionDefinition>?, finalChoice: Boolean): PopupStep<*>? {
-                            if (finalChoice && selectedValue != null) {
-                                return doFinalStep {
-                                    PsiDocumentManager.getInstance(project).commitAllDocuments()
-                                    doAddImplicitArg(project, longName, selectedValue)
-                                }
-                            }
-
-                            return FINAL_CHOICE
-                        }
+                    val lookupList = instancesVal.map {
+                        val ref = it.first().ref
+                        (ArendReferenceImpl.createArendLookUpElement(ref, null, false, null, false, "") ?: LookupElementBuilder.create(ref, "")).withPresentableText(ref.refName)
                     }
-                    val popup = ListPopupImpl(project, step)
-
-                    popup.showInBestPositionFor(editor)
+                    val lookup = LookupManager.getInstance(project).showLookup(editor, *lookupList.toTypedArray())
+                    lookup?.addLookupListener(object : LookupListener {
+                        override fun itemSelected(event: LookupEvent) {
+                            val index = lookupList.indexOf(event.item)
+                            if (index != -1) {
+                                PsiDocumentManager.getInstance(project).commitAllDocuments()
+                                doAddImplicitArg(project, longName, instancesVal[index])
+                            }
+                        }
+                    })
+                    (lookup as? LookupImpl)?.addAdvertisement("Choose instance", null)
                 } else if (instancesVal != null && instancesVal.size == 1 && longName != null) {
                     doAddImplicitArg(project, longName, instancesVal.first())
                 } else {
