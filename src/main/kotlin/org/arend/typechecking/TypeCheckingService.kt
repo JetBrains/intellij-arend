@@ -15,9 +15,11 @@ import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.core.definition.CoreDefinition
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
+import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -52,6 +54,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
+import org.arend.typechecking.order.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.util.FullName
 import org.arend.util.Range
@@ -60,10 +63,10 @@ import org.arend.util.refreshLibrariesDirectory
 import org.arend.yaml.YAMLFileListener
 import java.util.concurrent.ConcurrentHashMap
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener {
     val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
-    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this) {
+    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
                 showDownloadNotification(project, false)
@@ -159,10 +162,30 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
-    fun addInstance(func: FunctionDefinition) {
-        if (func.kind != CoreFunctionDefinition.Kind.INSTANCE) return
-        val classCall = func.resultType as? ClassCallExpression ?: return
-        instances.putValue(classCall.definition.referable, func.referable)
+    override fun typechecked(definition: CoreDefinition) {
+        addInstance(definition)
+    }
+
+    override fun loaded(definition: CoreDefinition) {
+        addInstance(definition)
+    }
+
+    private fun addInstance(definition: CoreDefinition) {
+        if (definition !is FunctionDefinition) return
+        if (definition.kind != CoreFunctionDefinition.Kind.INSTANCE) return
+        val classCall = definition.resultType as? ClassCallExpression ?: return
+        val dfs = object : DFS<ClassDefinition,Void>() {
+            override fun forDependencies(classDef: ClassDefinition): Void? {
+                for (superClass in classDef.superClasses) {
+                    visit(superClass)
+                }
+                return null
+            }
+        }
+        dfs.visit(classCall.definition)
+        for (classDef in dfs.visited) {
+            instances.putValue(classDef.referable, definition.referable)
+        }
     }
 
     // Returns the list of possible solutions. Each solution is a list of functions that are required for this instance to work.

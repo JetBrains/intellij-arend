@@ -30,10 +30,7 @@ open class ArendTypechecking(protected val typeCheckingService: TypeCheckingServ
     }
 
     protected open fun typecheckingFinished(ref: PsiLocatedReferable?, definition: Definition) {
-        if (definition is FunctionDefinition) {
-            typeCheckingService.addInstance(definition)
-        }
-
+        typeCheckingService.typechecked(definition)
         if (ref == null) return
         runReadAction {
             val file = ref.containingFile as? ArendFile ?: return@runReadAction
