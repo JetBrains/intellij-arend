@@ -33,7 +33,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     IntentionAction {
     override fun startInWriteAction(): Boolean = false
 
-    override fun getText(): String = "Specify class instance"
+    override fun getText(): String = "Import instance"
 
     override fun getFamilyName(): String = "arend.instance"
 
@@ -99,7 +99,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
 
     companion object {
         fun doAddImplicitArg(project: Project, longName: ArendLongName, chosenElement: List<FunctionDefinition>) {
-            WriteCommandAction.runWriteCommandAction(project, "Specify Instance", null, {
+            WriteCommandAction.runWriteCommandAction(project, "Import Instance", null, {
                 val enclosingDefinition = longName.ancestor<ArendDefinition>()
                 val mySourceContainer = enclosingDefinition?.parentGroup
                 if (mySourceContainer != null) {
