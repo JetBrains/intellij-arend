@@ -12,11 +12,14 @@ import com.intellij.util.containers.MultiMap
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
-import org.arend.core.expr.ClassCallExpression
-import org.arend.core.expr.Expression
+import org.arend.core.expr.*
+import org.arend.core.expr.visitor.CompareVisitor
+import org.arend.core.sort.Sort
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.definition.CoreDefinition
 import org.arend.ext.core.definition.CoreFunctionDefinition
+import org.arend.ext.core.ops.CMP
+import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
@@ -52,10 +55,12 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
 import org.arend.typechecking.order.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
+import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.util.FullName
 import org.arend.util.Range
 import org.arend.util.Version
@@ -194,28 +199,59 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val result = ArrayList<List<FunctionDefinition>>()
         val functions = ArrayList(instances[classRef])
         while (functions.isNotEmpty()) {
-            val expr = GlobalInstancePool(SimpleInstanceProvider(functions), null).getInstance(classifyingExpression, SubclassSearchParameters(classDef), null, null) ?: break
-            val collected = ArrayList<FunctionDefinition>()
-
-            fun collectFunctions(expr: Concrete.Expression) {
-                if (expr is Concrete.ReferenceExpression) {
-                    ((expr.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let {
-                        collected.add(it)
-                    }
-                } else if (expr is Concrete.AppExpression) {
-                    collectFunctions(expr.function)
-                    for (argument in expr.arguments) {
-                        collectFunctions(argument.expression)
-                    }
-                }
-            }
-
-            collectFunctions(expr)
+            val collected = getInstances(GlobalInstancePool(SimpleInstanceProvider(functions), null), classDef, classifyingExpression, SubclassSearchParameters(classDef))
             if (collected.isEmpty()) break
             result.add(collected)
             if (!functions.remove(collected[0].referable)) break
         }
         return result
+    }
+
+    private fun getInstances(pool: GlobalInstancePool, classDef: ClassDefinition, classifyingExpression: Expression?, parameters: InstanceSearchParameters): List<FunctionDefinition> {
+        fun getFunction(expr: Concrete.Expression?) =
+            (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
+
+        val result = pool.getInstance(classifyingExpression, parameters, null, null)
+        getFunction(result)?.let { return it }
+        if (result !is Concrete.AppExpression) return emptyList()
+
+        var isRecursive = false
+        for (argument in result.arguments) {
+            if (argument.getExpression() is RecursiveInstanceHoleExpression) {
+                isRecursive = true
+                break
+            }
+        }
+
+        if (isRecursive) {
+            val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
+            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor)
+            val tcResult = visitor.checkExpr(result, null)
+            if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
+                CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, Sort.STD, tcResult.expression), null, null)
+            }
+            val resultExpr = visitor.finalize(tcResult, result, false)?.expression
+            if (resultExpr != null) {
+                val collected = ArrayList<FunctionDefinition>()
+                fun collect(expr: Expression) {
+                    if (expr is AppExpression) {
+                        collect(expr.function)
+                        collect(expr.argument)
+                    } else if (expr is FunCallExpression) {
+                        if (expr.definition.kind == CoreFunctionDefinition.Kind.INSTANCE) {
+                            collected.add(expr.definition)
+                        }
+                        for (argument in expr.defCallArguments) {
+                            collect(argument)
+                        }
+                    }
+                }
+                collect(resultExpr)
+                if (collected.isNotEmpty()) return collected
+            }
+        }
+
+        return getFunction(result.function) ?: emptyList()
     }
 
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
