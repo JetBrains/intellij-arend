@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
 import org.arend.extImpl.ui.DelegateQuery
 import org.arend.extImpl.ui.SimpleQuery
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.typechecking.TypeCheckingService
@@ -51,11 +52,11 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
         request.query.setDelegate(query)
 
         val service = project.service<TypeCheckingService>()
-        val lookupList = request.list.map {
-            val ref = it as? Referable ?: if (it is Definition) service.getDefinitionPsiReferable(it) else null
+        val lookupList = request.list.map { elem ->
+            val ref = (elem as? LocatedReferable)?.let { service.getPsiReferable(it) } ?: if (elem is Definition) service.getDefinitionPsiReferable(elem) else elem as? Referable
             val element = (if (ref != null) ArendReferenceImpl.createArendLookUpElement(ref, null, false, null, false, "")?.withInsertHandler { _, _ -> } else null)
-                ?: LookupElementBuilder.create(it, "")
-            element.withPresentableText(ref?.refName ?: it.toString())
+                ?: LookupElementBuilder.create(elem, "")
+            element.withPresentableText(ref?.refName ?: elem.toString())
         }
         val lookup = LookupManager.getInstance(project).showLookup(editor, *lookupList.toTypedArray())
         lookup?.addLookupListener(object : LookupListener {
