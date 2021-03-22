@@ -409,7 +409,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \data D | con (t s : D)
        
        \func foo (t : D) : Nat
-         | con t s => {?} 
+         | con t t1 => {?} 
     """)
 
     fun test_225() = typedQuickFixTest("Split", """

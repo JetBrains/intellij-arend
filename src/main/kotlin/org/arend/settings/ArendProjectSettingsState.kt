@@ -50,7 +50,8 @@ class ArendPrintingOptions {
     var showCoerceDefinitions = false
     var showConstructorParameters = false
     var showTupleType = false
-    var showFieldInstance = true
+    var showLocalFieldInstance = true
+    var showGlobalFieldInstance = false
     var showImplicitArgs = false
     var showTypesInLambda = false
     var showPrefixPath = false

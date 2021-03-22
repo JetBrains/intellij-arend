@@ -95,7 +95,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo {A} n v \with {
          | 0, nil, foo1 => 1
-         | suc n, cons x xs, foo2 => 2
+         | suc n, cons x v, foo2 => 2
        }""")
 
     fun test69C_08() = simpleQuickFixTest("Do", data12 + """
@@ -106,7 +106,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo {A} n v \with {
          | 0, nil, foo1 => 1
-         | suc n, cons x xs, foo2 => 2
+         | suc n, cons x v, foo2 => 2
        }
     """)
 
@@ -338,7 +338,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
     """, data8 + """
        \func foo {A : \Type} (i : D1) (p : D2 A i) : Nat \elim i, p
          | env {0} {_} {0}, index nil{-caret-} => {?}
-         | env {suc m} {_} {suc k}, index (cons a v) => {?}
+         | env {suc a} {_} {suc c}, index (cons a v) => {?}
     """)
 
     private val data9 = """

@@ -17,11 +17,11 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var messagesFilterSet = EnumSet.of(MessageType.ERROR, MessageType.WARNING, MessageType.GOAL, MessageType.TYPECHECKING, MessageType.SHORT, MessageType.RESOLVING)!!
     var consolePrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
-    var goalPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+    var goalPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
 
     // for show-type and show-normalized
-    var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
-    var replPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)!!
+    var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
+    var replPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
 
     var librariesRoot: String
         get() = data.librariesRoot ?: service<ArendSettings>().librariesRoot
@@ -89,7 +89,8 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         options.showCoerceDefinitions = filterSet.contains(PrettyPrinterFlag.SHOW_COERCE_DEFINITIONS)
         options.showConstructorParameters = filterSet.contains(PrettyPrinterFlag.SHOW_CON_PARAMS)
         options.showTupleType = filterSet.contains(PrettyPrinterFlag.SHOW_TUPLE_TYPE)
-        options.showFieldInstance = filterSet.contains(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
+        options.showLocalFieldInstance = filterSet.contains(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
+        options.showGlobalFieldInstance = filterSet.contains(PrettyPrinterFlag.SHOW_GLOBAL_FIELD_INSTANCE)
         options.showImplicitArgs = filterSet.contains(PrettyPrinterFlag.SHOW_IMPLICIT_ARGS)
         options.showTypesInLambda = filterSet.contains(PrettyPrinterFlag.SHOW_TYPES_IN_LAM)
         options.showPrefixPath = filterSet.contains(PrettyPrinterFlag.SHOW_PREFIX_PATH)
@@ -128,7 +129,8 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_COERCE_DEFINITIONS, printingOptions.showCoerceDefinitions)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_CON_PARAMS, printingOptions.showConstructorParameters)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_TUPLE_TYPE, printingOptions.showTupleType)
-        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_FIELD_INSTANCE, printingOptions.showFieldInstance)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE, printingOptions.showLocalFieldInstance)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_GLOBAL_FIELD_INSTANCE, printingOptions.showGlobalFieldInstance)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_IMPLICIT_ARGS, printingOptions.showImplicitArgs)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_TYPES_IN_LAM, printingOptions.showTypesInLambda)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_PREFIX_PATH, printingOptions.showPrefixPath)

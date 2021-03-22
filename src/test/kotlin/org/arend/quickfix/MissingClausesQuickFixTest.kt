@@ -64,7 +64,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         \func length {A : \Type} (l : List A) : Nat \with {
           | nil => 0
           | :: x nil => 1
-          | :: x (:: x1 xs) => {?}
+          | :: x (:: x1 l) => {?}
         }
         """)
 
@@ -81,7 +81,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         \func length (A : \Type) (l : List A) (n : Nat) : Nat \elim l
           | nil => n
           | :: x nil => n
-          | :: x (:: x1 xs) => {?}
+          | :: x (:: x1 l) => {?}
         """)
 
     fun testImplicitPattern() = typedQuickFixTest("Implement",
@@ -130,8 +130,8 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
         \func lol {A : \Type} (l : List A) (l2 : List A) : Nat \with
           | nil, nil => 1
-          | :: x xs, l2 => {?}
-          | nil, :: x xs => {?} 
+          | :: x l, l2 => {?}
+          | nil, :: x l2 => {?} 
         """)
 
     fun testMixedTwoPatterns() = typedQuickFixTest("Implement",
@@ -459,7 +459,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        \data D | con (t s : D)
        
        \func foo (t : D) : Nat
-         | con t s => {?} 
+         | con t t1 => {?} 
     """)
 
     fun test_88_7() = typedQuickFixTest("Implement", """
@@ -759,4 +759,29 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
            }
         """)
     }
+
+    fun `test where`() = typedQuickFixTest("Implement", """
+           \func foo{-caret-} (x : Nat) : Nat
+             \where {} 
+        """, """
+           \func foo (x : Nat) : Nat
+             | 0 => {?}
+             | suc x => {?}
+             \where {} 
+        """)
+
+    fun `test names of generated parameters`()  = typedQuickFixTest("Implement", dataLeq + """
+       \func foo{-caret-} (n m k : Nat) (p : n < m) (q : m < k) : Nat 
+    """, dataLeq + """
+       \func foo (n m k : Nat) (p : n < m) (q : m < k) : Nat
+         | 0, suc m, suc k, zero<suc, suc<suc q => {?}
+         | suc n, suc m, suc k, suc<suc p, suc<suc q => {?} 
+    """)
+
+
+    val dataLeq = """
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc (n < m) 
+    """
 }
