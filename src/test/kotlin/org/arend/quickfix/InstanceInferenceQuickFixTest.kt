@@ -107,4 +107,30 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        
        \func f (t : T) => B 1
     """)
+
+    fun testBasic5() = typedQuickFixTest("Import", """
+       \open C
+       \class C
+         | field : Nat
+       
+       \module M \where {
+         \instance I : C
+           | field => 0
+       }
+       
+       \func func => field{-caret-}
+    """, """
+      \open C
+      \open M (I)
+      
+      \class C
+        | field : Nat
+       
+      \module M \where {
+        \instance I : C
+          | field => 0
+      }
+      
+      \func func => field          
+    """)
 }

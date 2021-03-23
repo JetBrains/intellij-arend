@@ -87,8 +87,8 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                 val mySourceContainer = enclosingDefinition?.parentGroup
                 if (mySourceContainer != null) {
                     val psiFactory = ArendPsiFactory(project)
-                    val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, it as PsiElement)}
-                        ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it as PsiElement) }
+                    val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
+                        ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
                         ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
                             getAnchorInAssociatedModule(psiFactory, mySourceContainer)?.let{RelativePosition(PositionKind.AFTER_ANCHOR, it)}
 
