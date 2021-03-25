@@ -44,6 +44,7 @@
         META_KW             = '\meta'
         SFUNC_KW            = '\sfunc'
         LEMMA_KW            = '\lemma'
+        TYPE_KW             = '\type'
         FIELD_KW            = '\field'
         OVERRIDE_KW         = '\override'
         DEFAULT_KW          = '\default'
@@ -116,7 +117,7 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
@@ -279,7 +280,7 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | useMod
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
 
