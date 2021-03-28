@@ -44,7 +44,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     val fileGroup = object : Group by currentFile {
         override fun getSubgroups(): Collection<Group> = emptyList()
     }
-    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
+    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
     val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
@@ -289,7 +289,7 @@ class ImportFileAction(currentFile: ArendFile,
 
         if (currentFile.isRepl) {
             val replService = ServiceManager.getService(currentFile.project, ArendReplService::class.java)
-            replService.getRepl()?.repl(statCmdStatement.text) {""};
+            replService.getRepl()?.repl(statCmdStatement.text) {""}
             return
         }
 
