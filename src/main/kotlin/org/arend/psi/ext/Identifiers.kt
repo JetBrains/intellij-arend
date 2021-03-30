@@ -61,7 +61,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
             pParent is ArendNameTele ||
             parent is ArendAtomPatternOrPrefix && pParent != null ||
-            parent is ArendPattern && pParent is ArendClause ||
+            parent is ArendPattern ||
             parent is ArendCaseArg || parent is ArendCaseArgExprAs ||
             parent is ArendLongName) {
 
