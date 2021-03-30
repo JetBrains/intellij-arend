@@ -271,7 +271,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
         fun getIntegralNumber(pattern: CorePattern): Int? {
             val definition = pattern.constructor
-            val isSuc = definition == Prelude.SUC
+            val isSuc = definition == Prelude.SUC || definition == Prelude.FIN_SUC
             val isPos = definition == Prelude.POS
             val isNeg = definition == Prelude.NEG
             if (isSuc || isPos || isNeg) {
@@ -280,7 +280,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 if (isPos && number != null) return number
                 if (isNeg && number != null && number != 0) return -number
                 return null
-            } else if (definition == Prelude.ZERO) return 0
+            } else if (definition == Prelude.ZERO || definition == Prelude.FIN_ZERO) return 0
             return null
         }
 

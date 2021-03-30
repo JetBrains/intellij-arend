@@ -317,7 +317,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             doSubstituteUsages(project, element.childOfType(), currAnchor, expressionString)
 
                             var inserted = false
-                            if (splitPatternEntry is ConstructorSplitPatternEntry && splitPatternEntry.constructor == Prelude.ZERO) {
+                            if (splitPatternEntry is ConstructorSplitPatternEntry && (splitPatternEntry.constructor == Prelude.ZERO || splitPatternEntry.constructor == Prelude.FIN_ZERO)) {
                                 var number = 0
                                 val abstractPattern = localClause.patternList[localIndexList[0]]
                                 var path = localIndexList.drop(1)
@@ -365,7 +365,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             val constructor = (pattern.headReference as? UnresolvedReference)?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
                     ?: return false
-            return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT
+            return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
+                   constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
+
         }
 
         fun findAllVariablePatterns(clause: Abstract.Clause, excludedPsi: PsiElement?): HashSet<ArendDefIdentifier> {
