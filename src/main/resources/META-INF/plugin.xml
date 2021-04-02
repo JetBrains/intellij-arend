@@ -19,6 +19,7 @@
         <projectImportProvider implementation="org.arend.project.ArendProjectImportProvider"/>
         <projectOpenProcessor implementation="org.arend.project.ArendProjectOpenProcessor"/>
         <projectImportBuilder implementation="org.arend.project.ArendProjectImportBuilder"/>
+        <additionalLibraryRootsProvider implementation="org.arend.project.ArendPreludeLibraryRootProvider"/>
 
         <!-- Module -->
 
