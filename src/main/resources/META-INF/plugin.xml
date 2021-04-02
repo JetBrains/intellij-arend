@@ -128,8 +128,8 @@
         <!-- Navigation -->
 
         <gotoClassContributor implementation="org.arend.navigation.ArendClassNavigationContributor"/>
-        <gotoSymbolContributor
-                implementation="org.arend.navigation.ArendSymbolNavigationContributor"/>
+        <gotoSymbolContributor implementation="org.arend.navigation.ArendSymbolNavigationContributor"/>
+        <gotoFileContributor implementation="org.arend.navigation.ArendPreludeFileNavigationContributor"/>
 
         <!-- Hints -->
 
