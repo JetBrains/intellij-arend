@@ -2,6 +2,7 @@ package org.arend.search
 
 import com.intellij.openapi.application.QueryExecutorBase
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiReference
@@ -17,6 +18,7 @@ import com.intellij.util.indexing.FileBasedIndex
 import gnu.trove.THashSet
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.typechecking.TypeCheckingService
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -38,6 +40,11 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                     fileBasedIndex.getFilesWithKey(IdIndex.NAME, Collections.singleton(IdIndexEntry(name, true)), Processors.cancelableCollectProcessor(fileSet), scope)
                     fileSet.mapNotNull { PsiManager.getInstance(project).findFile(it) }.filterIsInstance<ArendFile>()
                         .forEach { tasks.add(Pair(name, LocalSearchScope(it))) }
+                    if (scope.isSearchInLibraries) {
+                        project.service<TypeCheckingService>().prelude?.let {
+                            tasks.add(Pair(name, LocalSearchScope(it)))
+                        }
+                    }
                 }
 
                 collectFiles(standardName)
