@@ -28,6 +28,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
+import java.lang.IllegalStateException
 import kotlin.math.abs
 
 class ImplementMissingClausesQuickFix(private val missingClausesError: MissingClausesError,
@@ -123,19 +124,18 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
                 if (fBody != null) {
                     val lastChild = fBody.lastChild
-                    if (fClauses != null) {
-                        return fClauses.clauseList.lastOrNull() ?: fClauses.lbrace
-                        ?: fClauses.lastChild /* the last branch is meaningless */
+                    return if (fClauses != null) {
+                        fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: throw IllegalStateException()
                     } else {
                         val newClauses = psiFactory.createFunctionClauses()
                         val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
                         lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
                         primerClause = insertedClauses.lastChild as? ArendClause
-                        return primerClause
+                        primerClause
                     }
                 } else {
                     val newBody = psiFactory.createFunctionClauses(fBody is ArendInstanceBody).parent as ArendFunctionalBody
-                    val lastChild = cause.lastChild
+                    val lastChild = cause.returnExpr ?: cause.nameTeleList.lastOrNull() ?: throw IllegalStateException()
                     cause.addAfter(newBody, lastChild)
                     cause.addAfter(psiFactory.createWhitespace(" "), lastChild)
                     val newFunctionClauses = when (cause) {
@@ -165,16 +165,18 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                             } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
                 }
                 is ArendCoClauseDef -> {
-                    val coClauseBody = cause.coClauseBody ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
-                    val elim = coClauseBody.elim ?:
-                        coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                    val coClauseBody = cause.coClauseBody
+                            ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendCoClauseBody)
+                    val elim = coClauseBody.elim
+                            ?: coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
                     if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
                     coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
                 }
                 is ArendLongName -> {
-                    val newExpr = ((cause.parent as? ArendLongNameExpr ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
+                    val newExpr = ((cause.parent as? ArendLongNameExpr
+                            ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
                     findWithBodyAnchor(newExpr, psiFactory)
                 }
                 is ArendWithBody -> findWithBodyAnchor(cause.parent as? ArendNewExpr, psiFactory)
@@ -233,11 +235,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             }
         }
 
-        private fun previewPattern(pattern: CorePattern,
-                                   filters: MutableMap<CorePattern, List<Boolean>>,
-                                   paren: Braces,
-                                   recursiveTypeUsages: MutableSet<CorePattern>,
-                                   recursiveTypeDefinition: Definition?): PatternKind {
+        fun previewPattern(pattern: CorePattern,
+                           filters: MutableMap<CorePattern, List<Boolean>>,
+                           paren: Braces,
+                           recursiveTypeUsages: MutableSet<CorePattern>,
+                           recursiveTypeDefinition: Definition?): PatternKind {
             if (!pattern.isAbsurd) {
                 val binding = pattern.binding
                 if (binding != null) {
@@ -256,7 +258,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
                         previewResults.add(previewPattern(argumentPattern, filters,
-                            if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
+                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
                         constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
                     }
 
@@ -267,9 +269,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_EXPR else Companion.PatternKind.EXPLICIT
         }
 
-        private fun getIntegralNumber(pattern: CorePattern): Int? {
+        fun getIntegralNumber(pattern: CorePattern): Int? {
             val definition = pattern.constructor
-            val isSuc = definition == Prelude.SUC
+            val isSuc = definition == Prelude.SUC || definition == Prelude.FIN_SUC
             val isPos = definition == Prelude.POS
             val isNeg = definition == Prelude.NEG
             if (isSuc || isPos || isNeg) {
@@ -278,7 +280,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 if (isPos && number != null) return number
                 if (isNeg && number != null && number != 0) return -number
                 return null
-            } else if (definition == Prelude.ZERO) return 0
+            } else if (definition == Prelude.ZERO || definition == Prelude.FIN_ZERO) return 0
             return null
         }
 
@@ -348,7 +350,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val arguments = concat(argumentPatterns, filter, if (tupleMode) "," else " ")
                         val result = buildString {
                             val defCall = if (referable != null) getTargetName(referable, cause)
-                                ?: referable.name else definition?.name
+                                    ?: referable.name else definition?.name
                             if (tupleMode) append("(") else {
                                 append(defCall)
                                 if (arguments.isNotEmpty()) append(" ")

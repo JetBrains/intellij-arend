@@ -10,8 +10,8 @@ import org.arend.ArendIcons
 import org.arend.injection.InjectedArendEditor
 
 class ArendConsoleView(project: Project) : ProjectManagerListener {
-    val toolWindow = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask("Arend Console", ToolWindowAnchor.RIGHT, canWorkInDumbMode = false))
-    val editor = InjectedArendEditor(project, "Arend Console", null)
+    val toolWindow = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask(CONSOLE_ID, ToolWindowAnchor.RIGHT, canWorkInDumbMode = false))
+    val editor = InjectedArendEditor(project, CONSOLE_ID, null)
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -22,5 +22,9 @@ class ArendConsoleView(project: Project) : ProjectManagerListener {
 
     override fun projectClosing(project: Project) {
         editor.release()
+    }
+
+    companion object {
+        const val CONSOLE_ID = "Arend Console"
     }
 }

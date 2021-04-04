@@ -475,7 +475,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 * 2
             """)
 
-    fun `test that deliberate empty imports left by the user lead to the "cautious mode" not being activated`() = simpleImportFixTest(fileA + fileE +
+    fun `test that deliberate empty imports left by the user lead to the minimalistic import mode not being activated`() = simpleImportFixTest(fileA + fileE +
             """
                 --! B.ard
                 \import E ()
@@ -511,7 +511,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func test => 1 * 2
             """)
 
-    fun `test that nothing is removed from hidden definitions if renaming to "very long name" is used anyway`() = simpleImportFixTest(fileA +
+    fun `test that nothing is removed from hidden definitions if renaming to very long name is used anyway`() = simpleImportFixTest(fileA +
             """
                 --! B.ard
                 \import A \hiding (a, e)
@@ -524,7 +524,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
-    fun `test that nothing is added to the "using" list if renaming to "very long name" is used anyway`() = simpleImportFixTest(fileA +
+    fun `test that nothing is added to the using list if renaming to very long name is used anyway`() = simpleImportFixTest(fileA +
             """
                 --! B.ard
                 \import A (e)
@@ -537,7 +537,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
-    fun `test that empty using list is used in import command if "very long name" is used anyway`() = simpleImportFixTest(fileA + fileE +
+    fun `test that empty using list is used in import command if very long name is used anyway`() = simpleImportFixTest(fileA + fileE +
             """
                 --! B.ard
                 \import E (e)
@@ -551,7 +551,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b
             """)
 
-    fun `test that top-level open commands also can activate "cautious mode" 1`() = simpleImportFixTest(fileA +
+    fun `test that top-level open commands also can activate minimalistic import mode 1`() = simpleImportFixTest(fileA +
             """
                 --! C.ard
                 \func j => 1 \where
@@ -569,7 +569,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => a.b
             """)
 
-    fun `test that top-level open commands also can activate "cautious mode" 2`() = simpleImportFixTest(fileA +
+    fun `test that top-level open commands also can activate minimalistic import mode 2`() = simpleImportFixTest(fileA +
             """
                 --! C.ard
                 \func j => 1 \where
@@ -666,21 +666,21 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import A \\using {-caret-}",
             "\\import A \\using (b \\as b')") { file ->
         val cmd = file.namespaceCommands.first()
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
+        WriteCommandAction.runWriteCommandAction(project, "", null, {
             doAddIdToUsing(cmd, listOf(Pair("b", "b'")))
         }, file) }
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
             "{-caret-}", "\\import Main") { file ->
         val action = ImportFileAction(file, file.moduleLocation!!.modulePath, null)
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable { action.execute() }, file) }
+        WriteCommandAction.runWriteCommandAction(project, "", null, { action.execute() }, file) }
 
     fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
             "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
             "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
         val cmd = file.namespaceCommands.first()
         val ref = cmd.refIdentifierList[1]
-        WriteCommandAction.runWriteCommandAction(project, "", null, Runnable {
+        WriteCommandAction.runWriteCommandAction(project, "", null, {
             doRemoveRefFromStatCmd(ref)
         }, file)
     }

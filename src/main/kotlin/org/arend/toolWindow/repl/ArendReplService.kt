@@ -44,4 +44,6 @@ class ArendReplService(project: Project) : SimpleToolWindowService(project) {
         activate(toolWindow, manager)
         return handler
     }
+
+    fun getRepl() = myHandler?.repl
 }

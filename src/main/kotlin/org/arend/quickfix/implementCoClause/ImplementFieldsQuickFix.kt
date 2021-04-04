@@ -10,13 +10,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendCoClause
-import org.arend.psi.ArendLocalCoClause
-import org.arend.psi.ArendPsiFactory
-import org.arend.psi.addAfterWithNotification
+import org.arend.psi.*
+import org.arend.psi.impl.ArendCoClauseDefImpl
 import org.arend.refactoring.moveCaretToEndOffset
 
-class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
+open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<PsiElement>,
                               private val needsBulb: Boolean,
                               private val fieldsToImplement: List<Pair<LocatedReferable, Boolean>>): IntentionAction, Iconable {
     private var caretMoved = false
@@ -25,7 +23,8 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
 
     override fun getFamilyName() = "arend.instance"
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = instanceRef.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
+        instanceRef.element != null
 
     override fun getText() = "Implement missing fields"
 
@@ -46,7 +45,11 @@ class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPointer<Ps
             }
 
             if (coClause != null) {
-                anchor.parent.addAfterWithNotification(coClause, anchor)
+                val pipeSample = coClause.findPrevSibling()
+                val insertedCoClause = anchor.parent.addAfterWithNotification(coClause, anchor)
+                if (insertedCoClause is ArendCoClause && pipeSample != null) {
+                    anchor.parent.addBeforeWithNotification(pipeSample, insertedCoClause)
+                }
                 if (!caretMoved && editor != null) {
                     moveCaretToEndOffset(editor, anchor.nextSibling)
                     caretMoved = true

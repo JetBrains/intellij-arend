@@ -15,10 +15,6 @@ import kotlin.collections.HashMap
 
 // We can also use ProjectTaskListener, but it is invoked only on internal build actions
 class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapter() {
-    private companion object {
-        val NOTIFICATIONS = NotificationGroup("Arend Reload", NotificationDisplayType.STICKY_BALLOON, false)
-    }
-
     private val modificationStamps = HashMap<Module, Long>()
     private val notifications = HashMap<Project, Notification>()
 
@@ -46,9 +42,9 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
     }
 
     private fun createNotification(project: Project) =
-        NOTIFICATIONS.createNotification("Arend extension changed", "", NotificationType.INFORMATION, null).apply {
+        NotificationGroupManager.getInstance().getNotificationGroup("Arend Reload").createNotification("Arend extension changed", "", NotificationType.INFORMATION, null).apply {
             val action = ReloadLibrariesAction()
-            addAction(object : NotificationAction(action.templateText) {
+            addAction(object : NotificationAction("Reload Arend libraries") {
                 override fun actionPerformed(e: AnActionEvent, notification: Notification) {
                     action.actionPerformed(e)
                     notification.expire()

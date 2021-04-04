@@ -14,7 +14,9 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val extensionMainClass = yaml.extensionMainClass
     override val modules = yaml.modules
     override val dependencies = yaml.dependencies
-    override val langVersion: Range<Version> = yaml.langVersion?.let { Range.parseVersionRange(it) } ?: Range.unbound()
+    override val langVersion: Range<Version> = yaml.langVersion.let {
+        if (it.isEmpty()) Range.unbound() else Range.parseVersionRange(it)
+    }
 
     override val isExternal: Boolean
         get() = true

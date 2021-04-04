@@ -1,5 +1,6 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
@@ -17,6 +18,7 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
+import org.arend.toolWindow.repl.ArendReplService
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
@@ -42,7 +44,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     val fileGroup = object : Group by currentFile {
         override fun getSubgroups(): Collection<Group> = emptyList()
     }
-    val importedScope = ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false)
+    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
     val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
@@ -159,13 +161,15 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
 fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
     val importFile = defaultLocation.myContainingFile
-    val conf = currentFile.arendLibrary?.config ?: return false
     val modulePath = importFile.moduleLocation?.modulePath ?: return false
+    val locationsOk = defaultLocation.myContainingFile.moduleLocation != null && importFile.moduleLocation?.modulePath != null
+
+    if (currentFile.isRepl) return locationsOk
+
+    val conf = currentFile.arendLibrary?.config ?: return false
     val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 
-    return defaultLocation.myContainingFile.moduleLocation != null &&
-            importFile.moduleLocation?.modulePath != null &&
-            (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
+    return locationsOk && (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root
 }
 
 
@@ -281,10 +285,15 @@ class ImportFileAction(currentFile: ArendFile,
 
     override fun execute() {
         val factory = ArendPsiFactory(currentFile.project)
+        val statCmdStatement = createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT)
 
-        addStatCmd(factory,
-                createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT),
-                findPlaceForNsCmd(currentFile, longName))
+        if (currentFile.isRepl) {
+            val replService = ServiceManager.getService(currentFile.project, ArendReplService::class.java)
+            replService.getRepl()?.repl(statCmdStatement.text) {""}
+            return
+        }
+
+        addStatCmd(factory, statCmdStatement, findPlaceForNsCmd(currentFile, longName))
     }
 
     override fun getImportedParts(): List<String>? = usingList

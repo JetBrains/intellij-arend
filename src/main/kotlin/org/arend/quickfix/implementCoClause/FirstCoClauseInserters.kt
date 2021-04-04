@@ -14,6 +14,7 @@ fun makeFirstCoClauseInserter(element: PsiElement?): AbstractCoClauseInserter?  
             is ArendDefInstance -> ArendInstanceInserter(element)
             is ArendDefFunction -> FunctionDefinitionInserter(element)
             is CoClauseBase -> CoClauseInserter(element)
+            is ArendCoClauseDef -> ArendFunctionalInserter(element)
             is ArendLongName -> element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)}
             is LeafPsiElement -> if (element.elementType == LBRACE) element.ancestor<ArendNewExpr>()?.let { makeFirstCoClauseInserter(it)} else null
             else -> null
@@ -48,13 +49,14 @@ class CoClauseInserter(private val coClause: CoClauseBase) : AbstractCoClauseIns
     }
 }
 
-abstract class ArendFunctionalInserter(private val definition: ArendFunctionalDefinition) : AbstractCoClauseInserter() {
+open class ArendFunctionalInserter(private val definition: ArendFunctionalDefinition) : AbstractCoClauseInserter() {
     override val coClausesList get(): List<ArendCoClause> = definition.body?.coClauseList ?: emptyList()
 
     override fun insertFirstCoClause(name: String, factory: ArendPsiFactory, editor: Editor?) {
         val body = definition.body
         if (body != null) {
             val sampleCoClause = factory.createCoClause(name)
+            val samplePipe = sampleCoClause.findPrevSibling()!!
             val anchor = when {
                 body.coClauseList.isNotEmpty() -> body.coClauseList.last()
                 body.lbrace != null -> body.lbrace
@@ -63,6 +65,8 @@ abstract class ArendFunctionalInserter(private val definition: ArendFunctionalDe
             }
             val insertedClause = if (anchor != null) body.addAfterWithNotification(sampleCoClause, anchor) else body.add(sampleCoClause)
             body.addBefore(factory.createWhitespace("\n"), insertedClause)
+            body.addBefore(samplePipe, insertedClause)
+
             if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
         }
     }

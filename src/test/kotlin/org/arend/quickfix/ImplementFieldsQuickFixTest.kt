@@ -273,4 +273,12 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
               \where
                 \func bar => 0
             """)
+
+    fun `test adding implementation in CoClauseDef`() = simpleQuickFixTest("Implement",
+           """
+               \record R (x : Nat) \record S (r : Nat -> R) \func foo : S \cowith | r{-caret-} n : R \cowith
+            """, """
+               \record R (x : Nat) \record S (r : Nat -> R) \func foo : S \cowith | r n : R \cowith
+                 | x => {?}{-caret-}
+            """)
 }

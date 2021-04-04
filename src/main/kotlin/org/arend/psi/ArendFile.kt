@@ -18,6 +18,7 @@ import org.arend.ArendLanguage
 import org.arend.ext.module.LongName
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
+import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
@@ -50,6 +51,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
+    val isRepl: Boolean
+        get() = enforcedLibraryConfig != null
+
     var lastModification: Long = -1
     var lastDefinitionModification: Long = -1
 
@@ -62,7 +66,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = moduleLocation?.toString() ?: name
 
     val libraryName: String?
-        get() = arendLibrary?.name ?: if (name == "Prelude.ard") Prelude.LIBRARY_NAME else null
+        get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
 
     var lastModifiedDefinition: TCDefinition? = null
         get() {
@@ -179,7 +183,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getLocatedReferableParent(): LocatedReferable? = null
 
-    override fun getGroupScope() = scope
+    override fun getGroupScope(extent: LexicalScope.Extent) = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 

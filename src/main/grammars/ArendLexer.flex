@@ -92,6 +92,7 @@ OCT_DIGIT           = [0-8]
     "\\func"                { return FUNC_KW; }
     "\\sfunc"               { return SFUNC_KW; }
     "\\lemma"               { return LEMMA_KW; }
+    "\\type"                { return TYPE_KW; }
     "\\meta"                { return META_KW; }
     "\\coerce"              { return COERCE_KW; }
     "\\use"                 { return USE_KW; }

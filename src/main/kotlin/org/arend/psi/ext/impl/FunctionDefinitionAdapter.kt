@@ -53,6 +53,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
         when {
             it.lemmaKw != null -> FunctionKind.LEMMA
             it.sfuncKw != null -> FunctionKind.SFUNC
+            it.typeKw != null -> FunctionKind.TYPE
             it.levelKw != null -> FunctionKind.LEVEL
             it.coerceKw != null -> FunctionKind.COERCE
             else -> FunctionKind.FUNC

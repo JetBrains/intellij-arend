@@ -38,6 +38,7 @@ import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 import org.arend.quickfix.implementCoClause.makeFieldList
+import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
 import org.arend.refactoring.replaceExprSmart
@@ -48,6 +49,7 @@ import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
+import org.arend.typechecking.error.local.inference.InstanceInferenceError
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -83,7 +85,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
         val ppConfig = PrettyPrinterConfigWithRenamer(EmptyScope.INSTANCE)
-        ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_FIELD_INSTANCE)
+        ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
         return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
@@ -171,6 +173,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is MissingClausesError -> if (cause is ArendCompositeElement)
                     annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
 
+                is ExpectedConstructorError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ExpectedConstructorQuickFix(error, SmartPointerManager.createPointer(cause)))
+
+                is ImpossibleEliminationError -> if (cause is ArendCompositeElement)
+                    annotation.registerFix(ImpossibleEliminationQuickFix(error, SmartPointerManager.createPointer(cause)))
+
                 is DataTypeNotEmptyError -> if (cause is ArendCompositeElement)
                     annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
@@ -182,6 +190,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             annotation.isAfterEndOfLine = true
                         }
                     }
+                    val coClauseBase = cause.ancestor<CoClauseBase>()
+                    val coClauseBaseFixData = coClauseBase?.getUserData(CoClausesKey)
+                    if (coClauseBaseFixData != null) annotation.registerFix(object : ImplementFieldsQuickFix(SmartPointerManager.createPointer(coClauseBase), true, coClauseBaseFixData) {
+                        override fun getText(): String = "Replace {?} with empty implementation of the class"
+                    })
+
                     if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
                         error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
                             val expr = when (it) {
@@ -258,6 +272,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is RedundantClauseError -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
                 is RedundantCoclauseError -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
+
+                is InstanceInferenceError -> if (cause is ArendLongName) annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
 
                 is IgnoredArgumentError -> {
                     when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {

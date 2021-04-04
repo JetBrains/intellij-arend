@@ -11,9 +11,7 @@ import com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil
 import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
-import org.arend.ext.concrete.expr.ConcreteArgument
 import org.arend.ext.concrete.expr.ConcreteExpression
-import org.arend.ext.concrete.expr.ConcreteReferenceExpression
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.ExpressionResolver
@@ -22,7 +20,6 @@ import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.term.concrete.Concrete
-import org.junit.Assert
 
 class RenameTest : ArendTestBase() {
 
@@ -287,6 +284,34 @@ class RenameTest : ArendTestBase() {
     fun test226() = doInlineTest("lem2",
             "\\func lem => \\lam t => lem{-caret-} suc (suc t) (lem t)",
             "\\func lem2 => \\lam t => lem2 suc (suc t) (lem2 t)")
+
+    fun testDefIdentifierInPattern1() = doInlineTest("bar", """
+       \data D
+         | con (\Sigma Nat Nat)
+         
+       \func foo (d : D) : Nat
+         | con ({-caret-}n,m) => n
+    """, """
+       \data D
+         | con (\Sigma Nat Nat)
+         
+       \func foo (d : D) : Nat
+         | con (bar,m) => bar
+    """)
+
+    fun testDefIdentifierInPattern2() = doInlineTest("bar", """
+       \data D
+         | con {Nat} Nat
+         
+       \func foo (d : D) : Nat
+         | con {{-caret-}n} m => n
+    """, """
+       \data D
+         | con {Nat} Nat
+         
+       \func foo (d : D) : Nat
+         | con {bar} m => bar
+    """)
 
     private fun doTest(
             newName: String,

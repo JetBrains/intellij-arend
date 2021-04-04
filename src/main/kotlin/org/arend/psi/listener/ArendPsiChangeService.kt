@@ -25,7 +25,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
     }
 
     fun incModificationCount(withDef: Boolean = true) {
-         modificationTracker.incModificationCount()
+        modificationTracker.incModificationCount()
         if (withDef) {
             definitionModificationTracker.incModificationCount()
         }

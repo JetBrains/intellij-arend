@@ -240,6 +240,25 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (suc x, y) => {?}
     """)
 
+    fun testFinZero() = typedQuickFixTest("Split", """
+       \func foo (n : Nat) (s : Fin n) : Nat
+         | suc n, s{-caret-} => 0 
+    """, """
+       \func foo (n : Nat) (s : Fin n) : Nat
+         | suc n, 0 => 0
+         | suc n, suc s => 0
+    """)
+
+    fun testFinSuc() = typedQuickFixTest("Split", """
+       \func foo (s : Fin 2) : Nat
+         | 0 => 0
+         | suc s{-caret-} => s
+    """, """
+       \func foo (s : Fin 2) : Nat
+         | 0 => 0
+         | 1 => zero
+    """)
+
     fun testElim() = typedQuickFixTest("Split",
     """
        \data Foo
@@ -409,7 +428,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \data D | con (t s : D)
        
        \func foo (t : D) : Nat
-         | con t s => {?} 
+         | con t t1 => {?} 
     """)
 
     fun test_225() = typedQuickFixTest("Split", """

@@ -4,6 +4,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.arend.core.expr.ErrorWithConcreteExpression
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
@@ -33,8 +34,9 @@ class ReplaceMetaWithResultIntention : BaseArendIntention("Replace meta with res
 
         val text = cExpr.toString()
         WriteCommandAction.writeCommandAction(project).run<Exception> {
-            replaceExprSmart(editor.document, expr, subConcrete, rangeOfConcrete(subConcrete), null, cExpr, text).length
             definitionRenamer.writeAllImportCommands()
+            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+            replaceExprSmart(editor.document, expr, subConcrete, rangeOfConcrete(subConcrete), null, cExpr, text)
         }
     }
 }

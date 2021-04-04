@@ -5,6 +5,7 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.*
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCoClauseImplMixin
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -24,7 +25,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
-    override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: it.defModule }
+    override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: (it.coClause as? ArendCoClauseImplMixin)?.functionReference ?: it.defModule }
 
     private inline val parameterFields: List<ArendFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }
 
@@ -43,6 +44,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
     override fun getImplementedFields(): List<LocatedReferable> =
         coClauseElements.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
+    override fun getDynamicReferables() = dynamicSubgroups
+
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
     override fun getSuperClasses(): List<ArendLongName> = longNameList
@@ -51,7 +54,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
         when (it) {
             is ArendClassField -> it
             is ArendClassImplement -> it
-            is ArendClassStat -> it.classField ?: it.classImplement ?: it.overriddenField
+            is ArendClassStat -> it.classField ?: it.classImplement ?: it.overriddenField ?: it.coClause
             else -> null
         }
     }

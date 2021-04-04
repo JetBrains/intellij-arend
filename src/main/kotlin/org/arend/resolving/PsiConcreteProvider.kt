@@ -32,7 +32,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.GeneralDefinition? {
         var cached = true
         var scope: Scope? = null
-        val result = cache.computeIfAbsent(psiReferable) { runReadAction {
+        val result = cache[psiReferable] ?: runReadAction {
             cached = false
             if (eventsProcessor != null) {
                 eventsProcessor.onTestStarted(psiReferable)
@@ -40,13 +40,13 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
             }
 
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
-            if (resolve && def is Concrete.ReferableDefinition && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
+            if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
                 scope = CachingScope.make(psiReferable.scope)
                 def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter, resolverListener), scope)
             }
             eventsProcessor?.stopTimer(psiReferable)
-            return@runReadAction def
-        } }
+            return@runReadAction cache.putIfAbsent(psiReferable, def) ?: def
+        }
 
         if (result === NullDefinition) {
             return null
@@ -55,7 +55,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
             return result
         }
 
-        if (resolve && result is Concrete.ReferableDefinition && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
+        if (resolve && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
             runReadAction {
                 if (scope == null) {
                     scope = CachingScope.make(psiReferable.scope)
@@ -98,6 +98,8 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
     }
 
     override fun getConcrete(referable: GlobalReferable): Concrete.GeneralDefinition? {
+        val def = referable.defaultConcrete
+        if (def != null) return def
         val psiReferable = convertReferable(referable) ?: return null
 
         if (psiReferable is PsiConcreteReferable) {

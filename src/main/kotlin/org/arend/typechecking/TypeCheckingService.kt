@@ -8,9 +8,21 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.util.containers.MultiMap
+import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
+import org.arend.core.definition.FunctionDefinition
+import org.arend.core.expr.*
+import org.arend.core.expr.visitor.CompareVisitor
+import org.arend.core.sort.Sort
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.core.definition.CoreDefinition
+import org.arend.ext.core.definition.CoreFunctionDefinition
+import org.arend.ext.core.ops.CMP
+import org.arend.ext.instance.InstanceSearchParameters
+import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
+import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -37,12 +49,18 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
+import org.arend.typechecking.instance.provider.SimpleInstanceProvider
+import org.arend.typechecking.order.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
+import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.util.FullName
 import org.arend.util.Range
 import org.arend.util.Version
@@ -50,10 +68,10 @@ import org.arend.util.refreshLibrariesDirectory
 import org.arend.yaml.YAMLFileListener
 import java.util.concurrent.ConcurrentHashMap
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener {
     val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
-    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this) {
+    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
                 showDownloadNotification(project, false)
@@ -74,6 +92,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     private val extensionDefinitions = HashMap<TCDefReferable, Library>()
 
     private val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
+
+    private val instances = MultiMap.createConcurrent<TCDefReferable, TCDefReferable>()
 
     val tcRefMaps = ConcurrentHashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
 
@@ -147,11 +167,97 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
 
+    override fun typechecked(definition: CoreDefinition) {
+        addInstance(definition)
+    }
+
+    override fun loaded(definition: CoreDefinition) {
+        addInstance(definition)
+    }
+
+    private fun addInstance(definition: CoreDefinition) {
+        if (definition !is FunctionDefinition) return
+        if (definition.kind != CoreFunctionDefinition.Kind.INSTANCE) return
+        val classCall = definition.resultType as? ClassCallExpression ?: return
+        val dfs = object : DFS<ClassDefinition,Void>() {
+            override fun forDependencies(classDef: ClassDefinition): Void? {
+                for (superClass in classDef.superClasses) {
+                    visit(superClass)
+                }
+                return null
+            }
+        }
+        dfs.visit(classCall.definition)
+        for (classDef in dfs.visited) {
+            instances.putValue(classDef.referable, definition.referable)
+        }
+    }
+
+    // Returns the list of possible solutions. Each solution is a list of functions that are required for this instance to work.
+    fun findInstances(classRef: TCDefReferable, classifyingExpression: Expression?): List<List<FunctionDefinition>> {
+        val classDef = classRef.typechecked as? ClassDefinition ?: return emptyList()
+        val result = ArrayList<List<FunctionDefinition>>()
+        val functions = ArrayList(instances[classRef])
+        while (functions.isNotEmpty()) {
+            val collected = getInstances(GlobalInstancePool(SimpleInstanceProvider(functions), null), classDef, classifyingExpression, SubclassSearchParameters(classDef))
+            if (collected.isEmpty()) break
+            result.add(collected)
+            if (!functions.remove(collected[0].referable)) break
+        }
+        return result
+    }
+
+    private fun getInstances(pool: GlobalInstancePool, classDef: ClassDefinition, classifyingExpression: Expression?, parameters: InstanceSearchParameters): List<FunctionDefinition> {
+        fun getFunction(expr: Concrete.Expression?) =
+            (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
+
+        val result = pool.getInstance(classifyingExpression, parameters, null, null)
+        getFunction(result)?.let { return it }
+        if (result !is Concrete.AppExpression) return emptyList()
+
+        var isRecursive = false
+        for (argument in result.arguments) {
+            if (argument.getExpression() is RecursiveInstanceHoleExpression) {
+                isRecursive = true
+                break
+            }
+        }
+
+        if (isRecursive) {
+            val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
+            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor)
+            val tcResult = visitor.checkExpr(result, null)
+            if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
+                CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, Sort.STD, tcResult.expression), null, null)
+            }
+            val resultExpr = visitor.finalize(tcResult, result, false)?.expression
+            if (resultExpr != null) {
+                val collected = ArrayList<FunctionDefinition>()
+                fun collect(expr: Expression) {
+                    if (expr is AppExpression) {
+                        collect(expr.function)
+                        collect(expr.argument)
+                    } else if (expr is FunCallExpression) {
+                        if (expr.definition.kind == CoreFunctionDefinition.Kind.INSTANCE) {
+                            collected.add(expr.definition)
+                        }
+                        for (argument in expr.defCallArguments) {
+                            collect(argument)
+                        }
+                    }
+                }
+                collect(resultExpr)
+                if (collected.isNotEmpty()) return collected
+            }
+        }
+
+        return getFunction(result.function) ?: emptyList()
+    }
+
     fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
         ComputationRunner.getCancellationIndicator().cancel()
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
-                project.service<BinaryFileSaver>().saveAll()
                 if (refresh) {
                     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                 }
@@ -227,13 +333,22 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return tcReferable
         }
 
+        instances.remove(tcReferable)
+        val funcDef = tcReferable.typechecked as? FunctionDefinition
+        if (funcDef != null) {
+            val classDef = (funcDef.resultType as? ClassCallExpression)?.definition
+            if (classDef != null) {
+                instances.remove(classDef.referable, funcDef.referable)
+            }
+        }
+
         val library = extensionDefinitions[tcReferable]
         if (library != null) {
             project.service<TypecheckingTaskQueue>().addTask {
                 val provider = ArendDependencyProviderImpl(ArendTypechecking.create(project), libraryManager.getAvailableModuleScopeProvider(library), libraryManager.definitionRequester, library)
                 try {
                     runReadAction {
-                        library.arendExtension.load(provider)
+                        service<ArendExtensionChangeListener>().notifyIfNeeded(project)
                     }
                 } finally {
                     provider.disable()

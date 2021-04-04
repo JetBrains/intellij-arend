@@ -8,6 +8,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCoClauseImplMixin
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.fullName
 
@@ -19,7 +20,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         val parent = when (val id = element.parent) {
             is ArendDefIdentifier -> id.parent as? TCDefinition
-            is ArendRefIdentifier -> ((id.parent as? ArendLongName)?.parent as? ArendCoClause)?.coClauseDef
+            is ArendRefIdentifier -> ((id.parent as? ArendLongName)?.parent as? ArendCoClauseImplMixin)?.functionReference
             else -> null
         } ?: return null
 

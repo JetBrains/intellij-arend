@@ -7,6 +7,8 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.scope.ClassFieldImplScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
@@ -24,16 +26,24 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     val parentCoClause: ArendCoClause?
         get() = parent as? ArendCoClause
 
-    override fun getNameIdentifier() = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
+    override fun getNameIdentifier() = parentCoClause?.defIdentifier ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
-    override fun getName() = stub?.name ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
+    override fun getName() = stub?.name ?: parentCoClause?.defIdentifier?.id?.text ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()?.referenceName
 
-    override fun getPrec(): ArendPrec? = parentCoClause?.prec
+    private val isDefault: Boolean
+        get() = parentCoClause?.parent is ArendClassStat
+
+    override fun getPrec(): ArendPrec? {
+        val coClause = parentCoClause ?: return null
+        coClause.prec?.let { return it }
+        val classRef = (coClause.parent?.parent as? ClassReferenceHolder)?.classReference ?: return null
+        return (Scope.Utils.resolveName(ClassFieldImplScope(classRef, true), coClause.longName.refIdentifierList.map { it.refName }) as? ReferableAdapter<*>)?.getPrec()
+    }
 
     override fun getAlias(): ArendAlias? = null
 
     override val defIdentifier: ArendDefIdentifier?
-        get() = null
+        get() = parentCoClause?.defIdentifier
 
     override val where: ArendWhere?
         get() = null
@@ -45,7 +55,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun getClassReference(): ClassReferable? = resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getCoClauseElements(): List<Abstract.ClassFieldImpl> = emptyList()
+    override fun getCoClauseElements(): List<ArendCoClause> = coClauseBody?.coClauseList ?: emptyList()
 
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
@@ -63,11 +73,11 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override fun isCowith() = coClauseBody?.cowithKw != null
 
-    override fun getFunctionKind() = FunctionKind.COCLAUSE_FUNC
+    override fun getFunctionKind() = if (isDefault) FunctionKind.CLASS_COCLAUSE else FunctionKind.FUNC_COCLAUSE
 
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
-    override fun getKind() = GlobalReferable.Kind.FUNCTION
+    override fun getKind() = GlobalReferable.Kind.COCLAUSE_FUNCTION
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)
 

@@ -35,32 +35,28 @@
   | suc Nat
   \where {
     \func \infixl 6 + (x y : Nat) : Nat \elim y
-      | zero => x
+      | 0 => x
       | suc y => suc (x + y)
 
     \func \infixl 7 * (x y : Nat) : Nat \elim y
-      | zero => zero
+      | 0 => 0
       | suc y => x * y + x
 
     \func \infixl 6 - (n m : Nat) : Int
       | 0, m => neg m
-      | suc n, 0 => pos (suc n)
+      | n, 0 => pos n
       | suc n, suc m => n - m
-
-    \data \infix 4 <= (n m : Nat) \with
-      | 0, _ => zero<=_
-      | suc n, suc m => suc<=suc (n <= m)
 
     {- | divMod n m returns the pair (q,r) such that n = m * q + r and r < m if 0 < m.
      -   If m == 0, then divMod n m returns (n,n).
      -}
     \func divMod (n m : Nat) : \Sigma Nat Nat
 
-    \func div (n m : Nat) => (divMod n m).1
+    \func \infixl 8 div (n m : Nat) => (divMod n m).1
 
-    \func mod (n m : Nat) => (divMod n m).2
+    \func \infixl 8 mod (n m : Nat) => (divMod n m).2
 
-    \lemma divModProp (n m : Nat) : m * div n m + mod n m = n
+    \lemma divModProp (n m : Nat) : m * n div m + n mod m = n
   }
 
 \data Fin (n : Nat)

@@ -57,7 +57,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (prelude == null) {
             val text = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION).readBytes(), StandardCharsets.UTF_8)
-            prelude = PsiFileFactory.getInstance(project).createFileFromText("Prelude" + FileUtils.EXTENSION, ArendLanguage.INSTANCE, text) as? ArendFile
+            prelude = PsiFileFactory.getInstance(project).createFileFromText(PRELUDE_FILE_NAME, ArendLanguage.INSTANCE, text) as? ArendFile
             prelude?.virtualFile?.isWritable = false
         }
 
@@ -77,5 +77,9 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
         val preludeFile = prelude ?: return
         scope = CachingScope.make(LexicalScope.opened(preludeFile))
         runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, scope) }
+    }
+
+    companion object {
+        const val PRELUDE_FILE_NAME = "Prelude" + FileUtils.EXTENSION
     }
 }

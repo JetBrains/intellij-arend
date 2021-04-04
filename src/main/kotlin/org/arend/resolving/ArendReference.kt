@@ -180,7 +180,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
     }
 
     companion object {
-        fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean): LookupElementBuilder? {
+        fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
             val ref = origElement.underlyingReferable
             return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
@@ -189,7 +189,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
                     val aliasString = if (alias == null) "" else " $alias"
                     val elementName = origElement.refName
-                    val lookupString = elementName + aliasString
+                    val lookupString = lookup ?: elementName + aliasString
                     var builder = LookupElementBuilder.create(ref, lookupString).withIcon(ref.getIcon(0))
                     if (fullName) {
                         builder = builder.withPresentableText(((ref as? PsiLocatedReferable)?.fullName ?: elementName) + aliasString)

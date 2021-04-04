@@ -3,6 +3,7 @@ package org.arend.quickfix.referenceResolve
 import com.intellij.codeInsight.daemon.QuickFixBundle
 import com.intellij.codeInsight.hint.QuestionAction
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -11,6 +12,7 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.popup.list.ListPopupImpl
+import org.arend.psi.listener.ArendPsiChangeService
 import javax.swing.Icon
 
 class ArendAddImportAction(private val project: Project,
@@ -41,7 +43,9 @@ class ArendAddImportAction(private val project: Project,
         if (!currentElement.isValid) return
 
         DumbService.getInstance(project).withAlternativeResolveEnabled {
-            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, Runnable { fixData.execute(if (onTheFly) null else editor) }, currentElement.containingFile) }
+            WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, { fixData.execute(if (onTheFly) null else editor) }, currentElement.containingFile)
+        }
+        project.service<ArendPsiChangeService>().incModificationCount(true)
     }
 
     private fun chooseItemAndImport(){
