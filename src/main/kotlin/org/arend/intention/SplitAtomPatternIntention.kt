@@ -48,20 +48,22 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         this.splitPatternEntries = null
 
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getElementType(element, editor)
-
+            val type = getElementType(element, editor)?.let{ TypeCoerceExpression.unfoldType(it) }
             this.splitPatternEntries = when (type) {
                 is DataCallExpression -> {
-                    val constructors = type.matchedConstructors ?: return false
-                    constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
+                    val canDoPatternMatchingOnIdp = admitsPatternMatchingOnIdp(type, caseClauseParameters)
+                    if (project != null && canDoPatternMatchingOnIdp == PatternMatchingOnIdpResult.IDP) {
+                        singletonList(IdpPatternEntry(project))
+                    } else if (canDoPatternMatchingOnIdp != PatternMatchingOnIdpResult.DO_NOT_ELIMINATE) {
+                        val constructors = type.matchedConstructors ?: return false
+                        constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.name, type.definition) }
+                    } else null
                 }
                 is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
                 is ClassCallExpression -> {
                     val definition = type.definition
                     if (definition.isRecord) singletonList(RecordSplitPatternEntry(type, definition)) else null
                 }
-                is Expression -> if (project != null && admitsPatternMatchingOnIdp(type, caseClauseParameters) == PatternMatchingOnIdpResult.IDP)
-                    singletonList(IdpPatternEntry(project)) else null
                 else -> null
             }
         }
