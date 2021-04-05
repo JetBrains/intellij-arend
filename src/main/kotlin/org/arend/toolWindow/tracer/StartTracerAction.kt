@@ -50,7 +50,7 @@ class StartTracerAction : ArendPopupAction() {
             DesugarVisitor.desugar(definition, tracer.errorReporter)
             val thread = object : Thread() {
                 override fun run() {
-                    definition.accept(DefinitionTypechecker(tracer), null)
+                    definition.accept(DefinitionTypechecker(tracer).apply { updateState(false) }, null)
                     runInEdt {
                         tracer.checkAndRemoveExpressionHighlight()
                     }
