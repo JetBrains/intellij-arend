@@ -31,6 +31,7 @@ class ArendTracerService(project: Project) : SimpleToolWindowService(project) {
         Disposer.register(content, tracer)
         val contentManager = toolWindow.contentManager
         contentManager.addContent(content)
+        contentManager.setSelectedContent(content)
         contentManager.requestFocus(content, true)
         content.preferredFocusableComponent = toolWindowPanel.content
         activate(toolWindow, manager)

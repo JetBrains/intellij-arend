@@ -55,6 +55,7 @@ object ArendIcons {
     val TRACER = AllIcons.Actions.StartDebugger
     val TRACER_RESUME = AllIcons.Actions.Resume
     val TRACER_STEP = AllIcons.Debugger.SmartStepInto
+    val TRACER_STOP = AllIcons.Actions.Suspend
     val EXPRESSION = AllIcons.Nodes.Enum
     val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
 

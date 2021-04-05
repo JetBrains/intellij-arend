@@ -25,6 +25,8 @@ import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
+import org.arend.typechecking.computation.CancellationIndicator
+import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import java.awt.Component
@@ -42,8 +44,8 @@ class TracingTypechecker(
     extension: ArendExtension?,
     private val element: PsiElement,
     private val editor: Editor,
+    private val cancellationIndicator: CancellationIndicator
 ) : CheckTypeVisitor(errorReporter, null, extension), Disposable {
-    lateinit var thread: Thread
     private var isResuming = true
     private val lock = ReentrantLock()
     private var condition = lock.newCondition()
@@ -68,12 +70,15 @@ class TracingTypechecker(
             focusConcrete(expr)
         }
         if (!isResuming) {
+            ComputationRunner.unlock()
             passTree.expandPath(TreePath(node.path))
             lock.withLock {
                 while (!isResuming) {
                     condition.await()
+                    ComputationRunner.checkCanceled()
                 }
             }
+            ComputationRunner.lock(cancellationIndicator)
         }
         val result = super.checkExpr(expr, expectedType)
         passModel.removeNodeFromParent(passRoot.firstChild as MutableTreeNode)
@@ -210,6 +215,15 @@ class TracingTypechecker(
         object : BreakpointAction("Step", ArendIcons.TRACER_STEP) {
             override fun actionPerformed(e: AnActionEvent) = lock.withLock {
                 isResuming = true
+                condition.signal()
+            }
+        },
+        object : BreakpointAction("Stop", ArendIcons.TRACER_STOP) {
+            override fun actionPerformed(e: AnActionEvent) = lock.withLock {
+                isBP = false
+                isResuming = true
+                checkAndRemoveExpressionHighlight()
+                ComputationRunner.getCancellationIndicator().cancel()
                 condition.signal()
             }
         },
