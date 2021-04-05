@@ -179,6 +179,8 @@ inline fun selectedExpr(file: PsiFile, range: TextRange, errorHandling: (String)
     return element.ancestor() ?: errorHandling("selected text is not an arend expression")
 }
 
+fun selectedExpr(file: PsiFile, range: TextRange): ArendExpr? = selectedExpr(file, range) { return null }
+
 fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, editor: Editor, showError : Boolean = true): SubExprResult? =
     try {
         correspondedSubExpr(range, file, project)

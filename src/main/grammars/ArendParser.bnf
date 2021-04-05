@@ -400,6 +400,7 @@ functionBody ::= functionTermBody
     pin(".*") = 1
     recoverWhile = statement_recover
     implements = "org.arend.psi.ext.ArendFunctionalBody"
+    mixin = "org.arend.psi.ext.ArendFunctionBodyImplMixin"
 }
 
 instanceBody ::= functionTermBody
@@ -409,6 +410,7 @@ instanceBody ::= functionTermBody
     pin(".*") = 1
     recoverWhile = statement_recover
     implements = "org.arend.psi.ext.ArendFunctionalBody"
+    mixin = "org.arend.psi.ext.ArendInstanceBodyImplMixin"
 }
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
