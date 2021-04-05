@@ -56,15 +56,7 @@ class TracingTypechecker(
         node.add(DefaultMutableTreeNode(expr.javaClass, false))
         node.add(DefaultMutableTreeNode(expectedType, false))
         passModel.insertNodeInto(node, passRoot, 0)
-        val matches = run {
-            val exprElement = expr.data as? PsiElement ?: return@run false
-            var range: TextRange? = null
-            if (exprElement is ArendArgumentAppExpr) {
-                exprElement.firstChild?.apply { range = textRange }
-            }
-            (range ?: exprElement.textRange) == element.textRange
-        }
-        if (matches || isBP) {
+        if (expr.data == element || isBP) {
             isResuming = false
             isBP = true
             focusConcrete(expr)

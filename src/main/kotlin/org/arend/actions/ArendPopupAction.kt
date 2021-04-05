@@ -3,11 +3,13 @@ package org.arend.actions
 import com.intellij.codeInsight.actions.BaseCodeInsightAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.ui.accessibility.ScreenReader
-import org.arend.ArendLanguage
+import org.arend.psi.ArendFile
+import org.arend.refactoring.collectArendExprs
+import org.arend.refactoring.selectedExpr
 import org.jetbrains.annotations.Nls
 import java.awt.event.KeyEvent
 
@@ -37,7 +39,9 @@ abstract class ArendPopupAction : BaseCodeInsightAction() {
     }
 
     override fun isValidForFile(project: Project, editor: Editor, file: PsiFile): Boolean {
-        val language = PsiUtilCore.getLanguageAtOffset(file, editor.caretModel.offset)
-        return language == ArendLanguage.INSTANCE
+        if (file !is ArendFile) return false
+        val range = EditorUtil.getSelectionInAnyMode(editor)
+        val sExpr = selectedExpr(file, range)
+        return sExpr != null && collectArendExprs(sExpr.parent, range) != null
     }
 }
