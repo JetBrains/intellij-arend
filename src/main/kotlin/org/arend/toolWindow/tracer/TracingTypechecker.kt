@@ -1,4 +1,4 @@
-package org.arend.toolWindow.debugExpr
+package org.arend.toolWindow.tracer
 
 import com.intellij.codeInsight.highlighting.HighlightManager
 import com.intellij.openapi.Disposable
@@ -12,7 +12,6 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.ui.JBSplitter
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.render.LabelBasedRenderer
 import com.intellij.ui.treeStructure.Tree
@@ -38,7 +37,7 @@ import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreePath
 import kotlin.concurrent.withLock
 
-class CheckTypeDebugger(
+class TracingTypechecker(
     errorReporter: ErrorReporter,
     extension: ArendExtension?,
     private val element: PsiElement,
@@ -88,7 +87,7 @@ class CheckTypeDebugger(
     private val passModel = passTree.model as DefaultTreeModel
     private val editorFactory = EditorFactory.getInstance()
     private val consoleEditor = run {
-        val psi = ArendPsiFactory(project, ArendDebugService.TITLE).injected()
+        val psi = ArendPsiFactory(project, ArendTracerService.TITLE).injected()
         // editorFactory.createEditor()
         Unit
     }
@@ -155,7 +154,7 @@ class CheckTypeDebugger(
             val range = rangeOfConcrete(concrete)
             highlightManager.addRangeHighlight(editor,
                 range.startOffset, range.endOffset,
-                ArendDebugService.DEBUGGED_EXPRESSION,
+                ArendTracerService.TRACED_EXPRESSION,
                 false, false, list)
             lastRangeHighlighter = list[0]
         }
@@ -201,14 +200,14 @@ class CheckTypeDebugger(
     }
 
     fun createActionGroup() = DefaultActionGroup(
-        object : BreakpointAction("Resume", ArendIcons.DEBUGGER_RESUME) {
+        object : BreakpointAction("Resume", ArendIcons.TRACER_RESUME) {
             override fun actionPerformed(e: AnActionEvent) = lock.withLock {
                 isBP = false
                 isResuming = true
                 condition.signal()
             }
         },
-        object : BreakpointAction("Step", ArendIcons.DEBUGGER_STEP) {
+        object : BreakpointAction("Step", ArendIcons.TRACER_STEP) {
             override fun actionPerformed(e: AnActionEvent) = lock.withLock {
                 isResuming = true
                 condition.signal()

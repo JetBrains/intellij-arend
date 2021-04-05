@@ -1,4 +1,4 @@
-package org.arend.toolWindow.debugExpr
+package org.arend.toolWindow.tracer
 
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
@@ -26,9 +26,9 @@ import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.visitor.DefinitionTypechecker
 import org.arend.typechecking.visitor.DesugarVisitor
 
-class StartDebuggerAction : ArendPopupAction() {
+class StartTracerAction : ArendPopupAction() {
     init {
-        templatePresentation.icon = ArendIcons.DEBUGGER
+        templatePresentation.icon = ArendIcons.TRACER
     }
 
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
@@ -38,25 +38,25 @@ class StartDebuggerAction : ArendPopupAction() {
             val (head, _) = collectArendExprs(expr.parent, range) ?: return displayErrorHint(editor, "Cannot find a suitable expression.")
             val def = expr.ancestor<TCDefinition>()?.tcReferable ?: return displayErrorHint(editor, "Selected expr must be inside of an expression.")
             val service = project.service<TypeCheckingService>()
-            val debugger = project.service<ArendDebugService>().createDebugger(def.representableName, CheckTypeDebugger(
+            val tracer = project.service<ArendTracerService>().createTracer(def.representableName, TracingTypechecker(
                 project.service<ErrorService>(),
                 LibraryArendExtensionProvider(service.libraryManager).getArendExtension(def),
                 head.linearDescendants.last { it is ArendSourceNode },
                 editor,
             ))
-            debugger.instancePool = GlobalInstancePool(PsiInstanceProviderSet()[def], debugger)
+            tracer.instancePool = GlobalInstancePool(PsiInstanceProviderSet()[def], tracer)
             val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true).getConcrete(def) as? Concrete.Definition
                 ?: return displayErrorHint(editor, "Cannot find concrete definition corresponding to ${def.representableName}.")
-            DesugarVisitor.desugar(definition, debugger.errorReporter)
+            DesugarVisitor.desugar(definition, tracer.errorReporter)
             val thread = object : Thread() {
                 override fun run() {
-                    definition.accept(DefinitionTypechecker(debugger), null)
+                    definition.accept(DefinitionTypechecker(tracer), null)
                     runInEdt {
-                        debugger.checkAndRemoveExpressionHighlight()
+                        tracer.checkAndRemoveExpressionHighlight()
                     }
                 }
             }
-            debugger.thread = thread
+            tracer.thread = thread
             thread.start()
         }
     }

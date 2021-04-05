@@ -296,7 +296,7 @@
 
         <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
 
-        <projectService serviceImplementation="org.arend.toolWindow.debugExpr.ArendDebugService"/>
+        <projectService serviceImplementation="org.arend.toolWindow.tracer.ArendTracerService"/>
 
         <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
 
@@ -381,10 +381,10 @@
             <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
-        <action id="Arend.ShowExpr.DebugTC"
-                class="org.arend.toolWindow.debugExpr.StartDebuggerAction"
-                text="Debug Type Checking"
-                description="Debug the typechecking of the selected expression">
+        <action id="Arend.ShowExpr.Tracer"
+                class="org.arend.toolWindow.tracer.StartTracerAction"
+                text="Trace to Cursor"
+                description="Run the tracing typechecker to the selected expression">
             <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 

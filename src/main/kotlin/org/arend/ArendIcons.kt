@@ -50,11 +50,11 @@ object ArendIcons {
     val META_DEFINITION = AllIcons.Nodes.Method
     val COCLAUSE_DEFINITION = FUNCTION_DEFINITION
 
-    // Debugger
+    // Tracer
 
-    val DEBUGGER = AllIcons.Actions.StartDebugger
-    val DEBUGGER_RESUME = AllIcons.Actions.Resume
-    val DEBUGGER_STEP = AllIcons.Debugger.SmartStepInto
+    val TRACER = AllIcons.Actions.StartDebugger
+    val TRACER_RESUME = AllIcons.Actions.Resume
+    val TRACER_STEP = AllIcons.Debugger.SmartStepInto
     val EXPRESSION = AllIcons.Nodes.Enum
     val LAMBDA_EXPRESSION = AllIcons.Nodes.Lambda
 
