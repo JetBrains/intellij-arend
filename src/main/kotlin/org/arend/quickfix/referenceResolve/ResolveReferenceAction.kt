@@ -6,6 +6,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.*
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
@@ -39,7 +40,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val renameAction = when {
                 !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
                 target is ArendFile -> RenameReferenceAction(element, target.moduleLocation?.modulePath?.toList() ?: return null)
-                else -> RenameReferenceAction(element, resultName)
+                else -> RenameReferenceAction(element, resultName, target as? ArendGroup)
             }
 
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)

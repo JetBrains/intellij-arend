@@ -21,6 +21,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.FunctionDefinition
 import org.arend.ext.module.LongName
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
@@ -87,37 +88,36 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                 val mySourceContainer = enclosingDefinition?.parentGroup
                 if (mySourceContainer != null) {
                     val psiFactory = ArendPsiFactory(project)
-                    val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
-                        ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
-                        ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
-                            getAnchorInAssociatedModule(psiFactory, mySourceContainer)?.let{RelativePosition(PositionKind.AFTER_ANCHOR, it)}
+                    var psiModified = false
 
                     for (element in chosenElement) {
                         val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
                         val elementReferable = (element.referable as? DataLocatedReferable)?.data?.element ?: continue
-                        val targetContainer = (elementReferable as ArendGroup).parentGroup
                         val targetLocation = LocationData(elementReferable)
                         val importData = calculateReferenceName(targetLocation, sourceContainerFile, longName)
 
-                        if (importData != null && anchor != null) {
+                        if (importData != null) {
                             val openedName: List<String> = importData.second
                             importData.first?.execute()
-                            if (openedName.size > 1 && targetContainer is PsiElement)
-                            addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor)
+                            if (openedName.size > 1 && elementReferable is ArendGroup)
+                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable)
                         }
                     }
 
-                    val tcService = project.service<TypeCheckingService>()
-                    val file = mySourceContainer.containingFile as? ArendFile ?: return@runWriteCommandAction
-                    tcService.updateDefinition(enclosingDefinition, file, true)
-                    for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
-                        if (error is InstanceInferenceError) {
-                            element.ancestor<ArendDefinition>()?.let {
-                                tcService.updateDefinition(it, file, true)
+                    if (psiModified) {
+                        val tcService = project.service<TypeCheckingService>()
+                        val file = mySourceContainer.containingFile as? ArendFile ?: return@runWriteCommandAction
+                        tcService.updateDefinition(enclosingDefinition, file, true)
+                        for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
+                            if (error is InstanceInferenceError) {
+                                element.ancestor<ArendDefinition>()?.let {
+                                    tcService.updateDefinition(it, file, true)
+                                }
                             }
                         }
+                        project.service<ArendPsiChangeService>().incModificationCount()
                     }
-                    project.service<ArendPsiChangeService>().incModificationCount()
+
                 }
             }, longName.containingFile)
         }

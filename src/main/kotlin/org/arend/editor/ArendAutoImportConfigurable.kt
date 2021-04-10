@@ -10,24 +10,31 @@ import javax.swing.JComponent
 
 class ArendAutoImportConfigurable : AutoImportOptionsProvider {
     private val arendSettings = service<ArendSettings>()
-    private var checkBox: JBCheckBox? = null
+    private var myOnTheFlyBox: JBCheckBox? = null
+    private var myOpenCmdBox: JBCheckBox? = null
 
-    override fun isModified() = checkBox?.isSelected != arendSettings.autoImportOnTheFly
+    override fun isModified() = myOnTheFlyBox?.isSelected != arendSettings.autoImportOnTheFly ||
+            myOpenCmdBox?.isSelected != arendSettings.autoImportWriteOpenCommands
 
     override fun apply() {
-        arendSettings.autoImportOnTheFly = checkBox?.isSelected ?: return
+        arendSettings.autoImportOnTheFly = myOnTheFlyBox?.isSelected ?: return
+        arendSettings.autoImportWriteOpenCommands = myOpenCmdBox?.isSelected ?: return
     }
 
     override fun reset() {
-        checkBox?.isSelected = arendSettings.autoImportOnTheFly
+        myOnTheFlyBox?.isSelected = arendSettings.autoImportOnTheFly
+        myOpenCmdBox?.isSelected = arendSettings.autoImportWriteOpenCommands
     }
 
     override fun createComponent(): JComponent? {
-        val box = JBCheckBox("Add unambiguous imports on the fly")
-        checkBox = box
+        val onTheFlyBox = JBCheckBox("Add unambiguous imports on the fly")
+        val openCmdBox = JBCheckBox("Prefer \\open commands to long names")
+        myOnTheFlyBox = onTheFlyBox
+        myOpenCmdBox = openCmdBox
 
         val panel = panel {
-            row { box() }
+            row { onTheFlyBox() }
+            row { openCmdBox() }
         }
         panel.border = IdeBorderFactory.createTitledBorder("Arend")
         return panel

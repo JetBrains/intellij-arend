@@ -26,6 +26,7 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
 
     var matchingCommentStyle = MatchingCommentStyle.REPLACE_BRACE
     var autoImportOnTheFly = false
+    var autoImportWriteOpenCommands = false
 
     // Background typechecking
     var typecheckingMode = TypecheckingMode.SMART

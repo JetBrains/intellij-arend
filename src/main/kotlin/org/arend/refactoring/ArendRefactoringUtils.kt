@@ -33,7 +33,9 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.settings.ArendSettings
 import org.arend.term.Fixity
+import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
@@ -137,14 +139,17 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
     }
 }
 
-class RenameReferenceAction constructor(private val element: ArendReferenceElement, private val id: List<String>) {
-    private val needsModification = element.longName != id
+class RenameReferenceAction constructor(private val element: ArendReferenceElement,
+                                        private val newName: List<String>,
+                                        private val target: ArendGroup? = null) {
+    private val needsModification = element.longName != newName
 
-    override fun toString(): String = "Rename " + element.text + " to " + LongName(id).toString()
+    override fun toString(): String = "Rename " + element.text + " to " + LongName(newName).toString()
 
     fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
+        val id = if (newName.size > 1 && target != null && service<ArendSettings>().autoImportWriteOpenCommands && doAddIdToOpen(factory, newName, element, target)) singletonList(newName.last()) else newName
 
         when (element) {
             is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
@@ -246,6 +251,24 @@ fun addStatCmd(factory: ArendPsiFactory,
         }
     }
     return insertedStatement
+}
+
+fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup): Boolean {
+    val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
+    val mySourceContainer = enclosingDefinition?.parentGroup
+    if (mySourceContainer != null) {
+        val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
+            ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
+            ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
+                getAnchorInAssociatedModule(psiFactory, mySourceContainer)?.let{RelativePosition(PositionKind.AFTER_ANCHOR, it)}
+
+        if (anchor != null) {
+            val targetContainer = elementReferable.parentGroup
+            if (openedName.size > 1 && targetContainer is PsiElement)
+                return addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+        }
+    }
+    return false
 }
 
 fun addIdToUsing(groupMember: PsiElement?,
