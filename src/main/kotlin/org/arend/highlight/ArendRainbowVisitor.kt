@@ -3,7 +3,7 @@ package org.arend.highlight
 import com.intellij.codeInsight.daemon.RainbowVisitor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.collectDescendantsOfType
+import com.intellij.psi.util.descendants
 import org.arend.psi.*
 import org.arend.resolving.ArendPatternDefReferenceImpl
 
@@ -21,9 +21,9 @@ class ArendRainbowVisitor : RainbowVisitor() {
         }
 
         val bindingToUniqueName: Map<ArendDefIdentifier, String> = run {
-            val allBindings = function.collectDescendantsOfType<ArendDefIdentifier>(
+            val allBindings = function.descendants(
                 canGoInside = { it !is ArendWhere }
-            ).asSequence()
+            ).filterIsInstance<ArendDefIdentifier>().asSequence()
                 .filter { it.name != null && it != defIdentifier }
                 .filter {
                     val parent = it.parent ?: return@filter true
@@ -36,18 +36,16 @@ class ArendRainbowVisitor : RainbowVisitor() {
                     } else true
                 }.toList()
             val byName = allBindings.groupBy { it.name }
-            allBindings
-                .map { it to "${it.name}#${byName[it.name]?.indexOf(it)}" }
-                .toMap()
+            allBindings.associateWith { "${it.name}#${byName[it.name]?.indexOf(it)}" }
         }
 
         for ((binding, name) in bindingToUniqueName) {
             addInfo(binding.referenceNameElement, name)
         }
 
-        for (path in function.collectDescendantsOfType<ArendRefIdentifier>(
+        for (path in function.descendants(
             canGoInside = { it !is ArendWhere }
-        )) {
+        ).filterIsInstance<ArendRefIdentifier>()) {
             val reference = path.reference ?: continue
             val target = reference.resolve() as? ArendDefIdentifier ?: continue
             val colorTag = bindingToUniqueName[target] ?: return

@@ -15,8 +15,6 @@ import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.util.getRelativeFile
 import org.arend.util.getRelativePath
 import org.arend.typechecking.TypeCheckingService
@@ -105,7 +103,7 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun containsModule(modulePath: ModulePath) =
-        modules?.any { it == modulePath } ?: findArendFile(modulePath, withAdditional = false, withTests = false) != null
+        modules?.any { it == modulePath } ?: (findArendFile(modulePath, withAdditional = false, withTests = false) != null)
 
     val additionalModulesSet: Set<ModulePath>
         get() = additionalModules.keys
