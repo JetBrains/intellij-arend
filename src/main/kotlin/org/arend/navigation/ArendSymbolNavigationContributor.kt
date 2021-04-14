@@ -10,7 +10,7 @@ class ArendSymbolNavigationContributor : ArendNavigationContributorBase<PsiRefer
     PsiReferable::class.java
 ) {
     override fun getPreludeDefinitions(): List<Definition> =
-        mutableListOf<Definition>().apply {
+        if (Prelude.isInitialized()) mutableListOf<Definition>().apply {
             Prelude.forEach { def -> add(def) }
-        }
+        } else emptyList()
 }
