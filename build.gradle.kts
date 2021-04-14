@@ -11,9 +11,9 @@ version = "1.6.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.4.30"
-    id("org.jetbrains.intellij") version "0.6.5"
-    id("org.jetbrains.grammarkit") version "2020.3.2"
+    kotlin("jvm") version "1.4.32"
+    id("org.jetbrains.intellij") version "0.7.2"
+    id("org.jetbrains.grammarkit") version "2021.1.1"
 }
 
 repositories {
@@ -55,11 +55,11 @@ idea {
 }
 
 intellij {
-    version = "2020.3"
+    version = "2021.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = true
-    setPlugins("yaml", "java", "IdeaVIM:0.65")
+    setPlugins("yaml", "java", "IdeaVIM:0.66")
 }
 
 tasks.named<JavaExec>("runIde") {

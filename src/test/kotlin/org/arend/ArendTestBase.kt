@@ -16,6 +16,7 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ThrowableRunnable
 import com.maddyhome.idea.vim.VimPlugin
+import junit.framework.TestCase
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.ModulePath
@@ -96,6 +97,8 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         action()
 
         val afterDir = getVirtualFileByName("$testDataPath/$after")
+        TestCase.assertNotNull(afterDir)
+        afterDir ?: return
         PlatformTestUtil.assertDirectoriesEqual(afterDir, beforeDir)
     }
 
