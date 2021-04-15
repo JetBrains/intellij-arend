@@ -4,6 +4,7 @@ import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -119,13 +120,16 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             activeEditor = arendEditor
             splitter.secondComponent = arendEditor.component ?: emptyPanel
         } else {
-            val activeError = activeEditor?.treeElement?.sampleError
+            val editor = activeEditor
+            val activeError = editor?.treeElement?.sampleError
             if (activeError != null && !errorEditors.containsKey(activeError.error)) {
                 val def = activeError.definition
                 if (def == null || !tree.containsNode(def)) {
-                    activeEditor?.release()
                     activeEditor = null
                     splitter.secondComponent = emptyPanel
+                    invokeLater { // fixes "Editor is already disposed" exception
+                        editor.release()
+                    }
                 }
             }
         }
