@@ -6,7 +6,6 @@ import com.intellij.psi.PsiElement
 import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
-import org.arend.core.definition.Constructor
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
@@ -187,7 +186,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class ConstructorSplitPatternEntry(val constructor: Constructor,
+        class ConstructorSplitPatternEntry(val constructor: Definition,
                                            parameterName: String?,
                                            recursiveTypeDefinition: Definition?) : DependentLinkSplitPatternEntry(parameterName, recursiveTypeDefinition) {
             override fun getDependentLink(): DependentLink = constructor.parameters
