@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
 import org.arend.ext.core.body.CorePattern
@@ -250,7 +251,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val previewResults = ArrayList<PatternKind>()
 
                     val patternIterator = pattern.subPatterns.iterator()
-                    var constructorArgument: CoreParameter = pattern.parameters
+                    var constructorArgument: CoreParameter = pattern.parameters ?: EmptyDependentLink.getInstance()
 
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
@@ -327,7 +328,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val argumentPatterns = ArrayList<String>()
                         run {
                             val patternIterator = pattern.subPatterns.iterator()
-                            var constructorArgument: CoreParameter = pattern.parameters
+                            var constructorArgument: CoreParameter = pattern.parameters ?: EmptyDependentLink.getInstance()
 
                             while (patternIterator.hasNext()) {
                                 val argumentPattern = patternIterator.next()
