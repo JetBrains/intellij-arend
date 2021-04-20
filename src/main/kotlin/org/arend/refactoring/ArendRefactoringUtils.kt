@@ -58,7 +58,7 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
             anchor = nsId
             needsCommaBefore = true
         }
-        if (id == idRefName && newName == idDefName) return null
+        if (id == idRefName && newName == idDefName) return nsId
     }
 
     val nsIdStr = if (newName == null) id else "$id \\as $newName"
@@ -141,15 +141,16 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
 
 class RenameReferenceAction constructor(private val element: ArendReferenceElement,
                                         private val newName: List<String>,
-                                        private val target: ArendGroup? = null) {
-    private val needsModification = element.longName != newName
-
+                                        private val target: ArendGroup? = null,
+                                        private val useOpen : Boolean = service<ArendSettings>().autoImportWriteOpenCommands) {
     override fun toString(): String = "Rename " + element.text + " to " + LongName(newName).toString()
 
     fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
-        val id = if (newName.size > 1 && target != null && service<ArendSettings>().autoImportWriteOpenCommands && doAddIdToOpen(factory, newName, element, target)) singletonList(newName.last()) else newName
+        val id = if (newName.size > 1 && target != null && useOpen &&
+            doAddIdToOpen(factory, newName, element, target)) singletonList(newName.last()) else newName
+        val needsModification = element.longName != id
 
         when (element) {
             is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
@@ -173,7 +174,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
                 val longName = factory.createLongName(longNameStr)
                 when (parent) {
                     is ArendLongName -> if (needsModification) {
-                        parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
+                        parent.addRangeAfter(longName.firstChild, longName.lastChild, element)
                         parent.deleteChildRangeWithNotification(parent.firstChild, element)
                     }
                     is ArendPattern -> if (needsModification) element.replaceWithNotification(longName)
@@ -258,7 +259,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
     val mySourceContainer = enclosingDefinition?.parentGroup
     val scope = enclosingDefinition?.scope
     val shortName = openedName.last()
-    if ((scope != null && scope.resolveName(shortName) == null || !softMode) && mySourceContainer != null) {
+    if ((scope != null && scope.resolveName(shortName).let{ it == null || it == elementReferable } || !softMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
             ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
             ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
@@ -279,9 +280,8 @@ fun addIdToUsing(groupMember: PsiElement?,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
                  relativePosition: RelativePosition): List<ArendNsId> {
-    groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
-        val statCmd = it.statCmd
-        if (statCmd != null) {
+    (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
+        if (statCmd is ArendStatCmd) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
