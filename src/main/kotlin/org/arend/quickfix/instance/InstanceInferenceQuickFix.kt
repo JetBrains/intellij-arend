@@ -100,7 +100,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             val openedName: List<String> = importData.second
                             importData.first?.execute()
                             if (openedName.size > 1 && elementReferable is ArendGroup)
-                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable)
+                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable, softMode = false)
                         }
                     }
 

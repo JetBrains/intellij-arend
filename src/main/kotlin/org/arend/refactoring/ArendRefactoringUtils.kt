@@ -253,10 +253,12 @@ fun addStatCmd(factory: ArendPsiFactory,
     return insertedStatement
 }
 
-fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup): Boolean {
+fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup, softMode: Boolean = true): Boolean {
     val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
     val mySourceContainer = enclosingDefinition?.parentGroup
-    if (mySourceContainer != null) {
+    val scope = enclosingDefinition?.scope
+    val shortName = openedName.last()
+    if ((scope != null && scope.resolveName(shortName) == null || !softMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
             ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
             ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else

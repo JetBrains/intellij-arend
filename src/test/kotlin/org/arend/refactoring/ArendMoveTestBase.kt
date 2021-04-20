@@ -1,5 +1,6 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.components.service
 import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
 import org.arend.psi.ancestor
@@ -10,6 +11,7 @@ import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.determineClas
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.getLocateErrorMessage
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.simpleLocate
 import org.arend.refactoring.move.ArendMoveRefactoringProcessor
+import org.arend.settings.ArendSettings
 import org.intellij.lang.annotations.Language
 import java.lang.IllegalArgumentException
 
@@ -18,12 +20,19 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                             @Language("Arend") resultingContent: String?, //Null indicates that an error is expected as a correct test result
                             targetFile: String,
                             targetName: String,
-                            targetIsDynamic: Boolean = false) {
-        val fileTree = fileTreeFromText(contents)
-        fileTree.createAndOpenFileWithCaretMarker()
-        val sourceElement = myFixture.elementAtCaret.ancestor<ArendGroup>() ?: throw AssertionError("Cannot find source anchor")
+                            targetIsDynamic: Boolean = false,
+                            useOpenCommands: Boolean = false) {
+        val arendSettings = service<ArendSettings>()
+        arendSettings.autoImportWriteOpenCommands = useOpenCommands
+        try {
+            val fileTree = fileTreeFromText(contents)
+            fileTree.createAndOpenFileWithCaretMarker()
+            val sourceElement = myFixture.elementAtCaret.ancestor<ArendGroup>() ?: throw AssertionError("Cannot find source anchor")
 
-        doPerformMoveRefactoringTest(resultingContent, targetFile, targetName, targetIsDynamic, listOf(sourceElement))
+            doPerformMoveRefactoringTest(resultingContent, targetFile, targetName, targetIsDynamic, listOf(sourceElement))
+        } finally {
+            arendSettings.autoImportWriteOpenCommands = false
+        }
     }
 
     fun testMoveRefactoring(@Language("Arend") contents: String,
