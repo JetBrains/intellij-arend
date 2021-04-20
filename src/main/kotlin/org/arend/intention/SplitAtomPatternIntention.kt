@@ -61,7 +61,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
                 is ClassCallExpression -> {
                     val definition = type.definition
-                    if (definition.isRecord) singletonList(RecordSplitPatternEntry(type, definition)) else null
+                    if (definition == Prelude.ARRAY) {
+                        val isEmpty = ConstructorExpressionPattern.isArrayEmpty(type)
+                        val result = ArrayList<SplitPatternEntry>()
+                        for (p in arrayOf(Pair(true, Prelude.EMPTY_ARRAY), Pair(false, Prelude.ARRAY_CONS)))
+                            if (isEmpty == null || isEmpty == p.first) result.add(ConstructorSplitPatternEntry(p.second, defIdentifier?.name, type.definition))
+                        result
+                    } else if (definition.isRecord)
+                        singletonList(RecordSplitPatternEntry(type, definition))
+                    else null
                 }
                 else -> null
             }

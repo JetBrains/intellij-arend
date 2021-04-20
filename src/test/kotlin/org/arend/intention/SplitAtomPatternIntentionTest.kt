@@ -455,6 +455,31 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | con2 => 0 
     """)
 
+    fun test_arrays() = typedQuickFixTest("Split", """
+       \func foo (a : Array) : Nat
+         | a{-caret-} => {?} 
+    """, """
+       \func foo (a : Array) : Nat
+         | Array.empty => {?}
+         | Array.cons a a1 => {?} 
+    """)
+
+    fun test_arrays2() = typedQuickFixTest("Split", """
+       \func foo {n : Nat} (x : Array Nat (suc n)) : Nat
+         | a{-caret-} => {?} 
+    """, """
+       \func foo {n : Nat} (x : Array Nat (suc n)) : Nat
+         | Array.cons a a1 => {?} 
+    """)
+
+    fun test_arrays3() = typedQuickFixTest("Split", """
+       \func foo (x : Array Nat 0) : Nat
+         | a{-caret-} => {?} 
+    """, """
+       \func foo (x : Array Nat 0) : Nat
+         | Array.empty => {?}
+    """)
+
 
 
 }
