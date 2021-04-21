@@ -45,6 +45,7 @@ import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
+import kotlin.math.max
 
 private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
     val nsIds = using.nsIdList
@@ -170,16 +171,21 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
             }
             else -> {
                 val longNameStr = LongName(id).toString()
-                val offset = element.textOffset
+                val longNameStartOffset = element.parent.textOffset
+                val relativePosition = max(0, (editor?.caretModel?.offset ?: 0) - longNameStartOffset)
+                val offset = max(0, relativePosition + LongName(id).toString().length - LongName(element.longName).toString().length)
+
                 val longName = factory.createLongName(longNameStr)
-                when (parent) {
-                    is ArendLongName -> if (needsModification) {
-                        parent.addRangeAfter(longName.firstChild, longName.lastChild, element)
-                        parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                if (needsModification) {
+                    when (parent) {
+                        is ArendLongName -> {
+                            parent.addRangeAfter(longName.firstChild, longName.lastChild, element)
+                            parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                        }
+                        is ArendPattern -> element.replaceWithNotification(longName)
                     }
-                    is ArendPattern -> if (needsModification) element.replaceWithNotification(longName)
+                    editor?.caretModel?.moveToOffset(longNameStartOffset + offset)
                 }
-                if (needsModification) editor?.caretModel?.moveToOffset(offset + longNameStr.length)
             }
         }
     }
@@ -267,8 +273,16 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
 
         if (anchor != null) {
             val targetContainer = elementReferable.parentGroup
-            if (openedName.size > 1 && targetContainer is PsiElement)
-                return addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+            if (openedName.size > 1 && targetContainer != null) {
+                val containingFile = positionInFile.containingFile as? ArendFile
+                val openPrefix = (if (containingFile != null) {
+                    val data = calculateReferenceName(LocationData(targetContainer), containingFile, positionInFile)
+                    data?.first?.execute()
+                    if (data != null) LongName(data.second).toString() else null
+                } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
+                return addIdToUsing(enclosingDefinition.parent, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+            }
+
         }
     }
     return false
