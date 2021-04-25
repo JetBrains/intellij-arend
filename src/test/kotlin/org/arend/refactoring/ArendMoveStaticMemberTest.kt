@@ -1,5 +1,8 @@
 package org.arend.refactoring
 
+import com.intellij.openapi.components.service
+import org.arend.settings.ArendSettings
+
 class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =
@@ -1503,4 +1506,34 @@ $testMOR8Header
                
                \open Foo (foo) 
             """, "Main", "Foo")
+
+    fun testOpenMode() = testMoveRefactoring("""
+           \module Foo \where {
+             \func foo => 101
+           }
+
+           \module Zoo \where {
+             \open Foo
+
+             \func bar{-caret-} => foo
+           }
+
+           \module Bar \where {
+             \func foo => 102
+           }
+        """, """
+           \module Foo \where {
+             \func foo => 101
+           }
+
+           \module Zoo \where {
+             \open Foo
+           }
+
+           \module Bar \where {
+             \func foo => 102
+             
+             \func bar => Foo.foo
+           } 
+        """, "Main", "Bar", useOpenCommands = true)
 }

@@ -291,18 +291,20 @@ fun PsiElement.deleteWithNotification() {
 }
 
 fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChild: PsiElement) {
-    notifyRange(firstChild, lastChild, this)
     this.deleteChildRange(firstChild, lastChild)
+    notify(this, null, null, parent, true)
 }
 
 fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
-    notifyRange(firstElement, lastElement, this)
-    return this.addRangeAfter(firstElement, lastElement, anchor)
+    val result = this.addRangeAfter(firstElement, lastElement, anchor)
+    notify(this, null, null, parent, true)
+    return result
 }
 
 fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
-    notifyRange(firstElement, lastElement, this)
-    return this.addRangeBefore(firstElement, lastElement, anchor)
+    val result = this.addRangeBefore(firstElement, lastElement, anchor)
+    notify(this, null, null, parent, true)
+    return result
 }
 
 fun getArendNameText(element: PsiElement?): String? = when (element) {

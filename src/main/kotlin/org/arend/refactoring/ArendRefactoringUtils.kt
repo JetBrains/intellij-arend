@@ -45,6 +45,7 @@ import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
+import kotlin.math.max
 
 private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
     val nsIds = using.nsIdList
@@ -58,7 +59,7 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
             anchor = nsId
             needsCommaBefore = true
         }
-        if (id == idRefName && newName == idDefName) return null
+        if (id == idRefName && newName == idDefName) return nsId
     }
 
     val nsIdStr = if (newName == null) id else "$id \\as $newName"
@@ -141,15 +142,16 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
 
 class RenameReferenceAction constructor(private val element: ArendReferenceElement,
                                         private val newName: List<String>,
-                                        private val target: ArendGroup? = null) {
-    private val needsModification = element.longName != newName
-
+                                        private val target: ArendGroup? = null,
+                                        private val useOpen : Boolean = service<ArendSettings>().autoImportWriteOpenCommands) {
     override fun toString(): String = "Rename " + element.text + " to " + LongName(newName).toString()
 
     fun execute(editor: Editor?) {
         val parent = element.parent
         val factory = ArendPsiFactory(element.project)
-        val id = if (newName.size > 1 && target != null && service<ArendSettings>().autoImportWriteOpenCommands && doAddIdToOpen(factory, newName, element, target)) singletonList(newName.last()) else newName
+        val id = if (newName.size > 1 && target != null && useOpen &&
+            doAddIdToOpen(factory, newName, element, target)) singletonList(newName.last()) else newName
+        val needsModification = element.longName != id
 
         when (element) {
             is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
@@ -169,16 +171,21 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
             }
             else -> {
                 val longNameStr = LongName(id).toString()
-                val offset = element.textOffset
+                val longNameStartOffset = element.parent.textOffset
+                val relativePosition = max(0, (editor?.caretModel?.offset ?: 0) - longNameStartOffset)
+                val offset = max(0, relativePosition + LongName(id).toString().length - LongName(element.longName).toString().length)
+
                 val longName = factory.createLongName(longNameStr)
-                when (parent) {
-                    is ArendLongName -> if (needsModification) {
-                        parent.addRangeAfterWithNotification(longName.firstChild, longName.lastChild, element)
-                        parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                if (needsModification) {
+                    when (parent) {
+                        is ArendLongName -> {
+                            parent.addRangeAfter(longName.firstChild, longName.lastChild, element)
+                            parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                        }
+                        is ArendPattern -> element.replaceWithNotification(longName)
                     }
-                    is ArendPattern -> if (needsModification) element.replaceWithNotification(longName)
+                    editor?.caretModel?.moveToOffset(longNameStartOffset + offset)
                 }
-                if (needsModification) editor?.caretModel?.moveToOffset(offset + longNameStr.length)
             }
         }
     }
@@ -253,10 +260,12 @@ fun addStatCmd(factory: ArendPsiFactory,
     return insertedStatement
 }
 
-fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup): Boolean {
+fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup, softMode: Boolean = true): Boolean {
     val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
     val mySourceContainer = enclosingDefinition?.parentGroup
-    if (mySourceContainer != null) {
+    val scope = enclosingDefinition?.scope
+    val shortName = openedName.last()
+    if ((scope != null && scope.resolveName(shortName).let{ it == null || it == elementReferable } || !softMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
             ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
             ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
@@ -264,8 +273,16 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
 
         if (anchor != null) {
             val targetContainer = elementReferable.parentGroup
-            if (openedName.size > 1 && targetContainer is PsiElement)
-                return addIdToUsing(enclosingDefinition.parent, targetContainer, LongName(openedName.subList(0, openedName.size - 1)).toString(), singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+            if (openedName.size > 1 && targetContainer != null) {
+                val containingFile = positionInFile.containingFile as? ArendFile
+                val openPrefix = (if (containingFile != null) {
+                    val data = calculateReferenceName(LocationData(targetContainer), containingFile, positionInFile)
+                    data?.first?.execute()
+                    if (data != null) LongName(data.second).toString() else null
+                } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
+                return addIdToUsing(enclosingDefinition.parent, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+            }
+
         }
     }
     return false
@@ -277,9 +294,8 @@ fun addIdToUsing(groupMember: PsiElement?,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
                  relativePosition: RelativePosition): List<ArendNsId> {
-    groupMember?.parent?.children?.filterIsInstance<ArendStatement>()?.map {
-        val statCmd = it.statCmd
-        if (statCmd != null) {
+    (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
+        if (statCmd is ArendStatCmd) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
@@ -427,6 +443,26 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     }
 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+}
+
+fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this")): String {
+    val anchor = definition.nameIdentifier
+    val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
+
+    val thisTele: PsiElement = when (definition) {
+        is ArendFunctionalDefinition -> {
+            psiFactory.createNameTele(thisVarName, typeExpr, false)
+        }
+        is ArendDefData -> {
+            psiFactory.createTypeTele(thisVarName, typeExpr, false)
+        }
+        else -> throw IllegalStateException()
+    }
+
+    definition.addAfterWithNotification(thisTele, anchor)
+    definition.addAfter(psiFactory.createWhitespace(" "), anchor)
+
+    return thisVarName
 }
 
 // Support of pattern-matching on idp in refactorings

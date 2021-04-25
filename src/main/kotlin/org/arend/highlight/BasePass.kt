@@ -38,6 +38,7 @@ import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 import org.arend.quickfix.implementCoClause.makeFieldList
+import org.arend.quickfix.instance.AddInstanceArgumentQuickFix
 import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
@@ -273,7 +274,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is RedundantCoclauseError -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
-                is InstanceInferenceError -> if (cause is ArendLongName) annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
+                is InstanceInferenceError -> if (cause is ArendLongName) {
+                    annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    annotation.registerFix(AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
+                }
 
                 is IgnoredArgumentError -> {
                     when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
