@@ -445,6 +445,26 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
 }
 
+fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this")): String {
+    val anchor = definition.nameIdentifier
+    val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
+
+    val thisTele: PsiElement = when (definition) {
+        is ArendFunctionalDefinition -> {
+            psiFactory.createNameTele(thisVarName, typeExpr, false)
+        }
+        is ArendDefData -> {
+            psiFactory.createTypeTele(thisVarName, typeExpr, false)
+        }
+        else -> throw IllegalStateException()
+    }
+
+    definition.addAfterWithNotification(thisTele, anchor)
+    definition.addAfter(psiFactory.createWhitespace(" "), anchor)
+
+    return thisVarName
+}
+
 // Support of pattern-matching on idp in refactorings
 enum class PatternMatchingOnIdpResult {INAPPLICABLE, DO_NOT_ELIMINATE, IDP}
 

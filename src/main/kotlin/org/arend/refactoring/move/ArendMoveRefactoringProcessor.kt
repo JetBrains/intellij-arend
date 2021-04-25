@@ -17,11 +17,9 @@ import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.ext.module.LongName
-import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -404,24 +402,9 @@ class ArendMoveRefactoringProcessor(project: Project,
 
         //Add "this" parameters/arguments to definitions moved out of the class + definitions inside it
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionalDefinition || definition is ArendDefData) {
-            val anchor = definition.nameIdentifier
             val className = getTargetName(containingClass, definition).let { if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
-            val thisVarName = StringRenamer().generateFreshName(VariableImpl("this"), getAllBindings(definition).map { VariableImpl(it) }.toList())
-
             if (className != null) {
-                val thisTele: PsiElement = when (definition) {
-                    is ArendFunctionalDefinition -> {
-                        psiFactory.createNameTele(thisVarName, className, false)
-                    }
-                    is ArendDefData -> {
-                        psiFactory.createTypeTele(thisVarName, className, false)
-                    }
-                    else -> throw IllegalStateException()
-                }
-
-                definition.addAfterWithNotification(thisTele, anchor)
-                definition.addAfter(psiFactory.createWhitespace(" "), anchor)
-
+                val thisVarName = addImplicitClassDependency(psiFactory, definition, className)
                 val classifyingField = getClassifyingField(containingClass)
 
                 fun doSubstituteThisKwWithThisVar(psi: PsiElement) {
@@ -441,6 +424,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
                 modifyRecordDynamicDefCalls(definition, recordOtherDynamicMembers, psiFactory, thisVarName)
             }
+
         }
 
         myMoveCallback.invoke()
