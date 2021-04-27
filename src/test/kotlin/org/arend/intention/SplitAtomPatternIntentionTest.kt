@@ -460,8 +460,8 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | a{-caret-} => {?} 
     """, """
        \func foo (a : Array) : Nat
-         | Array.empty => {?}
-         | Array.cons a a1 => {?} 
+         | nil => {?}
+         | :: a a1 => {?} 
     """)
 
     fun test_arrays2() = typedQuickFixTest("Split", """
@@ -469,7 +469,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | a{-caret-} => {?} 
     """, """
        \func foo {n : Nat} (x : Array Nat (suc n)) : Nat
-         | Array.cons a a1 => {?} 
+         | :: a a1 => {?} 
     """)
 
     fun test_arrays3() = typedQuickFixTest("Split", """
@@ -477,7 +477,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | a{-caret-} => {?} 
     """, """
        \func foo (x : Array Nat 0) : Nat
-         | Array.empty => {?}
+         | nil => {?}
     """)
 
 
