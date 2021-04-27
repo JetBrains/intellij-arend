@@ -187,11 +187,11 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo (xs : List Nat) : Nat
          | xs{-caret-} => 0 
     """, """
-       \import A (::, List, nil) 
-        
-       \func foo (xs : List Nat) : Nat
-         | nil => 0
-         | :: a xs => 0 
+      \import A (List)
+      
+      \func foo (xs : List Nat) : Nat
+        | List.nil => 0
+        | List.:: a xs => 0  
     """)
 
     fun testLongName() = typedQuickFixTest("Split", """
