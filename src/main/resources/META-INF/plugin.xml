@@ -332,6 +332,8 @@
 
         <!-- Search everywhere contributor-->
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
+
+        <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
     </extensions>
 
     <actions>
