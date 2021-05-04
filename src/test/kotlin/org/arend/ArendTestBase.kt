@@ -16,7 +16,6 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ThrowableRunnable
 import com.maddyhome.idea.vim.VimPlugin
-import junit.framework.TestCase
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.ModulePath
@@ -69,18 +68,13 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         super.runTestRunnable(testRunnable)
     }
 
-    protected fun addGeneratedModules(filler : DefinitionContributor.() -> Unit) {
-        val library = library
-        val moduleScopeProvider = SimpleModuleScopeProvider()
-        filler(DefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
-        for (entry in moduleScopeProvider.registeredEntries) {
-            library.addGeneratedModule(entry.key, entry.value)
-        }
+    protected fun addGeneratedModules(filler: DefinitionContributor.() -> Unit) {
+        addGeneratedModules(this.library, filler)
     }
 
     protected val library: ArendRawLibrary
         get() = ArendModuleConfigService.getInstance(module)?.library
-            ?: throw IllegalStateException("Cannot find library")
+                ?: throw IllegalStateException("Cannot find library")
 
     protected val fileName: String
         get() = testName + FileUtils.EXTENSION
@@ -96,9 +90,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
         action()
 
-        val afterDir = getVirtualFileByName("$testDataPath/$after")
-        TestCase.assertNotNull(afterDir)
-        afterDir ?: return
+        val afterDir = findTestDataFile(after)
         PlatformTestUtil.assertDirectoriesEqual(afterDir, beforeDir)
     }
 
@@ -123,8 +115,8 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         myFixture.checkResult(replaceCaretMarker(after))
     }
 
-    private fun getVirtualFileByName(path: String): VirtualFile? =
-            LocalFileSystem.getInstance().findFileByPath(path)
+    protected fun findTestDataFile(path: String): VirtualFile =
+            LocalFileSystem.getInstance().findFileByPath("$testDataPath/$path")!!
 
     protected open class ArendProjectDescriptorBase : LightProjectDescriptor() {
         open val skipTestReason: String? = null
@@ -143,7 +135,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     inner class InlineFile(@Language("Arend") private val code: String, name: String = "Main.ard") {
         private val hasCaretMarker = CARET_MARKER in code
-        val psiFile : PsiFile = myFixture.configureByText(name, replaceCaretMarker(code))
+        val psiFile: PsiFile = myFixture.configureByText(name, replaceCaretMarker(code))
 
         fun withCaret(): PsiFile {
             check(hasCaretMarker) { "Please, add `$CARET_MARKER` marker to\n$code" }
@@ -195,6 +187,14 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
             return name
                     .split("(?=[A-Z])".toRegex())
                     .joinToString("_", transform = String::toLowerCase)
+        }
+
+        fun addGeneratedModules(library: ArendRawLibrary, filler: DefinitionContributor.() -> Unit) {
+            val moduleScopeProvider = SimpleModuleScopeProvider()
+            filler(DefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+            for (entry in moduleScopeProvider.registeredEntries) {
+                library.addGeneratedModule(entry.key, entry.value)
+            }
         }
     }
 
