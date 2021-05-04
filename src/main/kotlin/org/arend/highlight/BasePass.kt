@@ -144,6 +144,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     val errorCause = error.cause
                     if (errorCause is PsiElement && errorCause.isValid) {
                         annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
+                        annotation.registerFix(HideImportQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
                     }
                 }
 
@@ -151,6 +152,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     val errorCause = error.cause
                     if (errorCause is PsiElement && errorCause.isValid) {
                         annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
+                        annotation.registerFix(HideImportQuickFix(SmartPointerManager.createPointer(errorCause), null))
                     }
                 }
 

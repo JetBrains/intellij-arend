@@ -132,7 +132,7 @@ class ArendPsiFactory(
         return Pair(statCmd.lparen!!, statCmd.rparen!!)
     }
 
-    private fun createStatCmd(name: String): ArendStatCmd =
+    fun createStatCmd(name: String): ArendStatCmd =
         createFromText("\\open X \\hiding ($name)")?.childOfType() ?: error("Failed to create stat cmd: `$name`")
 
     fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStatement {

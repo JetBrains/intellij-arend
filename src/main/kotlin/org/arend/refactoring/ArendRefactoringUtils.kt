@@ -103,6 +103,40 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
     return insertedNsIds
 }
 
+private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElement, name: String, factory: ArendPsiFactory): ArendRefIdentifier {
+    var anchor = startAnchor
+    var needsComma = false
+    for (ref in refs) {
+        if (ref.referenceName <= name) {
+            needsComma = true
+            anchor = ref
+        }
+        if (ref.referenceName == name) return ref
+    }
+    val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.childOfType<ArendStatCmd>()
+    val ref = statCmd!!.refIdentifierList[1]!!
+    val comma = ref.findPrevSibling()!!
+    if (needsComma) anchor = anchor.parent.addAfterWithNotification(comma, anchor)
+    val insertedRef = anchor.parent.addAfterWithNotification(ref, anchor) as ArendRefIdentifier
+    if (!needsComma && insertedRef.findNextSibling() is ArendRefIdentifier) anchor.parent.addAfterWithNotification(comma, insertedRef)
+    return insertedRef
+}
+
+fun doAddIdToHiding(statCmd: ArendStatCmd, idList: List<String>) : List<ArendRefIdentifier> {
+    val factory = ArendPsiFactory(statCmd.project)
+    val statCmdSample = factory.createFromText("\\import Foo \\hiding (lol)")?.childOfType<ArendStatCmd>()
+    if (statCmd.hidingKw == null) statCmd.addAfterWithNotification(statCmdSample!!.hidingKw!!, statCmd.nsUsing ?: statCmd.longName)
+    if (statCmd.lparen == null) {
+        val pop = factory.createPairOfParens()
+        val anchor = statCmd.addAfterWithNotification(pop.first, statCmd.hidingKw)
+        statCmd.addAfterWithNotification(pop.second, anchor)
+    }
+    val lparen = statCmd.lparen
+    val result = ArrayList<ArendRefIdentifier>()
+    if (lparen != null) for (id in idList) result.add(addIdToHiding(statCmd.refIdentifierList, lparen, id, factory))
+    return result
+}
+
 fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean = true) {
     val elementToRemove = if (id.parent is ArendNsId) id.parent else id
     val parent = elementToRemove.parent

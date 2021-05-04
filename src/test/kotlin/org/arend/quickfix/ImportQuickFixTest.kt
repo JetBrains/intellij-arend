@@ -157,4 +157,52 @@ class ImportQuickFixTest : QuickFixTestBase() {
        \open M1
        \open M2 (baz \as baz1, foo) 
     """)
+
+    fun testHideImport01() = simpleQuickFixTest("Hide", """
+       \module M \where {
+         \func foo => 0
+       }
+
+       \module N \where {
+         \func foo => 1
+       }
+
+       \open M
+       \open N{-caret-} 
+    """, """
+       \module M \where {
+         \func foo => 0
+       }
+
+       \module N \where {
+         \func foo => 1
+       }
+
+       \open M
+       \open N \hiding (foo) 
+    """)
+
+    fun testHideImport02() = simpleQuickFixTest("Hide", """
+       \module M \where {
+         \func foo => 0
+       }
+
+       \module N \where {
+         \func foo => 1
+       }
+
+       \open M
+       \open N (foo{-caret-})
+    """, """
+       \module M \where {
+         \func foo => 0
+       }
+
+       \module N \where {
+         \func foo => 1
+       }
+
+       \open M
+       \open N ()
+    """)
 }
