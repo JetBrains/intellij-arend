@@ -13,7 +13,7 @@ class ArendParameterInfoTest : ArendTestBase() {
     private fun checkParameterInfo(code: String, expectedHint: String) {
         InlineFile(code).withCaret()
 
-        val handler = ShowParameterInfoHandler.getHandlers(project, ArendLanguage.INSTANCE)?.firstOrNull() ?:
+        val handler = ShowParameterInfoHandler.getHandlers(project, ArendLanguage.INSTANCE).firstOrNull() ?:
                             error("Could not find parameter info handler")
         val mockCreateParameterInfoContext = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
         val parameterOwner = handler.findElementForParameterInfo(mockCreateParameterInfoContext) as? PsiElement

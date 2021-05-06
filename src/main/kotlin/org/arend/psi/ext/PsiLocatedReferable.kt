@@ -11,7 +11,6 @@ import org.arend.resolving.DataLocatedReferable
 
 
 interface PsiLocatedReferable : LocatedReferable, PsiReferable {
-    @JvmDefault
     override fun getTypecheckable(): PsiLocatedReferable
 
     val defIdentifier: ArendDefIdentifier?

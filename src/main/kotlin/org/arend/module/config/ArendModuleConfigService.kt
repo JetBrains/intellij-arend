@@ -104,7 +104,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
             project.service<TypeCheckingService>().reload(true)
             callback()
-        } else ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading Arend Libraries", false) {
+        } else ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading Arend libraries", false) {
             override fun run(indicator: ProgressIndicator) {
                 refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                 runReadAction {
@@ -152,7 +152,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             extensionMainClassData = extMain
         }
         sourcesDir = yaml.sourcesDir ?: ""
-        langVersionString = yaml.langVersion ?: ""
+        langVersionString = yaml.langVersion
     }
 
     fun copyFromYAML(update: Boolean) {

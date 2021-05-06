@@ -77,7 +77,7 @@ class ArendReplExecutionHandler(
             repl.prettyPrinterFlags.addAll(settings.replPrintingOptionsFilterSet)
             settings.replPrintingOptionsFilterSet = repl.prettyPrinterFlags
         }
-        val normalization = settings.data.replNormalizationMode.toUpperCase()
+        val normalization = settings.data.replNormalizationMode.uppercase()
         try {
             repl.normalizationMode = NormalizationMode.valueOf(normalization)
         } catch (e: IllegalArgumentException) {

@@ -106,7 +106,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         }
 
         if (requiredAdditionalInfo) {
-            val numberOfParameters = parameters.sumBy { if (it.isExplicit) it.referableList.size else 0 }
+            val numberOfParameters = parameters.sumOf { if (it.isExplicit) it.referableList.size else 0 }
             if (numberOfParameters < argumentsExplicitness.size) {
                 argumentsExplicitness.subList(0, numberOfParameters).clear()
             } else {

@@ -13,13 +13,11 @@ interface IntellijReplCommand : ReplCommand {
         invoke(line, api as IntellijRepl, scanner)
     }
 
-    @JvmDefault
     override fun help(api: Repl): String {
         assert(api is IntellijRepl)
         return help(api as IntellijRepl)
     }
 
-    @JvmDefault
     fun help(api: IntellijRepl): String = super.help(api)
 
     /**
