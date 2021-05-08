@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    testImplementation(kotlin("reflect"))
+    testImplementation(kotlin("reflect:1.5.0"))
     implementation(kotlin("stdlib-jdk8"))
 }
 
