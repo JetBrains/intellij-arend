@@ -9,7 +9,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.TypedBinding
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.expr.ClassCallExpression
-import org.arend.core.sort.Sort
+import org.arend.core.subst.LevelPair
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.variable.VariableImpl
@@ -42,7 +42,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
             val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let { if (it.isNullOrEmpty()) missingClassInstance.defIdentifier?.textRepresentation() else it }
             val ppConfig = object : PrettyPrinterConfig { override fun getDefinitionRenamer(): DefinitionRenamer = PsiLocatedRenamer(ambientDefinition) }
             val classifyingTypeExpr = this.error.classifyingExpression?.let{ " " + ToAbstractVisitor.convert(it, ppConfig)?.toString() } ?: ""
-            val sampleVar = (error.classRef.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, Sort.STD)) } ?: VariableImpl("_")
+            val sampleVar = (error.classRef.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, LevelPair.STD)) } ?: VariableImpl("_")
             addImplicitClassDependency(psiFactory, ambientDefinition, className + classifyingTypeExpr, sampleVar)
         }
     }

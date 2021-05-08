@@ -7,13 +7,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.core.context.param.DependentLink
+import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
 import org.arend.ext.core.body.CorePattern
 import org.arend.ext.core.context.CoreBinding
 import org.arend.ext.core.context.CoreParameter
-import org.arend.ext.core.definition.CoreDefinition
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.renamer.StringRenamer
@@ -249,17 +248,16 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     }
                     return if (paren == Companion.Braces.BRACES) Companion.PatternKind.IMPLICIT_ARG else Companion.PatternKind.EXPLICIT
                 } else {
-                    val definition: CoreDefinition? = pattern.constructor
                     val previewResults = ArrayList<PatternKind>()
 
                     val patternIterator = pattern.subPatterns.iterator()
-                    var constructorArgument: CoreParameter? = definition?.parameters
+                    var constructorArgument: CoreParameter = pattern.parameters ?: EmptyDependentLink.getInstance()
 
                     while (patternIterator.hasNext()) {
                         val argumentPattern = patternIterator.next()
                         previewResults.add(previewPattern(argumentPattern, filters,
-                                if (constructorArgument == null || constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
-                        constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                                if (constructorArgument.isExplicit) Companion.Braces.PARENTHESES else Companion.Braces.BRACES, recursiveTypeUsages, recursiveTypeDefinition))
+                        if (constructorArgument.hasNext()) constructorArgument = constructorArgument.next
                     }
 
                     filters[pattern] = computeFilter(previewResults)
@@ -330,19 +328,19 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val argumentPatterns = ArrayList<String>()
                         run {
                             val patternIterator = pattern.subPatterns.iterator()
-                            var constructorArgument: DependentLink? = definition?.parameters
+                            var constructorArgument: CoreParameter = pattern.parameters ?: EmptyDependentLink.getInstance()
 
                             while (patternIterator.hasNext()) {
                                 val argumentPattern = patternIterator.next()
                                 val argumentParen = when {
                                     tupleMode -> Companion.Braces.NONE
-                                    constructorArgument == null || constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
+                                    constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                     else -> Companion.Braces.BRACES
                                 }
                                 val argPattern = doTransformPattern(argumentPattern, cause, project, filters, argumentParen, occupiedNames, sampleParameter, nRecursiveBindings, eliminatedBindings, missingClausesError)
                                 argumentPatterns.add(argPattern.first)
                                 containsEmptyPattern = containsEmptyPattern || argPattern.second
-                                constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                                if (constructorArgument.hasNext()) constructorArgument = constructorArgument.next
                             }
                         }
 

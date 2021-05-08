@@ -6,7 +6,6 @@ import com.intellij.psi.PsiElement
 import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
-import org.arend.core.definition.Constructor
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
@@ -62,7 +61,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
                 is ClassCallExpression -> {
                     val definition = type.definition
-                    if (definition.isRecord) singletonList(RecordSplitPatternEntry(type, definition)) else null
+                    if (definition == Prelude.ARRAY) {
+                        val isEmpty = ConstructorExpressionPattern.isArrayEmpty(type)
+                        val result = ArrayList<SplitPatternEntry>()
+                        for (p in arrayOf(Pair(true, Prelude.EMPTY_ARRAY), Pair(false, Prelude.ARRAY_CONS)))
+                            if (isEmpty == null || isEmpty == p.first) result.add(ConstructorSplitPatternEntry(p.second, defIdentifier?.name, type.definition))
+                        result
+                    } else if (definition.isRecord)
+                        singletonList(RecordSplitPatternEntry(type, definition))
+                    else null
                 }
                 else -> null
             }
@@ -187,7 +194,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class ConstructorSplitPatternEntry(val constructor: Constructor,
+        class ConstructorSplitPatternEntry(val constructor: Definition,
                                            parameterName: String?,
                                            recursiveTypeDefinition: Definition?) : DependentLinkSplitPatternEntry(parameterName, recursiveTypeDefinition) {
             override fun getDependentLink(): DependentLink = constructor.parameters

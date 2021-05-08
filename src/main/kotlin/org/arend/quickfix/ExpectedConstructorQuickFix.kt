@@ -767,7 +767,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     else {
                         val constructor = pattern.constructor
                         val tupleMode = constructor == null
-                        var constructorArgument: DependentLink? = constructor?.parameters
+                        var constructorArgument: DependentLink = pattern.parameters
                         var result = if (constructor != null) ResolveReferenceAction.getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location) + " " else "("
                         val patternIterator = pattern.subPatterns.iterator()
                         var complexity = 1
@@ -780,13 +780,13 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             if (argumentData.containsClassConstructor) containsClassConstructor = true
 
                             result += when {
-                                constructorArgument != null && !constructorArgument.isExplicit -> "{${argumentData.patternString}}"
+                                !constructorArgument.isExplicit -> "{${argumentData.patternString}}"
                                 !tupleMode && argumentData.requiresParentheses -> "(${argumentData.patternString})"
                                 else -> argumentData.patternString
                             }
                             if (patternIterator.hasNext()) result += if (tupleMode) ", " else " "
 
-                            constructorArgument = if (constructorArgument != null && constructorArgument.hasNext()) constructorArgument.next else null
+                            if (constructorArgument.hasNext()) constructorArgument = constructorArgument.next
                         }
 
                         if (tupleMode) result += ")"

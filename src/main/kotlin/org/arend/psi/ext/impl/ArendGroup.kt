@@ -16,7 +16,6 @@ interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode {
 
     override fun getSubgroups(): List<ArendGroup>
 
-    @JvmDefault
     override fun getDynamicSubgroups(): List<ArendGroup>
 
     override fun getInternalReferables(): Collection<ArendInternalReferable>

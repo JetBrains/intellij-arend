@@ -3,11 +3,13 @@ package org.arend.psi.stubs
 import com.intellij.psi.PsiFile
 import com.intellij.psi.stubs.*
 import com.intellij.psi.tree.IStubFileElementType
-import org.arend.ArendFileType
 import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.impl.CoClauseDefAdapter
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.impl.*
 
 class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubImpl<ArendFile>(file), ArendNamedStub {
@@ -115,6 +117,9 @@ class ArendCoClauseDefStub(parent: StubElement<*>?, elementType: IStubElementTyp
     object Type : ArendStubElementType<ArendCoClauseDefStub, ArendCoClauseDef>("CO_CLAUSE_DEF") {
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendCoClauseDefStub(parentStub, this, name, prec, aliasName)
+
+        override fun createStub(psi: ArendCoClauseDef, parentStub: StubElement<*>?) =
+            createStub(parentStub, psi.name, (psi as? CoClauseDefAdapter)?.parentCoClause?.prec?.let { ReferableAdapter.calcPrecedence(it) }, (psi as? GlobalReferable)?.aliasName)
 
         override fun createPsi(stub: ArendCoClauseDefStub) = ArendCoClauseDefImpl(stub, this)
 

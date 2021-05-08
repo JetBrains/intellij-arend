@@ -37,7 +37,7 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
     }
 
     override fun getActions(onChanged: Runnable): MutableList<AnAction> {
-        return singletonList(doGetActions("Lol", FileSearchEverywhereContributor.createFileTypeFilter(this.myProject), onChanged).first())
+        return singletonList(doGetActions(FileSearchEverywhereContributor.createFileTypeFilter(this.myProject), null, onChanged).first())
     }
 }
 

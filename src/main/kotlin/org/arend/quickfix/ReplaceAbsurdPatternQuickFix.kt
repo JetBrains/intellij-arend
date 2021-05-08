@@ -6,10 +6,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.Constructor
+import org.arend.core.definition.Definition
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.psi.ext.ArendCompositeElement
 
-class ReplaceAbsurdPatternQuickFix(private val constructors: Collection<Constructor>,
+class ReplaceAbsurdPatternQuickFix(private val constructors: Collection<Definition>,
                                    private val causeRef: SmartPsiElementPointer<ArendCompositeElement>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 

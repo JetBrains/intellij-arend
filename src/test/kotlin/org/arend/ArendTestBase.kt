@@ -194,7 +194,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
             if (' ' in name) return name.replace(" ", "_")
             return name
                     .split("(?=[A-Z])".toRegex())
-                    .joinToString("_", transform = String::toLowerCase)
+                    .joinToString("_", transform = String::lowercase)
         }
     }
 
