@@ -327,9 +327,12 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | (a,b) => {?} 
             """)
 
-    fun testTuple3() = typedCheckNoQuickFixes("Implement",
+    fun testTuple3() = typedQuickFixTest("Implement",
             """
                \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A 
+            """, """
+               \func test {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A 
+                 | B, (x,b) => {?}
             """)
 
     fun testFixInArendCoClauseDef() = typedQuickFixTest("Implement", """
