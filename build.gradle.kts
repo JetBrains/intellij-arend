@@ -54,7 +54,7 @@ idea {
 }
 
 intellij {
-    version = "2021.1.1"
+    version = "2021.1"
     pluginName = "Arend"
     updateSinceUntilBuild = true
     instrumentCode = true
@@ -105,7 +105,7 @@ tasks.withType<KotlinCompile>().configureEach {
         jvmTarget = "11"
         languageVersion = "1.5"
         apiVersion = "1.5"
-        freeCompilerArgs = listOf("-Xjvm-default=all-compatibility")
+        freeCompilerArgs = listOf("-Xjvm-default=all")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
 }
