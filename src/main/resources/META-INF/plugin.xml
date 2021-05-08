@@ -202,6 +202,11 @@
             <category>Arend</category>
         </intentionAction>
 
+        <intentionAction>
+            <className>org.arend.intention.SwapInfixOperatorArgumentsIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
         <!-- <highlightRangeExtension implementation="org.arend.annotation.ArendHighlightRangeExtension"/> -->
 
         <daemon.changeLocalityDetector implementation="org.arend.highlight.ArendChangeLocalityDetector"/>
