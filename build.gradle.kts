@@ -22,7 +22,6 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    testImplementation(kotlin("reflect:1.5.0"))
     implementation(kotlin("stdlib-jdk8"))
 }
 
@@ -106,7 +105,7 @@ tasks.withType<KotlinCompile>().configureEach {
         jvmTarget = "11"
         languageVersion = "1.5"
         apiVersion = "1.5"
-        freeCompilerArgs = listOf("-Xjvm-default=all")
+        freeCompilerArgs = listOf("-Xjvm-default=all-compatibility")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
 }
