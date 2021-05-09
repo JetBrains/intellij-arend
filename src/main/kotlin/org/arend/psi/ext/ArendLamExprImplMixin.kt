@@ -4,11 +4,14 @@ import com.intellij.lang.ASTNode
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.psi.ArendLamExpr
+import org.arend.psi.ArendLamParam
 import org.arend.psi.ArendNameTele
 
-abstract class ArendLamExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendLamExpr, Abstract.ParametersHolder {
+abstract class ArendLamExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendLamExpr, Abstract.LamParametersHolder {
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        visitor.visitLam(this, nameTeleList, expr, params)
+        visitor.visitLam(this, lamParamList, expr, params)
 
-    override fun getParameters(): List<ArendNameTele> = nameTeleList
+    override fun getParameters(): List<ArendNameTele> = lamParamList.filterIsInstance<ArendNameTele>()
+
+    override fun getLamParameters(): List<ArendLamParam> = lamParamList
 }

@@ -37,7 +37,7 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
 
 val Abstract.ParametersHolder.parametersText: String?
     get() {
-        val parameters = (this as? Abstract.ParametersHolder)?.parameters ?: return null
+        val parameters = parameters
         if (parameters.isEmpty()) {
             return null
         }

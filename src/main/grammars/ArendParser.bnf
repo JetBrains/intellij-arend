@@ -105,6 +105,7 @@
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
     extends("atomArgument|newArg|universeAtom|implicitArgument") = argument
+    extends("lamTele|atomPattern") = lamParam
 }
 
 statements ::= repl_line | (topStatement | topStatement_recovery)*
@@ -446,7 +447,11 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
     | NUMBER
     | NEGATIVE_NUMBER
-    | UNDERSCORE
+    | UNDERSCORE {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Pattern" ]
+    mixin = "org.arend.psi.ext.ArendAtomPatternImplMixin"
+}
 
 constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
     pin = 3
@@ -612,15 +617,20 @@ sigmaExpr ::= SIGMA_KW typeTele* {
     mixin = "org.arend.psi.ext.ArendSigmaExprImplMixin"
 }
 
-lamExpr ::= LAM_KW nameTele+ [FAT_ARROW expr?] {
+lamExpr ::= LAM_KW lamParam+ [FAT_ARROW expr?] {
     pin = 1
     mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
 
 //noinspection BnfUnusedRule
-lamExprWOB ::= LAM_KW nameTele+ [FAT_ARROW exprWOB?] {
+lamExprWOB ::= LAM_KW lamParam+ [FAT_ARROW exprWOB?] {
     pin = 1
     elementType = lamExpr
+}
+
+lamParam ::= lamTele | atomPattern {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LamParameter" ]
 }
 
 private pipe_def_un ::= PIPE {
@@ -914,6 +924,14 @@ nameTele ::= identifierOrUnknown
     recoverWhile = nameTele_recover
 }
 
+lamTele ::= identifierOrUnknown
+    | LPAREN identifierOrUnknown+ COLON expr RPAREN
+    | LBRACE (identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.Parameter" ]
+    mixin = "org.arend.psi.ext.ArendLamTeleImplMixin"
+}
+
 nameTeleUntyped ::= defIdentifier {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Parameter" ]
@@ -923,7 +941,7 @@ nameTeleUntyped ::= defIdentifier {
 
 private nameTeleUntyped_recover ::= !(ID | FAT_ARROW) & statement_recover
 
-private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1}
+private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1 }
 
 private nameTeleImplicit ::= LBRACE (STRICT_KW identifierOrUnknown+ COLON expr | identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE { pin = 1 }
 

@@ -96,17 +96,17 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return (expr as? Concrete.ReferenceExpression)?.referent
     }
 
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?): Referable? = referent
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = referent
 
-    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?): Referable? = referent
+    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = referent
 
-    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, params: Void?): Referable? {
+    override fun visitLam(data: Any?, parameters: Collection<Abstract.LamParameter>, body: Abstract.Expression?, params: Void?): Referable? {
         if (mode != Mode.EXPRESSION || body == null) {
             return null
         }
 
         if (requiredAdditionalInfo) {
-            val numberOfParameters = parameters.sumOf { if (it.isExplicit) it.referableList.size else 0 }
+            val numberOfParameters = parameters.sumOf { if (it is Abstract.Parameter && it.isExplicit) it.referableList.size else 0 }
             if (numberOfParameters < argumentsExplicitness.size) {
                 argumentsExplicitness.subList(0, numberOfParameters).clear()
             } else {

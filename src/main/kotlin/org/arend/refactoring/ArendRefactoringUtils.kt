@@ -573,9 +573,9 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
     }
 
     val requiresLeadingArgumentParentheses = leadingElements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1
-    var leadingText = leadingElements.fold("", { acc, element -> acc + element.text }).trim()
+    var leadingText = leadingElements.fold("") { acc, element -> acc + element.text }.trim()
     if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
-    val trailingText = trailingElements.fold("", { acc, element -> acc + element.text }).trim()
+    val trailingText = trailingElements.fold("") { acc, element -> acc + element.text }.trim()
     val isLambda = leadingElements.size == 0
 
     if (isLambda) {
@@ -748,7 +748,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = APP_PREC
     override fun visitThis(data: Any?, params: Void?) = MAX_PREC
-    override fun visitLam(data: Any?, parameters: Collection<Abstract.Parameter>, body: Abstract.Expression?, params: Void?) = MIN_PREC
+    override fun visitLam(data: Any?, parameters: Collection<Abstract.LamParameter>, body: Abstract.Expression?, params: Void?) = MIN_PREC
     override fun visitPi(data: Any?, parameters: Collection<Abstract.Parameter>, codomain: Abstract.Expression?, params: Void?) = MIN_PREC
     override fun visitApplyHole(data: Any?, params: Void?) = MAX_PREC
     override fun visitInferHole(data: Any?, params: Void?) = MAX_PREC

@@ -47,7 +47,6 @@ import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder.*
-import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.error.local.ExpectedConstructorError
@@ -55,6 +54,7 @@ import org.arend.typechecking.patternmatching.ElimTypechecking
 import org.arend.typechecking.patternmatching.ExpressionMatcher
 import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.visitor.CheckTypeVisitor
+import org.arend.typechecking.visitor.VoidConcreteVisitor
 import org.arend.util.Decision
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
@@ -386,7 +386,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 }
 
                                 var result = doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName)
-                                var number = (result as? ArendAtomPatternOrPrefix)?.number
+                                var number = (result as? ArendAtomPatternOrPrefix)?.integer
                                 if (number != null) {
                                     var needsReplace = false
                                     while (result != null && isSucPattern(result.parent)) {
@@ -461,8 +461,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         is Concrete.CoelimFunctionBody -> for (cce in b.coClauseElements) if (cce is Concrete.ClassFieldImpl) children.add(cce.implementation)
                     }
 
-                    val searcher = object : BaseConcreteExpressionVisitor<Void>() {
-                        override fun visitCase(expr: Concrete.CaseExpression?, params: Void?): Concrete.Expression {
+                    val searcher = object : VoidConcreteVisitor<Void,Void>() {
+                        override fun visitCase(expr: Concrete.CaseExpression?, params: Void?): Void? {
                             if (expr?.data == caseExprPsi) concreteCaseExpr = expr
                             return super.visitCase(expr, params)
                         }

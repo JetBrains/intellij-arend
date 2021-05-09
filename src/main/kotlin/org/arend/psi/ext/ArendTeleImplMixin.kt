@@ -18,6 +18,18 @@ abstract class ArendNameTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     override fun isStrict() = strictKw != null
 }
 
+abstract class ArendLamTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendLamTele {
+    override fun getData() = this
+
+    override fun isExplicit() = lbrace == null
+
+    override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
+
+    override fun getType() = expr
+
+    override fun isStrict() = false
+}
+
 abstract class ArendNameTeleUntypedImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendNameTeleUntyped {
     override fun getData() = this
 
@@ -35,10 +47,8 @@ abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
 
     override fun isExplicit() = lbrace == null
 
-    override fun getReferableList(): List<Referable?> {
-        val list = typedExpr?.identifierOrUnknownList?.map { it.defIdentifier } ?: listOf(null)
-        return if (list.isEmpty()) listOf(null) else list
-    }
+    override fun getReferableList(): List<Referable?> =
+        typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.ifEmpty { listOf(null) } ?: listOf(null)
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
 
