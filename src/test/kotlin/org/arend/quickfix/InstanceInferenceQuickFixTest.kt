@@ -178,4 +178,70 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
          
        \func test => foo{-caret-}
     """)
+
+    fun testReplaceWithLocalInstance1() = typedQuickFixTest("Replace", """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {A : \Type} (a : A) => foo{-caret-} a 
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {A : C} (a : A) => foo a   
+    """)
+
+    fun testReplaceWithLocalInstance2() = typedQuickFixTest("Replace", """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {A B : \Type} (a : A) => foo{-caret-} a 
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {A : C} {B : \Type} (a : A) => foo a   
+    """)
+
+    fun testReplaceWithLocalInstance3() = typedQuickFixTest("Replace", """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {B A : \Type} (a : A) => foo{-caret-} a 
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {B : \Type} {A : C} (a : A) => foo a   
+    """)
+
+    fun testReplaceWithLocalInstance4() = typedQuickFixTest("Replace", """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {B A D : \Type} (a : A) => foo{-caret-} a 
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test {B : \Type} {A : C} {D : \Type} (a : A) => foo a   
+    """)
+
+    fun testReplaceWithLocalInstance5() = typedQuickFixTest("Replace", """
+       \class C (A : \Type)
+         | foo : A -> A
+
+       \func f {A : \Type} (a : A) : \Type => A
+
+       \data D {B A E : \Type} (a : A)
+         | cons (x : f {A} (foo{-caret-} a))
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+
+       \func f {A : \Type} (a : A) : \Type => A
+
+       \data D {B : \Type} {A : C} {E : \Type} (a : A)
+         | cons (x : f {A} (foo a))       
+    """)
 }

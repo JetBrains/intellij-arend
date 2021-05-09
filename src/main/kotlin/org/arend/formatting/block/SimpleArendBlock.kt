@@ -91,6 +91,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 if (c1et == COLON && psi2 is ArendExpr) return oneSpaceWrap
             }
 
+            if ((myNode.psi is ArendNameTele || myNode.psi is ArendTypedExpr) && (c1et == IDENTIFIER_OR_UNKNOWN && c2et == COLON)) return oneSpaceWrap
+            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE) return oneSpaceWrap
+
             if (myNode.psi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW || c1et == COMMA && c2et == PATTERN)) return oneSpaceWrap

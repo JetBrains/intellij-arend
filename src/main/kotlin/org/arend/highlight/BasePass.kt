@@ -18,6 +18,8 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
+import org.arend.core.context.param.DependentLink
+import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.error.*
@@ -40,9 +42,11 @@ import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.instance.AddInstanceArgumentQuickFix
 import org.arend.quickfix.instance.InstanceInferenceQuickFix
+import org.arend.quickfix.instance.ReplaceWithLocalInstanceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
 import org.arend.refactoring.replaceExprSmart
+import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
@@ -277,7 +281,9 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is RedundantCoclauseError -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
                 is InstanceInferenceError -> if (cause is ArendLongName) {
-                    annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    val classifyingExpression = error.classifyingExpression
+                    val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList(((error as LocalError).definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
+                    if (isLocal) annotation.registerFix(ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
                     annotation.registerFix(AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
                 }
 

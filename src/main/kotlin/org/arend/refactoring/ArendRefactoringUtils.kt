@@ -546,6 +546,29 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
     }
 }
 
+fun getTele(tele: PsiElement): List<ArendIdentifierOrUnknown>? = when (tele) {
+    is ArendNameTele -> tele.identifierOrUnknownList
+    is ArendTypeTele -> tele.typedExpr?.identifierOrUnknownList
+    else -> null
+}
+
+fun splitTele(tele: PsiElement/* Name or Type tele */, index : Int) {
+    var teleSize = getTele(tele)?.size
+    if (teleSize != null) {
+        if (index > 0) {
+            val copy = tele.parent.addBeforeWithNotification(tele.copy(), tele)
+            getTele(tele)?.let { it.first().parent.deleteChildRange(it.first(), it[index-1]) }
+            getTele(copy)?.let { it.first().parent.deleteChildRange(it[index], it.last()) }
+        }
+        teleSize -= index
+        if (teleSize > 1) {
+            val copy = tele.parent.addAfterWithNotification(tele.copy(), tele)
+            getTele(tele)?.let { it.first().parent.deleteChildRange(it[1], it.last()) }
+            getTele(copy)?.let { it[0].delete() }
+        }
+    }
+}
+
 fun surroundingTupleExpr(baseExpr: ArendExpr): ArendTupleExpr? =
         (baseExpr.parent as? ArendNewExpr)?.let { newExpr ->
             if (newExpr.appPrefix == null && newExpr.lbrace == null && newExpr.argumentList.isEmpty())
