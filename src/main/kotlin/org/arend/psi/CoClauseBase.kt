@@ -18,7 +18,7 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
 
     val longName: ArendLongName?
 
-    val nameTeleList: List<ArendNameTele>
+    val lamParamList: List<ArendLamParam>
 
     val resolvedImplementedField: Referable?
 

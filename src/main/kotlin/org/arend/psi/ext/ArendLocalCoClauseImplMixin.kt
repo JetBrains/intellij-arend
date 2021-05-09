@@ -16,7 +16,9 @@ abstract class ArendLocalCoClauseImplMixin(node: ASTNode) : ArendSourceNodeImpl(
     override val resolvedImplementedField
         get() = longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? Referable
 
-    override fun getParameters(): List<ArendNameTele> = nameTeleList
+    override fun getParameters(): List<ArendLamTele> = lamParamList.filterIsInstance<ArendLamTele>()
+
+    override fun getLamParameters(): List<ArendLamParam> = lamParamList
 
     override fun getImplementation(): ArendExpr? = expr
 

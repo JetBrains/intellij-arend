@@ -703,7 +703,7 @@ private co_clause_imp_recover ::= !(PIPE | RBRACE | ID | UNDERSCORE) & statement
 
 private localCoClausePrivate ::= longName (coClauseRec | coClauseImpl) { pin = 1 }
 
-private coClauseImpl ::= nameTele* FAT_ARROW expr { pin = 2 }
+private coClauseImpl ::= lamParam* FAT_ARROW expr { pin = 2 }
 
 private coClauseRec ::= LBRACE coClauseImp* RBRACE
 

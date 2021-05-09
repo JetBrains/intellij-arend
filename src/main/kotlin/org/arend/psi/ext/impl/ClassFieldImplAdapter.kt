@@ -37,7 +37,9 @@ abstract class ClassFieldImplAdapter : ReferableAdapter<ArendClassImplementStub>
 
     override fun getName() = stub?.name ?: longName.refIdentifierList.lastOrNull()?.referenceName
 
-    override fun getParameters(): List<ArendNameTele> = nameTeleList
+    override fun getParameters(): List<ArendLamTele> = lamParamList.filterIsInstance<ArendLamTele>()
+
+    override fun getLamParameters(): List<ArendLamParam> = lamParamList
 
     override fun getImplementation() = expr
 
